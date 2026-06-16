@@ -89,6 +89,9 @@ class Settings(BaseSettings):
     use_vertex_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Vertex AI for LLM")] = (
         False
     )
+    disable_vertex_cache: Annotated[
+        bool, BeforeValidator(strip_whitespace), Field(description="Bypass Vertex Context Cache for pure runs")
+    ] = False
     use_firebase_auth: Annotated[
         bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")
     ] = True

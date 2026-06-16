@@ -22,7 +22,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'target_blocks',
         'text_delivery_mode',
         'synthesis',
-        'synthesis_md',
+        'synthesis_blocks',
         'strictness_level',
         'scoring_strategy',
       ],
@@ -66,7 +66,14 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
             ? null
             : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
       ),
-      synthesisMd: $checkedConvert('synthesis_md', (v) => v as String?),
+      synthesisBlocks: $checkedConvert(
+        'synthesis_blocks',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
       strictnessLevel: $checkedConvert(
         'strictness_level',
         (v) => (v as num?)?.toInt(),
@@ -82,25 +89,26 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     'presetView': 'preset_view',
     'targetBlocks': 'target_blocks',
     'textDeliveryMode': 'text_delivery_mode',
-    'synthesisMd': 'synthesis_md',
+    'synthesisBlocks': 'synthesis_blocks',
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
   },
 );
 
-Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
-    <String, dynamic>{
-      'preset_view': _$PresetViewEnumMap[instance.presetView]!,
-      'title': instance.title?.toJson(),
-      'description': instance.description?.toJson(),
-      'steps': instance.steps,
-      'target_blocks': instance.targetBlocks,
-      'text_delivery_mode': instance.textDeliveryMode,
-      'synthesis': instance.synthesis?.toJson(),
-      'synthesis_md': instance.synthesisMd,
-      'strictness_level': instance.strictnessLevel,
-      'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
-    };
+Map<String, dynamic> _$OutputLayoutBlockToJson(
+  _OutputLayoutBlock instance,
+) => <String, dynamic>{
+  'preset_view': _$PresetViewEnumMap[instance.presetView]!,
+  'title': instance.title?.toJson(),
+  'description': instance.description?.toJson(),
+  'steps': instance.steps,
+  'target_blocks': instance.targetBlocks,
+  'text_delivery_mode': instance.textDeliveryMode,
+  'synthesis': instance.synthesis?.toJson(),
+  'synthesis_blocks': instance.synthesisBlocks.map((e) => e.toJson()).toList(),
+  'strictness_level': instance.strictnessLevel,
+  'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
+};
 
 const _$PresetViewEnumMap = {
   PresetView.metrics1d: '1d_metrics',

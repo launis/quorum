@@ -70,10 +70,10 @@ Seuraavia sääntöjä on noudatettava ehdottomasti koko epicin toteutuksen ajan
 - **✅ Ratkaistu:** "Structured Prompting" -epicin `const -> enum` -kääntäjä (`client.py` tai vastaava) on jo onnistuneesti implementoitu (`strip_unsupported_constraints`). Yhtäkään estettä Epicin aloittamiselle ei ole.
 
 ## 5. Menestyskriteerit (Definition of Done)
-- [ ] Backend tuottaa synteesit litteänä `content_blocks` -listana vapaamuotoisen Markdownin sijaan.
-- [ ] Pydantic-malleissa on käytössä `extra="forbid"` sekä unionin O(1)-diskriminaattori (`block_type`).
-- [ ] Yksikään blokkityyppi ei ole rekursiivinen (Flat Architecture -mandaatti toteutuu).
-- [ ] Lähdeviittaukset ovat `citations`-listoissa; regex-parsintaa ei enää tarvita tekstistä.
-- [ ] LLM-promptissa on eksplisiittinen `<rule>` sallituista komponenteista.
-- [ ] Flutter piirtää synteesin ilman Markdown-kirjastoa pelkillä natiiviwidgeteillä.
-- [ ] PDF-generaattori rakentaa rakenteen suoraan blokkien pohjalta ilman Markdown-filtteriä.
+- [x] Backend tuottaa synteesit litteänä `content_blocks` -listana vapaamuotoisen Markdownin sijaan.
+- [x] Pydantic-malleissa on käytössä `extra="forbid"` sekä unionin O(1)-diskriminaattori (`block_type`).
+- [x] Yksikään blokkityyppi ei ole rekursiivinen (Flat Architecture -mandaatti toteutuu).
+- [x] Lähdeviittaukset ovat `citations`-listoissa; regex-parsintaa ei enää tarvita tekstistä.
+- [x] LLM-promptissa on eksplisiittinen `<rule>` sallituista komponenteista.
+- [x] Flutter piirtää synteesin ilman Markdown-kirjastoa pelkillä natiiviwidgeteillä.
+- [x] PDF-generaattori rakentaa rakenteen suoraan blokkien pohjalta ilman Markdown-filtteriä.

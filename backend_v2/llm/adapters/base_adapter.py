@@ -83,16 +83,20 @@ async def apply_provider_pacing(provider_name: str) -> None:
     Raises:
         AppException: NETWORK_UNAVAILABLE if Redis execution fails during pacing operations.
     """
-    delay = 0
-    if provider_name == LLMProviderName.VERTEX_AI.value:
-        delay = SystemConcurrency.PACING_DELAY_VERTEX_SECONDS.value
-    elif provider_name == LLMProviderName.OPENAI.value:
-        delay = SystemConcurrency.PACING_DELAY_OPENAI_SECONDS.value
-    elif provider_name == LLMProviderName.MOCK.value:
-        delay = SystemConcurrency.PACING_DELAY_MOCK_SECONDS.value
+    match provider_name:
+        case LLMProviderName.VERTEX_AI.value | LLMProviderName.GOOGLE.value:
+            delay = SystemConcurrency.PACING_DELAY_VERTEX_SECONDS.value
+        case LLMProviderName.OPENAI.value:
+            delay = SystemConcurrency.PACING_DELAY_OPENAI_SECONDS.value
+        case LLMProviderName.MOCK.value:
+            delay = SystemConcurrency.PACING_DELAY_MOCK_SECONDS.value
+        case _:
+            delay = 0
 
     if delay <= 0:
         return
+
+    logger.info("Applying provider pacing of %s seconds for '%s'.", delay, provider_name)
 
     try:
         redis_client = await get_redis_client_for_pacing()

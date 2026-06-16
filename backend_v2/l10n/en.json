@@ -1,0 +1,6 @@
+{
+  "role_passenger": "Passenger",
+  "role_navigator": "Navigator",
+  "role_driver": "Driver",
+  "role_architect": "Architect"
+}

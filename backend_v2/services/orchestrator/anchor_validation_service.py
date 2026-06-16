@@ -2,10 +2,7 @@ import logging
 import re
 import unicodedata
 
-from rapidfuzz import fuzz
-
 from backend_v2.exceptions import SemanticEvidenceError
-from backend_v2.models.enums import get_lexical_fuzz_threshold
 
 logger = logging.getLogger(__name__)
 
@@ -156,20 +153,10 @@ class AnchorValidationService:
             extracted = pdf_text[start_idx : end_idx + 1]
             return extracted
 
-        # SLOW-PATH (Fuzzy Fallback): Sallitaan pienen toleranssin OCR/typografia -virheet
-        threshold = get_lexical_fuzz_threshold(locale)
-        similarity = fuzz.partial_ratio(norm_quote, norm_pdf)
-        if similarity >= threshold:
-            logger.warning(
-                "Backend Lexical Verifier: Exact match failed, but fuzzy fallback triggered. Returning cleaned LLM quote.",
-                extra={"exact_quote": exact_quote, "similarity": similarity, "threshold": threshold},
-            )
-            return exact_quote
-
         logger.error(
-            f"Backend Lexical Verifier failed: exact_quote '{exact_quote}' not found in source text. (Similarity: {similarity}%)",
-            extra={"exact_quote": exact_quote, "similarity": similarity},
+            f"Backend Lexical Verifier failed: exact_quote '{exact_quote}' not found in source text.",
+            extra={"exact_quote": exact_quote},
         )
         raise SemanticEvidenceError(
-            message=f"Lexical validation failed: exact_quote '{exact_quote}' not found in source text (Similarity: {similarity}%)."
+            message=f"Lexical validation failed: exact_quote '{exact_quote}' not found in source text."
         )

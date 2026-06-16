@@ -9,7 +9,9 @@ void main() {
       () {
         final json = {
           "workflow_id": "wf_123",
-          "synthesized_markdown": "Great job",
+          "content_blocks": [
+            {"block_type": "paragraph", "text": "Great job"},
+          ],
         };
 
         expect(() => ReportDataDTO.fromJson(json), throwsException);
@@ -46,7 +48,9 @@ void main() {
             ],
           },
         ],
-        "synthesized_markdown": "Kokonaisarvio...",
+        "content_blocks": [
+          {"block_type": "paragraph", "text": "Kokonaisarvio..."},
+        ],
       };
 
       final dto = ReportDataDTO.fromJson(json);

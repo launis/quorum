@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OutputLayoutBlock {
 
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> get synthesisBlocks;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $OutputLayoutBlockCopyWith<OutputLayoutBlock> get copyWith => _$OutputLayoutBloc
 
 @override
 String toString() {
-  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy)';
+  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisBlocks: $synthesisBlocks, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $OutputLayoutBlockCopyWith<$Res>  {
   factory $OutputLayoutBlockCopyWith(OutputLayoutBlock value, $Res Function(OutputLayoutBlock) _then) = _$OutputLayoutBlockCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> synthesisBlocks,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy
 });
 
 
@@ -58,7 +58,7 @@ class _$OutputLayoutBlockCopyWithImpl<$Res>
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisBlocks = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,}) {
   return _then(_self.copyWith(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as PresetView,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -67,8 +67,8 @@ as I18nText?,steps: null == steps ? _self.steps : steps // ignore: cast_nullable
 as List<String>,targetBlocks: null == targetBlocks ? _self.targetBlocks : targetBlocks // ignore: cast_nullable_to_non_nullable
 as List<String>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
-as SynthesisConfigDTO?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
-as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
+as SynthesisConfigDTO?,synthesisBlocks: null == synthesisBlocks ? _self.synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
+as List<SduiBlockDTO>,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
 as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
 as ScoringStrategy?,
   ));
@@ -191,10 +191,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd,_that.strictnessLevel,_that.scoringStrategy);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisBlocks,_that.strictnessLevel,_that.scoringStrategy);case _:
   return orElse();
 
 }
@@ -212,10 +212,10 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)  $default,) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock():
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd,_that.strictnessLevel,_that.scoringStrategy);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisBlocks,_that.strictnessLevel,_that.scoringStrategy);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -232,10 +232,10 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd,_that.strictnessLevel,_that.scoringStrategy);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisBlocks,_that.strictnessLevel,_that.scoringStrategy);case _:
   return null;
 
 }
@@ -247,7 +247,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 @JsonSerializable()
 
 class _OutputLayoutBlock extends OutputLayoutBlock {
-  const _OutputLayoutBlock({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) this.presetView = PresetView.defaultView, this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = 'full', this.synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy}): _steps = steps,_targetBlocks = targetBlocks,super._();
+  const _OutputLayoutBlock({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) this.presetView = PresetView.defaultView, this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = 'full', this.synthesis, @JsonKey(name: 'synthesis_blocks') final  List<SduiBlockDTO> synthesisBlocks = const [], @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy}): _steps = steps,_targetBlocks = targetBlocks,_synthesisBlocks = synthesisBlocks,super._();
   factory _OutputLayoutBlock.fromJson(Map<String, dynamic> json) => _$OutputLayoutBlockFromJson(json);
 
 @override@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) final  PresetView presetView;
@@ -269,7 +269,13 @@ class _OutputLayoutBlock extends OutputLayoutBlock {
 
 @override@JsonKey(name: 'text_delivery_mode') final  String textDeliveryMode;
 @override final  SynthesisConfigDTO? synthesis;
-@override@JsonKey(name: 'synthesis_md') final  String? synthesisMd;
+ final  List<SduiBlockDTO> _synthesisBlocks;
+@override@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> get synthesisBlocks {
+  if (_synthesisBlocks is EqualUnmodifiableListView) return _synthesisBlocks;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_synthesisBlocks);
+}
+
 @override@JsonKey(name: 'strictness_level') final  int? strictnessLevel;
 @override@JsonKey(name: 'scoring_strategy') final  ScoringStrategy? scoringStrategy;
 
@@ -288,7 +294,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy)';
+  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisBlocks: $synthesisBlocks, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy)';
 }
 
 
@@ -299,7 +305,7 @@ abstract mixin class _$OutputLayoutBlockCopyWith<$Res> implements $OutputLayoutB
   factory _$OutputLayoutBlockCopyWith(_OutputLayoutBlock value, $Res Function(_OutputLayoutBlock) _then) = __$OutputLayoutBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> synthesisBlocks,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy
 });
 
 
@@ -316,7 +322,7 @@ class __$OutputLayoutBlockCopyWithImpl<$Res>
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisBlocks = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,}) {
   return _then(_OutputLayoutBlock(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as PresetView,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -325,8 +331,8 @@ as I18nText?,steps: null == steps ? _self._steps : steps // ignore: cast_nullabl
 as List<String>,targetBlocks: null == targetBlocks ? _self._targetBlocks : targetBlocks // ignore: cast_nullable_to_non_nullable
 as List<String>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
-as SynthesisConfigDTO?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
-as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
+as SynthesisConfigDTO?,synthesisBlocks: null == synthesisBlocks ? _self._synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
+as List<SduiBlockDTO>,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
 as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
 as ScoringStrategy?,
   ));

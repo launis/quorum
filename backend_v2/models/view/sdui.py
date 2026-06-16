@@ -469,4 +469,37 @@ class HeroInsightBlock(SduiBlockBase):
     block_type: Literal["hero_insight"]
 
 
-AnySduiBlock = Annotated[HeroInsightBlock, Field(discriminator="block_type")]
+class ParagraphBlock(SduiBlockBase):
+    """A standard text paragraph with optional citations."""
+
+    block_type: Literal["paragraph"]
+    text: str
+    citations: list[int] = Field(default_factory=list)
+
+
+class BulletListItem(V2CoreBase):
+    """Helper model for a single item within a bullet list."""
+
+    text: str
+    citations: list[int] = Field(default_factory=list)
+
+
+class BulletListBlock(SduiBlockBase):
+    """A bullet list containing multiple items."""
+
+    block_type: Literal["bullet_list"]
+    items: list[BulletListItem]
+
+
+class AlertBlock(SduiBlockBase):
+    """An alert box for highlighting important information."""
+
+    block_type: Literal["alert_box"]
+    severity: Literal["info", "warning"]
+    text: str
+    citations: list[int] = Field(default_factory=list)
+
+
+AnySduiBlock = Annotated[
+    HeroInsightBlock | ParagraphBlock | BulletListBlock | AlertBlock, Field(discriminator="block_type")
+]

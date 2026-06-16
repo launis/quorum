@@ -101,7 +101,9 @@ void main() {
               defaultLocale: 'en',
               translations: {'en': 'Text Layout Desc'},
             ),
-            synthesisMd: 'Synthesis content',
+            synthesisBlocks: const [
+              SduiBlockDTO.paragraph(text: 'Synthesis content'),
+            ],
             textDeliveryMode: 'full',
             axes: [
               MatrixScorecardRowDto(

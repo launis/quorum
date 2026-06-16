@@ -12,6 +12,7 @@ import 'package:client_app/features/execution/views/widgets/xai_axis_telemetry_g
 import 'package:client_app/features/execution/views/widgets/diagnostic_scorecard_widget.dart';
 
 import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/features/execution/views/widgets/sdui_block_renderer.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/ui/error_view.dart';
 
@@ -38,9 +39,7 @@ class ReportRendererWidget extends ConsumerWidget {
         if (payload.customPrefaceMd != null &&
             payload.customPrefaceMd!.isNotEmpty)
           _buildCustomPrefaceBox(context),
-        if (payload.synthesizedMarkdown != null &&
-            payload.synthesizedMarkdown!.isNotEmpty)
-          _buildGlobalSynthesisBox(context),
+        if (payload.contentBlocks.isNotEmpty) _buildGlobalSynthesisBox(context),
 
         // Global Average Banner right after Introduction (Global Synthesis)
         if (payload.globalScore != null)
@@ -110,9 +109,7 @@ class ReportRendererWidget extends ConsumerWidget {
                 ),
               ],
             ),
-            child: OutputRenderer(
-              markdownContent: payload.synthesizedMarkdown!,
-            ),
+            child: SDUIBlockRenderer(contentBlocks: payload.contentBlocks),
           ),
         ],
       ),
@@ -544,8 +541,7 @@ class ReportRendererWidget extends ConsumerWidget {
 
     final hasTitle = title != null && title.isNotEmpty;
     final hasDesc = desc != null && desc.isNotEmpty;
-    final hasSynthesis =
-        layout.synthesisMd != null && layout.synthesisMd!.isNotEmpty;
+    final hasSynthesis = layout.synthesisBlocks.isNotEmpty;
 
     Widget content;
     try {
@@ -625,7 +621,7 @@ class ReportRendererWidget extends ConsumerWidget {
                     ),
                   ],
                 ),
-                child: OutputRenderer(markdownContent: layout.synthesisMd!),
+                child: SDUIBlockRenderer(contentBlocks: layout.synthesisBlocks),
               ),
             ],
             const SizedBox(height: 16),

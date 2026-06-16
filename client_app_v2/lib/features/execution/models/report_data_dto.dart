@@ -10,6 +10,40 @@ import 'package:client_app/features/execution/models/scorecard_dto.dart';
 part 'report_data_dto.freezed.dart';
 part 'report_data_dto.g.dart';
 
+/// Polymorphic SDUI Block DTO enforcing the Tripartite Rendering Boundary
+@Freezed(unionKey: 'block_type')
+sealed class SduiBlockDTO with _$SduiBlockDTO {
+  const SduiBlockDTO._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('paragraph')
+  const factory SduiBlockDTO.paragraph({
+    required String text,
+    @Default([]) List<String> citations,
+  }) = SduiParagraphBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('bullet_list')
+  const factory SduiBlockDTO.bulletList({required List<String> items}) =
+      SduiBulletListBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('alert_box')
+  const factory SduiBlockDTO.alertBox({
+    required String title,
+    required String message,
+    required String severity,
+  }) = SduiAlertBoxBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('hero_insight')
+  const factory SduiBlockDTO.heroInsight({required String text}) =
+      SduiHeroInsightBlock;
+
+  factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
+      _$SduiBlockDTOFromJson(json);
+}
+
 /// Strictly typed DTO representing a single layout block dynamically defining how to render axes.
 /// Note: Added synthesis field to prevent checked JSON parsing errors.
 @Freezed(equal: false)
@@ -26,7 +60,9 @@ abstract class ReportLayoutDTO with _$ReportLayoutDTO {
     List<String> visibleColumns,
     @JsonKey(name: 'text_delivery_mode') required String textDeliveryMode,
     Map<String, dynamic>? synthesis,
-    @JsonKey(name: 'synthesis_md') String? synthesisMd,
+    @JsonKey(name: 'synthesis_blocks')
+    @Default([])
+    List<SduiBlockDTO> synthesisBlocks,
   }) = _ReportLayoutDTO;
 
   factory ReportLayoutDTO.fromJson(Map<String, dynamic> json) =>
@@ -85,7 +121,9 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @Default([])
     List<MCPToolAuditDTO> mcpToolAudit,
     @JsonKey(name: 'has_warning') @Default(false) bool hasWarning,
-    @JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,
+    @JsonKey(name: 'content_blocks')
+    @Default([])
+    List<SduiBlockDTO> contentBlocks,
     @JsonKey(name: 'visible_metadata')
     @Default([])
     List<String> visibleMetadata,

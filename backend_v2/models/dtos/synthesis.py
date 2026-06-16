@@ -9,6 +9,7 @@ from typing import Annotated
 from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.view.sdui import AnySduiBlock
 
 
 class SynthesisSectionDTO(V2CoreBase):
@@ -16,11 +17,13 @@ class SynthesisSectionDTO(V2CoreBase):
 
     Attributes:
         layout_id: The EXACT layout ID provided in the section instructions.
-        synthesized_markdown: The synthesized markdown content for this section.
+        content_blocks: Structured SDUI content blocks for this section.
     """
 
     layout_id: Annotated[str, Field(description="The EXACT layout ID provided in the section instructions")]
-    synthesized_markdown: Annotated[str, Field(description="The synthesized markdown content for this section")]
+    content_blocks: Annotated[
+        list[AnySduiBlock], Field(default_factory=list, description="Structured SDUI content blocks for this section")
+    ]
 
 
 class XaiHighlightItem(V2CoreBase):
@@ -71,13 +74,16 @@ class SynthesisOutputDTO(V2CoreBase):
     """Structured output expected from the Synthesis LLM.
 
     Attributes:
-        synthesized_markdown: The fully synthesized and deduplicated markdown content.
+        content_blocks: The fully synthesized structured SDUI content blocks.
         cited_sources: List of references or citations found.
         section_syntheses: List of synthesized sections, mapped by their Layout ID.
         xai_highlights: The deduplicated insight items per extension category.
     """
 
-    synthesized_markdown: Annotated[str, Field(description="The fully synthesized and deduplicated markdown content.")]
+    content_blocks: Annotated[
+        list[AnySduiBlock],
+        Field(default_factory=list, description="The fully synthesized structured SDUI content blocks."),
+    ]
     cited_sources: Annotated[
         list[str], Field(default_factory=list, description="List of references or citations found.")
     ]

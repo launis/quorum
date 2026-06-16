@@ -60,6 +60,33 @@
 </head>
 <body>
 
+    {% macro render_sdui_blocks(blocks) %}
+        {% for block in blocks %}
+            {% if block.block_type == 'paragraph' %}
+                <p style="margin-top: 0; margin-bottom: 10px;">
+                    {{ block.text }}
+                    {% if block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+                </p>
+            {% elif block.block_type == 'bullet_list' %}
+                <ul style="margin-top: 0; margin-bottom: 10px; padding-left: 20px;">
+                    {% for item in block.get('items', []) %}
+                        <li style="margin-bottom: 4px;">
+                            {{ item.text }}
+                            {% if item.citations %}{% for cit in item.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% elif block.block_type == 'alert_box' %}
+                {% set border_color = '#1E88E5' if block.severity == 'info' else '#F57C00' %}
+                {% set bg_color = '#E3F2FD' if block.severity == 'info' else '#FFF3E0' %}
+                <div class="alert alert-{{ block.severity }}" style="border-left: 4px solid {{ border_color }}; background-color: {{ bg_color }}; padding: 12px; margin-bottom: 15px; border-radius: 6px;">
+                    {{ block.text }}
+                    {% if block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endmacro %}
+
     {% if report_data %}
         {% set show_user = not report_data.visible_metadata or 'user' in report_data.visible_metadata %}
         {% set show_date = not report_data.visible_metadata or 'date' in report_data.visible_metadata %}
@@ -147,10 +174,12 @@
 
 
 
-        {% if report_data and report_data.synthesized_markdown %}
+        {% if report_data and report_data.content_blocks %}
         <div class="card" style="border-left: 4px solid #1E88E5; padding: 20px; margin-bottom: 0px; page-break-after: avoid;">
             <h2 style="color: #1a237e; margin-top: 0;">Yhteenveto</h2>
-            <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ report_data.synthesized_markdown | md | safe }}</div>
+            <div style="font-size: 13px; line-height: 1.6; color: #333;">
+                {{ render_sdui_blocks(report_data.content_blocks) }}
+            </div>
         </div>
         {% endif %}
 
@@ -181,9 +210,11 @@
                 {% endif %}
             {% endif %}
 
-            {% if layout.synthesis_md %}
+            {% if layout.synthesis_blocks %}
             <div class="justify-box" style="margin-bottom: 20px; border-left: 4px solid #4CAF50; background-color: #F1F8E9;">
-                <div style="font-size: 12px; color: #333; line-height: 1.5;">{{ layout.synthesis_md | md | safe }}</div>
+                <div style="font-size: 12px; color: #333; line-height: 1.5;">
+                    {{ render_sdui_blocks(layout.synthesis_blocks) }}
+                </div>
             </div>
             {% endif %}
 

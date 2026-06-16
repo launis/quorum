@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/features/execution/models/report_data_dto.dart';
 
 part 'output_profile.freezed.dart';
 part 'output_profile.g.dart';
@@ -23,7 +24,9 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     @JsonKey(name: 'text_delivery_mode')
     String textDeliveryMode,
     SynthesisConfigDTO? synthesis,
-    @JsonKey(name: 'synthesis_md') String? synthesisMd,
+    @JsonKey(name: 'synthesis_blocks')
+    @Default([])
+    List<SduiBlockDTO> synthesisBlocks,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
   }) = _OutputLayoutBlock;

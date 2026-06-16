@@ -214,3 +214,16 @@ extension XaiExtensionTypeValue on XaiExtensionType {
     }
   }
 }
+
+/// SDUI Block Types supported by the frontend.
+@JsonEnum()
+enum SduiBlockType {
+  @JsonValue('hero_insight')
+  heroInsight,
+  @JsonValue('paragraph')
+  paragraph,
+  @JsonValue('bullet_list')
+  bulletList,
+  @JsonValue('alert_box')
+  alertBox,
+}

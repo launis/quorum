@@ -111,12 +111,14 @@ def test_html_tag_stripping_retains_mapping() -> None:
     assert extracted == "CSRD-direktiivin ja<br>EU-taksonomian kaltaiset säädökset"
 
 
-def test_fuzzy_fallback_success() -> None:
-    """Test that fuzzy fallback catches minor typos when exact match fails."""
+def test_validate_evidence_hallucinated_chars_fails() -> None:
+    """Test that a quote hallucinated by a few characters fails deterministic validation."""
     pdf_text = "Tämä on erittäin tärkeä strateginen muutos."
-    # OCR error or LLM typo (extra space, missing letter)
-    quote = "Tämä on erittäin  tärkeä strateginen mutos"
+    # LLM hallucination: "strateginen muutos" -> "strateginen päätös"
+    quote = "Tämä on erittäin tärkeä strateginen päätös."
 
-    # Fuzzy match should save this and return the LLM's quote as a fallback
-    final_quote = AnchorValidationService.validate_evidence(pdf_text, quote)
-    assert final_quote == quote
+    with pytest.raises(SemanticEvidenceError) as exc_info:
+        AnchorValidationService.validate_evidence(pdf_text, quote)
+
+    assert "Lexical validation failed" in str(exc_info.value)
+    assert quote in str(exc_info.value)

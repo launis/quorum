@@ -1,4 +1,14 @@
 @echo off
+if "%1"=="--flush" (
+    echo [!] Manually flushing Redis Caches...
+    docker-compose exec redis redis-cli FLUSHALL >nul 2>&1
+    IF %ERRORLEVEL% NEQ 0 (
+        docker exec -it quorum-redis-1 redis-cli FLUSHALL
+    )
+    echo [!] Redis Queues and Caches flushed!
+    exit /b
+)
+
 echo ===================================================
 echo   COGNITIVE QUORUM - LOCAL PRODUCTION LAUNCHER
 echo   (LOCAL DB: data\db_v2.json)
@@ -69,12 +79,17 @@ echo       Config: LOCAL DB (db_v2.json), REAL LLM, MOCK AUTH
 echo       Notes:  Allows testing local database and real LLMs with mock login.
 
 set USE_FIREBASE_AUTH=false
+set DISABLE_VERTEX_CACHE=false
+if "%1"=="--no-cache" (
+    set DISABLE_VERTEX_CACHE=true
+    echo [!] Vertex AI Context Cache globally DISABLED via flag.
+)
 
 :: Backend
-start "CQ Backend V2 (LOCAL)" cmd /k "chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --log-config backend_v2/uvicorn_logging.yaml"
+start "CQ Backend V2 (LOCAL)" cmd /k "chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --log-config backend_v2/uvicorn_logging.yaml"
 
 :: Worker
-start "CQ Worker V2 (LOCAL)" cmd /k "chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend_v2.run_worker"
+start "CQ Worker V2 (LOCAL)" cmd /k "chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run python -m backend_v2.run_worker"
 
 echo [3/3] Launching Client (Flutter)...
 if "%USE_JSON_LOGGING%"=="" set USE_JSON_LOGGING=false

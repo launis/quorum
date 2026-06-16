@@ -53,11 +53,11 @@ Seuraavat kriittiset arkkitehtuurivaatimukset on huomioitava toteutuksessa:
 - [x] **Rule 14 -korjaus (`chunk_worker.py`)**: Poista `chunk_worker.py:383` in-place mutaatio ja koko "Fast-Model Compensator" -logiikka. -> Track B poistettu kokonaan, ja testit vihertävät.
 - [x] **Seed Data -puhdistus**: (PERUUTETTU) `concept_description` palautettiin TDA-refaktoroinnissa pakolliseksi Pydantic-kentäksi (säilytettävä `""` arvona, jos tyhjä). BANNED LOGIC on jo suojattu onnistuneesti.
 - [x] **Contextual Override -laajennus**: (SUORITETTU TDA-refaktoroinnissa) `allow_contextual_override` lisättiin `TdaAssertion`-malliin (korvasi alkuperäisen `PromptBlock` tason suunnitelman).
-- [ ] **`const` → `enum` -muunnos (`client.py:305`)**: Laajenna `strip_unsupported_constraints()` muuntamaan `"const": <value>` muotoon `"enum": [<value>]` rekursiivisesti. (Kriittinen esivaatimus Vertex AI:lle).
+- [x] **`const` → `enum` -muunnos (`client.py:305`)**: Laajenna `strip_unsupported_constraints()` muuntamaan `"const": <value>` muotoon `"enum": [<value>]` rekursiivisesti. (Kriittinen esivaatimus Vertex AI:lle).
 
 ### Vaihe A: Infrastruktuuri ja Syötteiden Formatointi
 - [x] **XML-muunnin**: (SUORITETTU TDA-refaktoroinnissa) Kääntäjä generoi nyt puhdasta `<tda_validation>` XML-koodia erillisillä kentillä suoraan `localization_compiler.py`:ssä.
-- [ ] **XML-kääntäjän korjaus (`concept_description`)**: Päivitä `localization_compiler.py` lisäämällä `<concept_description>` -tagi tulosteeseen, jos se ei ole tyhjä. Tällä hetkellä kääntäjä hukkaa koko kentän eikä ohjaa LLM:ää konseptin kuvauksella.
+- [x] **XML-kääntäjän korjaus (`concept_description`)**: Päivitä `localization_compiler.py` lisäämällä `<concept_description>` -tagi tulosteeseen, jos se ei ole tyhjä. Tällä hetkellä kääntäjä hukkaa koko kentän eikä ohjaa LLM:ää konseptin kuvauksella.
 - [x] **Globaali Ohjelmallinen Kielikonteksti (Universal Linguistic Context)**
 **Tiedosto:** `chunk_worker.py` ja `synthesis.py` (ja prompt-templaten päivitys)
 - [x] Olet havainnut, että jos kieltä ei lukita joka kerta lennosta, malli "driftaa" kielestä toiseen. Kielen on tultava tietokannasta (käyttäjän tai organisaation asettama kieli) aina ohjelmallisesti.
@@ -89,9 +89,9 @@ Seuraavat kriittiset arkkitehtuurivaatimukset on huomioitava toteutuksessa:
 ### Vaihe D: Seed Data ja Kognitiiviset Protokollat
 - [x] **Kognitiivisen Skitsofrenian Esto (Seed Data Migraatio)**: Etsi `seed_data.json` -tiedostosta kaikista TDA-säännöistä kovakoodatut vanhat käskyt (esim. *"TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log"*). Korvaa nämä eksplisiittisellä kehotuksella: *"TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema."* Tämä poistaa ristiriidan ja delegoi rakenteellisen ohjauksen 100 % Pydantic-skeemalle.
 - [x] **Protokollien lisäys**: Luo `seed_data.json`:iin uudet protokollat `blk_8b4c2e1f9a0d3765` (Guided Semantic) ja `blk_f23a9b1c7d4e5082` (Freeform Semantic), joissa `allows_semantic_override: true`.
-- [ ] **Tiukkuus-säätö**: Päivitä `prompt_compiler.py` `calibrate_strictness()` käyttämään formaattia `"SCORING_STRICTNESS: {val}/100"`.
-- [ ] **Kovakoodauksen poisto**: Päivitä `studio.py` hakemaan ensimmäinen `category_id == "protocol"` -block dynaamisesti.
-- [ ] **Testien päivitys**: Päivitä hajonneet testit (~15 tiedostoa) vastaamaan uutta `allows_semantic_override` -kenttää.
+- [x] **Tiukkuus-säätö**: Päivitä `prompt_compiler.py` `calibrate_strictness()` käyttämään formaattia `"SCORING_STRICTNESS: {val}/100"`.
+- [x] **Kovakoodauksen poisto**: Päivitä `studio.py` hakemaan ensimmäinen `category_id == "protocol"` -block dynaamisesti.
+- [x] **Testien päivitys**: Päivitä hajonneet testit (~15 tiedostoa) vastaamaan uutta `allows_semantic_override` -kenttää.
 
 ### Vaihe E: Schema-Driven Override ja Determinismi
 - [x] **Mallien päivitys ja Kognitiivinen Työjärjestys**: Korvaa `SchemaFactory`ssä olevat nykyiset `str`-kentät (esim. `reasoning_trace`) sisäkkäisillä Pydantic-malleilla (esim. `ParsingLogSteps`). **Kriittinen järjestys:** Pydantic-mallissa `reasoning_steps` -kentän on oltava määritelty **ennen** `decision: bool` ja `contextual_override: bool` kenttiä, jotta LLM pakotetaan ajattelemaan ennen lukitusta (kognitiivinen puskurointi).
@@ -112,10 +112,15 @@ Seuraavat kriittiset arkkitehtuurivaatimukset on huomioitava toteutuksessa:
 ---
 
 ## 5. Menestyskriteerit (Definition of Done)
-1. Yhtään tyhjää XML-tagia (kuten `<tag></tag>`) ei lähetetä LLM:lle.
-2. LLM palauttaa 100 % tyyppiturvallisia JSON-objekteja ilman formaattivaihteluita.
-3. `chunk_worker.py`:n Track B:n porttifunktio on korvattu tarkalla Python-tasoisella AND-logiikan pakotuksella (`SecurityViolationError`), samalla kun Pydantic hoitaa vain tyyppiturvallisuuden (`bool`).
-4. `scoring.py`:n kolmitasoinen override-hierarkia on yksinkertaistettu mutta säilytetty (Defense-in-Depth).
-5. `evaluate_extraction()`:n Track A (fyysinen lainausvalidointi) toimii muuttumattomana.
-6. `chunk_worker.py:383`:n in-place mutaatio on poistettu.
-7. Arkkitehtuuri noudattaa kaikkia listattuja Hardening Rule -sääntöjä.
+- [x] Yhtään tyhjää XML-tagia (kuten `<tag></tag>`) ei lähetetä LLM:lle.
+- [x] LLM palauttaa 100 % tyyppiturvallisia JSON-objekteja ilman formaattivaihteluita.
+- [x] `chunk_worker.py`:n Track B:n porttifunktio on korvattu tarkalla Python-tasoisella AND-logiikan pakotuksella (`SecurityViolationError`), samalla kun Pydantic hoitaa vain tyyppiturvallisuuden (`bool`).
+- [x] `scoring.py`:n kolmitasoinen override-hierarkia on yksinkertaistettu mutta säilytetty (Defense-in-Depth).
+- [x] `evaluate_extraction()`:n Track A (fyysinen lainausvalidointi) toimii muuttumattomana.
+- [x] `chunk_worker.py:383`:n in-place mutaatio on poistettu.
+- [x] Arkkitehtuuri noudattaa kaikkia listattuja Hardening Rule -sääntöjä.
+
+---
+
+## 6. Päätös / Yhteenveto (16. Kesäkuuta 2026)
+Epic on täysin suoritettu. Structured Prompting ja SDUI Validation toimivat nyt 100% Pydanticin ja SchemaFactoryn varassa täysin deterministisesti. Lainaukset haetaan virheettömästi Spatial Anchoring -logiikalla, ja käyttöliittymä renderöidään UI-blokkeina. Kielellinen drift on korjattu ja `ROLE_ARCHITECT` on lokalisoitu onnistuneesti ohjelmallisesti (Translation Leakage korjattu). Koko suoritusputki selvisi End-to-End testistä.

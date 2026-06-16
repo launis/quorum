@@ -131,9 +131,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     total_static_chars += len(str(content))
             estimated_token_count = total_static_chars // 4
 
-        if estimated_token_count < SystemConcurrency.CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT.value:
+        if get_settings().disable_vertex_cache or estimated_token_count < SystemConcurrency.CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT.value:
             logger.info(
-                "Vertex AI caching bypassed: Token Proxy Score %d is below threshold %d",
+                "Vertex AI caching bypassed: Token Proxy Score %d is below threshold %d (or globally disabled)",
                 estimated_token_count,
                 SystemConcurrency.CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT.value,
             )

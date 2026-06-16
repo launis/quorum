@@ -900,7 +900,9 @@ class ReportLayoutDTO(V2CoreBase):
     )
 
     synthesis: SynthesisConfigDTO | None = Field(default=None)
-    synthesis_md: str | None = Field(default=None, description="The rendered synthesis text for this layout block")
+    synthesis_blocks: list[dict[str, Any]] | None = Field(
+        default=None, description="The rendered SDUI blocks for this layout"
+    )
 
 
 class ReportDataDTO(V2CoreBase):
@@ -928,7 +930,9 @@ class ReportDataDTO(V2CoreBase):
     informational_matrices: list[MatrixScorecardRowDTO] | None = Field(
         default=None, description="Matrices strictly for informational/tracking purposes."
     )
-    synthesized_markdown: str | None = Field(default=None, description="Global synthesis markdown text")
+    content_blocks: list[dict[str, Any]] | None = Field(
+        default=None, description="Global synthesis SDUI content blocks"
+    )
     visible_metadata: list[str] = Field(
         default_factory=list, description="Fields visible on the UI and PDF cover header."
     )
@@ -979,7 +983,9 @@ class OutputLayoutBlock(V2CoreBase):
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Optional Section-Level Synthesis configuration for this block."
     )
-    synthesis_md: str | None = Field(default=None, description="Optional Section-Level Synthesis content.")
+    synthesis_blocks: list[dict[str, Any]] | None = Field(
+        default=None, description="Optional Section-Level Synthesis content blocks."
+    )
     strictness_level: int | None = Field(
         default=None, ge=0, le=100, description="Override for strictness_level in this layout."
     )
@@ -1220,9 +1226,11 @@ class ExecutionStepState(V2CoreBase):
 class RenderedSynthesisCache(V2CoreBase):
     """Cached synthesis results tied to a specific OutputProfile ID."""
 
-    synthesized_markdown: str = Field(description="Global synthesis markdown text")
-    section_syntheses: dict[str, str] = Field(
-        default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis"
+    content_blocks: list[dict[str, Any]] = Field(
+        default_factory=list, description="Global synthesis SDUI content blocks"
+    )
+    section_syntheses: dict[str, list[dict[str, Any]]] = Field(
+        default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis blocks"
     )
     row_explanations: dict[str, str] = Field(
         default_factory=dict, description="Synthesized row explanations by matrix ID"

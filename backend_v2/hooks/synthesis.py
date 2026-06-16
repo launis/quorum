@@ -84,10 +84,10 @@ async def _fetch_historical_context(
             else:
                 continue
 
-        if not best_cache or not best_cache.synthesized_markdown:
+        if not best_cache or not best_cache.content_blocks:
             continue
 
-        valid_past.append((e, best_cache.synthesized_markdown))
+        valid_past.append((e, json.dumps(best_cache.content_blocks, ensure_ascii=False)))
 
     valid_past.sort(key=lambda x: x[0].completed_at or x[0].created_at, reverse=True)
 
@@ -564,7 +564,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         return HookResult(
             success=True,
             state_delta={
-                "synthesized_markdown": "*NO_DATA_AVAILABLE*",
+                "content_blocks": [],
                 "cited_sources": [],
                 "step_metadata_updates": {},
             },
@@ -610,41 +610,24 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     active_exts = getattr(active_profile_dto, "visible_block_extensions", [])
     max_items = active_profile_dto.max_extension_items or 2
 
-    sys_prompt = "<system_directive>\n<execution_parameters>\n"
-
-    source_language = state.metadata.get("source_language", state.metadata.get("document_language", "Unknown/Original"))
-    linguistic_context = (
-        "<linguistic_context>\n"
-        f"  <source_data_language>{source_language}</source_data_language>\n"
-        f"  <required_output_language>{language}</required_output_language>\n"
-        "  <required_reasoning_language>English</required_reasoning_language>\n"
-        "</linguistic_context>\n"
-    )
-    sys_prompt += linguistic_context
-
     if not active_profile_dto or not active_profile_dto.scoring_strategy:
         msg = f"Strict Fail-Fast Enforced: 'scoring_strategy' missing from active profile '{profile_to_use}'."
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
     scoring_strategy = active_profile_dto.scoring_strategy.value
-    sys_prompt += f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>\n"
 
-    if length_constraint:
-        sys_prompt += f"  <global_length_constraint_chars>{length_constraint}</global_length_constraint_chars>\n"
-    if preamble:
-        sys_prompt += f"  <global_preamble_tone>{preamble}</global_preamble_tone>\n"
-    if active_exts:
-        ext_list = ", ".join([x.value for x in active_exts]) if isinstance(active_exts, list) else str(active_exts)
-        sys_prompt += f"  <target_extensions_to_harvest>{ext_list}</target_extensions_to_harvest>\n"
-        sys_prompt += f"  <max_extension_items_per_category>{max_items}</max_extension_items_per_category>\n"
-
-    sys_prompt += "</execution_parameters>\n\n"
+    sys_prompt = "<system_directive>\n"
     sys_prompt += f"<objective>\n{str(custom_sys_prompt).strip()}\n</objective>\n<rules>\n"
 
     sys_prompt += (
         "  <rule>CRITICAL LANGUAGE MANDATE: You must process the input and generate all your output text, "
         "reasoning, and source justifications exclusively in the language specified in <target_language>.</rule>\n"
+        "  <rule>SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY the allowed SDUI `content_blocks`.</rule>\n"
+        "  <rule>ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.</rule>\n"
+        "  <rule>NO RECURSION: Nested blocks inside blocks are strictly banned.</rule>\n"
+        "  <rule>NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.</rule>\n"
+        "  <rule>CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.</rule>\n"
     )
 
     if length_constraint:
@@ -715,7 +698,29 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             "Provide ONLY the core text, omitting any internal titles like 'Vasta-argumentti 1:'.</rule>\n"
         )
 
-    sys_prompt += "</rules>\n</system_directive>"
+    sys_prompt += "</rules>\n</system_directive>\n\n"
+
+    sys_prompt += "<execution_parameters>\n"
+    source_language = state.metadata.get("source_language", state.metadata.get("document_language", "Unknown/Original"))
+    linguistic_context = (
+        "<linguistic_context>\n"
+        f"  <source_data_language>{source_language}</source_data_language>\n"
+        f"  <required_output_language>{language}</required_output_language>\n"
+        "  <required_reasoning_language>English</required_reasoning_language>\n"
+        "</linguistic_context>\n"
+    )
+    sys_prompt += linguistic_context
+    sys_prompt += f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>\n"
+
+    if length_constraint:
+        sys_prompt += f"  <global_length_constraint_chars>{length_constraint}</global_length_constraint_chars>\n"
+    if preamble:
+        sys_prompt += f"  <global_preamble_tone>{preamble}</global_preamble_tone>\n"
+    if active_exts:
+        ext_list = ", ".join([x.value for x in active_exts]) if isinstance(active_exts, list) else str(active_exts)
+        sys_prompt += f"  <target_extensions_to_harvest>{ext_list}</target_extensions_to_harvest>\n"
+        sys_prompt += f"  <max_extension_items_per_category>{max_items}</max_extension_items_per_category>\n"
+    sys_prompt += "</execution_parameters>"
 
     messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]
 
@@ -739,7 +744,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         token_usage = tool_res.usage
         audit_traces = tool_res.audit_traces
 
-        span.set_attribute("synthesized_markdown_length", len(result.synthesized_markdown))
+        span.set_attribute("content_blocks_count", len(result.content_blocks))
         span.set_attribute("synthesis_token_usage", token_usage.model_dump_json())
 
         updated_usage = hook_metadata_dto.token_usage + token_usage
@@ -762,9 +767,20 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         section_dict = {}
         if result.section_syntheses:
             for s in result.section_syntheses:
-                section_dict[s.layout_id] = s.synthesized_markdown
+                safe_blocks = []
+                for b in s.content_blocks:
+                    try:
+                        safe_blocks.append(b.model_dump(mode="json"))
+                    except Exception as e:
+                        logger.error("[SynthesisHook] Block serialization failed in layout %s: %s", s.layout_id, e)
+                section_dict[s.layout_id] = safe_blocks
 
-        global_md = result.synthesized_markdown
+        global_blocks = []
+        for b in result.content_blocks:
+            try:
+                global_blocks.append(b.model_dump(mode="json"))
+            except Exception as e:
+                logger.error("[SynthesisHook] Global block serialization failed: %s", e)
         raw_highlights = [h.model_dump(mode="json") for h in result.xai_highlights] if result.xai_highlights else []
 
         row_explanations_dict = {}
@@ -846,7 +862,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         return HookResult(
             success=True,
             state_delta={
-                "synthesized_markdown": global_md,
+                "content_blocks": global_blocks,
                 "section_syntheses": section_dict,
                 "cited_sources": result.cited_sources,
                 "xai_highlights": raw_highlights,

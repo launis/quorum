@@ -520,7 +520,7 @@ class BlueprintTransformer:
         self,
         layout_defs: list[OutputLayoutBlock],
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO],
-        section_syntheses: dict[str, str],
+        section_syntheses: dict[str, list[dict[str, Any]]],
     ) -> list[ReportLayoutDTO]:
         """Maps generated axes into report layouts based on layout rules.
 
@@ -575,10 +575,10 @@ class BlueprintTransformer:
                 synthesis_config = layout_def.synthesis
                 layout_id = f"layout_{idx}_{preset_view}"
 
-                section_md = None
+                section_blocks = None
                 if synthesis_config:
                     if layout_id in section_syntheses:
-                        section_md = section_syntheses[layout_id]
+                        section_blocks = section_syntheses[layout_id]
 
                 layouts_list.append(
                     ReportLayoutDTO(
@@ -588,7 +588,7 @@ class BlueprintTransformer:
                         axes=axes,
                         text_delivery_mode=text_delivery_mode,
                         synthesis=synthesis_config,
-                        synthesis_md=section_md,
+                        synthesis_blocks=section_blocks,
                     )
                 )
         return layouts_list
@@ -692,14 +692,15 @@ class BlueprintTransformer:
 
         profile_cache = execution.profile_syntheses.get(resolved_pid)
         original_synthesis_md = synthesis_md
-        section_syntheses: dict[str, str] = {}
+        section_syntheses: dict[str, list[dict[str, Any]]] = {}
         row_explanations_cache: dict[str, str] = {}
         xai_highlights_cache: list[Any] = []
+        content_blocks = None
 
         if profile_cache:
             section_syntheses = profile_cache.section_syntheses or {}
-            val = profile_cache.synthesized_markdown or original_synthesis_md
-            synthesis_md = val or original_synthesis_md
+            content_blocks = profile_cache.content_blocks or None
+            synthesis_md = original_synthesis_md
             row_explanations_cache = profile_cache.row_explanations or {}
             xai_highlights_cache = profile_cache.xai_highlights or []
         else:
@@ -807,45 +808,16 @@ class BlueprintTransformer:
         try:
             layouts_list = self._build_layouts(layout_defs, all_parsed_matrices, section_syntheses)
 
-            final_synthesis = None
-            if synthesis_md:
+            if synthesis_md and not content_blocks:
                 allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
-                    "h1",
-                    "h2",
-                    "h3",
-                    "h4",
-                    "h5",
-                    "h6",
-                    "p",
-                    "br",
-                    "hr",
-                    "strong",
-                    "em",
-                    "u",
-                    "b",
-                    "i",
-                    "ul",
-                    "ol",
-                    "li",
-                    "a",
-                    "span",
-                    "div",
-                    "pre",
-                    "code",
-                    "blockquote",
-                    "table",
-                    "thead",
-                    "tbody",
-                    "tr",
-                    "th",
-                    "td",
+                    "h1", "h2", "h3", "h4", "h5", "h6", "p", "br", "hr",
+                    "strong", "em", "u", "b", "i", "ul", "ol", "li", "a",
+                    "span", "div", "pre", "code", "blockquote", "table",
+                    "thead", "tbody", "tr", "th", "td",
                 ]
-                allowed_attributes = {
-                    "*": ["class", "id"],
-                    "a": ["href", "title", "target"],
-                }
+                allowed_attributes = {"*": ["class", "id"], "a": ["href", "title", "target"]}
                 safe_md = bleach.clean(str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True)
-                final_synthesis = safe_md
+                content_blocks = [{"type": "markdown", "content": safe_md}]
         except AppException:
             raise
         except Exception as e:
@@ -989,7 +961,7 @@ class BlueprintTransformer:
                 org_name=org_name,
                 global_score=global_score,
                 has_warning=has_warning,
-                synthesized_markdown=final_synthesis,
+                content_blocks=content_blocks,
                 visible_metadata=visible_metadata,
                 layouts=layouts_list,
                 cost_estimate=cost,

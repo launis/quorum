@@ -6,92 +6,176 @@ part of 'report_data_dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
-    $checkedCreate(
-      '_ReportLayoutDTO',
-      json,
-      ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'preset_view',
-            'matrix_type',
-            'title',
-            'description',
-            'axes',
-            'visible_columns',
-            'text_delivery_mode',
-            'synthesis',
-            'synthesis_md',
-          ],
-        );
-        final val = _ReportLayoutDTO(
-          presetView: $checkedConvert(
-            'preset_view',
-            (v) => $enumDecode(_$PresetViewEnumMap, v),
-          ),
-          matrixType: $checkedConvert('matrix_type', (v) => v as String?),
-          title: $checkedConvert(
-            'title',
-            (v) =>
-                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          description: $checkedConvert(
-            'description',
-            (v) =>
-                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          axes: $checkedConvert(
-            'axes',
-            (v) =>
-                (v as List<dynamic>?)
-                    ?.map(
-                      (e) => MatrixScorecardRowDto.fromJson(
-                        e as Map<String, dynamic>,
-                      ),
-                    )
-                    .toList() ??
-                const [],
-          ),
-          visibleColumns: $checkedConvert(
-            'visible_columns',
-            (v) =>
-                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-                const ['label', 'score', 'distribution', 'row_explanation'],
-          ),
-          textDeliveryMode: $checkedConvert(
-            'text_delivery_mode',
-            (v) => v as String,
-          ),
-          synthesis: $checkedConvert(
-            'synthesis',
-            (v) => v as Map<String, dynamic>?,
-          ),
-          synthesisMd: $checkedConvert('synthesis_md', (v) => v as String?),
-        );
-        return val;
-      },
-      fieldKeyMap: const {
-        'presetView': 'preset_view',
-        'matrixType': 'matrix_type',
-        'visibleColumns': 'visible_columns',
-        'textDeliveryMode': 'text_delivery_mode',
-        'synthesisMd': 'synthesis_md',
-      },
-    );
+SduiParagraphBlock _$SduiParagraphBlockFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('SduiParagraphBlock', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['text', 'citations', 'block_type']);
+      final val = SduiParagraphBlock(
+        text: $checkedConvert('text', (v) => v as String),
+        citations: $checkedConvert(
+          'citations',
+          (v) =>
+              (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+        ),
+        $type: $checkedConvert('block_type', (v) => v as String?),
+      );
+      return val;
+    }, fieldKeyMap: const {r'$type': 'block_type'});
 
-Map<String, dynamic> _$ReportLayoutDTOToJson(_ReportLayoutDTO instance) =>
+Map<String, dynamic> _$SduiParagraphBlockToJson(SduiParagraphBlock instance) =>
     <String, dynamic>{
-      'preset_view': _$PresetViewEnumMap[instance.presetView]!,
-      'matrix_type': instance.matrixType,
-      'title': instance.title?.toJson(),
-      'description': instance.description?.toJson(),
-      'axes': instance.axes.map((e) => e.toJson()).toList(),
-      'visible_columns': instance.visibleColumns,
-      'text_delivery_mode': instance.textDeliveryMode,
-      'synthesis': instance.synthesis,
-      'synthesis_md': instance.synthesisMd,
+      'text': instance.text,
+      'citations': instance.citations,
+      'block_type': instance.$type,
     };
+
+SduiBulletListBlock _$SduiBulletListBlockFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('SduiBulletListBlock', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['items', 'block_type']);
+      final val = SduiBulletListBlock(
+        items: $checkedConvert(
+          'items',
+          (v) => (v as List<dynamic>).map((e) => e as String).toList(),
+        ),
+        $type: $checkedConvert('block_type', (v) => v as String?),
+      );
+      return val;
+    }, fieldKeyMap: const {r'$type': 'block_type'});
+
+Map<String, dynamic> _$SduiBulletListBlockToJson(
+  SduiBulletListBlock instance,
+) => <String, dynamic>{'items': instance.items, 'block_type': instance.$type};
+
+SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('SduiAlertBoxBlock', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        allowedKeys: const ['title', 'message', 'severity', 'block_type'],
+      );
+      final val = SduiAlertBoxBlock(
+        title: $checkedConvert('title', (v) => v as String),
+        message: $checkedConvert('message', (v) => v as String),
+        severity: $checkedConvert('severity', (v) => v as String),
+        $type: $checkedConvert('block_type', (v) => v as String?),
+      );
+      return val;
+    }, fieldKeyMap: const {r'$type': 'block_type'});
+
+Map<String, dynamic> _$SduiAlertBoxBlockToJson(SduiAlertBoxBlock instance) =>
+    <String, dynamic>{
+      'title': instance.title,
+      'message': instance.message,
+      'severity': instance.severity,
+      'block_type': instance.$type,
+    };
+
+SduiHeroInsightBlock _$SduiHeroInsightBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate('SduiHeroInsightBlock', json, ($checkedConvert) {
+  $checkKeys(json, allowedKeys: const ['text', 'block_type']);
+  final val = SduiHeroInsightBlock(
+    text: $checkedConvert('text', (v) => v as String),
+    $type: $checkedConvert('block_type', (v) => v as String?),
+  );
+  return val;
+}, fieldKeyMap: const {r'$type': 'block_type'});
+
+Map<String, dynamic> _$SduiHeroInsightBlockToJson(
+  SduiHeroInsightBlock instance,
+) => <String, dynamic>{'text': instance.text, 'block_type': instance.$type};
+
+_ReportLayoutDTO _$ReportLayoutDTOFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_ReportLayoutDTO',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'preset_view',
+        'matrix_type',
+        'title',
+        'description',
+        'axes',
+        'visible_columns',
+        'text_delivery_mode',
+        'synthesis',
+        'synthesis_blocks',
+      ],
+    );
+    final val = _ReportLayoutDTO(
+      presetView: $checkedConvert(
+        'preset_view',
+        (v) => $enumDecode(_$PresetViewEnumMap, v),
+      ),
+      matrixType: $checkedConvert('matrix_type', (v) => v as String?),
+      title: $checkedConvert(
+        'title',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      description: $checkedConvert(
+        'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      axes: $checkedConvert(
+        'axes',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) =>
+                      MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      visibleColumns: $checkedConvert(
+        'visible_columns',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const ['label', 'score', 'distribution', 'row_explanation'],
+      ),
+      textDeliveryMode: $checkedConvert(
+        'text_delivery_mode',
+        (v) => v as String,
+      ),
+      synthesis: $checkedConvert(
+        'synthesis',
+        (v) => v as Map<String, dynamic>?,
+      ),
+      synthesisBlocks: $checkedConvert(
+        'synthesis_blocks',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'presetView': 'preset_view',
+    'matrixType': 'matrix_type',
+    'visibleColumns': 'visible_columns',
+    'textDeliveryMode': 'text_delivery_mode',
+    'synthesisBlocks': 'synthesis_blocks',
+  },
+);
+
+Map<String, dynamic> _$ReportLayoutDTOToJson(
+  _ReportLayoutDTO instance,
+) => <String, dynamic>{
+  'preset_view': _$PresetViewEnumMap[instance.presetView]!,
+  'matrix_type': instance.matrixType,
+  'title': instance.title?.toJson(),
+  'description': instance.description?.toJson(),
+  'axes': instance.axes.map((e) => e.toJson()).toList(),
+  'visible_columns': instance.visibleColumns,
+  'text_delivery_mode': instance.textDeliveryMode,
+  'synthesis': instance.synthesis,
+  'synthesis_blocks': instance.synthesisBlocks.map((e) => e.toJson()).toList(),
+};
 
 const _$PresetViewEnumMap = {
   PresetView.metrics1d: '1d_metrics',
@@ -194,7 +278,7 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         'reasoning_tokens',
         'mcp_tool_audit',
         'has_warning',
-        'synthesized_markdown',
+        'content_blocks',
         'visible_metadata',
         'grouped_extensions',
         'penalties_applied',
@@ -281,9 +365,13 @@ _ReportDataDTO _$ReportDataDTOFromJson(
             const [],
       ),
       hasWarning: $checkedConvert('has_warning', (v) => v as bool? ?? false),
-      synthesizedMarkdown: $checkedConvert(
-        'synthesized_markdown',
-        (v) => v as String?,
+      contentBlocks: $checkedConvert(
+        'content_blocks',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
       ),
       visibleMetadata: $checkedConvert(
         'visible_metadata',
@@ -355,7 +443,7 @@ _ReportDataDTO _$ReportDataDTOFromJson(
     'reasoningTokens': 'reasoning_tokens',
     'mcpToolAudit': 'mcp_tool_audit',
     'hasWarning': 'has_warning',
-    'synthesizedMarkdown': 'synthesized_markdown',
+    'contentBlocks': 'content_blocks',
     'visibleMetadata': 'visible_metadata',
     'groupedExtensions': 'grouped_extensions',
     'penaltiesApplied': 'penalties_applied',
@@ -390,7 +478,7 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
       'reasoning_tokens': instance.reasoningTokens,
       'mcp_tool_audit': instance.mcpToolAudit.map((e) => e.toJson()).toList(),
       'has_warning': instance.hasWarning,
-      'synthesized_markdown': instance.synthesizedMarkdown,
+      'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
       'visible_metadata': instance.visibleMetadata,
       'grouped_extensions': instance.groupedExtensions,
       'penalties_applied': instance.penaltiesApplied,
