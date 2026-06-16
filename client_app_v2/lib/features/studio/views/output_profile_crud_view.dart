@@ -475,6 +475,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
                               l10n.strategyLineaarinenKeskiarvo,
                             ScoringStrategy.weightedAverage =>
                               l10n.strategyPainotettuKeskiarvo,
+                            ScoringStrategy.pureMath =>
+                              l10n.strategyPuhdasMatematiikka,
                           }, overflow: TextOverflow.ellipsis),
                         );
                       }),

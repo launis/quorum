@@ -113,12 +113,13 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
     ]
     atom_to_block_ids = {"a1": {"blk_12345678901234567890123456789012"}}
 
-    final, usage, traces = await ChunkWorker.process_chunk(
+    final, usage, traces, pctx = await ChunkWorker.process_chunk(
         chunk=chunk,
         sem=sem,
         compiler=mock_compiler,
         criteria_blocks=criteria_blocks,
         user_payload="<payload>",
+        global_source_text="<payload>",
         base_system_prompt="Base prompt",
         has_search=False,
         has_shuffled_atoms=True,
@@ -173,12 +174,13 @@ async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> N
         }
     )
 
-    final, usage, traces = await ChunkWorker.process_chunk(
+    final, usage, traces, pctx = await ChunkWorker.process_chunk(
         chunk=None,
         sem=sem,
         compiler=mock_compiler,
         criteria_blocks=[crit_std],
         user_payload="<payload>",
+        global_source_text="<payload>",
         base_system_prompt="Base prompt",
         has_search=False,
         has_shuffled_atoms=False,
@@ -224,9 +226,6 @@ def test_deterministic_extraction_scoring() -> None:
         "backend_v2.services.orchestrator.anchor_validation_service.AnchorValidationService.validate_evidence"
     ) as mock_val:
         assert evaluate_extraction(ext2, "test text", False) == "PASS"
-
-    # Track B (Semantic Override = True) with strictness >= 100 -> FAIL
-    assert evaluate_extraction(ext2, "test text", False, strictness_level=100) == "FAIL"
 
     # Track A (Physical Match) -> PASS
     ext3 = MockExtraction(exact_quote="matched quote", contextual_override=False)
@@ -333,12 +332,13 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
         },
     }
 
-    final, usage, traces = await ChunkWorker.process_chunk(
+    final, usage, traces, pctx = await ChunkWorker.process_chunk(
         chunk=None,
         sem=sem,
         compiler=mock_compiler,
         criteria_blocks=criteria_blocks,
         user_payload="<payload>",
+        global_source_text="<payload>",
         base_system_prompt="Base prompt",
         has_search=False,
         has_shuffled_atoms=False,
@@ -385,12 +385,13 @@ async def test_chunk_worker_exception_group_dlq_masking(mock_executor_class: Any
         }
     )
 
-    final, usage, traces = await ChunkWorker.process_chunk(
+    final, usage, traces, pctx = await ChunkWorker.process_chunk(
         chunk=None,
         sem=sem,
         compiler=mock_compiler,
         criteria_blocks=[crit_std],
         user_payload="<payload>",
+        global_source_text="<payload>",
         base_system_prompt="Base prompt",
         has_search=False,
         has_shuffled_atoms=False,

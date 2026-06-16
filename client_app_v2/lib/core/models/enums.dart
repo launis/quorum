@@ -98,6 +98,8 @@ enum ScoringStrategy {
   average,
   @JsonValue('WEIGHTED_AVERAGE')
   weightedAverage,
+  @JsonValue('PURE_MATH')
+  pureMath,
 }
 
 /// Epic 46: Strictness Level Enums

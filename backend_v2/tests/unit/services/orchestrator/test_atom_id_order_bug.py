@@ -63,6 +63,7 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
         has_search_result=False,
         has_shuffled_atoms=True,
         target_locale="en",
+        strictness_level=50,
     )
 
     # Extract the evaluations array schema

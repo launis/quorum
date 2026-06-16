@@ -73,6 +73,16 @@ class LLMNodeStrategy(NodeStrategy):
         inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
         raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
 
+        texts: list[str] = []
+        inputs_dict = inputs_payload.get("inputs", {})
+        if isinstance(inputs_dict, dict):
+            for v in inputs_dict.values():
+                if isinstance(v, str):
+                    texts.append(v)
+        elif isinstance(inputs_dict, str):
+            texts.append(inputs_dict)
+
+        global_source_text = "\n\n".join(texts)
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,
             "inputs": inputs_payload,
@@ -337,6 +347,7 @@ class LLMNodeStrategy(NodeStrategy):
                 has_search_result=has_search,
                 has_shuffled_atoms=has_shuffled_atoms,
                 target_locale=target_locale,
+                strictness_level=context.strictness_level,
             )
             frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()
 
@@ -423,6 +434,7 @@ class LLMNodeStrategy(NodeStrategy):
                                     compiler=self.compiler,
                                     criteria_blocks=criteria_blocks,
                                     user_payload=user_payload,
+                                    global_source_text=global_source_text,
                                     base_system_prompt=base_system_prompt,
                                     has_search=has_search,
                                     has_shuffled_atoms=has_shuffled_atoms,
@@ -447,6 +459,7 @@ class LLMNodeStrategy(NodeStrategy):
 
             accumulator = ChunkAccumulator()
             usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            all_prompt_contexts: list[dict[str, Any]] = []
 
             if redis:
                 all_chunks = await redis.hgetall(hkey)
@@ -458,6 +471,7 @@ class LLMNodeStrategy(NodeStrategy):
                     c_final = chunk_data["final"] if "final" in chunk_data else {}
                     c_usage_dict = chunk_data["usage"] if "usage" in chunk_data else None
                     c_traces_dict = chunk_data["traces"] if "traces" in chunk_data else []
+                    c_prompt_context_dict = chunk_data.get("prompt_context")
 
                     if (
                         isinstance(c_final, dict)
@@ -476,6 +490,9 @@ class LLMNodeStrategy(NodeStrategy):
                     if c_usage_dict:
                         usage_agg = usage_agg + TokenUsage.model_validate(c_usage_dict)
 
+                    if c_prompt_context_dict:
+                        all_prompt_contexts.append(c_prompt_context_dict)
+
                     if frozen_ctx and c_traces_dict:
                         existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
                         for tr_dict in c_traces_dict:
@@ -485,7 +502,7 @@ class LLMNodeStrategy(NodeStrategy):
                                 frozen_ctx.mcp_tool_audit.append(t_trace)
                                 existing_hashes.add(thash)
             else:
-                for c_final, c_usage, c_traces in task_results:
+                for c_final, c_usage, c_traces, c_prompt_context in task_results:
                     if (
                         isinstance(c_final, dict)
                         and "_dlq_status" in c_final
@@ -502,6 +519,9 @@ class LLMNodeStrategy(NodeStrategy):
 
                     if c_usage is not None:
                         usage_agg = usage_agg + c_usage
+
+                    if c_prompt_context:
+                        all_prompt_contexts.append(c_prompt_context.model_dump())
 
                     if frozen_ctx and c_traces:
                         existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
@@ -578,6 +598,7 @@ class LLMNodeStrategy(NodeStrategy):
                     "latency_ms": latency_ms,
                     "chunk_size": len(chunks_list),
                     "context_char_length": context_char_length,
+                    "prompt_contexts": all_prompt_contexts,
                 },
             )
         ]

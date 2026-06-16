@@ -82,7 +82,9 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
     block = PromptBlock.model_validate(causal_block_data)
 
     # 1. Build dynamic schema (which contains the compiled XML rubric and schema keys)
-    DynamicSchema = compiler.build_dynamic_schema(schema_name="CausalAnalystSchema", criteria=[block])
+    DynamicSchema = compiler.build_dynamic_schema(
+        schema_name="CausalAnalystSchema", criteria=[block], strictness_level=50
+    )
 
     # 2. Assert schema structure integrity
     assert issubclass(DynamicSchema, BaseModel)

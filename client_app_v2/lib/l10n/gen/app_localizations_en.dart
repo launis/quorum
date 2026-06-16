@@ -3460,6 +3460,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Painotettu Keskiarvo (Weighted Average)';
 
   @override
+  String get strategyPuhdasMatematiikka => 'Puhdas Matematiikka (Pure Math)';
+
+  @override
   String get allowContextualOverrideLabel => 'Allow Contextual Override';
 
   @override

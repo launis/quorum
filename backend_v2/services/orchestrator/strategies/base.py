@@ -15,6 +15,7 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import StrictnessAnchor
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import ExpectedInput, FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
@@ -43,7 +44,7 @@ class StrategyContext(BaseModel):
     metadata: dict[str, Any]
     expected_inputs: list[ExpectedInput] | None = None
     model_strategy: str | None = None
-    strictness_level: int = 50
+    strictness_level: int = StrictnessAnchor.STANDARD.value
     global_context_vars: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")

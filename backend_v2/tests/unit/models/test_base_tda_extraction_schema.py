@@ -21,7 +21,7 @@ def test_base_tda_extraction_has_correct_phase4_fields() -> None:
 
 def test_exact_quote_can_be_none() -> None:
     """Verify that both BaseTDAExtraction and StrippedBaseTDAExtraction accept exact_quote as None."""
-    from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
+    from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
 
     payload_base = {
         "localized_anchors_found": ["anchor"],
@@ -35,7 +35,7 @@ def test_exact_quote_can_be_none() -> None:
     assert base_inst.exact_quote is None
 
     payload_stripped = payload_base.copy()
-    payload_stripped["structural_location"] = "N/A"
+    payload_stripped.pop("localized_anchors_found", None)
 
     stripped_inst = StrippedBaseTDAExtraction.model_validate(payload_stripped)
     assert stripped_inst.exact_quote is None

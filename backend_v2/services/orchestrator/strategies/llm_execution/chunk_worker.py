@@ -9,7 +9,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationError, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import EvaluationRunCount, SystemConcurrency
+from backend_v2.models.dtos.report import PromptContextDTO
+from backend_v2.models.enums import EvaluationRunCount, StrictnessAnchor, SystemConcurrency
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
@@ -32,12 +33,13 @@ class ExtractionPayload(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     exact_quote: str | None = ""
     contextual_override: bool = False
-    premise_1_quote: str | None = None
-    premise_2_quote: str | None = None
-    semantic_reasoning: str | None = ""
+    override_reason: str | None = None
+    reasoning_steps: str | None = ""
 
 
-def evaluate_extraction(extraction: Any, source_text: str, is_negative_rule: bool, strictness_level: int = 50) -> str:
+def evaluate_extraction(
+    extraction: Any, source_text: str, is_negative_rule: bool, strictness_level: int = StrictnessAnchor.STANDARD.value
+) -> str:
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
     """
@@ -47,12 +49,12 @@ def evaluate_extraction(extraction: Any, source_text: str, is_negative_rule: boo
     contextual_override = getattr(extraction, "contextual_override", False)
     if not isinstance(contextual_override, bool):
         contextual_override = False
-    premise_1_quote = getattr(extraction, "premise_1_quote", None)
-    if not isinstance(premise_1_quote, str) or premise_1_quote == "":
-        premise_1_quote = None
-    semantic_reasoning = getattr(extraction, "semantic_reasoning", None)
-    if not isinstance(semantic_reasoning, str):
-        semantic_reasoning = None
+    override_reason = getattr(extraction, "override_reason", None)
+    if not isinstance(override_reason, str) or override_reason == "":
+        override_reason = None
+    reasoning_steps = getattr(extraction, "reasoning_steps", None)
+    if not isinstance(reasoning_steps, str):
+        reasoning_steps = None
 
     # Track A: Physical Match
     if exact_quote:
@@ -60,7 +62,7 @@ def evaluate_extraction(extraction: Any, source_text: str, is_negative_rule: boo
             AnchorValidationService.validate_evidence(
                 pdf_text=source_text,
                 exact_quote=exact_quote,
-                reasoning_trace=semantic_reasoning,
+                reasoning_trace=reasoning_steps,
                 contextual_override=contextual_override,
             )
             status = "PASS"
@@ -69,23 +71,15 @@ def evaluate_extraction(extraction: Any, source_text: str, is_negative_rule: boo
     # Track B: Semantic Override
     else:
         if contextual_override:
-            if strictness_level >= 100:
-                status = "FAIL"
-            elif premise_1_quote:
-                try:
-                    AnchorValidationService.validate_evidence(
-                        pdf_text=source_text,
-                        exact_quote=premise_1_quote,
-                        reasoning_trace=semantic_reasoning,
-                        contextual_override=True,
-                    )
-                    status = "PASS"
-                except SemanticEvidenceError:
-                    status = "FAIL"
-            else:
-                status = "FAIL"
+            status = "PASS"
         else:
             status = "FAIL"
+
+    semantic_reasoning = getattr(extraction, "semantic_reasoning", "") or ""
+    if "[5. VALIDATION DECISION: FAIL]" in str(semantic_reasoning) or "[5. VALIDATION DECISION: FAIL]" in str(
+        reasoning_steps or ""
+    ):
+        status = "FAIL"
 
     # Negative condition handling
     if is_negative_rule:
@@ -120,7 +114,7 @@ def _calculate_confidence(statuses: list[str], final_status: str) -> float:
 
 def _apply_minority_veto(
     votes: list[dict[str, Any]],
-    source_text: str,
+    global_source_text: str,
     is_inverse_evidence: bool,
     strictness_level: int,
 ) -> tuple[str, list[str]]:
@@ -134,11 +128,10 @@ def _apply_minority_veto(
         payload = ExtractionPayload(
             exact_quote=v.get("exact_quote"),
             contextual_override=v.get("contextual_override", False),
-            premise_1_quote=v.get("premise_1_quote"),
-            premise_2_quote=v.get("premise_2_quote"),
-            semantic_reasoning=v.get("semantic_reasoning", ""),
+            override_reason=v.get("override_reason"),
+            reasoning_steps=v.get("reasoning_steps", ""),
         )
-        status = evaluate_extraction(payload, source_text, is_inverse_evidence, strictness_level)
+        status = evaluate_extraction(payload, global_source_text, is_inverse_evidence, strictness_level)
         statuses.append(status)
 
     # Minority Veto: One FAIL on an inverse_evidence atom overrules all
@@ -160,6 +153,7 @@ def resolve_majority_vote(
     is_shuffled: bool,
     criteria_blocks: list[PromptBlock],
     user_payload: str,
+    global_source_text: str,
     strictness_level: int,
 ) -> dict[str, Any]:
     if not res_list:
@@ -190,7 +184,7 @@ def resolve_majority_vote(
                         votes.append(item)
             if votes:
                 is_inverse = atom_inverse_map.get(atom_id, False)
-                final_status, statuses = _apply_minority_veto(votes, user_payload, is_inverse, strictness_level)
+                final_status, statuses = _apply_minority_veto(votes, global_source_text, is_inverse, strictness_level)
                 confidence = _calculate_confidence(statuses, final_status)
 
                 # Keep quotes and overrides from PASS votes if available, else from all votes
@@ -200,9 +194,9 @@ def resolve_majority_vote(
 
                 overrides = [v.get("contextual_override", False) for v in valid_votes]
                 quotes = [v.get("exact_quote") for v in valid_votes]
-                p1_quotes = [v.get("premise_1_quote") for v in valid_votes]
-                p2_quotes = [v.get("premise_2_quote") for v in valid_votes]
-                reasonings = [v.get("semantic_reasoning", "") for v in valid_votes]
+                override_reasons = [v.get("override_reason") for v in valid_votes]
+                reasonings = [v.get("reasoning_steps", "") for v in valid_votes]
+                final_sr = [v.get("semantic_reasoning", "") for v in valid_votes]
 
                 final_override = sum(1 for o in overrides if o) >= 2
                 valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
@@ -211,17 +205,20 @@ def resolve_majority_vote(
                 else:
                     final_quote = None
 
-                valid_p1_quotes = [q for q in p1_quotes if q]
-                final_p1 = max(set(valid_p1_quotes), key=valid_p1_quotes.count) if valid_p1_quotes else None
-                valid_p2_quotes = [q for q in p2_quotes if q]
-                final_p2 = max(set(valid_p2_quotes), key=valid_p2_quotes.count) if valid_p2_quotes else None
+                valid_override_reasons = [q for q in override_reasons if q]
+                final_override_reason = (
+                    max(set(valid_override_reasons), key=valid_override_reasons.count)
+                    if valid_override_reasons
+                    else None
+                )
                 final_reasoning = max(set(reasonings), key=reasonings.count)
+                final_semantic_reasoning = max(set(final_sr), key=final_sr.count)
 
                 merged["evaluations"][idx]["contextual_override"] = final_override
                 merged["evaluations"][idx]["exact_quote"] = final_quote
-                merged["evaluations"][idx]["premise_1_quote"] = final_p1
-                merged["evaluations"][idx]["premise_2_quote"] = final_p2
-                merged["evaluations"][idx]["semantic_reasoning"] = final_reasoning
+                merged["evaluations"][idx]["override_reason"] = final_override_reason
+                merged["evaluations"][idx]["reasoning_steps"] = final_reasoning
+                merged["evaluations"][idx]["semantic_reasoning"] = final_semantic_reasoning
                 merged["evaluations"][idx]["status"] = final_status
                 merged["evaluations"][idx]["confidence"] = confidence
     else:
@@ -231,7 +228,9 @@ def resolve_majority_vote(
                 if votes:
                     # Block level is_inverse doesn't map cleanly to TDA level here
                     is_inverse = False
-                    final_status, statuses = _apply_minority_veto(votes, user_payload, is_inverse, strictness_level)
+                    final_status, statuses = _apply_minority_veto(
+                        votes, global_source_text, is_inverse, strictness_level
+                    )
                     confidence = _calculate_confidence(statuses, final_status)
 
                     valid_votes = [v for i, v in enumerate(votes) if statuses[i] in ("PASS", "DLQ")]
@@ -240,9 +239,9 @@ def resolve_majority_vote(
 
                     overrides = [v.get("contextual_override", False) for v in valid_votes]
                     quotes = [v.get("exact_quote") for v in valid_votes]
-                    p1_quotes = [v.get("premise_1_quote") for v in valid_votes]
-                    p2_quotes = [v.get("premise_2_quote") for v in valid_votes]
-                    reasonings = [v.get("semantic_reasoning", "") for v in valid_votes]
+                    override_reasons = [v.get("override_reason") for v in valid_votes]
+                    reasonings = [v.get("reasoning_steps", "") for v in valid_votes]
+                    final_sr = [v.get("semantic_reasoning", "") for v in valid_votes]
 
                     final_override = sum(1 for o in overrides if o) >= 2
                     valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
@@ -251,17 +250,20 @@ def resolve_majority_vote(
                     else:
                         final_quote = None
 
-                    valid_p1_quotes = [q for q in p1_quotes if q]
-                    final_p1 = max(set(valid_p1_quotes), key=valid_p1_quotes.count) if valid_p1_quotes else None
-                    valid_p2_quotes = [q for q in p2_quotes if q]
-                    final_p2 = max(set(valid_p2_quotes), key=valid_p2_quotes.count) if valid_p2_quotes else None
+                    valid_override_reasons = [q for q in override_reasons if q]
+                    final_override_reason = (
+                        max(set(valid_override_reasons), key=valid_override_reasons.count)
+                        if valid_override_reasons
+                        else None
+                    )
                     final_reasoning = max(set(reasonings), key=reasonings.count)
+                    final_semantic_reasoning = max(set(final_sr), key=final_sr.count)
 
                     merged[block.id]["contextual_override"] = final_override
                     merged[block.id]["exact_quote"] = final_quote
-                    merged[block.id]["premise_1_quote"] = final_p1
-                    merged[block.id]["premise_2_quote"] = final_p2
-                    merged[block.id]["semantic_reasoning"] = final_reasoning
+                    merged[block.id]["override_reason"] = final_override_reason
+                    merged[block.id]["reasoning_steps"] = final_reasoning
+                    merged[block.id]["semantic_reasoning"] = final_semantic_reasoning
                     merged[block.id]["status"] = final_status
                     merged[block.id]["confidence"] = confidence
 
@@ -285,6 +287,7 @@ class ChunkWorker:
         compiler: Any,
         criteria_blocks: list[PromptBlock],
         user_payload: str,
+        global_source_text: str,
         base_system_prompt: str,
         has_search: bool,
         has_shuffled_atoms: bool,
@@ -295,10 +298,10 @@ class ChunkWorker:
         target_locale: str,
         synthesis_instructions: dict[str, Any] | None,
         output_profile: Any | None,
-        strictness_level: int = 50,
+        strictness_level: int = StrictnessAnchor.STANDARD.value,
         running_event: asyncio.Event | None = None,
         step_metadata: dict[str, Any] | None = None,
-    ) -> tuple[dict[str, Any], TokenUsage | None, list[Any]]:
+    ) -> tuple[dict[str, Any], TokenUsage | None, list[Any], PromptContextDTO | None]:
         """Processes a single execution chunk, mapping dynamic schemas and orchestrating tool loops."""
         if running_event is not None and not running_event.is_set():
             running_event.set()
@@ -372,11 +375,25 @@ class ChunkWorker:
             has_search_result=has_search,
             has_shuffled_atoms=has_shuffled_atoms,
             target_locale=target_locale,
+            strictness_level=strictness_level,
         )
 
         is_lightweight = False
-        if step_metadata and step_metadata.get("is_lightweight_extraction"):
-            is_lightweight = True
+        source_language = "Unknown/Original"
+        if step_metadata:
+            if step_metadata.get("is_lightweight_extraction"):
+                is_lightweight = True
+            doc_lang = step_metadata.get("document_language", "Unknown/Original")
+            source_language = step_metadata.get("source_language", doc_lang)
+
+        linguistic_context = (
+            "<linguistic_context>\n"
+            f"  <source_data_language>{source_language}</source_data_language>\n"
+            f"  <required_output_language>{target_locale}</required_output_language>\n"
+            "  <required_reasoning_language>English</required_reasoning_language>\n"
+            "</linguistic_context>"
+        )
+        base_system_prompt = f"{linguistic_context}\n\n{base_system_prompt}"
 
         # Phase 5: Fast-Model Compensator - Enforce Contextual Override Ban
         if is_lightweight or has_shuffled_atoms:
@@ -391,6 +408,12 @@ class ChunkWorker:
             strictness_level=strictness_level,
             target_locale=target_locale,
             allowed_atom_ids=allowed_atom_ids if has_shuffled_atoms else None,
+        )
+
+        prompt_context = PromptContextDTO(
+            static_messages=list(compiled_prompt.static_messages),
+            dynamic_messages=list(compiled_prompt.dynamic_messages),
+            metadata=dict(compiled_prompt.metadata),
         )
 
         chunk_final: dict[str, Any] = {}
@@ -413,8 +436,9 @@ class ChunkWorker:
                         synthesis_instructions=synthesis_instructions,
                         validation_context={
                             "strictness_level": strictness_level,
-                            "source_text": user_payload,
+                            "source_text": global_source_text,
                             "is_lightweight_extraction": is_lightweight,
+                            "locale": target_locale,
                             "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                             if step_metadata
                             else 0,
@@ -451,8 +475,9 @@ class ChunkWorker:
                                     max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
                                     validation_context={
                                         "strictness_level": strictness_level,
-                                        "source_text": user_payload,
+                                        "source_text": global_source_text,
                                         "is_lightweight_extraction": is_lightweight,
+                                        "locale": target_locale,
                                         "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                                         if step_metadata
                                         else 0,
@@ -501,7 +526,7 @@ class ChunkWorker:
                 )
                 res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
                 chunk_final = resolve_majority_vote(
-                    res_list, has_shuffled_atoms, chunk_criteria, user_payload, strictness_level
+                    res_list, has_shuffled_atoms, chunk_criteria, user_payload, global_source_text, strictness_level
                 )
 
                 if has_shuffled_atoms and "evaluations" not in chunk_final:
@@ -539,7 +564,7 @@ class ChunkWorker:
                                                 is_negative_rule = True
                                                 break
 
-                        status = evaluate_extraction(atom_model, user_payload, is_negative_rule, strictness_level)
+                        status = evaluate_extraction(atom_model, global_source_text, is_negative_rule, strictness_level)
 
                         update_dict = {"status": status}
                         contextual_override = getattr(atom_model, "contextual_override", False)
@@ -584,7 +609,9 @@ class ChunkWorker:
                                                 is_negative_rule = True
                                                 break
 
-                            status = evaluate_extraction(block_model, user_payload, is_negative_rule, strictness_level)
+                            status = evaluate_extraction(
+                                block_model, global_source_text, is_negative_rule, strictness_level
+                            )
 
                             update_dict = {"status": status}
                             contextual_override = getattr(block_model, "contextual_override", False)
@@ -607,7 +634,7 @@ class ChunkWorker:
 
                     chunk_final = validated_response.model_dump(mode="json")
 
-            return chunk_final, chunk_usage, chunk_traces
+            return chunk_final, chunk_usage, chunk_traces, prompt_context
 
         except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
 
@@ -652,4 +679,4 @@ class ChunkWorker:
                         "semantic_reasoning": fallback_reason,
                     }
 
-            return chunk_final, None, []
+            return chunk_final, None, [], prompt_context

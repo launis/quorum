@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto
+from backend_v2.models.enums import StrictnessAnchor
 
 
 class ScoringEngineBase(ABC):
@@ -12,7 +13,11 @@ class ScoringEngineBase(ABC):
 
     @abstractmethod
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
+        self,
+        stats: dict[float, dict[str, int]],
+        math_min: float,
+        math_max: float,
+        strictness_level: int = StrictnessAnchor.STANDARD.value,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
         """Calculates the final score and generates XAI justification log.
 

@@ -307,10 +307,8 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 )
 
             if resolved_text.strip():
-                logger.info("[InputProcessingHook] Injecting ai_description for %s (English-Only Mandate).", key)
-                header = f"--- AI INSTRUCTION FOR THIS SOURCE ({key}) ---\n"
-                footer = f"\n--- SOURCE: {key} ---"
-                resolved_text = f"{header}{desc_text}\n{footer}\n\n{resolved_text}"
+                logger.info("[InputProcessingHook] Validating ai_description for %s (English-Only Mandate).", key)
+                # DO NOT mutate resolved_text. PromptCompiler handles structural injection via <ai_context_mandate>.
 
         output_dict[key] = resolved_text.strip()
 

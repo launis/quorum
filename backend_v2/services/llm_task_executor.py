@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 
 
 def _build_null_fallback(
-    model_cls: type[BaseModel], existing: Any | None = None, source_text: str | None = None
+    model_cls: type[BaseModel],
+    existing: Any | None = None,
+    validation_context: dict[str, Any] | None = None,
 ) -> Any:
     """Phase 1: Extract Pydantic reflection fallback generation to remove DRY violation.
 
@@ -37,7 +39,7 @@ def _build_null_fallback(
     Args:
         model_cls: The target Pydantic model class to build.
         existing: An existing partially populated dictionary or object to scavenge fields from.
-        source_text: The source text required for contextual validation.
+        validation_context: The context dictionary required for contextual validation.
 
     Returns:
         An instantiated model_cls object constructed via model_construct (bypassing validation).
@@ -65,26 +67,26 @@ def _build_null_fallback(
             if existing_val and isinstance(existing_val, list):
                 new_list = []
                 for item in existing_val:
-                    if source_text and item:
+                    if validation_context and item:
                         try:
-                            _perform_semantic_validation(item, source_text)
+                            _perform_semantic_validation(item, validation_context)
                             new_list.append(item)
                         except LogicalValidationError:
-                            new_list.append(_build_null_fallback(inner_cls, item, source_text))
+                            new_list.append(_build_null_fallback(inner_cls, item, validation_context))
                     else:
-                        new_list.append(_build_null_fallback(inner_cls, item, source_text))
+                        new_list.append(_build_null_fallback(inner_cls, item, validation_context))
                 fallback_data[name] = new_list
             else:
                 fallback_data[name] = []
         elif inner_cls:
-            if source_text and existing_val:
+            if validation_context and existing_val:
                 try:
-                    _perform_semantic_validation(existing_val, source_text)
+                    _perform_semantic_validation(existing_val, validation_context)
                     fallback_data[name] = existing_val
                 except LogicalValidationError:
-                    fallback_data[name] = _build_null_fallback(inner_cls, existing_val, source_text)
+                    fallback_data[name] = _build_null_fallback(inner_cls, existing_val, validation_context)
             else:
-                fallback_data[name] = _build_null_fallback(inner_cls, existing_val, source_text)
+                fallback_data[name] = _build_null_fallback(inner_cls, existing_val, validation_context)
         else:
             if name in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]:
                 fallback_data[name] = None
@@ -155,7 +157,7 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
             )
 
 
-def _perform_semantic_validation(validated_model: BaseModel, source_text: str) -> None:
+def _perform_semantic_validation(validated_model: BaseModel, validation_context: dict[str, Any]) -> None:
     """Phase 1: Extract recursive semantic verification.
 
     Recursively traces through the validated Pydantic model, searching for quote
@@ -163,13 +165,16 @@ def _perform_semantic_validation(validated_model: BaseModel, source_text: str) -
 
     Args:
         validated_model: The successfully parsed Pydantic model to verify.
-        source_text: The original source material the quotes must reside within.
+        validation_context: The validation context containing source_text and locale.
 
     Raises:
         LogicalValidationError: If a semantic quote mismatch is found.
     """
     if not hasattr(validated_model, "model_dump"):
         return
+
+    source_text = validation_context.get("source_text", "")
+    locale = validation_context.get("locale")
 
     def validate_recursive(data: Any, src_text: str) -> None:
         if isinstance(data, dict):
@@ -180,7 +185,9 @@ def _perform_semantic_validation(validated_model: BaseModel, source_text: str) -
                 is_quote_key = k in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
                 if is_quote_key and isinstance(v, str) and v.strip():
                     try:
-                        AnchorValidationService.validate_evidence(src_text, v, reasoning_trace=reasoning_trace)
+                        AnchorValidationService.validate_evidence(
+                            src_text, v, reasoning_trace=reasoning_trace, locale=locale
+                        )
                     except SemanticEvidenceError as e:
                         raise LogicalValidationError(validation_error_msg=e.message) from e
                 elif isinstance(v, (dict, list)):
@@ -284,11 +291,11 @@ class LLMTaskExecutor:
                     if validator_hook:
                         await validator_hook(validated_model)
 
-                    # --- SYSTEM-WIDE LEXICAL VERIFIER (FAIL-FAST) ---
+                    # --- SYSTEM-WIDE LEXICAL VERIFIER (FAIL-FAST)
                     if validation_context and "source_text" in validation_context:
                         is_lightweight = validation_context.get("is_lightweight_extraction")
                         if not is_lightweight:
-                            _perform_semantic_validation(validated_model, validation_context["source_text"])
+                            _perform_semantic_validation(validated_model, validation_context)
 
                     if attempt > 0:
                         logger.info(
@@ -361,8 +368,7 @@ class LLMTaskExecutor:
                             response_model.__name__,
                             extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
                         )
-                        source_txt = validation_context.get("source_text") if validation_context else None
-                        fallback = _build_null_fallback(response_model, validated_model, source_txt)
+                        fallback = _build_null_fallback(response_model, validated_model, validation_context)
                         return fallback, cumulative_usage
 
                     # Stuck Loop Detection
@@ -372,8 +378,7 @@ class LLMTaskExecutor:
                             response_model.__name__,
                             extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
                         )
-                        source_txt = validation_context.get("source_text") if validation_context else None
-                        fallback = _build_null_fallback(response_model, validated_model, source_txt)
+                        fallback = _build_null_fallback(response_model, validated_model, validation_context)
                         return fallback, cumulative_usage
 
                     previous_error_msg = error_msg

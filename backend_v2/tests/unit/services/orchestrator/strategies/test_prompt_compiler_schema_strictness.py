@@ -14,6 +14,7 @@ def test_prompt_compiler_strict_atom_schema_descriptions() -> None:
         has_search_result=False,
         has_shuffled_atoms=True,
         target_locale="fi",
+        strictness_level=50,
     )
 
     schema_json = DynamicSchema.model_json_schema()
@@ -55,6 +56,7 @@ def test_prompt_compiler_no_confusing_id_examples() -> None:
         has_search_result=False,
         has_shuffled_atoms=True,
         target_locale="fi",
+        strictness_level=50,
     )
 
     schema_json = DynamicSchema.model_json_schema()

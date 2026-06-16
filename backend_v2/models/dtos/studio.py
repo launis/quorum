@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import Field
 
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
+from backend_v2.models.dtos.report import PromptContextDTO
 from backend_v2.models.v2_core import PromptBlock, Step, Workflow
 
 
@@ -80,6 +81,7 @@ class PromptBlockSimulationResponse(BaseResponseDTO):
     errors: list[str] = Field(default_factory=list, description="Validation errors found during simulation.")
     rendered_prompt: str = Field(default="", description="The simulated rendered prompt template.")
     trace: dict[str, Any] = Field(default_factory=dict, description="Execution trace metadata.")
+    prompt_context: PromptContextDTO | None = Field(default=None, description="XAI compiled prompt structure.")
 
 
 class PromptBlockDeleteResponse(BaseResponseDTO):
@@ -120,6 +122,7 @@ class StepSimulationResponse(BaseResponseDTO):
     errors: list[str] = Field(default_factory=list, description="Validation errors found during simulation.")
     rendered_prompt: str = Field(default="", description="The simulated rendered step prompts.")
     trace: dict[str, Any] = Field(default_factory=dict, description="Execution trace metadata.")
+    prompt_context: PromptContextDTO | None = Field(default=None, description="XAI compiled prompt structure.")
 
 
 class StepDeleteResponse(BaseResponseDTO):

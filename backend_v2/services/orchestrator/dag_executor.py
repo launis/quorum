@@ -18,7 +18,7 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
-from backend_v2.models.enums import ScoringStrategy, SystemConcurrency
+from backend_v2.models.enums import ScoringStrategy, StrictnessAnchor, SystemConcurrency
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -139,7 +139,7 @@ class NodeExecutor:
         expected_inputs: list[Any] | None = None,
         frozen_ctx: FrozenContext | None = None,
         trace: list[TraceEvent] | None = None,
-        strictness_level: int = 50,
+        strictness_level: int = StrictnessAnchor.STANDARD.value,
         arq_pool: Any | None = None,
         running_event: asyncio.Event | None = None,
     ) -> list[TraceEvent]:

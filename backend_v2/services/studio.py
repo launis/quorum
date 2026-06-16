@@ -18,6 +18,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.dtos.report import PromptContextDTO
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
     PromptBlock,
@@ -584,6 +585,21 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
+        all_blocks = await self.component_repo.get_all_prompt_blocks()
+        protocol_block_id = None
+        for b in all_blocks:
+            if b.get("category_id") == "protocol":
+                protocol_block_id = b.get("id")
+                break
+
+        if not protocol_block_id:
+            logger.error("[StudioService] No protocol block found in database.")
+            raise AppException(
+                message="No protocol block found to create step draft.",
+                status_code=500,
+                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+            )
+
         new_id = f"step_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -592,7 +608,7 @@ class StudioService:
             "description": {"default_locale": "en", "translations": {"en": "Draft step", "fi": "Luonnos"}},
             "type": "llm",
             "role_block_id": None,
-            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "extraction_protocol_block_id": protocol_block_id,
             "criteria_block_ids": ["blk_440a5fef9331451b"],
             "pre_hooks": [],
             "post_hooks": [],
@@ -1573,7 +1589,18 @@ class StudioService:
                     if getattr(claim, "ai_description", None):
                         rendered += f"  Rule: {claim.ai_description.strip()}\n"
 
-        return {"valid": len(errors) == 0, "errors": errors, "rendered_prompt": rendered.strip()}
+        prompt_context = PromptContextDTO(
+            static_messages=[{"role": "system", "content": rendered.strip()}],
+            dynamic_messages=[],
+            metadata={"simulated_block": data.id},
+        )
+
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "rendered_prompt": rendered.strip(),
+            "prompt_context": prompt_context,
+        }
 
     async def simulate_step(self, initiator: TokenData, data: Step, mock_inputs: dict[str, Any]) -> dict[str, Any]:
         """Simulate step.
@@ -1603,6 +1630,7 @@ class StudioService:
         if data.criteria_block_ids:
             prompt_blocks_refs.extend(data.criteria_block_ids)
 
+        prompt_context_msgs = []
         for block_ref in prompt_blocks_refs:
             try:
                 block = await self.get_prompt_block(initiator, block_ref)
@@ -1612,6 +1640,8 @@ class StudioService:
 
                 rendered_parts.append(f"--- Prompt Block: {block.id} ---")
                 rendered_parts.append(sim.get("rendered_prompt", ""))
+                if "prompt_context" in sim and sim["prompt_context"]:
+                    prompt_context_msgs.extend(sim["prompt_context"].static_messages)
             except ResourceNotFoundError:
                 errors.append(f"Missing referenced Prompt Block: {block_ref}")
                 rendered_parts.append(f"--- Prompt Block: {block_ref} [NOT FOUND] ---")
@@ -1619,4 +1649,13 @@ class StudioService:
         if data.hook:
             rendered_parts.append(f"\n[Execution Hook: {data.hook}]")
 
-        return {"valid": len(errors) == 0, "errors": errors, "rendered_prompt": "\n\n".join(rendered_parts)}
+        step_context = PromptContextDTO(
+            static_messages=prompt_context_msgs, dynamic_messages=[], metadata={"simulated_step": data.id}
+        )
+
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "rendered_prompt": "\n\n".join(rendered_parts),
+            "prompt_context": step_context,
+        }

@@ -863,6 +863,7 @@
   "strategySyvaarvostelu": "Syväarvostelu",
   "strategyLineaarinenKeskiarvo": "Lineaarinen Keskiarvo",
   "strategyPainotettuKeskiarvo": "Painotettu Keskiarvo",
+  "strategyPuhdasMatematiikka": "Puhdas Matematiikka",
   "failedToLoadSchema": "Skeeman lataaminen epäonnistui: {error}",
   "navSystemInspector": "Järjestelmätarkastaja",
   "gatewayMetadataTitle": "Yhdyskäytävän metatiedot",

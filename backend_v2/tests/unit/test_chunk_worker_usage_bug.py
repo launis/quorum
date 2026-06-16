@@ -21,9 +21,14 @@ async def test_chunk_worker_usage_name_error() -> None:
     # Mock compiler
     compiler = MagicMock()
     compiler.compile_xml_rubrics.return_value = "<rubrics></rubrics>"
-    compiler.build_dynamic_schema.return_value = MockResult
+    # This test mocks compiler, so it doesn't need modification
     compiler.calibrate_strictness.return_value = "Balanced"
     compiler.get_critical_language_mandate.return_value = "Use English"
+
+    # Mock schema return to avoid magicmock on model_dump
+    mock_schema = MagicMock()
+    mock_schema.model_validate.return_value.model_dump.return_value = {"evaluations": []}
+    compiler.build_dynamic_schema.return_value = mock_schema
 
     # Mock executor & run_structured_task via bound_client
     mock_client = AsyncMock()
@@ -34,13 +39,14 @@ async def test_chunk_worker_usage_name_error() -> None:
 
     # Calls ChunkWorker.process_chunk
     # This should complete without raising NameError: name 'usage' is not defined
-    res, usage, traces = await ChunkWorker.process_chunk(
+    res, usage, traces, pctx = await ChunkWorker.process_chunk(
         chunk=None,
         sem=sem,
         compiler=compiler,
         criteria_blocks=[],
-        user_payload="Test text",
-        base_system_prompt="Test system prompt",
+        user_payload="test payload",
+        global_source_text="test payload",
+        base_system_prompt="base system prompt",
         has_search=False,
         has_shuffled_atoms=False,
         atom_to_block_ids={},

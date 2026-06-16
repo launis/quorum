@@ -32,6 +32,7 @@ from backend_v2.models.enums import (
     LaxScoringStrategy,
     LaxXaiExtensionType,
     ScoringStrategy,
+    StrictnessAnchor,
     SystemConcurrency,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields
@@ -1089,7 +1090,9 @@ class Workflow(V2CoreBase):
         default_factory=dict, description="Dictionary of named output profiles for reporting."
     )
     default_profile_id: str = Field(description="The ID of the default output profile to use.")
-    default_strictness_level: int = Field(default=50, ge=0, le=100, description="Fallback strictness level.")
+    default_strictness_level: int = Field(
+        default=StrictnessAnchor.STANDARD.value, ge=0, le=100, description="Fallback strictness level."
+    )
     default_scoring_strategy: LaxScoringStrategy = Field(
         default=ScoringStrategy.AVERAGE, description="Fallback strategy."
     )

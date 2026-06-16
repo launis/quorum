@@ -23,7 +23,7 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 
 # --- Phase 9 Imports ---
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-from backend_v2.models.enums import SystemConcurrency
+from backend_v2.models.enums import StrictnessAnchor, SystemConcurrency
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -129,12 +129,13 @@ async def evaluate_chunk_job(
     sem = asyncio.Semaphore(1)
 
     # Run chunk processing
-    c_final, c_usage, c_traces = await ChunkWorker.process_chunk(
+    c_final, c_usage, c_traces, c_prompt_context = await ChunkWorker.process_chunk(
         chunk=chunk_obj,
         sem=sem,
         compiler=compiler,
         criteria_blocks=criteria_blocks,
         user_payload=user_payload,
+        global_source_text=user_payload,
         base_system_prompt=base_system_prompt,
         has_search=has_search,
         has_shuffled_atoms=has_shuffled_atoms,
@@ -173,6 +174,7 @@ async def evaluate_chunk_job(
         "final": c_final,
         "usage": c_usage.model_dump() if c_usage else None,
         "traces": [t.model_dump() for t in c_traces] if c_traces else [],
+        "prompt_context": c_prompt_context.model_dump() if c_prompt_context else None,
     }
 
     payload_str = json.dumps(payload_dict)
@@ -630,7 +632,7 @@ async def generate_profile_synthesis_and_pdf_task(
         w_dict = await repo.get_workflow_by_id(execution.workflow_id)
         workflow_def = Workflow.model_validate(w_dict) if w_dict else None
 
-        strictness_level = 50
+        strictness_level = StrictnessAnchor.STANDARD.value
         scoring_strategy_val = "AVERAGE"
         if active_profile_dto:
             if active_profile_dto.strictness_level is not None:

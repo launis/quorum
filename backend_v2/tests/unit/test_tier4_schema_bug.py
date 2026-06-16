@@ -54,6 +54,7 @@ def test_reproduce_tier4_schema_bug() -> None:
         has_search_result=False,
         has_shuffled_atoms=False,
         target_locale="en",
+        strictness_level=50,
     )
 
     # The LLM output

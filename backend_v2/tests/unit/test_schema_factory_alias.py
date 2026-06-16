@@ -15,7 +15,12 @@ def test_schema_factory_reasoning_trace_alias() -> None:
 
     # Build a simple schema without any criteria
     DynamicSchema = factory.build_dynamic_schema(
-        schema_name="TestSchema", criteria=[], has_search_result=False, has_shuffled_atoms=False, target_locale="en"
+        schema_name="TestSchema",
+        criteria=[],
+        has_search_result=False,
+        has_shuffled_atoms=False,
+        target_locale="en",
+        strictness_level=50,
     )
 
     # Simulate the LLM outputting 'reasoning_trace' as standard

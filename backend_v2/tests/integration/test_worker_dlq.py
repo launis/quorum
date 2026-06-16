@@ -43,13 +43,14 @@ async def test_pydantic_max_length_fail_fast_and_dlq_routing() -> None:
         mock_instance.execute_structured_task = AsyncMock(side_effect=error)
 
         # Execute process_chunk
-        chunk_final, chunk_usage, chunk_traces = await ChunkWorker.process_chunk(
+        chunk_final, chunk_usage, chunk_traces, chunk_context = await ChunkWorker.process_chunk(
             chunk=chunk_obj,
             sem=sem,
             compiler=compiler,
             criteria_blocks=[],
-            user_payload="",
-            base_system_prompt="",
+            user_payload="Test content for the worker",
+            global_source_text="Test content for the worker",
+            base_system_prompt="Base system prompt",
             has_search=False,
             has_shuffled_atoms=False,
             atom_to_block_ids={},
@@ -103,6 +104,7 @@ async def test_programmatic_errors_bubble_up_and_crash_fail_fast() -> None:
                 compiler=compiler,
                 criteria_blocks=[],
                 user_payload="",
+                global_source_text="",
                 base_system_prompt="",
                 has_search=False,
                 has_shuffled_atoms=False,
@@ -129,6 +131,7 @@ async def test_worker_evaluate_chunk_job_aborts_on_dlq_status() -> None:
             {"_dlq_status": "FAILED/DLQ", "reason": "Test DLQ Trigger"},
             None,
             [],
+            None,
         )
 
         ctx = {"redis": MagicMock()}  # Redis client

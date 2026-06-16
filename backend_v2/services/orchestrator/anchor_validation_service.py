@@ -5,6 +5,7 @@ import unicodedata
 from rapidfuzz import fuzz
 
 from backend_v2.exceptions import SemanticEvidenceError
+from backend_v2.models.enums import get_lexical_fuzz_threshold
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,7 @@ class AnchorValidationService:
         exact_quote: str | None,
         reasoning_trace: str | None = None,
         contextual_override: bool = False,
+        locale: str | None = None,
     ) -> str | None:
         """Validates evidence strictly and extracts the exact physical string.
 
@@ -87,6 +89,7 @@ class AnchorValidationService:
             exact_quote: The quote extracted by the LLM.
             reasoning_trace: Optional trace containing the LLM's logical breakdown.
             contextual_override: If True, skips lexical validation.
+            locale: Optional locale string to determine the fuzzy fallback threshold.
 
         Returns:
             The exact_quote (overridden with original whitespace) if valid, or None if overridden.
@@ -101,6 +104,9 @@ class AnchorValidationService:
             raise SemanticEvidenceError(
                 message="Lexical validation failed: exact_quote is required when contextual_override is False."
             )
+
+        if exact_quote and len(exact_quote) > 1000:
+            raise SemanticEvidenceError(message=f"Quote length exceeds safety limit ({len(exact_quote)} > 1000 chars).")
 
         if reasoning_trace:
             trace_lower = reasoning_trace.lower()
@@ -151,16 +157,17 @@ class AnchorValidationService:
             return extracted
 
         # SLOW-PATH (Fuzzy Fallback): Sallitaan pienen toleranssin OCR/typografia -virheet
+        threshold = get_lexical_fuzz_threshold(locale)
         similarity = fuzz.partial_ratio(norm_quote, norm_pdf)
-        if similarity >= 95.0:
+        if similarity >= threshold:
             logger.warning(
                 "Backend Lexical Verifier: Exact match failed, but fuzzy fallback triggered. Returning cleaned LLM quote.",
-                extra={"exact_quote": exact_quote, "similarity": similarity},
+                extra={"exact_quote": exact_quote, "similarity": similarity, "threshold": threshold},
             )
             return exact_quote
 
         logger.error(
-            "Backend Lexical Verifier failed: exact_quote not found in source text.",
+            f"Backend Lexical Verifier failed: exact_quote '{exact_quote}' not found in source text. (Similarity: {similarity}%)",
             extra={"exact_quote": exact_quote, "similarity": similarity},
         )
         raise SemanticEvidenceError(

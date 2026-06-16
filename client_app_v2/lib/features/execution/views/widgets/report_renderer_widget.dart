@@ -927,6 +927,7 @@ class ReportRendererWidget extends ConsumerWidget {
       ScoringStrategy.dampening => l10n.strategySyvaarvostelu,
       ScoringStrategy.average => l10n.strategyLineaarinenKeskiarvo,
       ScoringStrategy.weightedAverage => l10n.strategyPainotettuKeskiarvo,
+      ScoringStrategy.pureMath => l10n.strategyPuhdasMatematiikka,
     };
   }
 }

@@ -408,4 +408,5 @@ const _$ScoringStrategyEnumMap = {
   ScoringStrategy.dampening: 'DAMPENING',
   ScoringStrategy.average: 'AVERAGE',
   ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
+  ScoringStrategy.pureMath: 'PURE_MATH',
 };

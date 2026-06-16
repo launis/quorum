@@ -111,7 +111,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     from backend_v2.models.v2_core import PromptBlock
 
     DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="TestSchema", criteria=[PromptBlock.model_validate(mock_matrix_block)]
+        schema_name="TestSchema", criteria=[PromptBlock.model_validate(mock_matrix_block)], strictness_level=50
     )  # noqa: E501
 
     # Assert
@@ -174,7 +174,9 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
 
     from backend_v2.models.v2_core import PromptBlock
 
-    DynamicSchema = compiler.build_dynamic_schema("TestExtract", [PromptBlock.model_validate(mock_matrix)])
+    DynamicSchema = compiler.build_dynamic_schema(
+        "TestExtract", [PromptBlock.model_validate(mock_matrix)], strictness_level=50
+    )
 
     # Simulate LLM Response parsing
     llm_payload = {
@@ -285,13 +287,10 @@ def test_dynamic_schema_descriptions_are_present() -> None:
 
     # 3. Assert max_length constraints exist to limit LLM schema serving states
     from backend_v2.models.enums import SystemConcurrency
-    from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
+    from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
 
     tda_schema = StrippedBaseTDAExtraction.model_json_schema()
-    assert (
-        tda_schema["properties"]["localized_anchors_found"]["maxItems"]
-        == SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS
-    )  # noqa: E501
+    assert "localized_anchors_found" not in tda_schema["properties"]
 
     chunk_json_schema = ChunkSchema.model_json_schema()
     assert chunk_json_schema["properties"]["records"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS
@@ -310,7 +309,7 @@ def test_fsm_serving_state_safety_limits() -> None:
 
 def test_tda_extraction_schema_has_semantic_descriptions() -> None:
     """Varmistaa, että StrippedBaseTDAExtraction-luokan kentissä on semanttinen ohjeistus."""
-    from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
+    from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
 
     override_desc = StrippedBaseTDAExtraction.model_fields["contextual_override"].description or ""
     quote_desc = StrippedBaseTDAExtraction.model_fields["exact_quote"].description or ""
@@ -365,7 +364,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
     }
 
     DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="ExtremeSchema", criteria=[PromptBlock.model_validate(mock_block)]
+        schema_name="ExtremeSchema", criteria=[PromptBlock.model_validate(mock_block)], strictness_level=50
     )
 
     field_info = DynamicSchema.model_fields["blk_1234567890abcdef"]
@@ -395,8 +394,7 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     }
 
     DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="CustomInstructionSchema",
-        criteria=[PromptBlock.model_validate(mock_block)],
+        schema_name="CustomInstructionSchema", criteria=[PromptBlock.model_validate(mock_block)], strictness_level=50
     )
 
     # The field type must be a simple string (str), NOT a nested Pydantic model class
@@ -438,11 +436,11 @@ def test_inject_theory_grounding() -> None:
 
 def test_calibrate_strictness() -> None:
     compiler = PromptCompiler()
-    assert "Absolute Leniency" in compiler.calibrate_strictness(0)
-    assert "Lenient" in compiler.calibrate_strictness(20)
-    assert "Balanced" in compiler.calibrate_strictness(50)
-    assert "Strict" in compiler.calibrate_strictness(80)
-    assert "Absolute Strictness" in compiler.calibrate_strictness(100)
+    assert "SCORING_STRICTNESS: 0/100" in compiler.calibrate_strictness(0)
+    assert "SCORING_STRICTNESS: 20/100" in compiler.calibrate_strictness(20)
+    assert "SCORING_STRICTNESS: 50/100" in compiler.calibrate_strictness(50)
+    assert "SCORING_STRICTNESS: 80/100" in compiler.calibrate_strictness(80)
+    assert "SCORING_STRICTNESS: 100/100" in compiler.calibrate_strictness(100)
 
 
 def test_get_schema_healing_prompt() -> None:

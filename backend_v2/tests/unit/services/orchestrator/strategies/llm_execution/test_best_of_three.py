@@ -141,6 +141,7 @@ def test_resolve_majority_vote_with_veto() -> None:
             is_shuffled=True,
             criteria_blocks=criteria_blocks,
             user_payload="source",
+            global_source_text="source",
             strictness_level=50,
         )
 
@@ -181,6 +182,7 @@ async def test_llm_count_is_ensemble_when_lightweight() -> None:
                 compiler=mock_compiler,
                 criteria_blocks=[],
                 user_payload="<payload>",
+                global_source_text="<payload>",
                 base_system_prompt="Base prompt",
                 has_search=False,
                 has_shuffled_atoms=False,
@@ -221,6 +223,7 @@ async def test_llm_count_is_standard_when_not_lightweight() -> None:
                 compiler=mock_compiler,
                 criteria_blocks=[],
                 user_payload="<payload>",
+                global_source_text="<payload>",
                 base_system_prompt="Base prompt",
                 has_search=False,
                 has_shuffled_atoms=False,

@@ -151,17 +151,18 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
     assert "QUESTIONNAIRE" in processed
     assert "DOCUMENT_TEXT" in processed
 
-    # Check English-Only Mandate injection and Markdown serialization
+    # Ensure English-Only Mandate is NOT injected via naked string concatenation
+    # (PromptCompiler will handle it structurally via <ai_context_mandate>)
     questionnaire_text = processed["QUESTIONNAIRE"]
-    assert "--- AI INSTRUCTION FOR THIS SOURCE (QUESTIONNAIRE) ---" in questionnaire_text
-    assert "Analyze this form." in questionnaire_text
+    assert "--- AI INSTRUCTION FOR THIS SOURCE (QUESTIONNAIRE) ---" not in questionnaire_text
+    assert "Analyze this form." not in questionnaire_text
     assert "# My Form" in questionnaire_text
     assert "### Q: How are you?" in questionnaire_text
     assert "> **A:** I am fine." in questionnaire_text
 
     doc_text = processed["DOCUMENT_TEXT"]
-    assert "--- AI INSTRUCTION FOR THIS SOURCE (DOCUMENT_TEXT) ---" in doc_text
-    assert "Analyze this text." in doc_text
+    assert "--- AI INSTRUCTION FOR THIS SOURCE (DOCUMENT_TEXT) ---" not in doc_text
+    assert "Analyze this text." not in doc_text
     assert "Plain text input." in doc_text
 
 
@@ -273,6 +274,5 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
     processed = result.state_delta["inputs"]
     assert "DOCUMENT_TEXT" in processed
     # Due to ordering in the hook, Presidio masks the output of SpaCy.
-    # The output of mask_pii is "Masked text.", which is then injected with ai_description
     assert "Masked text." in processed["DOCUMENT_TEXT"]
-    assert "Analyze this text." in processed["DOCUMENT_TEXT"]
+    assert "Analyze this text." not in processed["DOCUMENT_TEXT"]

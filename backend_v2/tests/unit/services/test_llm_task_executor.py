@@ -231,7 +231,7 @@ async def test_execute_structured_task_system_wide_lexical_verifier(
         assert res_model.score is None
         assert res_model.exact_quote is None
         assert res_model.justification == "[SYSTEM ERROR: LLM Unable to verify.]"
-        mock_validate.assert_called_with("real text", "fake quote", reasoning_trace="fake trace")
+        mock_validate.assert_called_with("real text", "fake quote", reasoning_trace="fake trace", locale=None)
 
 
 @pytest.mark.asyncio

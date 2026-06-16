@@ -8,6 +8,7 @@ import statistics
 from typing import Any
 
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto
+from backend_v2.models.enums import StrictnessAnchor
 from backend_v2.utils.math_utils import (
     calculate_linear_ratio_score,
     convert_strictness_to_forgiveness,
@@ -27,7 +28,7 @@ class PureAverageScoringEngine(ScoringEngineBase):
         stats: dict[float, dict[str, int]],
         math_min: float,
         math_max: float,
-        strictness_level: int = 50,
+        strictness_level: int = StrictnessAnchor.STANDARD.value,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
         """Calculate pure linear average across score levels, applying outlier rejection.
 
@@ -136,7 +137,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
         stats: dict[float, dict[str, int]],
         math_min: float,
         math_max: float,
-        strictness_level: int = 50,
+        strictness_level: int = StrictnessAnchor.STANDARD.value,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
         """Calculate weighted average scores using linear ratio based on configured strictness level.
 

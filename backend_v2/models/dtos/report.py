@@ -13,6 +13,28 @@ from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.view.sdui import ReferenceItem
 
 
+class PromptContextDTO(BaseDTO):
+    """Execution prompt context containing exact compilation boundaries.
+
+    Attributes:
+        static_messages: Globally identical content across all chunks (base system prompt + source document).
+        dynamic_messages: Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors).
+        metadata: Arbitrary execution metadata (e.g., token proxy scores).
+    """
+
+    static_messages: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Globally identical content across all chunks (base system prompt + source document).",
+    )
+    dynamic_messages: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors).",
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Arbitrary execution metadata (e.g., token proxy scores)."
+    )
+
+
 class XAIFlatReportDTO(BaseDTO):
     """A flattened, machine-readable report summary optimized for BI tools and external integration.
 

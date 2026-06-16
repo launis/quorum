@@ -11,7 +11,6 @@ Step failed because LLM returned 12 localized_anchors_found items
 """
 
 from backend_v2.models.enums import SystemConcurrency
-from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
 
 # The exact payload from the new production crash log
 SITRA_ANCHORS_12 = [
@@ -37,16 +36,17 @@ def test_localized_anchors_accepts_12_items() -> None:
     XML prompt mandates extracting all physical anchors, legitimately producing
     12 anchor keywords.
     """
+    from backend_v2.models.v2_core import BaseTDAExtraction
+
     payload = {
         "localized_anchors_found": SITRA_ANCHORS_12,
         "semantic_reasoning": "Säännön ankkurit löydetty monikollisesti tekstistä.",
         "contextual_override": False,
-        "structural_location": "N/A",
         "exact_quote": "Koska syyt ovat johtaneet tähän...",
     }
 
     # This MUST NOT raise ValidationError
-    instance = StrippedBaseTDAExtraction.model_validate(payload, strict=True)
+    instance = BaseTDAExtraction.model_validate(payload, strict=True)
     assert len(instance.localized_anchors_found) == 12
 
 

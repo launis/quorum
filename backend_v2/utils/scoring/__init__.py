@@ -4,6 +4,7 @@ from backend_v2.models.enums import ScoringStrategy
 from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
 from backend_v2.utils.scoring.dampening_engine import DampeningScoringEngine
+from backend_v2.utils.scoring.pure_math_engine import PureMathScoringEngine
 from backend_v2.utils.scoring.waterfall_engine import WaterfallScoringEngine
 
 
@@ -45,6 +46,8 @@ def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
         return PureAverageScoringEngine()
     elif strategy == ScoringStrategy.WEIGHTED_AVERAGE:
         return WeightedAverageScoringEngine()
+    elif strategy == ScoringStrategy.PURE_MATH:
+        return PureMathScoringEngine()
 
     # Absolute fallback
     return WaterfallScoringEngine()

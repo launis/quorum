@@ -562,6 +562,7 @@ async def test_execute_accumulates_dlq_status_instead_of_raising(
                     },
                     None,
                     [],
+                    {},
                 )
 
                 trace_events = await llm_strategy.execute(
@@ -577,3 +578,122 @@ async def test_execute_accumulates_dlq_status_instead_of_raising(
                 assert len(trace_events) == 1
                 assert trace_events[0].event_type == "output"
                 assert trace_events[0].content["blk_test"]["status"] == "DLQ"
+
+
+@pytest.mark.asyncio
+async def test_execute_with_frozen_ctx_triggers_schema_build_strictness_level(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
+    """Test that passing frozen_ctx triggers build_dynamic_schema with strictness_level."""
+    step = MagicMock()
+    step.id = "step_schema"
+    step.task_blueprint = "bp_schema"
+    step.input_mappings = {}
+    step.allowed_mcp_tools = []
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exec_1"
+    context.workflow_id = "wf_1"
+    context.global_context_vars = {}
+    context.metadata = {"profile_id": "prof_123", "target_locale": "en"}
+    context.model_strategy = "standard"
+    context.expected_inputs = []
+    context.strictness_level = 50
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "stp_0123456789abcdef0123456789abcdef",
+        "slug": "test_step",
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
+        "model_strategy": "standard",
+    }
+    mock_repo.get_all_prompt_blocks.return_value = [
+        {
+            "id": "blk_0123456789abcdef0123456789abcdef",
+            "slug": "test_block",
+            "category_id": "system_rule",
+            "type": "string",
+            "label": {"default_locale": "en", "translations": {"en": "Label", "fi": "Label"}},
+            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "ai_description": "Test Block AI Desc",
+        },
+        {
+            "id": "blk_573802341db9d68c",
+            "slug": "zero_trust_extraction_protocol",
+            "category_id": "system_rule",
+            "type": "instruction",
+            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "ai_description": "Strict extraction protocol.",
+        },
+    ]
+    mock_repo.get_workflow.return_value = {
+        "id": "wf_0123456789abcdef0123456789abcdef",
+        "slug": "test",
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prf_123",
+    }
+
+    mock_hook_state = MagicMock()
+    mock_hook_state.inputs = {}
+
+    from unittest.mock import AsyncMock, patch
+
+    llm_strategy.system_repo = MagicMock()
+    llm_strategy.system_repo.get_model_registry = AsyncMock(
+        return_value={
+            "id": "sys_0123456789abcdef",
+            "slug": "default_registry",
+            "type": "model_registry",
+            "models": {"standard": {"provider": "vertex_ai", "model_name": "gemini-1.5-flash", "max_tokens": 1000}},
+        }
+    )
+
+    frozen_ctx = MagicMock()
+    frozen_ctx.generated_schemas = {}
+
+    from unittest.mock import AsyncMock
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch(
+            "backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock
+        ) as mock_llm_client,
+        patch(
+            "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.ChunkWorker.process_chunk",
+            new_callable=AsyncMock,
+        ) as mock_chunk,
+    ):
+        mock_chunk.return_value = ({"_dlq_status": "FAILED/DLQ"}, None, [], {})
+        mock_pre.return_value = mock_hook_state
+        mock_post_hook_state = MagicMock()
+        mock_post_hook_state.inputs = {"blocks": []}
+        mock_post.return_value = mock_post_hook_state
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.call_llm = AsyncMock(return_value={"raw_response": "{}"})
+        mock_llm_client.return_value = mock_client_instance
+
+        from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+        real_compiler = PromptCompiler()
+        llm_strategy.compiler = real_compiler
+
+        await llm_strategy.execute(
+            step=step,
+            projector=projector,
+            context=context,
+            frozen_ctx=frozen_ctx,
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
+        )

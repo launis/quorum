@@ -17,7 +17,7 @@ from backend_v2.exceptions import (
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import SystemConcurrency
+from backend_v2.models.enums import StrictnessAnchor, SystemConcurrency
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import SystemConfigModelRegistry
@@ -306,7 +306,27 @@ class LLMClient:
                         if isinstance(schema_dict, dict):
                             schema_dict.pop("maxLength", None)
                             schema_dict.pop("minLength", None)
-                            for v in schema_dict.values():
+
+                            if "const" in schema_dict:
+                                schema_dict["enum"] = [schema_dict.pop("const")]
+
+                            # Context cache validation requires strictness and active user context
+                            strictness = (
+                                validation_context.get("strictness_level", StrictnessAnchor.STANDARD.value)
+                                if validation_context
+                                else StrictnessAnchor.STANDARD.value
+                            )
+                            if strictness >= 100:
+                                if "properties" in schema_dict:
+                                    schema_dict["properties"].pop("contextual_override", None)
+                                    schema_dict["properties"].pop("override_reason", None)
+                                if "required" in schema_dict and isinstance(schema_dict["required"], list):
+                                    if "contextual_override" in schema_dict["required"]:
+                                        schema_dict["required"].remove("contextual_override")
+                                    if "override_reason" in schema_dict["required"]:
+                                        schema_dict["required"].remove("override_reason")
+
+                            for v in list(schema_dict.values()):
                                 strip_unsupported_constraints(v)
                         elif isinstance(schema_dict, list):
                             for item in schema_dict:

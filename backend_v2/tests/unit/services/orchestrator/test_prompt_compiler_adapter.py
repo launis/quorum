@@ -14,13 +14,13 @@ def test_prompt_compiler_adapter_delegation() -> None:
     adapter = PromptCompilerAdapter()
 
     # Verify delegation of build_dynamic_schema
-    DynamicSchema = adapter.build_dynamic_schema("DynamicTest", [], False, False, "en")
+    DynamicSchema = adapter.build_dynamic_schema("DynamicTest", [], False, False, "en", strictness_level=50)
     assert DynamicSchema is not None
     assert hasattr(DynamicSchema, "model_fields")
 
     # Verify delegation of calibrate_strictness
-    assert "Absolute Leniency" in adapter.calibrate_strictness(0)
-    assert "Absolute Strictness" in adapter.calibrate_strictness(100)
+    assert "SCORING_STRICTNESS: 0/100" in adapter.calibrate_strictness(0)
+    assert "SCORING_STRICTNESS: 100/100" in adapter.calibrate_strictness(100)
 
 
 def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:

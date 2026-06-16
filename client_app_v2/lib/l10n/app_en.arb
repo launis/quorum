@@ -1799,6 +1799,7 @@
   "strategySyvaarvostelu": "Syväarvostelu (Deep Evaluation)",
   "strategyLineaarinenKeskiarvo": "Lineaarinen Keskiarvo (Linear Average)",
   "strategyPainotettuKeskiarvo": "Painotettu Keskiarvo (Weighted Average)",
+  "strategyPuhdasMatematiikka": "Puhdas Matematiikka (Pure Math)",
   "allowContextualOverrideLabel": "Allow Contextual Override",
   "allowContextualOverrideDescription": "Allows the LLM to justify semantic verification without a literal quotation if exact text evidence is physically absent.",
   "enableContextualOverridesLabel": "Enable Contextual Overrides",

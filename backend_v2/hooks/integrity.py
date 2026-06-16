@@ -15,7 +15,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.integrity import CitationAudit, StepContext
-from backend_v2.models.enums import QuorumLexicalConfig
+from backend_v2.models.enums import get_lexical_fuzz_threshold
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.utils.paths import get_forensic_input_path
@@ -111,12 +111,13 @@ def _gather_rag_context(global_vars: dict[str, Any]) -> str:
     return rag_text
 
 
-def _is_hallucinated(quote: str, corpus_chunks: list[str]) -> bool:
+def _is_hallucinated(quote: str, corpus_chunks: list[str], threshold: float) -> bool:
     """Determine if a quote is hallucinated using fuzzy matching against a corpus.
 
     Args:
         quote: The text quote to verify.
         corpus_chunks: A list of text chunks representing the source material.
+        threshold: The required fuzzy match score percentage.
 
     Returns:
         True if the quote is hallucinated, False if a match is found.
@@ -124,21 +125,22 @@ def _is_hallucinated(quote: str, corpus_chunks: list[str]) -> bool:
     if not quote or len(quote) < 4:
         return False
     norm_q = quote.lower().strip()
-    # O(1) best case, early return on first partial fuzzy match >= FUZZ_THRESHOLD_BILINGUAL
+    # O(1) best case, early return on first partial fuzzy match >= threshold
     for chunk in corpus_chunks:
-        if fuzz.partial_ratio(norm_q, chunk) >= QuorumLexicalConfig.FUZZ_THRESHOLD_BILINGUAL.value:
+        if fuzz.partial_ratio(norm_q, chunk) >= threshold:
             return False
     return True
 
 
 def _verify_payload_citations(
-    parsed_payload: AnalystOutput | EvaluationResult, corpus_chunks: list[str]
+    parsed_payload: AnalystOutput | EvaluationResult, corpus_chunks: list[str], threshold: float
 ) -> tuple[AnalystOutput | EvaluationResult, int, int, list[str]]:
     """Verify citations in the parsed payload and drop hallucinated ones.
 
     Args:
         parsed_payload: The structured payload (AnalystOutput or EvaluationResult).
         corpus_chunks: The source corpus split into lines.
+        threshold: The required fuzzy match score percentage.
 
     Returns:
         A tuple containing the updated payload, the total citation count,
@@ -155,7 +157,7 @@ def _verify_payload_citations(
                 valid_quotes = []
                 for quote in hyp.quotes:
                     total_count += 1
-                    if _is_hallucinated(quote, corpus_chunks):
+                    if _is_hallucinated(quote, corpus_chunks, threshold):
                         invalid_citations.append(quote)
                         logger.warning("[IntegrityHook] Analyst hallucination detected.")
                     else:
@@ -169,7 +171,7 @@ def _verify_payload_citations(
             valid_quotes = []
             for quote in parsed_payload.citation_snippets:
                 total_count += 1
-                if _is_hallucinated(quote, corpus_chunks):
+                if _is_hallucinated(quote, corpus_chunks, threshold):
                     invalid_citations.append(quote)
                     logger.warning("[IntegrityHook] Evaluator hallucination detected.")
                 else:
@@ -237,8 +239,11 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         delta = copy.deepcopy(state.inputs)
         return HookResult(success=True, state_delta=delta)
 
+    system_locale = state.global_context_vars.get("system_locale") if state.global_context_vars else None
+    threshold = get_lexical_fuzz_threshold(system_locale)
+
     parsed_payload, total_count, valid_count, invalid_citations = _verify_payload_citations(
-        parsed_payload, corpus_chunks
+        parsed_payload, corpus_chunks, threshold
     )
 
     if total_count == 0:

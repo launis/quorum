@@ -611,7 +611,16 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     max_items = active_profile_dto.max_extension_items or 2
 
     sys_prompt = "<system_directive>\n<execution_parameters>\n"
-    sys_prompt += f"  <target_language>{language}</target_language>\n"
+
+    source_language = state.metadata.get("source_language", state.metadata.get("document_language", "Unknown/Original"))
+    linguistic_context = (
+        "<linguistic_context>\n"
+        f"  <source_data_language>{source_language}</source_data_language>\n"
+        f"  <required_output_language>{language}</required_output_language>\n"
+        "  <required_reasoning_language>English</required_reasoning_language>\n"
+        "</linguistic_context>\n"
+    )
+    sys_prompt += linguistic_context
 
     if not active_profile_dto or not active_profile_dto.scoring_strategy:
         msg = f"Strict Fail-Fast Enforced: 'scoring_strategy' missing from active profile '{profile_to_use}'."

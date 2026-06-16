@@ -4,7 +4,7 @@ from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto
-from backend_v2.models.enums import CognitiveFlowStatus, CognitiveFlowThreshold
+from backend_v2.models.enums import CognitiveFlowStatus, CognitiveFlowThreshold, StrictnessAnchor
 from backend_v2.utils.math_utils import calculate_progressive_dampening_score, clamp_score, get_strictness_config
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
 
@@ -19,7 +19,11 @@ class DampeningScoringEngine(ScoringEngineBase):
     """
 
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 85
+        self,
+        stats: dict[float, dict[str, int]],
+        math_min: float,
+        math_max: float,
+        strictness_level: int = StrictnessAnchor.STRICT.value,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
         config = get_strictness_config(strictness_level)
         dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max, config)

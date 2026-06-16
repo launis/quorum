@@ -25,7 +25,9 @@ class MockCompiler:
 
     def compile_chunk_prompt(self, *args: Any, **kwargs: Any) -> Any:
         class DummyCompiledPrompt:
+            static_messages: list[Any] = []
             dynamic_messages: list[Any] = []
+            metadata: dict[str, Any] = {}
 
             def model_copy(self, *args: Any, **kwargs: Any) -> Any:
                 return self
@@ -67,14 +69,17 @@ async def test_chunk_worker_dlq_fallback_for_shuffled_atoms(monkeypatch: pytest.
 
     # Pass a dummy object that circumvents Pydantic validation
     class DummyCompiledPrompt:
+        static_messages: list[Any] = []
         dynamic_messages: list[Any] = []
+        metadata: dict[str, Any] = {}
 
-    chunk_final, usage, traces = await ChunkWorker.process_chunk(
+    chunk_final, usage, traces, pctx = await ChunkWorker.process_chunk(
         chunk=chunk,
         sem=sem,
         compiler=compiler,
         criteria_blocks=chunk_criteria,
         user_payload="test payload",
+        global_source_text="test payload",
         base_system_prompt="test",
         has_search=False,
         has_shuffled_atoms=True,
@@ -115,14 +120,17 @@ async def test_chunk_worker_dlq_fallback_for_standard_blocks(monkeypatch: pytest
     chunk_criteria = cast(Any, [crit_1, crit_2])
 
     class DummyCompiledPrompt:
+        static_messages: list[Any] = []
         dynamic_messages: list[Any] = []
+        metadata: dict[str, Any] = {}
 
-    chunk_final, usage, traces = await ChunkWorker.process_chunk(
+    chunk_final, usage, traces, pctx = await ChunkWorker.process_chunk(
         chunk=None,
         sem=sem,
         compiler=compiler,
         criteria_blocks=chunk_criteria,
         user_payload="test payload",
+        global_source_text="test payload",
         base_system_prompt="test",
         has_search=False,
         has_shuffled_atoms=False,

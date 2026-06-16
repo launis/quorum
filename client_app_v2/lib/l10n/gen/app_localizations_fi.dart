@@ -3485,6 +3485,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get strategyPainotettuKeskiarvo => 'Painotettu Keskiarvo';
 
   @override
+  String get strategyPuhdasMatematiikka => 'Puhdas Matematiikka';
+
+  @override
   String get allowContextualOverrideLabel => 'Salli kognitiivinen ohitus';
 
   @override

@@ -6,7 +6,7 @@ from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_v
 from rapidfuzz import fuzz
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import LaxXaiExtensionType, QuorumLexicalConfig
+from backend_v2.models.enums import LaxXaiExtensionType, get_lexical_fuzz_threshold
 
 
 class OutputProfileConfig(V2CoreBase):
@@ -380,10 +380,12 @@ class AtomEvaluationItemDTO(V2CoreBase):
                     norm_quote = normalize_text(self.exact_quote)
 
                     if norm_quote not in norm_source:
+                        locale = context.get("system_locale") if context else None
+                        threshold = get_lexical_fuzz_threshold(locale)
                         score = fuzz.partial_ratio(norm_quote, norm_source)
-                        if score < QuorumLexicalConfig.FUZZ_THRESHOLD_BILINGUAL.value:
+                        if score < threshold:
                             raise ValueError(
                                 f"exact_quote not found in source text with high enough similarity "
-                                f"(got {score:.1f}%, required >= {QuorumLexicalConfig.FUZZ_THRESHOLD_BILINGUAL.value:.1f}%)."
+                                f"(got {score:.1f}%, required >= {threshold:.1f}%)."
                             )
         return self

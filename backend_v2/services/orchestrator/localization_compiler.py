@@ -119,6 +119,10 @@ class LocalizationCompiler:
 
                             assertion_xml = []
                             assertion_xml.append(f'  <rule id="{assertion.tda_id}">')
+                            if assertion.concept_description:
+                                assertion_xml.append(
+                                    f"    <concept_description>{assertion.concept_description}</concept_description>"
+                                )
                             tda_block = (
                                 "    <tda_validation>\n"
                                 f"      <anchor_target>{assertion.anchor_target}</anchor_target>\n"
@@ -147,6 +151,16 @@ class LocalizationCompiler:
                                     )
 
                             mandate_text = mandate_str
+
+                            if assertion.inverse_evidence:
+                                mandate_text += (
+                                    " This is an inverse rule (Vice). "
+                                    "If rule_satisfied = True (no issues found), evidence_found MUST be False "
+                                    'and you must return an empty string "" for exact_quote. '
+                                    "If rule_satisfied = False (violation found), evidence_found MUST be True "
+                                    "and you MUST quote the exact violation."
+                                )
+
                             if assertion.allow_contextual_override:
                                 mandate_text += (
                                     " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "

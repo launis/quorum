@@ -6324,6 +6324,12 @@ abstract class AppLocalizations {
   /// **'Painotettu Keskiarvo (Weighted Average)'**
   String get strategyPainotettuKeskiarvo;
 
+  /// No description provided for @strategyPuhdasMatematiikka.
+  ///
+  /// In en, this message translates to:
+  /// **'Puhdas Matematiikka (Pure Math)'**
+  String get strategyPuhdasMatematiikka;
+
   /// No description provided for @allowContextualOverrideLabel.
   ///
   /// In en, this message translates to:

@@ -6,16 +6,15 @@ monolithic PromptCompiler, following SRP (Rule 88).
 
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Callable
 from enum import Enum
-from functools import lru_cache
 from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.v2_core import PromptBlock
 
@@ -42,82 +41,29 @@ class StrippedBaseMatrixXAI(BaseModel):
 
 
 class StrippedBaseTDAExtraction(BaseModel):
-    """Core Pydantic model for Micro-CoT extraction with deterministic cross-validation and stripped descriptions."""
+    """Stripped core Pydantic model for Micro-CoT extraction without localized anchors to save tokens."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    @model_validator(mode="before")
-    @classmethod
-    def _strip_llm_dunder_leaks(cls, data: Any) -> Any:
-        """Strip double-underscore keys leaked by LLM internal Chain-of-Thought.
-
-        LLMs occasionally hallucinate internal scratchpad fields (e.g. ``__rule_satisfied__``)
-        that are not part of the schema contract. This before-validator removes them
-        before Pydantic's ``extra='forbid'`` check, preserving typo detection for
-        legitimate field names while tolerating known LLM behavioral patterns.
-
-        Args:
-            data: Raw input data from JSON parsing.
-
-        Returns:
-            Cleaned data dict with dunder keys removed.
-        """
-        if isinstance(data, dict):
-            return {k: v for k, v in data.items() if not (k.startswith("__") and k.endswith("__"))}
-        return data
-
     exact_quote: str | None = Field(
         default=None,
-        description=(
-            "A physically contiguous, character-for-character verbatim substring extracted "
-            "directly from the source text. NEVER translate, fix grammar, paraphrase, or "
-            "alter the language. The quote MUST remain in the ORIGINAL language of the source "
-            "document. MUST be empty/null if contextual_override is True."
-        ),
-    )
-    structural_location: str = Field(
-        description=(
-            "Exact structural location (e.g. 'page 3', 'paragraph 2'). Must be in the Localized "
-            "Target Language. If contextual_override is False, you MUST output 'N/A'. "
-            "If contextual_override is True, you MUST provide the concrete location."
-        ),
-    )
-    localized_anchors_found: list[str] = Field(
-        default_factory=list,
-        max_length=SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS,
-        description="Keywords in target language mapping English rule.",
+        description="Verbatim quote from original text. ABSOLUTE PRIORITY over contextual override. MUST be empty/null if contextual_override is True. CRITICAL: MUST ALWAYS be extracted in the exact original language of the source text, as a physically contiguous VERBATIM substring (do not add/remove words, markdown, or fix typos). NEVER translate the quote, even if your reasoning is in another language.",
     )
     contextual_override: bool = Field(
-        description=(
-            "Set to True only if no literal evidence exists but the rule is implicitly matched. "
-            "exact_quote MUST be empty if True."
-        )
+        description="ABSOLUTE LAST RESORT. True only if rule is satisfied contextually without a verbatim quote. exact_quote MUST be empty if True.",
     )
-    semantic_reasoning: str = Field(description="Strict semantic justification for the extraction decision.")
+    semantic_reasoning: str = Field(
+        description="Detailed analytical reasoning in target language explaining the match.",
+    )
 
-    @model_validator(mode="after")
-    def validate_override_logic(self) -> StrippedBaseTDAExtraction:
-        """Validates cross-field consistency between contextual_override and exact_quote.
-
-        Raises:
-            ValueError: If the override logic constraints are violated.
-
-        Returns:
-            The validated extraction instance.
-        """
-        if self.contextual_override:
-            if self.exact_quote not in (None, "", "[CONTEXTUAL_OVERRIDE_APPLIED]"):
-                raise ValueError(
-                    "Cross-validation failed: exact_quote MUST be empty, null, "
-                    "or '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is True."
-                )
-        else:
-            if self.exact_quote == "[CONTEXTUAL_OVERRIDE_APPLIED]":
-                raise ValueError(
-                    "Cross-validation failed: exact_quote cannot be "
-                    "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
-                )
-        return self
+    @model_validator(mode="before")
+    @classmethod
+    def strip_dunder_hallucinations(cls, data: Any) -> Any:
+        """Strips out hallucinated __dunder__ fields from LLM payloads."""
+        if not isinstance(data, dict):
+            return data
+        # Strip all keys starting with __
+        return {k: v for k, v in data.items() if not str(k).startswith("__")}
 
 
 class SchemaFactory:
@@ -137,6 +83,7 @@ class SchemaFactory:
             resolve_i18n_fn: Callable that resolves I18n objects to strings given a locale.
         """
         self._resolve_i18n = resolve_i18n_fn
+        self._schema_cache: dict[str, type[BaseModel]] = {}
 
     def build_dynamic_schema(
         self,
@@ -145,6 +92,8 @@ class SchemaFactory:
         has_search_result: bool = False,
         has_shuffled_atoms: bool = False,
         target_locale: str = "en",
+        *,
+        strictness_level: int,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -161,19 +110,27 @@ class SchemaFactory:
         # P4: Prevent Pydantic compilation explosion on 200+ step DAGs by hashing criteria
         # and delegating to an LRU cached private method.
         # Epic 43: Serialize strictly typed PromptBlocks back to json for the cache key.
-        criteria_json = json.dumps([c.model_dump(mode="json") for c in criteria], sort_keys=True)
-        return self._cached_build_dynamic_schema(
-            schema_name, criteria_json, has_search_result, has_shuffled_atoms, target_locale
+        criteria_ids = "_".join(sorted(str(c.id) for c in criteria if c.id))
+        cache_key = (
+            f"{schema_name}_{criteria_ids}_{has_search_result}_{has_shuffled_atoms}_{target_locale}_{strictness_level}"
         )
 
-    @lru_cache(maxsize=128)  # noqa: B019
-    def _cached_build_dynamic_schema(
+        if cache_key in self._schema_cache:
+            return self._schema_cache[cache_key]
+
+        return self._build_dynamic_schema_internal(
+            schema_name, has_search_result, has_shuffled_atoms, target_locale, strictness_level, criteria, cache_key
+        )
+
+    def _build_dynamic_schema_internal(
         self,
         schema_name: str,
-        criteria_json: str,
         has_search_result: bool,
         has_shuffled_atoms: bool,
         target_locale: str,
+        strictness_level: int,
+        criteria: list[PromptBlock],
+        cache_key: str,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -181,10 +138,11 @@ class SchemaFactory:
 
         Args:
             schema_name: Name for the generated Pydantic model class.
-            criteria_json: JSON-serialized criteria list for cache key stability.
             has_search_result: Whether to include search result extensions.
             has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
             target_locale: Target language code for label resolution.
+            criteria: List of PromptBlock objects to build the schema from.
+            cache_key: Key to save the built schema in cache.
 
         Returns:
             A dynamically generated Pydantic model class.
@@ -193,10 +151,6 @@ class SchemaFactory:
             ConfigurationError (ErrorCodes.VALIDATION_FAILED): If a PromptBlock is missing required fields.
             AppException (ErrorCodes.INTERNAL_SERVER_ERROR): If dynamic schema compilation fails critically.
         """
-        from backend_v2.models.v2_core import PromptBlock
-
-        criteria: list[PromptBlock] = [PromptBlock.model_validate(c) for c in json.loads(criteria_json)]
-
         fields: dict[str, Any] = {
             "reasoning_trace": (
                 str,
@@ -225,11 +179,24 @@ class SchemaFactory:
                     description="The EXACT system identifier. MUST exactly match one of the items provided in <BLIND_ATOMS_TO_EVALUATE>.",
                 )
 
+            # Phase D & E: Proactive Routing
+            # For shuffled atoms, we use a single base class. If strictness >= 100, override is completely denied.
             # V3 Fix: Pydantic multiple inheritance resolves right-to-left for fields.
             # By placing AtomResponseBase LAST in the inheritance chain, its fields (atom_id)
             # are collected FIRST by Pydantic's reverse-MRO iteration, ensuring the LLM emits it first.
-            class AtomResponse(StrippedBaseTDAExtraction, AtomResponseBase):
-                """Combined TDA extraction and atom identity for shuffled blind evaluation."""
+            AtomResponse: Any
+            if strictness_level >= 100:
+
+                class AtomResponseStrict(StepDTOStrict, AtomResponseBase):
+                    pass
+
+                AtomResponse = AtomResponseStrict
+            else:
+
+                class AtomResponseSemantic(StepDTOSemantic, AtomResponseBase):
+                    pass
+
+                AtomResponse = AtomResponseSemantic
 
             fields["evaluations"] = (
                 list[AtomResponse],
@@ -274,7 +241,23 @@ class SchemaFactory:
                 raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
             # Phase 1, Step 4: Use stripped base models to resolve Vertex AI state limit
-            base_class = StrippedBaseMatrixXAI if crit.category_id == "matrix" else StrippedBaseTDAExtraction
+            # Phase D & E: Dynamic Zero-Trust Routing based on rule requirements and strictness level
+            base_class: type[BaseModel]
+            if crit.category_id == "matrix":
+                base_class = StrippedBaseMatrixXAI
+            else:
+                rule_allows_override = False
+                if crit.scales:
+                    for scale in crit.scales:
+                        for claim in scale.claims:
+                            for tda in claim.tda_assertions:
+                                if getattr(tda, "allow_contextual_override", False):
+                                    rule_allows_override = True
+
+                if strictness_level >= 100 or not rule_allows_override:
+                    base_class = StepDTOStrict
+                else:
+                    base_class = StepDTOSemantic
 
             # Dynamic short and concise description for the LLM to understand this specific evaluation field
             label_str = self._resolve_i18n(crit.label, target_locale) if crit.label else ""
@@ -347,7 +330,9 @@ class SchemaFactory:
             DynamicModel = create_model(
                 schema_name, __config__=ConfigDict(extra="forbid", strict=True, frozen=True), **fields
             )
-            return cast(type[BaseModel], DynamicModel)
+            model_class = cast(type[BaseModel], DynamicModel)
+            self._schema_cache[cache_key] = model_class
+            return model_class
         except Exception as e:
             msg = f"Critical failure while dynamically compiling LLM execution schema '{schema_name}'."
             logger.error(

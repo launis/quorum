@@ -6025,12 +6025,55 @@
             "type": "object",
             "title": "Trace",
             "description": "Execution trace metadata."
+          },
+          "prompt_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PromptContextDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "XAI compiled prompt structure."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "PromptBlockSimulationResponse",
         "description": "Resulting simulation projection for a dry-run prompt rendering.\n\nAttributes:\n    valid: Indicates if simulation passed verification without errors.\n    errors: Compiled structural parsing errors list.\n    rendered_prompt: Raw text output containing the rendered prompt block template.\n    trace: Metadata containing state execution variables."
+      },
+      "PromptContextDTO": {
+        "properties": {
+          "static_messages": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Static Messages",
+            "description": "Globally identical content across all chunks (base system prompt + source document)."
+          },
+          "dynamic_messages": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Dynamic Messages",
+            "description": "Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors)."
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Arbitrary execution metadata (e.g., token proxy scores)."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PromptContextDTO",
+        "description": "Execution prompt context containing exact compilation boundaries.\n\nAttributes:\n    static_messages: Globally identical content across all chunks (base system prompt + source document).\n    dynamic_messages: Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors).\n    metadata: Arbitrary execution metadata (e.g., token proxy scores)."
       },
       "QuestionnaireItem": {
         "properties": {
@@ -6168,7 +6211,8 @@
           "WATERFALL",
           "DAMPENING",
           "AVERAGE",
-          "WEIGHTED_AVERAGE"
+          "WEIGHTED_AVERAGE",
+          "PURE_MATH"
         ],
         "title": "ScoringStrategy",
         "description": "Selects the mathematical engine used to calculate final matrix scores."
@@ -6665,6 +6709,17 @@
             "type": "object",
             "title": "Trace",
             "description": "Execution trace metadata."
+          },
+          "prompt_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PromptContextDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "XAI compiled prompt structure."
           }
         },
         "additionalProperties": false,

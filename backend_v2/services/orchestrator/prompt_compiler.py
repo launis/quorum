@@ -15,6 +15,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
@@ -22,7 +23,6 @@ from backend_v2.services.orchestrator.schema_factory import (
     EvidenceType,
     SchemaFactory,
     StrippedBaseMatrixXAI,
-    StrippedBaseTDAExtraction,
 )
 from backend_v2.services.web_fetcher import WebFetcher
 
@@ -31,7 +31,6 @@ __all__ = [
     "EvidenceType",
     "PromptCompiler",
     "StrippedBaseMatrixXAI",
-    "StrippedBaseTDAExtraction",
 ]
 
 logger = logging.getLogger(__name__)
@@ -123,6 +122,8 @@ class PromptCompiler:
         has_search_result: bool = False,
         has_shuffled_atoms: bool = False,
         target_locale: str = "en",
+        *,
+        strictness_level: int,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -132,12 +133,18 @@ class PromptCompiler:
             has_search_result: Whether to include search result extensions.
             has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
             target_locale: Target language code for label resolution.
+            strictness_level: Strictness level to control field leniency.
 
         Returns:
             A dynamically generated Pydantic model class.
         """
         return self._schema_factory.build_dynamic_schema(
-            schema_name, criteria, has_search_result, has_shuffled_atoms, target_locale
+            schema_name,
+            criteria,
+            has_search_result,
+            has_shuffled_atoms,
+            target_locale,
+            strictness_level=strictness_level,
         )
 
     def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:
@@ -223,7 +230,9 @@ class PromptCompiler:
                         desc_text += f"    <ai_context_mandate>{meta['ai_desc']}</ai_context_mandate>\n"
                     desc_text += "  </document_metadata>\n"
 
-                xml_blocks.append(f'<matrix_input source_id="{logical_name}">\n{desc_text}{value}\n</matrix_input>')
+                xml_blocks.append(
+                    f'<matrix_input source_id="{logical_name}">\n{desc_text}{TemplateProcessor.encapsulate_payload(value)}\n</matrix_input>'
+                )
 
         compiled = "\n\n".join(xml_blocks)
 
@@ -241,9 +250,13 @@ class PromptCompiler:
         return (
             f"<CRITICAL_LANGUAGE_MANDATE>\n"
             f"You must process the input and generate your general output text exclusively in the "
-            f"'{target_locale}' language. However, for specific fields like 'semantic_reasoning' and "
-            f"'exact_quote', you MUST output the text in the ORIGINAL language of the source "
-            f"document to preserve exact fidelity. All JSON keys must strictly remain in English.\n"
+            f"'{target_locale}' language. All JSON keys must strictly remain in English.\n"
+            f"\n"
+            f"CRITICAL: The `exact_quote` MUST ALWAYS be extracted in the exact original language of the source text. NEVER translate the quote, even if your reasoning is in another language.\n"
+            f"\n"
+            f"ZERO-HIT FALLBACK RULE: If you find absolutely NO evidence in the text to satisfy an evaluation "
+            f"criteria, you MUST formulate the negative reasoning or 'not found' explanation completely in "
+            f"the '{target_locale}' language. DO NOT revert to English under any circumstances even for empty cases.\n"
             f"</CRITICAL_LANGUAGE_MANDATE>"
         )
 
@@ -328,14 +341,16 @@ class PromptCompiler:
                                     .title()
                                 )
                                 formatted.append(
-                                    f"  <{clean_key.replace(' ', '_')}>{micro_v}</{clean_key.replace(' ', '_')}>"
+                                    f"  <{clean_key.replace(' ', '_')}>{TemplateProcessor.encapsulate_payload(micro_v)}</{clean_key.replace(' ', '_')}>"
                                 )
                             formatted.append(f"</{str(sub_k).upper()}>")
                         else:
                             clean_sub_k = str(sub_k).title().replace(" ", "_")
-                            formatted.append(f"<{clean_sub_k}>{sub_v}</{clean_sub_k}>")
+                            formatted.append(
+                                f"<{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
+                            )
                 else:
-                    formatted.append(str(v))
+                    formatted.append(TemplateProcessor.encapsulate_payload(v))
                 formatted.append("</matrix_input>")
             return "\n".join(formatted).strip()
 
@@ -367,7 +382,8 @@ class PromptCompiler:
                 logger.warning("[PromptCompiler] Fetched text from %s was empty.", url)
                 return base_prompt
 
-            augmented = base_prompt + f"\n\n<theory_context>\n{theory_text}\n</theory_context>\n"
+            safe_theory = TemplateProcessor.encapsulate_payload(theory_text)
+            augmented = base_prompt + f"\n\n<theory_context>\n{safe_theory}\n</theory_context>\n"
             return augmented
 
         except Exception as e:
@@ -415,34 +431,7 @@ class PromptCompiler:
         # Clamp between 0 and 100
         val = max(0, min(100, val))
 
-        if val == 0:
-            return (
-                "STRICTNESS CALIBRATION (0/100): Absolute Leniency. You must be extremely generous and forgiving. "
-                "Assume the best possible intent and assign the highest possible score unless there is a "
-                "catastrophic flaw."
-            )
-        elif val < 30:
-            return (
-                f"STRICTNESS CALIBRATION ({val}/100): Lenient. Be generally forgiving of minor errors and "
-                "focus on the positive aspects of the input. Do not penalize heavily for small formatting issues."
-            )
-        elif val < 70:
-            return (
-                f"STRICTNESS CALIBRATION ({val}/100): Balanced. Evaluate fairly and neutrally. "
-                "Penalize errors proportionally and reward good qualities objectively."
-            )
-        elif val < 100:
-            return (
-                f"STRICTNESS CALIBRATION ({val}/100): Strict. You must be highly critical and demanding. "
-                "Penalize flaws, inconsistencies, and lack of detail. High scores require exceptional quality."
-            )
-        else:
-            return (
-                "STRICTNESS CALIBRATION (100/100): Absolute Strictness. You are an unforgiving auditor. "
-                "Any deviation from perfection, logical inconsistency, or lack of rigorous justification "
-                "MUST be heavily penalized. "
-                "Assign minimum scores unless the input is mathematically and theoretically flawless."
-            )
+        return f"SCORING_STRICTNESS: {val}/100"
 
     def generate_mcp_instruction(self, allowed_tools: list[str]) -> str:
         """Epic 13 M2: Generate dynamic instructions for active MCP tools.
@@ -473,10 +462,11 @@ class PromptCompiler:
         Returns:
             A formatted chunk payload instruction string.
         """
+        safe_payload = TemplateProcessor.encapsulate_payload(payload_text)
         return (
             f"You are processing map-reduce chunk '{chunk_id}'.\n"
             "Evaluate ONLY the following payload mapping to the strict chunk_id structure:\n"
-            f"<user_payload>\n{payload_text}\n</user_payload>"
+            f"<user_payload>\n{safe_payload}\n</user_payload>"
         )
 
     @staticmethod

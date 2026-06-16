@@ -5,7 +5,7 @@ from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto
-from backend_v2.models.enums import WaterfallThreshold
+from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
 from backend_v2.utils.math_utils import calculate_soft_waterfall_score, get_strictness_config
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
 
@@ -29,7 +29,7 @@ class WaterfallScoringEngine(ScoringEngineBase):
         stats: dict[float, dict[str, int]],
         math_min: float,
         math_max: float,
-        strictness_level: int = 85,
+        strictness_level: int = StrictnessAnchor.STRICT.value,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
         """Executes Guttman Waterfall algorithmic scoring calibration.
 
@@ -46,9 +46,9 @@ class WaterfallScoringEngine(ScoringEngineBase):
             AppException: If scoring computation or calibration fails.
         """
         try:
-            if strictness_level < 30:
+            if strictness_level < StrictnessAnchor.RELAXED.value:
                 target_threshold: float = float(WaterfallThreshold.LENIENT.value)
-            elif strictness_level > 70:
+            elif strictness_level > StrictnessAnchor.BALANCED.value:
                 target_threshold = float(WaterfallThreshold.STRICT.value)
             else:
                 target_threshold = float(WaterfallThreshold.STANDARD.value)
