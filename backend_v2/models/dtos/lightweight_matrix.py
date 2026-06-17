@@ -89,7 +89,7 @@ class LightweightMatrixOutput(V2CoreBase):
             "semantic_reasoning": "justification",
             "step_2_mitigating_context": "missing_context",
             "contextual_override": "contextual_override",
-            "exact_quote": "citation",
+            "exact_quotes": "citation",
         }
 
         # Phase 4 Zero-Variance: Drop structural list fields that do not belong in matrix extensions
@@ -153,10 +153,11 @@ class LightweightExtractionAtom(V2CoreBase):
 
     atom_id: str
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
-    exact_quote: str | None = Field(
-        default=None,
+    exact_quotes: list[str] = Field(
+        default_factory=list,
+        max_length=3,
         description=(
-            "A physically contiguous, character-for-character verbatim substring extracted "
+            "A list of physically contiguous, character-for-character verbatim substrings extracted "
             "directly from the source text. NEVER translate, fix grammar, paraphrase, or "
             "alter the language. The quote MUST remain in the ORIGINAL language of the source "
             "document."
@@ -182,8 +183,10 @@ class LightweightExtractionAtom(V2CoreBase):
             True if meaningful, non-hallucinated evidence text is found, else False.
         """
         blacklist = {"null", "none", "n/a", "false", "", "ei löydy", "not found", "-", "[]", "{}"}
-        if self.exact_quote is not None and self.exact_quote.strip().lower() not in blacklist:
-            return True
+        if self.exact_quotes:
+            for quote in self.exact_quotes:
+                if quote.strip().lower() not in blacklist:
+                    return True
         for val in self.extracted_facts.values():
             if val is not None and val.strip().lower() not in blacklist:
                 return True
@@ -225,6 +228,17 @@ class LightweightExtractionAtom(V2CoreBase):
         return "N/A (Kevyt poiminta)"
 
 
+class ReasoningStepDTO(V2CoreBase):
+    """Structured micro-CoT reasoning step schema to prevent JSON escaping issues."""
+
+    step_1_identify_premise: str = Field(description="Extract the exact claim from the prompt.")
+    step_2_scan_source: str = Field(
+        description="Analyze if the source text physically contains evidence for or against the premise."
+    )
+    step_3_evaluate_anti_patterns: str = Field(description="Check if any strict anti-patterns or exclusions apply.")
+    step_4_final_conclusion: str = Field(description="Synthesize steps 1-3 into a final logical conclusion.")
+
+
 class AtomEvaluationItemDTO(V2CoreBase):
     """Strict schema for individual atom evaluations in the waterfall pipeline.
 
@@ -232,6 +246,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
         atom_id: Identifying key of the executed atom node.
         extracted_facts: Collected findings data explicitly extracted from context.
         exact_quote: String data ensuring precise verification boundaries.
+        internal_logic_en: Rigorous internal mathematical/logical Chain of Thought in English.
         status: Evaluated lifecycle status state marker string.
         semantic_reasoning: Detailed reasoning for the evaluation output.
         contextual_override: Boolean flag enabling non-strict logic jumps.
@@ -241,16 +256,19 @@ class AtomEvaluationItemDTO(V2CoreBase):
 
     atom_id: str
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
-    exact_quote: str | None = Field(
-        default=None,
+    exact_quotes: list[str] = Field(
+        default_factory=list,
+        max_length=3,
         description=(
-            "A physically contiguous, character-for-character verbatim substring extracted "
+            "A list of physically contiguous, character-for-character verbatim substrings extracted "
             "directly from the source text. NEVER translate, fix grammar, paraphrase, or "
             "alter the language. The quote MUST remain in the ORIGINAL language of the source "
             "document."
         ),
     )
-
+    internal_logic_en: ReasoningStepDTO = Field(
+        description="Rigorous internal mathematical/logical Chain of Thought deduction mapped step-by-step in English."
+    )
     status: Literal["PASS", "FAIL", "DLQ"] | None = Field(
         default=None, description="The evaluation status. Must be one of PASS, FAIL, DLQ."
     )
@@ -298,8 +316,10 @@ class AtomEvaluationItemDTO(V2CoreBase):
             "ei ole",
             "[contextual_override_applied]",
         }
-        if self.exact_quote is not None and self.exact_quote.strip().lower() not in blacklist:
-            return True
+        if self.exact_quotes:
+            for quote in self.exact_quotes:
+                if quote.strip().lower() not in blacklist:
+                    return True
         for val in self.extracted_facts.values():
             if val is not None and val.strip().lower() not in blacklist:
                 return True
@@ -335,7 +355,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
     def _enforce_null_hypothesis_before(cls, data: Any) -> Any:
         if isinstance(data, dict):
             if data.get("contextual_override"):
-                data["exact_quote"] = None
+                data["exact_quotes"] = []
         return data
 
     @model_validator(mode="after")
@@ -364,7 +384,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
                 )
         else:
             # Milestone 3: Check quote integrity
-            if self.exact_quote:
+            if self.exact_quotes:
                 context = info.context if info else None
                 source_text = context.get("source_text") if context else None
                 if source_text:
@@ -377,15 +397,16 @@ class AtomEvaluationItemDTO(V2CoreBase):
                         return normalized
 
                     norm_source = normalize_text(source_text)
-                    norm_quote = normalize_text(self.exact_quote)
+                    locale = context.get("system_locale") if context else None
+                    threshold = get_lexical_fuzz_threshold(locale)
 
-                    if norm_quote not in norm_source:
-                        locale = context.get("system_locale") if context else None
-                        threshold = get_lexical_fuzz_threshold(locale)
-                        score = fuzz.partial_ratio(norm_quote, norm_source)
-                        if score < threshold:
-                            raise ValueError(
-                                f"exact_quote not found in source text with high enough similarity "
-                                f"(got {score:.1f}%, required >= {threshold:.1f}%)."
-                            )
+                    for quote in self.exact_quotes:
+                        norm_quote = normalize_text(quote)
+                        if norm_quote not in norm_source:
+                            score = fuzz.partial_ratio(norm_quote, norm_source)
+                            if score < threshold:
+                                raise ValueError(
+                                    f"exact_quote '{quote[:20]}...' not found in source text with high enough similarity "
+                                    f"(got {score:.1f}%, required >= {threshold:.1f}%)."
+                                )
         return self

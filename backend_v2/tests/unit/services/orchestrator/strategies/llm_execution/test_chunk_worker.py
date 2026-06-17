@@ -28,7 +28,7 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
         "evaluations": [
             {
                 "atom_id": "a1",
-                "exact_quote": "yes",
+                "exact_quotes": ["yes"],
                 "contextual_override": False,
                 "semantic_reasoning": "Because...\n\n[5. VALIDATION DECISION: PASS]",
                 "status": "PASS",
@@ -38,7 +38,7 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
 
     mock_atom = MagicMock()
     mock_atom.atom_id = "a1"
-    mock_atom.exact_quote = "yes"
+    mock_atom.exact_quotes = "yes"
     mock_atom.contextual_override = False
     mock_atom.semantic_reasoning = "Because..."
     mock_atom.model_copy.return_value = mock_atom
@@ -54,7 +54,7 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
         "evaluations": [
             {
                 "atom_id": "a1",
-                "exact_quote": "yes",
+                "exact_quotes": ["yes"],
                 "contextual_override": False,
                 "semantic_reasoning": "Because...",
             }
@@ -209,18 +209,18 @@ def test_deterministic_extraction_scoring() -> None:
     from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import evaluate_extraction
 
     class MockExtraction(BaseModel):
-        exact_quote: str | None = None
+        exact_quotes: list[str] | None = None
         contextual_override: bool = False
         semantic_reasoning: str | None = ""
         premise_1_quote: str | None = None
 
     # Track B (Semantic Override = False, No quote) -> FAIL
-    ext1 = MockExtraction(exact_quote=None, contextual_override=False)
+    ext1 = MockExtraction(exact_quotes=[], contextual_override=False)
     assert evaluate_extraction(ext1, "test text", False) == "FAIL"
 
     # Track B (Semantic Override = True, No exact_quote, but has premise) -> PASS
     ext2 = MockExtraction(
-        exact_quote=None, contextual_override=True, semantic_reasoning="Model reasoning", premise_1_quote="test text"
+        exact_quotes=[], contextual_override=True, semantic_reasoning="Model reasoning", premise_1_quote="test text"
     )
     with patch(
         "backend_v2.services.orchestrator.anchor_validation_service.AnchorValidationService.validate_evidence"
@@ -228,7 +228,7 @@ def test_deterministic_extraction_scoring() -> None:
         assert evaluate_extraction(ext2, "test text", False) == "PASS"
 
     # Track A (Physical Match) -> PASS
-    ext3 = MockExtraction(exact_quote="matched quote", contextual_override=False)
+    ext3 = MockExtraction(exact_quotes=["matched quote"], contextual_override=False)
     with patch(
         "backend_v2.services.orchestrator.anchor_validation_service.AnchorValidationService.validate_evidence"
     ) as mock_val:
@@ -243,7 +243,7 @@ def test_deterministic_extraction_scoring() -> None:
 
     # Trace Contradiction test: [5. VALIDATION DECISION: FAIL] in semantic_reasoning -> FAIL
     ext_contradiction = MockExtraction(
-        exact_quote="matched quote",
+        exact_quotes=["matched quote"],
         contextual_override=False,
         semantic_reasoning="Some reasoning... [5. VALIDATION DECISION: FAIL]",
     )
@@ -267,14 +267,14 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
     mock_validated.model_dump.return_value = {
         "inst_12345678901234567890123456789012": "This is raw instruction text",
         "crit_12345678901234567890123456789012": {
-            "exact_quote": "yes",
+            "exact_quotes": ["yes"],
             "contextual_override": False,
             "semantic_reasoning": "Standard justification",
             "status": "PASS",
         },
     }
     mock_crit = MagicMock()
-    mock_crit.exact_quote = "yes"
+    mock_crit.exact_quotes = "yes"
     mock_crit.contextual_override = False
     mock_crit.semantic_reasoning = "Standard justification"
     mock_crit.model_copy.return_value = mock_crit
@@ -326,7 +326,7 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
     mock_result.model_dump.return_value = {
         "inst_12345678901234567890123456789012": "This is raw instruction text",
         "crit_12345678901234567890123456789012": {
-            "exact_quote": "yes",
+            "exact_quotes": ["yes"],
             "contextual_override": False,
             "semantic_reasoning": "Standard justification",
         },

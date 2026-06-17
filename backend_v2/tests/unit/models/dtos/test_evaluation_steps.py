@@ -33,12 +33,12 @@ def test_step_dto_semantic_validation() -> None:
         "override_reason": "Implied meaning",
         "decision": True,
         "semantic_reasoning": "Yes",
-        "exact_quote": "",
+        "exact_quotes": [""],
     }
     obj = StepDTOSemantic.model_validate(data)
     assert obj.contextual_override is True
 
     # Test invalid: contextual_override = True but exact_quote is not empty
-    data["exact_quote"] = "Some quote"
+    data["exact_quotes"] = "Some quote"
     with pytest.raises(ValidationError):
         StepDTOSemantic.model_validate(data)

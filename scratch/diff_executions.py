@@ -3,6 +3,7 @@ import json
 import math
 import os
 import sys
+from typing import Any
 
 
 def get_all_evals(path: str) -> dict[str, dict[str, object]]:
@@ -225,6 +226,15 @@ if __name__ == '__main__':
     all_atom_states = []
     unique_categories = set()
 
+    valid_common_atoms = set()
+    for atom in common_atoms:
+        traces = [get_trace(evals[atom]) for evals in evals_list]
+        if any("[SYSTEM ERROR" in t or "Chunk Processing Failed" in t for t in traces):
+            continue
+        valid_common_atoms.add(atom)
+
+    common_atoms = valid_common_atoms
+
     for atom in common_atoms:
         states = [get_state(evals[atom]) for evals in evals_list]
         for s in states:
@@ -284,7 +294,9 @@ if __name__ == '__main__':
 
     # Tallenna raportti luettavaan Markdown-muotoon
     os.makedirs('scratch', exist_ok=True)
-    report_path = 'scratch/mismatch_traces_raw.md'
+    import datetime
+    timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
+    report_path = f'scratch/diff_report_{timestamp_str}.md'
 
     # Hae Git-konteksti ja ympäristön tila (Epic / Git branch & commit)
     import subprocess
@@ -410,6 +422,41 @@ if __name__ == '__main__':
         for idx, (run_name, exe_path) in enumerate(zip(loaded_runs, loaded_paths)):
             abs_path = os.path.abspath(exe_path).replace('\\', '/')
             f.write(f'- **Run {idx + 1}:** `{run_name}` (Lähde: [{exe_path}](file:///{abs_path}))\n')
+
+            # Ladataan metatiedot alkuperäisestä tietokannasta (db_v2.json)
+            try:
+                with open('data/db_v2.json', encoding='utf-8') as db_file:
+                    db_data = json.load(db_file)
+                execs = db_data.get('executions', {})
+                run_record: dict[str, Any] = next((v for v in execs.values() if v.get('id') == run_name), {})
+
+                db_models = run_record.get('models_used', {})
+                model_used = ", ".join(db_models.keys()) if db_models else "Ei tallennettu DB"
+
+                duration_ms = run_record.get('duration_ms', 0)
+                duration_str = f"{duration_ms / 1000 / 60:.1f} minuuttia" if duration_ms else "Keskeytyi / Tuntematon"
+
+                meta = run_record.get('metadata', {})
+                total_tokens = meta.get('total_tokens', 0)
+                cost = run_record.get('cost_estimate', 0.0)
+            except Exception as e:
+                model_used, duration_str, total_tokens, cost = f"Error: {e}", "Error", 0, 0.0
+
+            # Luetaan lokista virheet ja fallback-malli
+            with open(exe_path, encoding='utf-8') as exe_f:
+                raw_data = exe_f.read()
+            error_count = raw_data.count("Chunk Processing Failed") + raw_data.count("SYSTEM ERROR")
+
+            if model_used == "Ei tallennettu DB":
+                if "gemini-2.5-pro" in raw_data: model_used = "gemini-2.5-pro (Jälki-loki)"
+                elif "gemini-2.5-flash" in raw_data: model_used = "gemini-2.5-flash (Jälki-loki)"
+                elif "gpt-4" in raw_data: model_used = "gpt-4 (Jälki-loki)"
+
+            f.write(f'  - **Malli:** `{model_used}`\n')
+            f.write(f'  - **Kesto:** `{duration_str}`\n')
+            f.write(f'  - **Tokenit (DB):** `{total_tokens}`\n')
+            f.write(f'  - **Kustannusarvio:** `${cost:.4f}`\n')
+            f.write(f'  - **Tekniset virheet (Crash):** `{error_count}` kpl\n')
 
             run_dir = os.path.dirname(exe_path)
             inputs_dir = os.path.join(run_dir, 'inputs')

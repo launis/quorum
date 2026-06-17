@@ -159,12 +159,12 @@ return heroInsight(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<String> citations)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String title,  String message,  String severity)?  alertBox,TResult Function( String text)?  heroInsight,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<String> citations)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations)?  alertBox,TResult Function( String text)?  heroInsight,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
-return alertBox(_that.title,_that.message,_that.severity);case SduiHeroInsightBlock() when heroInsight != null:
+return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock() when heroInsight != null:
 return heroInsight(_that.text);case _:
   return orElse();
 
@@ -183,12 +183,12 @@ return heroInsight(_that.text);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<String> citations)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String title,  String message,  String severity)  alertBox,required TResult Function( String text)  heroInsight,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<String> citations)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations)  alertBox,required TResult Function( String text)  heroInsight,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock():
 return bulletList(_that.items);case SduiAlertBoxBlock():
-return alertBox(_that.title,_that.message,_that.severity);case SduiHeroInsightBlock():
+return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock():
 return heroInsight(_that.text);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -203,12 +203,12 @@ return heroInsight(_that.text);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<String> citations)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String title,  String message,  String severity)?  alertBox,TResult? Function( String text)?  heroInsight,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<String> citations)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations)?  alertBox,TResult? Function( String text)?  heroInsight,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
-return alertBox(_that.title,_that.message,_that.severity);case SduiHeroInsightBlock() when heroInsight != null:
+return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock() when heroInsight != null:
 return heroInsight(_that.text);case _:
   return null;
 
@@ -381,12 +381,18 @@ as List<SduiBulletListItemDTO>,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiAlertBoxBlock extends SduiBlockDTO {
-  const SduiAlertBoxBlock({required this.title, required this.message, required this.severity, final  String? $type}): $type = $type ?? 'alert_box',super._();
+  const SduiAlertBoxBlock({required this.text, required this.severity, final  List<int> citations = const [], final  String? $type}): _citations = citations,$type = $type ?? 'alert_box',super._();
   factory SduiAlertBoxBlock.fromJson(Map<String, dynamic> json) => _$SduiAlertBoxBlockFromJson(json);
 
- final  String title;
- final  String message;
+ final  String text;
  final  String severity;
+ final  List<int> _citations;
+@JsonKey() List<int> get citations {
+  if (_citations is EqualUnmodifiableListView) return _citations;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_citations);
+}
+
 
 @JsonKey(name: 'block_type')
 final String $type;
@@ -405,16 +411,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiAlertBoxBlock&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.severity, severity) || other.severity == severity));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiAlertBoxBlock&&(identical(other.text, text) || other.text == text)&&(identical(other.severity, severity) || other.severity == severity)&&const DeepCollectionEquality().equals(other._citations, _citations));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,message,severity);
+int get hashCode => Object.hash(runtimeType,text,severity,const DeepCollectionEquality().hash(_citations));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.alertBox(title: $title, message: $message, severity: $severity)';
+  return 'SduiBlockDTO.alertBox(text: $text, severity: $severity, citations: $citations)';
 }
 
 
@@ -425,7 +431,7 @@ abstract mixin class $SduiAlertBoxBlockCopyWith<$Res> implements $SduiBlockDTOCo
   factory $SduiAlertBoxBlockCopyWith(SduiAlertBoxBlock value, $Res Function(SduiAlertBoxBlock) _then) = _$SduiAlertBoxBlockCopyWithImpl;
 @useResult
 $Res call({
- String title, String message, String severity
+ String text, String severity, List<int> citations
 });
 
 
@@ -442,12 +448,12 @@ class _$SduiAlertBoxBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? title = null,Object? message = null,Object? severity = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? severity = null,Object? citations = null,}) {
   return _then(SduiAlertBoxBlock(
-title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,severity: null == severity ? _self.severity : severity // ignore: cast_nullable_to_non_nullable
-as String,
+as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
+as List<int>,
   ));
 }
 

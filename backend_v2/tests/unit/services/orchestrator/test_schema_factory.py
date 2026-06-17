@@ -73,7 +73,7 @@ def test_dunder_hallucination_stripped_by_before_validator() -> None:
 
     # Simulate LLM output with hallucinated __rule_satisfied__ field
     data = {
-        "exact_quote": "test quote",
+        "exact_quotes": ["test quote"],
         "contextual_override": False,
         "semantic_reasoning": "Test reasoning",
         "__rule_satisfied__": True,  # <-- LLM hallucination
@@ -95,7 +95,7 @@ def test_normal_typo_still_rejected_by_extra_forbid() -> None:
     from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
 
     data = {
-        "exact_quote": "test quote",
+        "exact_quotes": ["test quote"],
         "contextual_override": False,
         "semnatic_reasoning": "Typo field name",  # <-- typo, NOT a dunder
     }

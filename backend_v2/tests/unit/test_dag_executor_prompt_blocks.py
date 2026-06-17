@@ -72,7 +72,7 @@ def mock_compiler() -> Any:
     mock_validated = MagicMock()
     mock_validated.model_dump.return_value = {
         "blk_0123456789abcdef0123456789ab": {
-            "exact_quote": "",
+            "exact_quotes": [""],
             "contextual_override": True,
             "semantic_reasoning": "Because",
             "localized_anchors_found": ["mock anchor"],
@@ -80,7 +80,7 @@ def mock_compiler() -> Any:
         }
     }
     mock_block = MagicMock()
-    mock_block.exact_quote = ""
+    mock_block.exact_quotes = ""
     mock_block.contextual_override = True
     mock_block.semantic_reasoning = "Because"
     mock_block.model_copy.return_value = mock_block
@@ -122,7 +122,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy:
         mock_bound_client = AsyncMock()
         mock_payload = {
-            "exact_quote": "",
+            "exact_quotes": [""],
             "contextual_override": True,
             "semantic_reasoning": "Because",
             "localized_anchors_found": ["mock anchor"],

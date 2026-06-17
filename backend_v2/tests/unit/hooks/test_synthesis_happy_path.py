@@ -71,7 +71,7 @@ async def test_synthesis_happy_path(
 
     class DummyToolRes:
         result_data = {
-            "synthesized_markdown": "Happy summary",
+            "content_blocks": [{"block_type": "paragraph", "text": "Happy summary"}],
             "cited_sources": [],
             "section_syntheses": [],
             "xai_highlights": [],
@@ -146,5 +146,5 @@ async def test_synthesis_happy_path(
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "synthesized_markdown" in result.state_delta
-    assert result.state_delta["synthesized_markdown"] == "Happy summary"
+    assert "content_blocks" in result.state_delta
+    assert result.state_delta["content_blocks"][0]["text"] == "Happy summary"

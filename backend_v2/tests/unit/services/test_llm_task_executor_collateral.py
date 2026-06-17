@@ -10,7 +10,7 @@ from backend_v2.services.llm_task_executor import LLMTaskExecutor
 
 class AtomResponse(BaseModel):
     atom_id: str
-    exact_quote: str | None = None
+    exact_quotes: list[str] | None = None
     contextual_override: bool = False
     semantic_reasoning: str = ""
 
@@ -34,8 +34,8 @@ async def test_collateral_damage_prevention() -> None:
         reasoning_trace="trace",
         evaluation_notes="notes",
         evaluations=[
-            AtomResponse(atom_id="valid_atom", exact_quote="real text", semantic_reasoning="good reasoning"),
-            AtomResponse(atom_id="hallucinated_atom", exact_quote="fake text", semantic_reasoning="bad reasoning"),
+            AtomResponse(atom_id="valid_atom", exact_quotes=["real text"], semantic_reasoning="good reasoning"),
+            AtomResponse(atom_id="hallucinated_atom", exact_quotes=["fake text"], semantic_reasoning="bad reasoning"),
         ],
     )
 
@@ -46,10 +46,10 @@ async def test_collateral_damage_prevention() -> None:
     ]
 
     # We mock validate_evidence to pass for "real text" and fail for "fake text"
-    def mock_validate(pdf_text: str, exact_quote: str, **kwargs: Any) -> str:
-        if exact_quote == "fake text":
+    def mock_validate(pdf_text: str, exact_quotes: list[str], **kwargs: Any) -> list[str]:
+        if exact_quotes == ["fake text"]:
             raise SemanticEvidenceError(message="fail")
-        return exact_quote
+        return exact_quotes
 
     with patch(
         "backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence", side_effect=mock_validate
@@ -66,10 +66,10 @@ async def test_collateral_damage_prevention() -> None:
 
         # Valid atom should be preserved
         assert res_model.evaluations[0].atom_id == "valid_atom"
-        assert res_model.evaluations[0].exact_quote == "real text"
+        assert res_model.evaluations[0].exact_quotes == ["real text"]
         assert res_model.evaluations[0].semantic_reasoning == "good reasoning"
 
         # Hallucinated atom should be fallen back
         assert res_model.evaluations[1].atom_id == "hallucinated_atom"
-        assert res_model.evaluations[1].exact_quote is None
+        assert res_model.evaluations[1].exact_quotes == []
         assert res_model.evaluations[1].semantic_reasoning == "[SYSTEM ERROR: LLM Unable to verify.]"

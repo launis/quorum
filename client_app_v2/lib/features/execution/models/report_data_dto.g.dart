@@ -58,12 +58,17 @@ SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(Map<String, dynamic> json) =>
     $checkedCreate('SduiAlertBoxBlock', json, ($checkedConvert) {
       $checkKeys(
         json,
-        allowedKeys: const ['title', 'message', 'severity', 'block_type'],
+        allowedKeys: const ['text', 'severity', 'citations', 'block_type'],
       );
       final val = SduiAlertBoxBlock(
-        title: $checkedConvert('title', (v) => v as String),
-        message: $checkedConvert('message', (v) => v as String),
+        text: $checkedConvert('text', (v) => v as String),
         severity: $checkedConvert('severity', (v) => v as String),
+        citations: $checkedConvert(
+          'citations',
+          (v) =>
+              (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
+              const [],
+        ),
         $type: $checkedConvert('block_type', (v) => v as String?),
       );
       return val;
@@ -71,9 +76,9 @@ SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$SduiAlertBoxBlockToJson(SduiAlertBoxBlock instance) =>
     <String, dynamic>{
-      'title': instance.title,
-      'message': instance.message,
+      'text': instance.text,
       'severity': instance.severity,
+      'citations': instance.citations,
       'block_type': instance.$type,
     };
 

@@ -7,7 +7,7 @@ from backend_v2.llm.client import LLMClient
 
 
 class MockSchema(BaseModel):
-    exact_quote: str = Field(max_length=1500)
+    exact_quotes: list[str] = Field(max_length=1500)
     nested_list: list[str] = Field(min_length=1, max_length=10)
 
 
@@ -57,7 +57,7 @@ async def test_native_schema_strips_unsupported_constraints() -> None:
         properties = json_schema["properties"]
 
         # exact_quote should not have maxLength
-        assert "maxLength" not in properties["exact_quote"]
+        assert "maxLength" not in properties["exact_quotes"]
 
         # nested_list should not have minLength/maxLength
         assert "maxLength" not in properties["nested_list"]
@@ -167,5 +167,5 @@ async def test_structured_json_injects_schema_instructions() -> None:
         # Verify that the schema instruction is injected into the user prompt
         user_content = passed_messages[1]["content"]
         assert "[SYSTEM: STRICT JSON STRUCTURE MANDATE]" in user_content
-        assert "exact_quote" in user_content
+        assert "exact_quotes" in user_content
         assert "nested_list" in user_content

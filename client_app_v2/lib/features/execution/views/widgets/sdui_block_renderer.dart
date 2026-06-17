@@ -150,23 +150,44 @@ class SDUIBlockRenderer extends StatelessWidget {
             bottom: BorderSide(color: color.shade200),
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              block.title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: color.shade900,
-              ),
+        child: RichText(
+          text: TextSpan(
+            style: TextStyle(
+              fontSize: 14,
+              color: color.shade900,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: 8),
-            Text(
-              block.message,
-              style: TextStyle(fontSize: 14, color: color.shade800),
-            ),
-          ],
+            children: [
+              TextSpan(text: block.text),
+              for (final citation in block.citations)
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: color.shade300),
+                      ),
+                      child: Text(
+                        citation.toString(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: color.shade800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

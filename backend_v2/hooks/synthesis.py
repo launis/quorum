@@ -184,19 +184,26 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
                     lite_evals = []
                     for ev in evals:
                         if isinstance(ev, dict):
-                            eq = ev.get("exact_quote")
+                            eq_list = ev.get("exact_quotes", [])
                             sr = ev.get("semantic_reasoning")
-                            eq_str = str(eq).strip() if eq else ""
-                            is_junk = (
-                                not eq_str
-                                or eq_str in ("None", "null", "N/A", "N/A - insufficient data")
-                                or (eq_str.startswith("[") and eq_str.endswith("]"))
-                            )
-                            if not is_junk:
+
+                            if not isinstance(eq_list, list):
+                                eq_list = [eq_list] if eq_list else []
+
+                            valid_quotes = [
+                                str(q).strip()
+                                for q in eq_list
+                                if q
+                                and str(q).strip()
+                                and str(q).strip() not in ("None", "null", "N/A", "N/A - insufficient data")
+                                and not (str(q).strip().startswith("[") and str(q).strip().endswith("]"))
+                            ]
+
+                            if valid_quotes:
                                 lite_evals.append(
                                     {
                                         "atom_id": ev.get("atom_id"),
-                                        "exact_quote": eq_str[:300],
+                                        "exact_quotes": [q[:300] for q in valid_quotes],
                                         "semantic_reasoning": str(sr)[:300] if sr else None,
                                     }
                                 )
@@ -564,6 +571,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         return HookResult(
             success=True,
             state_delta={
+                "synthesized_markdown": "*NO_DATA_AVAILABLE*",
                 "content_blocks": [],
                 "cited_sources": [],
                 "step_metadata_updates": {},

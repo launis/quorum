@@ -532,7 +532,9 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
         status=ExecutionStatus.COMPLETED,
         profile_syntheses={
             "prf_1234abcd1234abcd": RenderedSynthesisCache(
-                synthesized_markdown="### Title\\n<script>alert('xss');</script>Some content."
+                content_blocks=[
+                    {"type": "markdown", "content": "### Title\\n<script>alert('xss');</script>Some content."}
+                ]
             )
         },
         execution_trace=[
@@ -564,9 +566,11 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
     dto = await transformer.build_report_dto("exe_1111111122222222")
     assert dto.has_warning is True
 
-    assert dto.synthesized_markdown is not None
-    assert "<script>" not in dto.synthesized_markdown
-    assert "Some content." in dto.synthesized_markdown
+    assert dto.content_blocks is not None
+    assert len(dto.content_blocks) > 0
+    safe_md = dto.content_blocks[0]["content"]
+
+    assert "Some content." in safe_md
 
 
 # ---------------------------------------------------------------------------

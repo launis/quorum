@@ -2,6 +2,8 @@ import logging
 import re
 import unicodedata
 
+from rapidfuzz import fuzz
+
 from backend_v2.exceptions import SemanticEvidenceError
 
 logger = logging.getLogger(__name__)
@@ -50,46 +52,49 @@ class AnchorValidationService:
         return "".join(norm_chars), index_map
 
     @staticmethod
-    def strict_match(pdf_text: str, exact_quote: str) -> bool:
+    def strict_match(pdf_text: str, exact_quotes: list[str]) -> bool:
         """Phase 2: O(N) Anchoring using strict substring matching.
 
         Args:
             pdf_text: The source text context.
-            exact_quote: The extracted quote to search for.
+            exact_quotes: The extracted quotes to search for.
 
         Returns:
-            True if the exact quote exists in the normalized source text, False otherwise.
+            True if all exact quotes exist in the normalized source text, False otherwise.
         """
-        if not exact_quote or not pdf_text:
+        if not exact_quotes or not pdf_text:
             return False
 
         norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(pdf_text)
-        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(exact_quote)
 
-        if not norm_quote:
-            return False
+        for quote in exact_quotes:
+            if not quote:
+                return False
+            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
+            if not norm_quote or norm_quote not in norm_pdf:
+                return False
 
-        return norm_quote in norm_pdf
+        return True
 
     @staticmethod
     def validate_evidence(
         pdf_text: str,
-        exact_quote: str | None,
+        exact_quotes: list[str] | None,
         reasoning_trace: str | None = None,
         contextual_override: bool = False,
         locale: str | None = None,
-    ) -> str | None:
+    ) -> list[str] | None:
         """Validates evidence strictly and extracts the exact physical string.
 
         Args:
             pdf_text: The source text context.
-            exact_quote: The quote extracted by the LLM.
+            exact_quotes: The quotes extracted by the LLM.
             reasoning_trace: Optional trace containing the LLM's logical breakdown.
             contextual_override: If True, skips lexical validation.
             locale: Optional locale string to determine the fuzzy fallback threshold.
 
         Returns:
-            The exact_quote (overridden with original whitespace) if valid, or None if overridden.
+            The exact_quotes (overridden with original whitespace) if valid, or None if overridden.
 
         Raises:
             SemanticEvidenceError: If lexical validation or logical Trace consistency fails.
@@ -97,27 +102,28 @@ class AnchorValidationService:
         if contextual_override:
             return None
 
-        if not exact_quote:
+        if not exact_quotes:
             raise SemanticEvidenceError(
-                message="Lexical validation failed: exact_quote is required when contextual_override is False."
+                message="Lexical validation failed: exact_quotes is required when contextual_override is False."
             )
 
-        if exact_quote and len(exact_quote) > 1000:
-            raise SemanticEvidenceError(message=f"Quote length exceeds safety limit ({len(exact_quote)} > 1000 chars).")
+        for quote in exact_quotes:
+            if quote and len(quote) > 1000:
+                raise SemanticEvidenceError(message=f"Quote length exceeds safety limit ({len(quote)} > 1000 chars).")
 
         if reasoning_trace:
             trace_lower = reasoning_trace.lower()
 
             # 1. Trace Contradiction Ban
             if "[5. validation decision: fail]" in trace_lower or "condition not met" in trace_lower:
-                logger.error("Lexical Verifier failed: Trace Contradiction.", extra={"exact_quote": exact_quote})
+                logger.error("Lexical Verifier failed: Trace Contradiction.", extra={"exact_quotes": exact_quotes})
                 raise SemanticEvidenceError(
-                    message="Logical contradiction: Trace concluded Fail, but exact_quote was populated."
+                    message="Logical contradiction: Trace concluded Fail, but exact_quotes was populated."
                 )
 
             # 2. Empty Anchor Ban
             if "[2. syntactic anchor: none]" in trace_lower or "[2. syntactic anchor: n/a]" in trace_lower:
-                logger.error("Lexical Verifier failed: Empty Anchor.", extra={"exact_quote": exact_quote})
+                logger.error("Lexical Verifier failed: Empty Anchor.", extra={"exact_quotes": exact_quotes})
                 raise SemanticEvidenceError(
                     message="Anchorless Extraction: Cannot pass validation without a physical syntactic anchor."
                 )
@@ -128,7 +134,7 @@ class AnchorValidationService:
             if anchor_match:
                 parsed_anchor = anchor_match.group(1)
                 if parsed_anchor.lower() not in ["none", "n/a"]:
-                    if not AnchorValidationService.strict_match(pdf_text, parsed_anchor):
+                    if not AnchorValidationService.strict_match(pdf_text, [parsed_anchor]):
                         logger.error(
                             "Lexical Verifier failed: Hallucinated Anchor.",
                             extra={"parsed_anchor": parsed_anchor},
@@ -140,23 +146,31 @@ class AnchorValidationService:
                         )
 
         norm_pdf, pdf_map = AnchorValidationService.normalize_text_with_mapping(pdf_text)
-        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(exact_quote)
 
-        if not norm_quote:
-            raise SemanticEvidenceError(message="Lexical validation failed: exact_quote normalized to empty string.")
+        extracted_quotes = []
+        for quote in exact_quotes:
+            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
 
-        # Use exact O(N) search on normalized text to find indices
-        start_norm_idx = norm_pdf.find(norm_quote)
-        if start_norm_idx != -1:
-            start_idx = pdf_map[start_norm_idx]
-            end_idx = pdf_map[start_norm_idx + len(norm_quote) - 1]
-            extracted = pdf_text[start_idx : end_idx + 1]
-            return extracted
+            if not norm_quote:
+                raise SemanticEvidenceError(message="Lexical validation failed: a quote normalized to empty string.")
 
-        logger.error(
-            f"Backend Lexical Verifier failed: exact_quote '{exact_quote}' not found in source text.",
-            extra={"exact_quote": exact_quote},
-        )
-        raise SemanticEvidenceError(
-            message=f"Lexical validation failed: exact_quote '{exact_quote}' not found in source text."
-        )
+            # Use exact O(N) search on normalized text to find indices
+            start_norm_idx = norm_pdf.find(norm_quote)
+            if start_norm_idx != -1:
+                start_idx = pdf_map[start_norm_idx]
+                end_idx = pdf_map[start_norm_idx + len(norm_quote) - 1]
+                extracted = pdf_text[start_idx : end_idx + 1]
+                extracted_quotes.append(extracted)
+            else:
+                # Fallback to RapidFuzz to log the best match ratio
+                score = fuzz.partial_ratio(norm_quote, norm_pdf)
+                logger.warning(
+                    f"Backend Lexical Verifier failed: exact_quote '{quote[:50]}...' not found in source text. "
+                    f"RapidFuzz best match: {score:.1f}%",
+                    extra={"exact_quote_snippet": quote[:50], "rapidfuzz_score": score},
+                )
+                raise SemanticEvidenceError(
+                    message=f"Lexical validation failed: exact_quote '{quote[:50]}...' not found in source text. Best match was {score:.1f}%."
+                )
+
+        return extracted_quotes

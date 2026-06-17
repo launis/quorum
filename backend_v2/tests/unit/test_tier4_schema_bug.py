@@ -63,7 +63,7 @@ def test_reproduce_tier4_schema_bug() -> None:
         "reasoning_trace": "test",
         "evaluation_notes": "test",
         "blk_599645bd5baf44e2": [
-            {"atom_id": "blk_599645bd5baf44e2_1", "semantic_reasoning": "...", "exact_quote": "..."}
+            {"atom_id": "blk_599645bd5baf44e2_1", "semantic_reasoning": "...", "exact_quotes": ["..."]}
         ],
     }
 

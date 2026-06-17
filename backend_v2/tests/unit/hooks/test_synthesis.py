@@ -189,32 +189,32 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
             "evaluations": [
                 {
                     "atom_id": "atm_001",
-                    "exact_quote": "Tämä on suora lainaus käyttäjän tekstistä.",
+                    "exact_quotes": ["Tämä on suora lainaus käyttäjän tekstistä."],
                     "semantic_reasoning": "Lause viittaa selkeään väitteeseen.",
                     "score": 4,
                     "shuffled_atoms": ["x"],
                 },
                 {
                     "atom_id": "atm_002",
-                    "exact_quote": None,
+                    "exact_quotes": None,
                     "semantic_reasoning": "No evidence found.",
                     "score": 1,
                 },
                 {
                     "atom_id": "atm_003",
-                    "exact_quote": "[CONTEXTUAL_OVERRIDE_APPLIED]",
+                    "exact_quotes": ["[CONTEXTUAL_OVERRIDE_APPLIED]"],
                     "semantic_reasoning": "Override applied.",
                     "score": 0,
                 },
                 {
                     "atom_id": "atm_004",
-                    "exact_quote": "[SKIPPED]",
+                    "exact_quotes": ["[SKIPPED]"],
                     "semantic_reasoning": "Junk",
                     "score": 0,
                 },
                 {
                     "atom_id": "atm_005",
-                    "exact_quote": "   ",
+                    "exact_quotes": ["   "],
                     "semantic_reasoning": "Empty string",
                     "score": 0,
                 },
@@ -234,7 +234,7 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
     assert "evaluations" in step1
     assert len(step1["evaluations"]) == 1
     assert step1["evaluations"][0]["atom_id"] == "atm_001"
-    assert step1["evaluations"][0]["exact_quote"] == "Tämä on suora lainaus käyttäjän tekstistä."
+    assert step1["evaluations"][0]["exact_quotes"] == ["Tämä on suora lainaus käyttäjän tekstistä."]
     assert step1["evaluations"][0]["semantic_reasoning"] == "Lause viittaa selkeään väitteeseen."
 
     # Heavy keys still stripped
@@ -254,7 +254,7 @@ def test_compress_synthesis_strips_heavy_anchors() -> None:
 
     payload = {
         "step_1": {
-            "exact_quote": "This must survive",
+            "exact_quotes": ["This must survive"],
             "semantic_reasoning": "So must this",
             "localized_anchors_found": [
                 "anchor_one",
@@ -281,7 +281,7 @@ def test_compress_synthesis_strips_heavy_anchors() -> None:
     assert "post_quote_anchor" not in step1
 
     # Critical fields must survive
-    assert step1["exact_quote"] == "This must survive"
+    assert step1["exact_quotes"] == "This must survive"
     assert step1["semantic_reasoning"] == "So must this"
 
 
@@ -489,7 +489,7 @@ async def test_synthesis_hook_success(
 
     # Return MCPToolLoopResult
     mock_dto_dict = {
-        "synthesized_markdown": "Synthesized [1]",
+        "content_blocks": [],
         "cited_sources": ["source1"],
         "section_syntheses": [],
         "xai_highlights": [],
@@ -522,7 +522,7 @@ async def test_synthesis_hook_success(
     assert "<global_length_constraint_chars>500</global_length_constraint_chars>" in sys_msg.get("content", "")
     assert "Always be concise." in sys_msg.get("content", "")
 
-    assert delta["synthesized_markdown"] == "Synthesized [1]"
+    assert "content_blocks" in delta
     assert delta["cited_sources"] == ["source1"]
     assert "token_usage" in delta["step_metadata_updates"]
     assert delta["step_metadata_updates"]["token_usage"]["total_tokens"] == 100
@@ -618,7 +618,7 @@ async def test_synthesis_hook_multi_profile_routing(
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
     mock_execute_tool_loop.return_value = MCPToolLoopResult(
         result_data={
-            "synthesized_markdown": "Beta result",
+            "content_blocks": [],
             "cited_sources": [],
             "section_syntheses": [],
             "xai_highlights": [],
@@ -786,7 +786,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
     mock_execute_tool_loop.return_value = MCPToolLoopResult(
         result_data={
-            "synthesized_markdown": "Summary",
+            "content_blocks": [],
             "cited_sources": [],
             "section_syntheses": [],
             "xai_highlights": [],
@@ -877,6 +877,7 @@ async def test_synthesis_hook_historical_context_mode(
 
     mock_cache = AsyncMock()
     mock_cache.synthesized_markdown = "Past history text"
+    mock_cache.content_blocks = [{"block_type": "text", "text": "Past history text"}]
     mock_past_exec.profile_syntheses = {"prf_test": mock_cache}
 
     mock_failed_exec = AsyncMock()
@@ -902,7 +903,7 @@ async def test_synthesis_hook_historical_context_mode(
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
     mock_execute_tool_loop.return_value = MCPToolLoopResult(
         result_data={
-            "synthesized_markdown": "Summary",
+            "content_blocks": [],
             "cited_sources": [],
             "section_syntheses": [],
             "xai_highlights": [],

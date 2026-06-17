@@ -45,12 +45,13 @@ class StrippedBaseTDAExtraction(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    exact_quote: str | None = Field(
-        default=None,
-        description="Verbatim quote from original text. ABSOLUTE PRIORITY over contextual override. MUST be empty/null if contextual_override is True. CRITICAL: MUST ALWAYS be extracted in the exact original language of the source text, as a physically contiguous VERBATIM substring (do not add/remove words, markdown, or fix typos). NEVER translate the quote, even if your reasoning is in another language.",
+    exact_quotes: list[str] = Field(
+        default_factory=list,
+        max_length=3,
+        description="Extract up to 3 physically contiguous sentences. Do not stitch them together. ABSOLUTE PRIORITY over contextual override. MUST be empty if contextual_override is True. CRITICAL: MUST ALWAYS be extracted in the exact original language of the source text, as physically contiguous VERBATIM substrings (do not add/remove words, markdown, or fix typos). NEVER translate the quotes, even if your reasoning is in another language.",
     )
     contextual_override: bool = Field(
-        description="ABSOLUTE LAST RESORT. True only if rule is satisfied contextually without a verbatim quote. exact_quote MUST be empty if True.",
+        description="ABSOLUTE LAST RESORT. True only if rule is satisfied contextually without a verbatim quote. exact_quotes MUST be empty if True.",
     )
     semantic_reasoning: str = Field(
         description="Detailed analytical reasoning in target language explaining the match.",

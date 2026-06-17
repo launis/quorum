@@ -44,7 +44,7 @@ def _standard_fields() -> dict[str, Any]:
             ),
         ),
         "semantic_reasoning": (str, Field(..., description="LLM explains its mapping logic briefly.")),
-        "exact_quote": ((str | None), Field(..., description="The physical extraction verbatim quote.")),
+        "exact_quotes": (list[str], Field(..., description="The physical extraction verbatim quotes.")),
         "contextual_override": (
             bool,
             Field(..., description="Escape hatch for implicit matches."),
@@ -97,7 +97,7 @@ def create_extraction_model(facts_to_find: list[str]) -> type[BaseModel]:
 
     def _enforce_null_hypothesis(self: Any) -> Any:
         if getattr(self, "contextual_override", False) is True:
-            self.exact_quote = None
+            self.exact_quotes = []
         return self
 
     # Dynamically build the model class

@@ -588,6 +588,8 @@ class LLMNodeStrategy(NodeStrategy):
         if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
             meta = final_dict.setdefault("_step_metadata", {})
             meta["token_usage"] = usage_agg.model_dump()
+            # Phase 1, Step 1.1: Ensure model_strategy is persisted in trace event metadata for execution fingerprinting
+            meta["model_strategy"] = strategy_name
 
         return [
             TraceEvent(

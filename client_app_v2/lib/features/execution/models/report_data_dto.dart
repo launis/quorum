@@ -31,9 +31,9 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('alert_box')
   const factory SduiBlockDTO.alertBox({
-    required String title,
-    required String message,
+    required String text,
     required String severity,
+    @Default([]) List<int> citations,
   }) = SduiAlertBoxBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)

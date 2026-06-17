@@ -97,5 +97,33 @@ void main() {
       // Notice: Once the schema is fixed, this test will pass.
       // Right now it will FAIL (Red) because SduiBlockDTO still expects List<String>.
     });
+    test('Parses SduiAlertBoxBlock Maps successfully (Tier 4 Repro)', () {
+      final json = {
+        "workflow_id": "wf_123",
+        "profile_id": "prof_1",
+        "profile_name": {
+          "default_locale": "fi",
+          "translations": {"fi": "Profiili"},
+        },
+        "available_profiles": {
+          "prof_1": {
+            "default_locale": "fi",
+            "translations": {"fi": "Profiilit"},
+          },
+        },
+        "layouts": [],
+        "content_blocks": [
+          {
+            "block_type": "alert_box",
+            "text": "Tämä on backendin generoima teksti",
+            "severity": "warning",
+            "citations": [],
+          },
+        ],
+      };
+
+      final dto = ReportDataDTO.fromJson(json);
+      expect(dto.contentBlocks.length, 1);
+    });
   });
 }

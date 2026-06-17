@@ -55,7 +55,7 @@ def test_extractive_sensor_service_aggregation_exists_fail() -> None:
     result = ExtractiveSensorService.pre_evaluate(tda, "Completely different text.")
     assert result.decided
     assert result.result == "FAIL"
-    assert result.exact_quote is None
+    assert result.exact_quotes is None
 
 
 def test_extractive_sensor_service_aggregation_all_must_comply_fail() -> None:

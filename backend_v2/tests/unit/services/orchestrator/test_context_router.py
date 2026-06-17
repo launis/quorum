@@ -129,7 +129,7 @@ def test_route_and_prune_with_allowed_extensions() -> None:
     assert "emotional_sentiment" not in pruned.extensions
 
     # 2. Failure case: coaching is in allowed_extensions, but missing from extensions.
-    # It must strictly raise MissingXaiExtensionError!
+    # It must gracefully skip the extension instead of raising an error or inserting a fallback!
     trace_event_missing = {
         "raw_score": 4.0,
         "normalized_score": 80.0,
@@ -144,10 +144,10 @@ def test_route_and_prune_with_allowed_extensions() -> None:
         ],
     }
 
-    with pytest.raises(MissingXaiExtensionError) as exc_info:
-        ContextRouter.route_and_prune(trace_event_missing, output_profile)
-
-    assert exc_info.value.details["extension"] == str(XaiExtensionType.COACHING)
+    pruned_missing = ContextRouter.route_and_prune(trace_event_missing, output_profile)
+    assert pruned_missing.raw_score == 4.0
+    assert "falsification" in pruned_missing.extensions
+    assert "coaching" not in pruned_missing.extensions
 
 
 def test_route_and_prune_success() -> None:
@@ -215,7 +215,7 @@ def test_route_and_prune_missing_base_field() -> None:
 
 
 def test_route_and_prune_missing_extension() -> None:
-    """Test that MissingXaiExtensionError is raised when a required extension is missing."""
+    """Test that missing required extensions are gracefully skipped."""
     trace_event = {
         "normalized_score": 50.0,
         "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
@@ -229,10 +229,10 @@ def test_route_and_prune_missing_extension() -> None:
         visible_block_extensions=[XaiExtensionType.CITATION, XaiExtensionType.COACHING], visible_workflow_extensions=[]
     )
 
-    with pytest.raises(MissingXaiExtensionError) as exc_info:
-        ContextRouter.route_and_prune(trace_event, output_profile)
+    pruned = ContextRouter.route_and_prune(trace_event, output_profile)
 
-    assert exc_info.value.details["extension"] == str(XaiExtensionType.COACHING)
+    assert pruned.extensions[XaiExtensionType.CITATION] == "Source A"
+    assert XaiExtensionType.COACHING not in pruned.extensions
 
 
 def test_validate_routing_mode_success() -> None:

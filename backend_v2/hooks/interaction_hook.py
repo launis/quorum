@@ -160,6 +160,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         if raw_role:
             try:
                 from backend_v2.services.localization import LocalizationService
+
                 locale = state.inputs.get("locale", "en")
                 l10n_key = raw_role.lower()
                 dumped["role_classification"] = LocalizationService.translate(l10n_key, lang=locale)

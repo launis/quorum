@@ -788,8 +788,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 final_state = "TRUE" if is_satisfied else "FALSE"
 
                                                 if final_state == "TRUE":
-                                                    if ev_dto.exact_quote:
-                                                        atom_quotes_by_block[pb_id].append(ev_dto.exact_quote)
+                                                    if ev_dto.exact_quotes:
+                                                        atom_quotes_by_block[pb_id].extend(ev_dto.exact_quotes)
                                                     elif ev_dto.contextual_override and effective_override:
                                                         l_raw = ev_dto.structural_location
                                                         loc = (

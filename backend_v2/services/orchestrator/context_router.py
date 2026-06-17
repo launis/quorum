@@ -9,6 +9,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from backend_v2.services.localization import LocalizationService
+
 from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
@@ -100,8 +102,8 @@ class ContextRouter:
                 if ext in validated_trace.extensions:
                     extensions_extracted[ext] = str(validated_trace.extensions[ext])
                 else:
-                    logger.error("Missing XAI extension: %s", ext)
-                    raise MissingXaiExtensionError(extension_name=str(ext))
+                    logger.warning("Missing XAI extension: %s. Skipping and omitting from trace.", ext)
+                    continue
         else:
             # Fallback to include all extensions if no profile is explicitly provided during execution
             extensions_extracted = validated_trace.extensions

@@ -6,34 +6,34 @@ from backend_v2.models.v2_core import BaseTDAExtraction
 
 def test_contextual_override_cross_validation() -> None:
     """Verify that BaseTDAExtraction correctly validates contextual_override and exact_quote."""
-    # 1. Valid instance with contextual_override=True and exact_quote=None
+    # 1. Valid instance with contextual_override=True and exact_quotes=[]
     data_valid = {
         "localized_anchors_found": ["test_anchor"],
         "semantic_reasoning": "Mapping explanation here",
         "contextual_override": True,
-        "exact_quote": None,
+        "exact_quotes": None,
     }
     model = BaseTDAExtraction.model_validate(data_valid)
     assert model.contextual_override is True
-    assert model.exact_quote is None
+    assert model.exact_quotes == []
 
     # 2. Automatically coerces exact_quote to None if contextual_override is True
     data_coerced = {
         "localized_anchors_found": ["test_anchor"],
         "semantic_reasoning": "Mapping explanation here",
         "contextual_override": True,
-        "exact_quote": "This quote should be removed by validator",
+        "exact_quotes": ["This quote should be removed by validator"],
     }
     model_coerced = BaseTDAExtraction.model_validate(data_coerced)
     assert model_coerced.contextual_override is True
-    assert model_coerced.exact_quote is None
+    assert model_coerced.exact_quotes == []
 
     # 3. Invalid: [CONTEXTUAL_OVERRIDE_APPLIED] exact_quote is forbidden when contextual_override is False
     data_invalid = {
         "localized_anchors_found": ["test_anchor"],
         "semantic_reasoning": "Mapping explanation here",
         "contextual_override": False,
-        "exact_quote": "[CONTEXTUAL_OVERRIDE_APPLIED]",
+        "exact_quotes": ["[CONTEXTUAL_OVERRIDE_APPLIED]"],
     }
     with pytest.raises(ValidationError) as exc_info:
         BaseTDAExtraction.model_validate(data_invalid)
@@ -45,7 +45,7 @@ def test_contextual_override_cross_validation() -> None:
         "localized_anchors_found": ["test_anchor"],
         "semantic_reasoning": "Mapping explanation here",
         "contextual_override": True,
-        "exact_quote": None,
+        "exact_quotes": None,
         "step_1_evidence_scan": "legacy extra field",
     }
     with pytest.raises(ValidationError) as exc_info:

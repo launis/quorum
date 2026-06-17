@@ -201,12 +201,12 @@ async def test_execute_structured_task_system_wide_lexical_verifier(
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
 
     class TestResponseModel(BaseModel):
-        exact_quote: str | None = None
+        exact_quotes: list[str] | None = None
         reasoning_trace: str
         score: int | None = None
         justification: str | None = None
 
-    expected_model = TestResponseModel(exact_quote="fake quote", reasoning_trace="fake trace")
+    expected_model = TestResponseModel(exact_quotes=["fake quote"], reasoning_trace="fake trace")
 
     mock_client.run_structured_task.side_effect = [
         (expected_model, {"total_tokens": 10, "prompt_tokens": 5, "completion_tokens": 5}),
@@ -229,9 +229,9 @@ async def test_execute_structured_task_system_wide_lexical_verifier(
         )
 
         assert res_model.score is None
-        assert res_model.exact_quote is None
+        assert res_model.exact_quotes == []
         assert res_model.justification == "[SYSTEM ERROR: LLM Unable to verify.]"
-        mock_validate.assert_called_with("real text", "fake quote", reasoning_trace="fake trace", locale=None)
+        mock_validate.assert_called_with("real text", ["fake quote"], reasoning_trace="fake trace", locale=None)
 
 
 @pytest.mark.asyncio
@@ -242,7 +242,7 @@ async def test_execute_structured_task_dynamic_model_fallback(
 
     class AtomResponse(BaseModel):
         atom_id: str
-        exact_quote: str | None = None
+        exact_quotes: list[str] | None = None
         localized_anchors_found: list[str] = []
         contextual_override: bool = False
         semantic_reasoning: str = ""
@@ -258,7 +258,7 @@ async def test_execute_structured_task_dynamic_model_fallback(
         evaluations=[
             AtomResponse(
                 atom_id="atom_1",
-                exact_quote="hallucinated quote",
+                exact_quotes=["hallucinated quote"],
                 localized_anchors_found=[],
                 contextual_override=False,
                 semantic_reasoning="some reasoning",
@@ -288,5 +288,5 @@ async def test_execute_structured_task_dynamic_model_fallback(
 
         assert len(res_model.evaluations) == 1
         assert res_model.evaluations[0].atom_id == "atom_1"
-        assert res_model.evaluations[0].exact_quote is None
+        assert res_model.evaluations[0].exact_quotes == []
         assert res_model.evaluations[0].semantic_reasoning == "[SYSTEM ERROR: LLM Unable to verify.]"

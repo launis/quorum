@@ -90,6 +90,8 @@ def _build_null_fallback(
         else:
             if name in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]:
                 fallback_data[name] = None
+            elif name in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]:
+                fallback_data[name] = []
             elif name in ["score", "step_5_boolean"]:
                 fallback_data[name] = None
             elif name in ["reasoning_trace", "step_1_reasoning_trace"]:
@@ -182,8 +184,17 @@ def _perform_semantic_validation(validated_model: BaseModel, validation_context:
             reasoning_trace = trace_val if isinstance(trace_val, str) else None
 
             for k, v in data.items():
-                is_quote_key = k in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
-                if is_quote_key and isinstance(v, str) and v.strip():
+                is_quote_str = k in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
+                is_quote_list = k in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]
+
+                if is_quote_str and isinstance(v, str) and v.strip():
+                    try:
+                        AnchorValidationService.validate_evidence(
+                            src_text, [v], reasoning_trace=reasoning_trace, locale=locale
+                        )
+                    except SemanticEvidenceError as e:
+                        raise LogicalValidationError(validation_error_msg=e.message) from e
+                elif is_quote_list and isinstance(v, list) and any(isinstance(i, str) and i.strip() for i in v):
                     try:
                         AnchorValidationService.validate_evidence(
                             src_text, v, reasoning_trace=reasoning_trace, locale=locale
@@ -316,7 +327,11 @@ class LLMTaskExecutor:
                     if schema_attempts >= max_schema_retries:
                         logger.error(
                             "Max schema retries exceeded.",
-                            extra={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED.name},
+                            extra={
+                                "error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED.name,
+                                "schema_attempts": schema_attempts,
+                                "logical_attempts": logical_attempts,
+                            },
                         )
                         err = AgentExecutionError(
                             detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
@@ -328,7 +343,11 @@ class LLMTaskExecutor:
                     if raw_payload == previous_raw_payload or error_msg == previous_error_msg:
                         logger.error(
                             "Stuck Loop Detected in Schema Validation. Breaking immediately.",
-                            extra={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED.name},
+                            extra={
+                                "error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED.name,
+                                "schema_attempts": schema_attempts,
+                                "logical_attempts": logical_attempts,
+                            },
                         )
                         err = AgentExecutionError(
                             detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
@@ -339,6 +358,11 @@ class LLMTaskExecutor:
                     previous_raw_payload = raw_payload
                     previous_error_msg = error_msg
                     schema_attempts += 1
+
+                    logger.warning(
+                        "LLM Schema Validation Failed. Capturing raw payload for Pydantic Extra field analysis.",
+                        extra={"raw_payload_dump": raw_payload, "validation_error": error_msg},
+                    )
 
                     correction_prompt = self.prompt_compiler.get_schema_healing_prompt(
                         error_msg=error_msg,
@@ -366,7 +390,11 @@ class LLMTaskExecutor:
                             "Max self-healing retries (%s) exhausted for %s. Injecting Null Object Fallback.",
                             max_logical_retries,
                             response_model.__name__,
-                            extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
+                            extra={
+                                "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name,
+                                "schema_attempts": schema_attempts,
+                                "logical_attempts": logical_attempts,
+                            },
                         )
                         fallback = _build_null_fallback(response_model, validated_model, validation_context)
                         return fallback, cumulative_usage
@@ -376,7 +404,11 @@ class LLMTaskExecutor:
                         logger.error(
                             "Stuck Loop Detected in Logical Validation for %s. Injecting Null Object Fallback.",
                             response_model.__name__,
-                            extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
+                            extra={
+                                "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name,
+                                "schema_attempts": schema_attempts,
+                                "logical_attempts": logical_attempts,
+                            },
                         )
                         fallback = _build_null_fallback(response_model, validated_model, validation_context)
                         return fallback, cumulative_usage
@@ -391,6 +423,11 @@ class LLMTaskExecutor:
                     )
 
                     failed_json = validated_model.model_dump_json() if validated_model else "{}"
+
+                    logger.warning(
+                        "LLM Logical Validation Failed. Capturing internal_logic_en trace.",
+                        extra={"failed_json_dump": failed_json, "logical_error": error_msg},
+                    )
 
                     # Epic 54: Smart Coaching
                     coaching_notes = []

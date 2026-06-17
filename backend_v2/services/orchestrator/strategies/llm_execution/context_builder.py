@@ -185,12 +185,15 @@ class ContextBuilder:
                 for pat in patterns:
                     idx = text.upper().find(pat.upper())
                     if idx != -1:
+                        truncated_chars = len(text) - idx
                         logger.warning(
                             "[SpatialSlicing] Chronology rule detected: '%s'. "
-                            "Physically slicing context at delimiter '%s' (index %d).",
+                            "Physically slicing context at delimiter '%s' (index %d). Truncated %d characters.",
                             desc,
                             pat,
                             idx,
+                            truncated_chars,
+                            extra={"truncated_chars": truncated_chars, "slice_index": idx},
                         )
                         return text[:idx].strip()
         return text

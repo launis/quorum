@@ -17,17 +17,17 @@ from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker impo
 def base_votes() -> list[dict[str, Any]]:
     return [
         {
-            "exact_quote": "q1",
+            "exact_quotes": ["q1"],
             "contextual_override": False,
             "semantic_reasoning": "reason 1",
         },
         {
-            "exact_quote": "q1",
+            "exact_quotes": ["q1"],
             "contextual_override": False,
             "semantic_reasoning": "reason 2",
         },
         {
-            "exact_quote": "q2",
+            "exact_quotes": ["q2"],
             "contextual_override": False,
             "semantic_reasoning": "reason 3",
         },
@@ -36,7 +36,7 @@ def base_votes() -> list[dict[str, Any]]:
 
 def test_minority_veto_inverse_evidence_fail_overrules() -> None:
     """Test that a single FAIL on an inverse_evidence atom overrules PASSes."""
-    votes = [{"exact_quote": "q"} for _ in range(3)]
+    votes = [{"exact_quotes": ["q"]} for _ in range(3)]
 
     # Mock evaluate_extraction to return PASS, PASS, FAIL
     with patch(
@@ -51,7 +51,7 @@ def test_minority_veto_inverse_evidence_fail_overrules() -> None:
 
 def test_minority_veto_normal_atom_uses_majority() -> None:
     """Test that normal atoms (not inverse_evidence) use 2/3 majority, even with a FAIL."""
-    votes = [{"exact_quote": "q"} for _ in range(3)]
+    votes = [{"exact_quotes": ["q"]} for _ in range(3)]
 
     with patch(
         "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.evaluate_extraction"
@@ -125,9 +125,9 @@ def test_resolve_majority_vote_with_veto() -> None:
     ]
 
     res_list = [
-        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quote": "q"}]},
-        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quote": "q"}]},
-        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quote": "q"}]},
+        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": ["q"]}]},
+        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": ["q"]}]},
+        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": ["q"]}]},
     ]
 
     with patch(
@@ -149,7 +149,7 @@ def test_resolve_majority_vote_with_veto() -> None:
         assert len(evals) == 1
         assert evals[0]["status"] == "FAIL"
         assert evals[0]["confidence"] == 0.33  # Only 1 FAIL, but VETO wins
-        assert evals[0]["exact_quote"] == "q"  # Falls back to "q" since valid quotes list isn't empty
+        assert evals[0]["exact_quotes"] == ["q"]  # Falls back to ["q"] since valid quotes list isn't empty
 
 
 @pytest.mark.asyncio

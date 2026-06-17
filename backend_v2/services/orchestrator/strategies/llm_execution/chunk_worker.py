@@ -43,9 +43,9 @@ def evaluate_extraction(
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
     """
-    exact_quote = getattr(extraction, "exact_quote", None)
-    if not isinstance(exact_quote, str) or exact_quote == "":
-        exact_quote = None
+    exact_quotes = getattr(extraction, "exact_quotes", [])
+    if not isinstance(exact_quotes, list):
+        exact_quotes = []
     contextual_override = getattr(extraction, "contextual_override", False)
     if not isinstance(contextual_override, bool):
         contextual_override = False
@@ -57,11 +57,11 @@ def evaluate_extraction(
         reasoning_steps = None
 
     # Track A: Physical Match
-    if exact_quote:
+    if exact_quotes and len(exact_quotes) > 0:
         try:
             AnchorValidationService.validate_evidence(
                 pdf_text=source_text,
-                exact_quote=exact_quote,
+                exact_quotes=exact_quotes,
                 reasoning_trace=reasoning_steps,
                 contextual_override=contextual_override,
             )

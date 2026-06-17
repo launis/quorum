@@ -2,5 +2,6 @@
   "role_passenger": "Matkustaja",
   "role_navigator": "Navigaattori",
   "role_driver": "Kuljettaja",
-  "role_architect": "Arkkitehti"
+  "role_architect": "Arkkitehti",
+  "missing_xai_extension_fallback": "Ei saatavilla (Null Fallback)"
 }

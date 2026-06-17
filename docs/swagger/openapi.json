@@ -5083,17 +5083,21 @@
             ],
             "description": "Optional Section-Level Synthesis configuration for this block."
           },
-          "synthesis_md": {
+          "synthesis_blocks": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Synthesis Md",
-            "description": "Optional Section-Level Synthesis content."
+            "title": "Synthesis Blocks",
+            "description": "Optional Section-Level Synthesis content blocks."
           },
           "strictness_level": {
             "anyOf": [
@@ -5204,17 +5208,21 @@
             ],
             "description": "Optional Section-Level Synthesis configuration for this block."
           },
-          "synthesis_md": {
+          "synthesis_blocks": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Synthesis Md",
-            "description": "Optional Section-Level Synthesis content."
+            "title": "Synthesis Blocks",
+            "description": "Optional Section-Level Synthesis content blocks."
           },
           "strictness_level": {
             "anyOf": [
@@ -6154,18 +6162,26 @@
       },
       "RenderedSynthesisCache": {
         "properties": {
-          "synthesized_markdown": {
-            "type": "string",
-            "title": "Synthesized Markdown",
-            "description": "Global synthesis markdown text"
+          "content_blocks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Content Blocks",
+            "description": "Global synthesis SDUI content blocks"
           },
           "section_syntheses": {
             "additionalProperties": {
-              "type": "string"
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
             },
             "type": "object",
             "title": "Section Syntheses",
-            "description": "Mapping of layout ID to LLM generated Section-Level synthesis"
+            "description": "Mapping of layout ID to LLM generated Section-Level synthesis blocks"
           },
           "row_explanations": {
             "additionalProperties": {
@@ -6199,9 +6215,6 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "synthesized_markdown"
-        ],
         "title": "RenderedSynthesisCache",
         "description": "Cached synthesis results tied to a specific OutputProfile ID."
       },

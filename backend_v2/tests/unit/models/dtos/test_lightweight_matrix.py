@@ -5,6 +5,7 @@ from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
     LightweightMatrixOutput,
     OutputProfileConfig,
+    ReasoningStepDTO,
 )
 from backend_v2.models.enums import XaiExtensionType
 
@@ -82,6 +83,12 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     """Test AtomEvaluationItemDTO enforces strict validation and V4.3 Blacklist."""
     item = AtomEvaluationItemDTO(
         atom_id="atom_123",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         extracted_facts={"fact_1": "Some valid quote"},
         status=None,
         semantic_reasoning="Reasoning",
@@ -96,6 +103,12 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     with pytest.raises(ValidationError):
         AtomEvaluationItemDTO(
             atom_id="atom_123",
+            internal_logic_en=ReasoningStepDTO(
+                step_1_identify_premise="stub",
+                step_2_scan_source="stub",
+                step_3_evaluate_anti_patterns="stub",
+                step_4_final_conclusion="stub",
+            ),
             extracted_facts={"fact_1": "Quote"},
             status=None,
             semantic_reasoning="Reasoning",
@@ -107,6 +120,12 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     # Test V4.3 Phantom Boolean Sanity Check
     phantom = AtomEvaluationItemDTO(
         atom_id="atom_phantom",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         extracted_facts={"fact_1": "Not found"},
         status=None,
         semantic_reasoning="Reasoning",
@@ -122,6 +141,12 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     # Test status-based inverse evidence logic
     pass_item = AtomEvaluationItemDTO(
         atom_id="atom_pass",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         extracted_facts={"fact_1": "Found"},
         status="PASS",
         semantic_reasoning="Reasoning",
@@ -133,6 +158,12 @@ def test_atom_evaluation_item_dto_strictness() -> None:
 
     fail_item = AtomEvaluationItemDTO(
         atom_id="atom_fail",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         extracted_facts={"fact_1": "None"},
         status="FAIL",
         semantic_reasoning="Reasoning",
@@ -150,20 +181,32 @@ def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
     """
     item = AtomEvaluationItemDTO(
         atom_id="atom_123",
-        exact_quote="This is an exact quote",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
+        exact_quotes=["This is an exact quote"],
         status="PASS",
         semantic_reasoning="Reasoning",
         contextual_override=False,
         structural_location="N/A",
     )
     assert item.atom_id == "atom_123"
-    assert item.exact_quote == "This is an exact quote"
+    assert item.exact_quotes == ["This is an exact quote"]
     assert item.evidence_found is True
 
     # Test phantom blacklist for exact_quote
     phantom = AtomEvaluationItemDTO(
         atom_id="atom_123",
-        exact_quote="None",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
+        exact_quotes=["None"],
         status="PASS",
         semantic_reasoning="Reasoning",
         contextual_override=False,
@@ -208,21 +251,33 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
     # 1. Matching quote
     item = AtomEvaluationItemDTO(
         atom_id="atom_1",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         contextual_override=False,
-        exact_quote="Megatrendien kooste osoittaa kriisejä",
+        exact_quotes=["Megatrendien kooste osoittaa kriisejä"],
         status="PASS",
         semantic_reasoning="Reasoning",
         structural_location="N/A",
     )
     context = {"source_text": "Tämä megatrendien kooste osoittaa kriisejä vuonna 2026."}
     validated = AtomEvaluationItemDTO.model_validate(item.model_dump(), context=context)
-    assert validated.exact_quote == "Megatrendien kooste osoittaa kriisejä"
+    assert validated.exact_quotes == ["Megatrendien kooste osoittaa kriisejä"]
 
     # 2. Fuzzy matching quote (similar enough >95%)
     item_fuzzy = AtomEvaluationItemDTO(
         atom_id="atom_2",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         contextual_override=False,
-        exact_quote="Megatrendien  kooste-osoittaa\nkriisejä",  # extra space, punctuation, newline
+        exact_quotes=["Megatrendien  kooste-osoittaa\nkriisejä"],  # extra space, punctuation, newline
         status="PASS",
         semantic_reasoning="Reasoning",
         structural_location="N/A",
@@ -233,8 +288,14 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
     # 3. Completely hallucinated quote (fails similarity <95%)
     item_hallucinated = AtomEvaluationItemDTO(
         atom_id="atom_3",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         contextual_override=False,
-        exact_quote="Tätä lausetta ei löydy tekstistä lainkaan",
+        exact_quotes=["Tätä lausetta ei löydy tekstistä lainkaan"],
         status="PASS",
         semantic_reasoning="Reasoning",
         structural_location="N/A",
@@ -250,6 +311,12 @@ def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     # 1. Valid override with long reasoning and structural location
     item_valid = AtomEvaluationItemDTO(
         atom_id="atom_override_1",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         contextual_override=True,
         semantic_reasoning=(
             "This is a very long reasoning text that explains the rationale "
@@ -265,6 +332,12 @@ def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     with pytest.raises(ValidationError) as exc:
         AtomEvaluationItemDTO(
             atom_id="atom_override_2",
+            internal_logic_en=ReasoningStepDTO(
+                step_1_identify_premise="stub",
+                step_2_scan_source="stub",
+                step_3_evaluate_anti_patterns="stub",
+                step_4_final_conclusion="stub",
+            ),
             contextual_override=True,
             semantic_reasoning="Too short page 42.",
             structural_location="page 42",
@@ -276,6 +349,12 @@ def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     with pytest.raises(ValidationError) as exc:
         AtomEvaluationItemDTO(
             atom_id="atom_override_3",
+            internal_logic_en=ReasoningStepDTO(
+                step_1_identify_premise="stub",
+                step_2_scan_source="stub",
+                step_3_evaluate_anti_patterns="stub",
+                step_4_final_conclusion="stub",
+            ),
             contextual_override=True,
             semantic_reasoning=(
                 "This is a very long reasoning text that completely lacks "
@@ -294,6 +373,12 @@ def test_calculate_rule_satisfied_truth_table() -> None:
     # Regardless of status/evidence/inverse_evidence, should return True.
     item = AtomEvaluationItemDTO(
         atom_id="atom_1",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         contextual_override=True,
         semantic_reasoning="This reasoning is long enough to pass anti-laziness length checks.",
         structural_location="page 42",
@@ -313,6 +398,12 @@ def test_calculate_rule_satisfied_truth_table() -> None:
     # 3. status is DLQ
     dlq_item = AtomEvaluationItemDTO(
         atom_id="atom_2",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         status="DLQ",
         contextual_override=True,
         semantic_reasoning="This reasoning is long enough to pass anti-laziness length checks.",
@@ -326,7 +417,13 @@ def test_calculate_rule_satisfied_truth_table() -> None:
     # 4. evidence_found is True (exact_quote is valid)
     valid_item = AtomEvaluationItemDTO(
         atom_id="atom_3",
-        exact_quote="This is a valid quote",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
+        exact_quotes=["This is a valid quote"],
         status=None,
         semantic_reasoning="Reasoning",
         contextual_override=False,
@@ -340,7 +437,13 @@ def test_calculate_rule_satisfied_truth_table() -> None:
     # 5. Sentinel quote is blacklisted and doesn't count as evidence
     sentinel_item = AtomEvaluationItemDTO(
         atom_id="atom_4",
-        exact_quote="[CONTEXTUAL_OVERRIDE_APPLIED]",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
+        exact_quotes=["[CONTEXTUAL_OVERRIDE_APPLIED]"],
         status="PASS",
         semantic_reasoning="Reasoning",
         contextual_override=False,
@@ -385,8 +488,14 @@ def test_calculate_rule_satisfied_truth_table_32(
 
     item = AtomEvaluationItemDTO(
         atom_id="test_atom",
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="stub",
+            step_2_scan_source="stub",
+            step_3_evaluate_anti_patterns="stub",
+            step_4_final_conclusion="stub",
+        ),
         contextual_override=llm_override,
-        exact_quote=exact_quote,
+        exact_quotes=[exact_quote] if exact_quote != "None" else [],
         semantic_reasoning=semantic_reasoning,
         structural_location="page 42" if llm_override else "N/A",
         status=None,

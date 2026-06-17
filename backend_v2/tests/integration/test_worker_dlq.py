@@ -10,7 +10,7 @@ from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker impo
 
 
 class MockSchema(BaseModel):
-    exact_quote: str = Field(max_length=1500)
+    exact_quotes: list[str] = Field(max_length=1500)
 
 
 @pytest.mark.asyncio

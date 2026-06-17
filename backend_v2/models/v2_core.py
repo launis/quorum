@@ -1226,6 +1226,7 @@ class ExecutionStepState(V2CoreBase):
 class RenderedSynthesisCache(V2CoreBase):
     """Cached synthesis results tied to a specific OutputProfile ID."""
 
+    synthesized_markdown: str = Field(default="", description="Compiled Markdown content for the report")
     content_blocks: list[dict[str, Any]] = Field(
         default_factory=list, description="Global synthesis SDUI content blocks"
     )
@@ -1320,9 +1321,10 @@ class BaseTDAExtraction(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    exact_quote: str | None = Field(
-        default=None,
-        description="Verbatim quote from original text.",
+    exact_quotes: list[str] = Field(
+        default_factory=list,
+        max_length=3,
+        description="List of verbatim quotes from original text.",
     )
     localized_anchors_found: list[str] = Field(
         max_length=15, description="Keywords in target language mapping English rule."
@@ -1345,14 +1347,16 @@ class BaseTDAExtraction(BaseModel):
             return data
 
         is_override = data.get("contextual_override") is True
-        quote = data.get("exact_quote")
+        quotes = data.get("exact_quotes", [])
+        if quotes is None:
+            quotes = []
 
         if is_override:
-            data["exact_quote"] = None
+            data["exact_quotes"] = []
         else:
-            if quote == "[CONTEXTUAL_OVERRIDE_APPLIED]":
+            if isinstance(quotes, list) and any(q == "[CONTEXTUAL_OVERRIDE_APPLIED]" for q in quotes):
                 raise ValueError(
-                    "Cross-validation failed: exact_quote cannot be "
+                    "Cross-validation failed: exact_quotes cannot contain "
                     "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
                 )
         return data

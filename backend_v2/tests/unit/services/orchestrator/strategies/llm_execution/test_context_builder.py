@@ -270,7 +270,7 @@ def test_project_compressed_does_not_mutate_original() -> None:
     original = {
         "evaluations": [
             {
-                "exact_quote": "quote",
+                "exact_quotes": ["quote"],
                 "shuffled_atoms": ["x", "y"],
                 "post_quote_anchor": "remove me",
                 "localized_anchors_found": ["a1", "a2", "a3", "a4", "a5"],
@@ -292,14 +292,14 @@ def test_project_compressed_does_not_mutate_original() -> None:
 def test_project_compressed_strips_post_quote_anchor() -> None:
     """Verify that _project_compressed leaves other keys intact while preserving immutability."""
     payload = {
-        "exact_quote": "important evidence",
+        "exact_quotes": ["important evidence"],
         "post_quote_anchor": "kept",
         "semantic_reasoning": "reasoning here",
     }
     result = ContextBuilder._project_compressed(payload)
 
     assert "post_quote_anchor" in result
-    assert result["exact_quote"] == "important evidence"
+    assert result["exact_quotes"] == ["important evidence"]
     assert result["semantic_reasoning"] == "reasoning here"
 
 
@@ -322,7 +322,7 @@ def test_project_compressed_preserves_exact_quote_and_reasoning() -> None:
     payload = {
         "evaluations": [
             {
-                "exact_quote": "Tämä on kriittinen lainaus dokumentista.",
+                "exact_quotes": ["Tämä on kriittinen lainaus dokumentista."],
                 "semantic_reasoning": "Päättelyketju.",
                 "localized_anchors_found": ["anchor1", "anchor2", "anchor3"],
                 "shuffled_atoms": ["noise"],
@@ -333,7 +333,7 @@ def test_project_compressed_preserves_exact_quote_and_reasoning() -> None:
     result = ContextBuilder._project_compressed(payload)
 
     ev = result["evaluations"][0]
-    assert ev["exact_quote"] == "Tämä on kriittinen lainaus dokumentista."
+    assert ev["exact_quotes"] == ["Tämä on kriittinen lainaus dokumentista."]
     assert ev["semantic_reasoning"] == "Päättelyketju."
     # Anchors remain uncompressed in V2 projection
     assert len(ev["localized_anchors_found"]) == 3

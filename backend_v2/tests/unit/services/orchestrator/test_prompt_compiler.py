@@ -312,10 +312,10 @@ def test_tda_extraction_schema_has_semantic_descriptions() -> None:
     from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
 
     override_desc = StrippedBaseTDAExtraction.model_fields["contextual_override"].description or ""
-    quote_desc = StrippedBaseTDAExtraction.model_fields["exact_quote"].description or ""
+    quote_desc = StrippedBaseTDAExtraction.model_fields["exact_quotes"].description or ""
 
-    assert "exact_quote MUST be empty if True" in override_desc
-    assert "MUST be empty/null if contextual_override is True" in quote_desc
+    assert "exact_quotes MUST be empty if True" in override_desc
+    assert "MUST be empty if contextual_override is True" in quote_desc
 
 
 def test_prompt_compiler_extreme_description_truncation() -> None:

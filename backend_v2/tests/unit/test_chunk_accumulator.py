@@ -180,7 +180,7 @@ def test_chunk_accumulator_reducer_evaluations_and_reasoning_trace() -> None:
         "evaluations": [
             {
                 "atom_id": "atom_1",
-                "exact_quote": "Quote 1",
+                "exact_quotes": ["Quote 1"],
                 "contextual_override": False,
                 "status": "PASS",
                 "semantic_reasoning": "Reason 1",
@@ -193,7 +193,7 @@ def test_chunk_accumulator_reducer_evaluations_and_reasoning_trace() -> None:
         "evaluations": [
             {
                 "atom_id": "atom_2",
-                "exact_quote": "Quote 2",
+                "exact_quotes": ["Quote 2"],
                 "contextual_override": True,
                 "status": "DLQ",
                 "semantic_reasoning": "Reason 2",

@@ -249,14 +249,15 @@ class PromptCompiler:
         """
         return (
             f"<CRITICAL_LANGUAGE_MANDATE>\n"
-            f"You must process the input and generate your general output text exclusively in the "
-            f"'{target_locale}' language. All JSON keys must strictly remain in English.\n"
+            f"You MUST do your deep analytical step-by-step Chain of Thought reasoning in English inside the `internal_logic_en` structured object. "
+            f"After concluding your reasoning, you must formulate the final justification strictly in the '{target_locale}' "
+            f"language inside the `semantic_reasoning` field. All JSON keys must strictly remain in English.\n"
             f"\n"
             f"CRITICAL: The `exact_quote` MUST ALWAYS be extracted in the exact original language of the source text. NEVER translate the quote, even if your reasoning is in another language.\n"
             f"\n"
             f"ZERO-HIT FALLBACK RULE: If you find absolutely NO evidence in the text to satisfy an evaluation "
-            f"criteria, you MUST formulate the negative reasoning or 'not found' explanation completely in "
-            f"the '{target_locale}' language. DO NOT revert to English under any circumstances even for empty cases.\n"
+            f"criteria, you MUST formulate the negative 'not found' explanation completely in "
+            f"the '{target_locale}' language inside the `semantic_reasoning` field.\n"
             f"</CRITICAL_LANGUAGE_MANDATE>"
         )
 

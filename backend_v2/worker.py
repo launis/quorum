@@ -306,7 +306,85 @@ async def execute_workflow_job(
 
             # Final Status Update (Completed)
             if exec_id:
-                models_used: dict[str, int] = {}
+                # Phase 2, Step 2.1: Parse execution_trace to extract final models_used and step_metrics
+                models_used: dict[str, int] = (
+                    updated_exec_record.models_used.copy() if updated_exec_record.models_used else {}
+                )
+                step_metrics: dict[str, Any] = {}
+                total_cost_usd = 0.0
+                total_prompt_tokens = 0
+                total_completion_tokens = 0
+                total_cached_tokens = 0
+                total_reasoning_tokens = 0
+                is_degraded = False
+
+                for event in updated_exec_record.execution_trace:
+                    if event.event_type in ("error", "dlq_routed"):
+                        is_degraded = True
+                    if event.event_type != "output":
+                        continue
+
+                    step_meta = event.metadata.get("_step_metadata", {})
+                    usage = step_meta.get("token_usage", {})
+                    model_strategy = step_meta.get("model_strategy", "unknown")
+                    chunk_size = step_meta.get("chunk_size", 1)
+
+                    p_tokens = usage.get("prompt_tokens", 0)
+                    c_tokens = usage.get("completion_tokens", 0)
+                    t_tokens = usage.get("total_tokens", 0)
+                    c_cost = usage.get("cost_usd", 0.0)
+
+                    total_prompt_tokens += p_tokens
+                    total_completion_tokens += c_tokens
+                    total_cached_tokens += usage.get("cached_tokens", 0)
+                    total_reasoning_tokens += usage.get("reasoning_tokens", 0)
+                    total_cost_usd += c_cost
+
+                    models_used[model_strategy] = models_used.get(model_strategy, 0) + t_tokens
+
+                    step_id = event.step_name
+                    if step_id not in step_metrics:
+                        step_metrics[step_id] = {
+                            "model": model_strategy,
+                            "cost_usd": 0.0,
+                            "total_tokens": 0,
+                            "chunk_count": 0,
+                        }
+                    step_metrics[step_id]["cost_usd"] += c_cost
+                    step_metrics[step_id]["total_tokens"] += t_tokens
+                    step_metrics[step_id]["chunk_count"] += chunk_size
+
+                # Execution fingerprint snapshot
+                execution_summary = {
+                    "strictness_level": strictness_level,
+                    "target_locale": getattr(workflow_def, "default_locale", "fi"),
+                    "is_ensemble_run": getattr(workflow_def, "default_strictness_level", 1) >= 3,
+                    "system_concurrency_snapshot": {
+                        "LLM_MAX_CHUNK_SIZE": SystemConcurrency.LLM_MAX_CHUNK_SIZE.value,
+                        "SCHEMA_MAX_EVALUATIONS": SystemConcurrency.SCHEMA_MAX_EVALUATIONS.value,
+                        "SCHEMA_MAX_CHUNK_RECORDS": SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS.value,
+                        "MATRIX_SAMPLING_LIMIT": SystemConcurrency.MATRIX_SAMPLING_LIMIT.value,
+                    },
+                    "models_used": models_used,
+                    "cost_estimate": total_cost_usd,
+                    "is_degraded": is_degraded,
+                    "aggregated_usage": {
+                        "prompt_tokens": total_prompt_tokens,
+                        "completion_tokens": total_completion_tokens,
+                        "cached_tokens": total_cached_tokens,
+                        "reasoning_tokens": total_reasoning_tokens,
+                    },
+                }
+
+                updated_meta = dict(updated_exec_record.metadata) if updated_exec_record.metadata else {}
+                updated_meta["execution_summary"] = execution_summary
+                updated_meta["step_metrics"] = step_metrics
+                updated_meta["dag_cost_usd"] = total_cost_usd
+
+                updated_exec_record = updated_exec_record.model_copy(
+                    update={"models_used": models_used, "cost_estimate": total_cost_usd, "metadata": updated_meta}
+                )
+
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
 
                 # TRIGGER ASYNC RENDER JOB (Epic 14 M4)
@@ -754,29 +832,32 @@ async def generate_profile_synthesis_and_pdf_task(
             if step_metadata_updates and "token_usage" in step_metadata_updates:
                 usage = step_metadata_updates["token_usage"]
                 if usage:
-                    # Recalculate totals from all events in the trace to maintain absolute consistency
-                    total_p_tokens = 0
-                    total_c_tokens = 0
-                    total_t_tokens = 0
-                    total_cost = 0.0
-
-                    for event in execution.execution_trace:
-                        if event.event_type == "output" and isinstance(event.content, dict):
-                            step_meta = event.content.get("_step_metadata", {})
-                            u = step_meta.get("token_usage", {})
-                            if u:
-                                total_p_tokens += u.get("prompt_tokens", 0)
-                                total_c_tokens += u.get("completion_tokens", 0)
-                                total_t_tokens += u.get("total_tokens", 0)
-                                total_cost += u.get("cost_usd", 0.0)
-
-                    # Add synthesis cost itself
-                    total_p_tokens += usage.get("prompt_tokens", 0)
-                    total_c_tokens += usage.get("completion_tokens", 0)
-                    total_t_tokens += usage.get("total_tokens", 0)
-                    total_cost += usage.get("cost_usd", 0.0)
-
+                    # Phase 2, Step 2.2: Remove old trace iteration loop and use pre-calculated DAG costs
                     meta = dict(execution.metadata) if execution.metadata else {}
+
+                    dag_cost = meta.get("dag_cost_usd", execution.cost_estimate or 0.0)
+                    synth_cost = usage.get("cost_usd", 0.0)
+                    total_cost = dag_cost + synth_cost
+
+                    total_p_tokens = usage.get("prompt_tokens", 0)
+                    total_c_tokens = usage.get("completion_tokens", 0)
+                    total_t_tokens = usage.get("total_tokens", 0)
+
+                    exec_summary = meta.get("execution_summary", {})
+                    if "aggregated_usage" in exec_summary:
+                        agg = exec_summary["aggregated_usage"]
+                        total_p_tokens += agg.get("prompt_tokens", 0)
+                        total_c_tokens += agg.get("completion_tokens", 0)
+                        total_t_tokens += agg.get("prompt_tokens", 0) + agg.get("completion_tokens", 0)
+                    else:
+                        total_p_tokens += meta.get("prompt_tokens", 0)
+                        total_c_tokens += meta.get("completion_tokens", 0)
+                        total_t_tokens += meta.get("total_tokens", 0)
+
+                    # Isolate DAG cost vs Synthesis cost
+                    meta["synthesis_cost_usd"] = synth_cost
+                    meta["dag_cost_usd"] = dag_cost
+
                     meta["total_tokens"] = total_t_tokens
                     meta["prompt_tokens"] = total_p_tokens
                     meta["completion_tokens"] = total_c_tokens
@@ -784,6 +865,9 @@ async def generate_profile_synthesis_and_pdf_task(
 
                     update_payload["metadata"] = meta
                     update_payload["cost_estimate"] = total_cost
+
+                    if execution.models_used:
+                        update_payload["models_used"] = dict(execution.models_used)
 
             # Save the updated trace with dynamically calculated matrix scores
             update_payload["execution_trace"] = [evt.model_dump(mode="json") for evt in execution.execution_trace]

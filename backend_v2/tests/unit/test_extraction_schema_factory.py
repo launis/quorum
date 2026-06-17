@@ -13,7 +13,7 @@ def test_create_extraction_model_success() -> None:
         "chunk_index": 0,
         "localized_anchors_found": ["anchor 1"],
         "semantic_reasoning": "Reasoning logic",
-        "exact_quote": "Found quote",
+        "exact_quotes": ["Found quote"],
         "contextual_override": False,
         "fact_A": "yes",
         "fact_B": None,
@@ -23,7 +23,7 @@ def test_create_extraction_model_success() -> None:
     assert instance.chunk_index == 0  # type: ignore[attr-defined]
     assert instance.localized_anchors_found == ["anchor 1"]  # type: ignore[attr-defined]
     assert instance.semantic_reasoning == "Reasoning logic"  # type: ignore[attr-defined]
-    assert instance.exact_quote == "Found quote"  # type: ignore[attr-defined]
+    assert instance.exact_quotes == ["Found quote"]  # type: ignore[attr-defined]
     assert instance.contextual_override is False  # type: ignore[attr-defined]
     assert instance.fact_A == "yes"  # type: ignore[attr-defined]
     assert instance.fact_B is None  # type: ignore[attr-defined]
@@ -37,7 +37,7 @@ def test_create_extraction_model_strict_fail_fast() -> None:
         "chunk_index": 0,
         "localized_anchors_found": ["anchor 1"],
         "semantic_reasoning": "Reasoning logic",
-        "exact_quote": "Found quote",
+        "exact_quotes": ["Found quote"],
         "contextual_override": False,
         "fact_A": "yes",
         "extra_field": "banned",
@@ -53,7 +53,7 @@ def test_basetdaextraction_override_logic() -> None:
     payload_valid = {
         "localized_anchors_found": ["anchor 1"],
         "semantic_reasoning": "Reasoning logic",
-        "exact_quote": "",
+        "exact_quotes": [""],
         "contextual_override": True,
     }
     instance = BaseTDAExtraction.model_validate(payload_valid)
@@ -62,20 +62,22 @@ def test_basetdaextraction_override_logic() -> None:
     payload_invalid = {
         "localized_anchors_found": ["anchor 1"],
         "semantic_reasoning": "Reasoning logic",
-        "exact_quote": "[CONTEXTUAL_OVERRIDE_APPLIED]",
+        "exact_quotes": ["[CONTEXTUAL_OVERRIDE_APPLIED]"],
         "contextual_override": False,
     }
 
     with pytest.raises(ValidationError) as exc:
         BaseTDAExtraction.model_validate(payload_invalid)
-    assert "exact_quote cannot be '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False" in str(exc.value)
+    assert "exact_quotes cannot contain '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False" in str(
+        exc.value
+    )
 
     # Test silent overwrite logic
     payload_silent = {
         "localized_anchors_found": ["anchor 1"],
         "semantic_reasoning": "Reasoning logic",
-        "exact_quote": "quote",
+        "exact_quotes": ["quote"],
         "contextual_override": True,
     }
     instance2 = BaseTDAExtraction.model_validate(payload_silent)
-    assert instance2.exact_quote is None
+    assert instance2.exact_quotes == []

@@ -10,7 +10,7 @@ import random
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO
+from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO, ReasoningStepDTO
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
@@ -30,6 +30,12 @@ def test_lazy_llm_unauthorized_override_failed() -> None:
         semantic_reasoning=(
             "This is a long semantic explanation referencing page 3 to satisfy "
             "the strict spatial referencing and length constraints."
+        ),
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="P",
+            step_2_scan_source="S",
+            step_3_evaluate_anti_patterns="A",
+            step_4_final_conclusion="C",
         ),
     )
 
@@ -56,6 +62,12 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
             contextual_override=True,
             structural_location="page 12",
             semantic_reasoning="Too short page 12.",
+            internal_logic_en=ReasoningStepDTO(
+                step_1_identify_premise="P",
+                step_2_scan_source="S",
+                step_3_evaluate_anti_patterns="A",
+                step_4_final_conclusion="C",
+            ),
         )
     assert "at least 50 characters" in str(exc.value)
 
@@ -68,6 +80,12 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
             semantic_reasoning=(
                 "This is a very long semantic explanation that is definitely over fifty characters "
                 "long, but completely lacks any spatial referencing or structural location anchors."
+            ),
+            internal_logic_en=ReasoningStepDTO(
+                step_1_identify_premise="P",
+                step_2_scan_source="S",
+                step_3_evaluate_anti_patterns="A",
+                step_4_final_conclusion="C",
             ),
         )
     assert "explicit structural_location reference" in str(exc.value)
@@ -136,7 +154,13 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
         contextual_override=False,
         structural_location="N/A",
         semantic_reasoning="No evidence found for failure before phase 2 in the sliced context.",
-        exact_quote="None",  # Blacklisted sentinel meaning no quote found
+        exact_quotes=["None"],  # Blacklisted sentinel meaning no quote found
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="P",
+            step_2_scan_source="S",
+            step_3_evaluate_anti_patterns="A",
+            step_4_final_conclusion="C",
+        ),
     )
     assert evaluation.evidence_found is False
 
@@ -176,6 +200,12 @@ def test_zero_variance_shannon_entropy_and_kappa_benchmark() -> None:
             contextual_override=True,
             structural_location=page_num,
             semantic_reasoning=reasoning_text,
+            internal_logic_en=ReasoningStepDTO(
+                step_1_identify_premise="P",
+                step_2_scan_source="S",
+                step_3_evaluate_anti_patterns="A",
+                step_4_final_conclusion="C",
+            ),
         )
 
         # Run scoring rule satisfaction calculation
