@@ -6162,6 +6162,12 @@
       },
       "RenderedSynthesisCache": {
         "properties": {
+          "synthesized_markdown": {
+            "type": "string",
+            "title": "Synthesized Markdown",
+            "description": "Compiled Markdown content for the report",
+            "default": ""
+          },
           "content_blocks": {
             "items": {
               "additionalProperties": true,

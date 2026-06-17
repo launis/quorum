@@ -471,13 +471,16 @@ class PromptCompiler:
         )
 
     @staticmethod
-    def get_schema_healing_prompt(error_msg: str, is_logical_error: bool, is_eof: bool) -> str:
+    def get_schema_healing_prompt(
+        error_msg: str, is_logical_error: bool, is_eof: bool, strictness_level: int | None = None
+    ) -> str:
         """Generate a Self-Healing prompt for LLM execution recovery.
 
         Args:
             error_msg: The specific validation or logical error message.
             is_logical_error: True if the failure was a semantic Domain validation, False if Pydantic syntax.
             is_eof: True if the LLM output was cut off (e.g. max_tokens reached).
+            strictness_level: Strictness level to control field leniency.
 
         Returns:
             A formatted prompt string commanding the LLM to fix its previous output.
@@ -501,7 +504,7 @@ class PromptCompiler:
                 "Regenerate your response ensuring all logical validations pass."
             )
 
-        return (
+        base = (
             "[SYSTEM: STRICT JSON SCHEMA VALIDATION FAILED]\n"
             "Your previous response contained invalid JSON or failed Pydantic schema validation.\n"
             f"Error details: {error_msg}\n\n"
@@ -512,3 +515,13 @@ class PromptCompiler:
             "4. Do not include markdown blocks, conversational text, or any explanations outside the JSON.\n"
             "5. NO EXTRA FIELDS: If the error mentions 'Extra inputs are not permitted', you MUST remove them. Do not create or invent new JSON keys that were not explicitly requested in the schema."
         )
+
+        if strictness_level is not None and strictness_level >= 100:
+            base += (
+                "\n\n[STRICTNESS OVERRIDE ACTIVE: level >= 100]\n"
+                "The following fields are BANNED from your output: "
+                "'contextual_override', 'override_reason'. "
+                "You MUST NOT include these fields."
+            )
+
+        return base

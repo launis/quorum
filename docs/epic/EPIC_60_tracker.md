@@ -1,30 +1,27 @@
-# Epic 60 Master Tracker: Modular Extraction Decoupling
+# Epic 60 Tracker: System 2 Reliability Audit
 
-This tracker monitors the phased implementation of Epic 60 to separate the Global Zero-Trust Evidence Extraction Protocol from criteria-specific TDA assertions, update Pydantic and Freezed schemas, and refactor the Admin Studio V2 form widgets.
+## 1. Konteksti ja Tavoitteet (Miksi olemme tässä?)
+Järjestelmän LLM-evaluointimoottorissa (System 2) havaittiin merkittävää epävakautta ja varianssia peräkkäisissä ajoissa täysin identtisillä syötteillä (Self-Consistency 78-80 %). Tämä arpominen johtui arkkitehtuuritason rakenteellisista virheistä (kuten `ExtractionPayload` vs `exact_quotes` -bugeista), käänteisistä logiikoista ja epäselvistä kognitiivisista säännöistä. 
+**Tavoitteemme** on toteuttaa 100 % Pydantic-tyyppiturvallinen konsensusarkkitehtuuri ja deterministinen korjausluuppi. Tämä poistaa arvailun (dict.get) ja nostaa arviointien itsekonsistenssin matemaattisesti stabiilille tasolle.
 
-## Active Sub-plans
-- [OK] [phase1_database_refactor.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_60/phase1_database_refactor.md) - Extract global guideline boilerplate from TDA assertions and register a modular Global Zero-Trust Evidence Extraction Protocol block in `seed_data.json`.
-- [OK] [phase2_backend_models.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_60/phase2_backend_models.md) - Update `Step` model in Pydantic to support `role_block_id`, `extraction_protocol_block_id`, and `criteria_block_ids` fields with strict validation.
-- [OK] [phase3_prompt_compiler.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_60/phase3_prompt_compiler.md) - Modify `PromptFactory` and `LLMNodeStrategy` to resolve, compile, and statically inject decoupled blocks while fencing user payloads in XML to optimize caching.
-- [OK] [phase4_frontend_models.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_60/phase4_frontend_models.md) - Update Flutter sealed `NodeStrategy` class to support segregated schema properties and regenerate Freezed classes.
-- [OK] [phase5_studio_ui.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_60/phase5_studio_ui.md) - Build custom selectors in Admin Studio form widgets for decoupled properties and localize all UI labels in `.arb` resource bundles.
-- [OK] [phase6_verification.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_60/phase6_verification.md) - Write comprehensive integration tests for prompt compilation and execute quality gate loops on backend and frontend components.
+## 2. Mitä on tapahtunut?
+Edellisessä sessiossa (Tier 1 Planner) laaja Epic 60 auditoitiin ja pilkottiin neljään toteutussuunnitelmaan (Implementation Plan):
+1. Enum-siivous ja Retryjen yhtenäistäminen.
+2. Konsensus-arkkitehtuurin Pydantic-refaktorointi (kriittiset bugikorjaukset).
+3. Self-Healing -optimointi (Pydantic-kireystasojen täsmentäminen mallille).
+4. Kognitiivisten TDA-sääntöjen siementäminen tietokantaan.
 
+Käyttäjä ajoi tämän jatkuvan suorituksen käynnistävän komennon: `/tier5-resume --target docs/epic/epic_60_tracker.md` ja pyysi täydentämään kontekstin myös tähän seurantaan.
 
-## Universal Hardening Loop Mandate
-When all modified files are completed, the user must run:
-```powershell
-/tier2-hardening-backend
-```
-and:
-```powershell
-/tier2-hardening-frontend
-```
-to audit standards and complete the Quality Gate verification.
+## 3. Implementation Plans (Jatkuva Suoritus)
 
----
+- [x] `c:\src\quorum\docs\epic\tasks_epic_60\phase1_enum_cleanup.md` - Enum Cleanup and Retry Unification (ACTION-7)
+- [x] `c:\src\quorum\docs\epic\tasks_epic_60\phase2_chunk_worker_refactor.md` - Consensus Architecture Refactor (ACTION-1, ACTION-5, ACTION-6)
+- [x] `c:\src\quorum\docs\epic\tasks_epic_60\phase3_prompt_compiler.md` - Self-Healing Optimization (ACTION-2)
+- [x] `c:\src\quorum\docs\epic\tasks_epic_60\phase4_seed_database.md` - Seed Corrected Rules (ACTION-3)
 
-## Handover Instructions
-To start the execution loop:
-1. Open a fresh context window.
-2. Run command: `/tier5-resume --target docs/epic/EPIC_60_tracker.md`
+## 4. Tila ja Seuraavat Vaiheet
+
+**TEHTY:** Phase 4 tietokantasiemennys suoritettu. ChunkWorkerin ExceptionGroup -käsittely korjattu (Fail-Fast toimii). Rate-limit-testit ohitettu mock-providerilla. Myös ENSEMBLE-ajon kohtalokas Pydantic extra_forbidden -bugi on löydetty ja korjattu puhtaasti sanakirja-injektiolla. Uutena lisäyksenä: Tier 4 Bug Hunting -tutkinta ratkaisi finaaliajon kaataneen `reasoning_steps` "Field missing" -Pydantic ValidationError -ongelman poistamalla virheelliset pop-kutsut `chunk_worker.py` -tiedostosta. Kaikki yksikkötestit menivät läpi (100% vihreä) ja ydinarkkitehtuuri on eheytynyt.
+
+**SEURAAVAKSI:** Käyttäjä on aloittamassa raskaat manuaaliset testiajot `run_local.bat` avulla luodakseen dataa diff-raporttia varten. Järjestelmä on nyt odotustilassa. Käyttäjä komentaa `/tier6-execution-monitor` manuaalisesti ajojen alettua, jonka jälkeen asetumme valvomaan logeja. Ajojen päätyttyä tulokset analysoidaan käyttäen `c:\src\quorum\scratch\diff_executions.py` -skriptiä.

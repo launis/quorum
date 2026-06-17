@@ -29,12 +29,20 @@ class AtomIdentifier(BaseModel):
     atom_id: str
 
 
-class ExtractionPayload(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    exact_quote: str | None = ""
+class ConsensusVotePayload(BaseModel):
+    """Projects consensus-relevant fields from a raw LLM vote dict.
+
+    Uses extra='ignore' to safely extract only the fields that
+    evaluate_extraction reads via getattr(), discarding schema-specific
+    extras (atom_id, structural_location, localized_anchors_found, etc.).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+    exact_quotes: list[str] = []
     contextual_override: bool = False
     override_reason: str | None = None
     reasoning_steps: str | None = ""
+    semantic_reasoning: str | None = ""
 
 
 def evaluate_extraction(
@@ -113,36 +121,56 @@ def _calculate_confidence(statuses: list[str], final_status: str) -> float:
     return 0.33
 
 
-def _apply_minority_veto(
-    votes: list[dict[str, Any]],
-    global_source_text: str,
-    is_inverse_evidence: bool,
-    strictness_level: int,
-) -> tuple[str, list[str]]:
-    """Apply Minority Veto consensus logic.
-
-    If ANY runner returns FAIL for an inverse_evidence atom,
-    FAIL wins unconditionally to prevent Confirmation Bias.
-    """
-    statuses = []
-    for v in votes:
-        payload = ExtractionPayload(
-            exact_quote=v.get("exact_quote"),
-            contextual_override=v.get("contextual_override", False),
-            override_reason=v.get("override_reason"),
-            reasoning_steps=v.get("reasoning_steps", ""),
-        )
-        status = evaluate_extraction(payload, global_source_text, is_inverse_evidence, strictness_level)
-        statuses.append(status)
-
-    # Standard 2/3 majority
+def _apply_majority_consensus(statuses: list[str]) -> str:
+    """Apply pure 2/3 majority consensus over pre-evaluated verdicts."""
     pass_count = statuses.count("PASS")
-    fail_count = statuses.count("FAIL")
     if pass_count >= 2:
-        return "PASS", statuses
-    if fail_count >= 2:
-        return "FAIL", statuses
-    return "DLQ", statuses
+        return "PASS"
+    if statuses.count("FAIL") >= 2:
+        return "FAIL"
+    return "DLQ"
+
+
+def _merge_consensus_fields(
+    payloads: list[ConsensusVotePayload], statuses: list[str], final_status: str
+) -> dict[str, Any]:
+    valid_indices = [i for i, status in enumerate(statuses) if status in ("PASS", "DLQ")]
+    if not valid_indices:
+        valid_indices = list(range(len(payloads)))
+
+    valid_payloads = [payloads[i] for i in valid_indices]
+
+    overrides = [p.contextual_override for p in valid_payloads]
+
+    # Extract tuples for plurality counting, ignoring empty or default placeholder lists
+    quotes = []
+    for p in valid_payloads:
+        if p.exact_quotes and p.exact_quotes != ["[CONTEXTUAL_OVERRIDE_APPLIED]"]:
+            quotes.append(tuple(p.exact_quotes))
+
+    override_reasons = [p.override_reason for p in valid_payloads if p.override_reason]
+    reasonings = [p.reasoning_steps for p in valid_payloads if p.reasoning_steps]
+    srs = [p.semantic_reasoning for p in valid_payloads if p.semantic_reasoning]
+
+    final_override = sum(1 for o in overrides if o) >= 2
+
+    final_quote = []
+    if quotes and not final_override:
+        final_quote_tuple = max(set(quotes), key=quotes.count)
+        final_quote = list(final_quote_tuple)
+
+    final_override_reason = max(set(override_reasons), key=override_reasons.count) if override_reasons else None
+    final_reasoning = max(set(reasonings), key=reasonings.count) if reasonings else ""
+    final_semantic_reasoning = max(set(srs), key=srs.count) if srs else ""
+
+    return {
+        "contextual_override": final_override,
+        "exact_quotes": final_quote,
+        "override_reason": final_override_reason,
+        "reasoning_steps": final_reasoning,
+        "semantic_reasoning": final_semantic_reasoning,
+        "status": final_status,
+    }
 
 
 def resolve_majority_vote(
@@ -181,88 +209,41 @@ def resolve_majority_vote(
                         votes.append(item)
             if votes:
                 is_inverse = atom_inverse_map.get(atom_id, False)
-                final_status, statuses = _apply_minority_veto(votes, global_source_text, is_inverse, strictness_level)
+
+                payloads = [ConsensusVotePayload.model_validate(v) for v in votes]
+                statuses = [evaluate_extraction(p, global_source_text, is_inverse, strictness_level) for p in payloads]
+
+                final_status = _apply_majority_consensus(statuses)
                 confidence = _calculate_confidence(statuses, final_status)
 
-                # Keep quotes and overrides from PASS votes if available, else from all votes
-                valid_votes = [v for i, v in enumerate(votes) if statuses[i] in ("PASS", "DLQ")]
-                if not valid_votes:  # fallback if all are FAIL
-                    valid_votes = votes
+                merged_fields = _merge_consensus_fields(payloads, statuses, final_status)
 
-                overrides = [v.get("contextual_override", False) for v in valid_votes]
-                quotes = [v.get("exact_quote") for v in valid_votes]
-                override_reasons = [v.get("override_reason") for v in valid_votes]
-                reasonings = [v.get("reasoning_steps", "") for v in valid_votes]
-                final_sr = [v.get("semantic_reasoning", "") for v in valid_votes]
-
-                final_override = sum(1 for o in overrides if o) >= 2
-                valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
-                if valid_quotes and not final_override:
-                    final_quote = max(set(valid_quotes), key=valid_quotes.count)
-                else:
-                    final_quote = None
-
-                valid_override_reasons = [q for q in override_reasons if q]
-                final_override_reason = (
-                    max(set(valid_override_reasons), key=valid_override_reasons.count)
-                    if valid_override_reasons
-                    else None
-                )
-                final_reasoning = max(set(reasonings), key=reasonings.count)
-                final_semantic_reasoning = max(set(final_sr), key=final_sr.count)
-
-                merged["evaluations"][idx]["contextual_override"] = final_override
-                merged["evaluations"][idx]["exact_quote"] = final_quote
-                merged["evaluations"][idx]["override_reason"] = final_override_reason
-                merged["evaluations"][idx]["reasoning_steps"] = final_reasoning
-                merged["evaluations"][idx]["semantic_reasoning"] = final_semantic_reasoning
-                merged["evaluations"][idx]["status"] = final_status
+                merged["evaluations"][idx].update(merged_fields)
                 merged["evaluations"][idx]["confidence"] = confidence
+
+                if "exact_quote" in merged["evaluations"][idx]:
+                    del merged["evaluations"][idx]["exact_quote"]
     else:
         for block in criteria_blocks:
             if block.id in merged and block.category_id != "matrix" and block.type != "instruction":
                 votes = [res[block.id] for res in res_list if block.id in res]
                 if votes:
-                    # Block level is_inverse doesn't map cleanly to TDA level here
                     is_inverse = False
-                    final_status, statuses = _apply_minority_veto(
-                        votes, global_source_text, is_inverse, strictness_level
-                    )
+                    payloads = [ConsensusVotePayload.model_validate(v) for v in votes]
+                    statuses = [
+                        evaluate_extraction(p, global_source_text, is_inverse, strictness_level) for p in payloads
+                    ]
+
+                    final_status = _apply_majority_consensus(statuses)
                     confidence = _calculate_confidence(statuses, final_status)
 
-                    valid_votes = [v for i, v in enumerate(votes) if statuses[i] in ("PASS", "DLQ")]
-                    if not valid_votes:
-                        valid_votes = votes
+                    merged_fields = _merge_consensus_fields(payloads, statuses, final_status)
 
-                    overrides = [v.get("contextual_override", False) for v in valid_votes]
-                    quotes = [v.get("exact_quote") for v in valid_votes]
-                    override_reasons = [v.get("override_reason") for v in valid_votes]
-                    reasonings = [v.get("reasoning_steps", "") for v in valid_votes]
-                    final_sr = [v.get("semantic_reasoning", "") for v in valid_votes]
-
-                    final_override = sum(1 for o in overrides if o) >= 2
-                    valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
-                    if valid_quotes and not final_override:
-                        final_quote = max(set(valid_quotes), key=valid_quotes.count)
-                    else:
-                        final_quote = None
-
-                    valid_override_reasons = [q for q in override_reasons if q]
-                    final_override_reason = (
-                        max(set(valid_override_reasons), key=valid_override_reasons.count)
-                        if valid_override_reasons
-                        else None
-                    )
-                    final_reasoning = max(set(reasonings), key=reasonings.count)
-                    final_semantic_reasoning = max(set(final_sr), key=final_sr.count)
-
-                    merged[block.id]["contextual_override"] = final_override
-                    merged[block.id]["exact_quote"] = final_quote
-                    merged[block.id]["override_reason"] = final_override_reason
-                    merged[block.id]["reasoning_steps"] = final_reasoning
-                    merged[block.id]["semantic_reasoning"] = final_semantic_reasoning
-                    merged[block.id]["status"] = final_status
+                    merged[block.id].update(merged_fields)
                     merged[block.id]["confidence"] = confidence
+
+                    if "exact_quote" in merged[block.id]:
+                        del merged[block.id]["exact_quote"]
 
     return merged
 
@@ -468,8 +449,8 @@ class ChunkWorker:
                                     messages=prompt,
                                     response_model=model_schema,
                                     mock_identity=step_id,
-                                    max_schema_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
-                                    max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
+                                    max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                                    max_logical_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
                                     validation_context={
                                         "strictness_level": strictness_level,
                                         "source_text": global_source_text,
@@ -544,50 +525,82 @@ class ChunkWorker:
                             }
                         )
 
-                    # Evaluate each flattened atom via strict Pydantic parsing
+                    # 1. Ota järjestelmäkentät talteen ennen tiukkaa validointia
+                    atom_consensus_data: dict[int, dict[str, Any]] = {}
+                    for idx, atom_dict in enumerate(chunk_final.get("evaluations", [])):
+                        atom_consensus_data[idx] = {
+                            "status": atom_dict.pop("status", None),
+                            "confidence": atom_dict.pop("confidence", None),
+                        }
+
+                    # 2. Pydantic-validointi (puhtaalla datalla)
                     validated_response = local_dynamic_schema.model_validate(chunk_final)
-                    updated_evals = []
 
-                    for atom_model in getattr(validated_response, "evaluations", []):
+                    # 3. Muuta välittömästi muokattavaksi sanakirjaksi
+                    chunk_final = validated_response.model_dump(mode="json")
+
+                    for idx, atom_model in enumerate(getattr(validated_response, "evaluations", [])):
                         atom_id = atom_model.atom_id
+                        atom_dict = chunk_final["evaluations"][idx]
 
-                        is_negative_rule = False
-                        for crit in chunk_criteria:
-                            if crit.scales:
-                                for scale in crit.scales:
-                                    for claim in scale.claims:
-                                        for tda in claim.tda_assertions:
-                                            if tda.tda_id == atom_id and tda.inverse_evidence:
-                                                is_negative_rule = True
-                                                break
+                        c_status = atom_consensus_data.get(idx, {}).get("status")
+                        c_conf = atom_consensus_data.get(idx, {}).get("confidence")
 
-                        status = evaluate_extraction(atom_model, global_source_text, is_negative_rule, strictness_level)
+                        if c_status is not None:
+                            status = c_status
+                            confidence = c_conf
+                        else:
+                            is_negative_rule = False
+                            for crit in chunk_criteria:
+                                if crit.scales:
+                                    for scale in crit.scales:
+                                        for claim in scale.claims:
+                                            for tda in claim.tda_assertions:
+                                                if tda.tda_id == atom_id and tda.inverse_evidence:
+                                                    is_negative_rule = True
+                                                    break
 
-                        update_dict = {"status": status}
+                            status = evaluate_extraction(
+                                atom_model, global_source_text, is_negative_rule, strictness_level
+                            )
+                            confidence = None
+
+                        atom_dict["status"] = status
+                        if confidence is not None:
+                            atom_dict["confidence"] = confidence
+
+                        # reasoning_steps and override_reason are preserved securely via Pydantic schema natively
+
                         contextual_override = getattr(atom_model, "contextual_override", False)
                         semantic_reasoning = getattr(atom_model, "semantic_reasoning", "")
 
                         # Handle MagicMock safely for tests
                         if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
-                            update_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
+                            atom_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
                         elif contextual_override and not isinstance(contextual_override, bool):  # For MagicMocks
                             pass
 
                         sr = semantic_reasoning or ""
                         if not isinstance(sr, str):
                             sr = ""
-                        update_dict["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
-
-                        updated_atom = atom_model.model_copy(update=update_dict)
-                        updated_evals.append(updated_atom)
-
-                    validated_response = validated_response.model_copy(update={"evaluations": updated_evals})
-                    chunk_final = validated_response.model_dump(mode="json")
+                        atom_dict["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
 
                 else:
-                    # Evaluate each standard block (TDA extractions) via strict Pydantic parsing
+                    # 1. Ota järjestelmäkentät talteen ennen tiukkaa validointia
+                    block_consensus_data: dict[str, dict[str, Any]] = {}
+                    for crit in chunk_criteria:
+                        if crit.id in chunk_final and crit.category_id != "matrix" and crit.type != "instruction":
+                            block_dict = chunk_final[crit.id]
+                            block_consensus_data[crit.id] = {
+                                "status": block_dict.pop("status", None),
+                                "confidence": block_dict.pop("confidence", None),
+                            }
+
+                    # 2. Pydantic-validointi (puhtaalla datalla)
                     validated_response = local_dynamic_schema.model_validate(chunk_final)
-                    update_response_dict = {}
+
+                    # 3. Muuta välittömästi muokattavaksi sanakirjaksi
+                    chunk_final = validated_response.model_dump(mode="json")
 
                     for crit in chunk_criteria:
                         if (
@@ -596,44 +609,58 @@ class ChunkWorker:
                             and crit.type != "instruction"
                         ):
                             block_model = getattr(validated_response, crit.id)
+                            block_dict = chunk_final[crit.id]
 
-                            is_negative_rule = False
-                            if crit.scales:
-                                for scale in crit.scales:
-                                    for claim in scale.claims:
-                                        for tda in claim.tda_assertions:
-                                            if tda.inverse_evidence:
-                                                is_negative_rule = True
-                                                break
+                            c_status = block_consensus_data.get(crit.id, {}).get("status")
+                            c_conf = block_consensus_data.get(crit.id, {}).get("confidence")
 
-                            status = evaluate_extraction(
-                                block_model, global_source_text, is_negative_rule, strictness_level
-                            )
+                            if c_status is not None:
+                                status = c_status
+                                confidence = c_conf
+                            else:
+                                is_negative_rule = False
+                                if crit.scales:
+                                    for scale in crit.scales:
+                                        for claim in scale.claims:
+                                            for tda in claim.tda_assertions:
+                                                if tda.inverse_evidence:
+                                                    is_negative_rule = True
+                                                    break
 
-                            update_dict = {"status": status}
+                                status = evaluate_extraction(
+                                    block_model, global_source_text, is_negative_rule, strictness_level
+                                )
+                                confidence = None
+
+                            block_dict["status"] = status
+                            if confidence is not None:
+                                block_dict["confidence"] = confidence
+
+                            # reasoning_steps and override_reason are preserved securely via Pydantic schema natively
+
                             contextual_override = getattr(block_model, "contextual_override", False)
                             semantic_reasoning = getattr(block_model, "semantic_reasoning", "")
 
                             # Handle MagicMock safely for tests
                             if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
-                                update_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
+                                block_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
 
                             sr = semantic_reasoning or ""
                             if not isinstance(sr, str):
                                 sr = ""
-                            update_dict["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
-
-                            updated_block = block_model.model_copy(update=update_dict)
-                            update_response_dict[crit.id] = updated_block
-
-                    if update_response_dict:
-                        validated_response = validated_response.model_copy(update=update_response_dict)
-
-                    chunk_final = validated_response.model_dump(mode="json")
+                            block_dict["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
 
             return chunk_final, chunk_usage, chunk_traces, prompt_context
 
         except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
+
+            def _has_programmatic_errors(exc: BaseException) -> bool:
+                if isinstance(exc, ExceptionGroup):
+                    return any(_has_programmatic_errors(inner) for inner in exc.exceptions)
+                return not isinstance(exc, (LLMSchemaValidationError, AppException))
+
+            if _has_programmatic_errors(e):
+                raise e
 
             def _unwrap_error(exc: BaseException) -> str:
                 if isinstance(exc, ExceptionGroup):

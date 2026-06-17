@@ -96,6 +96,7 @@ Tämä saavutetaan seuraavilla suojamuureilla:
 
 1. **Map-Merge-Evaluate -malli:**
    * **Map:** Jokainen chunk-worker poimii semanttiset faktat LLM:llä sokeasti hyödyntäen dynaamista Pydantic-luokkamallia (`DynamicExtractionResponse`).
+   * **Consensus (Ensemble):** Arvioinnit ajetaan rinnakkain (esim. Best-of-3) ja niiden tulokset pakotetaan tiukan `ConsensusVotePayload` -mallin läpi (`extra="ignore"`), mikä siivoaa ylimääräiset datat ja normalisoi `exact_quotes` -taulukot. Järjestelmä ratkaisee tuloksen puhtaalla matemaattisella 2/3 enemmistöllä (`_apply_majority_consensus`) poistaen kaikki vanhentuneet vähemmistö-veto (minority veto) -oikotiet, mikä takaa matemaattisen riippumattomuuden ja eheyden.
    * **Merge:** Workerien palauttamat poiminnat yhdistetään yhdeksi globaaliksi `MergedFactsDTO`-tietorakenteeksi. Jos useampi chunk löytää saman faktan (esim. eri sivuilta), törmäys ratkaistaan deterministisellä **First-Wins** -törmäyksenestolla (kronologisesti pienin `chunk_index` säilytetään), mikä takaa XAI-lainauksille stabiiliuden.
    * **Evaluate:** Whitelistattu AST-evaluaattori (`ast_evaluator.py`) ajaa 3-tilaista logiikkaa (`TRUE`, `FALSE`, `DLQ`) globaalille `merged_facts` -sanakirjalle. AST-evaluaattori estää `eval()`-haavoittuvuudet sallimalla vain whitelistatut solmut (`ast.And`, `ast.Or`, `ast.Not`, `ast.Name`, jne.).
 

@@ -91,7 +91,6 @@ def test_route_and_prune_strictly_follows_block_extensions() -> None:
 
 
 def test_route_and_prune_with_allowed_extensions() -> None:
-
     # Output profile requires falsification, coaching AND emotional_sentiment
     output_profile = OutputProfileConfig(
         visible_block_extensions=[

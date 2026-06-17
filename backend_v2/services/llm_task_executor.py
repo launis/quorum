@@ -368,6 +368,7 @@ class LLMTaskExecutor:
                         error_msg=error_msg,
                         is_logical_error=False,
                         is_eof=is_eof,
+                        strictness_level=validation_context.get("strictness_level") if validation_context else None,
                     )
 
                     healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
@@ -420,6 +421,7 @@ class LLMTaskExecutor:
                         error_msg=error_msg,
                         is_logical_error=True,
                         is_eof=False,
+                        strictness_level=validation_context.get("strictness_level") if validation_context else None,
                     )
 
                     failed_json = validated_model.model_dump_json() if validated_model else "{}"

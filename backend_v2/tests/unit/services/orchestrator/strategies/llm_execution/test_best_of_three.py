@@ -7,7 +7,7 @@ import pytest
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import (
     ChunkWorker,
-    _apply_minority_veto,
+    _apply_majority_consensus,
     _calculate_confidence,
     resolve_majority_vote,
 )
@@ -34,33 +34,19 @@ def base_votes() -> list[dict[str, Any]]:
     ]
 
 
-def test_minority_veto_inverse_evidence_fail_overrules() -> None:
-    """Test that a single FAIL on an inverse_evidence atom overrules PASSes."""
-    votes = [{"exact_quotes": ["q"]} for _ in range(3)]
-
-    # Mock evaluate_extraction to return PASS, PASS, FAIL
-    with patch(
-        "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.evaluate_extraction"
-    ) as mock_eval:
-        mock_eval.side_effect = ["PASS", "PASS", "FAIL"]
-        final_status, statuses = _apply_minority_veto(votes, "source", is_inverse_evidence=True, strictness_level=50)
-
-        assert final_status == "FAIL"
-        assert statuses == ["PASS", "PASS", "FAIL"]
+def test_majority_consensus_pass() -> None:
+    """Test pure majority consensus for PASS."""
+    assert _apply_majority_consensus(["PASS", "PASS", "FAIL"]) == "PASS"
 
 
-def test_minority_veto_normal_atom_uses_majority() -> None:
-    """Test that normal atoms (not inverse_evidence) use 2/3 majority, even with a FAIL."""
-    votes = [{"exact_quotes": ["q"]} for _ in range(3)]
+def test_majority_consensus_fail() -> None:
+    """Test pure majority consensus for FAIL."""
+    assert _apply_majority_consensus(["PASS", "FAIL", "FAIL"]) == "FAIL"
 
-    with patch(
-        "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.evaluate_extraction"
-    ) as mock_eval:
-        mock_eval.side_effect = ["PASS", "PASS", "FAIL"]
-        final_status, statuses = _apply_minority_veto(votes, "source", is_inverse_evidence=False, strictness_level=50)
 
-        assert final_status == "PASS"
-        assert statuses == ["PASS", "PASS", "FAIL"]
+def test_majority_consensus_dlq() -> None:
+    """Test pure majority consensus for DLQ."""
+    assert _apply_majority_consensus(["PASS", "FAIL", "DLQ"]) == "DLQ"
 
 
 def test_confidence_calculation_unanimous() -> None:
@@ -81,8 +67,8 @@ def test_confidence_calculation_split() -> None:
     assert _calculate_confidence(["PASS", "FAIL", "DLQ"], "PASS") == 0.33
 
 
-def test_resolve_majority_vote_with_veto() -> None:
-    """End-to-end test of resolve_majority_vote with inverse_evidence mapped."""
+def test_resolve_majority_vote_pure_majority() -> None:
+    """End-to-end test of resolve_majority_vote with pure majority consensus."""
     criteria_blocks = [
         PromptBlock.model_validate(
             {
@@ -106,7 +92,7 @@ def test_resolve_majority_vote_with_veto() -> None:
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",
                                         "concept_description": "Atom 1",
-                                        "inverse_evidence": True,  # This atom will trigger VETO
+                                        "inverse_evidence": True,
                                         "aggregation_mode": "EXISTS",
                                     },
                                     {
@@ -130,11 +116,17 @@ def test_resolve_majority_vote_with_veto() -> None:
         {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": ["q"]}]},
     ]
 
-    with patch(
-        "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker._apply_minority_veto"
-    ) as mock_veto:
-        # Simulate Minority Veto triggered (FAIL)
-        mock_veto.return_value = ("FAIL", ["PASS", "PASS", "FAIL"])
+    with (
+        patch(
+            "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker._apply_majority_consensus"
+        ) as mock_majority,
+        patch(
+            "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.evaluate_extraction"
+        ) as mock_eval,
+    ):
+        # Simulate pure majority FAIL
+        mock_majority.return_value = "FAIL"
+        mock_eval.side_effect = ["PASS", "FAIL", "FAIL"]
 
         merged = resolve_majority_vote(
             res_list=res_list,
@@ -148,13 +140,13 @@ def test_resolve_majority_vote_with_veto() -> None:
         evals = merged["evaluations"]
         assert len(evals) == 1
         assert evals[0]["status"] == "FAIL"
-        assert evals[0]["confidence"] == 0.33  # Only 1 FAIL, but VETO wins
-        assert evals[0]["exact_quotes"] == ["q"]  # Falls back to ["q"] since valid quotes list isn't empty
+        assert evals[0]["confidence"] == 0.67  # 2 FAILs, 1 PASS
+        assert evals[0]["exact_quotes"] == ["q"]
 
 
 @pytest.mark.asyncio
-async def test_llm_count_is_ensemble_when_lightweight() -> None:
-    """Test that llm_count=3 when is_lightweight is True."""
+async def test_llm_count_is_standard_when_lightweight() -> None:
+    """Test that llm_count=1 when is_lightweight is True."""
     mock_compiler = MagicMock()
     mock_client = AsyncMock()
 
@@ -198,12 +190,12 @@ async def test_llm_count_is_ensemble_when_lightweight() -> None:
         except Exception:
             pass  # We don't care about full execution flow errors, just want to check count
 
-        assert mock_executor_instance.execute_structured_task.call_count == 3
+        assert mock_executor_instance.execute_structured_task.call_count == 1
 
 
 @pytest.mark.asyncio
-async def test_llm_count_is_standard_when_not_lightweight() -> None:
-    """Test that llm_count=1 when is_lightweight is False."""
+async def test_llm_count_is_ensemble_when_not_lightweight() -> None:
+    """Test that llm_count=3 when is_lightweight is False."""
     mock_compiler = MagicMock()
     mock_client = AsyncMock()
 
@@ -239,4 +231,4 @@ async def test_llm_count_is_standard_when_not_lightweight() -> None:
         except Exception:
             pass
 
-        assert mock_executor_instance.execute_structured_task.call_count == 1
+        assert mock_executor_instance.execute_structured_task.call_count == 3

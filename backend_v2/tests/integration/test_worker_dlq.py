@@ -61,6 +61,7 @@ async def test_pydantic_max_length_fail_fast_and_dlq_routing() -> None:
             synthesis_instructions=None,
             output_profile=None,
             strictness_level=85,
+            step_metadata={"is_lightweight_extraction": True},
         )
 
         # Assert returned DLQ status
@@ -96,8 +97,8 @@ async def test_programmatic_errors_bubble_up_and_crash_fail_fast() -> None:
         mock_instance = mock_executor.return_value
         mock_instance.execute_structured_task = AsyncMock(side_effect=TypeError("string indices must be integers"))
 
-        # Execute process_chunk and assert TypeError bubbles up
-        with pytest.raises(TypeError) as exc_info:
+        # Execute process_chunk and assert ExceptionGroup (containing TypeError) bubbles up
+        with pytest.raises(ExceptionGroup) as exc_info:
             await ChunkWorker.process_chunk(
                 chunk=chunk_obj,
                 sem=sem,

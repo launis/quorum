@@ -81,7 +81,7 @@ Kaikki hookit noudattavat **Explicit Routing** ja **Zero Silent Data Loss** -per
 
 5. **Laiskuuden esto ja Contextual Override Validointi:**
    * Kun `contextual_override = True` palautetaan kielimallilta, validointihook ajaa tiukan **Anti-Laziness Mandate** -validoinnin. Perustelujen (`semantic_reasoning`) on oltava vähintään 50 merkkiä pitkiä, ja niiden on sisällettävä spatiaalinen ankkuri (sivu, kappale, rivi, jne.).
-   * Jos ehdot eivät täyty, hook nostaa `ValidationError`-virheen, hylkää ohituksen ja palauttaa virhepalautteen takaisin kielimallille dynaamisessa Self-Healing -korjausluupissa.
+   * Jos ehdot eivät täyty, hook nostaa `ValidationError`-virheen, hylkää ohituksen ja palauttaa virhepalautteen takaisin kielimallille dynaamisessa Self-Healing -korjausluupissa. Järjestelmä on myös **Strictness-tietoinen**: jos matriisin `strictness_level >= 100`, Self-Healing -kehotteessa kielletään eksplisiittisesti `contextual_override`- ja `override_reason`-kenttien käyttö korjausyrityksissä, mikä katkaisee turhat retry-luupit välittömästi.
 
 ---
 

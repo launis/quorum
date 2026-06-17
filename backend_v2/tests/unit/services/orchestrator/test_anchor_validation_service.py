@@ -156,4 +156,3 @@ def test_discrete_tiers_fuzzy_fallback_fails_strict() -> None:
         AnchorValidationService.validate_evidence(pdf_text, [quote], strictness_level=85)
 
     assert "Lexical validation failed" in str(exc_info.value)
-

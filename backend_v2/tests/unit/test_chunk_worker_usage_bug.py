@@ -61,5 +61,5 @@ async def test_chunk_worker_usage_name_error() -> None:
 
     assert res == {"evaluations": []}
     assert usage is not None
-    assert usage.total_tokens == 100
+    assert usage.total_tokens == 300
     assert traces == []

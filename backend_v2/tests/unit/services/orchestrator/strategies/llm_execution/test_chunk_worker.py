@@ -136,8 +136,8 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
     assert final["evaluations"][0]["status"] in ["PASS", "FAIL", "DLQ"]
     assert "VALIDATION DECISION:" in final["evaluations"][0]["semantic_reasoning"]
     assert usage is not None
-    assert usage.prompt_tokens == 10
-    assert usage.completion_tokens == 5
+    assert usage.prompt_tokens == 30
+    assert usage.completion_tokens == 15
     assert traces == []
 
     # V3: ChunkWorker delegates to compile_chunk_prompt (which internally calls compile_xml_rubrics)
@@ -145,7 +145,7 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
     mock_compiler.build_dynamic_schema.assert_called_once()
 
     # Check that client was called with correct arguments
-    mock_executor_instance.execute_structured_task.assert_called_once()
+    assert mock_executor_instance.execute_structured_task.call_count == 3
     kwargs = mock_executor_instance.execute_structured_task.call_args.kwargs
     assert kwargs["response_model"] == mock_schema
     assert kwargs["mock_identity"] == "step1"

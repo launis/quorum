@@ -11,7 +11,7 @@ async def test_provider_caching_payload_scrub_bug() -> None:
     config = LLMProviderConfig(
         id="prv_test123456",
         model_name="test_model",
-        provider="google",
+        provider="mock",
         tpm_limit=100000,
         rpm_limit=100,
     )
@@ -22,7 +22,7 @@ async def test_provider_caching_payload_scrub_bug() -> None:
     mock_settings.default_safety_settings = None
 
     provider = LiteLLMProvider(
-        model_name="vertex_ai/gemini-2.5-flash",
+        model_name="vertex_ai/gemini-2.5-flash-scrub-bug-test",
         api_key="fake-key",
         settings=mock_settings,
         limits={"tpm": 100000, "rpm": 100},

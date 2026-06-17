@@ -68,5 +68,6 @@
         <tier id="4" path="/tier4-bug-hunting">Deep root cause analysis and bug resolution.</tier>
         <tier id="5_handover" path="/handover">Session Handover Export for context transition.</tier>
         <tier id="5_resume" path="/tier5-resume">Resume & Zero-Shortcut Audit for new sessions.</tier>
+        <tier id="6" path="/tier6-execution-monitor">Execution Monitor for real-time background log auditing.</tier>
     </execution_tiers>
 </workflow_routing>
