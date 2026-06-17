@@ -19,7 +19,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @FreezedUnionValue('paragraph')
   const factory SduiBlockDTO.paragraph({
     required String text,
-    @Default([]) List<String> citations,
+    @Default([]) List<int> citations,
   }) = SduiParagraphBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)

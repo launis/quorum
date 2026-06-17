@@ -83,6 +83,7 @@ class AnchorValidationService:
         reasoning_trace: str | None = None,
         contextual_override: bool = False,
         locale: str | None = None,
+        strictness_level: int = 50,
     ) -> list[str] | None:
         """Validates evidence strictly and extracts the exact physical string.
 
@@ -162,15 +163,53 @@ class AnchorValidationService:
                 extracted = pdf_text[start_idx : end_idx + 1]
                 extracted_quotes.append(extracted)
             else:
-                # Fallback to RapidFuzz to log the best match ratio
+                # Entropy Gate: If quote < 20 chars, fuzzy match is forbidden.
+                if len(quote) < 20:
+                    raise SemanticEvidenceError(
+                        message=f"Entropy Gate Failure: Quote '{quote}' is under 20 chars. Fuzzy match is forbidden. 100% exact match required."
+                    )
+
+                # Deterministic Tiers
+                if strictness_level >= 100:
+                    tier_threshold = 100.0
+                elif strictness_level >= 85:
+                    tier_threshold = 95.0
+                elif strictness_level >= 50:
+                    tier_threshold = 80.0
+                elif strictness_level >= 30:
+                    tier_threshold = 65.0
+                else:
+                    tier_threshold = 50.0
+
+                if tier_threshold >= 100.0:
+                    raise SemanticEvidenceError(
+                        message=f"Lexical validation failed: strictness is ABSOLUTE. 100% exact match required for '{quote[:50]}...'."
+                    )
+
+                # Fallback to RapidFuzz
                 score = fuzz.partial_ratio(norm_quote, norm_pdf)
-                logger.warning(
-                    f"Backend Lexical Verifier failed: exact_quote '{quote[:50]}...' not found in source text. "
-                    f"RapidFuzz best match: {score:.1f}%",
-                    extra={"exact_quote_snippet": quote[:50], "rapidfuzz_score": score},
-                )
-                raise SemanticEvidenceError(
-                    message=f"Lexical validation failed: exact_quote '{quote[:50]}...' not found in source text. Best match was {score:.1f}%."
-                )
+                if score >= tier_threshold:
+                    logger.warning(
+                        f"Lexical Verifier used Fuzzy Fallback for '{quote[:50]}...'. Score {score:.1f}% >= threshold {tier_threshold}%",
+                        extra={
+                            "exact_quote_snippet": quote[:50],
+                            "rapidfuzz_score": score,
+                            "strictness_level": strictness_level,
+                        },
+                    )
+                    extracted_quotes.append(quote)
+                else:
+                    logger.warning(
+                        f"Backend Lexical Verifier failed: exact_quote '{quote[:50]}...' not found in source text. "
+                        f"RapidFuzz best match: {score:.1f}% < threshold {tier_threshold}%",
+                        extra={
+                            "exact_quote_snippet": quote[:50],
+                            "rapidfuzz_score": score,
+                            "tier_threshold": tier_threshold,
+                        },
+                    )
+                    raise SemanticEvidenceError(
+                        message=f"Lexical validation failed: exact_quote '{quote[:50]}...' not found. Best match {score:.1f}% < threshold {tier_threshold}%."
+                    )
 
         return extracted_quotes

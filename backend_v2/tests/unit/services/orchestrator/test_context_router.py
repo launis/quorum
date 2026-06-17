@@ -4,7 +4,6 @@ from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
     MissingRoutingModeError,
-    MissingXaiExtensionError,
 )
 from backend_v2.models.dtos.lightweight_matrix import OutputProfileConfig
 from backend_v2.models.enums import XaiExtensionType
@@ -92,7 +91,6 @@ def test_route_and_prune_strictly_follows_block_extensions() -> None:
 
 
 def test_route_and_prune_with_allowed_extensions() -> None:
-    from backend_v2.exceptions import MissingXaiExtensionError
 
     # Output profile requires falsification, coaching AND emotional_sentiment
     output_profile = OutputProfileConfig(

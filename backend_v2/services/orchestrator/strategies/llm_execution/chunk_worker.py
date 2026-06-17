@@ -64,6 +64,7 @@ def evaluate_extraction(
                 exact_quotes=exact_quotes,
                 reasoning_trace=reasoning_steps,
                 contextual_override=contextual_override,
+                strictness_level=strictness_level,
             )
             status = "PASS"
         except SemanticEvidenceError:
@@ -133,10 +134,6 @@ def _apply_minority_veto(
         )
         status = evaluate_extraction(payload, global_source_text, is_inverse_evidence, strictness_level)
         statuses.append(status)
-
-    # Minority Veto: One FAIL on an inverse_evidence atom overrules all
-    if is_inverse_evidence and "FAIL" in statuses:
-        return "FAIL", statuses
 
     # Standard 2/3 majority
     pass_count = statuses.count("PASS")
@@ -454,7 +451,7 @@ class ChunkWorker:
             else:
                 executor = LLMTaskExecutor(prompt_compiler=compiler)
 
-                llm_count = EvaluationRunCount.ENSEMBLE.value if is_lightweight else EvaluationRunCount.STANDARD.value
+                llm_count = EvaluationRunCount.STANDARD.value if is_lightweight else EvaluationRunCount.ENSEMBLE.value
 
                 async def run_llm_calls(
                     prompt: CompiledPrompt, model_schema: type[BaseModel], count: int

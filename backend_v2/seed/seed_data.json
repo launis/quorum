@@ -295,7 +295,7 @@
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"This is the best approach for all situations. It must be done this way.\" (No empirical data or external reference provided).\nUNACCEPTABLE: \"This is the best approach for all situations, as demonstrated by the recent study published in the Journal of Applied Science.\" (Empirical data/external reference provided).",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data).",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "anchor_target": "Find dogmatic absolute markers.",
@@ -328,7 +328,8 @@
                   ],
                   "anchor_target": "Find abrupt transition markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "it connects two facts but lacks any explanatory mechanism. Do not accept explicit causal mechanisms."
+                  "extraction_rule": "it connects two facts but lacks any explanatory mechanism. Do not accept explicit causal mechanisms.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -356,7 +357,8 @@
                   ],
                   "anchor_target": "Find 100% certainty markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the sentence makes a future prediction or subjective assessment using these markers. Mathematical facts."
+                  "extraction_rule": "the sentence makes a future prediction or subjective assessment using these markers. Mathematical facts.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             }
@@ -397,7 +399,8 @@
                   ],
                   "anchor_target": "Find basic causal connectors.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "a claim is explicitly linked to any data point. Chronological sequences."
+                  "extraction_rule": "a claim is explicitly linked to any data point. Chronological sequences.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -425,7 +428,8 @@
                   ],
                   "anchor_target": "Find anecdotal markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "an anecdote is used to justify a systemic rule or broad policy. Do not flag rigorous case studies."
+                  "extraction_rule": "an anecdote is used to justify a systemic rule or broad policy. Do not flag rigorous case studies.",
+                  "contrastive_example": "ACCEPTABLE: \"Individual X experienced Y, so society must do Z\" (Abstract anecdotal leap).\nUNACCEPTABLE: \"Study X shows Y, so society must do Z\" (Rigorous backing, not anecdote)."
                 }
               ]
             },
@@ -453,7 +457,8 @@
                   ],
                   "anchor_target": "Find thought-terminating clichés.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "complexity or opposing views are dismissed without data. Data-driven rebuttals."
+                  "extraction_rule": "complexity or opposing views are dismissed without data. Data-driven rebuttals.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -494,7 +499,8 @@
                   ],
                   "anchor_target": "Find weak associative language.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "it connects Data to a Claim without defining the exact causal mechanism. Precise causal mechanisms."
+                  "extraction_rule": "it connects Data to a Claim without defining the exact causal mechanism. Precise causal mechanisms.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -526,7 +532,8 @@
                   ],
                   "anchor_target": "Find rhetorical bypasses.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a counter-argument is mentioned but dismissed without presenting counter-data. Rebuttals that provide counter-data."
+                  "extraction_rule": "a counter-argument is mentioned but dismissed without presenting counter-data. Rebuttals that provide counter-data.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -554,7 +561,8 @@
                   ],
                   "anchor_target": "Find generic consensus markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "consensus is the ONLY backing for a logical rule. Verifiable empirical sources."
+                  "extraction_rule": "consensus is the ONLY backing for a logical rule. Verifiable empirical sources.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -595,7 +603,8 @@
                   ],
                   "anchor_target": "Find or equivalent explicit rules.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the bridging rule between Data and Claim is explicitly stated. Do not evaluate the quality of the bridging rule."
+                  "extraction_rule": "the bridging rule between Data and Claim is explicitly stated. Do not evaluate the quality of the bridging rule.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -623,7 +632,8 @@
                   ],
                   "anchor_target": "Find conditional qualifiers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "boundaries or probabilities are explicitly defined for the claim. Vague filler words. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "boundaries or probabilities are explicitly defined for the claim. Vague filler words. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -651,7 +661,8 @@
                   ],
                   "anchor_target": "Find contrast markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a specific counter-argument is addressed using empirical counter-data. Rhetorical dismissals without data."
+                  "extraction_rule": "a specific counter-argument is addressed using empirical counter-data. Rhetorical dismissals without data.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -696,7 +707,8 @@
                   ],
                   "anchor_target": "Find formal citations.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the logical rule is explicitly backed by a verifiable external methodology or study. Vague references to or."
+                  "extraction_rule": "the logical rule is explicitly backed by a verifiable external methodology or study. Vague references to or.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -725,7 +737,8 @@
                   ],
                   "anchor_target": "Find dialectical reasoning markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the author explicitly attempts to falsify their own Claim with a test/data before accepting it. Simple pros/cons lists."
+                  "extraction_rule": "the author explicitly attempts to falsify their own Claim with a test/data before accepting it. Simple pros/cons lists.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -753,7 +766,8 @@
                   ],
                   "anchor_target": "Find precise causal language.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "a Claim is supported by empirical Data AND the exact mechanism is defined. Implicit connections."
+                  "extraction_rule": "a Claim is supported by empirical Data AND the exact mechanism is defined. Implicit connections.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -840,7 +854,8 @@
                   "concept_description": "",
                   "anchor_target": "Find a declarative verb.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the sentence states a standalone fact without explanatory conjunctions. Do not accept sentences that attempt to explain the or."
+                  "extraction_rule": "the sentence states a standalone fact without explanatory conjunctions. Do not accept sentences that attempt to explain the or.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -862,7 +877,8 @@
                   "concept_description": "",
                   "anchor_target": "Find abrupt transition markers or the absence of them (e.g., starting a new paragraph directly with a proper noun or number).",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a fact is presented with zero preceding context or framing. Do not accept facts that are logically connected to the previous sentence."
+                  "extraction_rule": "a fact is presented with zero preceding context or framing. Do not accept facts that are logically connected to the previous sentence.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -884,7 +900,8 @@
                   "concept_description": "",
                   "anchor_target": "Find absolute words.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the absolute claim is presented without any citations or stated limitations. Do not accept absolute statements that are mathematically proven or properly cited."
+                  "extraction_rule": "the absolute claim is presented without any citations or stated limitations. Do not accept absolute statements that are mathematically proven or properly cited.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -919,7 +936,8 @@
                   "concept_description": "",
                   "anchor_target": "Find reformulation markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "found, the author is paraphrasing. Do not accept verbatim copy-pasting of definitions."
+                  "extraction_rule": "found, the author is paraphrasing. Do not accept verbatim copy-pasting of definitions.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -947,7 +965,8 @@
                   ],
                   "anchor_target": "Find generic listing conjunctions. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the exact quote IF AND ONLY IF two nouns or noun phrases are joined by the conjunction WITHOUT any relational verb describing their interaction in the same sentence."
+                  "extraction_rule": "Extract the exact quote IF AND ONLY IF two nouns or noun phrases are joined by the conjunction WITHOUT any relational verb describing their interaction in the same sentence.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -975,7 +994,8 @@
                   ],
                   "anchor_target": "Find binary reduction markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the quote IF the text uses these markers to force a complex situation into exactly one or two absolute options."
+                  "extraction_rule": "Extract the quote IF the text uses these markers to force a complex situation into exactly one or two absolute options.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             }
@@ -1010,7 +1030,8 @@
                   "concept_description": "",
                   "anchor_target": "Find application markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "an abstract framework or rule is explicitly linked to a physical, real-world noun (e.g., a specific project, person, or physical action). Do not accept purely theoretical analogies without actionable context."
+                  "extraction_rule": "an abstract framework or rule is explicitly linked to a physical, real-world noun (e.g., a specific project, person, or physical action). Do not accept purely theoretical analogies without actionable context.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -1032,7 +1053,8 @@
                   "concept_description": "",
                   "anchor_target": "Find blind procedural markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a rule is enforced explicitly despite stated contextual evidence that it might be suboptimal. Do not accept justifiable adherence to safety or compliance protocols where no counter-evidence is presented."
+                  "extraction_rule": "a rule is enforced explicitly despite stated contextual evidence that it might be suboptimal. Do not accept justifiable adherence to safety or compliance protocols where no counter-evidence is presented.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -1054,7 +1076,8 @@
                   "concept_description": "",
                   "anchor_target": "Find exclusionary solution markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a single method is pushed without mentioning any alternatives. Do not accept solutions that have explicitly evaluated and dismissed alternatives with data."
+                  "extraction_rule": "a single method is pushed without mentioning any alternatives. Do not accept solutions that have explicitly evaluated and dismissed alternatives with data.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -1089,7 +1112,8 @@
                   "concept_description": "",
                   "anchor_target": "Find structural breakdown verbs.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a single overarching concept is explicitly split into at least two named sub-components. Do not accept simple bullet-point lists of unrelated features."
+                  "extraction_rule": "a single overarching concept is explicitly split into at least two named sub-components. Do not accept simple bullet-point lists of unrelated features.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1111,7 +1135,8 @@
                   "concept_description": "",
                   "anchor_target": "Find revelation markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text identifies a mechanism or assumption that is not immediately visible on the surface. Do not accept superficial observations of visible symptoms."
+                  "extraction_rule": "the text identifies a mechanism or assumption that is not immediately visible on the surface. Do not accept superficial observations of visible symptoms.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -1146,7 +1171,8 @@
                   "concept_description": "",
                   "anchor_target": "Find evaluative judgment verbs.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text delivers a defensible judgment on the validity or utility of an idea. Do not accept subjective emotional opinions."
+                  "extraction_rule": "the text delivers a defensible judgment on the validity or utility of an idea. Do not accept subjective emotional opinions.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1174,7 +1200,8 @@
                   ],
                   "anchor_target": "Find criteria anchoring markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "an evaluation explicitly links its judgment to a stated benchmark or metric. Do not accept floating evaluations with unstated goalposts.  NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "an evaluation explicitly links its judgment to a stated benchmark or metric. Do not accept floating evaluations with unstated goalposts.  NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -1210,7 +1237,8 @@
                   "concept_description": "",
                   "anchor_target": "Find synthesis verbs.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text explicitly merges at least two disparate elements into a completely new, named framework or solution. Do not accept mere combinations of existing ideas without a novel theoretical leap."
+                  "extraction_rule": "the text explicitly merges at least two disparate elements into a completely new, named framework or solution. Do not accept mere combinations of existing ideas without a novel theoretical leap.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1232,7 +1260,8 @@
                   "concept_description": "",
                   "anchor_target": "Find hypothesis generation markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text generates a new hypothesis and explicitly documents the step-by-step logical friction or trade-offs in its creation. Do not accept hypotheses presented as sudden epiphanies without documented reasoning."
+                  "extraction_rule": "the text generates a new hypothesis and explicitly documents the step-by-step logical friction or trade-offs in its creation. Do not accept hypotheses presented as sudden epiphanies without documented reasoning.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1254,7 +1283,8 @@
                   "concept_description": "",
                   "anchor_target": "Find absolute novelty claims.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a synthesized framework floats purely in abstraction without ANY citations or anchoring to concrete prior expert literature. Do not accept grounded hypotheses that cite valid external precedents."
+                  "extraction_rule": "a synthesized framework floats purely in abstraction without ANY citations or anchoring to concrete prior expert literature. Do not accept grounded hypotheses that cite valid external precedents.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -1348,7 +1378,8 @@
                   ],
                   "anchor_target": "Find absolute conclusion words.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the conclusion is presented without a multi-step logical deduction."
+                  "extraction_rule": "the conclusion is presented without a multi-step logical deduction.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             },
@@ -1376,7 +1407,8 @@
                   ],
                   "anchor_target": "Find causal leaps connecting unrelated traits (Halo Effect) or prioritizing only visible evidence.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text draws a definitive conclusion based solely on this limited visible evidence while actively ignoring unknowns. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "the text draws a definitive conclusion based solely on this limited visible evidence while actively ignoring unknowns. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -1404,7 +1436,8 @@
                   ],
                   "anchor_target": "Find absolute certainty markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "this absolute certainty is presented without empirical data or epistemic qualifiers."
+                  "extraction_rule": "this absolute certainty is presented without empirical data or epistemic qualifiers.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -1445,7 +1478,8 @@
                   ],
                   "anchor_target": "Find a proposal, claim, or argument.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "present. <ambiguity_protocol>ABSOLUTE EXCLUSION ENFORCEMENT: You must actively locate a sentence where the author explicitly dismisses alternative perspectives or dogmatically asserts exclusive truth. General one-sided arguments that merely lack alternatives DO NOT trigger this rule; there MUST be a physical marker of active refusal, dogmatic exclusivity, or explicit dismissal. If such a marker is absent, you MUST conclude and return JSON null. </ambiguity_protocol>."
+                  "extraction_rule": "present. <ambiguity_protocol>ABSOLUTE EXCLUSION ENFORCEMENT: You must actively locate a sentence where the author explicitly dismisses alternative perspectives or dogmatically asserts exclusive truth. General one-sided arguments that merely lack alternatives DO NOT trigger this rule; there MUST be a physical marker of active refusal, dogmatic exclusivity, or explicit dismissal. If such a marker is absent, you MUST conclude and return JSON null. </ambiguity_protocol>.",
+                  "contrastive_example": "ACCEPTABLE: \"X is argued, but Y provides evidence otherwise\" (Abstract universal rebuttal).\nUNACCEPTABLE: \"X is completely wrong\" (Dismissive without counter-data)."
                 }
               ]
             }
@@ -1486,7 +1520,8 @@
                   ],
                   "anchor_target": "Find structural breakdown markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text physically separates a complex problem into at least three distinct, testable sub-components."
+                  "extraction_rule": "the text physically separates a complex problem into at least three distinct, testable sub-components.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1514,7 +1549,8 @@
                   ],
                   "anchor_target": "Find external citation markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the logical deduction is strictly tied to a specific named methodology, framework, or external dataset."
+                  "extraction_rule": "the logical deduction is strictly tied to a specific named methodology, framework, or external dataset.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -1608,7 +1644,8 @@
                   ],
                   "anchor_target": "Find user requests for absolute truth without external verification.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user asks the AI to act as an infallible oracle without providing an external source or document to ground it. Requests grounded in explicitly provided documents."
+                  "extraction_rule": "the user asks the AI to act as an infallible oracle without providing an external source or document to ground it. Requests grounded in explicitly provided documents.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             }
@@ -1649,7 +1686,8 @@
                   ],
                   "anchor_target": "Find superficial correction commands by the user.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user ONLY requests formatting or minor lexical changes without challenging the logic. Do not accept if the user challenges the underlying reasoning."
+                  "extraction_rule": "the user ONLY requests formatting or minor lexical changes without challenging the logic. Do not accept if the user challenges the underlying reasoning.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1671,7 +1709,8 @@
                   "concept_description": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data.",
                   "anchor_target": "Find explicit optimization commands for proxy metrics.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user demands optimization of a surface metric without linking it to a qualitative real-world outcome. Do not accept if the metric is explicitly tied back to a measure of effectiveness."
+                  "extraction_rule": "the user demands optimization of a surface metric without linking it to a qualitative real-world outcome. Do not accept if the metric is explicitly tied back to a measure of effectiveness.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -1706,7 +1745,8 @@
                   "concept_description": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data.",
                   "anchor_target": "Find user commands focused on tone.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user focuses solely on the performativity (tone/style) while ignoring substantive factual gaps. Revisions containing factual additions."
+                  "extraction_rule": "the user focuses solely on the performativity (tone/style) while ignoring substantive factual gaps. Revisions containing factual additions.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1728,7 +1768,8 @@
                   "concept_description": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data.",
                   "anchor_target": "Find single-path commands.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user actively refuses to explore counter-arguments or alternative models. Do not accept if the user asks for pros and cons."
+                  "extraction_rule": "the user actively refuses to explore counter-arguments or alternative models. Do not accept if the user asks for pros and cons.",
+                  "contrastive_example": "ACCEPTABLE: \"X is argued, but Y provides evidence otherwise\" (Abstract universal rebuttal).\nUNACCEPTABLE: \"X is completely wrong\" (Dismissive without counter-data)."
                 }
               ]
             }
@@ -1769,7 +1810,8 @@
                   ],
                   "anchor_target": "Find tension markers between metrics and goals. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the quote IF the user explicitly questions the reliability of a proxy metric in relation to the true qualitative goal."
+                  "extraction_rule": "Extract the quote IF the user explicitly questions the reliability of a proxy metric in relation to the true qualitative goal.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1791,7 +1833,8 @@
                   "concept_description": "",
                   "anchor_target": "Find examples or model structures provided by the user.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The user provides a concrete linguistic model or structurally detailed template to direct the AI. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema.."
+                  "extraction_rule": "The user provides a concrete linguistic model or structurally detailed template to direct the AI. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema..",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -1813,7 +1856,8 @@
                   "concept_description": "",
                   "anchor_target": "Find demands for epistemological humility.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user explicitly commands the AI to state its uncertainties or missing data. Demands for absolute certainty."
+                  "extraction_rule": "the user explicitly commands the AI to state its uncertainties or missing data. Demands for absolute certainty.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -1849,7 +1893,8 @@
                   "concept_description": "",
                   "anchor_target": "Find Socratic conceptual questions by the user.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The user actively probes the foundational reasoning or forces the AI to defend its logic. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema.. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "The user actively probes the foundational reasoning or forces the AI to defend its logic. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema.. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -1871,7 +1916,8 @@
                   "concept_description": "",
                   "anchor_target": "Find demands for external grounding.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user explicitly restricts the AI to an external, objective anchor. Acceptance of unsourced hallucinated facts. NEGATIVE BOUNDARY: General questions or requests for explanation DO NOT count as external grounding unless they explicitly demand a citation or source material restriction."
+                  "extraction_rule": "the user explicitly restricts the AI to an external, objective anchor. Acceptance of unsourced hallucinated facts. NEGATIVE BOUNDARY: General questions or requests for explanation DO NOT count as external grounding unless they explicitly demand a citation or source material restriction.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -2085,7 +2131,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit rejection markers.",
-                  "bounding_box_scope": "sentence"
+                  "bounding_box_scope": "sentence",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY blatant fabrication where the output contradicts foundational constraints."
@@ -2107,7 +2154,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find dogmatic absolute markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an assertion presented as absolute truth without verifiable provenance."
@@ -2129,7 +2177,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit exposure actions.",
-                  "bounding_box_scope": "sentence"
+                  "bounding_box_scope": "sentence",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where sensitive or restricted information is exposed or mishandled."
@@ -2164,7 +2213,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find physical actions of organizing or saving data.",
-                  "bounding_box_scope": "sentence"
+                  "bounding_box_scope": "sentence",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of isolated compliance without overarching structural integrity."
@@ -2186,7 +2236,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find shortcut markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT evidence where a required standard operating procedure is explicitly bypassed."
@@ -2208,7 +2259,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find absolute exclusion markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an execution that blindly follows one rule while completely ignoring conflicting constraints."
@@ -2243,7 +2295,8 @@
                   "concept_description": "",
                   "extraction_rule": "Extract the paragraph IF AND ONLY IF it contains these procedural markers AND LACKS any synthesis/deduction verbs.",
                   "anchor_target": "Find procedural sequential markers. If absent, FAIL FAST and return null.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit procedural execution steps that lack analytical or synthesis terminology."
@@ -2265,7 +2318,8 @@
                   "concept_description": "REQUIRED TARGET: If role prefixes exist, the exact quote MUST be located in an block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit absolute status declarations.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit absolute compliance claims that physically lack risk terminology."
@@ -2287,7 +2341,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find implicit authority markers.",
-                  "bounding_box_scope": "sentence"
+                  "bounding_box_scope": "sentence",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a reliance on undocumented or unverified internal knowledge."
@@ -2322,7 +2377,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit methodology links.",
-                  "bounding_box_scope": "sentence"
+                  "bounding_box_scope": "sentence",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: LOCATE explicit adherence to structured directives where the chain of reasoning is clearly verifiable."
@@ -2344,7 +2400,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find boundary definition markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: FIND epistemological humility where limitations and boundary conditions are explicitly stated."
@@ -2366,7 +2423,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find conflict resolution markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where potential compliance conflicts are systematically addressed."
@@ -2401,7 +2459,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit dialectical reasoning.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation detailing why specific compliance tradeoffs were made."
@@ -2423,7 +2482,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find formal citation markers.",
-                  "bounding_box_scope": "sentence"
+                  "bounding_box_scope": "sentence",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: LOCATE where the execution is fortified by explicit backing from external expert frameworks."
@@ -2445,7 +2505,8 @@
                   "concept_description": "",
                   "extraction_rule": "",
                   "anchor_target": "Find integration markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed resolution that seamlessly balances strict compliance with operational goals."
@@ -2538,7 +2599,8 @@
                   "concept_description": "Do not evaluate.",
                   "extraction_rule": "the causal claim is backed ONLY by a statistical correlation or simultaneous occurrence without any physical mechanism.",
                   "anchor_target": "Find causal words.",
-                  "bounding_box_scope": "sentence"
+                  "bounding_box_scope": "sentence",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -2560,7 +2622,8 @@
                   "concept_description": "Do not evaluate.",
                   "extraction_rule": "the text claims A caused B SOLELY because A happened before B.",
                   "anchor_target": "Find chronological sequence markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -2582,7 +2645,8 @@
                   "concept_description": "REQUIRED TARGET: If role prefixes exist, the exact quote MUST be located in an block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
                   "extraction_rule": "",
                   "anchor_target": "Find causal claims relying on metaphysical or subjective vocabulary.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -2617,7 +2681,8 @@
                   "concept_description": "",
                   "extraction_rule": "Extract the quote IF a highly complex outcome is attributed to a SINGLE cause.",
                   "anchor_target": "Find absolute causal words. If absent, FAIL FAST and return null.",
-                  "bounding_box_scope": "sentence"
+                  "bounding_box_scope": "sentence",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -2639,7 +2704,8 @@
                   "concept_description": "Do not evaluate accuracy.",
                   "extraction_rule": "the text explicitly states the direction of influence (which variable affects which).",
                   "anchor_target": "Find a claim connecting two variables.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -2661,7 +2727,8 @@
                   "concept_description": "Do not evaluate relevance.",
                   "extraction_rule": "a universal causal rule is explicitly derived SOLELY from a single personal anecdote.",
                   "anchor_target": "Find personal anecdotes.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -2696,7 +2763,8 @@
                   "concept_description": "REQUIRED TARGET: If role prefixes exist, the exact quote MUST be located in an block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
                   "extraction_rule": "",
                   "anchor_target": "Find an explicit causal claim.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -2718,7 +2786,8 @@
                   "concept_description": "Do not evaluate completeness.",
                   "extraction_rule": "the text explicitly names a potential third variable that could also explain the outcome. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "anchor_target": "Find words indicating alternatives.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -2740,7 +2809,8 @@
                   "concept_description": "Do not evaluate humility.",
                   "extraction_rule": "a causal claim derived from a specific, limited context is applied to all contexts universally without acknowledging boundaries. <ambiguity_protocol>ABSOLUTE BOUNDARY ENFORCEMENT: You must check if the causal claim is bounded. If the sentence or immediate context contains explicit boundary-setting vocabulary, limitations, or environmental constraints, the absolute overgeneralization is falsified, the boundary is acknowledged, and you MUST conclude and return JSON null. </ambiguity_protocol>",
                   "anchor_target": "Find universal terms.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -2775,7 +2845,8 @@
                   "concept_description": "REQUIRED TARGET: If role prefixes exist, the exact quote MUST be located in an block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
                   "extraction_rule": "",
                   "anchor_target": "Find conditional or action-oriented intervention markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X might occur under condition Y\" (Abstract qualifier).\nUNACCEPTABLE: \"X will definitely occur\" (Lacks qualifier)."
                 }
               ]
             },
@@ -2797,7 +2868,8 @@
                   "concept_description": "Do not evaluate perfection.",
                   "extraction_rule": "the text explicitly states that an external variable was deliberately held constant or mathematically isolated to prove the cause.",
                   "anchor_target": "Find control markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -2819,7 +2891,8 @@
                   "concept_description": "REQUIRED TARGET: If role prefixes exist, the exact quote MUST be located in an block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
                   "extraction_rule": "",
                   "anchor_target": "Find boundary or limitation markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -2854,7 +2927,8 @@
                   "concept_description": "Do not evaluate creativity.",
                   "extraction_rule": "",
                   "anchor_target": "Find counterfactual markers.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -2876,7 +2950,8 @@
                   "concept_description": "Do not evaluate.",
                   "extraction_rule": "the text explicitly uses a formal model or strict structural logic to map the causality.",
                   "anchor_target": "Find mathematical or structural causal terms.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -2898,7 +2973,8 @@
                   "concept_description": "Do not evaluate.",
                   "extraction_rule": "the specific causal mechanism is explicitly anchored to an established theoretical law.",
                   "anchor_target": "Find references to established scientific theories, formal logic principles, or physical laws.",
-                  "bounding_box_scope": "paragraph"
+                  "bounding_box_scope": "paragraph",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -3014,7 +3090,8 @@
                   ],
                   "anchor_target": "Find dismissal markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept legitimate, statistically proven outlier exclusions (e.g., p-value tests). STEP 1: Find dismissal markers. STEP 2 (Bounding Box): Scan the paragraph. If these markers are used to protect the original premise from contradictory data without changing the premise. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept legitimate, statistically proven outlier exclusions (e.g., p-value tests). STEP 1: Find dismissal markers. STEP 2 (Bounding Box): Scan the paragraph. If these markers are used to protect the original premise from contradictory data without changing the premise, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -3042,7 +3119,8 @@
                   ],
                   "anchor_target": "Find dogmatic certainty markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept mathematical axioms. STEP 1: Find dogmatic certainty markers. STEP 2 (Bounding Box): Scan the sentence. If it explicitly blocks further empirical testing or questioning. Otherwise. NEGATIVE BOUNDARY: Rhetorical exaggeration or strong statements like DO NOT count as dogmatism unless the author explicitly forbids further empirical testing or questioning."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept mathematical axioms. STEP 1: Find dogmatic certainty markers. STEP 2 (Bounding Box): Scan the sentence. If it explicitly blocks further empirical testing or questioning, extract the quote. Otherwise, return null. NEGATIVE BOUNDARY: Rhetorical exaggeration or strong statements like DO NOT count as dogmatism unless the author explicitly forbids further empirical testing or questioning.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -3083,7 +3161,8 @@
                   ],
                   "anchor_target": "Find a counter-argument transition.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not evaluate. STEP 1: Find a counter-argument transition. STEP 2 (Bounding Box): Scan the paragraph. If the presented counter-argument lacks specific citations, named sources, or numerical data, AND is immediately dismissed. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not evaluate. STEP 1: Find a counter-argument transition. STEP 2 (Bounding Box): Scan the paragraph. If the presented counter-argument lacks specific citations, named sources, or numerical data, AND is immediately dismissed, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -3111,7 +3190,8 @@
                   ],
                   "anchor_target": "Find concessive conjunctions.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag caveats that result in a mathematically or conceptually altered conclusion. STEP 1: Find concessive conjunctions. STEP 2 (Bounding Box): Scan the sentence. If the concession is immediately followed by a return to the original unmodified premise. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag caveats that result in a mathematically or conceptually altered conclusion. STEP 1: Find concessive conjunctions. STEP 2 (Bounding Box): Scan the sentence. If the concession is immediately followed by a return to the original unmodified premise, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3139,7 +3219,8 @@
                   ],
                   "anchor_target": "Find a question mark used by the author to question their own premise.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag open-ended questions explicitly left for future research. STEP 1: Find a question mark used by the author to question their own premise. STEP 2 (Bounding Box): Scan the following 2 sentences. If the author answers their own question confirming the premise without citing new data. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag open-ended questions explicitly left for future research. STEP 1: Find a question mark used by the author to question their own premise. STEP 2 (Bounding Box): Scan the following 2 sentences. If the author answers their own question confirming the premise without citing new data, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -3180,7 +3261,8 @@
                   ],
                   "anchor_target": "Find descriptive reporting verbs.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept explicit hypothesis testing. STEP 1: Find descriptive reporting verbs. STEP 2 (Bounding Box): Scan the paragraph. If the observation lacks a formulated hypothesis that could be tested or disproven. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept explicit hypothesis testing. STEP 1: Find descriptive reporting verbs. STEP 2 (Bounding Box): Scan the paragraph. If the observation lacks a formulated hypothesis that could be tested or disproven, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3208,7 +3290,8 @@
                   ],
                   "anchor_target": "Find limitation markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag limitations that were actively tested or corrected for in the dataset. STEP 1: Find limitation markers. STEP 2 (Bounding Box): Scan the paragraph. If the limitations are stated passively without a corresponding mitigation action or test. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag limitations that were actively tested or corrected for in the dataset. STEP 1: Find limitation markers. STEP 2 (Bounding Box): Scan the paragraph. If the limitations are stated passively without a corresponding mitigation action or test, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -3236,7 +3319,8 @@
                   ],
                   "anchor_target": "Find conflict identification markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag dialectical synthesis that mathematically resolves the conflict. STEP 1: Find conflict identification markers. STEP 2 (Bounding Box): Scan the paragraph. If the conflict is left unresolved using passive synthesis without falsifying one. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag dialectical synthesis that mathematically resolves the conflict. STEP 1: Find conflict identification markers. STEP 2 (Bounding Box): Scan the paragraph. If the conflict is left unresolved using passive synthesis without falsifying one, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -3277,7 +3361,8 @@
                   ],
                   "anchor_target": "Find boundary condition markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept vague statements about future research. STEP 1: Find boundary condition markers. STEP 2 (Bounding Box): Scan the paragraph. If a specific measurable condition is defined that would falsify the claim. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept vague statements about future research. STEP 1: Find boundary condition markers. STEP 2 (Bounding Box): Scan the paragraph. If a specific measurable condition is defined that would falsify the claim, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3305,7 +3390,8 @@
                   ],
                   "anchor_target": "Find methodological critique markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept generic statements. STEP 1: Find methodological critique markers. STEP 2 (Bounding Box): Scan the paragraph. If a specific structural flaw in the methodology is explicitly identified. Otherwise."
+                  "extraction_rule": "role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept generic statements. STEP 1: Find methodological critique markers. STEP 2 (Bounding Box): Scan the paragraph. If a specific structural flaw in the methodology is explicitly identified, extract the quote. Otherwise, return null.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -3414,7 +3500,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY the user prompts. BANNED SOURCES: Never read AI outputs. Do not look for absence of critique.",
                   "anchor_target": "Find active acceptance words.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user accepts the AI output fully in one sentence WITHOUT any modifications or follow-up tasks in the same prompt."
+                  "extraction_rule": "the user accepts the AI output fully in one sentence WITHOUT any modifications or follow-up tasks in the same prompt.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3436,7 +3523,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts. Do not evaluate or.",
                   "anchor_target": "Find delegation verbs.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user explicitly asks the AI to make a final subjective choice or decision on their behalf."
+                  "extraction_rule": "the user explicitly asks the AI to make a final subjective choice or decision on their behalf.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3458,7 +3546,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not evaluate.",
                   "anchor_target": "Find dismissive phrases.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user actively acknowledges an incomplete or erroneous AI response but instructs to move forward anyway."
+                  "extraction_rule": "the user actively acknowledges an incomplete or erroneous AI response but instructs to move forward anyway.",
+                  "contrastive_example": "ACCEPTABLE: \"X is argued, but Y provides evidence otherwise\" (Abstract universal rebuttal).\nUNACCEPTABLE: \"X is completely wrong\" (Dismissive without counter-data)."
                 }
               ]
             }
@@ -3499,7 +3588,8 @@
                   ],
                   "anchor_target": "Find formatting terms.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user's ONLY request is a stylistic or formatting change, completely ignoring substantive logic."
+                  "extraction_rule": "the user's ONLY request is a stylistic or formatting change, completely ignoring substantive logic.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3521,7 +3611,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts.",
                   "anchor_target": "Find reactive anchors.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user adds a new critical constraint that they forgot to specify in the previous prompt."
+                  "extraction_rule": "the user adds a new critical constraint that they forgot to specify in the previous prompt.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3543,7 +3634,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not accept specific extraction commands.",
                   "anchor_target": "Find broad summary commands.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the command lacks any specific constraints and allows the AI to freely decide what is important."
+                  "extraction_rule": "the command lacks any specific constraints and allows the AI to freely decide what is important.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -3578,7 +3670,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not evaluate.",
                   "anchor_target": "Find constraint markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user provides at least one measurable or structural constraint for the output."
+                  "extraction_rule": "the user provides at least one measurable or structural constraint for the output.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3600,7 +3693,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts.",
                   "anchor_target": "Find context markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user defines the situational context or role for the AI before asking for output."
+                  "extraction_rule": "the user defines the situational context or role for the AI before asking for output.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3628,7 +3722,8 @@
                   ],
                   "anchor_target": "Find causal feedback markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user corrects the AI and explicitly states the logical reason for the correction."
+                  "extraction_rule": "the user corrects the AI and explicitly states the logical reason for the correction.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -3663,7 +3758,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts. Do not accept generic requests.",
                   "anchor_target": "Find methodology anchors.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user explicitly names a method or analytical framework the AI MUST follow."
+                  "extraction_rule": "the user explicitly names a method or analytical framework the AI MUST follow.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3685,7 +3781,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts.",
                   "anchor_target": "Find sequence constraints.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user explicitly forces the AI to stop and wait for human validation before proceeding to the next step."
+                  "extraction_rule": "the user explicitly forces the AI to stop and wait for human validation before proceeding to the next step.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -3720,7 +3817,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not accept simple disagreements.",
                   "anchor_target": "Find override phrases.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user rejects the AI's reasoning and injects their own superior logical or empirical correction."
+                  "extraction_rule": "the user rejects the AI's reasoning and injects their own superior logical or empirical correction.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -3742,7 +3840,8 @@
                   "concept_description": "REQUIRED TARGET: Scan ONLY user prompts.",
                   "anchor_target": "Find audit anchors.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the user forces the AI to rigorously critique its own previous output or identify fatal flaws."
+                  "extraction_rule": "the user forces the AI to rigorously critique its own previous output or identify fatal flaws.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -3764,7 +3863,8 @@
                   "concept_description": "",
                   "anchor_target": "Find active verification markers comparing output against raw documents.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The user actively flags discrepancies between AI claims and source materials. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema.."
+                  "extraction_rule": "The user actively flags discrepancies between AI claims and source materials. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema..",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -3930,7 +4030,8 @@
                   "concept_description": "BANNED LOGIC: Do not evaluate.",
                   "anchor_target": "Find probabilistic markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "a definitive conclusion is drawn from these markers as an absolute truth."
+                  "extraction_rule": "a definitive conclusion is drawn from these markers as an absolute truth.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             }
@@ -3965,7 +4066,8 @@
                   "concept_description": "BANNED LOGIC: Do not evaluate.",
                   "anchor_target": "Find dismissive markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "alternative hypotheses are dismissed without empirical evidence."
+                  "extraction_rule": "alternative hypotheses are dismissed without empirical evidence.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -4673,7 +4775,8 @@
                   "concept_description": "BANNED LOGIC: Do not evaluate or.",
                   "anchor_target": "Find an absolute acceptance phrase.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the acceptance is presented without an explicit verification step mentioned."
+                  "extraction_rule": "the acceptance is presented without an explicit verification step mentioned.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             },
@@ -4695,7 +4798,8 @@
                   "concept_description": "Do not accept generic errors; must be an absolute fabrication (LLM09 Overreliance).",
                   "anchor_target": "Find a factual claim (dates, names, specific data points).",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the claim is demonstrably false or fabricated but presented with absolute certainty. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "the claim is demonstrably false or fabricated but presented with absolute certainty. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -4730,7 +4834,8 @@
                   "concept_description": "BANNED LOGIC: Do not evaluate subjectively.",
                   "anchor_target": "Find temporal reactive markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "security measures are ONLY described as post-incident responses without any pre-incident checks."
+                  "extraction_rule": "security measures are ONLY described as post-incident responses without any pre-incident checks.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -4752,7 +4857,8 @@
                   "concept_description": "BANNED LOGIC: Do not accept subjective assessments of risk severity.",
                   "anchor_target": "Find risk identification markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the risk is identified but no physical action verb follows to mitigate it. <ambiguity_protocol>ABSOLUTE MITIGATION ENFORCEMENT: You must strictly scan the paragraph containing the risk identification marker. If the paragraph contains a physical action verb that describes a technical, administrative, or physical mitigation or control, the absence of mitigation is falsified, the risk is mitigated, and you MUST conclude and return JSON null. Proposing future plans to mitigate or dismissing the risk as without physical control verbs DOES NOT satisfy the mitigation requirement and the rule remains satisfied. </ambiguity_protocol> NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "the risk is identified but no physical action verb follows to mitigate it. <ambiguity_protocol>ABSOLUTE MITIGATION ENFORCEMENT: You must strictly scan the paragraph containing the risk identification marker. If the paragraph contains a physical action verb that describes a technical, administrative, or physical mitigation or control, the absence of mitigation is falsified, the risk is mitigated, and you MUST conclude and return JSON null. Proposing future plans to mitigate or dismissing the risk as without physical control verbs DOES NOT satisfy the mitigation requirement and the rule remains satisfied. </ambiguity_protocol> NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -4787,7 +4893,8 @@
                   "concept_description": "BANNED LOGIC: Do not accept vague assertions like.",
                   "anchor_target": "Find explicit physical validation actions.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "it describes a concrete data validation rule being applied to input or output."
+                  "extraction_rule": "it describes a concrete data validation rule being applied to input or output.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -4815,7 +4922,8 @@
                   ],
                   "anchor_target": "Find epistemic boundary markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the quote IF the AI explicitly outputs a disclaimer acknowledging its own limitations."
+                  "extraction_rule": "Extract the quote IF the AI explicitly outputs a disclaimer acknowledging its own limitations.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -4843,7 +4951,8 @@
                   ],
                   "anchor_target": "Find explicit references to standard security protocols.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text physically demonstrates adherence to a named standard."
+                  "extraction_rule": "the text physically demonstrates adherence to a named standard.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -4878,7 +4987,8 @@
                   "concept_description": "BANNED LOGIC: Do not evaluate subjectively.",
                   "anchor_target": "Find proactive structural markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "a security constraint is described as a structural, automatic mechanism rather than a manual check."
+                  "extraction_rule": "a security constraint is described as a structural, automatic mechanism rather than a manual check.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -4900,7 +5010,8 @@
                   "concept_description": "BANNED LOGIC: Do not accept theoretical resilience.",
                   "anchor_target": "Find error handling markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "it describes physically rejecting invalid input or defaulting to a safe state without crashing."
+                  "extraction_rule": "it describes physically rejecting invalid input or defaulting to a safe state without crashing.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -4935,7 +5046,8 @@
                   "concept_description": "BANNED LOGIC: Do not accept general statements.",
                   "anchor_target": "Find zero-trust markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the processing demonstrates explicit zero-trust architecture where every input/output is treated as potentially hostile."
+                  "extraction_rule": "the processing demonstrates explicit zero-trust architecture where every input/output is treated as potentially hostile.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -4957,7 +5069,8 @@
                   "concept_description": "BANNED LOGIC: Do not accept without a traced reasoning path.",
                   "anchor_target": "Find causal justification markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a security action is paired with an explicit, documented risk assessment."
+                  "extraction_rule": "a security action is paired with an explicit, documented risk assessment.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -4979,7 +5092,8 @@
                   "concept_description": "Reject superficial mentions of frameworks.",
                   "anchor_target": "Find exact framework citations.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the specific framework clause is directly linked to the physical security action taken. <ambiguity_protocol> ABSOLUTE LEXICAL ENFORCEMENT: You are a mechanical parser, not a forgiving judge. If a rule demands multiple conditions (e.g., A AND B AND C), and condition C is physically missing, you MUST return NULL. You are strictly forbidden from accepting 'close enough' semantic matches. BANNED MATCHES: Academic institutions (e.g., Stanford) and research reports (e.g., TTL) DO NOT count as formal standard frameworks (ISO/ARMA). </ambiguity_protocol>"
+                  "extraction_rule": "the specific framework clause is directly linked to the physical security action taken. <ambiguity_protocol> ABSOLUTE LEXICAL ENFORCEMENT: You are a mechanical parser, not a forgiving judge. If a rule demands multiple conditions (e.g., A AND B AND C), and condition C is physically missing, you MUST return NULL. You are strictly forbidden from accepting 'close enough' semantic matches. BANNED MATCHES: Academic institutions (e.g., Stanford) and research reports (e.g., TTL) DO NOT count as formal standard frameworks (ISO/ARMA). </ambiguity_protocol>",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -5196,7 +5310,8 @@
                   ],
                   "anchor_target": "Find explicit retrospective claims of intent. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Extract the retrospective claim IF AND ONLY IF the preceding text DOES NOT physically contain the parameters being claimed."
+                  "extraction_rule": "Extract the retrospective claim IF AND ONLY IF the preceding text DOES NOT physically contain the parameters being claimed.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -5224,7 +5339,8 @@
                   ],
                   "anchor_target": "Identify a novel concept, specific methodology, or data point introduced by the AI.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes exist, focus on output compared to input. BANNED LOGIC: Do not evaluate abstractly. STEP 1: Identify a novel concept, specific methodology, or data point introduced by the AI. STEP 2 (Bounding Box): Scan the preceding prompt. If the user requested it. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "role prefixes exist, focus on output compared to input. BANNED LOGIC: Do not evaluate abstractly. STEP 1: Identify a novel concept, specific methodology, or data point introduced by the AI. STEP 2 (Bounding Box): Scan the preceding prompt. If the user requested it. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -5265,7 +5381,8 @@
                   ],
                   "anchor_target": "Find a directive verb.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "prefixes exist. Do not judge subjectively. STEP 1: Find a directive verb. STEP 2 (Bounding Box): Scan the sentence containing the verb. If specific metrics exist."
+                  "extraction_rule": "prefixes exist. Do not judge subjectively. STEP 1: Find a directive verb. STEP 2 (Bounding Box): Scan the sentence containing the verb. If specific metrics exist.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -5293,7 +5410,8 @@
                   ],
                   "anchor_target": "Find an evaluation of an outcome.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text lists supporting evidence but completely omits any mention of edge cases, failures, or limitations in the same section."
+                  "extraction_rule": "the text lists supporting evidence but completely omits any mention of edge cases, failures, or limitations in the same section.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -5334,7 +5452,8 @@
                   ],
                   "anchor_target": "Find an explicit user instruction with at least two specific constraints (e.g., format, length, tone).",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The user MUST explicitly verify those EXACT constraints (e.g., explicitly stating that Constraint A was met, but Constraint B failed)."
+                  "extraction_rule": "The user MUST explicitly verify those EXACT constraints (e.g., explicitly stating that Constraint A was met, but Constraint B failed).",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -5362,7 +5481,8 @@
                   ],
                   "anchor_target": "Find a comparative marker.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the text explicitly names at least two distinct approaches before selecting one."
+                  "extraction_rule": "the text explicitly names at least two distinct approaches before selecting one.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -5390,7 +5510,8 @@
                   ],
                   "anchor_target": "Find a stated objective containing a measurable goal.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text quotes the exact measurable goal and confirms it with a physical measurement or count."
+                  "extraction_rule": "the text quotes the exact measurable goal and confirms it with a physical measurement or count.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -5431,7 +5552,8 @@
                   ],
                   "anchor_target": "Find friction markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The friction MUST be physically written BEFORE the action or generation it refers to."
+                  "extraction_rule": "The friction MUST be physically written BEFORE the action or generation it refers to.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -5459,7 +5581,8 @@
                   ],
                   "anchor_target": "Find a multi-step sequence marker.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text explicitly links at least three distinct sequential actions where each depends entirely on the previous one."
+                  "extraction_rule": "the text explicitly links at least three distinct sequential actions where each depends entirely on the previous one.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -5500,7 +5623,8 @@
                   ],
                   "anchor_target": "Find a structural blueprint. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The SAME paragraph MUST ALSO contain constraint vocabulary."
+                  "extraction_rule": "The SAME paragraph MUST ALSO contain constraint vocabulary.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -5532,7 +5656,8 @@
                   ],
                   "anchor_target": "Find an explicit reference to an established alternative model or framework.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text dismantles the alternative model by citing specific data points or logical contradictions that render it invalid in this context."
+                  "extraction_rule": "the text dismantles the alternative model by citing specific data points or logical contradictions that render it invalid in this context.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -5560,7 +5685,8 @@
                   ],
                   "anchor_target": "Find a formal citation, academic framework, or recognized methodology.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the causal reasoning is explicitly justified by applying the rules of this named external framework."
+                  "extraction_rule": "the causal reasoning is explicitly justified by applying the rules of this named external framework.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             }
@@ -5750,7 +5876,8 @@
                   ],
                   "anchor_target": "Find a definitive conclusion or final answer.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "role prefixes exist, focus on the block. BANNED LOGIC: Do not evaluate subjectively. STEP 1: Find a definitive conclusion or final answer. STEP 2 (Bounding Box): Scan the preceding text. If steps exist."
+                  "extraction_rule": "role prefixes exist, focus on the block. BANNED LOGIC: Do not evaluate subjectively. STEP 1: Find a definitive conclusion or final answer. STEP 2 (Bounding Box): Scan the preceding text. If steps exist.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -5778,7 +5905,8 @@
                   ],
                   "anchor_target": "Find heuristic or dismissive phrases.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the phrase is used to justify a decision WITHOUT citing a specific dataset, numerical weight, or verifiable rule."
+                  "extraction_rule": "the phrase is used to justify a decision WITHOUT citing a specific dataset, numerical weight, or verifiable rule.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -5819,7 +5947,8 @@
                   ],
                   "anchor_target": "Find a justification sentence.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the justification DOES NOT contain any specific domain variables, numbers, or exact verbatim quotes from the input data (relying only on generic templates)."
+                  "extraction_rule": "the justification DOES NOT contain any specific domain variables, numbers, or exact verbatim quotes from the input data (relying only on generic templates).",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -5860,7 +5989,8 @@
                   ],
                   "anchor_target": "Find a direct causal linkage statement.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the exact input variable is explicitly named and connected to the specific output. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "the exact input variable is explicitly named and connected to the specific output. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
               ]
             },
@@ -5888,7 +6018,8 @@
                   ],
                   "anchor_target": "Find an explicit listing of factors or variables.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "at least two distinct variables or weights are physically defined in the text."
+                  "extraction_rule": "at least two distinct variables or weights are physically defined in the text.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -5916,7 +6047,8 @@
                   ],
                   "anchor_target": "Find epistemic boundary markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The text MUST physically identify a scenario where its OWN logic or model fails or is limited."
+                  "extraction_rule": "The text MUST physically identify a scenario where its OWN logic or model fails or is limited.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             }
@@ -5957,7 +6089,8 @@
                   ],
                   "anchor_target": "Find sequential logic markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "a continuous, unbroken chain of at least three explicit logical steps is documented. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions."
+                  "extraction_rule": "a continuous, unbroken chain of at least three explicit logical steps is documented. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -5985,7 +6118,8 @@
                   ],
                   "anchor_target": "Find an option-weighing or friction marker.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the alternatives are explicitly compared and evaluated BEFORE the final decision is stated."
+                  "extraction_rule": "the alternatives are explicitly compared and evaluated BEFORE the final decision is stated.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -6013,7 +6147,8 @@
                   ],
                   "anchor_target": "Find an explicit warning or certainty boundary.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the warning specifies EXACTLY what the model or logic cannot do using specific domain terms."
+                  "extraction_rule": "the warning specifies EXACTLY what the model or logic cannot do using specific domain terms.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             }
@@ -6054,7 +6189,8 @@
                   ],
                   "anchor_target": "Find a counterfactual scenario.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the scenario is systematically dismantled with specific data points or mathematical proofs to validate the primary conclusion."
+                  "extraction_rule": "the scenario is systematically dismantled with specific data points or mathematical proofs to validate the primary conclusion.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -6082,7 +6218,8 @@
                   ],
                   "anchor_target": "Find a quantitative confidence metric or strict certainty boundary.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the text rigorously defines the EXACT quantitative or structural boundary of its own certainty."
+                  "extraction_rule": "the text rigorously defines the EXACT quantitative or structural boundary of its own certainty.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             },
@@ -6110,7 +6247,8 @@
                   ],
                   "anchor_target": "Find an academic citation, mathematical theorem, or academic framework. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the sentence IF AND ONLY IF the logic is explicitly tethered to this source (e.g., actively applying a rule from the source)."
+                  "extraction_rule": "Extract the sentence IF AND ONLY IF the logic is explicitly tethered to this source (e.g., actively applying a rule from the source).",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -6637,7 +6775,8 @@
                   ],
                   "anchor_target": "Find an absolute certainty marker.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "no empirical data is provided within that exact paragraph to justify the claim. Do not evaluate."
+                  "extraction_rule": "no empirical data is provided within that exact paragraph to justify the claim. Do not evaluate.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -6665,7 +6804,8 @@
                   ],
                   "anchor_target": "Find absolute completeness markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the sentence IF AND ONLY IF it explicitly claims there are zero unknown variables or alternatives remaining."
+                  "extraction_rule": "Extract the sentence IF AND ONLY IF it explicitly claims there are zero unknown variables or alternatives remaining.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             },
@@ -6687,7 +6827,8 @@
                   "concept_description": "",
                   "anchor_target": "Find dismissive markers towards alternatives.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the dismissal occurs without citing an external verifiable source or empirical data."
+                  "extraction_rule": "the dismissal occurs without citing an external verifiable source or empirical data.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -6728,7 +6869,8 @@
                   ],
                   "anchor_target": "Find performative hedging markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "the following sentence immediately returns to an absolute certainty marker."
+                  "extraction_rule": "the following sentence immediately returns to an absolute certainty marker.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             },
@@ -6756,7 +6898,8 @@
                   ],
                   "anchor_target": "Find limitation markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the quote IF AND ONLY IF a limitation anchor is followed by a dismissive transition word that rationalizes away the limitation."
+                  "extraction_rule": "Extract the quote IF AND ONLY IF a limitation anchor is followed by a dismissive transition word that rationalizes away the limitation.",
+                  "contrastive_example": "ACCEPTABLE: \"X is argued, but Y provides evidence otherwise\" (Abstract universal rebuttal).\nUNACCEPTABLE: \"X is completely wrong\" (Dismissive without counter-data)."
                 }
               ]
             },
@@ -6778,7 +6921,8 @@
                   "concept_description": "REQUIRED TARGET: Scan the document.",
                   "anchor_target": "Find a named alternative model or theory.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "the alternative is mentioned but the paragraph contains exactly 0 counter-arguments or comparative data points. Do not evaluate, simply count the data points."
+                  "extraction_rule": "the alternative is mentioned but the paragraph contains exactly 0 counter-arguments or comparative data points. Do not evaluate, simply count the data points.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -6813,7 +6957,8 @@
                   "concept_description": "REQUIRED TARGET: Scan the document.",
                   "anchor_target": "Find a factual claim.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "present AND absolute markers are strictly absent in the same sentence."
+                  "extraction_rule": "present AND absolute markers are strictly absent in the same sentence.",
+                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ]
             },
@@ -6841,7 +6986,8 @@
                   ],
                   "anchor_target": "Target paragraphs with statistical/factual reporting.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "You MUST extract the text IF AND ONLY IF the count of first-person markers is EXACTLY ZERO."
+                  "extraction_rule": "You MUST extract the text IF AND ONLY IF the count of first-person markers is EXACTLY ZERO.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -6863,7 +7009,8 @@
                   "concept_description": "REQUIRED TARGET: Scan the document.",
                   "anchor_target": "Find a citation or data source introduction.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "terms like, or are completely missing."
+                  "extraction_rule": "terms like, or are completely missing.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }
@@ -6904,7 +7051,8 @@
                   ],
                   "anchor_target": "Find contextual qualifiers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "document",
-                  "extraction_rule": "Extract the quote containing the qualifier."
+                  "extraction_rule": "Extract the quote containing the qualifier.",
+                  "contrastive_example": "ACCEPTABLE: \"X might occur under condition Y\" (Abstract qualifier).\nUNACCEPTABLE: \"X will definitely occur\" (Lacks qualifier)."
                 }
               ]
             }
@@ -6945,7 +7093,8 @@
                   ],
                   "anchor_target": "Locate a section dedicated to methodology or limitations.",
                   "bounding_box_scope": "document",
-                  "extraction_rule": "3 or more exist."
+                  "extraction_rule": "3 or more exist.",
+                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ]
             },
@@ -6967,7 +7116,8 @@
                   "concept_description": "REQUIRED TARGET: Scan the document.",
                   "anchor_target": "Locate a risk assessment or structure.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "both the risk and the empirical counter-data are found."
+                  "extraction_rule": "both the risk and the empirical counter-data are found.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             },
@@ -6989,7 +7139,8 @@
                   "concept_description": "REQUIRED TARGET: Scan the document.",
                   "anchor_target": "Find explicit external anchoring for uncertainty.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "an external citation is used specifically to justify why a variable remains unknown."
+                  "extraction_rule": "an external citation is used specifically to justify why a variable remains unknown.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ]
             }

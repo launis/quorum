@@ -14,7 +14,7 @@ SduiParagraphBlock _$SduiParagraphBlockFromJson(Map<String, dynamic> json) =>
         citations: $checkedConvert(
           'citations',
           (v) =>
-              (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+              (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
               const [],
         ),
         $type: $checkedConvert('block_type', (v) => v as String?),

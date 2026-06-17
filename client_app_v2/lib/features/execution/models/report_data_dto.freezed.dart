@@ -159,7 +159,7 @@ return heroInsight(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<String> citations)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations)?  alertBox,TResult Function( String text)?  heroInsight,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<int> citations)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations)?  alertBox,TResult Function( String text)?  heroInsight,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
@@ -183,7 +183,7 @@ return heroInsight(_that.text);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<String> citations)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations)  alertBox,required TResult Function( String text)  heroInsight,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<int> citations)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations)  alertBox,required TResult Function( String text)  heroInsight,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock():
@@ -203,7 +203,7 @@ return heroInsight(_that.text);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<String> citations)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations)?  alertBox,TResult? Function( String text)?  heroInsight,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<int> citations)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations)?  alertBox,TResult? Function( String text)?  heroInsight,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
@@ -221,12 +221,12 @@ return heroInsight(_that.text);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiParagraphBlock extends SduiBlockDTO {
-  const SduiParagraphBlock({required this.text, final  List<String> citations = const [], final  String? $type}): _citations = citations,$type = $type ?? 'paragraph',super._();
+  const SduiParagraphBlock({required this.text, final  List<int> citations = const [], final  String? $type}): _citations = citations,$type = $type ?? 'paragraph',super._();
   factory SduiParagraphBlock.fromJson(Map<String, dynamic> json) => _$SduiParagraphBlockFromJson(json);
 
  final  String text;
- final  List<String> _citations;
-@JsonKey() List<String> get citations {
+ final  List<int> _citations;
+@JsonKey() List<int> get citations {
   if (_citations is EqualUnmodifiableListView) return _citations;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_citations);
@@ -270,7 +270,7 @@ abstract mixin class $SduiParagraphBlockCopyWith<$Res> implements $SduiBlockDTOC
   factory $SduiParagraphBlockCopyWith(SduiParagraphBlock value, $Res Function(SduiParagraphBlock) _then) = _$SduiParagraphBlockCopyWithImpl;
 @useResult
 $Res call({
- String text, List<String> citations
+ String text, List<int> citations
 });
 
 
@@ -291,7 +291,7 @@ class _$SduiParagraphBlockCopyWithImpl<$Res>
   return _then(SduiParagraphBlock(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<int>,
   ));
 }
 

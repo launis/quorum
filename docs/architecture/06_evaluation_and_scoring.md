@@ -107,13 +107,21 @@ Tämä saavutetaan seuraavilla suojamuureilla:
 3. **Nollahypoteesi ja Antagonistinen Syyttäjä:**
    Jotta arviointi olisi matemaattisesti stabiili eikä altis tekoälyn mielistelylle (Sycophancy), kaikki arviointi nojaa **Nollahypoteesi-mandaattiin**. LLM toimi puhtaasti "Antagonistisena syyttäjänä":
    * Jokaisen väittämän oletusarvo on aluksi `FALSE`.
+   * **System 2 Falsifikaatio:** LLM pakotetaan argumentoimaan itseään vastaan luomalla `falsification_argument` (Miksi tämä todiste EI EHKÄ täytä tiukkaa kausaalista vaatimusta) juuri ennen lopullista `decision`-totuusarvoa. Tämä katkaisee autoregressiivisen mielistelyketjun.
    * LLM kääntää atomin arvoksi `TRUE` ainoastaan, jos se kykenee poimimaan aineistosta eksplisiittisen, kiistattoman todisteen.
    * LLM:ltä on täysin riistetty kyky palauttaa itse valmiita numeerisia lukuja kuten jatkuvia kokonaisarvosanoja. Tämä logiikka (Zero-Math Payload) pienentää Map-Reduce -töiden palauttamia JSON-rakenteita kriittisesti.
 
 4. **Lexical Verifier ja Lähdetekstin Integriteetti (Anchor Validation):**
    * LLM:n poimiman `exact_quote` -lainauksen on löydyttävä *fyysisesti* lähdetekstistä. Jotta LLM-hallusinaatiot estetään matemaattisella varmuudella, järjestelmä soveltaa `AnchorValidationService`:ssä **Fail-Fast / Slow-Path** -arkkitehtuuria:
    * **Fast-Path (Eksakti Haku - O(N)):** Koska lähdeteksti on usein rikkonaista Markdown-taulukkoa (esim. `|`-erottimia ja `<br>`-tageja), normalisointimoottori (`normalize_text_with_mapping`) strippaa kaikki HTML-tagit ja erikoismerkit pois ennen vertailua, säilyttäen alkuperäisen indeksikartan. Näin ollen "siivottu" LLM-lainaus osuu O(N) nopeudella rikkonaiseenkin taulukkoon, ja tietokantaan saadaan talteen alkuperäinen saksittu palanen kaikkine HTML-muotoiluineen XAI-raporttia varten.
-   * **Slow-Path (Fuzzy Fallback):** Jos eksakti haku epäonnistuu (esim. PDF OCR -skannerin hypytysvirheiden vuoksi, missä I-kirjain on vaihtunut L:ksi), järjestelmä siirtyy raskaampaan `rapidfuzz` -sumeaan hakuun. Jos osuman samankaltaisuus (`partial_ratio`) on yli 95 %, järjestelmä ei kaada koko ajoa, vaan hyväksyy LLM:n palauttaman tekstin fallback-skenaariona. Tämä varmistaa vikasietoisuuden ilman overfittausta yksittäisiin PDF-tiedostoihin.
+   * **Slow-Path (Fuzzy Fallback Deterministic Tiers & Entropy Gate):** 
+     * **Entropy Gate:** Jos LLM-lainaus on alle 20 merkkiä pitkä, fuzzy-haku on ankarasti KIELLETTY (hallusinaatiosuojan vuoksi) ja vaaditaan 100 % eksakti osuma.
+     * **Discrete Tiers (Porraskaava):** Sumean haun hyväksymiskynnys riippuu suoraan arvioinnin kireystasosta (`strictness_level`):
+       * `ABSOLUTE (100)`: Sumea haku pois päältä, 100 % eksakti osuma vaaditaan.
+       * `STRICT (85)`: 95.0 % samankaltaisuus vaaditaan.
+       * `STANDARD (50)`: 80.0 % samankaltaisuus vaaditaan.
+       * `RELAXED (30)`: 65.0 % samankaltaisuus vaaditaan.
+     Tämä korvaa aiemman joustamattoman 100 % vaatimuksen matemaattisen joustavalla, mutta yhä deterministisellä mallilla, poistaen tarpeettomat DLQ-virheet OCR-kohinasta johtuvan tekstin rikkoutumisen takia.
 
 ---
 

@@ -629,8 +629,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     sys_prompt += f"<objective>\n{str(custom_sys_prompt).strip()}\n</objective>\n<rules>\n"
 
     sys_prompt += (
-        "  <rule>CRITICAL LANGUAGE MANDATE: You must process the input and generate all your output text, "
-        "reasoning, and source justifications exclusively in the language specified in <target_language>.</rule>\n"
+        "  <rule>CRITICAL LANGUAGE MANDATE: You must process the input and generate all your output text "
+        "and source justifications exclusively in the language specified in <target_language>.</rule>\n"
         "  <rule>SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY the allowed SDUI `content_blocks`.</rule>\n"
         "  <rule>ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.</rule>\n"
         "  <rule>NO RECURSION: Nested blocks inside blocks are strictly banned.</rule>\n"

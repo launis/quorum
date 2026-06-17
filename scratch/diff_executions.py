@@ -121,11 +121,13 @@ def calculate_fleiss_kappa(atom_states_list: list[list[str]], categories: list[s
     return kappa
 
 def get_state(e: dict[str, object]) -> str:
+    if 'decision' in e:
+        return str(e['decision']).lower()
     if 'mapped_state' in e:
         return str(e['mapped_state']).lower()
-    if 'exact_quote' in e:
-        eq = e['exact_quote']
-        if eq is None:
+    if 'exact_quote' in e or 'exact_quotes' in e:
+        eq = e.get('exact_quote', e.get('exact_quotes'))
+        if eq is None or eq == []:
             return "false"
         eq_lower = str(eq).strip().lower()
         blacklist = {

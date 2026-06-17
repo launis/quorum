@@ -28,6 +28,9 @@ class StepDTOStrict(BaseExtractionDTO):
         max_length=SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS,
         description="Keywords in target language.",
     )
+    falsification_argument: str = Field(
+        description="Why this evidence might NOT satisfy the strict causal requirement of the rule."
+    )
     decision: bool = Field(description="True if the condition is physically met, False otherwise.")
     semantic_reasoning: str = Field(description="Final summary of the decision.")
 
@@ -52,6 +55,9 @@ class StepDTOSemantic(BaseExtractionDTO):
         description="ABSOLUTE LAST RESORT. True only if no literal evidence exists but rule is implicitly matched. exact_quotes MUST be empty if True.",
     )
     override_reason: str | None = Field(default=None, description="Explanation for the contextual override.")
+    falsification_argument: str = Field(
+        description="Why this evidence might NOT satisfy the strict causal requirement of the rule."
+    )
     decision: bool = Field(description="True if the condition is met (physically or semantically), False otherwise.")
     semantic_reasoning: str = Field(description="Final summary of the decision.")
 

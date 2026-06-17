@@ -50,7 +50,7 @@ class SDUIBlockRenderer extends StatelessWidget {
                       border: Border.all(color: Colors.blue.shade200),
                     ),
                     child: Text(
-                      citation,
+                      citation.toString(),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,

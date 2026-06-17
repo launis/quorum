@@ -1,7 +1,7 @@
 import re
 
 path = r'c:\src\quorum\backend_v2\tests\unit\models\dtos\test_lightweight_matrix.py'
-with open(path, 'r', encoding='utf-8') as f:
+with open(path, encoding='utf-8') as f:
     content = f.read()
 
 def add_internal_logic(match):

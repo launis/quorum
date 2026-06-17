@@ -9,14 +9,11 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from backend_v2.services.localization import LocalizationService
-
 from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
     ErrorCodes,
     MissingRoutingModeError,
-    MissingXaiExtensionError,
 )
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, OutputProfileConfig
 

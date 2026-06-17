@@ -10,6 +10,7 @@ def test_step_dto_strict_validation() -> None:
         "reasoning_steps": "Thinking",
         "structural_location": "Page 1",
         "localized_anchors_found": ["anchor1"],
+        "falsification_argument": "This could be false if X",
         "decision": True,
         "semantic_reasoning": "Yes",
     }
@@ -31,6 +32,7 @@ def test_step_dto_semantic_validation() -> None:
         "localized_anchors_found": ["anchor1"],
         "contextual_override": True,
         "override_reason": "Implied meaning",
+        "falsification_argument": "This could be false if X",
         "decision": True,
         "semantic_reasoning": "Yes",
         "exact_quotes": [""],

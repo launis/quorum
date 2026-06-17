@@ -185,20 +185,45 @@ class LocalFileDriver(FileDriver):
             logger.error("[LocalFileDriver] %s: %s", ErrorCodes.FILE_NOT_FOUND.name, msg)
             raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND.value})
 
-        try:
-            async with aiofiles.open(full_path, "rb") as f:
-                data = await f.read()
-                return data if isinstance(data, bytes) else bytes(data, "utf-8")
-        except Exception as e:
-            logger.error(
-                f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to read file from {path}: {e}",
-                exc_info=True,
-            )
-            raise AppException(
-                message=f"Local Read Failed: {str(e)}",
-                status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
-            ) from e
+        for attempt in range(MAX_REPLACE_RETRIES):
+            try:
+                async with aiofiles.open(full_path, "rb") as f:
+                    data = await f.read()
+                    return data if isinstance(data, bytes) else bytes(data, "utf-8")
+            except PermissionError as e:
+                if attempt == MAX_REPLACE_RETRIES - 1:
+                    logger.error(
+                        f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: File is locked after {MAX_REPLACE_RETRIES} attempts: {e}"
+                    )
+                    raise AppException(
+                        message=f"Local Read Failed, tiedosto on auki: {str(e)}",
+                        status_code=409,
+                        details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value},
+                    ) from e
+                logger.warning(
+                    "[LocalFileDriver] WinError on aiofiles.open (read), retrying %d/%d for %s",
+                    attempt + 1,
+                    MAX_REPLACE_RETRIES,
+                    full_path.name,
+                )
+                await asyncio.sleep(REPLACE_RETRY_DELAY_SEC)
+            except Exception as e:
+                logger.error(
+                    f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to read file from {path}: {e}",
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=f"Local Read Failed: {str(e)}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+                ) from e
+
+        # Fallback (should not be reached due to raises above)
+        raise AppException(
+            message="Local Read Failed due to lock.",
+            status_code=409,
+            details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value},
+        )
 
     async def delete(self, path: str) -> bool:
         """Deletes file from local file system.

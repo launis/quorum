@@ -112,13 +112,48 @@ def test_html_tag_stripping_retains_mapping() -> None:
 
 
 def test_validate_evidence_hallucinated_chars_fails() -> None:
-    """Test that a quote hallucinated by a few characters fails deterministic validation."""
+    """Test that a quote hallucinated by a few characters fails deterministic validation under STRICT level."""
     pdf_text = "Tämä on erittäin tärkeä strateginen muutos."
     # LLM hallucination: "strateginen muutos" -> "strateginen päätös"
     quote = "Tämä on erittäin tärkeä strateginen päätös."
 
     with pytest.raises(SemanticEvidenceError) as exc_info:
-        AnchorValidationService.validate_evidence(pdf_text, [quote])
+        AnchorValidationService.validate_evidence(pdf_text, [quote], strictness_level=85)
 
     assert "Lexical validation failed" in str(exc_info.value)
-    assert quote[:50] in str(exc_info.value)
+
+
+def test_entropy_gate_fails_short_quotes() -> None:
+    """Test that short quotes (< 20 chars) bypass fuzzy matching and fail if not 100% exact."""
+    pdf_text = "The quick brown fox"
+    # 19 chars long quote, with a typo
+    quote = "The quick brawn fox"
+
+    with pytest.raises(SemanticEvidenceError) as exc_info:
+        # Even with RELAXED (30) which has 65% threshold, entropy gate blocks it
+        AnchorValidationService.validate_evidence(pdf_text, [quote], strictness_level=30)
+
+    assert "Entropy Gate Failure" in str(exc_info.value)
+
+
+def test_discrete_tiers_fuzzy_fallback_success() -> None:
+    """Test that long quotes pass using fuzzy fallback if they meet the tier threshold."""
+    pdf_text = "This is a very long document with a minor typo in the source material."
+    # 70 chars long, 1 typo ('material' -> 'materiel'). Should pass STANDARD (80%)
+    quote = "This is a very long document with a minor typo in the source materiel."
+
+    result = AnchorValidationService.validate_evidence(pdf_text, [quote], strictness_level=50)
+    assert result == [quote]
+
+
+def test_discrete_tiers_fuzzy_fallback_fails_strict() -> None:
+    """Test that the same typo fails under STRICT (85) tier which requires 95%."""
+    pdf_text = "This document contains a very specific statement that we want to extract completely."
+    # Change "completely" to "entirely" -> ~89% match. Will fail STRICT (95%)
+    quote = "This document contains a very specific statement that we want to extract entirely."
+
+    with pytest.raises(SemanticEvidenceError) as exc_info:
+        AnchorValidationService.validate_evidence(pdf_text, [quote], strictness_level=85)
+
+    assert "Lexical validation failed" in str(exc_info.value)
+
