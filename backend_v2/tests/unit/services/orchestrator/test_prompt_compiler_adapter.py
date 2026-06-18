@@ -68,14 +68,14 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
     )
 
     assert isinstance(prompt, CompiledPrompt)
-    assert len(prompt.static_messages) == 2
-    assert prompt.static_messages[0]["role"] == "system"
-    assert "Analyze this text." in prompt.static_messages[0]["content"]
+    assert len(prompt.static_messages) == 1
+    assert prompt.static_messages[0]["role"] == "user"
+    assert "<source_data>" in prompt.static_messages[0]["content"]
+
+    assert len(prompt.dynamic_messages) == 1
+    assert "Analyze this text." in prompt.dynamic_messages[0]["content"]
     # V3: Rubrics are in dynamic tier, NOT in static system message
     assert "EVALUATION_RUBRICS" not in prompt.static_messages[0]["content"]
-
-    assert prompt.static_messages[1]["role"] == "user"
-    assert "<source_data>\nVerbatim source doc.\n</source_data>" in prompt.static_messages[1]["content"]
 
     assert len(prompt.dynamic_messages) == 1
     assert prompt.dynamic_messages[0]["role"] == "user"

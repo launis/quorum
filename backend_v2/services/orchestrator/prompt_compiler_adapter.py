@@ -39,14 +39,17 @@ class PromptCompilerAdapter:
         Static tier contains globally identical content (system prompt + base document).
         Dynamic tier contains per-chunk/per-retry content (rubrics, atoms, params, errors).
         """
-        # V3 Static Tier: System prompt (base only, no rubrics) + source document
+        # Epic 80 Static Tier: ONLY the source document!
+        # The source document never changes between matrices, allowing 100% cache hit rate.
         static_messages = [
-            {"role": "system", "content": base_system_prompt.strip()},
             {"role": "user", "content": f"<source_data>\n{base_payload}\n</source_data>"},
         ]
 
-        # V3 Dynamic Tier: Everything that varies per chunk or retry
+        # Epic 80 Dynamic Tier: Everything that varies per chunk, retry, or matrix
         dynamic_parts = []
+
+        # Move system instructions to dynamic tier so Vertex Context Cache static hash is purely the PDF
+        dynamic_parts.append(f"<system_instructions>\n{base_system_prompt.strip()}\n</system_instructions>")
 
         # 1. Chunk-specific rubrics (vary per chunk when atom subsets differ)
         # We bypass the PromptCompiler adapter layer to pass allowed_atom_ids to LocalizationCompiler
