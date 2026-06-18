@@ -37,10 +37,10 @@ import sys
 from pathlib import Path
 
 
-def main():
+def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore
 
     if len(sys.argv) < 2:
         print("Käyttö: python flutter_audit_loop.py <kohdekansio> [--build]")

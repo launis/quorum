@@ -324,7 +324,7 @@ async def execute_workflow_job(
                     if event.event_type != "output":
                         continue
 
-                    step_meta = event.metadata.get("_step_metadata", {})
+                    step_meta = event.content.get("_step_metadata", {})
                     usage = step_meta.get("token_usage", {})
                     model_strategy = step_meta.get("model_strategy", "unknown")
                     chunk_size = step_meta.get("chunk_size", 1)

@@ -46,7 +46,7 @@ class ConsensusVotePayload(BaseModel):
 
 
 def evaluate_extraction(
-    extraction: Any, source_text: str, is_negative_rule: bool, strictness_level: int = StrictnessAnchor.STANDARD.value
+    extraction: Any, source_text: str, strictness_level: int = StrictnessAnchor.STANDARD.value
 ) -> str:
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
@@ -85,6 +85,8 @@ def evaluate_extraction(
             status = "FAIL"
 
     semantic_reasoning = getattr(extraction, "semantic_reasoning", "") or ""
+    # Conservative Safety Principle: We allow the LLM to override a PASS to a FAIL
+    # based on semantic reasoning, but never a FAIL to a PASS.
     if "[5. VALIDATION DECISION: FAIL]" in str(semantic_reasoning) or "[5. VALIDATION DECISION: FAIL]" in str(
         reasoning_steps or ""
     ):
@@ -171,15 +173,6 @@ def resolve_majority_vote(
     if len(res_list) == 1:
         return res_list[0]
 
-    # Build atom -> inverse_evidence map for veto evaluation
-    atom_inverse_map = {}
-    for block in criteria_blocks:
-        if block.scales:
-            for scale in block.scales:
-                for claim in scale.claims:
-                    for tda in claim.tda_assertions:
-                        atom_inverse_map[tda.tda_id] = tda.inverse_evidence
-
     merged = copy.deepcopy(res_list[0])
 
     if is_shuffled and "evaluations" in merged:
@@ -193,10 +186,8 @@ def resolve_majority_vote(
                     if item.get("atom_id") == atom_id:
                         votes.append(item)
             if votes:
-                is_inverse = atom_inverse_map.get(atom_id, False)
-
                 payloads = [ConsensusVotePayload.model_validate(v) for v in votes]
-                statuses = [evaluate_extraction(p, global_source_text, is_inverse, strictness_level) for p in payloads]
+                statuses = [evaluate_extraction(p, global_source_text, strictness_level) for p in payloads]
 
                 final_status = _apply_majority_consensus(statuses)
                 confidence = _calculate_confidence(statuses, final_status)
@@ -213,11 +204,8 @@ def resolve_majority_vote(
             if block.id in merged and block.category_id != "matrix" and block.type != "instruction":
                 votes = [res[block.id] for res in res_list if block.id in res]
                 if votes:
-                    is_inverse = False
                     payloads = [ConsensusVotePayload.model_validate(v) for v in votes]
-                    statuses = [
-                        evaluate_extraction(p, global_source_text, is_inverse, strictness_level) for p in payloads
-                    ]
+                    statuses = [evaluate_extraction(p, global_source_text, strictness_level) for p in payloads]
 
                     final_status = _apply_majority_consensus(statuses)
                     confidence = _calculate_confidence(statuses, final_status)
@@ -525,7 +513,6 @@ class ChunkWorker:
                     chunk_final = validated_response.model_dump(mode="json")
 
                     for idx, atom_model in enumerate(getattr(validated_response, "evaluations", [])):
-                        atom_id = atom_model.atom_id
                         atom_dict = chunk_final["evaluations"][idx]
 
                         c_status = atom_consensus_data.get(idx, {}).get("status")
@@ -535,19 +522,7 @@ class ChunkWorker:
                             status = c_status
                             confidence = c_conf
                         else:
-                            is_negative_rule = False
-                            for crit in chunk_criteria:
-                                if crit.scales:
-                                    for scale in crit.scales:
-                                        for claim in scale.claims:
-                                            for tda in claim.tda_assertions:
-                                                if tda.tda_id == atom_id and tda.inverse_evidence:
-                                                    is_negative_rule = True
-                                                    break
-
-                            status = evaluate_extraction(
-                                atom_model, global_source_text, is_negative_rule, strictness_level
-                            )
+                            status = evaluate_extraction(atom_model, global_source_text, strictness_level)
                             confidence = None
 
                         atom_dict["status"] = status
@@ -603,18 +578,7 @@ class ChunkWorker:
                                 status = c_status
                                 confidence = c_conf
                             else:
-                                is_negative_rule = False
-                                if crit.scales:
-                                    for scale in crit.scales:
-                                        for claim in scale.claims:
-                                            for tda in claim.tda_assertions:
-                                                if tda.inverse_evidence:
-                                                    is_negative_rule = True
-                                                    break
-
-                                status = evaluate_extraction(
-                                    block_model, global_source_text, is_negative_rule, strictness_level
-                                )
+                                status = evaluate_extraction(block_model, global_source_text, strictness_level)
                                 confidence = None
 
                             block_dict["status"] = status

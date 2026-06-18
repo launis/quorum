@@ -48,7 +48,7 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
-def run_tests_with_strict_coverage(target):
+def run_tests_with_strict_coverage(target: str) -> None:
     print("🚀 Verifying Strict 30% TDD Coverage...")
 
     # Convert file path to dotted module path for accurate coverage (e.g. backend_v2/services/execution.py -> backend_v2.services.execution)
@@ -124,7 +124,7 @@ def run_tests_with_strict_coverage(target):
         print("\n✅ Strict 30% Coverage Target Met.")
 
 
-def main():
+def main() -> None:
     targets = []
     run_openapi = False
     run_test = False

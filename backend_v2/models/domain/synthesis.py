@@ -6,6 +6,8 @@ to eliminate legacy dictionary-based parsing.
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
@@ -48,6 +50,11 @@ class SynthesisMetadataDTO(V2CoreBase):
     cost_estimate: float | None = Field(default=None)
     synthesis_cost_usd: float | None = Field(default=None)
     dag_cost_usd: float | None = Field(default=None)
+
+    # Injected by System 2 Reliability Tracker in worker.py
+    global_context_vars: dict[str, Any] | None = Field(default=None)
+    execution_summary: dict[str, Any] | None = Field(default=None)
+    step_metrics: dict[str, Any] | None = Field(default=None)
 
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):

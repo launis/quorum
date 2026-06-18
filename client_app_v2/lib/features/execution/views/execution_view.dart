@@ -109,6 +109,10 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
             .resumeExecution(widget.executionId),
       );
     }
+
+    final errorMessage = record['error']?.toString() ?? '';
+    final isRecoverable = record['is_resumable'] == true;
+
     final fzRaw = record['frozen_context'];
     final frozenContext = fzRaw is Map ? fzRaw : {};
 
@@ -173,7 +177,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             ),
                       ),
                     ),
-                    if (status == 'failed')
+                    if (status == 'failed' && isRecoverable)
                       MutationButton<void>(
                         mutation: resumeMutation,
                         label: AppLocalizations.of(
@@ -250,10 +254,10 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   detail: record['error'].toString(),
                   extensions: {'error_code': record['error'].toString()},
                 ),
-                actionLabel: AppLocalizations.of(context)!.resumeActionableHint,
-                onAction: () => ref
+                actionLabel: isRecoverable ? AppLocalizations.of(context)!.resumeActionableHint : null,
+                onAction: isRecoverable ? () => ref
                     .read(executionControllerProvider.notifier)
-                    .submitRehydration(widget.executionId),
+                    .submitRehydration(widget.executionId) : null,
               ),
             ),
           ),

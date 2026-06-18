@@ -1436,8 +1436,8 @@
                   ],
                   "anchor_target": "Find absolute certainty markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "this absolute certainty is presented without empirical data or epistemic qualifiers.",
-                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+                  "extraction_rule": "this absolute certainty (regarding facts, methodologies, or sources) is presented without empirical data or epistemic qualifiers.",
+                  "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" OR \"Method Z was used because it accounts for variable W\" (Epistemic grounding).\nUNACCEPTABLE: \"Claim X is true because of common sense\" OR \"Source Z is absolutely infallible and requires no scrutiny\" (Methodological absolute certainty / Blind trust)."
                 }
               ]
             }
