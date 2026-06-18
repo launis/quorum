@@ -11,6 +11,8 @@ from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model, model_validator
 
+from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE
+
 
 class ExtractedFactsDTOBase(BaseModel):
     """Base class for dynamically compiled ExtractedFactsDTO, enforcing validation rules."""
@@ -111,7 +113,7 @@ def create_extraction_model(
         "chunk_index": (int, Field(..., description="Zero-based index of the chunk")),
         "context_scan_trace": (str, Field(..., max_length=400, description="Short trace of LLM reasoning")),
         "search_context_anchor": (str | None, Field(default=None, description="Optional raw quote anchor")),
-        "contextual_override": (bool, Field(default=False, description="If True, contextual override is applied")),
+        "contextual_override": (bool, Field(default=False, description=DESC_CONTEXTUAL_OVERRIDE)),
         "semantic_reasoning": (str, Field(default="", description="Detailed semantic explanation")),
     }
 

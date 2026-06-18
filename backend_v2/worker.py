@@ -412,6 +412,11 @@ async def execute_workflow_job(
                             "step_states": step_states_dict,
                             "duration_ms": duration_ms,
                             "models_used": models_used,
+                            "metadata": updated_meta,
+                            "cost_estimate": total_cost_usd,
+                            "execution_trace": [
+                                evt.model_dump(mode="json") for evt in updated_exec_record.execution_trace
+                            ],
                         },
                     )
 
@@ -426,6 +431,11 @@ async def execute_workflow_job(
                             "completed_at": datetime.now(UTC).isoformat(),
                             "duration_ms": duration_ms,
                             "models_used": models_used,
+                            "metadata": updated_meta,
+                            "cost_estimate": total_cost_usd,
+                            "execution_trace": [
+                                evt.model_dump(mode="json") for evt in updated_exec_record.execution_trace
+                            ],
                         },
                     )
 
@@ -836,8 +846,9 @@ async def generate_profile_synthesis_and_pdf_task(
                     meta = dict(execution.metadata) if execution.metadata else {}
 
                     dag_cost = meta.get("dag_cost_usd", execution.cost_estimate or 0.0)
-                    synth_cost = usage.get("cost_usd", 0.0)
-                    total_cost = dag_cost + synth_cost
+                    new_synth_cost = usage.get("cost_usd", 0.0)
+                    cumulative_synth_cost = meta.get("synthesis_cost_usd", 0.0) + new_synth_cost
+                    total_cost = dag_cost + cumulative_synth_cost
 
                     total_p_tokens = usage.get("prompt_tokens", 0)
                     total_c_tokens = usage.get("completion_tokens", 0)
@@ -855,7 +866,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         total_t_tokens += meta.get("total_tokens", 0)
 
                     # Isolate DAG cost vs Synthesis cost
-                    meta["synthesis_cost_usd"] = synth_cost
+                    meta["synthesis_cost_usd"] = cumulative_synth_cost
                     meta["dag_cost_usd"] = dag_cost
 
                     meta["total_tokens"] = total_t_tokens

@@ -90,21 +90,6 @@ def evaluate_extraction(
     ):
         status = "FAIL"
 
-    # Negative condition handling
-    if is_negative_rule:
-        if status == "PASS":
-            logger.debug(
-                "[Code-as-a-Judge] Dual Negation triggered: Flipping PASS to FAIL.",
-                extra={"error_code": "DUAL_NEGATION_FLIP_TO_FAIL"},
-            )
-            status = "FAIL"
-        elif status == "FAIL":
-            logger.debug(
-                "[Code-as-a-Judge] Dual Negation triggered: Flipping FAIL to PASS.",
-                extra={"error_code": "DUAL_NEGATION_FLIP_TO_PASS"},
-            )
-            status = "PASS"
-
     return status
 
 
@@ -373,10 +358,6 @@ class ChunkWorker:
         )
         base_system_prompt = f"{linguistic_context}\n\n{base_system_prompt}"
 
-        # Phase 5: Fast-Model Compensator - Enforce Contextual Override Ban
-        if is_lightweight or has_shuffled_atoms:
-            strictness_level = max(strictness_level, 100)
-
         # V3 Cache Fix: Use CompiledPrompt with separated static/dynamic tiers
         compiled_prompt = compiler.compile_chunk_prompt(
             base_system_prompt=base_system_prompt,
@@ -517,10 +498,14 @@ class ChunkWorker:
                         chunk_final["evaluations"].append(
                             {
                                 "atom_id": pf_atom_id,
-                                "exact_quote": pf_res.exact_quote,
+                                "exact_quotes": [pf_res.exact_quote] if getattr(pf_res, "exact_quote", None) else [],
                                 "contextual_override": False,
-                                "premise_1_quote": None,
-                                "premise_2_quote": None,
+                                "override_reason": None,
+                                "reasoning_steps": "[EXTRACTIVE_SENSOR_PRE_FLIGHT] Fast match.",
+                                "falsification_argument": "N/A",
+                                "structural_location": "N/A",
+                                "localized_anchors_found": [],
+                                "decision": True,
                                 "semantic_reasoning": "[EXTRACTIVE_SENSOR_PRE_FLIGHT] Deterministic syntax match.",
                             }
                         )

@@ -787,15 +787,29 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                             else:
                                                 final_state = "TRUE" if is_satisfied else "FALSE"
 
-                                                if final_state == "TRUE":
+                                                has_evidence = (
+                                                    (ev_dto.status == "PASS")
+                                                    if getattr(ev_dto, "status", None)
+                                                    else (
+                                                        ev_dto.evidence_found
+                                                        or (
+                                                            getattr(ev_dto, "contextual_override", False)
+                                                            and effective_override
+                                                        )
+                                                    )
+                                                )
+                                                if has_evidence:
                                                     if ev_dto.exact_quotes:
                                                         atom_quotes_by_block[pb_id].extend(ev_dto.exact_quotes)
-                                                    elif ev_dto.contextual_override and effective_override:
-                                                        l_raw = ev_dto.structural_location
+                                                    elif (
+                                                        getattr(ev_dto, "contextual_override", False)
+                                                        and effective_override
+                                                    ):
+                                                        l_raw = getattr(ev_dto, "structural_location", None)
                                                         loc = (
                                                             l_raw if l_raw and l_raw != "N/A" else "Tuntematon sijainti"
                                                         )
-                                                        r_raw = ev_dto.semantic_reasoning
+                                                        r_raw = getattr(ev_dto, "semantic_reasoning", None)
                                                         rsn = r_raw if r_raw else "Ei perustelua"
                                                         atom_quotes_by_block[pb_id].append(f"📍 {loc}: {rsn}")
                                             break

@@ -45,10 +45,9 @@ def test_convert_strictness_to_forgiveness_all_branches() -> None:
     assert abs(convert_strictness_to_forgiveness(90) - (0.10 - (5 / 15.0) * 0.10)) < 0.001
     assert convert_strictness_to_forgiveness(100) == 0.00
     assert convert_strictness_to_forgiveness(105) == 0.00
-    with pytest.raises(AppException):
-        convert_strictness_to_forgiveness(50)
-    with pytest.raises(AppException):
-        convert_strictness_to_forgiveness(0)
+    assert convert_strictness_to_forgiveness(50) == 0.30
+    assert convert_strictness_to_forgiveness(0) == 0.50
+    assert convert_strictness_to_forgiveness(-10) == 0.50
 
 
 def test_soft_waterfall_scaling_deterministic_differences() -> None:

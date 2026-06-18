@@ -118,7 +118,7 @@ async def test_programmatic_errors_bubble_up_and_crash_fail_fast() -> None:
                 output_profile=None,
                 strictness_level=85,
             )
-        assert "string indices must be integers" in str(exc_info.value)
+        assert "string indices must be integers" in repr(exc_info.value)
 
 
 @pytest.mark.asyncio

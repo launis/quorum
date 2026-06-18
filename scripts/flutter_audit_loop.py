@@ -30,6 +30,7 @@ uv run python scripts/flutter_audit_loop.py client_app_v2 --build
 uv run python scripts/flutter_audit_loop.py lib/features/sdui/ --build
 ```
 """
+
 import os
 import subprocess
 import sys
@@ -38,8 +39,8 @@ from pathlib import Path
 
 def main():
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
 
     if len(sys.argv) < 2:
         print("Käyttö: python flutter_audit_loop.py <kohdekansio> [--build]")
@@ -66,7 +67,7 @@ def main():
     # tai poistaa 'client_app_v2/' polun alusta.
     cmd_dir = target_dir
     if cmd_dir.replace("\\", "/").startswith("client_app_v2/"):
-        cmd_dir = cmd_dir[len("client_app_v2/"):]
+        cmd_dir = cmd_dir[len("client_app_v2/") :]
     elif cmd_dir.strip("\\/") == "client_app_v2":
         cmd_dir = "."
 
@@ -99,8 +100,11 @@ def main():
     else:
         print("\n❌ AUDIT FAILED: Analyysi löysi koodista virheitä, korjaa ne ennen jatkamista!")
         print("🤖 AI INSTRUCTION: Lue yllä oleva raportti ja korjaa kaatuvat staattisen analyysin virheet.")
-        print("🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `c:\\src\\quorum\\.agents\\rules` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (e.g., No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state.\n")
+        print(
+            "🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `c:\\src\\quorum\\.agents\\rules` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (e.g., No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state.\n"
+        )
         sys.exit(res.returncode)
+
 
 if __name__ == "__main__":
     main()

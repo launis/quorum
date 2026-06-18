@@ -46,6 +46,8 @@ class SynthesisMetadataDTO(V2CoreBase):
     prompt_tokens: int | None = Field(default=None)
     completion_tokens: int | None = Field(default=None)
     cost_estimate: float | None = Field(default=None)
+    synthesis_cost_usd: float | None = Field(default=None)
+    dag_cost_usd: float | None = Field(default=None)
 
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):

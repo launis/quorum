@@ -42,12 +42,15 @@ def analyze_traces():
 
             size_kb = len(content_str) / 1024
             if est_tokens > 10000:
-                print(f"[{i:02d}] {e_type.ljust(8)} | {s_name.ljust(25)} | Size: {size_kb:.1f} KB (~{est_tokens} tokens)")
+                print(
+                    f"[{i:02d}] {e_type.ljust(8)} | {s_name.ljust(25)} | Size: {size_kb:.1f} KB (~{est_tokens} tokens)"
+                )
 
         print(f"Total theoretical trace volume for {ex_id}: ~{total_tokens} tokens")
         if total_tokens > 0:
             top = sorted(key_sizes.items(), key=lambda x: x[1], reverse=True)[0]
             print(f"Top contributor: {top[0]} = ~{top[1]} tokens")
+
 
 if __name__ == "__main__":
     analyze_traces()

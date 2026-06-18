@@ -31,6 +31,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test
 uv run python scripts/backend_audit_loop.py backend_v2/ --openapi
 ```
 """
+
 import os
 import subprocess
 import sys
@@ -40,11 +41,12 @@ from pathlib import Path
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 # Force UTF-8 encoding for stdout to support emojis on Windows
-if hasattr(sys.stdout, 'reconfigure'):
+if hasattr(sys.stdout, "reconfigure"):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
+
 
 def run_tests_with_strict_coverage(target):
     print("🚀 Verifying Strict 30% TDD Coverage...")
@@ -87,7 +89,7 @@ def run_tests_with_strict_coverage(target):
 
         # 2. Ajetaan Coverage Report, joka filtteröi laatuportin vaatimuksen KOSKEMAAN VAIN tätä kyseistä tiedostoa
         if result.returncode == 0:
-            target_name = os.path.basename(target) # esim. synthesis.py
+            target_name = os.path.basename(target)  # esim. synthesis.py
             coverage_cmd = ["uv", "run", "coverage", "report", f"--include=*{target_name}", "--fail-under=30", "-m"]
             result = subprocess.run(coverage_cmd)
     else:
@@ -111,11 +113,16 @@ def run_tests_with_strict_coverage(target):
 
     if result.returncode != 0:
         print("\n❌ AUDIT FAILED: Testeissä oli virheitä TAI testikattavuus ei ole 30%.")
-        print("🤖 AI INSTRUCTION: Lue yllä oleva raportti ja korjaa joko kaatuvat testit (-v tai --tb=short kertoo syyn) TAI lisää testejä puuttuville riveille (Miss-sarake).")
-        print("🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `c:\\src\\quorum\\.agents\\rules` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (e.g., No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state.")
+        print(
+            "🤖 AI INSTRUCTION: Lue yllä oleva raportti ja korjaa joko kaatuvat testit (-v tai --tb=short kertoo syyn) TAI lisää testejä puuttuville riveille (Miss-sarake)."
+        )
+        print(
+            "🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `c:\\src\\quorum\\.agents\\rules` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (e.g., No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state."
+        )
         sys.exit(result.returncode)
     else:
         print("\n✅ Strict 30% Coverage Target Met.")
+
 
 def main():
     targets = []
@@ -183,6 +190,7 @@ def main():
         print("✅ Yksikkötestit läpäisty.")
 
     print("\n🏆 Kaikki puhdasta! Kohteet ovat Phase 9 asennossa.\n")
+
 
 if __name__ == "__main__":
     main()

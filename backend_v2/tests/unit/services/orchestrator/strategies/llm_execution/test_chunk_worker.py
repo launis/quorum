@@ -249,11 +249,9 @@ def test_deterministic_extraction_scoring() -> None:
     )
     assert evaluate_extraction(ext_contradiction, "matched quote", False) == "FAIL"
 
-    # Negative condition
-    # Track B -> FAIL becomes PASS
-    assert evaluate_extraction(ext1, "test text", True) == "PASS"
-    # Track B -> PASS becomes FAIL for negative rules
-    assert evaluate_extraction(ext2, "test text", True) == "FAIL"
+    # Negative condition (No longer flips PASS/FAIL due to double-negation fix)
+    assert evaluate_extraction(ext1, "test text", True) == "FAIL"
+    assert evaluate_extraction(ext2, "test text", True) == "PASS"
 
 
 @pytest.mark.asyncio

@@ -309,7 +309,10 @@ async def test_execute_success_path_structured_output(
         mock_schema.model_json_schema.return_value = {}
 
         mock_validated = MagicMock()
-        mock_validated.model_dump.return_value = {"blocks": []}
+        mock_validated.model_dump.return_value = {
+            "blocks": [],
+            "blk_0123456789abcdef0123456789abcdef": {"decision": True},
+        }
         mock_validated.model_copy.return_value = mock_validated
         mock_schema.model_validate.return_value = mock_validated
 

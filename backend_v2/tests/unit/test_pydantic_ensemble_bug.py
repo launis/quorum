@@ -16,6 +16,11 @@ class DummyEvaluationItem(BaseModel):
     contextual_override: bool = False
     decision: bool = True
     semantic_reasoning: str = "Test reasoning"
+    override_reason: str | None = None
+    reasoning_steps: str = ""
+    falsification_argument: str = ""
+    structural_location: str = ""
+    localized_anchors_found: list[str] = []
 
 
 class DummyResponse(BaseModel):

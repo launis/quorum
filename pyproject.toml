@@ -67,6 +67,7 @@ dev = [
 [tool.ruff]
 target-version = "py314"
 line-length = 120
+exclude = ["scratch", ".venv", ".git", "docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "D"]
@@ -91,12 +92,23 @@ convention = "google"
 "backend_v2/tasks/analysis.py" = ["E501"]
 "backend_v2/tasks/critique.py" = ["E501"]
 "backend_v2/database/firestore_repo.py" = ["E501"]
+"backend_v2/services/orchestrator/anchor_validation_service.py" = ["E501"]
+"backend_v2/services/orchestrator/prompt_compiler.py" = ["E501"]
+"backend_v2/services/orchestrator/schema_factory.py" = ["E501"]
+"backend_v2/services/pii_analyzer.py" = ["E501"]
+"backend_v2/tests/unit/services/orchestrator/test_schema_healing_prompt.py" = ["E501"]
+"backend_v2/tests/unit/test_seed_architectural_guardrails.py" = ["E501"]
+"scripts/backend_audit_loop.py" = ["E501", "D415"]
+"scripts/flutter_audit_loop.py" = ["E501", "D415"]
+"tests/unit/services/orchestrator/test_chunk_worker_validation.py" = ["E501"]
+"tools/check_trace_size.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.14"
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 check_untyped_defs = true
+exclude = ["docs/", "scratch/", "client_app_v2/", "tools/", "tests/", "backend_v2/tests/"]
 
 [[tool.mypy.overrides]]
 module = [

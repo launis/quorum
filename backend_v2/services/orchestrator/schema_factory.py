@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.enums import SystemConcurrency
+from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
 from backend_v2.models.v2_core import PromptBlock
 
 logger = logging.getLogger(__name__)
@@ -48,10 +49,10 @@ class StrippedBaseTDAExtraction(BaseModel):
     exact_quotes: list[str] = Field(
         default_factory=list,
         max_length=3,
-        description="Extract up to 3 physically contiguous sentences. Do not stitch them together. ABSOLUTE PRIORITY over contextual override. MUST be empty if contextual_override is True. CRITICAL: MUST ALWAYS be extracted in the exact original language of the source text, as physically contiguous VERBATIM substrings (do not add/remove words, markdown, or fix typos). NEVER translate the quotes, even if your reasoning is in another language.",
+        description=DESC_EXACT_QUOTES,
     )
     contextual_override: bool = Field(
-        description="ABSOLUTE LAST RESORT. True only if rule is satisfied contextually without a verbatim quote. exact_quotes MUST be empty if True.",
+        description=DESC_CONTEXTUAL_OVERRIDE,
     )
     semantic_reasoning: str = Field(
         description="Detailed analytical reasoning in target language explaining the match.",

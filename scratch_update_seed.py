@@ -13,15 +13,31 @@ def update_seed_data():
             for scale in block.get("scales", []):
                 for claim in scale.get("claims", []):
                     for assertion in claim.get("tda_assertions", []):
-
-                        instruction = (assertion.get("extraction_rule", "") + " " + assertion.get("anchor_target", "")).lower()
+                        instruction = (
+                            assertion.get("extraction_rule", "") + " " + assertion.get("anchor_target", "")
+                        ).lower()
 
                         # Generate abstract contrastive examples (X, Y, Z)
-                        if "causal" in instruction or "mechanism" in instruction or "connect" in instruction or "link" in instruction:
+                        if (
+                            "causal" in instruction
+                            or "mechanism" in instruction
+                            or "connect" in instruction
+                            or "link" in instruction
+                        ):
                             ce = 'ACCEPTABLE: "X affects Y via mechanism Z" (Abstract universal mechanism).\nUNACCEPTABLE: "X is associated with Y" (Lacks explicit mechanism/causality).'
-                        elif "empirical" in instruction or "data" in instruction or "evidence" in instruction or "citation" in instruction:
+                        elif (
+                            "empirical" in instruction
+                            or "data" in instruction
+                            or "evidence" in instruction
+                            or "citation" in instruction
+                        ):
                             ce = 'ACCEPTABLE: "Claim X is supported by explicit data point Y" (Abstract universal example).\nUNACCEPTABLE: "Claim X is true because of common sense" (Lacks empirical data).'
-                        elif "counter-argument" in instruction or "rebuttal" in instruction or "dismiss" in instruction or "opposing" in instruction:
+                        elif (
+                            "counter-argument" in instruction
+                            or "rebuttal" in instruction
+                            or "dismiss" in instruction
+                            or "opposing" in instruction
+                        ):
                             ce = 'ACCEPTABLE: "X is argued, but Y provides evidence otherwise" (Abstract universal rebuttal).\nUNACCEPTABLE: "X is completely wrong" (Dismissive without counter-data).'
                         elif "certainty" in instruction or "absolute" in instruction or "dogmatic" in instruction:
                             ce = 'ACCEPTABLE: "X is absolutely the only way to achieve Y" (Abstract dogmatic statement).\nUNACCEPTABLE: "X is absolutely the only way to achieve Y, based on Z" (Contains external backing).'
@@ -39,6 +55,7 @@ def update_seed_data():
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     print(f"Updated {count} assertions with abstract X/Y/Z contrastive examples.")
+
 
 if __name__ == "__main__":
     update_seed_data()

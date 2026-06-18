@@ -411,20 +411,15 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   border: const OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int?>(
-                    value: payload.strictnessLevel,
+                  child: DropdownButton<int>(
+                    value:
+                        payload.strictnessLevel ??
+                        StrictnessLevel.balanced.value,
                     isDense: true,
                     isExpanded: true,
                     items: [
-                      DropdownMenuItem<int?>(
-                        value: null,
-                        child: Text(
-                          l10n.noneDefaultLabel,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
                       ...StrictnessLevel.values.map((lvl) {
-                        return DropdownMenuItem<int?>(
+                        return DropdownMenuItem<int>(
                           value: lvl.value,
                           child: Text(switch (lvl) {
                             StrictnessLevel.fullFlexibility =>

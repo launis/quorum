@@ -11,7 +11,7 @@ for root, _dirs, files in os.walk(root_dir):
     # We should add any directory that contains purely .dart files?
     # Or just ANY directory that contains .dart files directly?
     # Let's say: any directory that contains at least one .dart file
-    has_dart = any(f.endswith('.dart') for f in files)
+    has_dart = any(f.endswith(".dart") for f in files)
     if has_dart:
         rel_path = os.path.relpath(root, root_dir)
         leaf_dirs.append(rel_path.replace("\\", "/"))

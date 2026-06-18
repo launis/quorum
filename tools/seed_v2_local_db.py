@@ -20,7 +20,6 @@ def seed_db():
     print(f"Initializing TinyDB at {db_path}...")
     db_client = TinyDBClient(db_path)
 
-
     for collection_name, items in seed_data.items():
         if isinstance(items, list):
             print(f"Inserting {len(items)} items into {collection_name}...")
@@ -31,6 +30,7 @@ def seed_db():
                 table.insert(item)
 
     print(f"Successfully seeded {db_path}!")
+
 
 if __name__ == "__main__":
     seed_db()

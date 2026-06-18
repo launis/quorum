@@ -40,7 +40,7 @@ def test_step_dto_semantic_validation() -> None:
     obj = StepDTOSemantic.model_validate(data)
     assert obj.contextual_override is True
 
-    # Test invalid: contextual_override = True but exact_quote is not empty
-    data["exact_quotes"] = "Some quote"
-    with pytest.raises(ValidationError):
-        StepDTOSemantic.model_validate(data)
+    # Test pre-validator clears exact_quotes automatically
+    data["exact_quotes"] = ["Some quote"]
+    obj2 = StepDTOSemantic.model_validate(data)
+    assert obj2.exact_quotes == []

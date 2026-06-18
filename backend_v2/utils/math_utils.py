@@ -30,6 +30,10 @@ class StrictnessConfig(BaseModel):
 
 
 STRICTNESS_ANCHOR_CONFIGS = {
+    StrictnessAnchor.NONE: StrictnessConfig(base_forgiveness=0.50, sigmoid_midpoint=0.3, dynamic_exponent=0.5),
+    StrictnessAnchor.RELAXED: StrictnessConfig(base_forgiveness=0.40, sigmoid_midpoint=0.4, dynamic_exponent=0.8),
+    StrictnessAnchor.STANDARD: StrictnessConfig(base_forgiveness=0.30, sigmoid_midpoint=0.5, dynamic_exponent=1.0),
+    StrictnessAnchor.BALANCED: StrictnessConfig(base_forgiveness=0.20, sigmoid_midpoint=0.6, dynamic_exponent=1.2),
     StrictnessAnchor.STRICT: StrictnessConfig(base_forgiveness=0.10, sigmoid_midpoint=0.7, dynamic_exponent=1.5),
     StrictnessAnchor.ABSOLUTE: StrictnessConfig(base_forgiveness=0.00, sigmoid_midpoint=0.9, dynamic_exponent=3.0),
 }
@@ -38,28 +42,15 @@ STRICTNESS_ANCHOR_CONFIGS = {
 def get_strictness_config(strictness_level: int) -> StrictnessConfig:
     """Retrieves or interpolates the StrictnessConfig for a given level.
 
-    Calculates exact linear interpolation between anchor points if the level
-    falls between STRICT and ABSOLUTE.
+    Calculates exact linear interpolation between anchor points.
 
     Args:
-        strictness_level: Integer representing the strictness (must be >= 85).
+        strictness_level: Integer representing the strictness.
 
     Returns:
         StrictnessConfig: Configuration containing math penalties.
-
-    Raises:
-        AppException: If strictness_level is below the absolute minimum of 85 (VALIDATION_FAILED).
     """
-    if strictness_level < 85:
-        msg = f"Strictness level {strictness_level} is too low. Only STRICT (85) and ABSOLUTE (100) are allowed."
-        logger.error("[MathUtils] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=400,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-        )
-
-    level = min(100, strictness_level)
+    level = max(0, min(100, strictness_level))
 
     for anchor, config in STRICTNESS_ANCHOR_CONFIGS.items():
         if anchor.value == level:
