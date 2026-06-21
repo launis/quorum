@@ -258,6 +258,12 @@ class SystemConcurrency(int, Enum):
     PACING_DELAY_OPENAI_SECONDS = 1
     PACING_DELAY_MOCK_SECONDS = 0
     REDIS_CONNECTION_TIMEOUT_SECONDS = 10
+    # Epic 80: Content Cache feature flag. When enabled (1), the base_system_prompt
+    # is moved from 'system' role to 'user' role, allowing Vertex AI to cache ONLY
+    # the PDF document for 100% cache hit rate across matrices. HOWEVER, this causes
+    # ~29% evaluation quality degradation due to Role Degradation (the LLM treats
+    # user-role instructions less strictly than system-role). Default: DISABLED (0).
+    CONTENT_CACHE_ENABLED = 0
 
 
 # --- Restored V1 Enums ---

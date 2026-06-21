@@ -38,18 +38,35 @@ class PromptCompilerAdapter:
 
         Static tier contains globally identical content (system prompt + base document).
         Dynamic tier contains per-chunk/per-retry content (rubrics, atoms, params, errors).
-        """
-        # Epic 80 Static Tier: ONLY the source document!
-        # The source document never changes between matrices, allowing 100% cache hit rate.
-        static_messages = [
-            {"role": "user", "content": f"<source_data>\n{base_payload}\n</source_data>"},
-        ]
 
-        # Epic 80 Dynamic Tier: Everything that varies per chunk, retry, or matrix
+        When CONTENT_CACHE_ENABLED is active, the system prompt moves to user role
+        to allow Vertex AI to cache only the PDF. This trades evaluation quality
+        (~29% degradation) for token cost savings.
+        """
+        from backend_v2.models.enums import SystemConcurrency
+
+        content_cache_enabled = bool(SystemConcurrency.CONTENT_CACHE_ENABLED.value)
+
+        if content_cache_enabled:
+            # Epic 80 Mode: Static tier = ONLY the source document (for max cache hit rate).
+            # System prompt is demoted to user role in the dynamic tier.
+            static_messages = [
+                {"role": "user", "content": f"<source_data>\n{base_payload}\n</source_data>"},
+            ]
+        else:
+            # V3 Default: Static tier = system prompt (system role) + source document.
+            # Preserves native system role authority for maximum LLM compliance.
+            static_messages = [
+                {"role": "system", "content": base_system_prompt.strip()},
+                {"role": "user", "content": f"<source_data>\n{base_payload}\n</source_data>"},
+            ]
+
+        # Dynamic Tier: Everything that varies per chunk, retry, or matrix
         dynamic_parts = []
 
-        # Move system instructions to dynamic tier so Vertex Context Cache static hash is purely the PDF
-        dynamic_parts.append(f"<system_instructions>\n{base_system_prompt.strip()}\n</system_instructions>")
+        # Epic 80: Move system instructions to dynamic tier as user content
+        if content_cache_enabled:
+            dynamic_parts.append(f"<system_instructions>\n{base_system_prompt.strip()}\n</system_instructions>")
 
         # 1. Chunk-specific rubrics (vary per chunk when atom subsets differ)
         # We bypass the PromptCompiler adapter layer to pass allowed_atom_ids to LocalizationCompiler

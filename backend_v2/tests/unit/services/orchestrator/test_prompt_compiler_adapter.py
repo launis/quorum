@@ -68,17 +68,16 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
     )
 
     assert isinstance(prompt, CompiledPrompt)
-    assert len(prompt.static_messages) == 1
-    assert prompt.static_messages[0]["role"] == "user"
-    assert "<source_data>" in prompt.static_messages[0]["content"]
-
-    assert len(prompt.dynamic_messages) == 1
-    assert "Analyze this text." in prompt.dynamic_messages[0]["content"]
-    # V3: Rubrics are in dynamic tier, NOT in static system message
-    assert "EVALUATION_RUBRICS" not in prompt.static_messages[0]["content"]
+    assert len(prompt.static_messages) == 2
+    assert prompt.static_messages[0]["role"] == "system"
+    assert prompt.static_messages[0]["content"] == "Analyze this text."
+    assert prompt.static_messages[1]["role"] == "user"
+    assert "<source_data>" in prompt.static_messages[1]["content"]
 
     assert len(prompt.dynamic_messages) == 1
     assert prompt.dynamic_messages[0]["role"] == "user"
+    # V3 Default: System prompt is NOT in dynamic tier
+    assert "Analyze this text." not in prompt.dynamic_messages[0]["content"]
     # V3: Rubrics, strictness, and errors are all in dynamic tier
     assert "<evaluation_criteria>" in prompt.dynamic_messages[0]["content"]
     assert "<STRICTNESS_CALIBRATION>" in prompt.dynamic_messages[0]["content"]
@@ -203,3 +202,137 @@ def test_prompt_caching_cryptographic_determinism_proof() -> None:
     first_hash = hashes[0]
     for idx, h in enumerate(hashes):
         assert h == first_hash, f"Hash mismatch at index {idx}! Caching efficiency degraded."
+
+
+def _make_test_block() -> PromptBlock:
+    """Shared helper to create a minimal valid PromptBlock for feature flag tests."""
+    return PromptBlock.model_validate(
+        {
+            "id": "blk_e80f1a9b00000001",
+            "slug": "flag_test",
+            "category_id": "matrix",
+            "description": {"default_locale": "en", "translations": {"en": "Flag", "fi": "Flag"}},
+            "type": BlockDataType.FLOAT,
+            "label": {"default_locale": "en", "translations": {"en": "FlagTest", "fi": "FlagTest"}},
+            "ai_description": "Epic 80 feature flag test criteria",
+            "scales": [
+                {
+                    "score": 1,
+                    "ai_label": "LEVEL_ONE",
+                    "claims": [
+                        {
+                            "label": {"default_locale": "en", "translations": {"en": "C1", "fi": "C1"}},
+                            "ai_description": "Directive flag test",
+                            "tda_assertions": [
+                                {
+                                    "tda_id": "tda_e80f1a9b0000000000000000000000f1",
+                                    "concept_description": "Flag test assertion",
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "ALL_MUST_COMPLY",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+
+def test_content_cache_enabled_demotes_system_to_user() -> None:
+    """Epic 80 Feature Flag: When CONTENT_CACHE_ENABLED=1, the system prompt MUST be
+    demoted from native 'system' role to '<system_instructions>' within a 'user' message.
+    This is a deliberate architectural trade-off for Vertex AI cache compatibility.
+    """
+    from unittest.mock import patch
+
+    adapter = PromptCompilerAdapter()
+    block = _make_test_block()
+    system_prompt = "You are an adversarial auditor. Never compromise."
+
+    with patch("backend_v2.models.enums.SystemConcurrency") as mock_enum:
+        # Simulate CONTENT_CACHE_ENABLED = 1
+        mock_enum.CONTENT_CACHE_ENABLED.value = 1
+
+        prompt = adapter.compile_chunk_prompt(
+            base_system_prompt=system_prompt,
+            chunk_criteria=[block],
+            base_payload="Source document for cache testing.",
+            strictness_level=50,
+            target_locale="fi",
+        )
+
+    assert isinstance(prompt, CompiledPrompt)
+
+    # Static tier: ONLY the PDF, no system role at all
+    assert len(prompt.static_messages) == 1
+    assert prompt.static_messages[0]["role"] == "user"
+    assert "<source_data>" in prompt.static_messages[0]["content"]
+    # System prompt MUST NOT appear in static tier
+    assert system_prompt not in prompt.static_messages[0]["content"]
+
+    # Dynamic tier: System prompt demoted inside <system_instructions> tags
+    dynamic_content = prompt.dynamic_messages[0]["content"]
+    assert "<system_instructions>" in dynamic_content
+    assert system_prompt in dynamic_content
+    assert prompt.dynamic_messages[0]["role"] == "user"
+
+    # Prove no message in the entire prompt has role="system"
+    all_messages = prompt.static_messages + prompt.dynamic_messages
+    system_roles = [m for m in all_messages if m["role"] == "system"]
+    assert len(system_roles) == 0, "Epic 80 mode MUST NOT produce any system-role messages (Vertex AI API constraint)"
+
+
+def test_content_cache_modes_are_structurally_incompatible() -> None:
+    """Proves that CONTENT_CACHE_ENABLED=0 and CONTENT_CACHE_ENABLED=1 produce
+    structurally different outputs. This validates the feature flag actually
+    changes behavior and guards against accidental no-ops.
+
+    The V3 default (disabled) MUST have system role; Epic 80 (enabled) MUST NOT.
+    Their static SHA-256 hashes MUST differ (different message counts and roles).
+    """
+    from unittest.mock import patch
+
+    adapter = PromptCompilerAdapter()
+    block = _make_test_block()
+    system_prompt = "Strict evaluation rules."
+    payload = "Identical source document."
+
+    compile_kwargs = {
+        "base_system_prompt": system_prompt,
+        "chunk_criteria": [block],
+        "base_payload": payload,
+        "strictness_level": 70,
+        "target_locale": "en",
+    }
+
+    # --- Mode 0: V3 Default (system role preserved) ---
+    with patch("backend_v2.models.enums.SystemConcurrency") as mock_enum:
+        mock_enum.CONTENT_CACHE_ENABLED.value = 0
+        prompt_v3 = adapter.compile_chunk_prompt(**compile_kwargs)
+
+    # --- Mode 1: Epic 80 Content Cache (system role demoted) ---
+    with patch("backend_v2.models.enums.SystemConcurrency") as mock_enum:
+        mock_enum.CONTENT_CACHE_ENABLED.value = 1
+        prompt_epic80 = adapter.compile_chunk_prompt(**compile_kwargs)
+
+    # Structural divergence: V3 has 2 static messages, Epic 80 has 1
+    assert len(prompt_v3.static_messages) == 2, "V3 default must have system + user in static"
+    assert len(prompt_epic80.static_messages) == 1, "Epic 80 must have only user in static"
+
+    # Role divergence: V3 has system role, Epic 80 does not
+    v3_roles = {m["role"] for m in prompt_v3.static_messages}
+    epic80_roles = {m["role"] for m in prompt_epic80.static_messages}
+    assert "system" in v3_roles, "V3 default MUST preserve native system role"
+    assert "system" not in epic80_roles, "Epic 80 MUST NOT have system role"
+
+    # Content divergence: Epic 80 dynamic tier contains system_instructions tag
+    epic80_dynamic = prompt_epic80.dynamic_messages[0]["content"]
+    v3_dynamic = prompt_v3.dynamic_messages[0]["content"]
+    assert "<system_instructions>" in epic80_dynamic
+    assert "<system_instructions>" not in v3_dynamic
+
+    # Cryptographic proof: Static hashes MUST differ between modes
+    hash_v3 = hashlib.sha256(json.dumps(prompt_v3.static_messages, sort_keys=True).encode()).hexdigest()
+    hash_epic80 = hashlib.sha256(json.dumps(prompt_epic80.static_messages, sort_keys=True).encode()).hexdigest()
+    assert hash_v3 != hash_epic80, "Feature flag is a no-op! V3 and Epic 80 static hashes must differ."
