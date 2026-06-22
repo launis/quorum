@@ -65,12 +65,15 @@ async def test_lite_llm_provider_tool_calls_content_extraction() -> None:
 
     provider.router.acompletion.return_value = MockLiteLLMResponse()
 
-    # Act
-    response = await provider.generate(
-        prompt="Hello",
-        temperature=0.0,
-        max_tokens=100,
-    )
+    from unittest.mock import patch
+
+    with patch("backend_v2.llm.adapters.base_adapter.apply_provider_pacing", new_callable=AsyncMock):
+        # Act
+        response = await provider.generate(
+            prompt="Hello",
+            temperature=0.0,
+            max_tokens=100,
+        )
 
     # Assert
     # If the bug is present, result.content will be "" (empty).

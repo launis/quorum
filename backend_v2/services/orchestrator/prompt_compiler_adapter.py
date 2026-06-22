@@ -119,37 +119,52 @@ class PromptCompilerAdapter:
 
         for msg in messages:
             role = msg.get("role")
-            content = msg.get("content", "")
+            content = msg.get("content")
 
-            # Safeguard type coercion
-            content_str = content if isinstance(content, str) else str(content)
+            # Preserve extra properties (like tool_calls, tool_call_id, name)
+            extra_props = {k: v for k, v in msg.items() if k not in ("role", "content")}
+
+            # Handle None safely without casting it to "None"
+            content_str = content if isinstance(content, str) else (str(content) if content is not None else None)
+
+            new_msg: dict[str, Any]
 
             if role == "system":
                 # System is 100% static
-                static_msgs.append({"role": "system", "content": content_str.strip()})
+                new_msg = {"role": "system", "content": content_str.strip() if content_str else ""}
+                new_msg.update(extra_props)
+                static_msgs.append(new_msg)
             elif role == "user":
                 if in_dynamic_tail:
-                    dynamic_msgs.append({"role": "user", "content": content_str.strip()})
+                    new_msg = {"role": "user", "content": content_str.strip() if content_str else ""}
+                    new_msg.update(extra_props)
+                    dynamic_msgs.append(new_msg)
                 else:
                     # Scan for dynamic parameters and previous errors
-                    has_exec_params = "<execution_parameters>" in content_str
-                    has_prev_error = "<PREVIOUS_SCHEMA_ERROR>" in content_str
+                    has_exec_params = content_str and "<execution_parameters>" in content_str
+                    has_prev_error = content_str and "<PREVIOUS_SCHEMA_ERROR>" in content_str
 
                     if not has_exec_params and not has_prev_error:
-                        static_msgs.append({"role": "user", "content": content_str.strip()})
+                        new_msg = {"role": "user", "content": content_str.strip() if content_str else ""}
+                        new_msg.update(extra_props)
+                        static_msgs.append(new_msg)
                     else:
                         in_dynamic_tail = True
                         # Isolate dynamic parameters block
-                        exec_params_match = re.search(
-                            r"(<execution_parameters>.*?</execution_parameters>)", content_str, re.DOTALL
+                        exec_params_match = (
+                            re.search(r"(<execution_parameters>.*?</execution_parameters>)", content_str, re.DOTALL)
+                            if content_str
+                            else None
                         )
                         # Isolate previous errors block
-                        prev_error_match = re.search(
-                            r"(<PREVIOUS_SCHEMA_ERROR>.*?</PREVIOUS_SCHEMA_ERROR>)", content_str, re.DOTALL
+                        prev_error_match = (
+                            re.search(r"(<PREVIOUS_SCHEMA_ERROR>.*?</PREVIOUS_SCHEMA_ERROR>)", content_str, re.DOTALL)
+                            if content_str
+                            else None
                         )
 
                         dynamic_parts = []
-                        static_content = content_str
+                        static_content = content_str or ""
 
                         if exec_params_match:
                             exec_block = exec_params_match.group(1)
@@ -166,16 +181,27 @@ class PromptCompilerAdapter:
 
                         # Keep static user elements in static segment
                         if static_content:
-                            static_msgs.append({"role": "user", "content": static_content})
+                            new_static = {"role": "user", "content": static_content}
+                            new_static.update(extra_props)
+                            static_msgs.append(new_static)
 
                         # Keep dynamic parameter blocks in dynamic segment
                         if dynamic_parts:
                             dynamic_content = "\n\n".join(dynamic_parts).strip()
-                            dynamic_msgs.append({"role": "user", "content": dynamic_content})
+                            new_dynamic = {"role": "user", "content": dynamic_content}
+                            # Optional: Which message gets the extra props if it's split? Usually user messages don't have tool_calls.
+                            # We'll attach them to the dynamic tail if it was a user message that got split.
+                            new_dynamic.update(extra_props)
+                            dynamic_msgs.append(new_dynamic)
             else:
-                # Other conversation context (assistant reply, etc.) is dynamic tail
+                # Other conversation context (assistant reply, tool response, etc.) is dynamic tail
                 in_dynamic_tail = True
-                dynamic_msgs.append({"role": role, "content": content_str.strip()})
+                new_msg = {
+                    "role": role if role else "",
+                    "content": content_str.strip() if content_str else None,
+                }
+                new_msg.update(extra_props)
+                dynamic_msgs.append(new_msg)
 
         return CompiledPrompt(
             static_messages=static_msgs,

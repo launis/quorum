@@ -100,14 +100,26 @@ def run_tests_with_strict_coverage(target: str) -> None:
             if parts[0] == "backend_v2":
                 test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
             else:
-                test_path = "tests/" + "/".join(parts)
+                if parts == ["."]:
+                    test_path = "backend_v2/tests/"
+                else:
+                    test_path = "tests/" + "/".join(parts)
+
+        test_paths_list = test_path.split()
+        args = test_paths_list + [
+            "-v",
+            "--tb=short",
+            f"--cov={cov_target}",
+            "--cov-fail-under=30",
+            "--cov-report=term-missing",
+        ]
 
         cmd = [
             "uv",
             "run",
             "python",
             "-c",
-            f"import sys\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main(['{test_path}', '-v', '--tb=short', '--cov={cov_target}', '--cov-fail-under=30', '--cov-report=term-missing']))",
+            f"import sys\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main({args}))",
         ]
         result = subprocess.run(cmd)
 

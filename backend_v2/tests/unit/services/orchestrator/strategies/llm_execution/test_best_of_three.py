@@ -88,9 +88,9 @@ def test_resolve_majority_vote_pure_majority() -> None:
         mock_eval.side_effect = ["PASS", "FAIL", "FAIL"]
 
         merged = resolve_majority_vote(
-            res_list=res_list,
-            is_shuffled=True,
-            criteria_blocks=criteria_blocks,
+            results=res_list,
+            has_shuffled_atoms=True,
+            chunk_criteria=criteria_blocks,
             user_payload="source",
             global_source_text="source",
             strictness_level=50,
@@ -99,7 +99,7 @@ def test_resolve_majority_vote_pure_majority() -> None:
         evals = merged["evaluations"]
         assert len(evals) == 1
         assert evals[0]["status"] == "FAIL"
-        assert evals[0]["confidence"] == 0.67  # 2 FAILs, 1 PASS
+        assert evals[0]["confidence"] == 2 / 3  # 2 FAILs, 1 PASS
         assert evals[0]["exact_quotes"] == ["q"]
 
 

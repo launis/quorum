@@ -226,4 +226,6 @@ enum SduiBlockType {
   bulletList,
   @JsonValue('alert_box')
   alertBox,
+  @JsonValue('markdown')
+  markdown,
 }

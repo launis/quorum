@@ -394,7 +394,8 @@ class AtomEvaluationItemDTO(V2CoreBase):
             if self.exact_quotes:
                 context = info.context if info else None
                 source_text = context.get("source_text") if context else None
-                if source_text:
+                has_mcp_tools = context.get("has_mcp_tools", False) if context else False
+                if source_text and not has_mcp_tools:
                     # Normalize both source and quote using the same exact logic as the orchestrator
                     from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 

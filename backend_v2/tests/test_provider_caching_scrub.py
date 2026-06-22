@@ -50,8 +50,10 @@ async def test_provider_caching_payload_scrub_bug() -> None:
 
     provider.router = mock_router
 
-    # Mock Litellm cost calculation
-    with patch("backend_v2.llm.provider.litellm.completion_cost", return_value=0.0):
+    with (
+        patch("litellm.completion_cost", return_value=0.0),
+        patch("backend_v2.llm.adapters.base_adapter.apply_provider_pacing", new_callable=AsyncMock),
+    ):
         # We provide system instruction and cached_content
         # By default, system instruction goes into final_messages
         try:

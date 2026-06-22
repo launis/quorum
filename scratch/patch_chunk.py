@@ -1,90 +1,46 @@
 import sys
-import re
 
-with open(r'c:\src\quorum\backend_v2\services\orchestrator\strategies\llm_execution\chunk_worker.py', 'r', encoding='utf-8') as f:
-    lines = f.readlines()
+with open('backend_v2/services/orchestrator/strategies/llm_execution/chunk_worker.py', 'r', encoding='utf-8') as f:
+    lines = f.read().splitlines()
 
-out = []
-for idx, line in enumerate(lines):
-    if "class ChunkWorker:" in line:
-        out.append('''def _is_transient_chunk_error(exc: BaseException) -> bool:
-    """Classify whether a chunk-level error is transient (retryable) or structural (terminal)."""
-    import litellm
-    import asyncio
+start_idx = -1
+for i, line in enumerate(lines):
+    if line == "        if effective_mcp_tools:":
+        start_idx = i
+        break
 
-    TRANSIENT_TYPES = (
-        asyncio.TimeoutError,
-        ConnectionError,
-        getattr(litellm, "APIConnectionError", type(None)),
-        getattr(litellm, "RateLimitError", type(None)),
-        getattr(litellm, "ServiceUnavailableError", type(None)),
-        getattr(litellm, "Timeout", type(None)),
-    )
-    TRANSIENT_KEYWORDS = ("APIConnectionError", "ServiceUnavailable", "Timeout", "Resource exhausted")
-
-    if isinstance(exc, ExceptionGroup):
-        return all(_is_transient_chunk_error(inner) for inner in exc.exceptions)
-
-    if isinstance(exc, TRANSIENT_TYPES):
-        return True
-
-    error_str = str(exc)
-    return any(keyword in error_str for keyword in TRANSIENT_KEYWORDS)
-
-''')
-    out.append(line)
-
-content = "".join(out)
-
-# Find where try starts in process_chunk
-try_idx = content.find("        try:\n            if effective_mcp_tools:")
-except_idx = content.find("        except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:")
-
-if try_idx == -1 or except_idx == -1:
-    print("Could not find try or except block!")
+if start_idx == -1:
+    print("Could not find start idx")
     sys.exit(1)
 
-# Extract the inner part of the try block
-try_block_inner = content[try_idx + 13 : except_idx]
+end_idx = -1
+for i in range(start_idx, len(lines)):
+    if lines[i] == "        return chunk_final, chunk_usage, chunk_traces, prompt_context":
+        end_idx = i
+        break
 
-# Replace `return chunk_final, chunk_usage, chunk_traces, prompt_context` with injection
-try_block_inner = try_block_inner.replace(
-    "            return chunk_final, chunk_usage, chunk_traces, prompt_context",
-    "            if attempt > 0:\n                chunk_final[\"_dlq_retry_count\"] = attempt\n            return chunk_final, chunk_usage, chunk_traces, prompt_context"
-)
+if end_idx == -1:
+    print("Could not find end idx")
+    sys.exit(1)
 
-# Indent it by 4 spaces
-indented_inner = "\n".join("    " + line if line.strip() else line for line in try_block_inner.split('\n'))
+new_lines = lines[:start_idx]
+new_lines.append("        try:")
+for i in range(start_idx, end_idx + 1):
+    if lines[i].strip() == "":
+        new_lines.append("")
+    else:
+        new_lines.append("    " + lines[i])
 
-new_try_block = f"""        MAX_CHUNK_RETRIES = 2
-        attempt = 0
+new_lines.extend("""
+        except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
 
-        while attempt <= MAX_CHUNK_RETRIES:
-            try:
-{indented_inner}"""
-
-except_block_original = content[except_idx : content.find("            return chunk_final, None, [], prompt_context", except_idx) + len("            return chunk_final, None, [], prompt_context")]
-
-new_except_block = """        except (LLMSchemaValidationError, AppException, ExceptionGroup, Exception) as e:
-
-            def _is_structural(exc: BaseException) -> bool:
+            def _has_programmatic_errors(exc: BaseException) -> bool:
                 if isinstance(exc, ExceptionGroup):
-                    return any(_is_structural(inner) for inner in exc.exceptions)
-                return isinstance(exc, (LLMSchemaValidationError, AppException)) or not _is_transient_chunk_error(exc)
+                    return any(_has_programmatic_errors(inner) for inner in exc.exceptions)
+                return not isinstance(exc, (LLMSchemaValidationError, AppException))
 
-            if attempt < MAX_CHUNK_RETRIES and _is_transient_chunk_error(e) and not _is_structural(e):
-                attempt += 1
-                backoff_seconds = min(10 * (2 ** (attempt - 1)), 60)
-                logger.warning("[ChunkWorker] Transient error detected. Retrying chunk (attempt %d/%d)...", attempt, MAX_CHUNK_RETRIES)
-                import asyncio
-                await asyncio.sleep(backoff_seconds)
-                continue
-
-            if _is_structural(e) and not isinstance(e, ExceptionGroup):
+            if _has_programmatic_errors(e):
                 raise e
-
-            if attempt > 0:
-                chunk_final["_dlq_retry_count"] = attempt
 
             def _unwrap_error(exc: BaseException) -> str:
                 if isinstance(exc, ExceptionGroup):
@@ -99,10 +55,10 @@ new_except_block = """        except (LLMSchemaValidationError, AppException, Ex
                 exc_info=True,
             )
             fallback_reason = f"Chunk Processing Failed: {reason_str}"
-            chunk_final.update({
+            chunk_final = {
                 "_dlq_status": "FAILED/DLQ",
                 "reason": fallback_reason,
-            })
+            }
             # Graceful DLQ Fallback: Map the failure to individual elements
             if has_shuffled_atoms and chunk is not None:
                 chunk_final["evaluations"] = []
@@ -127,10 +83,12 @@ new_except_block = """        except (LLMSchemaValidationError, AppException, Ex
                         "semantic_reasoning": fallback_reason,
                     }
 
-            return chunk_final, None, [], prompt_context"""
+            return chunk_final, None, [], prompt_context
+""".strip("\n").split("\n"))
 
-content = content.replace(content[try_idx:content.find("            return chunk_final, None, [], prompt_context", except_idx) + len("            return chunk_final, None, [], prompt_context")], new_try_block + new_except_block)
+new_lines.extend(lines[end_idx + 1:])
 
-with open(r'c:\src\quorum\backend_v2\services\orchestrator\strategies\llm_execution\chunk_worker.py', 'w', encoding='utf-8') as f:
-    f.write(content)
-print("done")
+with open('backend_v2/services/orchestrator/strategies/llm_execution/chunk_worker.py', 'w', encoding='utf-8') as f:
+    f.write('\n'.join(new_lines) + '\n')
+
+print("Patched successfully")

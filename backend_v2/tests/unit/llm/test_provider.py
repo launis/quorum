@@ -125,11 +125,14 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
     provider.router.acompletion.return_value = MockLiteLLMResponse()
 
     # Call generate and verify if resolved additional_params (vertex_location) bleed into call_kwargs
-    await provider.generate(
-        prompt="Hello",
-        temperature=0.7,
-        max_tokens=100,
-    )
+    from unittest.mock import patch
+
+    with patch("backend_v2.llm.adapters.base_adapter.apply_provider_pacing", new_callable=AsyncMock):
+        await provider.generate(
+            prompt="Hello",
+            temperature=0.7,
+            max_tokens=100,
+        )
 
     # Verify what arguments acompletion was called with
     called_kwargs = provider.router.acompletion.call_args[1]

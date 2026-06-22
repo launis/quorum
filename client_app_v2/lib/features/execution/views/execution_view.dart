@@ -110,7 +110,6 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
       );
     }
 
-    final errorMessage = record['error']?.toString() ?? '';
     final isRecoverable = record['is_resumable'] == true;
 
     final fzRaw = record['frozen_context'];
@@ -254,10 +253,14 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   detail: record['error'].toString(),
                   extensions: {'error_code': record['error'].toString()},
                 ),
-                actionLabel: isRecoverable ? AppLocalizations.of(context)!.resumeActionableHint : null,
-                onAction: isRecoverable ? () => ref
-                    .read(executionControllerProvider.notifier)
-                    .submitRehydration(widget.executionId) : null,
+                actionLabel: isRecoverable
+                    ? AppLocalizations.of(context)!.resumeActionableHint
+                    : null,
+                onAction: isRecoverable
+                    ? () => ref
+                          .read(executionControllerProvider.notifier)
+                          .submitRehydration(widget.executionId)
+                    : null,
               ),
             ),
           ),

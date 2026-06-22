@@ -126,3 +126,59 @@ def test_progressive_dampening_boundaries() -> None:
 
         assert 1.0 <= score_min <= 2.0
         assert 1.0 <= score_max <= 2.0
+
+
+def test_clamp_score_invalid_scale() -> None:
+    from backend_v2.utils.math_utils import clamp_score
+
+    with pytest.raises(AppException):
+        clamp_score(3.0, 5.0, 1.0)
+
+
+def test_calculate_linear_ratio_score() -> None:
+    from backend_v2.utils.math_utils import calculate_linear_ratio_score
+
+    stats = {
+        1.0: {"hits": 100, "total": 100},
+        2.0: {"hits": 50, "total": 100},
+    }
+    score = calculate_linear_ratio_score(stats, 1.0, 5.0)
+    assert score > 1.0
+
+    with pytest.raises(AppException):
+        calculate_linear_ratio_score(stats, 5.0, 1.0)
+
+    # 0 max weights
+    stats_empty = {
+        1.0: {"hits": 0, "total": 0},
+    }
+    assert calculate_linear_ratio_score(stats_empty, 1.0, 5.0) == 1.0
+
+
+def test_calculate_sigmoid_weighted_score() -> None:
+    from backend_v2.utils.math_utils import calculate_sigmoid_weighted_score
+
+    stats = {
+        1.0: {"hits": 100, "total": 100},
+        2.0: {"hits": 50, "total": 100},
+    }
+    score = calculate_sigmoid_weighted_score(stats, 1.0, 5.0, get_strictness_config(85))
+    assert 1.0 <= score <= 5.0
+
+    with pytest.raises(AppException):
+        calculate_sigmoid_weighted_score(stats, 5.0, 1.0, get_strictness_config(85))
+
+
+def test_soft_waterfall_threshold_zero() -> None:
+    stats = {1.0: {"hits": 0, "total": 100}}
+    # threshold = 0.0 -> fallback branch
+    score = calculate_soft_waterfall_score(stats, 1.0, 5.0, 0.0, 0.5)
+    assert score == 1.0
+
+
+def test_progressive_dampening_math_error() -> None:
+    # cause an OverflowError or ValueError
+    stats = {1.0: {"hits": -1, "total": 1}}
+    config = get_strictness_config(85)
+    score = calculate_progressive_dampening_score(stats, 1.0, 5.0, config)
+    assert score == 1.0

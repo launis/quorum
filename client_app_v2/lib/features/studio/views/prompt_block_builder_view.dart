@@ -678,7 +678,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Text(l10n.promptBlockEnsembleToggleDesc),
                             ),
-                            value: payload.isLightweightProtocol,
+                            value: !payload.isLightweightProtocol,
                             onChanged: (val) {
                               ref
                                   .read(
@@ -686,7 +686,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                   )
                                   .forceRebuild(
                                     payload.copyWith(
-                                      isLightweightProtocol: val,
+                                      isLightweightProtocol: !val,
                                     ),
                                   );
                             },
