@@ -17,12 +17,12 @@ from backend_v2.models.domain.analyst import AnalystOutput, Hypothesis
 
 
 def test_is_hallucinated() -> None:
-    corpus = ["this is a test sentence", "another completely different line"]
+    norm_corpus = "thisisatestsentenceanothercompletelydifferentline"
 
-    assert _is_hallucinated("This is a test sentence", corpus, threshold=80.0) is False
-    assert _is_hallucinated("This is a test sentenc", corpus, threshold=80.0) is False
-    assert _is_hallucinated("I am making this up", corpus, threshold=80.0) is True
-    assert _is_hallucinated("cat", corpus, threshold=80.0) is False
+    assert _is_hallucinated("This is a test sentence", norm_corpus, threshold=80.0) is False
+    assert _is_hallucinated("This is a test sentenc", norm_corpus, threshold=80.0) is False
+    assert _is_hallucinated("I am making this up", norm_corpus, threshold=80.0) is True
+    assert _is_hallucinated("cat", norm_corpus, threshold=80.0) is False
 
 
 def test_gather_rag_context_empty() -> None:
@@ -130,9 +130,9 @@ def test_verify_payload_citations_analyst() -> None:
             )
         ],
     )
-    corpus = ["this is a valid quote"]
+    norm_corpus = "thisisavalidquote"
 
-    new_payload, total, valid, invalid = _verify_payload_citations(payload, corpus, threshold=80.0)
+    new_payload, total, valid, invalid = _verify_payload_citations(payload, norm_corpus, threshold=80.0)
     assert total == 2
     assert valid == 1
     assert len(invalid) == 1

@@ -473,22 +473,30 @@ class LLMNodeStrategy(NodeStrategy):
                     c_traces_dict = chunk_data["traces"] if "traces" in chunk_data else []
                     c_prompt_context_dict = chunk_data.get("prompt_context")
 
-                    if (
-                        isinstance(c_final, dict)
-                        and "_dlq_status" in c_final
-                        and c_final["_dlq_status"] == "FAILED/DLQ"
-                    ):
-                        reason = c_final["reason"] if "reason" in c_final else "Unknown DLQ Failure"
-                        logger.warning(
-                            f"[Orchestrator] Step execution failed in chunk {i} and routed to DLQ. "
-                            f"Continuing orchestrator run with degraded data. Reason: {reason}",
-                            extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
-                        )
-                        # Phase 4, Step 2: Allow accumulator to proceed instead of raising AppException
+                    if isinstance(c_final, dict):
+                        if c_final.get("_dlq_status") == "FAILED/DLQ":
+                            reason = c_final["reason"] if "reason" in c_final else "Unknown DLQ Failure"
+                            logger.warning(
+                                f"[Orchestrator] Step execution failed in chunk {i} and routed to DLQ. "
+                                f"Continuing orchestrator run with degraded data. Reason: {reason}",
+                                extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
+                            )
+                            # Phase 4, Step 2: Allow accumulator to proceed instead of raising AppException
+                        elif c_final.get("_dlq_retry_count", 0) > 0:
+                            logger.info(
+                                "[Orchestrator] Chunk recovered after %d transient retries.",
+                                c_final["_dlq_retry_count"],
+                            )
                     accumulator.add(c_final)
 
                     if c_usage_dict:
                         usage_agg = usage_agg + TokenUsage.model_validate(c_usage_dict)
+                        c_tokens = c_usage_dict.get("completion_tokens", 0)
+                        retries = c_final.get("_dlq_retry_count", 0) if isinstance(c_final, dict) else 0
+                        logger.info(
+                            f"Chunk processing complete. Generated tokens: {c_tokens}, Retries: {retries}",
+                            extra={"error_code": "CHUNK_SUCCESS"},
+                        )
 
                     if c_prompt_context_dict:
                         all_prompt_contexts.append(c_prompt_context_dict)
@@ -503,22 +511,29 @@ class LLMNodeStrategy(NodeStrategy):
                                 existing_hashes.add(thash)
             else:
                 for c_final, c_usage, c_traces, c_prompt_context in task_results:
-                    if (
-                        isinstance(c_final, dict)
-                        and "_dlq_status" in c_final
-                        and c_final["_dlq_status"] == "FAILED/DLQ"
-                    ):
-                        reason = c_final["reason"] if "reason" in c_final else "Unknown DLQ Failure"
-                        logger.warning(
-                            "[Orchestrator] Step execution failed in task chunk and routed to DLQ. "
-                            f"Continuing orchestrator run with degraded data. Reason: {reason}",
-                            extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
-                        )
-                        # Phase 4, Step 2: Allow accumulator to proceed instead of raising AppException
+                    if isinstance(c_final, dict):
+                        if c_final.get("_dlq_status") == "FAILED/DLQ":
+                            reason = c_final["reason"] if "reason" in c_final else "Unknown DLQ Failure"
+                            logger.warning(
+                                "[Orchestrator] Step execution failed in task chunk and routed to DLQ. "
+                                f"Continuing orchestrator run with degraded data. Reason: {reason}",
+                                extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
+                            )
+                            # Phase 4, Step 2: Allow accumulator to proceed instead of raising AppException
+                        elif c_final.get("_dlq_retry_count", 0) > 0:
+                            logger.info(
+                                "[Orchestrator] Chunk recovered after %d transient retries.",
+                                c_final["_dlq_retry_count"],
+                            )
                     accumulator.add(c_final)
 
                     if c_usage is not None:
                         usage_agg = usage_agg + c_usage
+                        retries = c_final.get("_dlq_retry_count", 0) if isinstance(c_final, dict) else 0
+                        logger.info(
+                            f"Chunk processing complete. Generated tokens: {c_usage.completion_tokens}, Retries: {retries}",
+                            extra={"error_code": "CHUNK_SUCCESS"},
+                        )
 
                     if c_prompt_context:
                         all_prompt_contexts.append(c_prompt_context.model_dump())

@@ -16,6 +16,7 @@ from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.integrity import CitationAudit, StepContext
 from backend_v2.models.enums import get_lexical_fuzz_threshold
+from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.utils.paths import get_forensic_input_path
@@ -111,12 +112,12 @@ def _gather_rag_context(global_vars: dict[str, Any]) -> str:
     return rag_text
 
 
-def _is_hallucinated(quote: str, corpus_chunks: list[str], threshold: float) -> bool:
+def _is_hallucinated(quote: str, norm_corpus: str, threshold: float) -> bool:
     """Determine if a quote is hallucinated using fuzzy matching against a corpus.
 
     Args:
         quote: The text quote to verify.
-        corpus_chunks: A list of text chunks representing the source material.
+        norm_corpus: The unified normalized source material.
         threshold: The required fuzzy match score percentage.
 
     Returns:
@@ -124,22 +125,24 @@ def _is_hallucinated(quote: str, corpus_chunks: list[str], threshold: float) -> 
     """
     if not quote or len(quote) < 4:
         return False
-    norm_q = quote.lower().strip()
-    # O(1) best case, early return on first partial fuzzy match >= threshold
-    for chunk in corpus_chunks:
-        if fuzz.partial_ratio(norm_q, chunk) >= threshold:
-            return False
+    norm_q, _ = AnchorValidationService.normalize_text_with_mapping(quote)
+    if not norm_q:
+        return True
+
+    # Harmonized unified search
+    if fuzz.partial_ratio(norm_q, norm_corpus) >= threshold:
+        return False
     return True
 
 
 def _verify_payload_citations(
-    parsed_payload: AnalystOutput | EvaluationResult, corpus_chunks: list[str], threshold: float
+    parsed_payload: AnalystOutput | EvaluationResult, norm_corpus: str, threshold: float
 ) -> tuple[AnalystOutput | EvaluationResult, int, int, list[str]]:
     """Verify citations in the parsed payload and drop hallucinated ones.
 
     Args:
         parsed_payload: The structured payload (AnalystOutput or EvaluationResult).
-        corpus_chunks: The source corpus split into lines.
+        norm_corpus: The unified normalized source corpus.
         threshold: The required fuzzy match score percentage.
 
     Returns:
@@ -157,7 +160,7 @@ def _verify_payload_citations(
                 valid_quotes = []
                 for quote in hyp.quotes:
                     total_count += 1
-                    if _is_hallucinated(quote, corpus_chunks, threshold):
+                    if _is_hallucinated(quote, norm_corpus, threshold):
                         invalid_citations.append(quote)
                         logger.warning("[IntegrityHook] Analyst hallucination detected.")
                     else:
@@ -171,7 +174,7 @@ def _verify_payload_citations(
             valid_quotes = []
             for quote in parsed_payload.citation_snippets:
                 total_count += 1
-                if _is_hallucinated(quote, corpus_chunks, threshold):
+                if _is_hallucinated(quote, norm_corpus, threshold):
                     invalid_citations.append(quote)
                     logger.warning("[IntegrityHook] Evaluator hallucination detected.")
                 else:
@@ -222,9 +225,9 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
             details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
         ) from e
 
-    # Chunking: split massive sources by lines to prevent RAM explosion and algorithm brittleness
-    raw_lines = ("\n".join(source_texts) + "\n" + rag_text).split("\n")
-    corpus_chunks = [line.lower().strip() for line in raw_lines if len(line.strip()) > 5]
+    # Phase 2: Unified normalized text space (BP-3/BP-4 Harmonization)
+    raw_text = "\n".join(source_texts) + "\n" + rag_text
+    norm_corpus, _ = AnchorValidationService.normalize_text_with_mapping(raw_text)
 
     # 2. V2 Schema Citation Verification (Zero-Compromise Pydantic Definitions)
     CitationPayloadAdapter: TypeAdapter[AnalystOutput | EvaluationResult] = TypeAdapter(
@@ -243,14 +246,14 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     threshold = get_lexical_fuzz_threshold(system_locale)
 
     parsed_payload, total_count, valid_count, invalid_citations = _verify_payload_citations(
-        parsed_payload, corpus_chunks, threshold
+        parsed_payload, norm_corpus, threshold
     )
 
     if total_count == 0:
         logger.warning("[IntegrityHook] No structured citations found to verify.")
         return HookResult(success=True, state_delta=parsed_payload.model_dump(mode="json", exclude_none=True))
 
-    if not corpus_chunks:
+    if not norm_corpus:
         error_code = ErrorCodes.STATE_INTEGRITY_ERROR
         msg = f"Data Integrity Violation: {total_count} citations found, but Source Corpus is empty."
         logger.error("[IntegrityHook] %s: %s", error_code.name, msg)

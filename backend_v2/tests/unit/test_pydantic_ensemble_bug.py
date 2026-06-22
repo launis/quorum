@@ -21,6 +21,9 @@ class DummyEvaluationItem(BaseModel):
     falsification_argument: str = ""
     structural_location: str = ""
     localized_anchors_found: list[str] = []
+    status: str | None = None
+    confidence: float | None = None
+    counter_quote: str | None = None
 
 
 class DummyResponse(BaseModel):

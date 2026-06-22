@@ -667,21 +667,28 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         # Compute missing chunks ratio based on chunk evaluations in content_payload
         dlq_evals = 0
+        infra_dlqs = 0
         total_evals = 0
         if isinstance(evaluations, list):
             total_evals = len(evaluations)
             for ev in evaluations:
-                is_dlq = False
+                is_infra = False
+                is_val = False
                 if isinstance(ev, dict):
-                    is_dlq = ("_dlq_status" in ev and ev["_dlq_status"] == "FAILED/DLQ") or (
-                        "status" in ev and ev["status"] == "DLQ"
-                    )
+                    if "_dlq_status" in ev and ev["_dlq_status"] == "FAILED/DLQ":
+                        is_infra = True
+                    elif "status" in ev and ev["status"] == "DLQ":
+                        is_val = True
                 else:
-                    is_dlq = (hasattr(ev, "status") and ev.status == "DLQ") or (
-                        hasattr(ev, "_dlq_status") and ev._dlq_status == "FAILED/DLQ"
-                    )
-                if is_dlq:
+                    if hasattr(ev, "_dlq_status") and ev._dlq_status == "FAILED/DLQ":
+                        is_infra = True
+                    elif hasattr(ev, "status") and ev.status == "DLQ":
+                        is_val = True
+
+                if is_infra or is_val:
                     dlq_evals += 1
+                if is_infra:
+                    infra_dlqs += 1
 
         # Get merged facts dictionary from dynamic MergedFactsDTO context
         merged_facts = content_payload["extracted_facts"]
@@ -725,17 +732,17 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 final_state = "FALSE"
                                 if isinstance(evaluations, list):
                                     for ev in evaluations:
-                                        # Skip DLQ items to prevent ValidationErrors (Rule 19)
-                                        is_ev_dlq = False
+                                        # Skip Infra-DLQ items to prevent ValidationErrors (Rule 19)
+                                        # Validation-DLQs (status="DLQ") are evaluated normally
+                                        is_ev_infra_dlq = False
                                         if isinstance(ev, dict):
-                                            is_ev_dlq = ("_dlq_status" in ev and ev["_dlq_status"] == "FAILED/DLQ") or (
-                                                "status" in ev and ev["status"] == "DLQ"
-                                            )
+                                            is_ev_infra_dlq = "_dlq_status" in ev and ev["_dlq_status"] == "FAILED/DLQ"
                                         else:
-                                            is_ev_dlq = (hasattr(ev, "status") and ev.status == "DLQ") or (
+                                            is_ev_infra_dlq = (
                                                 hasattr(ev, "_dlq_status") and ev._dlq_status == "FAILED/DLQ"
                                             )
-                                        if is_ev_dlq:
+
+                                        if is_ev_infra_dlq:
                                             continue
 
                                         ev_dict = (
@@ -854,8 +861,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             global_dlqs = sum(level_data["dlqs"] for level_data in stats.values())
 
             # Epic 56 Invariant 3: DLQ-failed items must be scored as 0/1 (hits=0, total=total).
-            # If dlq_count / total > 0.10, fail the whole matrix to INDETERMINATE.
-            is_indeterminate = global_total > 0 and (global_dlqs / global_total) > 0.10
+            # If infra_dlqs / total > 0.10, fail the whole matrix to INDETERMINATE.
+            is_indeterminate = global_total > 0 and (infra_dlqs / global_total) > 0.10
 
             total_true_atoms += global_hits
             total_false_atoms += global_total - global_hits - global_dlqs

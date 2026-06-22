@@ -10,10 +10,9 @@ from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationE
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.report import PromptContextDTO
-from backend_v2.models.enums import EvaluationRunCount, StrictnessAnchor, SystemConcurrency
+from backend_v2.models.enums import EvaluationRunCount, SystemConcurrency
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock
-from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
@@ -24,19 +23,38 @@ logger = logging.getLogger(__name__)
 FEATURE_FLAG_EXTRACTIVE_SENSOR = True
 
 
+def _is_transient_chunk_error(exc: BaseException) -> bool:
+    """Classify whether a chunk-level error is transient (retryable) or structural (terminal)."""
+    import asyncio
+
+    import litellm
+
+    TRANSIENT_TYPES = (
+        asyncio.TimeoutError,
+        ConnectionError,
+        getattr(litellm, "APIConnectionError", type(None)),
+        getattr(litellm, "RateLimitError", type(None)),
+        getattr(litellm, "ServiceUnavailableError", type(None)),
+        getattr(litellm, "Timeout", type(None)),
+    )
+    TRANSIENT_KEYWORDS = ("APIConnectionError", "ServiceUnavailable", "Timeout", "Resource exhausted")
+
+    if isinstance(exc, ExceptionGroup):
+        return all(_is_transient_chunk_error(inner) for inner in exc.exceptions)
+
+    if isinstance(exc, TRANSIENT_TYPES):
+        return True
+
+    error_str = str(exc)
+    return any(keyword in error_str for keyword in TRANSIENT_KEYWORDS)
+
+
 class AtomIdentifier(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
     atom_id: str
 
 
 class ConsensusVotePayload(BaseModel):
-    """Projects consensus-relevant fields from a raw LLM vote dict.
-
-    Uses extra='ignore' to safely extract only the fields that
-    evaluate_extraction reads via getattr(), discarding schema-specific
-    extras (atom_id, structural_location, localized_anchors_found, etc.).
-    """
-
     model_config = ConfigDict(frozen=True, extra="ignore")
     exact_quotes: list[str] = []
     contextual_override: bool = False
@@ -45,9 +63,7 @@ class ConsensusVotePayload(BaseModel):
     semantic_reasoning: str | None = ""
 
 
-def evaluate_extraction(
-    extraction: Any, source_text: str, strictness_level: int = StrictnessAnchor.STANDARD.value
-) -> str:
+def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int = 1) -> str:
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
     """
@@ -92,149 +108,126 @@ def evaluate_extraction(
     ):
         status = "FAIL"
 
+    counter_quote = getattr(extraction, "counter_quote", None)
+    if counter_quote and isinstance(counter_quote, str) and counter_quote.strip() and status == "PASS":
+        status = "CONTESTED"
+
     return status
 
 
-def _calculate_confidence(statuses: list[str], final_status: str) -> float:
-    """Calculate confidence score from consensus unanimity."""
-    agreeing = statuses.count(final_status)
-    total = len(statuses)
-    if total == 0:
-        return 0.33
-    if agreeing == total:
-        return 1.0
-    if agreeing >= 2:
-        return 0.67
-    return 0.33
-
-
-def _apply_majority_consensus(statuses: list[str]) -> str:
-    """Apply pure 2/3 majority consensus over pre-evaluated verdicts."""
-    pass_count = statuses.count("PASS")
-    if pass_count >= 2:
-        return "PASS"
-    if statuses.count("FAIL") >= 2:
-        return "FAIL"
-    return "DLQ"
-
-
-def _merge_consensus_fields(
-    payloads: list[ConsensusVotePayload], statuses: list[str], final_status: str
-) -> dict[str, Any]:
-    valid_indices = [i for i, status in enumerate(statuses) if status in ("PASS", "DLQ")]
-    if not valid_indices:
-        valid_indices = list(range(len(payloads)))
-
-    valid_payloads = [payloads[i] for i in valid_indices]
-
-    overrides = [p.contextual_override for p in valid_payloads]
-
-    # Extract tuples for plurality counting, ignoring empty or default placeholder lists
-    quotes = []
-    for p in valid_payloads:
-        if p.exact_quotes and p.exact_quotes != ["[CONTEXTUAL_OVERRIDE_APPLIED]"]:
-            quotes.append(tuple(p.exact_quotes))
-
-    override_reasons = [p.override_reason for p in valid_payloads if p.override_reason]
-    reasonings = [p.reasoning_steps for p in valid_payloads if p.reasoning_steps]
-    srs = [p.semantic_reasoning for p in valid_payloads if p.semantic_reasoning]
-
-    final_override = sum(1 for o in overrides if o) >= 2
-
-    final_quote = []
-    if quotes and not final_override:
-        final_quote_tuple = max(set(quotes), key=quotes.count)
-        final_quote = list(final_quote_tuple)
-
-    final_override_reason = max(set(override_reasons), key=override_reasons.count) if override_reasons else None
-    final_reasoning = max(set(reasonings), key=reasonings.count) if reasonings else ""
-    final_semantic_reasoning = max(set(srs), key=srs.count) if srs else ""
-
-    return {
-        "contextual_override": final_override,
-        "exact_quotes": final_quote,
-        "override_reason": final_override_reason,
-        "reasoning_steps": final_reasoning,
-        "semantic_reasoning": final_semantic_reasoning,
-        "status": final_status,
-    }
-
-
 def resolve_majority_vote(
-    res_list: list[dict[str, Any]],
-    is_shuffled: bool,
-    criteria_blocks: list[PromptBlock],
+    results: list[dict[str, Any]],
+    has_shuffled_atoms: bool,
+    chunk_criteria: list[PromptBlock],
     user_payload: str,
     global_source_text: str,
     strictness_level: int,
 ) -> dict[str, Any]:
-    if not res_list:
+    if not results:
         return {}
-    if len(res_list) == 1:
-        return res_list[0]
 
-    merged = copy.deepcopy(res_list[0])
+    if len(results) == 1:
+        return copy.deepcopy(results[0])
 
-    if is_shuffled and "evaluations" in merged:
-        num_evals = len(merged["evaluations"])
-        for idx in range(num_evals):
-            atom_id = merged["evaluations"][idx].get("atom_id")
-            votes = []
-            for res in res_list:
-                if "evaluations" in res and idx < len(res["evaluations"]):
-                    item = res["evaluations"][idx]
-                    if item.get("atom_id") == atom_id:
-                        votes.append(item)
-            if votes:
-                payloads = [ConsensusVotePayload.model_validate(v) for v in votes]
-                statuses = [evaluate_extraction(p, global_source_text, strictness_level) for p in payloads]
+    if has_shuffled_atoms:
+        atom_votes: dict[str, list[dict[str, Any]]] = {}
+        for res in results:
+            evals = res.get("evaluations", [])
+            for ev in evals:
+                aid = ev.get("atom_id")
+                if aid:
+                    if aid not in atom_votes:
+                        atom_votes[aid] = []
+                    atom_votes[aid].append(ev)
 
-                final_status = _apply_majority_consensus(statuses)
-                confidence = _calculate_confidence(statuses, final_status)
+        final_evals = []
+        for aid, votes in atom_votes.items():
+            pass_votes = 0
+            fail_votes = 0
+            best_pass = None
+            best_fail = None
 
-                merged_fields = _merge_consensus_fields(payloads, statuses, final_status)
+            for v in votes:
+                try:
+                    payload = ConsensusVotePayload.model_validate(v)
+                    status = evaluate_extraction(payload, global_source_text, strictness_level)
+                    if status == "PASS":
+                        pass_votes += 1
+                        if best_pass is None:
+                            best_pass = v
+                    else:
+                        fail_votes += 1
+                        if best_fail is None:
+                            best_fail = v
+                except Exception as e:
+                    logger.warning(f"Failed to parse consensus vote for {aid}: {e}")
+                    fail_votes += 1
 
-                merged["evaluations"][idx].update(merged_fields)
-                merged["evaluations"][idx]["confidence"] = confidence
+            if pass_votes > fail_votes:
+                chosen = best_pass if best_pass else votes[0]
+                chosen["status"] = "PASS"
+                chosen["confidence"] = pass_votes / len(votes)
+            else:
+                chosen = best_fail if best_fail else votes[0]
+                chosen["status"] = "FAIL"
+                chosen["confidence"] = fail_votes / len(votes) if fail_votes > 0 else 1.0
 
-                if "exact_quote" in merged["evaluations"][idx]:
-                    del merged["evaluations"][idx]["exact_quote"]
+            final_evals.append(chosen)
+
+        base_res = copy.deepcopy(results[0])
+        base_res["evaluations"] = final_evals
+        return base_res
+
     else:
-        for block in criteria_blocks:
-            if block.id in merged and block.category_id != "matrix" and block.type != "instruction":
-                votes = [res[block.id] for res in res_list if block.id in res]
-                if votes:
-                    payloads = [ConsensusVotePayload.model_validate(v) for v in votes]
-                    statuses = [evaluate_extraction(p, global_source_text, strictness_level) for p in payloads]
+        final_res: dict[str, Any] = copy.deepcopy(results[0])
+        for crit in chunk_criteria:
+            if crit.category_id == "matrix" or crit.type == "instruction":
+                continue
 
-                    final_status = _apply_majority_consensus(statuses)
-                    confidence = _calculate_confidence(statuses, final_status)
+            pass_votes = 0
+            fail_votes = 0
+            best_pass = None
+            best_fail = None
 
-                    merged_fields = _merge_consensus_fields(payloads, statuses, final_status)
+            # Fix list comprehension Any | None typing
+            votes_raw = [r.get(crit.id) for r in results]
+            block_votes: list[dict[str, Any]] = [v for v in votes_raw if v is not None and isinstance(v, dict)]
 
-                    merged[block.id].update(merged_fields)
-                    merged[block.id]["confidence"] = confidence
+            for v in block_votes:
+                try:
+                    payload = ConsensusVotePayload.model_validate(v)
+                    status = evaluate_extraction(payload, global_source_text, strictness_level)
+                    if status == "PASS":
+                        pass_votes += 1
+                        if best_pass is None:
+                            best_pass = v
+                    else:
+                        fail_votes += 1
+                        if best_fail is None:
+                            best_fail = v
+                except Exception as e:
+                    logger.warning(f"Failed to parse consensus vote for {crit.id}: {e}")
+                    fail_votes += 1
 
-                    if "exact_quote" in merged[block.id]:
-                        del merged[block.id]["exact_quote"]
+            if pass_votes > fail_votes:
+                chosen = best_pass if best_pass else (block_votes[0] if block_votes else {})
+                chosen["status"] = "PASS"
+                chosen["confidence"] = pass_votes / len(block_votes) if block_votes else 0.0
+            else:
+                chosen = best_fail if best_fail else (block_votes[0] if block_votes else {})
+                chosen["status"] = "FAIL"
+                chosen["confidence"] = fail_votes / len(block_votes) if block_votes and fail_votes > 0 else 1.0
 
-    return merged
+            final_res[crit.id] = chosen
 
-
-class SduiResponseList(BaseModel):
-    """Strict schema to validate lists of SDUI blocks from LLM responses."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
-    blocks: list[AnySduiBlock]
+        return final_res
 
 
 class ChunkWorker:
-    """Isolates the physical LLM interaction, MCP tool loops, and caching logic for chunks."""
-
     @staticmethod
     async def process_chunk(
         chunk: Any,
-        sem: asyncio.Semaphore,
+        sem: asyncio.Semaphore | None,
         compiler: Any,
         criteria_blocks: list[PromptBlock],
         user_payload: str,
@@ -243,27 +236,197 @@ class ChunkWorker:
         has_search: bool,
         has_shuffled_atoms: bool,
         atom_to_block_ids: dict[str, set[str]],
-        effective_mcp_tools: list[str],
+        effective_mcp_tools: list[Any] | None,
         bound_client: LLMClient,
         step_id: str,
         target_locale: str,
         synthesis_instructions: dict[str, Any] | None,
         output_profile: Any | None,
-        strictness_level: int = StrictnessAnchor.STANDARD.value,
+        strictness_level: int = 1,
         running_event: asyncio.Event | None = None,
         step_metadata: dict[str, Any] | None = None,
     ) -> tuple[dict[str, Any], TokenUsage | None, list[Any], PromptContextDTO | None]:
-        """Processes a single execution chunk, mapping dynamic schemas and orchestrating tool loops."""
         if running_event is not None and not running_event.is_set():
             running_event.set()
-        chunk_criteria = list(criteria_blocks)
 
-        # V3 Cache Fix: Separate atoms from base payload
+        sem = sem or asyncio.Semaphore(1)
+
+        return await ChunkWorker._orchestrate_chunk_with_retry(
+            chunk_criteria=criteria_blocks,
+            compiler=compiler,
+            global_source_text=global_source_text,
+            bound_client=bound_client,
+            target_locale=target_locale,
+            has_shuffled_atoms=has_shuffled_atoms,
+            chunk=chunk,
+            effective_mcp_tools=effective_mcp_tools,
+            synthesis_instructions=synthesis_instructions,
+            strictness_level=strictness_level,
+            sem=sem,
+            step_id=step_id,
+            mcp_system_tools=None,
+            tool_loop_max_iterations=5,
+            step_metadata=step_metadata,
+            has_search=has_search,
+            atom_to_block_ids=atom_to_block_ids,
+            base_system_prompt=base_system_prompt,
+            user_payload=user_payload,
+            output_profile=output_profile,
+        )
+
+    @staticmethod
+    async def _orchestrate_chunk_with_retry(
+        chunk_criteria: list[PromptBlock],
+        compiler: Any,
+        global_source_text: str,
+        bound_client: LLMClient,
+        target_locale: str,
+        has_shuffled_atoms: bool,
+        chunk: Any,
+        effective_mcp_tools: list[Any] | None,
+        synthesis_instructions: dict[str, Any] | None,
+        strictness_level: int,
+        sem: asyncio.Semaphore,
+        step_id: str,
+        mcp_system_tools: list[Any] | None,
+        tool_loop_max_iterations: int,
+        step_metadata: dict[str, Any] | None,
+        has_search: bool,
+        atom_to_block_ids: dict[str, set[str]],
+        base_system_prompt: str,
+        user_payload: str,
+        output_profile: Any | None,
+    ) -> tuple[dict[str, Any], TokenUsage | None, list[Any], PromptContextDTO | None]:
+        MAX_CHUNK_RETRIES = 2
+        attempt = 0
+
+        while attempt <= MAX_CHUNK_RETRIES:
+            try:
+                chunk_final, chunk_usage, chunk_traces, prompt_context = await ChunkWorker._execute_chunk_logic(
+                    chunk_criteria=chunk_criteria,
+                    compiler=compiler,
+                    global_source_text=global_source_text,
+                    bound_client=bound_client,
+                    target_locale=target_locale,
+                    has_shuffled_atoms=has_shuffled_atoms,
+                    chunk=chunk,
+                    effective_mcp_tools=effective_mcp_tools,
+                    synthesis_instructions=synthesis_instructions,
+                    strictness_level=strictness_level,
+                    sem=sem,
+                    step_id=step_id,
+                    mcp_system_tools=mcp_system_tools,
+                    tool_loop_max_iterations=tool_loop_max_iterations,
+                    step_metadata=step_metadata,
+                    has_search=has_search,
+                    atom_to_block_ids=atom_to_block_ids,
+                    base_system_prompt=base_system_prompt,
+                    user_payload=user_payload,
+                    output_profile=output_profile,
+                )
+
+                if attempt > 0:
+                    chunk_final["_dlq_retry_count"] = attempt
+
+                return chunk_final, chunk_usage, chunk_traces, prompt_context
+
+            except (LLMSchemaValidationError, AppException, ExceptionGroup, Exception) as e:
+
+                def _is_structural(exc: BaseException) -> bool:
+                    if isinstance(exc, ExceptionGroup):
+                        return any(_is_structural(inner) for inner in exc.exceptions)
+                    return isinstance(exc, (LLMSchemaValidationError, AppException)) or not _is_transient_chunk_error(
+                        exc
+                    )
+
+                if attempt < MAX_CHUNK_RETRIES and _is_transient_chunk_error(e) and not _is_structural(e):
+                    attempt += 1
+                    backoff_seconds = min(10 * (2 ** (attempt - 1)), 60)
+                    logger.warning(
+                        "[ChunkWorker] Transient error detected. Retrying chunk (attempt %d/%d)...",
+                        attempt,
+                        MAX_CHUNK_RETRIES,
+                    )
+                    await asyncio.sleep(backoff_seconds)
+                    continue
+
+                # Structural errors are no longer raised, they fall through to DLQ routing
+
+                def _unwrap_error(exc: BaseException) -> str:
+                    if isinstance(exc, ExceptionGroup):
+                        return " | ".join(_unwrap_error(inner) for inner in exc.exceptions)
+                    return str(exc)
+
+                reason_str = _unwrap_error(e)
+                logger.error(
+                    f"[ChunkWorker] Caught error: {reason_str}. Routing to DLQ.",
+                    extra={"error_code": "DLQ_ROUTING"},
+                    exc_info=True,
+                )
+
+                fallback_reason = f"Chunk Processing Failed: {reason_str}"
+                chunk_final = {
+                    "_dlq_status": "FAILED/DLQ",
+                    "reason": fallback_reason,
+                }
+                if attempt > 0:
+                    chunk_final["_dlq_retry_count"] = attempt
+
+                if has_shuffled_atoms and chunk is not None:
+                    chunk_final["evaluations"] = []
+                    for item in getattr(chunk, "items", []):
+                        aid = item.get("atom_id") if isinstance(item, dict) else None
+                        if aid:
+                            chunk_final["evaluations"].append(
+                                {
+                                    "atom_id": aid,
+                                    "status": "DLQ",
+                                    "exact_quote": None,
+                                    "contextual_override": False,
+                                    "semantic_reasoning": fallback_reason,
+                                }
+                            )
+                else:
+                    for crit in chunk_criteria:
+                        chunk_final[crit.id] = {
+                            "status": "DLQ",
+                            "exact_quote": None,
+                            "contextual_override": False,
+                            "semantic_reasoning": fallback_reason,
+                        }
+
+                return chunk_final, None, [], None
+
+        return {}, None, [], None
+
+    @staticmethod
+    async def _execute_chunk_logic(
+        chunk_criteria: list[PromptBlock],
+        compiler: Any,
+        global_source_text: str,
+        bound_client: LLMClient,
+        target_locale: str,
+        has_shuffled_atoms: bool,
+        chunk: Any,
+        effective_mcp_tools: list[Any] | None,
+        synthesis_instructions: dict[str, Any] | None,
+        strictness_level: int,
+        sem: asyncio.Semaphore,
+        step_id: str,
+        mcp_system_tools: list[Any] | None,
+        tool_loop_max_iterations: int,
+        step_metadata: dict[str, Any] | None,
+        has_search: bool,
+        atom_to_block_ids: dict[str, set[str]],
+        base_system_prompt: str,
+        user_payload: str,
+        output_profile: Any | None,
+    ) -> tuple[dict[str, Any], TokenUsage | None, list[Any], PromptContextDTO | None]:
+        chunk_criteria = list(chunk_criteria)
         chunk_atoms_xml: str | None = None
         pre_flight_results: dict[str, Any] = {}
 
         if chunk is not None:
-            # Apply Chunk context subsetting
             allowed_atom_ids = set()
             if has_shuffled_atoms:
                 chunk_matrix_ids = set()
@@ -272,13 +435,13 @@ class ChunkWorker:
                     try:
                         aid_model = AtomIdentifier.model_validate(item)
                         allowed_atom_ids.add(aid_model.atom_id)
+
                         if aid_model.atom_id in atom_to_block_ids:
                             chunk_matrix_ids.update(atom_to_block_ids[aid_model.atom_id])
 
-                        # Phase 1: Pre-flight extraction via deterministic sensor
                         if FEATURE_FLAG_EXTRACTIVE_SENSOR:
                             tda_for_atom = None
-                            for bm in criteria_blocks:
+                            for bm in chunk_criteria:
                                 if bm.category_id == "matrix" and bm.scales:
                                     for scale in bm.scales:
                                         for claim in scale.claims:
@@ -288,10 +451,10 @@ class ChunkWorker:
                                                     break
 
                             if tda_for_atom:
-                                pf_res = ExtractiveSensorService.pre_evaluate(tda_for_atom, user_payload)
+                                pf_res = ExtractiveSensorService.pre_evaluate(tda_for_atom, global_source_text)
                                 if pf_res.decided:
                                     pre_flight_results[aid_model.atom_id] = pf_res
-                                    continue  # Skip adding to filtered_items to avoid LLM cost
+                                    continue
 
                         filtered_items.append(item)
                     except ValidationError as e:
@@ -306,10 +469,11 @@ class ChunkWorker:
                         ) from e
 
                 chunk = chunk.model_copy(update={"items": filtered_items})
-                chunk_criteria = []
-                for bm in criteria_blocks:
+                filtered_criteria = []
+                for bm in chunk_criteria:
                     if bm.category_id != "matrix" or bm.id in chunk_matrix_ids:
-                        chunk_criteria.append(bm)
+                        filtered_criteria.append(bm)
+                chunk_criteria = filtered_criteria
 
             blind_items = []
             for item in chunk.items:
@@ -317,9 +481,8 @@ class ChunkWorker:
                 blind_items.append({"atom_id": aid, "rule_anchor": aid, "question": item.get("question", "")})
 
             atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
-            chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
+            chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\\n{atoms_json}\\n</BLIND_ATOMS_TO_EVALUATE>"
 
-        # V3: Build dynamic schema for this chunk's criteria subset
         local_dynamic_schema = compiler.build_dynamic_schema(
             schema_name=f"Step_{step_id}_Response",
             criteria=chunk_criteria,
@@ -338,15 +501,22 @@ class ChunkWorker:
             source_language = step_metadata.get("source_language", doc_lang)
 
         linguistic_context = (
-            "<linguistic_context>\n"
-            f"  <source_data_language>{source_language}</source_data_language>\n"
-            f"  <required_output_language>{target_locale}</required_output_language>\n"
-            "  <required_reasoning_language>English</required_reasoning_language>\n"
+            "<linguistic_context>\\n"
+            f"  <source_data_language>{source_language}</source_data_language>\\n"
+            f"  <required_output_language>{target_locale}</required_output_language>\\n"
+            "  <required_reasoning_language>English</required_reasoning_language>\\n"
             "</linguistic_context>"
         )
-        base_system_prompt = f"{linguistic_context}\n\n{base_system_prompt}"
 
-        # V3 Cache Fix: Use CompiledPrompt with separated static/dynamic tiers
+        base_system_prompt = f"{linguistic_context}\\n\\n{base_system_prompt}"
+
+        allowed_atom_ids = set()
+        if has_shuffled_atoms and chunk is not None:
+            for item in chunk.items:
+                aid = item.get("atom_id")
+                if aid:
+                    allowed_atom_ids.add(aid)
+
         compiled_prompt = compiler.compile_chunk_prompt(
             base_system_prompt=base_system_prompt,
             chunk_criteria=chunk_criteria,
@@ -367,289 +537,214 @@ class ChunkWorker:
         chunk_usage: TokenUsage | None = None
         chunk_traces: list[Any] = []
 
-        try:
-            if effective_mcp_tools:
-                executor = LLMTaskExecutor(prompt_compiler=compiler)
-                async with sem:
-                    loop_res = await execute_tool_loop(
-                        llm_client=bound_client,
-                        executor=executor,
-                        messages=compiled_prompt.to_flat_messages(),
-                        response_model=local_dynamic_schema,
-                        allowed_tools=effective_mcp_tools,
-                        step_name=step_id,
-                        mock_identity=step_id,
-                        target_language=target_locale,
-                        synthesis_instructions=synthesis_instructions,
-                        validation_context={
-                            "strictness_level": strictness_level,
-                            "source_text": global_source_text,
-                            "is_lightweight_extraction": is_lightweight,
-                            "locale": target_locale,
-                            "estimated_token_count": step_metadata.get("estimated_token_count", 0)
-                            if step_metadata
-                            else 0,
-                        },
-                    )
-                if isinstance(loop_res.result_data, BaseModel):
-                    chunk_final = loop_res.result_data.model_dump(mode="json")
-                else:
-                    chunk_final = dict(loop_res.result_data)
-                chunk_usage = loop_res.usage if loop_res.usage else None
-                if loop_res.audit_traces:
-                    chunk_traces.extend(loop_res.audit_traces)
+        if effective_mcp_tools:
+            executor = LLMTaskExecutor(prompt_compiler=compiler)
+            async with sem:
+                loop_res = await execute_tool_loop(
+                    llm_client=bound_client,
+                    executor=executor,
+                    messages=compiled_prompt.to_flat_messages(),
+                    response_model=local_dynamic_schema,
+                    allowed_tools=effective_mcp_tools,
+                    step_name=step_id,
+                    mock_identity=step_id,
+                    target_language=target_locale,
+                    synthesis_instructions=synthesis_instructions,
+                    validation_context={
+                        "strictness_level": strictness_level,
+                        "source_text": global_source_text,
+                        "is_lightweight_extraction": is_lightweight,
+                        "locale": target_locale,
+                        "estimated_token_count": step_metadata.get("estimated_token_count", 0) if step_metadata else 0,
+                    },
+                )
+            if isinstance(loop_res.result_data, BaseModel):
+                chunk_final = loop_res.result_data.model_dump(mode="json")
             else:
-                executor = LLMTaskExecutor(prompt_compiler=compiler)
+                chunk_final = dict(loop_res.result_data)
+            chunk_usage = loop_res.usage if loop_res.usage else None
+            if loop_res.audit_traces:
+                chunk_traces.extend(loop_res.audit_traces)
+        else:
+            executor = LLMTaskExecutor(prompt_compiler=compiler)
+            llm_count = EvaluationRunCount.STANDARD.value if is_lightweight else EvaluationRunCount.ENSEMBLE.value
 
-                llm_count = EvaluationRunCount.STANDARD.value if is_lightweight else EvaluationRunCount.ENSEMBLE.value
+            async def run_llm_calls(
+                prompt: CompiledPrompt, model_schema: type[BaseModel], count: int
+            ) -> tuple[list[dict[str, Any]], TokenUsage]:
+                results_list = []
+                total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-                async def run_llm_calls(
-                    prompt: CompiledPrompt, model_schema: type[BaseModel], count: int
-                ) -> tuple[list[dict[str, Any]], TokenUsage]:
-                    """Execute LLM calls using native CompiledPrompt architecture."""
-                    results_list = []
-                    total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+                async def _safe_execute() -> tuple[Any, Any]:
+                    async with sem:
+                        try:
+                            return await executor.execute_structured_task(
+                                client=bound_client,
+                                messages=prompt,
+                                response_model=model_schema,
+                                mock_identity=step_id,
+                                max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                                max_logical_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                                validation_context={
+                                    "strictness_level": strictness_level,
+                                    "source_text": global_source_text,
+                                    "is_lightweight_extraction": is_lightweight,
+                                    "locale": target_locale,
+                                    "estimated_token_count": step_metadata.get("estimated_token_count", 0)
+                                    if step_metadata
+                                    else 0,
+                                },
+                            )
+                        except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
+                            logger.warning(f"Single LLM call failed in ensemble: {e}")
+                            return e, None
 
-                    async def _safe_execute() -> tuple[Any, Any]:
-                        async with sem:
-                            try:
-                                return await executor.execute_structured_task(
-                                    client=bound_client,
-                                    messages=prompt,
-                                    response_model=model_schema,
-                                    mock_identity=step_id,
-                                    max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                                    max_logical_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                                    validation_context={
-                                        "strictness_level": strictness_level,
-                                        "source_text": global_source_text,
-                                        "is_lightweight_extraction": is_lightweight,
-                                        "locale": target_locale,
-                                        "estimated_token_count": step_metadata.get("estimated_token_count", 0)
-                                        if step_metadata
-                                        else 0,
-                                    },
-                                )
-                            except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
-                                logger.warning(f"Single LLM call failed in ensemble: {e}")
-                                return e, None
-
-                    last_error = None
-                    if count > 1:
-                        tasks_list = []
-                        async with asyncio.TaskGroup() as tg:
-                            for _ in range(count):
-                                tasks_list.append(tg.create_task(_safe_execute()))
-                        for t in tasks_list:
-                            res, usg = t.result()
-                            if isinstance(res, Exception):
-                                last_error = res
-                            elif res:
-                                results_list.append(res.model_dump(mode="json"))
-                            if usg:
-                                total_usage = total_usage + usg
-                    else:
-                        res, usg = await _safe_execute()
+                last_error = None
+                if count > 1:
+                    tasks_list = []
+                    async with asyncio.TaskGroup() as tg:
+                        for _ in range(count):
+                            tasks_list.append(tg.create_task(_safe_execute()))
+                    for t in tasks_list:
+                        res, usg = t.result()
                         if isinstance(res, Exception):
                             last_error = res
                         elif res:
                             results_list.append(res.model_dump(mode="json"))
                         if usg:
                             total_usage = total_usage + usg
+                else:
+                    res, usg = await _safe_execute()
+                    if isinstance(res, Exception):
+                        last_error = res
+                    elif res:
+                        results_list.append(res.model_dump(mode="json"))
+                    if usg:
+                        total_usage = total_usage + usg
 
-                    if not results_list:
-                        if last_error:
-                            raise last_error
-                        raise AppException(
-                            message="All LLM calls failed in the ensemble/standard run.",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
-                        )
+                if not results_list:
+                    if last_error:
+                        raise last_error
+                    raise AppException(
+                        message="All LLM calls failed in the ensemble/standard run.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
+                    )
 
-                    return results_list, total_usage
+                return results_list, total_usage
 
-                target_schema = (
-                    SduiResponseList if (output_profile is not None and not criteria_blocks) else local_dynamic_schema
-                )
-                res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
-                chunk_final = resolve_majority_vote(
-                    res_list, has_shuffled_atoms, chunk_criteria, user_payload, global_source_text, strictness_level
-                )
+            target_schema = local_dynamic_schema
 
-                if has_shuffled_atoms and "evaluations" not in chunk_final:
-                    chunk_final["evaluations"] = []
+            res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
+            chunk_final = resolve_majority_vote(
+                res_list, has_shuffled_atoms, chunk_criteria, user_payload, global_source_text, strictness_level
+            )
 
-                # Step 4: Map-Merge Orchestration & Trace Continuity Injection
-                if has_shuffled_atoms and "evaluations" in chunk_final:
-                    # Append pre_flight_results back to evaluations so they act as if LLM generated them
-                    for pf_atom_id, pf_res in pre_flight_results.items():
-                        chunk_final["evaluations"].append(
-                            {
-                                "atom_id": pf_atom_id,
-                                "exact_quotes": [pf_res.exact_quote] if getattr(pf_res, "exact_quote", None) else [],
-                                "contextual_override": False,
-                                "override_reason": None,
-                                "reasoning_steps": "[EXTRACTIVE_SENSOR_PRE_FLIGHT] Fast match.",
-                                "falsification_argument": "N/A",
-                                "structural_location": "N/A",
-                                "localized_anchors_found": [],
-                                "decision": True,
-                                "semantic_reasoning": "[EXTRACTIVE_SENSOR_PRE_FLIGHT] Deterministic syntax match.",
-                            }
-                        )
+            if has_shuffled_atoms and "evaluations" not in chunk_final:
+                chunk_final["evaluations"] = []
 
-                    # 1. Ota järjestelmäkentät talteen ennen tiukkaa validointia
-                    atom_consensus_data: dict[int, dict[str, Any]] = {}
-                    for idx, atom_dict in enumerate(chunk_final.get("evaluations", [])):
-                        atom_consensus_data[idx] = {
-                            "status": atom_dict.pop("status", None),
-                            "confidence": atom_dict.pop("confidence", None),
+            if has_shuffled_atoms and "evaluations" in chunk_final:
+                for pf_atom_id, pf_res in pre_flight_results.items():
+                    chunk_final["evaluations"].append(
+                        {
+                            "atom_id": pf_atom_id,
+                            "exact_quotes": [pf_res.exact_quote] if getattr(pf_res, "exact_quote", None) else [],
+                            "contextual_override": False,
+                            "override_reason": None,
+                            "reasoning_steps": "[EXTRACTIVE_SENSOR_PRE_FLIGHT] Fast match.",
+                            "falsification_argument": "N/A",
+                            "structural_location": "N/A",
+                            "localized_anchors_found": [],
+                            "decision": True,
+                            "semantic_reasoning": "[EXTRACTIVE_SENSOR_PRE_FLIGHT] Deterministic syntax match.",
+                        }
+                    )
+
+                atom_consensus_data: dict[int, dict[str, Any]] = {}
+                for idx, atom_dict in enumerate(chunk_final.get("evaluations", [])):
+                    atom_consensus_data[idx] = {
+                        "status": atom_dict.pop("status", None),
+                        "confidence": atom_dict.pop("confidence", None),
+                    }
+
+                validated_response = local_dynamic_schema.model_validate(chunk_final)
+                chunk_final = validated_response.model_dump(mode="json")
+
+                for idx, atom_model in enumerate(getattr(validated_response, "evaluations", [])):
+                    atom_dict = chunk_final["evaluations"][idx]
+
+                    c_status = atom_consensus_data.get(idx, {}).get("status")
+                    c_conf = atom_consensus_data.get(idx, {}).get("confidence")
+
+                    if c_status is not None:
+                        status = c_status
+                        confidence = c_conf
+                    else:
+                        status = evaluate_extraction(atom_model, global_source_text, strictness_level)
+                        confidence = None
+
+                    atom_dict["status"] = status
+                    if confidence is not None:
+                        atom_dict["confidence"] = confidence
+
+                    contextual_override = getattr(atom_model, "contextual_override", False)
+                    semantic_reasoning = getattr(atom_model, "semantic_reasoning", "")
+
+                    if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
+                        atom_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
+                    elif contextual_override and not isinstance(contextual_override, bool):
+                        pass
+
+                    sr = semantic_reasoning or ""
+                    if not isinstance(sr, str):
+                        sr = ""
+                    atom_dict["semantic_reasoning"] = f"{sr}\\n\\n[5. VALIDATION DECISION: {status}]"
+
+            else:
+                block_consensus_data: dict[str, dict[str, Any]] = {}
+                for crit in chunk_criteria:
+                    if crit.id in chunk_final and crit.category_id != "matrix" and crit.type != "instruction":
+                        block_dict = chunk_final[crit.id]
+                        block_consensus_data[crit.id] = {
+                            "status": block_dict.pop("status", None),
+                            "confidence": block_dict.pop("confidence", None),
                         }
 
-                    # 2. Pydantic-validointi (puhtaalla datalla)
-                    validated_response = local_dynamic_schema.model_validate(chunk_final)
+                validated_response = local_dynamic_schema.model_validate(chunk_final)
+                chunk_final = validated_response.model_dump(mode="json")
 
-                    # 3. Muuta välittömästi muokattavaksi sanakirjaksi
-                    chunk_final = validated_response.model_dump(mode="json")
+                for crit in chunk_criteria:
+                    if (
+                        hasattr(validated_response, crit.id)
+                        and crit.category_id != "matrix"
+                        and crit.type != "instruction"
+                    ):
+                        block_model = getattr(validated_response, crit.id)
+                        block_dict = chunk_final[crit.id]
 
-                    for idx, atom_model in enumerate(getattr(validated_response, "evaluations", [])):
-                        atom_dict = chunk_final["evaluations"][idx]
-
-                        c_status = atom_consensus_data.get(idx, {}).get("status")
-                        c_conf = atom_consensus_data.get(idx, {}).get("confidence")
+                        c_status = block_consensus_data.get(crit.id, {}).get("status")
+                        c_conf = block_consensus_data.get(crit.id, {}).get("confidence")
 
                         if c_status is not None:
                             status = c_status
                             confidence = c_conf
                         else:
-                            status = evaluate_extraction(atom_model, global_source_text, strictness_level)
+                            status = evaluate_extraction(block_model, global_source_text, strictness_level)
                             confidence = None
 
-                        atom_dict["status"] = status
+                        block_dict["status"] = status
                         if confidence is not None:
-                            atom_dict["confidence"] = confidence
+                            block_dict["confidence"] = confidence
 
-                        # reasoning_steps and override_reason are preserved securely via Pydantic schema natively
+                        contextual_override = getattr(block_model, "contextual_override", False)
+                        semantic_reasoning = getattr(block_model, "semantic_reasoning", "")
 
-                        contextual_override = getattr(atom_model, "contextual_override", False)
-                        semantic_reasoning = getattr(atom_model, "semantic_reasoning", "")
-
-                        # Handle MagicMock safely for tests
                         if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
-                            atom_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
-                        elif contextual_override and not isinstance(contextual_override, bool):  # For MagicMocks
-                            pass
+                            block_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
 
                         sr = semantic_reasoning or ""
                         if not isinstance(sr, str):
                             sr = ""
-                        atom_dict["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
+                        block_dict["semantic_reasoning"] = f"{sr}\\n\\n[5. VALIDATION DECISION: {status}]"
 
-                else:
-                    # 1. Ota järjestelmäkentät talteen ennen tiukkaa validointia
-                    block_consensus_data: dict[str, dict[str, Any]] = {}
-                    for crit in chunk_criteria:
-                        if crit.id in chunk_final and crit.category_id != "matrix" and crit.type != "instruction":
-                            block_dict = chunk_final[crit.id]
-                            block_consensus_data[crit.id] = {
-                                "status": block_dict.pop("status", None),
-                                "confidence": block_dict.pop("confidence", None),
-                            }
-
-                    # 2. Pydantic-validointi (puhtaalla datalla)
-                    validated_response = local_dynamic_schema.model_validate(chunk_final)
-
-                    # 3. Muuta välittömästi muokattavaksi sanakirjaksi
-                    chunk_final = validated_response.model_dump(mode="json")
-
-                    for crit in chunk_criteria:
-                        if (
-                            hasattr(validated_response, crit.id)
-                            and crit.category_id != "matrix"
-                            and crit.type != "instruction"
-                        ):
-                            block_model = getattr(validated_response, crit.id)
-                            block_dict = chunk_final[crit.id]
-
-                            c_status = block_consensus_data.get(crit.id, {}).get("status")
-                            c_conf = block_consensus_data.get(crit.id, {}).get("confidence")
-
-                            if c_status is not None:
-                                status = c_status
-                                confidence = c_conf
-                            else:
-                                status = evaluate_extraction(block_model, global_source_text, strictness_level)
-                                confidence = None
-
-                            block_dict["status"] = status
-                            if confidence is not None:
-                                block_dict["confidence"] = confidence
-
-                            # reasoning_steps and override_reason are preserved securely via Pydantic schema natively
-
-                            contextual_override = getattr(block_model, "contextual_override", False)
-                            semantic_reasoning = getattr(block_model, "semantic_reasoning", "")
-
-                            # Handle MagicMock safely for tests
-                            if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
-                                block_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
-
-                            sr = semantic_reasoning or ""
-                            if not isinstance(sr, str):
-                                sr = ""
-                            block_dict["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
-
-            return chunk_final, chunk_usage, chunk_traces, prompt_context
-
-        except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
-
-            def _has_programmatic_errors(exc: BaseException) -> bool:
-                if isinstance(exc, ExceptionGroup):
-                    return any(_has_programmatic_errors(inner) for inner in exc.exceptions)
-                return not isinstance(exc, (LLMSchemaValidationError, AppException))
-
-            if _has_programmatic_errors(e):
-                raise e
-
-            def _unwrap_error(exc: BaseException) -> str:
-                if isinstance(exc, ExceptionGroup):
-                    return " | ".join(_unwrap_error(inner) for inner in exc.exceptions)
-                return str(exc)
-
-            reason_str = _unwrap_error(e)
-
-            logger.error(
-                f"[ChunkWorker] Caught error: {reason_str}. Routing to DLQ.",
-                extra={"error_code": "DLQ_ROUTING"},
-                exc_info=True,
-            )
-            fallback_reason = f"Chunk Processing Failed: {reason_str}"
-            chunk_final = {
-                "_dlq_status": "FAILED/DLQ",
-                "reason": fallback_reason,
-            }
-            # Graceful DLQ Fallback: Map the failure to individual elements
-            if has_shuffled_atoms and chunk is not None:
-                chunk_final["evaluations"] = []
-                for item in getattr(chunk, "items", []):
-                    aid = item.get("atom_id") if isinstance(item, dict) else None
-                    if aid:
-                        chunk_final["evaluations"].append(
-                            {
-                                "atom_id": aid,
-                                "status": "DLQ",
-                                "exact_quote": None,
-                                "contextual_override": False,
-                                "semantic_reasoning": fallback_reason,
-                            }
-                        )
-            else:
-                for crit in chunk_criteria:
-                    chunk_final[crit.id] = {
-                        "status": "DLQ",
-                        "exact_quote": None,
-                        "contextual_override": False,
-                        "semantic_reasoning": fallback_reason,
-                    }
-
-            return chunk_final, None, [], prompt_context
+        return chunk_final, chunk_usage, chunk_traces, prompt_context

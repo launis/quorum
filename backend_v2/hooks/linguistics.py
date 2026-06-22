@@ -136,8 +136,12 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
 
     detected: list[str] = []
 
-    # Scan all string inputs dynamically using DTO method
-    text_to_scan = payload.get_text_to_scan()
+    user_only_text = state.inputs.get("chat_log_user_only")
+    if user_only_text and isinstance(user_only_text, str) and user_only_text.strip():
+        text_to_scan = user_only_text.lower()
+    else:
+        # Scan all string inputs dynamically using DTO method
+        text_to_scan = payload.get_text_to_scan()
 
     for pattern in patterns_to_check:
         if pattern in text_to_scan:

@@ -124,10 +124,10 @@ def test_validate_evidence_hallucinated_chars_fails() -> None:
 
 
 def test_entropy_gate_fails_short_quotes() -> None:
-    """Test that short quotes (< 20 chars) bypass fuzzy matching and fail if not 100% exact."""
+    """Test that short quotes (< 10 chars) bypass fuzzy matching and fail if not 100% exact."""
     pdf_text = "The quick brown fox"
-    # 19 chars long quote, with a typo
-    quote = "The quick brawn fox"
+    # 9 chars long quote, with a typo
+    quote = "The quack"
 
     with pytest.raises(SemanticEvidenceError) as exc_info:
         # Even with RELAXED (30) which has 65% threshold, entropy gate blocks it
@@ -154,5 +154,30 @@ def test_discrete_tiers_fuzzy_fallback_fails_strict() -> None:
 
     with pytest.raises(SemanticEvidenceError) as exc_info:
         AnchorValidationService.validate_evidence(pdf_text, [quote], strictness_level=85)
+
+    assert "Lexical validation failed" in str(exc_info.value)
+
+
+def test_coverage_based_fallback_accepts_60pct() -> None:
+    """Test that a quote with a 60% coverage match is accepted even if RapidFuzz fails."""
+    pdf_text = "This is a long document about strategic thinking and decision making."
+    # The quote is totally fabricated in the second half.
+    # The first half "strategic thinking" is 18 chars.
+    # Total quote is "strategic thinking is the key" (29 chars). 18/29 = 62% coverage.
+    quote = "strategic thinking is the key"
+
+    # RapidFuzz will score low (< 60%), but coverage safety net (60%) will catch it
+    result = AnchorValidationService.validate_evidence(pdf_text, [quote], strictness_level=50)
+    assert result == [quote]
+
+
+def test_coverage_based_fallback_rejects_under_60pct() -> None:
+    """Test that a quote under 60% coverage is rejected by the safety net."""
+    pdf_text = "This is a long document about strategic thinking and decision making."
+    # "strategic" is 9 chars. Total quote is "strategic operations are critical now" (37 chars). 9/37 = 24%
+    quote = "strategic operations are critical now"
+
+    with pytest.raises(SemanticEvidenceError) as exc_info:
+        AnchorValidationService.validate_evidence(pdf_text, [quote], strictness_level=50)
 
     assert "Lexical validation failed" in str(exc_info.value)

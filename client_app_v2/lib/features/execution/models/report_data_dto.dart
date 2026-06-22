@@ -41,6 +41,11 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   const factory SduiBlockDTO.heroInsight({required String text}) =
       SduiHeroInsightBlock;
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('markdown')
+  const factory SduiBlockDTO.markdown({required String text}) =
+      SduiMarkdownBlock;
+
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
       _$SduiBlockDTOFromJson(json);
 }

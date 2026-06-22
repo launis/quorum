@@ -279,6 +279,14 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     inputs = payload.root
     all_text = " ".join(str(v) for v in inputs.values() if v)
 
+    user_only = None
+    for k, v in inputs.items():
+        if k.endswith("_user_only") and isinstance(v, str) and v.strip():
+            user_only = v
+            break
+
+    text_for_analysis = user_only if user_only else all_text
+
     if not all_text.strip():
         error_code = ErrorCodes.EMPTY_INPUT
         msg = "Missing text in inputs for metrics analysis."
@@ -290,7 +298,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         )
 
     try:
-        base_metrics = analyze_text(all_text)
+        base_metrics = analyze_text(text_for_analysis)
         control_ratio = calculate_control_ratio(all_text)
 
         settings = get_settings()

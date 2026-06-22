@@ -31,8 +31,9 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing and 
       2) Pääasialliset onnistumiset (esim. "Worker sai valmiiksi atomin X", "Workflow siirtyi vaiheeseen Y").
       3) Epicin/Suunnitelman tila (Jos määritetty, onko ajo tukemassa vai kaatamassa tavoitetta).
     </step>
-    <step id="4">FINALIZE: Kun käyttäjä käskee lopettaa ajon seurannan (tai ajo on ilmiselvästi päättynyt), peruuta cron-ajastin `manage_task`-työkalulla. Kokoa kaikista 1 minuutin raporteista lopullinen yhteenvetoraportti.</step>
-    <step id="5">SAVE: Tallenna lopullinen raportti Markdown-tiedostona hakemistoon `c:\src\quorum\data\files\executions\[ajon_nimi]\raportti.md`. Luo hakemisto tarvittaessa työkalujesi avulla.</step>
+    <step id="4">HALT & RECOMMEND (CRITICAL): Jos havaitset CRITICAL-tason virheen tai toistuvan Fail-Fast ValidationErrorin (joka estää ajon onnistumisen), kehota käyttäjää välittömästi perumaan/keskeyttämään ajo. Generoi virheestä valmis `/tier4-bug-hunting` -komentokehote käyttäjälle ja jää odottamaan, että käyttäjä aloittaa puhtaan vianetsintä-session. Älä yritä muokata koodia tai kirjoittaa testejä monitoroinnin aikana.</step>
+    <step id="5">FINALIZE: Kun käyttäjä käskee lopettaa ajon seurannan (tai ajo on ilmiselvästi päättynyt), peruuta cron-ajastin `manage_task`-työkalulla. Kokoa kaikista 1 minuutin raporteista lopullinen yhteenvetoraportti.</step>
+    <step id="6">SAVE: Tallenna lopullinen raportti Markdown-tiedostona hakemistoon `c:\src\quorum\data\files\executions\[ajon_nimi]\raportti.md`. Luo hakemisto tarvittaessa työkalujesi avulla.</step>
   </execution_protocol>
 </system_prompt>
 ```

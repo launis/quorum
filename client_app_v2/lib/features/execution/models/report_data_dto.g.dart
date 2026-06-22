@@ -97,6 +97,19 @@ Map<String, dynamic> _$SduiHeroInsightBlockToJson(
   SduiHeroInsightBlock instance,
 ) => <String, dynamic>{'text': instance.text, 'block_type': instance.$type};
 
+SduiMarkdownBlock _$SduiMarkdownBlockFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('SduiMarkdownBlock', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['text', 'block_type']);
+      final val = SduiMarkdownBlock(
+        text: $checkedConvert('text', (v) => v as String),
+        $type: $checkedConvert('block_type', (v) => v as String?),
+      );
+      return val;
+    }, fieldKeyMap: const {r'$type': 'block_type'});
+
+Map<String, dynamic> _$SduiMarkdownBlockToJson(SduiMarkdownBlock instance) =>
+    <String, dynamic>{'text': instance.text, 'block_type': instance.$type};
+
 _SduiBulletListItemDTO _$SduiBulletListItemDTOFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate('_SduiBulletListItemDTO', json, ($checkedConvert) {

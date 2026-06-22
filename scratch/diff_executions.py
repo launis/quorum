@@ -448,6 +448,7 @@ if __name__ == '__main__':
             with open(exe_path, encoding='utf-8') as exe_f:
                 raw_data = exe_f.read()
             error_count = raw_data.count("Chunk Processing Failed") + raw_data.count("SYSTEM ERROR")
+            dlq_count = raw_data.count('"_dlq_status": "FAILED/DLQ"')
 
             if model_used == "Ei tallennettu DB":
                 if "gemini-2.5-pro" in raw_data: model_used = "gemini-2.5-pro (Jälki-loki)"
@@ -459,6 +460,7 @@ if __name__ == '__main__':
             f.write(f'  - **Tokenit (DB):** `{total_tokens}`\n')
             f.write(f'  - **Kustannusarvio:** `${cost:.4f}`\n')
             f.write(f'  - **Tekniset virheet (Crash):** `{error_count}` kpl\n')
+            f.write(f'  - **DLQ-pudotetut atomit:** `{dlq_count}` kpl\n')
 
             run_dir = os.path.dirname(exe_path)
             inputs_dir = os.path.join(run_dir, 'inputs')

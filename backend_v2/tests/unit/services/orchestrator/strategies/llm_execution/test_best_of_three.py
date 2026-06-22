@@ -7,8 +7,6 @@ import pytest
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import (
     ChunkWorker,
-    _apply_majority_consensus,
-    _calculate_confidence,
     resolve_majority_vote,
 )
 
@@ -32,39 +30,6 @@ def base_votes() -> list[dict[str, Any]]:
             "semantic_reasoning": "reason 3",
         },
     ]
-
-
-def test_majority_consensus_pass() -> None:
-    """Test pure majority consensus for PASS."""
-    assert _apply_majority_consensus(["PASS", "PASS", "FAIL"]) == "PASS"
-
-
-def test_majority_consensus_fail() -> None:
-    """Test pure majority consensus for FAIL."""
-    assert _apply_majority_consensus(["PASS", "FAIL", "FAIL"]) == "FAIL"
-
-
-def test_majority_consensus_dlq() -> None:
-    """Test pure majority consensus for DLQ."""
-    assert _apply_majority_consensus(["PASS", "FAIL", "DLQ"]) == "DLQ"
-
-
-def test_confidence_calculation_unanimous() -> None:
-    """Test confidence for 3/3 agreement."""
-    assert _calculate_confidence(["PASS", "PASS", "PASS"], "PASS") == 1.0
-    assert _calculate_confidence(["FAIL", "FAIL", "FAIL"], "FAIL") == 1.0
-
-
-def test_confidence_calculation_majority() -> None:
-    """Test confidence for 2/3 agreement."""
-    assert _calculate_confidence(["PASS", "PASS", "FAIL"], "PASS") == 0.67
-    assert _calculate_confidence(["FAIL", "FAIL", "PASS"], "FAIL") == 0.67
-
-
-def test_confidence_calculation_split() -> None:
-    """Test confidence for 1/3 agreement or DLQ."""
-    assert _calculate_confidence(["DLQ", "FAIL", "PASS"], "DLQ") == 0.33
-    assert _calculate_confidence(["PASS", "FAIL", "DLQ"], "PASS") == 0.33
 
 
 def test_resolve_majority_vote_pure_majority() -> None:
@@ -116,16 +81,10 @@ def test_resolve_majority_vote_pure_majority() -> None:
         {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": ["q"]}]},
     ]
 
-    with (
-        patch(
-            "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker._apply_majority_consensus"
-        ) as mock_majority,
-        patch(
-            "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.evaluate_extraction"
-        ) as mock_eval,
-    ):
+    with patch(
+        "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.evaluate_extraction"
+    ) as mock_eval:
         # Simulate pure majority FAIL
-        mock_majority.return_value = "FAIL"
         mock_eval.side_effect = ["PASS", "FAIL", "FAIL"]
 
         merged = resolve_majority_vote(

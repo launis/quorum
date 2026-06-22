@@ -1,12 +1,10 @@
-import re
-import unicodedata
 from typing import Any, Literal
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_validator
 from rapidfuzz import fuzz
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import LaxXaiExtensionType, get_lexical_fuzz_threshold
+from backend_v2.models.enums import LaxXaiExtensionType, SystemConcurrency, get_lexical_fuzz_threshold
 
 
 class OutputProfileConfig(V2CoreBase):
@@ -155,16 +153,16 @@ class LightweightExtractionAtom(V2CoreBase):
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
     exact_quotes: list[str] = Field(
         default_factory=list,
-        max_length=3,
+        max_length=SystemConcurrency.SCHEMA_MAX_QUOTES.value,
         description=(
-            "A list of physically contiguous, character-for-character verbatim substrings extracted "
-            "directly from the source text. NEVER translate, fix grammar, paraphrase, or "
-            "alter the language. The quote MUST remain in the ORIGINAL language of the source "
-            "document."
+            f"A list of physically contiguous, character-for-character verbatim substrings extracted "
+            f"directly from the source text. Each quote MUST be UNDER {SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value} characters. "
+            f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
+            f"in the ORIGINAL language of the source document."
         ),
     )
-    status: Literal["PASS", "FAIL", "DLQ"] | None = Field(
-        default=None, description="The evaluation status. Must be one of PASS, FAIL, DLQ."
+    status: Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None = Field(
+        default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."
     )
     confidence: float | None = Field(default=None)
 
@@ -258,19 +256,28 @@ class AtomEvaluationItemDTO(V2CoreBase):
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
     exact_quotes: list[str] = Field(
         default_factory=list,
-        max_length=3,
+        max_length=SystemConcurrency.SCHEMA_MAX_QUOTES.value,
         description=(
-            "A list of physically contiguous, character-for-character verbatim substrings extracted "
-            "directly from the source text. NEVER translate, fix grammar, paraphrase, or "
-            "alter the language. The quote MUST remain in the ORIGINAL language of the source "
-            "document."
+            f"A list of physically contiguous, character-for-character verbatim substrings extracted "
+            f"directly from the source text. Each quote MUST be UNDER {SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value} characters. "
+            f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
+            f"in the ORIGINAL language of the source document."
         ),
     )
     internal_logic_en: ReasoningStepDTO = Field(
         description="Rigorous internal mathematical/logical Chain of Thought deduction mapped step-by-step in English."
     )
-    status: Literal["PASS", "FAIL", "DLQ"] | None = Field(
-        default=None, description="The evaluation status. Must be one of PASS, FAIL, DLQ."
+    status: Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None = Field(
+        default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."
+    )
+    counter_quote: str | None = Field(
+        default=None,
+        description=(
+            "If you believe the exact_quotes are taken out of context, provide a SEPARATE "
+            "verbatim quote from the source text that contradicts or contextualizes them. "
+            "This counter-evidence MUST also be a physically contiguous substring. "
+            "If you cannot find contradicting evidence, leave this as null."
+        ),
     )
     semantic_reasoning: str = Field(
         description="Detailed reasoning for the evaluation. Must be in the Localized Target Language.",
@@ -388,20 +395,23 @@ class AtomEvaluationItemDTO(V2CoreBase):
                 context = info.context if info else None
                 source_text = context.get("source_text") if context else None
                 if source_text:
-                    # Normalize both source and quote using NFKC and collapsing whitespaces
-                    def normalize_text(text: str) -> str:
-                        if not text:
-                            return ""
-                        normalized = unicodedata.normalize("NFKC", text).lower()
-                        normalized = re.sub(r"\s+", " ", normalized).strip()
-                        return normalized
+                    # Normalize both source and quote using the same exact logic as the orchestrator
+                    from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
-                    norm_source = normalize_text(source_text)
+                    norm_source, _ = AnchorValidationService.normalize_text_with_mapping(source_text)
                     locale = context.get("system_locale") if context else None
                     threshold = get_lexical_fuzz_threshold(locale)
+                    max_len = SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value
 
                     for quote in self.exact_quotes:
-                        norm_quote = normalize_text(quote)
+                        if len(quote) > max_len:
+                            raise ValueError(
+                                f"Quote too long ({len(quote)} chars > {max_len}). "
+                                "Split into separate shorter quotes from different source locations."
+                            )
+                        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
+                        if not norm_quote:
+                            continue
                         if norm_quote not in norm_source:
                             score = fuzz.partial_ratio(norm_quote, norm_source)
                             if score < threshold:

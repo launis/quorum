@@ -500,6 +500,17 @@ class AlertBlock(SduiBlockBase):
     citations: list[int] = Field(default_factory=list)
 
 
+class MarkdownBlock(SduiBlockBase):
+    """Direct Markdown rendering block, bypassing structural SDUI templates.
+
+    Used strictly for static Admin texts (like preambles) and legacy V1 data,
+    NOT for dynamic LLM content generation to preserve the UI structural mandate.
+    """
+
+    block_type: Literal["markdown"] = "markdown"
+    text: StrictStr = Field(..., description="The exact markdown string to be rendered.")
+
+
 AnySduiBlock = Annotated[
-    HeroInsightBlock | ParagraphBlock | BulletListBlock | AlertBlock, Field(discriminator="block_type")
+    HeroInsightBlock | ParagraphBlock | BulletListBlock | AlertBlock | MarkdownBlock, Field(discriminator="block_type")
 ]

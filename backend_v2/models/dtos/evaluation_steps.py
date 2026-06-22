@@ -34,6 +34,15 @@ class StepDTOStrict(BaseExtractionDTO):
     falsification_argument: str = Field(
         description="Why this evidence might NOT satisfy the strict causal requirement of the rule."
     )
+    counter_quote: str | None = Field(
+        default=None,
+        description=(
+            "If you believe the exact_quotes are taken out of context, provide a SEPARATE "
+            "verbatim quote from the source text that contradicts or contextualizes them. "
+            "This counter-evidence MUST also be a physically contiguous substring. "
+            "If you cannot find contradicting evidence, leave this as null."
+        ),
+    )
     decision: bool = Field(description="True if the condition is physically met, False otherwise.")
     semantic_reasoning: str = Field(description="Final summary of the decision.")
 
@@ -60,6 +69,15 @@ class StepDTOSemantic(BaseExtractionDTO):
     override_reason: str | None = Field(default=None, description="Explanation for the contextual override.")
     falsification_argument: str = Field(
         description="Why this evidence might NOT satisfy the strict causal requirement of the rule."
+    )
+    counter_quote: str | None = Field(
+        default=None,
+        description=(
+            "If you believe the exact_quotes are taken out of context, provide a SEPARATE "
+            "verbatim quote from the source text that contradicts or contextualizes them. "
+            "This counter-evidence MUST also be a physically contiguous substring. "
+            "If you cannot find contradicting evidence, leave this as null."
+        ),
     )
     decision: bool = Field(description="True if the condition is met (physically or semantically), False otherwise.")
     semantic_reasoning: str = Field(description="Final summary of the decision.")

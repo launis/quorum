@@ -72,35 +72,43 @@ async def get_redis_client_for_pacing() -> Any:
     return _redis_pool
 
 
-async def apply_provider_pacing(provider_name: str) -> None:
+async def apply_provider_pacing(
+    provider_name: str, strategy_id: str | None = None, rpm_limit: int | None = None
+) -> None:
     """Enforce provider-scoped RPM pacing using Redis distributed lock.
 
     Prevents Thundering Herd exhaustion of rate limits by spacing API calls.
 
     Args:
         provider_name: The target LLM provider identifier string.
+        strategy_id: Optional strategy identifier to scope the lock (e.g. 'fast', 'strict').
+        rpm_limit: Optional database-driven RPM limit. If > 0, dynamic pacing is used.
 
     Raises:
         AppException: NETWORK_UNAVAILABLE if Redis execution fails during pacing operations.
     """
-    match provider_name:
-        case LLMProviderName.VERTEX_AI.value | LLMProviderName.GOOGLE.value:
-            delay = SystemConcurrency.PACING_DELAY_VERTEX_SECONDS.value
-        case LLMProviderName.OPENAI.value:
-            delay = SystemConcurrency.PACING_DELAY_OPENAI_SECONDS.value
-        case LLMProviderName.MOCK.value:
-            delay = SystemConcurrency.PACING_DELAY_MOCK_SECONDS.value
-        case _:
-            delay = 0
+    if rpm_limit is not None and rpm_limit > 0:
+        delay = 60.0 / float(rpm_limit)
+    else:
+        match provider_name:
+            case LLMProviderName.VERTEX_AI.value | LLMProviderName.GOOGLE.value:
+                delay = SystemConcurrency.PACING_DELAY_VERTEX_SECONDS.value
+            case LLMProviderName.OPENAI.value:
+                delay = SystemConcurrency.PACING_DELAY_OPENAI_SECONDS.value
+            case LLMProviderName.MOCK.value:
+                delay = SystemConcurrency.PACING_DELAY_MOCK_SECONDS.value
+            case _:
+                delay = 0
 
     if delay <= 0:
         return
 
-    logger.info("Applying provider pacing of %s seconds for '%s'.", delay, provider_name)
+    lock_target = f"{provider_name}:{strategy_id}" if strategy_id else provider_name
+    logger.info("Applying provider pacing of %s seconds for '%s'.", delay, lock_target)
 
     try:
         redis_client = await get_redis_client_for_pacing()
-        lock_key = f"lock:pacer:{provider_name}"
+        lock_key = f"lock:pacer:{lock_target}"
         lock_ttl_ms = int(delay * 1000)
         poll_interval_s = 0.5
 
@@ -111,7 +119,7 @@ async def apply_provider_pacing(provider_name: str) -> None:
                 # Lock acquired! Do NOT release it; it protects the entire delay window.
                 break
 
-            logger.info(f"Wait-and-Poll: Pacing lock active for {provider_name}. Waiting...")
+            logger.info(f"Wait-and-Poll: Pacing lock active for {lock_target}. Waiting...")
             await asyncio.sleep(poll_interval_s)
     except Exception as e:
         logger.error(f"Provider pacing operation failed for {provider_name}.", exc_info=True)

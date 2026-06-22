@@ -110,7 +110,7 @@ def _process_questionnaire(raw_val: dict[str, Any], key: str, expected_input: Ex
         ) from e
 
 
-async def _process_chat_history(resolved_text: str, key: str, system_repo: Any) -> str:
+async def _process_chat_history(resolved_text: str, key: str, system_repo: Any) -> dict[str, str]:
     """Parses unstructured chat history into a Markdown formatted conversation.
 
     Args:
@@ -119,7 +119,10 @@ async def _process_chat_history(resolved_text: str, key: str, system_repo: Any) 
         system_repo: The system repository for prompt lookup.
 
     Returns:
-        The structured Markdown chat text.
+        A dictionary containing the structured Markdown chat text:
+        - combined: the full log
+        - user_only: only the user's messages
+        - ai_only: only the AI's messages
 
     Raises:
         AppException: If chat parsing using the LLM fails.
@@ -129,14 +132,24 @@ async def _process_chat_history(resolved_text: str, key: str, system_repo: Any) 
         chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)
 
         # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
-        chat_lines = []
+        combined_lines = []
+        user_lines = []
+        ai_lines = []
         for turn in chat_dto.conversation:
             # Deterministic Normalization: Crush all whitespace/newlines into single spaces
             cleaned_content = re.sub(r"\s+", " ", turn.content).strip()
-            chat_lines.append(f"**{turn.role}**: {cleaned_content}")
+            combined_lines.append(f"**{turn.role}**: {cleaned_content}")
+            if turn.role == "user":
+                user_lines.append(cleaned_content)
+            else:
+                ai_lines.append(cleaned_content)
 
         logger.info("[InputProcessingHook] Successfully structured %s via ChatParser (Markdown).", key)
-        return "\n\n".join(chat_lines)
+        return {
+            "combined": "\n\n".join(combined_lines),
+            "user_only": "\n\n".join(user_lines),
+            "ai_only": "\n\n".join(ai_lines),
+        }
     except Exception as e:
         if isinstance(e, AppException):
             raise e
@@ -274,7 +287,10 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
         if expected_input.is_chat_history and resolved_text and not resolved_text.strip().startswith("{"):
-            resolved_text = await _process_chat_history(resolved_text, key, system_repo)
+            chat_result = await _process_chat_history(resolved_text, key, system_repo)
+            resolved_text = chat_result["combined"]
+            output_dict[f"{key}_user_only"] = chat_result["user_only"]
+            output_dict[f"{key}_ai_only"] = chat_result["ai_only"]
 
         # --- 1. SEMANTIC SMOOTHING (SpaCy - IN BACKGROUND THREAD) ---
         if workflow.enable_semantic_smoothing and resolved_text:

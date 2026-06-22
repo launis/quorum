@@ -214,7 +214,7 @@ class SchemaFactory:
         # Otherwise, the LLM is forced to output them both in `evaluations` AND at the root level,
         # which causes a "too many states for serving" Vertex AI Bad Request error.
         if has_shuffled_atoms:
-            schema_criteria = [c for c in criteria if c.category_id != "criteria"]
+            schema_criteria = [c for c in criteria if c.category_id not in ("criteria", "matrix")]
         else:
             schema_criteria = criteria
 

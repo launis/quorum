@@ -20,7 +20,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
-from backend_v2.models.enums import HistoricalContextMode
+from backend_v2.models.enums import HistoricalContextMode, SystemConcurrency
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -297,6 +297,66 @@ def _build_section_instructions(layouts: list[Any], language: str, all_blocks: l
         section_instructions.append(instruction)
 
     return section_instructions
+
+
+async def _execute_synthesis_with_xai_retry(
+    client: LLMClient,
+    executor: LLMTaskExecutor,
+    messages: list[dict[str, Any]],
+    allowed_tools: list[str],
+    language: str,
+    active_exts: list[Any],
+) -> tuple[SynthesisOutputDTO, Any, list[Any]]:
+    """Helper to execute the main synthesis loop with XAI fallback self-healing.
+
+    Returns:
+        tuple containing (SynthesisOutputDTO, token_usage, audit_traces)
+    """
+    max_attempts = SystemConcurrency.LLM_MAX_RETRIES.value
+    last_error_msg = None
+
+    for attempt in range(max_attempts):
+        tool_res = await execute_tool_loop(
+            llm_client=client,
+            executor=executor,
+            messages=messages,
+            response_model=SynthesisOutputDTO,
+            allowed_tools=allowed_tools,
+            step_name=f"text_consolidation_hook_attempt_{attempt + 1}",
+            target_language=language,
+        )
+
+        result = SynthesisOutputDTO.model_validate(tool_res.result_data)
+        token_usage = tool_res.usage
+        audit_traces = tool_res.audit_traces
+
+        if active_exts and not result.xai_highlights:
+            logger.warning(
+                "[SynthesisHook] Attempt %d: Missing XAI highlights. Forcing self-healing retry.", attempt + 1
+            )
+            import json
+
+            messages.append({"role": "assistant", "content": json.dumps(tool_res.result_data, ensure_ascii=False)})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "Logical Validation Error: You failed to provide the requested XAI Highlights in the `xai_highlights` array. Please rewrite the entire JSON response and ensure you extract and synthesize the required XAI insights.",
+                }
+            )
+            last_error_msg = (
+                "Fail-Fast: Synthesis LLM failed to produce any requested XAI "
+                "Highlights (Context Exhaustion or Hallucination)."
+            )
+            continue
+
+        return result, token_usage, audit_traces
+
+    logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, last_error_msg)
+    raise AppException(
+        message=last_error_msg or "Fail-Fast: Unknown XAI Validation Error",
+        status_code=500,
+        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+    )
 
 
 @hook_registry.register(name="text_consolidation_hook")
@@ -738,19 +798,14 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     allowed_tools = synthesis_cfg.allowed_mcp_tools
 
     with logfire.span("text_consolidation_hook") as span:
-        tool_res = await execute_tool_loop(
-            llm_client=client,
+        result, token_usage, audit_traces = await _execute_synthesis_with_xai_retry(
+            client=client,
             executor=executor,
             messages=messages,
-            response_model=SynthesisOutputDTO,
             allowed_tools=allowed_tools,
-            step_name="text_consolidation_hook",
-            target_language=language,
+            language=language,
+            active_exts=active_exts,
         )
-
-        result = SynthesisOutputDTO.model_validate(tool_res.result_data)
-        token_usage = tool_res.usage
-        audit_traces = tool_res.audit_traces
 
         span.set_attribute("content_blocks_count", len(result.content_blocks))
         span.set_attribute("synthesis_token_usage", token_usage.model_dump_json())
@@ -759,23 +814,22 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         raw_audits = [a.model_dump(mode="json") for a in audit_traces] if audit_traces else []
 
-        active_exts = getattr(active_profile_dto, "visible_block_extensions", [])
-        if active_exts and not result.xai_highlights:
-            msg = (
-                "Fail-Fast: Synthesis LLM failed to produce any requested XAI "
-                "Highlights (Context Exhaustion or Hallucination)."
-            )
-            logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-
         section_dict = {}
         if result.section_syntheses:
+            layout_defs = active_profile_dto.layouts if active_profile_dto and active_profile_dto.layouts else []
             for s in result.section_syntheses:
                 safe_blocks = []
+
+                for idx, layout in enumerate(layout_defs):
+                    l_view = layout.preset_view
+                    l_id = f"layout_{idx}_{l_view}"
+                    if l_id == s.layout_id and layout.synthesis and layout.synthesis.preamble_text:
+                        l_preamble_model = layout.synthesis.preamble_text
+                        l_preamble = l_preamble_model.resolve(language) if l_preamble_model else ""
+                        if l_preamble:
+                            safe_blocks.append({"block_type": "markdown", "text": l_preamble})
+                        break
+
                 for b in s.content_blocks:
                     try:
                         safe_blocks.append(b.model_dump(mode="json"))
@@ -784,6 +838,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 section_dict[s.layout_id] = safe_blocks
 
         global_blocks = []
+        if preamble:
+            global_blocks.append({"block_type": "markdown", "text": preamble})
+
         for b in result.content_blocks:
             try:
                 global_blocks.append(b.model_dump(mode="json"))

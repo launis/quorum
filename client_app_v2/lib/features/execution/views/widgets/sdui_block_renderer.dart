@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/shared/widgets/output_renderer.dart';
 
 class SDUIBlockRenderer extends StatelessWidget {
   final List<SduiBlockDTO> contentBlocks;
@@ -21,8 +22,16 @@ class SDUIBlockRenderer extends StatelessWidget {
           SduiBulletListBlock b => _buildBulletList(context, b),
           SduiAlertBoxBlock a => _buildAlertBox(context, a),
           SduiHeroInsightBlock h => _buildHeroInsight(context, h),
+          SduiMarkdownBlock m => _buildMarkdown(context, m),
         };
       }).toList(),
+    );
+  }
+
+  Widget _buildMarkdown(BuildContext context, SduiMarkdownBlock block) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: OutputRenderer(markdownContent: block.text),
     );
   }
 

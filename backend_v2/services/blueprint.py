@@ -509,10 +509,9 @@ class BlueprintTransformer:
                 if ext_key in workflow_ext_values:
                     continue
                 synthesized = [x for x in grouped_extensions[ext_key] if x.get("_is_synthesized")]
-                if synthesized:
-                    grouped_extensions[ext_key] = synthesized[:max_items]
-                else:
-                    grouped_extensions[ext_key] = []
+                raw_items = [x for x in grouped_extensions[ext_key] if not x.get("_is_synthesized")]
+                combined = synthesized + raw_items
+                grouped_extensions[ext_key] = combined[:max_items]
 
         return evaluative_matrices, informational_matrices, all_parsed_matrices
 
@@ -842,7 +841,7 @@ class BlueprintTransformer:
                 ]
                 allowed_attributes = {"*": ["class", "id"], "a": ["href", "title", "target"]}
                 safe_md = bleach.clean(str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True)
-                content_blocks = [{"type": "markdown", "content": safe_md}]
+                content_blocks = [{"block_type": "markdown", "text": safe_md}]
         except AppException:
             raise
         except Exception as e:

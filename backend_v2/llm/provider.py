@@ -233,6 +233,10 @@ class LiteLLMProvider(LLMProvider):
                 model_list=[model_config],
                 set_verbose=False,
                 num_retries=0,
+                enable_pre_call_checks=False,
+                routing_strategy="simple-shuffle",
+                allowed_fails=0,
+                cooldown_time=0,
             )
 
             # Save to class cache
@@ -479,7 +483,11 @@ class LiteLLMProvider(LLMProvider):
                             if self._config
                             else (self.model_name.split("/")[0] if "/" in self.model_name else self.model_name)
                         )
-                        await apply_provider_pacing(provider_key)
+                        await apply_provider_pacing(
+                            provider_name=provider_key,
+                            strategy_id=self._config.id if self._config else None,
+                            rpm_limit=self._config.rpm_limit if self._config else None,
+                        )
 
                         response = await asyncio.wait_for(
                             self.router.acompletion(**call_kwargs), timeout=float(_timeout)

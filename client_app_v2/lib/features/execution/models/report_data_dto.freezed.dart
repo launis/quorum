@@ -31,6 +31,10 @@ SduiBlockDTO _$SduiBlockDTOFromJson(
           return SduiHeroInsightBlock.fromJson(
             json
           );
+                case 'markdown':
+          return SduiMarkdownBlock.fromJson(
+            json
+          );
         
           default:
             throw CheckedFromJsonException(
@@ -89,14 +93,15 @@ extension SduiBlockDTOPatterns on SduiBlockDTO {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SduiParagraphBlock value)?  paragraph,TResult Function( SduiBulletListBlock value)?  bulletList,TResult Function( SduiAlertBoxBlock value)?  alertBox,TResult Function( SduiHeroInsightBlock value)?  heroInsight,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SduiParagraphBlock value)?  paragraph,TResult Function( SduiBulletListBlock value)?  bulletList,TResult Function( SduiAlertBoxBlock value)?  alertBox,TResult Function( SduiHeroInsightBlock value)?  heroInsight,TResult Function( SduiMarkdownBlock value)?  markdown,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that);case _:
+return heroInsight(_that);case SduiMarkdownBlock() when markdown != null:
+return markdown(_that);case _:
   return orElse();
 
 }
@@ -114,14 +119,15 @@ return heroInsight(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SduiParagraphBlock value)  paragraph,required TResult Function( SduiBulletListBlock value)  bulletList,required TResult Function( SduiAlertBoxBlock value)  alertBox,required TResult Function( SduiHeroInsightBlock value)  heroInsight,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SduiParagraphBlock value)  paragraph,required TResult Function( SduiBulletListBlock value)  bulletList,required TResult Function( SduiAlertBoxBlock value)  alertBox,required TResult Function( SduiHeroInsightBlock value)  heroInsight,required TResult Function( SduiMarkdownBlock value)  markdown,}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that);case SduiBulletListBlock():
 return bulletList(_that);case SduiAlertBoxBlock():
 return alertBox(_that);case SduiHeroInsightBlock():
-return heroInsight(_that);}
+return heroInsight(_that);case SduiMarkdownBlock():
+return markdown(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -135,14 +141,15 @@ return heroInsight(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SduiParagraphBlock value)?  paragraph,TResult? Function( SduiBulletListBlock value)?  bulletList,TResult? Function( SduiAlertBoxBlock value)?  alertBox,TResult? Function( SduiHeroInsightBlock value)?  heroInsight,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SduiParagraphBlock value)?  paragraph,TResult? Function( SduiBulletListBlock value)?  bulletList,TResult? Function( SduiAlertBoxBlock value)?  alertBox,TResult? Function( SduiHeroInsightBlock value)?  heroInsight,TResult? Function( SduiMarkdownBlock value)?  markdown,}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that);case _:
+return heroInsight(_that);case SduiMarkdownBlock() when markdown != null:
+return markdown(_that);case _:
   return null;
 
 }
@@ -159,13 +166,14 @@ return heroInsight(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<int> citations)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations)?  alertBox,TResult Function( String text)?  heroInsight,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<int> citations)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations)?  alertBox,TResult Function( String text)?  heroInsight,TResult Function( String text)?  markdown,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that.text);case _:
+return heroInsight(_that.text);case SduiMarkdownBlock() when markdown != null:
+return markdown(_that.text);case _:
   return orElse();
 
 }
@@ -183,13 +191,14 @@ return heroInsight(_that.text);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<int> citations)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations)  alertBox,required TResult Function( String text)  heroInsight,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<int> citations)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations)  alertBox,required TResult Function( String text)  heroInsight,required TResult Function( String text)  markdown,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock():
 return bulletList(_that.items);case SduiAlertBoxBlock():
 return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock():
-return heroInsight(_that.text);}
+return heroInsight(_that.text);case SduiMarkdownBlock():
+return markdown(_that.text);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -203,13 +212,14 @@ return heroInsight(_that.text);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<int> citations)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations)?  alertBox,TResult? Function( String text)?  heroInsight,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<int> citations)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations)?  alertBox,TResult? Function( String text)?  heroInsight,TResult? Function( String text)?  markdown,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that.text);case _:
+return heroInsight(_that.text);case SduiMarkdownBlock() when markdown != null:
+return markdown(_that.text);case _:
   return null;
 
 }
@@ -525,6 +535,79 @@ class _$SduiHeroInsightBlockCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? text = null,}) {
   return _then(SduiHeroInsightBlock(
+text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class SduiMarkdownBlock extends SduiBlockDTO {
+  const SduiMarkdownBlock({required this.text, final  String? $type}): $type = $type ?? 'markdown',super._();
+  factory SduiMarkdownBlock.fromJson(Map<String, dynamic> json) => _$SduiMarkdownBlockFromJson(json);
+
+ final  String text;
+
+@JsonKey(name: 'block_type')
+final String $type;
+
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SduiMarkdownBlockCopyWith<SduiMarkdownBlock> get copyWith => _$SduiMarkdownBlockCopyWithImpl<SduiMarkdownBlock>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SduiMarkdownBlockToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiMarkdownBlock&&(identical(other.text, text) || other.text == text));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,text);
+
+@override
+String toString() {
+  return 'SduiBlockDTO.markdown(text: $text)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SduiMarkdownBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
+  factory $SduiMarkdownBlockCopyWith(SduiMarkdownBlock value, $Res Function(SduiMarkdownBlock) _then) = _$SduiMarkdownBlockCopyWithImpl;
+@useResult
+$Res call({
+ String text
+});
+
+
+
+
+}
+/// @nodoc
+class _$SduiMarkdownBlockCopyWithImpl<$Res>
+    implements $SduiMarkdownBlockCopyWith<$Res> {
+  _$SduiMarkdownBlockCopyWithImpl(this._self, this._then);
+
+  final SduiMarkdownBlock _self;
+  final $Res Function(SduiMarkdownBlock) _then;
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? text = null,}) {
+  return _then(SduiMarkdownBlock(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,
   ));
