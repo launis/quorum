@@ -84,6 +84,40 @@ def _is_transient_llm_error(e: BaseException) -> bool:
     )
 
 
+def sanitize_messages_for_vertex(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sanitize message array to prevent LiteLLM Vertex transformation crashes.
+
+    Vertex AI transformation in LiteLLM requires every `role: tool` message to be
+    preceded by a `role: assistant` message containing matching `tool_calls`.
+    If an orphaned `role: tool` message exists (e.g., due to self-healing retries
+    stripping the original context), LiteLLM throws APIConnectionError.
+
+    This function removes any `role: tool` message that lacks a valid pairing.
+    """
+    valid_tool_call_ids = set()
+    sanitized = []
+
+    for msg in messages:
+        if msg.get("role") == "assistant" and "tool_calls" in msg:
+            # Collect all valid tool_call_ids from assistant message
+            for tc in msg["tool_calls"]:
+                if "id" in tc:
+                    valid_tool_call_ids.add(tc["id"])
+            sanitized.append(msg)
+        elif msg.get("role") == "tool":
+            tool_call_id = msg.get("tool_call_id")
+            if tool_call_id in valid_tool_call_ids:
+                sanitized.append(msg)
+            else:
+                logger.warning(
+                    "[LiteLLMProvider] Stripping orphaned tool message (id: %s) to prevent Vertex crash.", tool_call_id
+                )
+        else:
+            sanitized.append(msg)
+
+    return sanitized
+
+
 class LLMProvider(ABC):
     """Abstract base class for LLM providers.
 
@@ -287,6 +321,10 @@ class LiteLLMProvider(LLMProvider):
                 final_messages.append({"role": "system", "content": system_instruction})
             if prompt:
                 final_messages.append({"role": "user", "content": prompt})
+
+        # Tier 4 Fix: Sanitize messages to prevent LiteLLM Vertex transformation crash
+        # caused by orphaned `role: tool` messages (e.g., from retry loops).
+        final_messages = sanitize_messages_for_vertex(final_messages)
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults.
         if temperature is None:

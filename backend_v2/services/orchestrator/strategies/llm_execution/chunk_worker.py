@@ -546,7 +546,15 @@ class ChunkWorker:
             results_list: list[dict[str, Any]] = []
             total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-            async def _safe_execute() -> tuple[Any, Any, list[Any]]:
+            async def _safe_execute(index: int = 0) -> tuple[Any, Any, list[Any]]:
+                if index > 0:
+                    import random
+
+                    from backend_v2.models.enums import EnsembleJitter
+
+                    base_delay = index * EnsembleJitter.BASE_DELAY.value
+                    random_jitter = random.uniform(0.0, EnsembleJitter.BASE_DELAY.value)
+                    await asyncio.sleep(base_delay + random_jitter)
                 async with sem:
                     try:
                         if effective_mcp_tools:
@@ -569,6 +577,7 @@ class ChunkWorker:
                                     if step_metadata
                                     else 0,
                                 },
+                                source_context=global_source_text,
                             )
                             return (
                                 loop_res.result_data,
@@ -603,8 +612,8 @@ class ChunkWorker:
             if count > 1:
                 tasks_list = []
                 async with asyncio.TaskGroup() as tg:
-                    for _ in range(count):
-                        tasks_list.append(tg.create_task(_safe_execute()))
+                    for i in range(count):
+                        tasks_list.append(tg.create_task(_safe_execute(i)))
                 for t in tasks_list:
                     res, usg, trc = t.result()
                     if isinstance(res, Exception):

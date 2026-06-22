@@ -23,6 +23,22 @@ class EvaluationRunCount(int, Enum):
     ENSEMBLE = 3
 
 
+class EnsembleJitter(float, Enum):
+    """Määrittelee viivekertoimen (sekunneissa) ensemble-ajoille, jolla pakotetaan Vertex AI -välimuistin divergenssi."""
+
+    BASE_DELAY = 0.200
+
+
+class SourceSufficiencyThreshold(int, Enum):
+    """Minimum source document length (chars) to bypass MCP tool declarations.
+
+    When the source text exceeds this threshold, the full document is already
+    in the prompt and there is no information gap for tools to fill.
+    """
+
+    MIN_CHARS = 200
+
+
 class BlockDataType(str, Enum):
     """Data types allowed for PromptBlock extracted values.
     Accepts core extraction types, plus valid legacy structural types.

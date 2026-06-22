@@ -24,6 +24,7 @@ from backend_v2.models.domain.mcp import (
     TavilyToolArgsDTO,
 )
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.enums import SourceSufficiencyThreshold
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 
@@ -59,6 +60,54 @@ TAVILY_TOOL_DECLARATION: dict[str, Any] = {
         },
     },
 }
+
+
+def validate_query_relevance(query: str, source_context: str) -> bool:
+    """Validate if the search query is semantically relevant to the source context.
+
+    Prevents the LLM from hallucinating irrelevant searches (e.g., EUR/USD
+    exchange rates) that waste API calls and inject noise into the evaluation.
+
+    Args:
+        query: The search query hallucinated by the LLM.
+        source_context: The text of the document being evaluated.
+
+    Returns:
+        bool: True if relevant (or if validation cannot be determined), False if clearly hallucinated.
+    """
+    if not source_context or not source_context.strip():
+        return True
+
+    query_words = [w.lower() for w in query.split() if len(w) >= 3]
+    if not query_words:
+        return True
+
+    context_lower = source_context.lower()
+
+    # If any substantive word from the query exists in the source context, consider it relevant.
+    for word in query_words:
+        if word in context_lower:
+            return True
+
+    # If no words overlap at all, it's a hallucination.
+    return False
+
+
+def is_source_sufficient(source_context: str) -> bool:
+    """Determine if the source document is substantial enough to skip tool calling.
+
+    When the full document is already in the LLM prompt, there is no information
+    gap that external tools could fill. This is the L3 root cause fix that
+    prevents the LLM from even receiving tool declarations.
+
+    Args:
+        source_context: The source document text available in the prompt.
+
+    Returns:
+        True if the source is sufficient (tools should be suppressed).
+        False if there is an information gap (tools may be needed).
+    """
+    return len(source_context.strip()) >= SourceSufficiencyThreshold.MIN_CHARS.value
 
 
 def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
@@ -187,6 +236,7 @@ async def execute_tool_loop[T: BaseModel](
     target_language: str = "en",
     synthesis_instructions: dict[str, Any] | None = None,
     validation_context: dict[str, Any] | None = None,
+    source_context: str = "",
 ) -> MCPToolLoopResult:
     """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
 
@@ -212,6 +262,31 @@ async def execute_tool_loop[T: BaseModel](
 
     if not tool_declarations:
         # No valid tools — direct passthrough (zero overhead)
+        result, usage = await executor.execute_structured_task(
+            client=llm_client,
+            messages=messages,
+            response_model=response_model,
+            mock_identity=mock_identity,
+            validation_context=validation_context,
+        )
+        return MCPToolLoopResult(
+            result_data=result.model_dump(mode="json"),
+            audit_traces=[],
+            usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        )
+
+    # L3 Root Cause Fix: Source Sufficiency Gate
+    # When the full document is already in the prompt, the LLM has no information
+    # gap to fill. Suppress tool declarations entirely to prevent hallucinated
+    # tool calls (e.g., EUR/USD, weather) that inject noise and break caching.
+    if is_source_sufficient(source_context):
+        logger.info(
+            "[MCPToolLoop] Source sufficiency gate: document (%d chars) exceeds threshold (%d). "
+            "Suppressing tool declarations for step '%s'.",
+            len(source_context),
+            SourceSufficiencyThreshold.MIN_CHARS.value,
+            step_name,
+        )
         result, usage = await executor.execute_structured_task(
             client=llm_client,
             messages=messages,
@@ -320,6 +395,15 @@ async def execute_tool_loop[T: BaseModel](
                     status_code=400,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
+
+            if not validate_query_relevance(query, source_context):
+                logger.warning(
+                    "[MCPToolLoop] LLM hallucinated an irrelevant search query: '%s'. Bypassing search.",
+                    query,
+                    extra={"step_name": step_name},
+                )
+                invalid_tools_detected = True
+                continue
 
             logger.info(
                 "Executing Tavily search",
