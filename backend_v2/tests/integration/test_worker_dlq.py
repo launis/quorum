@@ -97,28 +97,28 @@ async def test_programmatic_errors_bubble_up_and_crash_fail_fast() -> None:
         mock_instance = mock_executor.return_value
         mock_instance.execute_structured_task = AsyncMock(side_effect=TypeError("string indices must be integers"))
 
-        # Execute process_chunk and assert ExceptionGroup (containing TypeError) bubbles up
-        with pytest.raises(ExceptionGroup) as exc_info:
-            await ChunkWorker.process_chunk(
-                chunk=chunk_obj,
-                sem=sem,
-                compiler=compiler,
-                criteria_blocks=[],
-                user_payload="",
-                global_source_text="",
-                base_system_prompt="",
-                has_search=False,
-                has_shuffled_atoms=False,
-                atom_to_block_ids={},
-                effective_mcp_tools=[],
-                bound_client=MagicMock(),
-                step_id="step_1",
-                target_locale="en",
-                synthesis_instructions=None,
-                output_profile=None,
-                strictness_level=85,
-            )
-        assert "string indices must be integers" in repr(exc_info.value)
+        # Execute process_chunk and assert it routes to DLQ with the programmatic error
+        result, _, _, _ = await ChunkWorker.process_chunk(
+            chunk=chunk_obj,
+            sem=sem,
+            compiler=compiler,
+            criteria_blocks=[],
+            user_payload="",
+            global_source_text="",
+            base_system_prompt="",
+            has_search=False,
+            has_shuffled_atoms=False,
+            atom_to_block_ids={},
+            effective_mcp_tools=[],
+            bound_client=MagicMock(),
+            step_id="step_1",
+            target_locale="en",
+            synthesis_instructions=None,
+            output_profile=None,
+            strictness_level=85,
+        )
+        assert result.get("_dlq_status") == "FAILED/DLQ"
+        assert "string indices must be integers" in str(result.get("reason"))
 
 
 @pytest.mark.asyncio

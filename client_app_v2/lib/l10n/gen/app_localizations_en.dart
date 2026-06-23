@@ -3518,4 +3518,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tdaExtractionRule => 'Extraction Rule';
+
+  @override
+  String get systemAuditTrailLabel => 'System Audit Trail';
+
+  @override
+  String get systemAuditTrailDescription =>
+      'Enables MCPAuditTrace fact-checking report injection at the end of the document.';
 }

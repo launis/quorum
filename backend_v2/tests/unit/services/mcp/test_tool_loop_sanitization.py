@@ -7,18 +7,11 @@ Bug 2: LLM hallucinates irrelevant tool calls (e.g., "EUR to USD exchange rate")
 Tavily API calls and inject noise into the evaluation context.
 """
 
-import pytest
-
-from backend_v2.services.mcp.mcp_tool_loop import (
-    _build_tool_evidence_message,
-)
-from backend_v2.models.v2_core import MCPAuditTrace
-from datetime import datetime, timezone
-
 
 # ---------------------------------------------------------------------------
 # BUG 1: Orphaned tool message sanitization
 # ---------------------------------------------------------------------------
+
 
 class TestOrphanedToolMessageSanitization:
     """Verify that `provider.py` strips orphaned `role: tool` messages before
@@ -30,7 +23,8 @@ class TestOrphanedToolMessageSanitization:
 
     def test_orphaned_tool_message_is_removed(self) -> None:
         """An orphaned `role: tool` without a preceding `role: assistant` + tool_calls
-        must be stripped from the message array to prevent LiteLLM crash."""
+        must be stripped from the message array to prevent LiteLLM crash.
+        """
         from backend_v2.llm.provider import sanitize_messages_for_vertex
 
         messages = [
@@ -49,8 +43,7 @@ class TestOrphanedToolMessageSanitization:
         # The orphaned tool message must be removed
         roles = [m["role"] for m in sanitized]
         assert "tool" not in roles, (
-            "Orphaned tool message was not removed. "
-            "This will crash LiteLLM Vertex transformation."
+            "Orphaned tool message was not removed. This will crash LiteLLM Vertex transformation."
         )
 
     def test_valid_tool_pair_is_preserved(self) -> None:
@@ -97,7 +90,11 @@ class TestOrphanedToolMessageSanitization:
                 "role": "assistant",
                 "content": None,
                 "tool_calls": [
-                    {"id": "call_valid", "type": "function", "function": {"name": "mcp_tavily_search", "arguments": '{"query": "valid"}'}}
+                    {
+                        "id": "call_valid",
+                        "type": "function",
+                        "function": {"name": "mcp_tavily_search", "arguments": '{"query": "valid"}'},
+                    }
                 ],
             },
             {"role": "tool", "tool_call_id": "call_valid", "content": "valid response"},
@@ -118,13 +115,16 @@ class TestOrphanedToolMessageSanitization:
 # BUG 2: Hallucinated / irrelevant search query validation
 # ---------------------------------------------------------------------------
 
+
 class TestSearchQueryRelevanceValidation:
     """Verify that `mcp_tool_loop.py` rejects search queries that are clearly
-    irrelevant to the source document being evaluated."""
+    irrelevant to the source document being evaluated.
+    """
 
     def test_irrelevant_query_is_rejected(self) -> None:
         """A query about 'EUR to USD exchange rate' should be rejected when
-        the document is about hybrid work policy."""
+        the document is about hybrid work policy.
+        """
         from backend_v2.services.mcp.mcp_tool_loop import validate_query_relevance
 
         source_context = (
@@ -143,7 +143,8 @@ class TestSearchQueryRelevanceValidation:
 
     def test_relevant_query_is_accepted(self) -> None:
         """A query about 'Stanford hybrid work research' should be accepted
-        when the document references Stanford."""
+        when the document references Stanford.
+        """
         from backend_v2.services.mcp.mcp_tool_loop import validate_query_relevance
 
         source_context = (
@@ -154,14 +155,12 @@ class TestSearchQueryRelevanceValidation:
         relevant_query = "Stanford University hybrid work research 2024"
 
         is_relevant = validate_query_relevance(relevant_query, source_context)
-        assert is_relevant is True, (
-            "Relevant query about Stanford was rejected. "
-            "False positive in relevance filtering."
-        )
+        assert is_relevant is True, "Relevant query about Stanford was rejected. False positive in relevance filtering."
 
     def test_empty_context_accepts_all(self) -> None:
         """When source context is unavailable, all queries should be accepted
-        (fail-open to prevent blocking legitimate searches)."""
+        (fail-open to prevent blocking legitimate searches).
+        """
         from backend_v2.services.mcp.mcp_tool_loop import validate_query_relevance
 
         is_relevant = validate_query_relevance("any query", "")
@@ -171,6 +170,7 @@ class TestSearchQueryRelevanceValidation:
 # ---------------------------------------------------------------------------
 # L3: Source Sufficiency Gate — root cause fix
 # ---------------------------------------------------------------------------
+
 
 class TestSourceSufficiencyGate:
     """Verify that `execute_tool_loop` bypasses Phase 1 tool calling entirely
@@ -182,7 +182,8 @@ class TestSourceSufficiencyGate:
 
     def test_sufficient_source_suppresses_tools(self) -> None:
         """When source_context exceeds the sufficiency threshold, the function
-        should report that tools were suppressed via is_source_sufficient()."""
+        should report that tools were suppressed via is_source_sufficient().
+        """
         from backend_v2.services.mcp.mcp_tool_loop import is_source_sufficient
 
         long_document = "A" * 500  # Well above any reasonable threshold
@@ -190,14 +191,16 @@ class TestSourceSufficiencyGate:
 
     def test_empty_source_allows_tools(self) -> None:
         """When source_context is empty, tools should be allowed
-        (genuine information gap exists)."""
+        (genuine information gap exists).
+        """
         from backend_v2.services.mcp.mcp_tool_loop import is_source_sufficient
 
         assert is_source_sufficient("") is False
 
     def test_short_source_allows_tools(self) -> None:
         """When source_context is very short (e.g., a URL or title only),
-        tools should be allowed since there's not enough to evaluate."""
+        tools should be allowed since there's not enough to evaluate.
+        """
         from backend_v2.services.mcp.mcp_tool_loop import is_source_sufficient
 
         assert is_source_sufficient("Check this link") is False

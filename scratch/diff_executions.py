@@ -208,8 +208,12 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # Etsi säännön kuvaus tietokannasta
-    with open('backend_v2/seed/seed_data.json', encoding='utf-8') as f:
-        seed = json.load(f)
+    try:
+        with open('backend_v2/seed/seed_data.json', encoding='utf-8') as f:
+            seed = json.load(f)
+    except UnicodeDecodeError:
+        with open('backend_v2/seed/seed_data.json', encoding='cp1252') as f:
+            seed = json.load(f)
     atom_rules = {}
     atom_to_block = {}
     for block in seed.get('prompt_blocks', []):

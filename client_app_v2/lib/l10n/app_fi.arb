@@ -45,7 +45,7 @@
   "atomicBreakdownTitle": "Tasojakauma",
   "rowExplanationTitle": "Selite",
   "normalizedScore": "100 %",
-  "matrixEvaluativeAsteriskLegend": "* Matriisi lasketaan mukaan kokonaisarvosanan keskiarvoon.",
+  "matrixEvaluativeAsteriskLegend": "* = Arvioiva matriisi (Vaikuttaa kokonaisarvosanaan)",
   "reportPenaltiesApplied": "Rangaistukset (Sovelletut vääristymät)",
   "rawData": "Raakadata",
   "status": "TILA",
@@ -172,7 +172,7 @@
   "errorNotFound": "Resurssia ei löydy.",
   "errorValidation": "Validointivirhe.",
   "errorValidationEmpty": "Syötteet eivät voi olla tyhjiä.",
-  "eventLlmAnomalyRetry": "LLM-tarjoaja aikakatkaistiin, yritetään uudelleen...",
+  "eventLlmAnomalyRetry": "Laadunvarmistus: Tekoäly havaitsi epäjohdonmukaisuuden ja varmentaa päättelyketjuaan (Yritys 2)...",
   "errorValidationMissing": "Pakollisia kenttiä puuttuu: {fields}",
   "errorDataMapping": "Mäppäysvirhe kentässä '{field}': {detail}",
   "errorDataType": "Tyyppivirhe kentässä '{field}': {detail}",
@@ -1141,8 +1141,6 @@
       }
     }
   },
-  "matrixEvaluativeAsteriskLegend": "* = Arvioiva matriisi (Vaikuttaa kokonaisarvosanaan)",
-  "eventLlmAnomalyRetry": "Laadunvarmistus: Tekoäly havaitsi epäjohdonmukaisuuden ja varmentaa päättelyketjuaan (Yritys 2)...",
   "allowContextualOverrideLabel": "Salli kognitiivinen ohitus",
   "allowContextualOverrideDescription": "Sallii LLM:lle perustellun semanttisen hyväksynnän ilman kirjaimellista lainausta, jos tarkkaa tekstiä ei ole fyysisiä todisteita varten olemassa.",
   "enableContextualOverridesLabel": "Kognitiiviset ohitukset käytössä",
@@ -1159,5 +1157,7 @@
   "xaiVerdictMisaligned": "Poikkeama (MISALIGNED)",
   "tdaAnchorTarget": "Ankkurikohde",
   "tdaBoundingBox": "Hakuikkunan Laajuus",
-  "tdaExtractionRule": "Poiminnan Sääntö"
+  "tdaExtractionRule": "Poiminnan Sääntö",
+  "systemAuditTrailLabel": "Järjestelmän Faktantarkistusloki",
+  "systemAuditTrailDescription": "Ottaa käyttöön MCPAuditTrace -pohjaisen faktantarkistusraportin loppuun."
 }

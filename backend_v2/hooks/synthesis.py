@@ -20,7 +20,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
-from backend_v2.models.enums import HistoricalContextMode, SystemConcurrency
+from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -258,9 +258,6 @@ def _build_section_instructions(layouts: list[Any], language: str, all_blocks: l
         l_title_model = layout.title
         l_title = l_title_model.resolve(language) if l_title_model else f"Section {idx}"
 
-        l_preamble_model = l_synthesis.preamble_text
-        l_preamble = l_preamble_model.resolve(language) if l_preamble_model else ""
-
         l_view = layout.preset_view
         l_id = f"layout_{idx}_{l_view}"
         target_blocks = layout.target_blocks or []
@@ -278,9 +275,6 @@ def _build_section_instructions(layouts: list[Any], language: str, all_blocks: l
         if l_synthesis.length_constraint:
             instruction += f"    <length_constraint_chars>{l_synthesis.length_constraint}</length_constraint_chars>\n"
 
-        if l_preamble:
-            instruction += f"    <preamble_tone>{l_preamble}</preamble_tone>\n"
-
         instruction += "  </execution_parameters>\n"
         instruction += f"  <cognitive_blueprint>\n{str(l_system_prompt).strip()}\n  </cognitive_blueprint>\n"
 
@@ -297,66 +291,6 @@ def _build_section_instructions(layouts: list[Any], language: str, all_blocks: l
         section_instructions.append(instruction)
 
     return section_instructions
-
-
-async def _execute_synthesis_with_xai_retry(
-    client: LLMClient,
-    executor: LLMTaskExecutor,
-    messages: list[dict[str, Any]],
-    allowed_tools: list[str],
-    language: str,
-    active_exts: list[Any],
-) -> tuple[SynthesisOutputDTO, Any, list[Any]]:
-    """Helper to execute the main synthesis loop with XAI fallback self-healing.
-
-    Returns:
-        tuple containing (SynthesisOutputDTO, token_usage, audit_traces)
-    """
-    max_attempts = SystemConcurrency.LLM_MAX_RETRIES.value
-    last_error_msg = None
-
-    for attempt in range(max_attempts):
-        tool_res = await execute_tool_loop(
-            llm_client=client,
-            executor=executor,
-            messages=messages,
-            response_model=SynthesisOutputDTO,
-            allowed_tools=allowed_tools,
-            step_name=f"text_consolidation_hook_attempt_{attempt + 1}",
-            target_language=language,
-        )
-
-        result = SynthesisOutputDTO.model_validate(tool_res.result_data)
-        token_usage = tool_res.usage
-        audit_traces = tool_res.audit_traces
-
-        if active_exts and not result.xai_highlights:
-            logger.warning(
-                "[SynthesisHook] Attempt %d: Missing XAI highlights. Forcing self-healing retry.", attempt + 1
-            )
-            import json
-
-            messages.append({"role": "assistant", "content": json.dumps(tool_res.result_data, ensure_ascii=False)})
-            messages.append(
-                {
-                    "role": "user",
-                    "content": "Logical Validation Error: You failed to provide the requested XAI Highlights in the `xai_highlights` array. Please rewrite the entire JSON response and ensure you extract and synthesize the required XAI insights.",
-                }
-            )
-            last_error_msg = (
-                "Fail-Fast: Synthesis LLM failed to produce any requested XAI "
-                "Highlights (Context Exhaustion or Hallucination)."
-            )
-            continue
-
-        return result, token_usage, audit_traces
-
-    logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, last_error_msg)
-    raise AppException(
-        message=last_error_msg or "Fail-Fast: Unknown XAI Validation Error",
-        status_code=500,
-        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-    )
 
 
 @hook_registry.register(name="text_consolidation_hook")
@@ -703,11 +637,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             "  <rule>GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
             "specified in <global_length_constraint_chars>.</rule>\n"
         )
-    if preamble:
-        sys_prompt += (
-            "  <rule>GLOBAL PREAMBLE INTRODUCTION: Start your global synthesis intuitively using the "
-            "preamble tone/context specified in <global_preamble_tone>.</rule>\n"
-        )
 
     sys_prompt += (
         "  <rule>TONE AND QUALITY MANDATE: Maintain a highly professional, analytical, and executive tone. "
@@ -743,29 +672,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "Your output must be STRICTLY based on the current <source_data>.</rule>\n"
     )
 
-    if active_exts:
-        sys_prompt += (
-            "  <rule>CRITICAL XAI EXTENSION SYNTHESIS MANDATE:\n"
-            "Your task is to act as the Chief Editor. Scan the flattened JSON outputs of the matrices for any "
-            "localized extensions they produced. In the V2 schema, these extensions are always appended as suffixes "
-            "to the matrix Stripe IDs (e.g., 'blk_22e3598e06414409_coaching', 'blk_80732a33fe1947ee_falsification').\n"
-            "You must HARVEST these fragmented, atomized insights and SYNTHESIZE them into multiple distinct, "
-            "high-impact global highlights per target extension category. "
-            "Filter the insights and select the Top N most important items (where N is the number specified "
-            "in <max_extension_items_per_category>). "
-            "Define 'importance' based on: 1) Strategic impact (reveals systemic patterns or critical risks), "
-            "2) Actionability (provides actionable value), and "
-            "3) Grounding (strictly supported by the provided data). "
-            "ZERO-HALLUCINATION MANDATE: Do NOT invent, hallucinate, or mock specific examples, topics, "
-            "domains, or user quotes (e.g., do not invent mock conversation starters). If the source data "
-            "is abstract, your synthesis MUST remain abstract. ONLY use facts explicitly present in the data. "
-            "Create a distinct JSON object for each selected item. Do not merge everything into one giant item. "
-            "Output these items strictly into the `xai_highlights` array, "
-            "using the EXACT target extension name from <target_extensions_to_harvest> in `extension_type`. "
-            ' (e.g. "coaching")\n'
-            "Provide ONLY the core text, omitting any internal titles like 'Vasta-argumentti 1:'.</rule>\n"
-        )
-
     sys_prompt += "</rules>\n</system_directive>\n\n"
 
     sys_prompt += "<execution_parameters>\n"
@@ -782,15 +688,12 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     if length_constraint:
         sys_prompt += f"  <global_length_constraint_chars>{length_constraint}</global_length_constraint_chars>\n"
-    if preamble:
-        sys_prompt += f"  <global_preamble_tone>{preamble}</global_preamble_tone>\n"
-    if active_exts:
-        ext_list = ", ".join([x.value for x in active_exts]) if isinstance(active_exts, list) else str(active_exts)
-        sys_prompt += f"  <target_extensions_to_harvest>{ext_list}</target_extensions_to_harvest>\n"
-        sys_prompt += f"  <max_extension_items_per_category>{max_items}</max_extension_items_per_category>\n"
     sys_prompt += "</execution_parameters>"
 
-    messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]
+    messages = [
+        {"role": "system", "content": sys_prompt},
+        {"role": "user", "content": raw_input_text},
+    ]
 
     strategy_name = synthesis_cfg.model_strategy
     client = await LLMClient.from_strategy(strategy_name, repository=deps.system_repo)
@@ -798,14 +701,18 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     allowed_tools = synthesis_cfg.allowed_mcp_tools
 
     with logfire.span("text_consolidation_hook") as span:
-        result, token_usage, audit_traces = await _execute_synthesis_with_xai_retry(
-            client=client,
+        tool_res = await execute_tool_loop(
+            llm_client=client,
             executor=executor,
             messages=messages,
+            response_model=SynthesisOutputDTO,
             allowed_tools=allowed_tools,
-            language=language,
-            active_exts=active_exts,
+            step_name="text_consolidation_hook",
+            target_language=language,
         )
+        result = SynthesisOutputDTO.model_validate(tool_res.result_data)
+        token_usage = tool_res.usage
+        audit_traces = tool_res.audit_traces
 
         span.set_attribute("content_blocks_count", len(result.content_blocks))
         span.set_attribute("synthesis_token_usage", token_usage.model_dump_json())
@@ -846,7 +753,50 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 global_blocks.append(b.model_dump(mode="json"))
             except Exception as e:
                 logger.error("[SynthesisHook] Global block serialization failed: %s", e)
-        raw_highlights = [h.model_dump(mode="json") for h in result.xai_highlights] if result.xai_highlights else []
+        # Pythonic Extract Audit Trail
+        if getattr(workflow_data, "system_audit_trail", False) and audit_traces:
+            lines = []
+            for t in audit_traces:
+                tool = getattr(t, "tool_id", "Unknown")
+                query = getattr(t, "query", "")
+                summary = getattr(t, "response_summary", "")
+                if summary and len(summary) > 200:
+                    summary = summary[:200] + "..."
+                urls = getattr(t, "source_urls", [])
+                lines.append(f"- Tool: {tool} | Query: {query} | URLs: {urls} | Summary: {summary}")
+            joined_traces = "\n".join(lines)
+
+            audit_title = "System Audit Trail"
+            if language.startswith("fi"):
+                audit_title = "Järjestelmän Tarkastusloki"
+
+            global_blocks.append(
+                {
+                    "block_type": "alert",
+                    "variant": "info",
+                    "title": audit_title,
+                    "text": f"Raportin laatimisessa on hyödynnetty seuraavia järjestelmätyökaluja ja ulkoisia lähteitä:\n\n{joined_traces}",
+                }
+            )
+
+        # Pythonic XAI Highlights Harvesting
+        raw_highlights = []
+        if active_exts:
+            active_ext_names = [x.value for x in active_exts] if isinstance(active_exts, list) else []
+            for _, payload in consolidated_inputs.items():
+                if isinstance(payload, dict) and "extensions" in payload:
+                    for ext_name, ext_items in payload["extensions"].items():
+                        if ext_name in active_ext_names:
+                            if isinstance(ext_items, list):
+                                for item in ext_items:
+                                    raw_highlights.append({"extension_type": ext_name, "content": str(item)})
+            grouped: dict[str, list[dict[str, str]]] = {}
+            for h in raw_highlights:
+                grouped.setdefault(h["extension_type"], []).append(h)
+
+            raw_highlights = []
+            for _, items in grouped.items():
+                raw_highlights.extend(items[:max_items])
 
         row_explanations_dict = {}
         row_exp_rule = "MAXIMUM LENGTH IS 30 WORDS. KEEP IT CONCISE BUT INFORMATIVE."

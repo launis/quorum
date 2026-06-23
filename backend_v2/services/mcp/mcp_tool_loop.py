@@ -8,7 +8,6 @@ Implements a 2-phase execution:
 Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 """
 
-import json
 import logging
 import time
 from datetime import datetime, timezone
@@ -16,12 +15,11 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
 from backend_v2.models.domain.mcp import (
+    CitationExtractionResult,
     MCPSynthesisInstructionsDTO,
     MCPToolLoopResult,
-    OpenAIProbeResponseDTO,
-    TavilyToolArgsDTO,
 )
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SourceSufficiencyThreshold
@@ -300,157 +298,116 @@ async def execute_tool_loop[T: BaseModel](
             usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         )
 
-    # --- PHASE 1: Probe with tool_choice="auto" ---
-    probe_messages = list(messages)  # defensive copy
-    tool_call_count = 0
-
     # Epic 13 M2: Restored to standard MAX_TOOL_CALLS_PER_STEP
     effective_max_calls = MAX_TOOL_CALLS_PER_STEP
 
-    while tool_call_count < effective_max_calls:
-        # The Root Cause Fix: Empower the LLM to decide autonomously (Zero-Forcing).
-        # Forcing 'required' when the LLM has nothing to search causes empty query hallucinations.
-        current_tool_choice = "auto"
+    if TAVILY_TOOL_ID in allowed_tools:
+        extraction_sys_msg = (
+            "<system_instruction>\n"
+            "  <objective>Extract factual claims that require external verification.</objective>\n"
+            "  <rule>Return a structured list of citations.</rule>\n"
+            "  <rule>The claim_text MUST be an exact physical substring from the source document.</rule>\n"
+            "</system_instruction>"
+        )
+
+        extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
+        for msg in messages:
+            if msg.get("role") == "user":
+                extraction_messages.append(msg)
+
+        # Internal Utility rule: lazy load LLMClient
+        from backend_v2.llm.client import LLMClient
+
+        # We attempt to fetch the fast client. If executor lacks repository, we gracefully fallback to the step's client.
+        repo = getattr(executor, "repository", None)
+        fast_client = llm_client
+        if repo:
+            try:
+                fast_client = await LLMClient.from_strategy("fast", repository=repo)
+            except Exception as e:
+                logger.warning("Could not initialize 'fast' client for extraction, falling back to step client: %s", e)
+
         try:
-            probe_response_raw = await executor.execute_chat_task(
-                client=llm_client,
-                messages=probe_messages,
-                tools=tool_declarations,
-                tool_choice=current_tool_choice,
+            extraction_result_raw, _ = await executor.execute_structured_task(
+                client=fast_client,
+                messages=extraction_messages,
+                response_model=CitationExtractionResult,
+                mock_identity=mock_identity,
+                validation_context=validation_context,
             )
-
-            if isinstance(probe_response_raw, str):
-                break
-
-            probe_response = OpenAIProbeResponseDTO.model_validate(probe_response_raw)
+            if isinstance(extraction_result_raw, CitationExtractionResult):
+                extraction_result = extraction_result_raw
+            else:
+                extraction_result = CitationExtractionResult.model_validate(extraction_result_raw)
         except Exception as e:
-            msg = f"Phase 1 LLM probing failed or returned invalid structure for step '{step_name}'."
-            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
+            err_msg = f"Phase 0 Citation Extraction failed for step '{step_name}'."
+            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg, exc_info=True)
             if isinstance(e, AppException):
                 raise
             raise AppException(
-                message=msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value}
+                message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value}
             ) from e
 
-        if not probe_response.tool_calls:
-            break
+        tool_call_count = 0
 
-        # Process each tool call
-        invalid_tools_detected = False
-        for tc_dto in probe_response.tool_calls:
+        for citation in extraction_result.citations:
             if tool_call_count >= effective_max_calls:
                 logger.warning(
-                    "Max tool calls reached for step. Forcing completion.",
-                    extra={
-                        "max_calls": effective_max_calls,
-                        "step_name": step_name,
-                    },
+                    "Max tool calls reached for step. Bypassing remaining citations.",
+                    extra={"max_calls": effective_max_calls, "step_name": step_name},
                 )
                 break
 
-            tool_name = tc_dto.function.name
-            tool_args_raw = tc_dto.function.arguments
+            claim = citation.claim_text.strip()
+            query = citation.search_query.strip()
 
-            if isinstance(tool_args_raw, str):
-                try:
-                    tool_args = json.loads(tool_args_raw)
-                except Exception as e:
-                    msg = "LLM returned malformed JSON for tool arguments."
-                    logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    raise AppException(
-                        message=msg,
-                        status_code=400,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
-            else:
-                tool_args = tool_args_raw
-
-            if tool_name != TAVILY_TOOL_ID:
-                logger.warning(
-                    "LLM hallucinated unknown tool — skipping.",
-                    extra={
-                        "error_code": ErrorCodes.VALIDATION_FAILED.name,
-                    },
-                )
-                invalid_tools_detected = True
-                continue
-
-            try:
-                tavily_args = TavilyToolArgsDTO.model_validate(tool_args)
-                query = tavily_args.query
-            except Exception as e:
-                msg = "LLM returned invalid arguments for Tavily."
-                logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-
-            if not query.strip():
-                msg = "LLM returned empty query for Tavily."
-                logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            # Physical Anchoring Mandate: Validate exact string match
+            if claim and claim not in source_context:
+                err_msg = f"Hallucinated claim detected. '{claim}' not found in source text."
+                logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg)
+                raise SemanticEvidenceError(
+                    message=err_msg,
+                    details={"error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value, "claim_text": claim},
                 )
 
-            if not validate_query_relevance(query, source_context):
-                logger.warning(
-                    "[MCPToolLoop] LLM hallucinated an irrelevant search query: '%s'. Bypassing search.",
-                    query,
-                    extra={"step_name": step_name},
-                )
-                invalid_tools_detected = True
+            if not query:
                 continue
 
             logger.info(
-                "Executing Tavily search",
-                extra={
-                    "step_name": step_name,
-                },
+                "Executing Tavily search for validated claim",
+                extra={"step_name": step_name, "query": query},
             )
 
             audit = await _execute_tavily_search(query, step_name, target_language, llm_client)
             audit_traces.append(audit)
             tool_call_count += 1
 
-            # Inject evidence as tool message — MUST use the LLM's original call ID
-            original_call_id = tc_dto.id
-            evidence_msg = _build_tool_evidence_message(audit, tool_call_id=original_call_id)
-
-            # Add the assistant's tool_call message and the tool response
-            probe_messages.append(
-                {
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [tc_dto.model_dump(mode="json", exclude_none=True)],
-                }
-            )
-            probe_messages.append(evidence_msg)
-
-        # If LLM tried to hallucinate or bypass the tool and we skipped, break the loop to avoid infinite forcing
-        if invalid_tools_detected and tool_call_count == 0:
-            logger.warning(
-                "Forced tool call yielded invalid output. Breaking to Phase 2.", extra={"step_name": step_name}
-            )
-            break
-
-        # If we processed tool calls, loop back to let LLM decide again
-        if tool_call_count >= effective_max_calls:
-            break
-
     # --- PHASE 2: Completion with evidence injected ---
     # Build final messages: original system/user + any evidence injected
-    final_messages = list(probe_messages)
+    final_messages = list(messages)
 
-    # If evidence was injected, add a forcing instruction
     if audit_traces:
+        evidence_blocks = []
+        for audit in audit_traces:
+            content = f"<search_result>\n  <query>{audit.query}</query>\n"
+            if audit.response_summary:
+                content += f"  <summary>{audit.response_summary}</summary>\n"
+            if audit.source_urls:
+                content += "  <sources>\n"
+                for url in audit.source_urls:
+                    content += f"    <url>{url}</url>\n"
+                content += "  </sources>\n"
+            content += "</search_result>"
+            evidence_blocks.append(content)
+
+        evidence_str = "\n".join(evidence_blocks)
         final_messages.append(
             {
                 "role": "user",
                 "content": (
+                    "<external_evidence>\n"
+                    f"{evidence_str}\n"
+                    "</external_evidence>\n\n"
                     "<system_instruction>\n"
                     "  <objective>EVIDENCE INJECTION COMPLETE</objective>\n"
                     "  <rule>You now have external search evidence above.</rule>\n"
@@ -467,10 +424,10 @@ async def execute_tool_loop[T: BaseModel](
         try:
             instructions = MCPSynthesisInstructionsDTO.model_validate(synthesis_instructions)
         except Exception as e:
-            msg = "Failed to validate synthesis_instructions."
-            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            err_msg = "Failed to validate synthesis_instructions."
+            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, err_msg, exc_info=True)
             raise AppException(
-                message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                message=err_msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
             ) from e
 
         formatting_msg = "<execution_parameters>\n  <output_profile_formatting_constraints>\n"

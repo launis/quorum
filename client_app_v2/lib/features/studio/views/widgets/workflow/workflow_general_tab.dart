@@ -221,6 +221,16 @@ class WorkflowGeneralTab extends ConsumerWidget {
                       },
                       contentPadding: EdgeInsets.zero,
                     ),
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      title: Text(l10n.systemAuditTrailLabel),
+                      subtitle: Text(l10n.systemAuditTrailDescription),
+                      value: workflow.systemAuditTrail,
+                      onChanged: (val) {
+                        onChanged(workflow.copyWith(systemAuditTrail: val));
+                      },
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ],
                 ),
               ),

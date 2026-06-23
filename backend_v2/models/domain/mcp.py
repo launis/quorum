@@ -95,3 +95,22 @@ class TavilySearchResult(V2CoreBase):
     source_urls: list[str] = Field(default_factory=list, description="Deduplicated source URLs.")
     raw_content: str = Field(default="", description="Concatenated source texts (truncated).")
     duration_ms: int = Field(default=0, description="Round-trip latency in milliseconds.")
+
+
+class CitationExtractionItemDTO(V2CoreBase):
+    """A single extracted citation claim and its corresponding search query."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    claim_text: str = Field(description="Exact quote of the claim from the text.")
+    search_query: str = Field(description="Optimized search query for the tool to verify the claim.")
+
+
+class CitationExtractionResult(V2CoreBase):
+    """Result of Phase 0 extraction from source document."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    citations: list[CitationExtractionItemDTO] = Field(
+        default_factory=list, description="List of extracted claims to verify."
+    )

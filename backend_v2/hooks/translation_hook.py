@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 _SYSTEM_INSTRUCTION = """<system_directive>
   <objective>
     ROLE: You are an automatic JSON translator.
-    TASK: Translate **ALL STRING VALUES** of the provided JSON object into: '{target_language}'.
+    TASK: Translate **ALL STRING VALUES** of the provided JSON object into the target language specified in the <target_language> tag within the user context.
   </objective>
   <rules>
     <rule>
@@ -133,13 +133,13 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         "sv": "ruotsiksi (Swedish)",
         "et": "viroksi (Estonian)",
     }
-    target_lang_name = lang_map[target_language] if target_language in lang_map else target_language
+    target_lang_name = lang_map.get(target_language, target_language)
 
-    system_content = _SYSTEM_INSTRUCTION.replace("{target_language}", target_lang_name)
+    system_content = _SYSTEM_INSTRUCTION
     user_content = (
         f"<context>\n"
         f"  <source_language>en</source_language>\n"
-        f"  <target_language>{target_language}</target_language>\n"
+        f"  <target_language>{target_lang_name}</target_language>\n"
         f"</context>\n"
         f"<source_data>\n{json.dumps(payload_to_translate, ensure_ascii=False)}\n</source_data>"
     )

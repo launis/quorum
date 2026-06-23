@@ -62,13 +62,13 @@ def test_schema_strictness_triggers_dlq_fallback(schema_factory: SchemaFactory) 
     assert "List should have at most 15 items after validation, not 16" in str(exc.value)
 
 
-def test_dunder_hallucination_stripped_by_before_validator() -> None:
-    """Verify that LLM dunder-key hallucinations (e.g. __rule_satisfied__) are silently stripped.
+def test_dunder_hallucination_rejected_by_extra_forbid() -> None:
+    """Verify that LLM dunder-key hallucinations (e.g. __rule_satisfied__) are REJECTED.
 
-    Reproduces the exact failure from exe_b0a68f2c7bfe4c359331a71fbb777c8a where
-    the LLM added __rule_satisfied__: true/false to every evaluation, causing
-    10/15 atoms to be lost to DLQ via extra_forbidden.
+    This ensures we enforce Fail-Fast validation instead of silently allowing hallucinations.
     """
+    import pydantic
+
     from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
 
     # Simulate LLM output with hallucinated __rule_satisfied__ field
@@ -79,10 +79,11 @@ def test_dunder_hallucination_stripped_by_before_validator() -> None:
         "__rule_satisfied__": True,  # <-- LLM hallucination
     }
 
-    # Before-validator must strip __rule_satisfied__ so this succeeds
-    result = StrippedBaseTDAExtraction.model_validate(data)
-    assert result.semantic_reasoning == "Test reasoning"
-    assert not hasattr(result, "__rule_satisfied__")
+    # Strict validation MUST reject this to fail-fast and route to DLQ
+    with pytest.raises(pydantic.ValidationError) as exc:
+        StrippedBaseTDAExtraction.model_validate(data)
+
+    assert "extra_forbidden" in str(exc.value)
 
 
 def test_normal_typo_still_rejected_by_extra_forbid() -> None:

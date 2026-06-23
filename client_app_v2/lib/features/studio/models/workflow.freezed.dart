@@ -1464,7 +1464,7 @@ $I18nTextCopyWith<$Res>? get description {
 /// @nodoc
 mixin _$Workflow {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText get description; String get status; int get version; bool get isPublic; String? get organizationId; Map<String, dynamic> get uiSchema; Map<String, EmbeddedOutputProfile> get outputProfiles; String get defaultProfileId;@JsonKey(name: 'default_strictness_level') int get defaultStrictnessLevel;@JsonKey(name: 'default_scoring_strategy') ScoringStrategy get defaultScoringStrategy;@JsonKey(name: 'enable_contextual_overrides') bool get enableContextualOverrides;@JsonKey(name: 'enable_semantic_smoothing') bool get enableSemanticSmoothing;@JsonKey(name: 'enable_eager_anonymization') bool get enableEagerAnonymization; List<ExpectedInput> get expectedInputs; List<StepRule> get steps;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText get description; String get status; int get version; bool get isPublic; String? get organizationId; Map<String, dynamic> get uiSchema; Map<String, EmbeddedOutputProfile> get outputProfiles; String get defaultProfileId;@JsonKey(name: 'default_strictness_level') int get defaultStrictnessLevel;@JsonKey(name: 'default_scoring_strategy') ScoringStrategy get defaultScoringStrategy;@JsonKey(name: 'enable_contextual_overrides') bool get enableContextualOverrides;@JsonKey(name: 'enable_semantic_smoothing') bool get enableSemanticSmoothing;@JsonKey(name: 'enable_eager_anonymization') bool get enableEagerAnonymization;@JsonKey(name: 'system_audit_trail') bool get systemAuditTrail; List<ExpectedInput> get expectedInputs; List<StepRule> get steps;
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1479,7 +1479,7 @@ $WorkflowCopyWith<Workflow> get copyWith => _$WorkflowCopyWithImpl<Workflow>(thi
 
 @override
 String toString() {
-  return 'Workflow(id: $id, slug: $slug, name: $name, description: $description, status: $status, version: $version, isPublic: $isPublic, organizationId: $organizationId, uiSchema: $uiSchema, outputProfiles: $outputProfiles, defaultProfileId: $defaultProfileId, defaultStrictnessLevel: $defaultStrictnessLevel, defaultScoringStrategy: $defaultScoringStrategy, enableContextualOverrides: $enableContextualOverrides, enableSemanticSmoothing: $enableSemanticSmoothing, enableEagerAnonymization: $enableEagerAnonymization, expectedInputs: $expectedInputs, steps: $steps)';
+  return 'Workflow(id: $id, slug: $slug, name: $name, description: $description, status: $status, version: $version, isPublic: $isPublic, organizationId: $organizationId, uiSchema: $uiSchema, outputProfiles: $outputProfiles, defaultProfileId: $defaultProfileId, defaultStrictnessLevel: $defaultStrictnessLevel, defaultScoringStrategy: $defaultScoringStrategy, enableContextualOverrides: $enableContextualOverrides, enableSemanticSmoothing: $enableSemanticSmoothing, enableEagerAnonymization: $enableEagerAnonymization, systemAuditTrail: $systemAuditTrail, expectedInputs: $expectedInputs, steps: $steps)';
 }
 
 
@@ -1490,7 +1490,7 @@ abstract mixin class $WorkflowCopyWith<$Res>  {
   factory $WorkflowCopyWith(Workflow value, $Res Function(Workflow) _then) = _$WorkflowCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, dynamic> uiSchema, Map<String, EmbeddedOutputProfile> outputProfiles, String defaultProfileId,@JsonKey(name: 'default_strictness_level') int defaultStrictnessLevel,@JsonKey(name: 'default_scoring_strategy') ScoringStrategy defaultScoringStrategy,@JsonKey(name: 'enable_contextual_overrides') bool enableContextualOverrides,@JsonKey(name: 'enable_semantic_smoothing') bool enableSemanticSmoothing,@JsonKey(name: 'enable_eager_anonymization') bool enableEagerAnonymization, List<ExpectedInput> expectedInputs, List<StepRule> steps
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, dynamic> uiSchema, Map<String, EmbeddedOutputProfile> outputProfiles, String defaultProfileId,@JsonKey(name: 'default_strictness_level') int defaultStrictnessLevel,@JsonKey(name: 'default_scoring_strategy') ScoringStrategy defaultScoringStrategy,@JsonKey(name: 'enable_contextual_overrides') bool enableContextualOverrides,@JsonKey(name: 'enable_semantic_smoothing') bool enableSemanticSmoothing,@JsonKey(name: 'enable_eager_anonymization') bool enableEagerAnonymization,@JsonKey(name: 'system_audit_trail') bool systemAuditTrail, List<ExpectedInput> expectedInputs, List<StepRule> steps
 });
 
 
@@ -1507,7 +1507,7 @@ class _$WorkflowCopyWithImpl<$Res>
 
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = null,Object? status = null,Object? version = null,Object? isPublic = null,Object? organizationId = freezed,Object? uiSchema = null,Object? outputProfiles = null,Object? defaultProfileId = null,Object? defaultStrictnessLevel = null,Object? defaultScoringStrategy = null,Object? enableContextualOverrides = null,Object? enableSemanticSmoothing = null,Object? enableEagerAnonymization = null,Object? expectedInputs = null,Object? steps = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = null,Object? status = null,Object? version = null,Object? isPublic = null,Object? organizationId = freezed,Object? uiSchema = null,Object? outputProfiles = null,Object? defaultProfileId = null,Object? defaultStrictnessLevel = null,Object? defaultScoringStrategy = null,Object? enableContextualOverrides = null,Object? enableSemanticSmoothing = null,Object? enableEagerAnonymization = null,Object? systemAuditTrail = null,Object? expectedInputs = null,Object? steps = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1525,6 +1525,7 @@ as int,defaultScoringStrategy: null == defaultScoringStrategy ? _self.defaultSco
 as ScoringStrategy,enableContextualOverrides: null == enableContextualOverrides ? _self.enableContextualOverrides : enableContextualOverrides // ignore: cast_nullable_to_non_nullable
 as bool,enableSemanticSmoothing: null == enableSemanticSmoothing ? _self.enableSemanticSmoothing : enableSemanticSmoothing // ignore: cast_nullable_to_non_nullable
 as bool,enableEagerAnonymization: null == enableEagerAnonymization ? _self.enableEagerAnonymization : enableEagerAnonymization // ignore: cast_nullable_to_non_nullable
+as bool,systemAuditTrail: null == systemAuditTrail ? _self.systemAuditTrail : systemAuditTrail // ignore: cast_nullable_to_non_nullable
 as bool,expectedInputs: null == expectedInputs ? _self.expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<ExpectedInput>,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
 as List<StepRule>,
@@ -1630,10 +1631,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_scoring_strategy')  ScoringStrategy defaultScoringStrategy, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_scoring_strategy')  ScoringStrategy defaultScoringStrategy, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
-return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.defaultStrictnessLevel,_that.defaultScoringStrategy,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.expectedInputs,_that.steps);case _:
+return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.defaultStrictnessLevel,_that.defaultScoringStrategy,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.systemAuditTrail,_that.expectedInputs,_that.steps);case _:
   return orElse();
 
 }
@@ -1651,10 +1652,10 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_scoring_strategy')  ScoringStrategy defaultScoringStrategy, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_scoring_strategy')  ScoringStrategy defaultScoringStrategy, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)  $default,) {final _that = this;
 switch (_that) {
 case _Workflow():
-return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.defaultStrictnessLevel,_that.defaultScoringStrategy,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.expectedInputs,_that.steps);case _:
+return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.defaultStrictnessLevel,_that.defaultScoringStrategy,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.systemAuditTrail,_that.expectedInputs,_that.steps);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1671,10 +1672,10 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_scoring_strategy')  ScoringStrategy defaultScoringStrategy, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_scoring_strategy')  ScoringStrategy defaultScoringStrategy, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
-return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.defaultStrictnessLevel,_that.defaultScoringStrategy,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.expectedInputs,_that.steps);case _:
+return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.defaultStrictnessLevel,_that.defaultScoringStrategy,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.systemAuditTrail,_that.expectedInputs,_that.steps);case _:
   return null;
 
 }
@@ -1686,7 +1687,7 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _Workflow extends Workflow {
-  const _Workflow({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, required this.description, this.status = "draft", this.version = 1, this.isPublic = false, this.organizationId, final  Map<String, dynamic> uiSchema = const {}, final  Map<String, EmbeddedOutputProfile> outputProfiles = const {}, this.defaultProfileId = "default", @JsonKey(name: 'default_strictness_level') this.defaultStrictnessLevel = 50, @JsonKey(name: 'default_scoring_strategy') this.defaultScoringStrategy = ScoringStrategy.average, @JsonKey(name: 'enable_contextual_overrides') this.enableContextualOverrides = false, @JsonKey(name: 'enable_semantic_smoothing') this.enableSemanticSmoothing = false, @JsonKey(name: 'enable_eager_anonymization') this.enableEagerAnonymization = false, final  List<ExpectedInput> expectedInputs = const [], final  List<StepRule> steps = const []}): _uiSchema = uiSchema,_outputProfiles = outputProfiles,_expectedInputs = expectedInputs,_steps = steps,super._();
+  const _Workflow({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, required this.description, this.status = "draft", this.version = 1, this.isPublic = false, this.organizationId, final  Map<String, dynamic> uiSchema = const {}, final  Map<String, EmbeddedOutputProfile> outputProfiles = const {}, this.defaultProfileId = "default", @JsonKey(name: 'default_strictness_level') this.defaultStrictnessLevel = 50, @JsonKey(name: 'default_scoring_strategy') this.defaultScoringStrategy = ScoringStrategy.average, @JsonKey(name: 'enable_contextual_overrides') this.enableContextualOverrides = false, @JsonKey(name: 'enable_semantic_smoothing') this.enableSemanticSmoothing = false, @JsonKey(name: 'enable_eager_anonymization') this.enableEagerAnonymization = false, @JsonKey(name: 'system_audit_trail') this.systemAuditTrail = false, final  List<ExpectedInput> expectedInputs = const [], final  List<StepRule> steps = const []}): _uiSchema = uiSchema,_outputProfiles = outputProfiles,_expectedInputs = expectedInputs,_steps = steps,super._();
   factory _Workflow.fromJson(Map<String, dynamic> json) => _$WorkflowFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1717,6 +1718,7 @@ class _Workflow extends Workflow {
 @override@JsonKey(name: 'enable_contextual_overrides') final  bool enableContextualOverrides;
 @override@JsonKey(name: 'enable_semantic_smoothing') final  bool enableSemanticSmoothing;
 @override@JsonKey(name: 'enable_eager_anonymization') final  bool enableEagerAnonymization;
+@override@JsonKey(name: 'system_audit_trail') final  bool systemAuditTrail;
  final  List<ExpectedInput> _expectedInputs;
 @override@JsonKey() List<ExpectedInput> get expectedInputs {
   if (_expectedInputs is EqualUnmodifiableListView) return _expectedInputs;
@@ -1747,7 +1749,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'Workflow(id: $id, slug: $slug, name: $name, description: $description, status: $status, version: $version, isPublic: $isPublic, organizationId: $organizationId, uiSchema: $uiSchema, outputProfiles: $outputProfiles, defaultProfileId: $defaultProfileId, defaultStrictnessLevel: $defaultStrictnessLevel, defaultScoringStrategy: $defaultScoringStrategy, enableContextualOverrides: $enableContextualOverrides, enableSemanticSmoothing: $enableSemanticSmoothing, enableEagerAnonymization: $enableEagerAnonymization, expectedInputs: $expectedInputs, steps: $steps)';
+  return 'Workflow(id: $id, slug: $slug, name: $name, description: $description, status: $status, version: $version, isPublic: $isPublic, organizationId: $organizationId, uiSchema: $uiSchema, outputProfiles: $outputProfiles, defaultProfileId: $defaultProfileId, defaultStrictnessLevel: $defaultStrictnessLevel, defaultScoringStrategy: $defaultScoringStrategy, enableContextualOverrides: $enableContextualOverrides, enableSemanticSmoothing: $enableSemanticSmoothing, enableEagerAnonymization: $enableEagerAnonymization, systemAuditTrail: $systemAuditTrail, expectedInputs: $expectedInputs, steps: $steps)';
 }
 
 
@@ -1758,7 +1760,7 @@ abstract mixin class _$WorkflowCopyWith<$Res> implements $WorkflowCopyWith<$Res>
   factory _$WorkflowCopyWith(_Workflow value, $Res Function(_Workflow) _then) = __$WorkflowCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, dynamic> uiSchema, Map<String, EmbeddedOutputProfile> outputProfiles, String defaultProfileId,@JsonKey(name: 'default_strictness_level') int defaultStrictnessLevel,@JsonKey(name: 'default_scoring_strategy') ScoringStrategy defaultScoringStrategy,@JsonKey(name: 'enable_contextual_overrides') bool enableContextualOverrides,@JsonKey(name: 'enable_semantic_smoothing') bool enableSemanticSmoothing,@JsonKey(name: 'enable_eager_anonymization') bool enableEagerAnonymization, List<ExpectedInput> expectedInputs, List<StepRule> steps
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, dynamic> uiSchema, Map<String, EmbeddedOutputProfile> outputProfiles, String defaultProfileId,@JsonKey(name: 'default_strictness_level') int defaultStrictnessLevel,@JsonKey(name: 'default_scoring_strategy') ScoringStrategy defaultScoringStrategy,@JsonKey(name: 'enable_contextual_overrides') bool enableContextualOverrides,@JsonKey(name: 'enable_semantic_smoothing') bool enableSemanticSmoothing,@JsonKey(name: 'enable_eager_anonymization') bool enableEagerAnonymization,@JsonKey(name: 'system_audit_trail') bool systemAuditTrail, List<ExpectedInput> expectedInputs, List<StepRule> steps
 });
 
 
@@ -1775,7 +1777,7 @@ class __$WorkflowCopyWithImpl<$Res>
 
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = null,Object? status = null,Object? version = null,Object? isPublic = null,Object? organizationId = freezed,Object? uiSchema = null,Object? outputProfiles = null,Object? defaultProfileId = null,Object? defaultStrictnessLevel = null,Object? defaultScoringStrategy = null,Object? enableContextualOverrides = null,Object? enableSemanticSmoothing = null,Object? enableEagerAnonymization = null,Object? expectedInputs = null,Object? steps = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = null,Object? status = null,Object? version = null,Object? isPublic = null,Object? organizationId = freezed,Object? uiSchema = null,Object? outputProfiles = null,Object? defaultProfileId = null,Object? defaultStrictnessLevel = null,Object? defaultScoringStrategy = null,Object? enableContextualOverrides = null,Object? enableSemanticSmoothing = null,Object? enableEagerAnonymization = null,Object? systemAuditTrail = null,Object? expectedInputs = null,Object? steps = null,}) {
   return _then(_Workflow(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1793,6 +1795,7 @@ as int,defaultScoringStrategy: null == defaultScoringStrategy ? _self.defaultSco
 as ScoringStrategy,enableContextualOverrides: null == enableContextualOverrides ? _self.enableContextualOverrides : enableContextualOverrides // ignore: cast_nullable_to_non_nullable
 as bool,enableSemanticSmoothing: null == enableSemanticSmoothing ? _self.enableSemanticSmoothing : enableSemanticSmoothing // ignore: cast_nullable_to_non_nullable
 as bool,enableEagerAnonymization: null == enableEagerAnonymization ? _self.enableEagerAnonymization : enableEagerAnonymization // ignore: cast_nullable_to_non_nullable
+as bool,systemAuditTrail: null == systemAuditTrail ? _self.systemAuditTrail : systemAuditTrail // ignore: cast_nullable_to_non_nullable
 as bool,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<ExpectedInput>,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
 as List<StepRule>,

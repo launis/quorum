@@ -520,7 +520,6 @@ async def test_synthesis_hook_success(
 
     # Check if PII was masked (the email inside inputs should be [REDACTED EMAIL])
     assert "<global_length_constraint_chars>500</global_length_constraint_chars>" in sys_msg.get("content", "")
-    assert "Always be concise." in sys_msg.get("content", "")
 
     assert "content_blocks" in delta
     assert delta["cited_sources"] == ["source1"]
@@ -635,8 +634,6 @@ async def test_synthesis_hook_multi_profile_routing(
 
     # Assert Prof B's constraints are found, NOT Prof A's
     assert "<global_length_constraint_chars>900</global_length_constraint_chars>" in sys_msg.get("content", "")
-    assert "Beta" in sys_msg.get("content", "")
-    assert "Alpha" not in sys_msg.get("content", "")
     assert "<global_length_constraint_chars>100</global_length_constraint_chars>" not in sys_msg.get("content", "")
 
 

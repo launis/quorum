@@ -131,11 +131,12 @@ async def test_translation_hook_role_segregation_and_success(
     assert len(messages) == 2
     assert messages[0]["role"] == "system"
     assert "ROLE: You are an automatic JSON translator." in messages[0]["content"]
-    assert "suomeksi (Finnish)" in messages[0]["content"]  # Embedded target language
+    assert "suomeksi (Finnish)" not in messages[0]["content"]  # Moved to user context
 
     assert messages[1]["role"] == "user"
     assert "source_data" in messages[1]["content"]
     assert "Example Title" in messages[1]["content"]
+    assert "suomeksi (Finnish)" in messages[1]["content"]  # Target language is here
 
 
 from pydantic import BaseModel

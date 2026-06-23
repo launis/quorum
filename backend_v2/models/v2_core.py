@@ -1114,6 +1114,10 @@ class Workflow(V2CoreBase):
         default=False,
         description="If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state.",
     )
+    system_audit_trail: bool = Field(
+        default=False,
+        description="Epic 82: If True, activates the background XAI Citation Extraction tracking mechanism.",
+    )
     expected_inputs: list[ExpectedInput] = Field(
         default_factory=list,
         description="List of dynamic expected inputs required by the workflow",

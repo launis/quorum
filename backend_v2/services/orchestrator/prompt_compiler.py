@@ -24,7 +24,6 @@ from backend_v2.services.orchestrator.schema_factory import (
     SchemaFactory,
     StrippedBaseMatrixXAI,
 )
-from backend_v2.services.web_fetcher import WebFetcher
 
 # Backward-compatible re-exports for consumers importing from prompt_compiler
 __all__ = [
@@ -356,53 +355,6 @@ class PromptCompiler:
             return "\n".join(formatted).strip()
 
         return str(current)
-
-    def inject_theory_grounding(self, base_prompt: str, url: str | None) -> str:
-        """Fetch and inject external theoretical context into the prompt.
-
-        Args:
-            base_prompt: The original system prompt or instructions.
-            url: The source URL for theory grounding (if any).
-
-        Returns:
-            The augmented prompt containing <theory_context> if successful,
-            or the original prompt if no URL provided.
-
-        Raises:
-            AppException: If the URL fetch fails critically.
-        """
-        if not url:
-            return base_prompt
-
-        try:
-            logger.info("[PromptCompiler] Fetching theory grounding from %s", url)
-            # WebFetcher raises AppException locally on failure, satisfying Fail-Fast rules
-            theory_text = WebFetcher.fetch_text(url)
-
-            if not theory_text:
-                logger.warning("[PromptCompiler] Fetched text from %s was empty.", url)
-                return base_prompt
-
-            safe_theory = TemplateProcessor.encapsulate_payload(theory_text)
-            augmented = base_prompt + f"\n\n<theory_context>\n{safe_theory}\n</theory_context>\n"
-            return augmented
-
-        except Exception as e:
-            # Re-raise AppExceptions from WebFetcher to crash fast properly
-            if isinstance(e, AppException):
-                raise e
-
-            msg = f"System failed to fetch required theoretical grounding from url: {url}"
-            logger.error(
-                "Theory grounding fetch failed.",
-                extra={"error_code": ErrorCodes.FETCH_FAILED.name, "url": url, "detail": str(e)},
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=502,
-                details={"error_code": ErrorCodes.FETCH_FAILED, "url": url},
-            ) from e
 
     def calibrate_strictness(self, level: int | float | None) -> str:
         """Convert a numeric strictness level (0-100) into a semantic directive.

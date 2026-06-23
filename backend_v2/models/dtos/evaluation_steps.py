@@ -10,12 +10,10 @@ class BaseExtractionDTO(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _strip_llm_dunder_leaks(cls, data: Any) -> Any:
+    def _enforce_contextual_override_exclusivity(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            cleaned = {k: v for k, v in data.items() if not (k.startswith("__") and k.endswith("__"))}
-            if cleaned.get("contextual_override") is True:
-                cleaned["exact_quotes"] = []
-            return cleaned
+            if data.get("contextual_override") is True:
+                data["exact_quotes"] = []
         return data
 
 

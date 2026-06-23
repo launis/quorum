@@ -11,7 +11,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TYPE_CHECKING, Any, cast
 
-from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
@@ -57,15 +57,6 @@ class StrippedBaseTDAExtraction(BaseModel):
     semantic_reasoning: str = Field(
         description="Detailed analytical reasoning in target language explaining the match.",
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def strip_dunder_hallucinations(cls, data: Any) -> Any:
-        """Strips out hallucinated __dunder__ fields from LLM payloads."""
-        if not isinstance(data, dict):
-            return data
-        # Strip all keys starting with __
-        return {k: v for k, v in data.items() if not str(k).startswith("__")}
 
 
 class SchemaFactory:
@@ -214,7 +205,7 @@ class SchemaFactory:
         # Otherwise, the LLM is forced to output them both in `evaluations` AND at the root level,
         # which causes a "too many states for serving" Vertex AI Bad Request error.
         if has_shuffled_atoms:
-            schema_criteria = [c for c in criteria if c.category_id not in ("criteria", "matrix")]
+            schema_criteria = [c for c in criteria if c.category_id != "criteria"]
         else:
             schema_criteria = criteria
 

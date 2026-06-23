@@ -6431,6 +6431,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Extraction Rule'**
   String get tdaExtractionRule;
+
+  /// No description provided for @systemAuditTrailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'System Audit Trail'**
+  String get systemAuditTrailLabel;
+
+  /// No description provided for @systemAuditTrailDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enables MCPAuditTrace fact-checking report injection at the end of the document.'**
+  String get systemAuditTrailDescription;
 }
 
 class _AppLocalizationsDelegate

@@ -429,11 +429,6 @@ def test_extract_value_from_state() -> None:
     assert compiler._extract_value_from_state("steps.a", state) == "123"
 
 
-def test_inject_theory_grounding() -> None:
-    compiler = PromptCompiler()
-    assert compiler.inject_theory_grounding("prompt", None) == "prompt"
-
-
 def test_calibrate_strictness() -> None:
     compiler = PromptCompiler()
     assert "SCORING_STRICTNESS: 0/100" in compiler.calibrate_strictness(0)

@@ -271,6 +271,9 @@ class ErrorCodes(str, Enum):
     # Engine / Workflow
     UNRESUMABLE_STATE_ERROR = "UNRESUMABLE_STATE_ERROR"
 
+    # XAI / Evidence
+    SEMANTIC_EVIDENCE_HALLUCINATION = "SEMANTIC_EVIDENCE_HALLUCINATION"
+
 
 class AppException(Exception):
     """Base class for application exceptions (RFC 7807 compatible).

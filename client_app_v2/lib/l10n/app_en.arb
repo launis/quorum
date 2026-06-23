@@ -9,7 +9,7 @@
   "errorNotFound": "Resource not found.",
   "errorValidation": "Validation failed.",
   "errorValidationEmpty": "Inputs cannot be empty.",
-  "eventLlmAnomalyRetry": "LLM Provider timeout, retrying...",
+  "eventLlmAnomalyRetry": "Quality Assurance: The AI detected an inconsistency and is verifying its reasoning (Attempt 2)...",
   "errorValidationMissing": "Missing required fields: {fields}",
   "@errorValidationMissing": {
     "placeholders": {
@@ -161,7 +161,7 @@
   "atomicBreakdownTitle": "Level Breakdown",
   "rowExplanationTitle": "Explanation",
   "normalizedScore": "100 %",
-  "matrixEvaluativeAsteriskLegend": "* Matrix score is included in the global average.",
+  "matrixEvaluativeAsteriskLegend": "* = Evaluative Matrix (Impacts global score)",
   "reportPenaltiesApplied": "Penalties (Applied Biases)",
   "rawData": "Raw Data",
   "status": "STATUS",
@@ -1790,8 +1790,6 @@
       }
     }
   },
-  "matrixEvaluativeAsteriskLegend": "* = Evaluative Matrix (Impacts global score)",
-  "eventLlmAnomalyRetry": "Quality Assurance: The AI detected an inconsistency and is verifying its reasoning (Attempt 2)...",
   "@eventLlmAnomalyRetry": {
     "description": "Message shown when the AI self-correction circuit breaker triggers"
   },
@@ -1816,5 +1814,7 @@
   "xaiVerdictMisaligned": "Misaligned (MISALIGNED)",
   "tdaAnchorTarget": "Anchor Target",
   "tdaBoundingBox": "Bounding Box Scope",
-  "tdaExtractionRule": "Extraction Rule"
+  "tdaExtractionRule": "Extraction Rule",
+  "systemAuditTrailLabel": "System Audit Trail",
+  "systemAuditTrailDescription": "Enables MCPAuditTrace fact-checking report injection at the end of the document."
 }

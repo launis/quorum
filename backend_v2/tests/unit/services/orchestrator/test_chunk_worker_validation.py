@@ -63,6 +63,7 @@ async def test_chunk_worker_pop_reasoning_steps_bug():
         evaluations: list[DummyAtomResponse]
         reasoning_trace: str = "Global reasoning trace."
         evaluation_notes: str = "Global evaluation notes."
+        sr_1234567890123456: dict | None = None
 
     async def mock_execute_structured_task(*args, **kwargs):
         # Simulate a successful LLM parsing returning the Pydantic schema
@@ -70,6 +71,7 @@ async def test_chunk_worker_pop_reasoning_steps_bug():
             evaluations=[DummyAtomResponse()],
             reasoning_trace="Global reasoning trace.",
             evaluation_notes="Global evaluation notes.",
+            sr_1234567890123456={"semantic_reasoning": "Test reasoning"},
         ), None
 
     executor_mock = MagicMock()

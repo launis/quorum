@@ -3545,4 +3545,11 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get tdaExtractionRule => 'Poiminnan Sääntö';
+
+  @override
+  String get systemAuditTrailLabel => 'Järjestelmän Faktantarkistusloki';
+
+  @override
+  String get systemAuditTrailDescription =>
+      'Ottaa käyttöön MCPAuditTrace -pohjaisen faktantarkistusraportin loppuun.';
 }

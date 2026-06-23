@@ -149,6 +149,7 @@ abstract class Workflow with _$Workflow {
     @JsonKey(name: 'enable_eager_anonymization')
     @Default(false)
     bool enableEagerAnonymization,
+    @JsonKey(name: 'system_audit_trail') @Default(false) bool systemAuditTrail,
     @Default([]) List<ExpectedInput> expectedInputs,
     @Default([]) List<StepRule> steps,
   }) = _Workflow;

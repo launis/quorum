@@ -501,6 +501,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'enable_contextual_overrides',
         'enable_semantic_smoothing',
         'enable_eager_anonymization',
+        'system_audit_trail',
         'expected_inputs',
         'steps',
       ],
@@ -564,6 +565,10 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'enable_eager_anonymization',
         (v) => v as bool? ?? false,
       ),
+      systemAuditTrail: $checkedConvert(
+        'system_audit_trail',
+        (v) => v as bool? ?? false,
+      ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
         (v) =>
@@ -594,6 +599,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'enableContextualOverrides': 'enable_contextual_overrides',
     'enableSemanticSmoothing': 'enable_semantic_smoothing',
     'enableEagerAnonymization': 'enable_eager_anonymization',
+    'systemAuditTrail': 'system_audit_trail',
     'expectedInputs': 'expected_inputs',
   },
 );
@@ -618,6 +624,7 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'enable_contextual_overrides': instance.enableContextualOverrides,
   'enable_semantic_smoothing': instance.enableSemanticSmoothing,
   'enable_eager_anonymization': instance.enableEagerAnonymization,
+  'system_audit_trail': instance.systemAuditTrail,
   'expected_inputs': instance.expectedInputs.map((e) => e.toJson()).toList(),
   'steps': instance.steps.map((e) => e.toJson()).toList(),
 };
