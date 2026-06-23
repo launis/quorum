@@ -92,5 +92,24 @@ void main() {
         }
       },
     );
+
+    test(
+      'ExpectedInput successfully parses scan_for_performative_patterns from backend payload',
+      () {
+        final payload = {
+          'input_key': 'test_key',
+          'label': {'default_locale': 'en', 'translations': <String, String>{}},
+          'required': false,
+          'description': {
+            'default_locale': 'en',
+            'translations': <String, String>{},
+          },
+          'scan_for_performative_patterns': true,
+        };
+
+        // This is expected to throw a CheckedFromJsonException due to unrecognized keys
+        expect(() => ExpectedInput.fromJson(payload), returnsNormally);
+      },
+    );
   });
 }

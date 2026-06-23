@@ -323,3 +323,46 @@ async def test_save_prompt_block(studio_service: Any, admin_token: Any, mock_com
         admin_token, "blk_1234567890abcdef12", PromptBlock.model_validate(blk_data)
     )
     assert res.id == "blk_1234567890abcdef12"
+
+
+from unittest.mock import patch
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock)
+@patch("backend_v2.services.llm_task_executor.LLMTaskExecutor")
+async def test_discover_new_performative_phrases_success(
+    mock_executor_class: Any, mock_llm_client: Any, studio_service: Any
+) -> None:
+    mock_llm_client.return_value = AsyncMock()
+
+    mock_executor_instance = mock_executor_class.return_value
+    mock_executor_instance.execute_structured_task = AsyncMock(
+        return_value=({"phrases": [{"word": "test", "translation_en": "test"}]}, {})
+    )
+
+    res = await studio_service.discover_new_performative_phrases("fi")
+    assert res is not None
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock)
+@patch("backend_v2.services.llm_task_executor.LLMTaskExecutor")
+async def test_translate_performative_phrases_success(
+    mock_executor_class: Any, mock_llm_client: Any, studio_service: Any, mock_system_repo: Any
+) -> None:
+    mock_llm_client.return_value = AsyncMock()
+
+    mock_executor_instance = mock_executor_class.return_value
+    mock_executor_instance.execute_structured_task = AsyncMock(
+        return_value=({"phrases": [{"word": "test", "translation_en": "test"}]}, {})
+    )
+
+    mock_system_repo.get_system_config.return_value = {
+        "id": "sys_e0b2a3c4d5e6f7a8",
+        "slug": "lexicons",
+        "type": "performative_lexicons",
+    }
+
+    res = await studio_service.translate_performative_phrases("fi")
+    assert res is not None

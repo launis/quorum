@@ -45,6 +45,9 @@ __all__ = [
     "ModelProfile",
     "SystemConfigModelRegistry",
     "SystemConfigMCPGateways",
+    "SystemConfigPerformativeLexicons",
+    "LexiconConfigPayload",
+    "LexiconSuggestionListDTO",
     "AllowedMCPTool",
     "MCPAuditTrace",
     "Step",
@@ -601,6 +604,36 @@ class SystemConfigMCPGateways(V2CoreBase):
     )
 
 
+class LexiconConfigPayload(V2CoreBase):
+    """Configuration for a single language lexicon."""
+
+    language_code: str = Field(description="ISO language code (e.g., 'en', 'fi').")
+    language_name: str = Field(description="Human readable language name.")
+    fuzz_threshold: float = Field(default=85.0, description="RapidFuzz threshold (0-100).")
+    words: list[str] = Field(default_factory=list, description="List of performative phrases.")
+
+
+class SystemConfigPerformativeLexicons(V2CoreBase):
+    """System configuration for multi-language performative lexicons."""
+
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
+    slug: str = Field(description="Slug identifier.")
+    type: Literal["performative_lexicons"] = Field(
+        default="performative_lexicons", description="Config type discriminator."
+    )
+    lexicon_configs: dict[str, LexiconConfigPayload] = Field(
+        default_factory=dict, description="Map of language code to lexicon configuration."
+    )
+
+
+class LexiconSuggestionListDTO(V2CoreBase):
+    """Structured DTO for LLM returned performative phrases."""
+
+    suggested_phrases: list[str] = Field(
+        default_factory=list, description="List of suggested performative or slop phrases."
+    )
+
+
 class Step(V2CoreBase):
     """Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).
     Formerly known as TaskBlueprint.
@@ -744,6 +777,9 @@ class ExpectedInput(V2CoreBase):
     required: bool = Field(description="Whether this input is universally required.")
     is_chat_history: bool = Field(
         default=False, description="If True, routes to ChatParserService for special parsing."
+    )
+    scan_for_performative_patterns: bool = Field(
+        default=False, description="Whether to scan this input for performative AI jargon."
     )
     input_modes: list[str] = Field(default_factory=list, description="Allowed modes: 'file', 'paste', 'questionnaire'.")
     description: I18nText = Field(description="Localized description/help text.")

@@ -41,6 +41,7 @@ _ExpectedInput _$ExpectedInputFromJson(Map<String, dynamic> json) =>
             'is_chat_history',
             'input_modes',
             'description',
+            'scan_for_performative_patterns',
             'ai_description',
             'questionnaire_definition',
           ],
@@ -66,6 +67,10 @@ _ExpectedInput _$ExpectedInputFromJson(Map<String, dynamic> json) =>
             'description',
             (v) => I18nText.fromJson(v as Map<String, dynamic>),
           ),
+          scanForPerformativePatterns: $checkedConvert(
+            'scan_for_performative_patterns',
+            (v) => v as bool? ?? false,
+          ),
           aiDescription: $checkedConvert('ai_description', (v) => v as String?),
           questionnaireDefinition: $checkedConvert(
             'questionnaire_definition',
@@ -85,6 +90,7 @@ _ExpectedInput _$ExpectedInputFromJson(Map<String, dynamic> json) =>
         'inputKey': 'input_key',
         'isChatHistory': 'is_chat_history',
         'inputModes': 'input_modes',
+        'scanForPerformativePatterns': 'scan_for_performative_patterns',
         'aiDescription': 'ai_description',
         'questionnaireDefinition': 'questionnaire_definition',
       },
@@ -98,6 +104,7 @@ Map<String, dynamic> _$ExpectedInputToJson(_ExpectedInput instance) =>
       'is_chat_history': instance.isChatHistory,
       'input_modes': instance.inputModes,
       'description': instance.description.toJson(),
+      'scan_for_performative_patterns': instance.scanForPerformativePatterns,
       'ai_description': instance.aiDescription,
       'questionnaire_definition': instance.questionnaireDefinition
           .map((e) => e.toJson())

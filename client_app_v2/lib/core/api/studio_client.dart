@@ -219,6 +219,32 @@ class StudioClient {
     return response.data as Map<String, dynamic>;
   }
 
+  // --- Lexicons ---
+
+  /// Retrieves performative lexicons.
+  Future<Map<String, dynamic>> getLexicons() async {
+    final response = await _dio.get('studio/lexicons');
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Updates performative lexicons.
+  Future<Map<String, dynamic>> saveLexicons(Map<String, dynamic> data) async {
+    final response = await _dio.put('studio/lexicons', data: data);
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Discovers new phrases via LLM.
+  Future<Map<String, dynamic>> discoverLexiconPhrases(String langCode) async {
+    final response = await _dio.post('studio/lexicons/discover/$langCode');
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Translates missing phrases via LLM.
+  Future<Map<String, dynamic>> translateLexiconPhrases(String langCode) async {
+    final response = await _dio.post('studio/lexicons/translate/$langCode');
+    return response.data as Map<String, dynamic>;
+  }
+
   // --- MCP Gateways ---
 
   /// Retrieves all MCP Gateways.

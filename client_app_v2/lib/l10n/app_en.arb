@@ -1816,5 +1816,7 @@
   "tdaBoundingBox": "Bounding Box Scope",
   "tdaExtractionRule": "Extraction Rule",
   "systemAuditTrailLabel": "System Audit Trail",
-  "systemAuditTrailDescription": "Enables MCPAuditTrace fact-checking report injection at the end of the document."
+  "systemAuditTrailDescription": "Enables MCPAuditTrace fact-checking report injection at the end of the document.",
+  "workflowInputScanPerformative": "Scan for AI Jargon (Authenticity)",
+  "xaiAuthenticityEvaluationTitle": "AI Jargon (Authenticity)"
 }

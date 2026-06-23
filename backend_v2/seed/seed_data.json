@@ -103,6 +103,46 @@
           }
         }
       ]
+    },
+    {
+      "id": "sys_e0b2a3c4d5e6f7a8",
+      "slug": "config_performative_lexicons",
+      "type": "performative_lexicons",
+      "lexicon_configs": {
+        "en": {
+          "language_code": "en",
+          "language_name": "English",
+          "fuzz_threshold": 90,
+          "words": [
+            "delve into", "tapestry", "comprehensive overview", "rich history",
+            "testament to", "underscore the importance", "pivotal role",
+            "landscape of", "realm of", "foster a sense of", "game changer",
+            "cutting edge", "revolutionary", "dive deep", "in conclusion",
+            "it is important to note", "vast array", "myriad of",
+            "unleash the power", "embark on a journey", "beacon of",
+            "multifaceted", "gobeliini"
+          ]
+        },
+        "fi": {
+          "language_code": "fi",
+          "language_name": "Finnish",
+          "fuzz_threshold": 90,
+          "words": [
+            "syventyä", "kattava katsaus", "rikas historia", "osoitus siitä",
+            "korostaa merkitystä", "keskeinen rooli", "merkittävä rooli",
+            "maisema", "kenttä", "luoda tunnetta", "mullistava",
+            "huippuluokan", "vallankumouksellinen", "sukeltaa syvälle",
+            "yhteenvetona", "on tärkeää huomata", "voidaan todeta",
+            "laaja kirjo", "lukuisia", "vapauttaa voima", "lähteä matkalle",
+            "majakka", "dynaaminen", "innovatiivinen", "saumaton",
+            "synergia", "kokonaisvaltainen", "merkittävästi", "avainasemassa",
+            "tulevaisuuden näkymät", "digitaalinen aikakausi", "virstanpylväs",
+            "paradigm", "ekosysteemi", "kärkihanke", "strateginen",
+            "optimoitu", "resonoimaan", "navigoida", "monitahoinen", 
+            "kukoistaa", "kudottu", "elävä kudos", "elävä osoitus", "gobeliini", "näyttämö"
+          ]
+        }
+      }
     }
   ],
   "prompt_blocks": [
@@ -7756,7 +7796,8 @@
         }
       },
       "pre_hooks": [
-        "inject_step_metadata"
+        "inject_step_metadata",
+        "detect_performative_patterns"
       ],
       "post_hooks": [
         "normalize_matrix_scores"

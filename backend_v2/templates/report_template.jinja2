@@ -407,12 +407,12 @@
                                     {% set content = item.get('content') %}
                                     {% set display_content = content %}
                                     {% if not content and item.get('axis_name') %}
-                                        {% set innerKey = '' %}
+                                        {% set ns_inner = namespace(key='') %}
                                         {% for k in item.keys() if k not in ['axis_name', '_score', 'color_theme', 'icon_name'] %}
-                                            {% if loop.first %}{% set innerKey = k %}{% endif %}
+                                            {% if loop.first %}{% set ns_inner.key = k %}{% endif %}
                                         {% endfor %}
-                                        {% if innerKey %}
-                                            {% set display_content = item.get('axis_name') ~ ':\n' ~ item.get(innerKey) %}
+                                        {% if ns_inner.key %}
+                                            {% set display_content = item.get('axis_name') ~ ':\n' ~ item.get(ns_inner.key) %}
                                         {% endif %}
                                     {% endif %}
                                     {% set c_theme = item.get('color_theme', 'info') %}

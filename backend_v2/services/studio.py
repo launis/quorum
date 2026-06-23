@@ -21,10 +21,12 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.report import PromptContextDTO
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
+    LexiconSuggestionListDTO,
     PromptBlock,
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
+    SystemConfigPerformativeLexicons,
     Workflow,
 )
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
@@ -1659,3 +1661,110 @@ class StudioService:
             "rendered_prompt": "\n\n".join(rendered_parts),
             "prompt_context": step_context,
         }
+
+    # --- Performative Lexicons ---
+
+    async def get_performative_lexicons_config(self) -> SystemConfigPerformativeLexicons:
+        """Get the performative lexicons configuration."""
+        config_data = await self.system_repo.get_system_config("sys_e0b2a3c4d5e6f7a8")
+        if not config_data:
+            logger.error(
+                "[StudioService] %s: Performative lexicons config not found.", ErrorCodes.RESOURCE_NOT_FOUND.name
+            )
+            raise ResourceNotFoundError(resource_type="system_config", resource_id="sys_e0b2a3c4d5e6f7a8")
+        return SystemConfigPerformativeLexicons.model_validate(config_data)
+
+    async def save_performative_lexicons_config(
+        self, initiator: TokenData, data: SystemConfigPerformativeLexicons
+    ) -> SystemConfigPerformativeLexicons:
+        """Save the performative lexicons configuration."""
+        self._enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
+        dump = data.model_dump(mode="json")
+        dump["id"] = "sys_e0b2a3c4d5e6f7a8"
+        await self.system_repo.create_system_config(dump)
+        return await self.get_performative_lexicons_config()
+
+    async def discover_new_performative_phrases(self, lang_code: str) -> LexiconSuggestionListDTO:
+        """Discover new performative slop phrases via LLM."""
+        from backend_v2.llm.client import LLMClient
+        from backend_v2.models.v2_core import LexiconSuggestionListDTO
+        from backend_v2.services.llm_task_executor import LLMTaskExecutor
+
+        client = await LLMClient.from_strategy("fast", repository=self.system_repo)
+        from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+        compiler = PromptCompiler()
+        executor = LLMTaskExecutor(prompt_compiler=compiler)
+
+        _SYSTEM_INSTRUCTION = """<system_directive>
+<objective>Identify new overused 'slop' or AI-generated corporate jargon phrases.</objective>
+<rules>
+  <rule>Return a list of heavily overused phrases (1-4 words max per phrase).</rule>
+  <rule>Output must strictly be in the requested target language.</rule>
+</rules>
+</system_directive>"""
+
+        messages = [
+            {"role": "system", "content": _SYSTEM_INSTRUCTION},
+            {
+                "role": "user",
+                "content": (
+                    f"<execution_parameters>\n<lang_code>{lang_code}</lang_code>\n</execution_parameters>\n"
+                    "Generate 10 completely new performative phrases that sound like an AI wrote them."
+                ),
+            },
+        ]
+
+        result, _ = await executor.execute_structured_task(
+            client=client, messages=messages, response_model=LexiconSuggestionListDTO
+        )
+        return result
+
+    async def translate_performative_phrases(self, target_lang: str) -> LexiconSuggestionListDTO:
+        """Translate missing phrases from the 'en' master lexicon."""
+        from backend_v2.llm.client import LLMClient
+        from backend_v2.models.v2_core import LexiconSuggestionListDTO
+        from backend_v2.services.llm_task_executor import LLMTaskExecutor
+
+        try:
+            config = await self.get_performative_lexicons_config()
+            en_lexicon = config.lexicon_configs.get("en")
+            if not en_lexicon or not en_lexicon.words:
+                return LexiconSuggestionListDTO(suggested_phrases=[])
+        except ResourceNotFoundError:
+            return LexiconSuggestionListDTO(suggested_phrases=[])
+
+        target_lexicon = config.lexicon_configs.get(target_lang)
+        existing_words = target_lexicon.words if target_lexicon else []
+
+        client = await LLMClient.from_strategy("fast", repository=self.system_repo)
+        from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+        compiler = PromptCompiler()
+        executor = LLMTaskExecutor(prompt_compiler=compiler)
+
+        _SYSTEM_INSTRUCTION = """<system_directive>
+<objective>Translate the provided list of AI 'slop' corporate jargon into the target language.</objective>
+<rules>
+  <rule>Translate them intentionally literally as 'translation flowers' (käännöskukkasia).</rule>
+  <rule>Do NOT return words that are already in the existing_words list.</rule>
+</rules>
+</system_directive>"""
+
+        messages = [
+            {"role": "system", "content": _SYSTEM_INSTRUCTION},
+            {
+                "role": "user",
+                "content": (
+                    f"<execution_parameters>\n<target_lang>{target_lang}</target_lang>\n</execution_parameters>\n"
+                    f"<source_data>\n<master_english_words>\n{en_lexicon.words}\n</master_english_words>\n"
+                    f"<existing_target_words>\n{existing_words}\n</existing_target_words>\n</source_data>\n"
+                    "Translate the missing words."
+                ),
+            },
+        ]
+
+        result, _ = await executor.execute_structured_task(
+            client=client, messages=messages, response_model=LexiconSuggestionListDTO
+        )
+        return result

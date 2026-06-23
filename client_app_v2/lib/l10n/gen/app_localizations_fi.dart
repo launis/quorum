@@ -3552,4 +3552,10 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get systemAuditTrailDescription =>
       'Ottaa käyttöön MCPAuditTrace -pohjaisen faktantarkistusraportin loppuun.';
+
+  @override
+  String get workflowInputScanPerformative => 'Skannaa AI-jargonia (Aitous)';
+
+  @override
+  String get xaiAuthenticityEvaluationTitle => 'Lähdedatan aitous (AI-jargon)';
 }

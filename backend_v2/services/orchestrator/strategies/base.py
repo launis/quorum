@@ -178,6 +178,13 @@ class NodeStrategy(ABC):
                     new_metadata = dict(hook_state.metadata)
                     new_metadata.update(metadata_updates)
                     hook_state = hook_state.model_copy(update={"metadata": new_metadata})
+
+                gvars_updates = delta.pop("global_context_vars", None)
+                if gvars_updates:
+                    new_gvars = dict(hook_state.global_context_vars)
+                    new_gvars.update(gvars_updates)
+                    hook_state = hook_state.model_copy(update={"global_context_vars": new_gvars})
+
                 current_data = deep_merge_dicts(hook_state.inputs, delta)
                 hook_state = hook_state.model_copy(update={"inputs": current_data})
             elif not res.success:
@@ -217,7 +224,20 @@ class NodeStrategy(ABC):
         for post_hook in step_obj.post_hooks:
             ph_res = await hook_registry.execute(post_hook, hook_state, hook_deps)
             if ph_res.success and ph_res.state_delta:
-                final_data = deep_merge_dicts(hook_state.inputs, ph_res.state_delta)
+                delta = dict(ph_res.state_delta)
+                metadata_updates = delta.pop("metadata", None)
+                if metadata_updates:
+                    new_metadata = dict(hook_state.metadata)
+                    new_metadata.update(metadata_updates)
+                    hook_state = hook_state.model_copy(update={"metadata": new_metadata})
+
+                gvars_updates = delta.pop("global_context_vars", None)
+                if gvars_updates:
+                    new_gvars = dict(hook_state.global_context_vars)
+                    new_gvars.update(gvars_updates)
+                    hook_state = hook_state.model_copy(update={"global_context_vars": new_gvars})
+
+                final_data = deep_merge_dicts(hook_state.inputs, delta)
                 hook_state = hook_state.model_copy(update={"inputs": final_data})
             elif not ph_res.success:
                 # RFC 7807: Post-hook signaled non-success — log explicitly so the audit trail captures it.

@@ -132,3 +132,12 @@ class SystemRepositoryImpl(BaseRepository):
             updates["slug"] = "global_settings"
         await self.driver.upsert("system_config", updates, doc_id)
         return True
+
+    async def get_system_config(self, config_id: str) -> dict[str, Any] | None:
+        """Gets a system configuration document."""
+        return await self.driver.get("system_config", config_id)
+
+    async def create_system_config(self, config_data: dict[str, Any]) -> str:
+        """Creates a new system configuration document."""
+        doc_id = str(config_data["id"])
+        return await self.driver.upsert("system_config", config_data, doc_id)

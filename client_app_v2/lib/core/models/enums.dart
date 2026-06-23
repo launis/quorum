@@ -46,6 +46,8 @@ enum XaiExtensionType {
   contextualOverride,
   @JsonValue('variance_validation')
   varianceValidation,
+  @JsonValue('authenticity_evaluation')
+  authenticityEvaluation,
 }
 
 /// Static UI Renderer presets for report blocks.
@@ -211,6 +213,8 @@ extension XaiExtensionTypeValue on XaiExtensionType {
         return 'contextual_override';
       case XaiExtensionType.varianceValidation:
         return 'variance_validation';
+      case XaiExtensionType.authenticityEvaluation:
+        return 'authenticity_evaluation';
     }
   }
 }

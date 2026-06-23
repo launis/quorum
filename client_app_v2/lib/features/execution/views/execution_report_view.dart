@@ -91,7 +91,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       final bytes = Uint8List.fromList(response.data!);
       await FileSaver.instance
           .saveAs(
-            name: 'Report_${widget.executionId}.pdf',
+            name: 'Report_${widget.executionId}',
             bytes: bytes,
             fileExtension: 'pdf',
             mimeType: MimeType.pdf,
@@ -147,7 +147,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       final bytes = Uint8List.fromList(response.data!);
       await FileSaver.instance
           .saveAs(
-            name: 'FrozenContext_${widget.executionId}.json',
+            name: 'FrozenContext_${widget.executionId}',
             bytes: bytes,
             fileExtension: 'json',
             mimeType: MimeType.json,

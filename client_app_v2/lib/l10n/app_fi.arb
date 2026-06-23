@@ -1159,5 +1159,7 @@
   "tdaBoundingBox": "Hakuikkunan Laajuus",
   "tdaExtractionRule": "Poiminnan Sääntö",
   "systemAuditTrailLabel": "Järjestelmän Faktantarkistusloki",
-  "systemAuditTrailDescription": "Ottaa käyttöön MCPAuditTrace -pohjaisen faktantarkistusraportin loppuun."
+  "systemAuditTrailDescription": "Ottaa käyttöön MCPAuditTrace -pohjaisen faktantarkistusraportin loppuun.",
+  "workflowInputScanPerformative": "Skannaa AI-jargonia (Aitous)",
+  "xaiAuthenticityEvaluationTitle": "Lähdedatan aitous (AI-jargon)"
 }

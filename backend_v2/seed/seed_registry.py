@@ -14,6 +14,7 @@ from backend_v2.models.v2_core import (
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
+    SystemConfigPerformativeLexicons,
     Workflow,
 )
 
@@ -34,7 +35,8 @@ def _system_config_discriminator(v: dict[str, Any] | Any) -> str:
 
 SystemConfigUnion = Annotated[
     Annotated[SystemConfigModelRegistry, Tag("model_registry")]
-    | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")],
+    | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")]
+    | Annotated[SystemConfigPerformativeLexicons, Tag("performative_lexicons")],
     Discriminator(_system_config_discriminator),
 ]
 

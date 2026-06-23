@@ -288,7 +288,7 @@ $I18nTextCopyWith<$Res> get question {
 /// @nodoc
 mixin _$ExpectedInput {
 
- String get inputKey; I18nText get label; bool get required; bool get isChatHistory; List<String> get inputModes; I18nText get description; String? get aiDescription; List<QuestionnaireItem> get questionnaireDefinition;
+ String get inputKey; I18nText get label; bool get required; bool get isChatHistory; List<String> get inputModes; I18nText get description; bool get scanForPerformativePatterns; String? get aiDescription; List<QuestionnaireItem> get questionnaireDefinition;
 /// Create a copy of ExpectedInput
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -303,7 +303,7 @@ $ExpectedInputCopyWith<ExpectedInput> get copyWith => _$ExpectedInputCopyWithImp
 
 @override
 String toString() {
-  return 'ExpectedInput(inputKey: $inputKey, label: $label, required: $required, isChatHistory: $isChatHistory, inputModes: $inputModes, description: $description, aiDescription: $aiDescription, questionnaireDefinition: $questionnaireDefinition)';
+  return 'ExpectedInput(inputKey: $inputKey, label: $label, required: $required, isChatHistory: $isChatHistory, inputModes: $inputModes, description: $description, scanForPerformativePatterns: $scanForPerformativePatterns, aiDescription: $aiDescription, questionnaireDefinition: $questionnaireDefinition)';
 }
 
 
@@ -314,7 +314,7 @@ abstract mixin class $ExpectedInputCopyWith<$Res>  {
   factory $ExpectedInputCopyWith(ExpectedInput value, $Res Function(ExpectedInput) _then) = _$ExpectedInputCopyWithImpl;
 @useResult
 $Res call({
- String inputKey, I18nText label, bool required, bool isChatHistory, List<String> inputModes, I18nText description, String? aiDescription, List<QuestionnaireItem> questionnaireDefinition
+ String inputKey, I18nText label, bool required, bool isChatHistory, List<String> inputModes, I18nText description, bool scanForPerformativePatterns, String? aiDescription, List<QuestionnaireItem> questionnaireDefinition
 });
 
 
@@ -331,7 +331,7 @@ class _$ExpectedInputCopyWithImpl<$Res>
 
 /// Create a copy of ExpectedInput
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? inputKey = null,Object? label = null,Object? required = null,Object? isChatHistory = null,Object? inputModes = null,Object? description = null,Object? aiDescription = freezed,Object? questionnaireDefinition = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? inputKey = null,Object? label = null,Object? required = null,Object? isChatHistory = null,Object? inputModes = null,Object? description = null,Object? scanForPerformativePatterns = null,Object? aiDescription = freezed,Object? questionnaireDefinition = null,}) {
   return _then(_self.copyWith(
 inputKey: null == inputKey ? _self.inputKey : inputKey // ignore: cast_nullable_to_non_nullable
 as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
@@ -339,7 +339,8 @@ as I18nText,required: null == required ? _self.required : required // ignore: ca
 as bool,isChatHistory: null == isChatHistory ? _self.isChatHistory : isChatHistory // ignore: cast_nullable_to_non_nullable
 as bool,inputModes: null == inputModes ? _self.inputModes : inputModes // ignore: cast_nullable_to_non_nullable
 as List<String>,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
+as I18nText,scanForPerformativePatterns: null == scanForPerformativePatterns ? _self.scanForPerformativePatterns : scanForPerformativePatterns // ignore: cast_nullable_to_non_nullable
+as bool,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
 as String?,questionnaireDefinition: null == questionnaireDefinition ? _self.questionnaireDefinition : questionnaireDefinition // ignore: cast_nullable_to_non_nullable
 as List<QuestionnaireItem>,
   ));
@@ -444,10 +445,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String inputKey,  I18nText label,  bool required,  bool isChatHistory,  List<String> inputModes,  I18nText description,  String? aiDescription,  List<QuestionnaireItem> questionnaireDefinition)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String inputKey,  I18nText label,  bool required,  bool isChatHistory,  List<String> inputModes,  I18nText description,  bool scanForPerformativePatterns,  String? aiDescription,  List<QuestionnaireItem> questionnaireDefinition)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExpectedInput() when $default != null:
-return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_that.inputModes,_that.description,_that.aiDescription,_that.questionnaireDefinition);case _:
+return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_that.inputModes,_that.description,_that.scanForPerformativePatterns,_that.aiDescription,_that.questionnaireDefinition);case _:
   return orElse();
 
 }
@@ -465,10 +466,10 @@ return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String inputKey,  I18nText label,  bool required,  bool isChatHistory,  List<String> inputModes,  I18nText description,  String? aiDescription,  List<QuestionnaireItem> questionnaireDefinition)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String inputKey,  I18nText label,  bool required,  bool isChatHistory,  List<String> inputModes,  I18nText description,  bool scanForPerformativePatterns,  String? aiDescription,  List<QuestionnaireItem> questionnaireDefinition)  $default,) {final _that = this;
 switch (_that) {
 case _ExpectedInput():
-return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_that.inputModes,_that.description,_that.aiDescription,_that.questionnaireDefinition);case _:
+return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_that.inputModes,_that.description,_that.scanForPerformativePatterns,_that.aiDescription,_that.questionnaireDefinition);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -485,10 +486,10 @@ return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String inputKey,  I18nText label,  bool required,  bool isChatHistory,  List<String> inputModes,  I18nText description,  String? aiDescription,  List<QuestionnaireItem> questionnaireDefinition)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String inputKey,  I18nText label,  bool required,  bool isChatHistory,  List<String> inputModes,  I18nText description,  bool scanForPerformativePatterns,  String? aiDescription,  List<QuestionnaireItem> questionnaireDefinition)?  $default,) {final _that = this;
 switch (_that) {
 case _ExpectedInput() when $default != null:
-return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_that.inputModes,_that.description,_that.aiDescription,_that.questionnaireDefinition);case _:
+return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_that.inputModes,_that.description,_that.scanForPerformativePatterns,_that.aiDescription,_that.questionnaireDefinition);case _:
   return null;
 
 }
@@ -500,7 +501,7 @@ return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_t
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ExpectedInput extends ExpectedInput {
-  const _ExpectedInput({required this.inputKey, required this.label, required this.required, this.isChatHistory = false, final  List<String> inputModes = const [], required this.description, this.aiDescription, final  List<QuestionnaireItem> questionnaireDefinition = const []}): _inputModes = inputModes,_questionnaireDefinition = questionnaireDefinition,super._();
+  const _ExpectedInput({required this.inputKey, required this.label, required this.required, this.isChatHistory = false, final  List<String> inputModes = const [], required this.description, this.scanForPerformativePatterns = false, this.aiDescription, final  List<QuestionnaireItem> questionnaireDefinition = const []}): _inputModes = inputModes,_questionnaireDefinition = questionnaireDefinition,super._();
   factory _ExpectedInput.fromJson(Map<String, dynamic> json) => _$ExpectedInputFromJson(json);
 
 @override final  String inputKey;
@@ -515,6 +516,7 @@ class _ExpectedInput extends ExpectedInput {
 }
 
 @override final  I18nText description;
+@override@JsonKey() final  bool scanForPerformativePatterns;
 @override final  String? aiDescription;
  final  List<QuestionnaireItem> _questionnaireDefinition;
 @override@JsonKey() List<QuestionnaireItem> get questionnaireDefinition {
@@ -539,7 +541,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExpectedInput(inputKey: $inputKey, label: $label, required: $required, isChatHistory: $isChatHistory, inputModes: $inputModes, description: $description, aiDescription: $aiDescription, questionnaireDefinition: $questionnaireDefinition)';
+  return 'ExpectedInput(inputKey: $inputKey, label: $label, required: $required, isChatHistory: $isChatHistory, inputModes: $inputModes, description: $description, scanForPerformativePatterns: $scanForPerformativePatterns, aiDescription: $aiDescription, questionnaireDefinition: $questionnaireDefinition)';
 }
 
 
@@ -550,7 +552,7 @@ abstract mixin class _$ExpectedInputCopyWith<$Res> implements $ExpectedInputCopy
   factory _$ExpectedInputCopyWith(_ExpectedInput value, $Res Function(_ExpectedInput) _then) = __$ExpectedInputCopyWithImpl;
 @override @useResult
 $Res call({
- String inputKey, I18nText label, bool required, bool isChatHistory, List<String> inputModes, I18nText description, String? aiDescription, List<QuestionnaireItem> questionnaireDefinition
+ String inputKey, I18nText label, bool required, bool isChatHistory, List<String> inputModes, I18nText description, bool scanForPerformativePatterns, String? aiDescription, List<QuestionnaireItem> questionnaireDefinition
 });
 
 
@@ -567,7 +569,7 @@ class __$ExpectedInputCopyWithImpl<$Res>
 
 /// Create a copy of ExpectedInput
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? inputKey = null,Object? label = null,Object? required = null,Object? isChatHistory = null,Object? inputModes = null,Object? description = null,Object? aiDescription = freezed,Object? questionnaireDefinition = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? inputKey = null,Object? label = null,Object? required = null,Object? isChatHistory = null,Object? inputModes = null,Object? description = null,Object? scanForPerformativePatterns = null,Object? aiDescription = freezed,Object? questionnaireDefinition = null,}) {
   return _then(_ExpectedInput(
 inputKey: null == inputKey ? _self.inputKey : inputKey // ignore: cast_nullable_to_non_nullable
 as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
@@ -575,7 +577,8 @@ as I18nText,required: null == required ? _self.required : required // ignore: ca
 as bool,isChatHistory: null == isChatHistory ? _self.isChatHistory : isChatHistory // ignore: cast_nullable_to_non_nullable
 as bool,inputModes: null == inputModes ? _self._inputModes : inputModes // ignore: cast_nullable_to_non_nullable
 as List<String>,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
+as I18nText,scanForPerformativePatterns: null == scanForPerformativePatterns ? _self.scanForPerformativePatterns : scanForPerformativePatterns // ignore: cast_nullable_to_non_nullable
+as bool,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
 as String?,questionnaireDefinition: null == questionnaireDefinition ? _self._questionnaireDefinition : questionnaireDefinition // ignore: cast_nullable_to_non_nullable
 as List<QuestionnaireItem>,
   ));

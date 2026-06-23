@@ -428,6 +428,9 @@ class ProfileEditorView extends HookConsumerWidget {
                         case XaiExtensionType.varianceValidation:
                           label = l10n.xaiVarianceValidationTitle;
                           break;
+                        case XaiExtensionType.authenticityEvaluation:
+                          label = l10n.xaiAuthenticityEvaluationTitle;
+                          break;
                       }
 
                       // Dynamic Dropdown Population
@@ -437,6 +440,7 @@ class ProfileEditorView extends HookConsumerWidget {
 
                       final isWorkflowExtension = [
                         XaiExtensionType.varianceValidation,
+                        XaiExtensionType.authenticityEvaluation,
                         XaiExtensionType.confidence,
                       ].contains(ext);
 
@@ -482,6 +486,7 @@ class ProfileEditorView extends HookConsumerWidget {
                 children:
                     [
                       XaiExtensionType.varianceValidation,
+                      XaiExtensionType.authenticityEvaluation,
                       XaiExtensionType
                           .confidence, // Assuming confidence might be workflow-level or keep it static?
                     ].map((ext) {
@@ -490,6 +495,9 @@ class ProfileEditorView extends HookConsumerWidget {
                       switch (ext) {
                         case XaiExtensionType.varianceValidation:
                           label = l10n.xaiVarianceValidationTitle;
+                          break;
+                        case XaiExtensionType.authenticityEvaluation:
+                          label = l10n.xaiAuthenticityEvaluationTitle;
                           break;
                         case XaiExtensionType.confidence:
                           label = l10n.xaiConfidence;

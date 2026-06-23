@@ -92,6 +92,7 @@ class XaiExtensionType(str, Enum):
     SOURCE_ID = "source_id"
     CONTEXTUAL_OVERRIDE = "contextual_override"
     VARIANCE_VALIDATION = "variance_validation"
+    AUTHENTICITY_EVALUATION = "authenticity_evaluation"
 
 
 class XaiExtensionScope(str, Enum):
@@ -120,6 +121,7 @@ XAI_EXTENSION_SCOPE: dict[XaiExtensionType, XaiExtensionScope] = {
     XaiExtensionType.SOURCE_ID: XaiExtensionScope.BLOCK,
     XaiExtensionType.CONTEXTUAL_OVERRIDE: XaiExtensionScope.BLOCK,
     XaiExtensionType.VARIANCE_VALIDATION: XaiExtensionScope.WORKFLOW,
+    XaiExtensionType.AUTHENTICITY_EVALUATION: XaiExtensionScope.WORKFLOW,
 }
 
 

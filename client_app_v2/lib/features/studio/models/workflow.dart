@@ -37,6 +37,7 @@ abstract class ExpectedInput with _$ExpectedInput {
     @Default(false) bool isChatHistory,
     @Default([]) List<String> inputModes,
     required I18nText description,
+    @Default(false) bool scanForPerformativePatterns,
     String? aiDescription,
     @Default([]) List<QuestionnaireItem> questionnaireDefinition,
   }) = _ExpectedInput;

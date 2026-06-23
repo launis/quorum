@@ -3525,4 +3525,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get systemAuditTrailDescription =>
       'Enables MCPAuditTrace fact-checking report injection at the end of the document.';
+
+  @override
+  String get workflowInputScanPerformative =>
+      'Scan for AI Jargon (Authenticity)';
+
+  @override
+  String get xaiAuthenticityEvaluationTitle => 'AI Jargon (Authenticity)';
 }

@@ -4,6 +4,7 @@ import logging
 import uuid
 
 from fastapi import status
+from rapidfuzz import fuzz
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -12,81 +13,13 @@ from backend_v2.models.domain.linguistics import (
     LinguisticsResultDTO,
     PerformativePatternDTO,
 )
+from backend_v2.models.v2_core import ReportDataDTO, SystemConfigPerformativeLexicons
 
 logger = logging.getLogger(__name__)
 
 
-# Structured dictionaries for multi-language support (Zero-Fallback)
-PERFORMATIVE_PATTERNS: dict[str, list[str]] = {
-    "en": [
-        "delve into",
-        "tapestry",
-        "comprehensive overview",
-        "rich history",
-        "testament to",
-        "underscore the importance",
-        "pivotal role",
-        "landscape of",
-        "realm of",
-        "foster a sense of",
-        "game changer",
-        "cutting edge",
-        "revolutionary",
-        "dive deep",
-        "in conclusion",
-        "it is important to note",
-        "vast array",
-        "myriad of",
-        "unleash the power",
-        "embark on a journey",
-        "beacon of",
-    ],
-    "fi": [
-        "syventyä",
-        "kattava katsaus",
-        "rikas historia",
-        "osoitus siitä",
-        "korostaa merkitystä",
-        "keskeinen rooli",
-        "merkittävä rooli",
-        "maisema",  # in metaphorical sense "landscape"
-        "kenttä",  # in metaphorical sense "realm"
-        "luoda tunnetta",
-        "mullistava",
-        "huippuluokan",
-        "vallankumouksellinen",
-        "sukeltaa syvälle",
-        "yhteenvetona",
-        "on tärkeää huomata",
-        "voidaan todeta",
-        "laaja kirjo",
-        "lukuisia",
-        "vapauttaa voima",
-        "lähteä matkalle",
-        "majakka",
-        "dynaaminen",
-        "innovatiivinen",
-        "saumaton",
-        "synergia",
-        "kokonaisvaltainen",
-        "merkittävästi",
-        "avainasemassa",
-        "tulevaisuuden näkymät",
-        "digitaalinen aikakausi",
-        "virstanpylväs",
-        "paradigm",
-        "ekosysteemi",  # often overused
-        "kärkihanke",
-        "strateginen",
-        "optimoitu",
-        "resonoimaan",
-        "navigoida",  # metaphorical
-    ],
-}
-
-
 @hook_registry.register(name="detect_performative_patterns")
-def detect_performative_patterns(state: HookState, deps: HookDependencies) -> HookResult:
+async def detect_performative_patterns(state: HookState, deps: HookDependencies) -> HookResult:
     """HOOK: detect_performative_patterns.
 
     Scans input texts (history, product) for performative/filler language patterns.
@@ -108,6 +41,21 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     if not state:
         return HookResult(success=True, state_delta={})
 
+    # Check for early exit signal (Workflow override)
+    should_scan = state.inputs.get(
+        "scan_for_performative_patterns", state.global_context_vars.get("scan_for_performative_patterns", True)
+    )
+    if str(should_scan).lower() in ["false", "0"]:
+        logger.debug("[LinguisticsHook] Skipping scan due to scan_for_performative_patterns=False.")
+        return HookResult(
+            success=True,
+            state_delta={
+                "global_context_vars": {
+                    "step_linguistics": LinguisticsResultDTO(performative_patterns=[]).model_dump(mode="json")
+                }
+            },
+        )
+
     # Strict Validation via DTO inflation
     try:
         payload_data = {"dynamic_inputs": state.inputs}
@@ -127,10 +75,37 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     # Extract Language safely without dict.get()
     lang_simple = payload.extract_language(state.global_context_vars)
 
-    # Select patterns securely without .get()
-    patterns_to_check = PERFORMATIVE_PATTERNS["en"]
-    if lang_simple in PERFORMATIVE_PATTERNS:
-        patterns_to_check = PERFORMATIVE_PATTERNS[lang_simple]
+    # Fetch from DB (Strict Fail-Fast)
+    try:
+        config_data = await deps.system_repo.get_system_config("sys_e0b2a3c4d5e6f7a8")
+        if not config_data:
+            raise AppException(
+                message="Fail-Fast: Performative Lexicon config 'sys_e0b2a3c4d5e6f7a8' missing from database.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
+        config = SystemConfigPerformativeLexicons.model_validate(config_data)
+        target_lexicon = config.lexicon_configs.get(lang_simple)
+        if not target_lexicon or not target_lexicon.words:
+            raise AppException(
+                message=f"Fail-Fast: Missing performative lexicon words for language '{lang_simple}'.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
+        patterns_to_check = target_lexicon.words
+        fuzz_threshold = target_lexicon.fuzz_threshold
+    except AppException:
+        raise
+    except Exception as e:
+        msg = f"Failed to fetch or parse lexicon config from DB: {e}"
+        logger.error("[LinguisticsHook] %s", msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        ) from e
 
     logger.debug("[LinguisticsHook] Using language '%s' with %s patterns.", lang_simple, len(patterns_to_check))
 
@@ -146,6 +121,10 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     for pattern in patterns_to_check:
         if pattern in text_to_scan:
             detected.append(pattern)
+        else:
+            ratio = fuzz.partial_ratio(pattern, text_to_scan)
+            if ratio >= fuzz_threshold:
+                detected.append(pattern)
 
     # Create strictly typed result
     patterns_list: list[PerformativePatternDTO] = []
@@ -165,4 +144,54 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     if detected:
         logger.debug("   [LinguisticsHook] Detected patterns (%s): %s", lang_simple, detected)
 
-    return HookResult(success=True, state_delta={"linguistics_result": result_dto.model_dump(mode="json")})
+    return HookResult(
+        success=True, state_delta={"global_context_vars": {"step_linguistics": result_dto.model_dump(mode="json")}}
+    )
+
+
+def scan_report_for_slop(
+    report_dto: ReportDataDTO, lexicon_words: list[str], fuzz_threshold: float = 90.0
+) -> list[str]:
+    """Pure function to scan the final rendered report text fields for performative AI jargon.
+
+    Args:
+        report_dto: The fully built report data object.
+        lexicon_words: The list of performative patterns to check against.
+        fuzz_threshold: The threshold for fuzzy matching.
+
+    Returns:
+        List of detected performative phrases.
+    """
+    detected_phrases: set[str] = set()
+
+    # Collect texts
+    texts_to_scan: list[str] = []
+
+    if report_dto.content_blocks:
+        for block in report_dto.content_blocks:
+            if "text" in block and isinstance(block["text"], str):
+                texts_to_scan.append(block["text"])
+
+    all_matrices = (report_dto.evaluative_matrices or []) + (report_dto.informational_matrices or [])
+    for row in all_matrices:
+        texts_to_scan.append(row.row_explanation)
+        if row.coaching:
+            texts_to_scan.append(row.coaching)
+        if row.remediation_steps:
+            texts_to_scan.append(row.remediation_steps)
+        if row.semantic_reasoning:
+            texts_to_scan.append(row.semantic_reasoning)
+        if row.falsification:
+            texts_to_scan.append(row.falsification)
+
+    for raw_text in texts_to_scan:
+        text_lower = raw_text.lower()
+        for pattern in lexicon_words:
+            if pattern in text_lower:
+                detected_phrases.add(pattern)
+            else:
+                ratio = fuzz.partial_ratio(pattern, text_lower)
+                if ratio >= fuzz_threshold:
+                    detected_phrases.add(pattern)
+
+    return list(detected_phrases)

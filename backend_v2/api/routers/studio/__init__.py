@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from .lexicons import router as lexicons_router
 from .mcp_gateways import router as mcp_gateways_router
 from .model_registry import router as model_registry_router
 from .prompt_blocks import router as prompt_blocks_router
@@ -17,3 +18,4 @@ router.include_router(steps_router)
 router.include_router(system_configs_router)
 router.include_router(model_registry_router)
 router.include_router(mcp_gateways_router)
+router.include_router(lexicons_router)

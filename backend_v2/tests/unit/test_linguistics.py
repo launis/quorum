@@ -40,7 +40,8 @@ def test_linguistics_payload_dto() -> None:
     assert "foo" not in dto3.get_text_to_scan()  # only values are scanned
 
 
-def test_detect_performative_patterns_success_en(mock_deps: HookDependencies) -> None:
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_success_en(mock_deps: HookDependencies) -> None:
     """Test successful detection of English performative patterns."""
     state = HookState(
         execution_id="exe_123",
@@ -51,13 +52,27 @@ def test_detect_performative_patterns_success_en(mock_deps: HookDependencies) ->
         inputs={"q1": "It is important to note that this is a game changer.", "q2": "Regular text with no fillers."},  # noqa: E501
     )
 
-    result = cast(HookResult, detect_performative_patterns(state, mock_deps))
+    mock_deps.system_repo.get_system_config.return_value = {
+        "id": "sys_e0b2a3c4d5e6f7a8",
+        "slug": "lexicon",
+        "type": "performative_lexicons",
+        "lexicon_configs": {
+            "en": {
+                "language_code": "en",
+                "language_name": "English",
+                "fuzz_threshold": 90.0,
+                "words": ["game changer", "it is important to note"],
+            }
+        },
+    }
+    result = cast(HookResult, await detect_performative_patterns(state, mock_deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "linguistics_result" in result.state_delta
+    assert "global_context_vars" in result.state_delta
+    assert "step_linguistics" in result.state_delta["global_context_vars"]
 
-    patterns = result.state_delta["linguistics_result"]["performative_patterns"]
+    patterns = result.state_delta["global_context_vars"]["step_linguistics"]["performative_patterns"]
     assert len(patterns) == 2
     phrases = [p["detected_phrase"] for p in patterns]
     assert "game changer" in phrases
@@ -65,7 +80,8 @@ def test_detect_performative_patterns_success_en(mock_deps: HookDependencies) ->
     assert patterns[0]["pattern_id"].startswith("ptrn_")
 
 
-def test_detect_performative_patterns_success_fi(mock_deps: HookDependencies) -> None:
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_success_fi(mock_deps: HookDependencies) -> None:
     """Test successful detection of Finnish performative patterns when lang is set."""
     state = HookState(
         execution_id="exe_123",
@@ -76,11 +92,24 @@ def test_detect_performative_patterns_success_fi(mock_deps: HookDependencies) ->
         inputs={"q1": "Tämä on täysin mullistava innovaatio.", "q2": "Syventyä asiaan tarkemmin."},
     )
 
-    result = cast(HookResult, detect_performative_patterns(state, mock_deps))
+    mock_deps.system_repo.get_system_config.return_value = {
+        "id": "sys_e0b2a3c4d5e6f7a8",
+        "slug": "lexicon",
+        "type": "performative_lexicons",
+        "lexicon_configs": {
+            "fi": {
+                "language_code": "fi",
+                "language_name": "Finnish",
+                "fuzz_threshold": 90.0,
+                "words": ["mullistava", "syventyä"],
+            }
+        },
+    }
+    result = cast(HookResult, await detect_performative_patterns(state, mock_deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    patterns = result.state_delta["linguistics_result"]["performative_patterns"]
+    patterns = result.state_delta["global_context_vars"]["step_linguistics"]["performative_patterns"]
     assert len(patterns) == 2
     phrases = [p["detected_phrase"] for p in patterns]
     assert "mullistava" in phrases
@@ -88,7 +117,8 @@ def test_detect_performative_patterns_success_fi(mock_deps: HookDependencies) ->
     assert patterns[0]["pattern_id"].startswith("ptrn_")
 
 
-def test_detect_performative_patterns_no_matches(mock_deps: HookDependencies) -> None:
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_no_matches(mock_deps: HookDependencies) -> None:
     """Test behavior when no patterns are matched."""
     state = HookState(
         execution_id="exe_123",
@@ -99,9 +129,22 @@ def test_detect_performative_patterns_no_matches(mock_deps: HookDependencies) ->
         inputs={"q1": "Just some plain text that is completely fine.", "q2": "Nothing to see here."},
     )
 
-    result = cast(HookResult, detect_performative_patterns(state, mock_deps))
+    mock_deps.system_repo.get_system_config.return_value = {
+        "id": "sys_e0b2a3c4d5e6f7a8",
+        "slug": "lexicon",
+        "type": "performative_lexicons",
+        "lexicon_configs": {
+            "en": {
+                "language_code": "en",
+                "language_name": "English",
+                "fuzz_threshold": 90.0,
+                "words": ["something else"],
+            }
+        },
+    }
+    result = cast(HookResult, await detect_performative_patterns(state, mock_deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "linguistics_result" in result.state_delta
-    assert len(result.state_delta["linguistics_result"]["performative_patterns"]) == 0
+    assert "global_context_vars" in result.state_delta
+    assert len(result.state_delta["global_context_vars"]["step_linguistics"]["performative_patterns"]) == 0

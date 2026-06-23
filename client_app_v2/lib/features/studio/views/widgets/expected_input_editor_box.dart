@@ -129,6 +129,13 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                     );
                   },
                 ),
+                FilterChip(
+                  label: Text(l10n.workflowInputScanPerformative),
+                  selected: def.scanForPerformativePatterns,
+                  onSelected: (val) {
+                    _update(def.copyWith(scanForPerformativePatterns: val));
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 16),

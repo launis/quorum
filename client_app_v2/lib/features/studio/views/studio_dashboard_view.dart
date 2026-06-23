@@ -7,6 +7,7 @@ import 'package:client_app/features/studio/controllers/model_registry_controller
 import 'package:client_app/features/studio/views/output_profile_list_view.dart';
 import 'package:client_app/features/studio/views/mcp_gateways_master_view.dart';
 import 'package:client_app/features/studio/views/workflows_master_view.dart';
+import 'package:client_app/features/studio/views/lexicon_settings_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
@@ -61,7 +62,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -126,6 +127,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               icon: const Icon(Icons.hub),
               text: l10n.studioDashboardGatewaysTitle,
             ),
+            const Tab(icon: Icon(Icons.language), text: 'Lexicons'),
           ],
         ),
       ),
@@ -152,6 +154,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
 
           // TAB 7: MCP Gateways
           const McpGatewaysMasterView(),
+
+          // TAB 8: Lexicons
+          const LexiconSettingsView(),
         ],
       ),
     );

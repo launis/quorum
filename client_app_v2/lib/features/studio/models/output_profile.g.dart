@@ -392,6 +392,7 @@ const _$XaiExtensionTypeEnumMap = {
   XaiExtensionType.sourceId: 'source_id',
   XaiExtensionType.contextualOverride: 'contextual_override',
   XaiExtensionType.varianceValidation: 'variance_validation',
+  XaiExtensionType.authenticityEvaluation: 'authenticity_evaluation',
 };
 
 _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(

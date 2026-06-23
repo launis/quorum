@@ -1322,6 +1322,14 @@ class ISystemRepository(Protocol):
         """
         ...
 
+    async def get_system_config(self, config_id: str) -> dict[str, Any] | None:
+        """Gets a system configuration document."""
+        ...
+
+    async def create_system_config(self, config_data: dict[str, Any]) -> str:
+        """Creates a new system configuration document."""
+        ...
+
 
 class IAuditRepository(Protocol):
     async def log_audit_event(self, event_data: dict[str, Any]) -> None:

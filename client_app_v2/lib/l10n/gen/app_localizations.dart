@@ -6443,6 +6443,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enables MCPAuditTrace fact-checking report injection at the end of the document.'**
   String get systemAuditTrailDescription;
+
+  /// No description provided for @workflowInputScanPerformative.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan for AI Jargon (Authenticity)'**
+  String get workflowInputScanPerformative;
+
+  /// No description provided for @xaiAuthenticityEvaluationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Jargon (Authenticity)'**
+  String get xaiAuthenticityEvaluationTitle;
 }
 
 class _AppLocalizationsDelegate

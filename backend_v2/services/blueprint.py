@@ -667,7 +667,9 @@ class BlueprintTransformer:
         workflow_ext_values = (
             [v.value for v in profile.visible_workflow_extensions] if profile.visible_workflow_extensions else []
         )
-        grouped_extensions: dict[str, list[Any]] = {ext: [] for ext in block_ext_values + workflow_ext_values}
+        grouped_extensions: dict[str, list[Any]] = {
+            ext: [] for ext in block_ext_values + workflow_ext_values if ext != "source_id"
+        }
 
         all_blocks_models = await self.comp_repo.get_all_prompt_blocks_models()
         blocks_by_id: dict[str, PromptBlock] = {}
