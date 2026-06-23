@@ -647,6 +647,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     if section_instructions:
         sys_prompt += "  <rule>=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
         sys_prompt += (
+            "CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.\n"
             "You MUST ALSO provide targeted synthesized summaries for the following "
             "distinct sections as an array in `section_syntheses`.\n\n"
         )
@@ -754,9 +755,22 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             except Exception as e:
                 logger.error("[SynthesisHook] Global block serialization failed: %s", e)
         # Pythonic Extract Audit Trail
-        if getattr(workflow_data, "system_audit_trail", False) and audit_traces:
+        all_audit_traces = audit_traces.copy() if audit_traces else []
+        if (
+            execution_data
+            and getattr(execution_data, "frozen_context", None)
+            and getattr(execution_data.frozen_context, "mcp_tool_audit", None)
+        ):
+            seen = {f"{t.tool_id}::{t.query}" for t in all_audit_traces}
+            for t in execution_data.frozen_context.mcp_tool_audit:
+                uid = f"{t.tool_id}::{t.query}"
+                if uid not in seen:
+                    all_audit_traces.append(t)
+                    seen.add(uid)
+
+        if getattr(workflow_data, "system_audit_trail", False) and all_audit_traces:
             lines = []
-            for t in audit_traces:
+            for t in all_audit_traces:
                 tool = getattr(t, "tool_id", "Unknown")
                 query = getattr(t, "query", "")
                 summary = getattr(t, "response_summary", "")

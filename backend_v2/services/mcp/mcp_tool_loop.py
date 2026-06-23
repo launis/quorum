@@ -277,7 +277,7 @@ async def execute_tool_loop[T: BaseModel](
     # When the full document is already in the prompt, the LLM has no information
     # gap to fill. Suppress tool declarations entirely to prevent hallucinated
     # tool calls (e.g., EUR/USD, weather) that inject noise and break caching.
-    if is_source_sufficient(source_context):
+    if is_source_sufficient(source_context) and TAVILY_TOOL_ID not in allowed_tools:
         logger.info(
             "[MCPToolLoop] Source sufficiency gate: document (%d chars) exceeds threshold (%d). "
             "Suppressing tool declarations for step '%s'.",

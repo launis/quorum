@@ -8124,7 +8124,9 @@
         "matrix_scoring_hook",
         "normalize_matrix_scores"
       ],
-      "allowed_mcp_tools": [],
+      "allowed_mcp_tools": [
+        "mcp_tavily_search"
+      ],
       "safety": "safe",
       "type": "llm",
       "model_strategy": "fast",
