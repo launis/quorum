@@ -395,8 +395,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     omit_empty = synthesis_cfg.omit_empty_sections
     enable_masking = synthesis_cfg.enable_pii_masking
     historical_mode = synthesis_cfg.historical_context_mode
+    active_exts = getattr(active_profile_dto, "visible_block_extensions", [])
+    max_items = active_profile_dto.max_extension_items or 2
 
     preamble = preamble_dict.resolve(language) if preamble_dict else ""
+    tone_text = (
+        synthesis_cfg.tone_instruction.resolve(language) if (synthesis_cfg and synthesis_cfg.tone_instruction) else ""
+    )
 
     all_blocks = []
     all_steps = []
@@ -585,10 +590,32 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         v_str = _compress_synthesis_payload(v)
         combined_text_parts.append(f"### Source: {step_title} (ID: {k})\n{v_str}")
 
+    # Pythonic XAI Highlights Harvesting
+    raw_highlights = []
+    if active_exts:
+        active_ext_names = [x.value for x in active_exts] if isinstance(active_exts, list) else []
+        for _, payload in consolidated_inputs.items():
+            if isinstance(payload, dict) and "extensions" in payload:
+                for ext_name, ext_items in payload["extensions"].items():
+                    if ext_name in active_ext_names:
+                        if isinstance(ext_items, list):
+                            for item in ext_items:
+                                raw_highlights.append({"extension_type": ext_name, "content": str(item)})
+
+    raw_ext_blocks = []
+    for item in raw_highlights:
+        ext_type = item["extension_type"]
+        ext_content = item["content"]
+        raw_ext_blocks.append(f'  <extension type="{ext_type}">{ext_content}</extension>')
+    raw_ext_xml = ""
+    if raw_ext_blocks:
+        raw_ext_xml = "<raw_extensions>\n" + "\n".join(raw_ext_blocks) + "\n</raw_extensions>\n\n"
+
     global_mapping = ContextMapper.build_global_mapping(workflow_data, layouts) if workflow_data else ""
     raw_input_text = (
         f"{historical_context_text}\n"
-        f"<source_data>\n{global_mapping}\n{chr(10).join(combined_text_parts)}\n</source_data>"
+        f"<source_data>\n{global_mapping}\n{chr(10).join(combined_text_parts)}\n</source_data>\n\n"
+        f"{raw_ext_xml}"
     )
 
     if enable_masking:
@@ -609,9 +636,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    active_exts = getattr(active_profile_dto, "visible_block_extensions", [])
-    max_items = active_profile_dto.max_extension_items or 2
-
     if not active_profile_dto or not active_profile_dto.scoring_strategy:
         msg = f"Strict Fail-Fast Enforced: 'scoring_strategy' missing from active profile '{profile_to_use}'."
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
@@ -630,6 +654,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "  <rule>NO RECURSION: Nested blocks inside blocks are strictly banned.</rule>\n"
         "  <rule>NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.</rule>\n"
         "  <rule>CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.</rule>\n"
+        "  <rule>XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block in the source data. You must curate, deduplicate, and select the most critical, actionable insights and tips from the raw extensions, up to the maximum limit specified in <max_extension_items>. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content` (which must be at most 2 sentences).</rule>\n"
     )
 
     if length_constraint:
@@ -638,11 +663,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             "specified in <global_length_constraint_chars>.</rule>\n"
         )
 
-    sys_prompt += (
-        "  <rule>TONE AND QUALITY MANDATE: Maintain a highly professional, analytical, and executive tone. "
-        "Ensure the synthesis provides clear, actionable strategic value and avoids redundant "
-        "or generic statements.</rule>\n"
-    )
+    if tone_text:
+        sys_prompt += f"  <rule>TONE INSTRUCTION: {tone_text}</rule>\n"
 
     if section_instructions:
         sys_prompt += "  <rule>=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
@@ -686,6 +708,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     )
     sys_prompt += linguistic_context
     sys_prompt += f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>\n"
+    sys_prompt += f"  <max_extension_items>{max_items}</max_extension_items>\n"
 
     if length_constraint:
         sys_prompt += f"  <global_length_constraint_chars>{length_constraint}</global_length_constraint_chars>\n"
@@ -712,6 +735,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             target_language=language,
         )
         result = SynthesisOutputDTO.model_validate(tool_res.result_data)
+        raw_highlights = [h.model_dump(mode="json") for h in result.xai_highlights] if result.xai_highlights else []
         token_usage = tool_res.usage
         audit_traces = tool_res.audit_traces
 
@@ -793,49 +817,29 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 }
             )
 
-        # Pythonic XAI Highlights Harvesting
-        raw_highlights = []
-        if active_exts:
-            active_ext_names = [x.value for x in active_exts] if isinstance(active_exts, list) else []
-            for _, payload in consolidated_inputs.items():
-                if isinstance(payload, dict) and "extensions" in payload:
-                    for ext_name, ext_items in payload["extensions"].items():
-                        if ext_name in active_ext_names:
-                            if isinstance(ext_items, list):
-                                for item in ext_items:
-                                    raw_highlights.append({"extension_type": ext_name, "content": str(item)})
-            grouped: dict[str, list[dict[str, str]]] = {}
-            for h in raw_highlights:
-                grouped.setdefault(h["extension_type"], []).append(h)
-
-            raw_highlights = []
-            for _, items in grouped.items():
-                raw_highlights.extend(items[:max_items])
-
         row_explanations_dict = {}
         row_exp_rule = "MAXIMUM LENGTH IS 30 WORDS. KEEP IT CONCISE BUT INFORMATIVE."
+
+        row_rules = [
+            "  <rule>Focus strictly on the core reason for the score.</rule>",
+        ]
+        if tone_text:
+            row_rules.append(f"  <rule>TONE INSTRUCTION: {tone_text}</rule>")
+        row_rules.extend(
+            [
+                "  <rule>Do not use markdown, line breaks, or bullet points.</rule>",
+                f"  <rule>{row_exp_rule}</rule>",
+                "  <rule>CRITICAL LANGUAGE MANDATE: You must generate the explanation exclusively in "
+                "the language specified in <target_language>.</rule>",
+            ]
+        )
 
         row_exp_prompt = (
             "<system_directive>\n"
             "<objective>Summarize EACH of the provided execution justifications into EXACTLY ONE "
             "short, punchy sentence. You must return an explanation for EVERY matrix_id in the "
             "source_data.</objective>\n"
-            "<rules>\n"
-            "<rule>Focus strictly on the core reason for the score.</rule>\n"
-            "<rule>HUMAN-CENTRIC FOCUS (CRITICAL): Frame every explanation from a "
-            "human-centric perspective in the target language. Focus strictly on the "
-            "user's role, actions, control, or steering in the interaction. Instead "
-            "of describing what the AI model did (e.g., 'The model shows...', 'The AI "
-            "demonstrates...'), describe what the user did to steer, audit, command, "
-            "or fail to steer the interaction. Shift the narrative focus entirely to "
-            "the user's agency, using appropriate user-centric terms in the target "
-            "language (e.g., translated equivalents of 'The user steers...', 'Under "
-            "the user's guidance...', 'The user demands...', 'The user fails to "
-            "challenge the model...').</rule>\n"
-            "<rule>Do not use markdown, line breaks, or bullet points.</rule>\n"
-            f"<rule>{row_exp_rule}</rule>\n"
-            "<rule>CRITICAL LANGUAGE MANDATE: You must generate the explanation exclusively in "
-            "the language specified in <target_language>.</rule>\n"
+            "<rules>\n" + "\n".join(row_rules) + "\n"
             "</rules>\n"
             "</system_directive>"
         )

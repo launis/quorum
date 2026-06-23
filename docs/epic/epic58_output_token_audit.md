@@ -116,19 +116,20 @@ Jokainen chunk pakottaa LLM:n tuottamaan `StepDTOSemantic`-tyyppisen vastauksen 
 
 Analyysin pohjalta päätimme, että emme koske Ensemble-kerroksiin tai matriisien sämpläykseen toistaiseksi, jottei analyysin syvyys ja luotettavuus (vikasietoisuus) kärsi. Keskitymme kolmeen "ilmaiseen" token-leikkaukseen, jotka säilyttävät laadun, mutta tuhoavat AI-jargonin ja turhan pöhinän:
 
-### Vaihe 1: EPIC 85 Fix 4 (Section Brevity Mandate)
+### [x] Vaihe 1: EPIC 85 Fix 4 (Section Brevity Mandate)
 - **Toimenpide:** Lisätään tiukka pituusrajoite (max 3 lausetta) per synteesiosio.
 - **Laatuvaikutus:** Laatu paranee (tiiviimpi, asiallisempi yhteenveto).
 - **Kustannusvaikutus:** Hinta putoaa merkittävästi loppusynteesin kohdalla.
 
-### Vaihe 2: `localized_anchors_found` -karsinta (15 ➡️ 5)
+### [x] Vaihe 2: `localized_anchors_found` -karsinta (15 ➡️ 5)
 - **Toimenpide:** Pudotetaan UI-korostuksia varten etsittävien avainsanojen `max_length` arvosta 15 arvoon 5 (`backend_v2/models/dtos/evaluation_steps.py`).
 - **Laatuvaikutus:** Laatu pysyy, koska ydinajattelu ei muutu. Pakottaa AI:n valitsemaan vain 5 kaikkein kriittisintä sanaa pitkien litanioiden sijaan.
 - **Kustannusvaikutus:** Hinta putoaa (arvio: säästö -100k+ tokenia per raportti).
 
-### Vaihe 3: `reasoning_steps` -kentän tiukennus (Max 1 sentence)
+### [x] Vaihe 3: `reasoning_steps` -kentän tiukennus (Max 1 sentence)
 - **Toimenpide:** Kenttää EI poisteta, jotta Chain-of-Thought (CoT) -päättelyn laatu ei romahda. Sen sijaan Pydantic-kuvaukseen lisätään äärimmäisen tiukka ehto: *"Max 1 short sentence. Be extremely brief."*
 - **Laatuvaikutus:** CoT-päättelyn logiikan ja osumatarkkuuden laatu säilyy.
 - **Kustannusvaikutus:** 80% turhasta selitys-pöhinästä katoaa. Hinta putoaa valtavasti (arvio: säästö -300k+ tokenia per raportti).
 
-*Toteutus pidetään toistaiseksi jäissä (odottaa lupaa execuutiolle).*
+*Toteutus on täysin valmis, testattu ja backend-kovetettu.*
+

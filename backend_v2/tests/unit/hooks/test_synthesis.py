@@ -958,11 +958,167 @@ async def test_synthesis_hook_historical_context_mode(
     assert "<HistoricalContext>" in content
 
 
-def test_row_exp_prompt_contains_human_centric_focus() -> None:
-    """Test that text_consolidation_hook contains the human-centric focus directive."""
+def test_row_exp_prompt_contains_tone_instruction_when_present() -> None:
+    """Test that text_consolidation_hook row_exp_prompt template dynamically includes TONE INSTRUCTION."""
     import inspect
 
     from backend_v2.hooks import synthesis
 
     source = inspect.getsource(synthesis.text_consolidation_hook)
-    assert "HUMAN-CENTRIC FOCUS (CRITICAL)" in source
+    assert "TONE INSTRUCTION" in source
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.execute_tool_loop")
+@patch("backend_v2.hooks.synthesis.LLMClient")
+async def test_synthesis_hook_dynamic_tone_and_xai_curation(
+    mock_llm_client_class: AsyncMock,
+    mock_execute_tool_loop: AsyncMock,
+    mock_repo: AsyncMock,
+    base_state: HookState,
+) -> None:
+    """Test dynamic tone resolution, <raw_extensions> formatting, and curated highlights parsing."""
+    mock_repo.get_execution = AsyncMock(
+        return_value={
+            "id": "exe_1111111111111111",
+            "workflow_id": "wf_1111111111111111",
+            "status": "completed",
+            "output_profile_id": "prf_test",
+        }
+    )
+    mock_workflow: dict[str, Any] = {
+        "id": "wf_1111111111111111",
+        "slug": "test-workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "status": "published",
+        "version": 1,
+        "default_profile_id": "prf_test",
+        "output_profiles": {
+            "prf_test": {
+                "name": {"default_locale": "en", "translations": {"en": "Profile Test", "fi": "Profile Test"}},
+                "strictness_level": 85,
+                "scoring_strategy": "WATERFALL",
+                "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "visible_block_extensions": ["falsification"],
+                "max_extension_items": 3,
+                "synthesis": {
+                    "system_prompt": "Test sys prompt",
+                    "length_constraint": 500,
+                    "preamble_text": {
+                        "default_locale": "en",
+                        "translations": {"en": "Always be concise.", "fi": "Always be concise."},
+                    },
+                    "tone_instruction": {
+                        "default_locale": "en",
+                        "translations": {"en": "Antagonistic Tone", "fi": "Haastava sävy"},
+                    },
+                    "omit_empty_sections": True,
+                    "enable_pii_masking": False,
+                },
+            }
+        },
+    }
+    mock_workflow_validate = mock_workflow
+    mock_repo.get_workflow_by_id.return_value = mock_workflow_validate
+    prof_data = dict(mock_workflow["output_profiles"]["prf_test"])
+    prof_data.update({"id": "prf_test", "slug": "profile-test", "workflow_id": "wf_1111111111111111"})
+    mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+
+    # Put a raw extension in base_state inputs
+    base_state = base_state.model_copy(
+        update={
+            "inputs": {
+                "steps": [
+                    {
+                        "step_id": "step_1",
+                        "block_id": "b1",
+                        "data_type": "text",
+                        "payload": {
+                            "reasoning_trace": {
+                                "thought_process": "Some reasoning",
+                                "conclusion": "Some conclusion",
+                                "confidence_score": 1.0,
+                            },
+                            "extensions": {"falsification": ["Refutation point 1", "Refutation point 2"]},
+                        },
+                    }
+                ]
+            },
+            "metadata": {
+                "target_locale": "en",
+                "step_results": [
+                    {
+                        "step_id": "step_1",
+                        "block_id": "b1",
+                        "data_type": "text",
+                        "payload": {
+                            "reasoning_trace": {
+                                "thought_process": "Some reasoning",
+                                "conclusion": "Some conclusion",
+                                "confidence_score": 1.0,
+                            },
+                            "extensions": {"falsification": ["Refutation point 1", "Refutation point 2"]},
+                        },
+                    }
+                ],
+            },
+        }
+    )
+
+    mock_client_instance = AsyncMock()
+    mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
+
+    mock_dto_dict = {
+        "content_blocks": [],
+        "cited_sources": [],
+        "section_syntheses": [],
+        "xai_highlights": [
+            {"extension_type": "falsification", "content": "Curated insight 1"},
+            {"extension_type": "falsification", "content": "Curated insight 2"},
+        ],
+    }
+    mock_execute_tool_loop.return_value = MCPToolLoopResult(
+        result_data=mock_dto_dict,
+        audit_traces=[],
+        usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=100),
+    )
+
+    result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
+
+    assert result.success is True
+    delta = result.state_delta
+    assert delta is not None
+
+    # Verify xai_highlights mapped directly from mock_dto_dict
+    assert delta["xai_highlights"] == [
+        {"extension_type": "falsification", "content": "Curated insight 1"},
+        {"extension_type": "falsification", "content": "Curated insight 2"},
+    ]
+
+    # Verify target blocks and system parameters
+    call_args = mock_execute_tool_loop.call_args
+    messages = call_args.kwargs.get("messages", [])
+    user_msg = next((m for m in messages if m["role"] == "user"), {})
+    sys_msg = next((m for m in messages if m["role"] == "system"), {})
+
+    # Check that <raw_extensions> XML block exists and has raw extensions
+    assert "<raw_extensions>" in user_msg.get("content", "")
+    assert '<extension type="falsification">Refutation point 1</extension>' in user_msg.get("content", "")
+    assert '<extension type="falsification">Refutation point 2</extension>' in user_msg.get("content", "")
+
+    # Check tone instruction rule injection
+    assert "<rule>TONE INSTRUCTION: Antagonistic Tone</rule>" in sys_msg.get("content", "")
+    # Check max extensions items param
+    assert "<max_extension_items>3</max_extension_items>" in sys_msg.get("content", "")
+    # Check static rule injection for curation
+    assert "XAI HIGHLIGHTS CURATION" in sys_msg.get("content", "")

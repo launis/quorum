@@ -54,6 +54,7 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     @JsonKey(name: 'matrix_visible_columns')
     List<String> matrixVisibleColumns,
     @JsonKey(name: 'model_strategy') String? modelStrategy,
+    @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
   }) = _SynthesisConfigDTO;
 
   factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>
@@ -83,6 +84,7 @@ abstract class OutputProfile with _$OutputProfile {
     bool includeDiagnosticScorecard,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
+    @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _OutputProfile;
 
@@ -109,6 +111,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     bool includeDiagnosticScorecard,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
+    @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _EmbeddedOutputProfile;
 

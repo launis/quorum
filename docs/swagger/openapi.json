@@ -2893,6 +2893,174 @@
         }
       }
     },
+    "/api/v2/studio/lexicons": {
+      "get": {
+        "tags": [
+          "Admin Studio V2 - Performative Lexicons"
+        ],
+        "summary": "Get Lexicons",
+        "description": "Get performative lexicons configuration.",
+        "operationId": "get_lexicons_api_v2_studio_lexicons_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigPerformativeLexicons"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Admin Studio V2 - Performative Lexicons"
+        ],
+        "summary": "Update Lexicons",
+        "description": "Update performative lexicons configuration.",
+        "operationId": "update_lexicons_api_v2_studio_lexicons_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemConfigPerformativeLexicons"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigPerformativeLexicons"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/studio/lexicons/discover/{lang}": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Performative Lexicons"
+        ],
+        "summary": "Discover New Performative Phrases",
+        "description": "Use LLM to discover completely new AI jargon phrases.",
+        "operationId": "discover_new_performative_phrases_api_v2_studio_lexicons_discover__lang__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lang"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LexiconSuggestionListDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/lexicons/translate/{lang_code}": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Performative Lexicons"
+        ],
+        "summary": "Translate Performative Phrases",
+        "description": "Translate missing slop words from the English master lexicon.",
+        "operationId": "translate_performative_phrases_api_v2_studio_lexicons_translate__lang_code__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lang_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lang Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LexiconSuggestionListDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/output-profiles/": {
       "get": {
         "tags": [
@@ -3408,6 +3576,17 @@
             ],
             "description": "Rich text preface shown at the very beginning of the report."
           },
+          "tone_instruction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dynamic tone instruction for synthesis."
+          },
           "visible_metadata": {
             "items": {
               "type": "string"
@@ -3542,6 +3721,17 @@
               }
             ],
             "description": "Rich text preface shown at the very beginning of the report."
+          },
+          "tone_instruction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dynamic tone instruction for synthesis."
           },
           "visible_metadata": {
             "items": {
@@ -4100,6 +4290,12 @@
             "description": "If True, routes to ChatParserService for special parsing.",
             "default": false
           },
+          "scan_for_performative_patterns": {
+            "type": "boolean",
+            "title": "Scan For Performative Patterns",
+            "description": "Whether to scan this input for performative AI jargon.",
+            "default": false
+          },
           "input_modes": {
             "items": {
               "type": "string"
@@ -4164,6 +4360,12 @@
             "type": "boolean",
             "title": "Is Chat History",
             "description": "If True, routes to ChatParserService for special parsing.",
+            "default": false
+          },
+          "scan_for_performative_patterns": {
+            "type": "boolean",
+            "title": "Scan For Performative Patterns",
+            "description": "Whether to scan this input for performative AI jargon.",
             "default": false
           },
           "input_modes": {
@@ -4380,6 +4582,58 @@
         ],
         "title": "JobAcceptedDTO",
         "description": "Omni-channel render endpoint accepted response."
+      },
+      "LexiconConfigPayload": {
+        "properties": {
+          "language_code": {
+            "type": "string",
+            "title": "Language Code",
+            "description": "ISO language code (e.g., 'en', 'fi')."
+          },
+          "language_name": {
+            "type": "string",
+            "title": "Language Name",
+            "description": "Human readable language name."
+          },
+          "fuzz_threshold": {
+            "type": "number",
+            "title": "Fuzz Threshold",
+            "description": "RapidFuzz threshold (0-100).",
+            "default": 85.0
+          },
+          "words": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Words",
+            "description": "List of performative phrases."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "language_code",
+          "language_name"
+        ],
+        "title": "LexiconConfigPayload",
+        "description": "Configuration for a single language lexicon."
+      },
+      "LexiconSuggestionListDTO": {
+        "properties": {
+          "suggested_phrases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suggested Phrases",
+            "description": "List of suggested performative or slop phrases."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "LexiconSuggestionListDTO",
+        "description": "Structured DTO for LLM returned performative phrases."
       },
       "LoginResponse": {
         "properties": {
@@ -5314,6 +5568,17 @@
             ],
             "description": "Rich text preface."
           },
+          "tone_instruction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dynamic tone instruction for synthesis."
+          },
           "visible_metadata": {
             "items": {
               "type": "string"
@@ -5454,6 +5719,16 @@
             ]
           },
           "custom_preface": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tone_instruction": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/I18nText"
@@ -6881,6 +7156,17 @@
             "type": "array",
             "title": "Matrix Visible Columns",
             "description": "Visible columns for the global matrix summary table."
+          },
+          "tone_instruction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dynamic tone instruction for synthesis."
           }
         },
         "additionalProperties": false,
@@ -6999,6 +7285,44 @@
         ],
         "title": "SystemConfigModelRegistry",
         "description": "V2 Flattened Model Registry System Config."
+      },
+      "SystemConfigPerformativeLexicons": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "title": "Id",
+            "description": "System config ID"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "Slug identifier."
+          },
+          "type": {
+            "type": "string",
+            "const": "performative_lexicons",
+            "title": "Type",
+            "description": "Config type discriminator.",
+            "default": "performative_lexicons"
+          },
+          "lexicon_configs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LexiconConfigPayload"
+            },
+            "type": "object",
+            "title": "Lexicon Configs",
+            "description": "Map of language code to lexicon configuration."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug"
+        ],
+        "title": "SystemConfigPerformativeLexicons",
+        "description": "System configuration for multi-language performative lexicons."
       },
       "TDAAssertion": {
         "properties": {
@@ -7877,6 +8201,12 @@
             "description": "If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state.",
             "default": false
           },
+          "system_audit_trail": {
+            "type": "boolean",
+            "title": "System Audit Trail",
+            "description": "Epic 82: If True, activates the background XAI Citation Extraction tracking mechanism.",
+            "default": false
+          },
           "expected_inputs": {
             "items": {
               "$ref": "#/components/schemas/ExpectedInput-Input"
@@ -8156,6 +8486,12 @@
             "description": "If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state.",
             "default": false
           },
+          "system_audit_trail": {
+            "type": "boolean",
+            "title": "System Audit Trail",
+            "description": "Epic 82: If True, activates the background XAI Citation Extraction tracking mechanism.",
+            "default": false
+          },
           "expected_inputs": {
             "items": {
               "$ref": "#/components/schemas/ExpectedInput-Output"
@@ -8245,7 +8581,8 @@
           "confidence",
           "source_id",
           "contextual_override",
-          "variance_validation"
+          "variance_validation",
+          "authenticity_evaluation"
         ],
         "title": "XaiExtensionType",
         "description": "Supported XAI Output Extensions for global visibility."

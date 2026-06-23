@@ -46,6 +46,7 @@ void main() {
           home: Scaffold(body: BadHookWidget(simulateDataLoaded: true)),
         ),
       );
+      expect(tester.takeException(), isA<StateError>());
     },
   );
 }

@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from tinydb import TinyDB
+from tinydb.table import Table
 
 from backend_v2.settings import get_settings
 
@@ -52,11 +53,11 @@ except ImportError:
 def db_lock(db_path: str) -> Generator[None]:
     """Acquire cross-process and cross-thread lock for TinyDB file access."""
     lock_file_path = db_path + ".lock"
+    start_time = time.time()
     with _thread_lock:
         if HAS_MSVCRT:
             fd = os.open(lock_file_path, os.O_CREAT | os.O_RDWR)
             try:
-                start_time = time.time()
                 while True:
                     try:
                         os.lseek(fd, 0, os.SEEK_SET)
@@ -66,6 +67,8 @@ def db_lock(db_path: str) -> Generator[None]:
                         if time.time() - start_time > 15.0:
                             raise TimeoutError(f"Database lock timeout on {lock_file_path}") from e
                         time.sleep(0.02)
+                wait_time_ms = (time.time() - start_time) * 1000
+                logger.info("[TinyDB Lock] Acquired MSVCRT lock on %s in %.1f ms", lock_file_path, wait_time_ms)
                 yield
             finally:
                 try:
@@ -77,7 +80,6 @@ def db_lock(db_path: str) -> Generator[None]:
         elif HAS_FCNTL:
             f = open(lock_file_path, "w")
             try:
-                start_time = time.time()
                 while True:
                     try:
                         fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined] # Unix-only attribute
@@ -86,13 +88,14 @@ def db_lock(db_path: str) -> Generator[None]:
                         if time.time() - start_time > 15.0:
                             raise TimeoutError(f"Database lock timeout on {lock_file_path}") from e
                         time.sleep(0.02)
+                wait_time_ms = (time.time() - start_time) * 1000
+                logger.info("[TinyDB Lock] Acquired FCNTL lock on %s in %.1f ms", lock_file_path, wait_time_ms)
                 yield
             finally:
                 fcntl.flock(f, fcntl.LOCK_UN)  # type: ignore[attr-defined] # Unix-only attribute
                 f.close()
         else:
             lock_dir = db_path + ".lock_dir"
-            start_time = time.time()
             acquired = False
             while not acquired:
                 try:
@@ -110,6 +113,8 @@ def db_lock(db_path: str) -> Generator[None]:
                         raise TimeoutError(f"Database lock timeout on {lock_dir}") from e
                     time.sleep(0.02)
             try:
+                wait_time_ms = (time.time() - start_time) * 1000
+                logger.info("[TinyDB Lock] Acquired directory lock on %s in %.1f ms", lock_dir, wait_time_ms)
                 yield
             finally:
                 try:
@@ -184,7 +189,7 @@ class AbstractDatabase(ABC):
         pass
 
     @abstractmethod
-    def close(self):  # type: ignore
+    def close(self) -> None:
         """Close the database connection.
 
         Args:
@@ -222,70 +227,112 @@ class TinyDBTable(AbstractTable):
         self._path = db_path
         self._name = table_name
 
-    def _get_table(self, db):  # type: ignore
+    def _get_table(self, db: TinyDB) -> Table:
         return db.table(self._name)
 
     def insert(self, document: dict[str, Any]) -> int:
         """Insert document."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                return self._get_table(db).insert(document)  # type: ignore
+                res = self._get_table(db).insert(document)
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Insert completed in %.1f ms", self._name, db_time)
+        return res
 
     def all(self) -> list[dict[str, Any]]:
         """Retrieve all documents."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                return self._get_table(db).all()  # type: ignore
+                res = self._get_table(db).all()
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Retrieve all completed in %.1f ms", self._name, db_time)
+        return list(res)
 
     def search(self, query: Any) -> list[dict[str, Any]]:
         """Search documents."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                return self._get_table(db).search(query)  # type: ignore
+                res = self._get_table(db).search(query)
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Search completed in %.1f ms", self._name, db_time)
+        return list(res)
 
     def get(self, query: Any) -> dict[str, Any] | None:
         """Get document."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                return self._get_table(db).get(query)  # type: ignore
+                res = self._get_table(db).get(query)
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Get completed in %.1f ms", self._name, db_time)
+        if isinstance(res, list):
+            res = res[0] if res else None
+        return res
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Update documents."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                return self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)  # type: ignore
+                res = self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Update completed in %.1f ms", self._name, db_time)
+        return res
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
         """Upsert document."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                return self._get_table(db).upsert(document, query)  # type: ignore
+                res = self._get_table(db).upsert(document, query)
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Upsert completed in %.1f ms", self._name, db_time)
+        return res
 
     def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Remove documents."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                return self._get_table(db).remove(query, doc_ids=doc_ids)  # type: ignore
+                res = self._get_table(db).remove(query, doc_ids=doc_ids)
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Remove completed in %.1f ms", self._name, db_time)
+        return res
 
     def truncate(self) -> None:
         """Truncate table."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                self._get_table(db).truncate()  # type: ignore
+                self._get_table(db).truncate()
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Truncate completed in %.1f ms", self._name, db_time)
 
     def count(self, query: Any = None) -> int:
         """Count documents."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
                 if query:
-                    return self._get_table(db).count(query)  # type: ignore
-                return len(self._get_table(db))  # type: ignore
+                    res = self._get_table(db).count(query)
+                else:
+                    res = len(self._get_table(db))
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Count completed in %.1f ms", self._name, db_time)
+        return res
 
     def contains(self, query: Any) -> bool:
         """Check if document exists."""
+        db_start = time.time()
         with db_lock(self._path):
             with TinyDB(self._path, encoding="utf-8") as db:
-                return self._get_table(db).contains(query)  # type: ignore
+                res = self._get_table(db).contains(query)
+        db_time = (time.time() - db_start) * 1000
+        logger.info("[TinyDBTable:%s] Contains completed in %.1f ms", self._name, db_time)
+        return res
 
 
 class TinyDBClient(AbstractDatabase):
@@ -318,7 +365,7 @@ class TinyDBClient(AbstractDatabase):
         """Get table."""
         return TinyDBTable(self.path, name)
 
-    def close(self):  # type: ignore
+    def close(self) -> None:
         """Close client.
 
         Args:
@@ -340,7 +387,7 @@ class TinyDBClient(AbstractDatabase):
 class FirestoreTable(AbstractTable):
     """Firestore implementation of AbstractTable."""
 
-    def __init__(self, collection_ref):  # type: ignore
+    def __init__(self, collection_ref: Any) -> None:
         """Initialize Firestore Table.
 
         Args:
@@ -384,7 +431,8 @@ class FirestoreTable(AbstractTable):
         for doc in docs:
             data = doc.to_dict()
             if query(data):
-                return data  # type: ignore
+                res: dict[str, Any] = data
+                return res
         return None
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
@@ -488,7 +536,7 @@ class FirestoreTable(AbstractTable):
         """Check if document exists."""
         return self.get(query) is not None
 
-    def close(self):  # type: ignore
+    def close(self) -> None:
         """Close the table connection (no-op for Firestore).
 
         Args:
@@ -507,7 +555,7 @@ class FirestoreTable(AbstractTable):
 class FirestoreClient(AbstractDatabase):
     """Firestore implementation of AbstractDatabase."""
 
-    def __init__(self):  # type: ignore
+    def __init__(self) -> None:
         """Initialize Firestore Client and verify connection.
 
         Args:
@@ -556,9 +604,9 @@ class FirestoreClient(AbstractDatabase):
 
     def table(self, name: str) -> AbstractTable:
         """Get table."""
-        return FirestoreTable(self.db.collection(name))  # type: ignore
+        return FirestoreTable(self.db.collection(name))
 
-    def close(self):  # type: ignore
+    def close(self) -> None:
         """Close client.
 
         Args:
@@ -587,7 +635,7 @@ def get_db_client() -> AbstractDatabase:
     if backend == "FIRESTORE":
         if not FIRESTORE_AVAILABLE:
             raise ImportError("CRITICAL: STORAGE_BACKEND=FIRESTORE but firebase_admin is not installed.")
-        return FirestoreClient()  # type: ignore
+        return FirestoreClient()
     elif backend == "LOCAL":
         return TinyDBClient(settings.prod_db_path)
     else:

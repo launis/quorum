@@ -7599,6 +7599,13 @@
               "fi": "Kokonaisvaltainen Auditointi"
             }
           },
+          "tone_instruction": {
+            "default_locale": "en",
+            "translations": {
+              "fi": "Käytä asiallista, neutraalia ja analyyttistä sävyä.",
+              "en": "Use professional, neutral, and analytical tone."
+            }
+          },
           "description": {
             "default_locale": "fi",
             "translations": {
@@ -8671,6 +8678,13 @@
         "translations": {
           "en": "Holistic Audit",
           "fi": "Kokonaisvaltainen Auditointi"
+        }
+      },
+      "tone_instruction": {
+        "default_locale": "en",
+        "translations": {
+          "fi": "Käytä asiallista, neutraalia ja analyyttistä sävyä.",
+          "en": "Use professional, neutral, and analytical tone."
         }
       },
       "description": {

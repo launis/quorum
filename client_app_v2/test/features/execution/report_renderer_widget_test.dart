@@ -141,7 +141,14 @@ void main() {
 
       expect(find.text('Text Layout Title'), findsOneWidget);
       expect(find.text('Text Layout Desc'), findsOneWidget);
-      expect(find.textContaining('Synthesis content'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is RichText &&
+              widget.text.toPlainText().contains('Synthesis content'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Text Axis'), findsNothing);
       expect(find.text('This is a text only rowExplanation'), findsNothing);
     },

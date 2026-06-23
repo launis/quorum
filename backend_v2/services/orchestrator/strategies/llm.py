@@ -490,11 +490,11 @@ class LLMNodeStrategy(NodeStrategy):
                     accumulator.add(c_final)
 
                     if c_usage_dict:
-                        usage_agg = usage_agg + TokenUsage.model_validate(c_usage_dict)
-                        c_tokens = c_usage_dict.get("completion_tokens", 0)
+                        c_usage = TokenUsage.model_validate(c_usage_dict)
+                        usage_agg = usage_agg + c_usage
                         retries = c_final.get("_dlq_retry_count", 0) if isinstance(c_final, dict) else 0
                         logger.info(
-                            f"Chunk processing complete. Generated tokens: {c_tokens}, Retries: {retries}",
+                            f"[Chunk Success] Step {step.id} | Prompt tokens: {c_usage.prompt_tokens} | Completion tokens: {c_usage.completion_tokens} | Cached: {c_usage.cached_tokens} | Cost: ${c_usage.cost_usd:.4f} | Retries: {retries}",
                             extra={"error_code": "CHUNK_SUCCESS"},
                         )
 
@@ -531,7 +531,7 @@ class LLMNodeStrategy(NodeStrategy):
                         usage_agg = usage_agg + c_usage
                         retries = c_final.get("_dlq_retry_count", 0) if isinstance(c_final, dict) else 0
                         logger.info(
-                            f"Chunk processing complete. Generated tokens: {c_usage.completion_tokens}, Retries: {retries}",
+                            f"[Chunk Success] Step {step.id} | Prompt tokens: {c_usage.prompt_tokens} | Completion tokens: {c_usage.completion_tokens} | Cached: {c_usage.cached_tokens} | Cost: ${c_usage.cost_usd:.4f} | Retries: {retries}",
                             extra={"error_code": "CHUNK_SUCCESS"},
                         )
 

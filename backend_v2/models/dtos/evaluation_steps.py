@@ -1,3 +1,9 @@
+"""Evaluation step DTO schemas.
+
+Defines the Pydantic models for strict and semantic evaluation steps
+used during matrix execution.
+"""
+
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -6,27 +12,52 @@ from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DE
 
 
 class BaseExtractionDTO(BaseModel):
+    """Base DTO for extraction operations.
+
+    Enforces common validation behaviors for all step extraction schemas.
+    """
+
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @model_validator(mode="before")
     @classmethod
     def _enforce_contextual_override_exclusivity(cls, data: Any) -> Any:
+        """Enforces contextual override exclusivity before validation.
+
+        Args:
+            data: Raw dictionary or input payload.
+
+        Returns:
+            The sanitized data with exact_quotes cleared if contextual_override is True.
+        """
         if isinstance(data, dict):
             if data.get("contextual_override") is True:
                 data["exact_quotes"] = []
         return data
 
 
-from backend_v2.models.enums import SystemConcurrency
-
-
 class StepDTOStrict(BaseExtractionDTO):
-    reasoning_steps: str = Field(description="Step by step cognitive breakdown of the text. MUST come before decision.")
+    """Strict step evaluation DTO.
+
+    Represents a single step in a strict evaluation workflow.
+
+    Attributes:
+        reasoning_steps: Step by step breakdown of the text reasoning.
+        exact_quotes: List of exact verbatim quotes supporting decision.
+        structural_location: Physical location of the quotes in source text.
+        localized_anchors_found: Keyword matches found in the target language.
+        falsification_argument: Critical counter-argument details.
+        counter_quote: Contrasting evidence quote if applicable.
+        decision: Final strict binary compliance decision.
+        semantic_reasoning: Short summary statement of decision logic.
+    """
+
+    reasoning_steps: str = Field(description="Max 1 short sentence. Be extremely brief.")
     exact_quotes: list[str] = Field(default_factory=list, max_length=3, description=DESC_EXACT_QUOTES)
     structural_location: str = Field(description="Exact structural location (e.g. 'page 3'). Must be 'N/A' if missing.")
     localized_anchors_found: list[str] = Field(
         default_factory=list,
-        max_length=SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS,
+        max_length=5,
         description="Keywords in target language.",
     )
     falsification_argument: str = Field(
@@ -46,7 +77,24 @@ class StepDTOStrict(BaseExtractionDTO):
 
 
 class StepDTOSemantic(BaseExtractionDTO):
-    reasoning_steps: str = Field(description="Step by step cognitive breakdown of the text. MUST come before decision.")
+    """Semantic step evaluation DTO.
+
+    Represents a single step in a semantic evaluation workflow with override option.
+
+    Attributes:
+        reasoning_steps: Step by step breakdown of the text reasoning.
+        exact_quotes: List of exact verbatim quotes supporting decision.
+        structural_location: Physical location of the quotes in source text.
+        localized_anchors_found: Keyword matches found in the target language.
+        contextual_override: Flag indicating if semantic override was applied.
+        override_reason: Justification details for the contextual override.
+        falsification_argument: Critical counter-argument details.
+        counter_quote: Contrasting evidence quote if applicable.
+        decision: Final semantic compliance decision.
+        semantic_reasoning: Short summary statement of decision logic.
+    """
+
+    reasoning_steps: str = Field(description="Max 1 short sentence. Be extremely brief.")
     exact_quotes: list[str] = Field(
         default_factory=list,
         max_length=3,
@@ -57,7 +105,7 @@ class StepDTOSemantic(BaseExtractionDTO):
     )
     localized_anchors_found: list[str] = Field(
         default_factory=list,
-        max_length=SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS,
+        max_length=5,
         description="Keywords in target language.",
     )
     contextual_override: bool = Field(
@@ -82,8 +130,24 @@ class StepDTOSemantic(BaseExtractionDTO):
 
 
 class ParsingLogStepsStrict(BaseExtractionDTO):
+    """Strict evaluation log envelope DTO.
+
+    Wraps a list of strict step DTOs.
+
+    Attributes:
+        steps: Sequential list of strict evaluation steps.
+    """
+
     steps: list[StepDTOStrict] = Field(description="The sequence of evaluation steps.")
 
 
 class ParsingLogStepsSemantic(BaseExtractionDTO):
+    """Semantic evaluation log envelope DTO.
+
+    Wraps a list of semantic step DTOs.
+
+    Attributes:
+        steps: Sequential list of semantic evaluation steps.
+    """
+
     steps: list[StepDTOSemantic] = Field(description="The sequence of evaluation steps.")

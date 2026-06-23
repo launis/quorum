@@ -453,8 +453,18 @@ class ChunkWorker:
                             if tda_for_atom:
                                 pf_res = ExtractiveSensorService.pre_evaluate(tda_for_atom, global_source_text)
                                 if pf_res.decided:
+                                    logger.info(
+                                        "[Pre-Flight] Early exit triggered for TDA %s. Result: %s",
+                                        aid_model.atom_id,
+                                        pf_res.result,
+                                    )
                                     pre_flight_results[aid_model.atom_id] = pf_res
                                     continue
+                                else:
+                                    logger.info(
+                                        "[Pre-Flight] TDA %s not decided by extractive sensor. Delegating to LLM.",
+                                        aid_model.atom_id,
+                                    )
 
                         filtered_items.append(item)
                     except ValidationError as e:
@@ -555,7 +565,19 @@ class ChunkWorker:
                     base_delay = index * EnsembleJitter.BASE_DELAY.value
                     random_jitter = random.uniform(0.0, EnsembleJitter.BASE_DELAY.value)
                     await asyncio.sleep(base_delay + random_jitter)
+                import time
+
+                queue_start = time.time()
+                logger.info("[Semaphore Queue] Step %s | Call %d entering semaphore queue", step_id, index)
                 async with sem:
+                    wait_time_ms = (time.time() - queue_start) * 1000
+                    logger.info(
+                        "[Semaphore Queue] Step %s | Call %d acquired semaphore lock in %.1f ms",
+                        step_id,
+                        index,
+                        wait_time_ms,
+                    )
+                    llm_start = time.time()
                     try:
                         if effective_mcp_tools:
                             loop_res = await execute_tool_loop(
@@ -578,6 +600,10 @@ class ChunkWorker:
                                     else 0,
                                 },
                                 source_context=global_source_text,
+                            )
+                            llm_time_ms = (time.time() - llm_start) * 1000
+                            logger.info(
+                                "[LLM Exec] Step %s | Call %d (MCP) completed in %.1f ms", step_id, index, llm_time_ms
                             )
                             return (
                                 loop_res.result_data,
@@ -603,9 +629,16 @@ class ChunkWorker:
                                     "has_mcp_tools": bool(effective_mcp_tools),
                                 },
                             )
+                            llm_time_ms = (time.time() - llm_start) * 1000
+                            logger.info(
+                                "[LLM Exec] Step %s | Call %d completed in %.1f ms", step_id, index, llm_time_ms
+                            )
                             return res, usg, []
                     except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
-                        logger.warning(f"Single LLM call failed in ensemble: {e}")
+                        llm_time_ms = (time.time() - llm_start) * 1000
+                        logger.warning(
+                            "[LLM Exec] Step %s | Call %d failed in %.1f ms: %s", step_id, index, llm_time_ms, e
+                        )
                         return e, None, []
 
             last_error = None

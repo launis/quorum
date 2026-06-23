@@ -924,6 +924,7 @@ class SynthesisConfigDTO(V2CoreBase):
         default_factory=lambda: ["label", "score", "distribution", "row_explanation", "quotes"],
         description="Visible columns for the global matrix summary table.",
     )
+    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 
 
 class ReportLayoutDTO(V2CoreBase):
@@ -1042,6 +1043,8 @@ class OutputProfile(V2CoreBase):
     custom_preface: I18nText | None = Field(
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
+    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
@@ -1084,6 +1087,8 @@ class EmbeddedOutputProfile(V2CoreBase):
     custom_preface: I18nText | None = Field(
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
+    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",

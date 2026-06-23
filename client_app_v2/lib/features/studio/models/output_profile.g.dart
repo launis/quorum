@@ -145,6 +145,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'allowed_mcp_tools',
             'matrix_visible_columns',
             'model_strategy',
+            'tone_instruction',
           ],
         );
         final val = _SynthesisConfigDTO(
@@ -189,6 +190,11 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
                 const ['label', 'score', 'distribution', 'row_explanation'],
           ),
           modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
+          toneInstruction: $checkedConvert(
+            'tone_instruction',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
         );
         return val;
       },
@@ -203,6 +209,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         'allowedMcpTools': 'allowed_mcp_tools',
         'matrixVisibleColumns': 'matrix_visible_columns',
         'modelStrategy': 'model_strategy',
+        'toneInstruction': 'tone_instruction',
       },
     );
 
@@ -218,6 +225,7 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'allowed_mcp_tools': instance.allowedMcpTools,
       'matrix_visible_columns': instance.matrixVisibleColumns,
       'model_strategy': instance.modelStrategy,
+      'tone_instruction': instance.toneInstruction?.toJson(),
     };
 
 _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
@@ -244,6 +252,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'include_diagnostic_scorecard',
             'strictness_level',
             'scoring_strategy',
+            'tone_instruction',
             'layouts',
           ],
         );
@@ -323,6 +332,11 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'scoring_strategy',
             (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
           ),
+          toneInstruction: $checkedConvert(
+            'tone_instruction',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
           layouts: $checkedConvert(
             'layouts',
             (v) =>
@@ -349,6 +363,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
         'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
         'strictnessLevel': 'strictness_level',
         'scoringStrategy': 'scoring_strategy',
+        'toneInstruction': 'tone_instruction',
       },
     );
 
@@ -375,6 +390,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
+  'tone_instruction': instance.toneInstruction?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };
 
@@ -416,6 +432,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'include_diagnostic_scorecard',
         'strictness_level',
         'scoring_strategy',
+        'tone_instruction',
         'layouts',
       ],
     );
@@ -480,6 +497,10 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'scoring_strategy',
         (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
       ),
+      toneInstruction: $checkedConvert(
+        'tone_instruction',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -503,6 +524,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
+    'toneInstruction': 'tone_instruction',
   },
 );
 
@@ -525,5 +547,6 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
+  'tone_instruction': instance.toneInstruction?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };

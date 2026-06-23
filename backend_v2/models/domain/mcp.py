@@ -114,3 +114,11 @@ class CitationExtractionResult(V2CoreBase):
     citations: list[CitationExtractionItemDTO] = Field(
         default_factory=list, description="List of extracted claims to verify."
     )
+
+
+class CitationCorrectionResult(V2CoreBase):
+    """Result of the citation self-correction LLM task."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    corrected_claim: str = Field(description="The verbatim corrected claim text found in the source context.")

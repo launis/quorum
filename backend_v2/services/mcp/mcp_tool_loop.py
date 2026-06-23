@@ -8,6 +8,7 @@ Implements a 2-phase execution:
 Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 """
 
+import asyncio
 import logging
 import time
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
 from backend_v2.models.domain.mcp import (
+    CitationCorrectionResult,
     CitationExtractionResult,
     MCPSynthesisInstructionsDTO,
     MCPToolLoopResult,
@@ -25,6 +27,7 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SourceSufficiencyThreshold
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.tavily_search_client import tavily_search
+from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,16 @@ logger = logging.getLogger(__name__)
 # NOTE (Architecture): Hard cap to prevent infinite LLM↔Tool loops.
 # EPIC §3 "The Infinite Loop Limit".
 MAX_TOOL_CALLS_PER_STEP = 3
+
+_SELF_CORRECTION_SYSTEM_INSTRUCTION = (
+    "<system_directive>\n"
+    "  <objective>Locate and return the exact physical substring from the source context "
+    "that is semantically equivalent to the failed claim.</objective>\n"
+    "  <rule>The returned corrected_claim MUST be a 100% exact substring match from the "
+    "source context (including case, spaces, and diacritics).</rule>\n"
+    "  <rule>Do not paraphrase or summarize.</rule>\n"
+    "</system_directive>"
+)
 
 # The only tool currently registered in the system.
 TAVILY_TOOL_ID = "mcp_tavily_search"
@@ -301,6 +314,12 @@ async def execute_tool_loop[T: BaseModel](
     # Epic 13 M2: Restored to standard MAX_TOOL_CALLS_PER_STEP
     effective_max_calls = MAX_TOOL_CALLS_PER_STEP
 
+    strictness_level = 100
+    if validation_context:
+        strictness_level = validation_context.get("strictness_level", 100)
+
+    total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+
     if TAVILY_TOOL_ID in allowed_tools:
         extraction_sys_msg = (
             "<system_instruction>\n"
@@ -327,26 +346,76 @@ async def execute_tool_loop[T: BaseModel](
             except Exception as e:
                 logger.warning("Could not initialize 'fast' client for extraction, falling back to step client: %s", e)
 
+        async def run_single_extraction() -> tuple[CitationExtractionResult | None, TokenUsage | None]:
+            try:
+                res, usage = await executor.execute_structured_task(
+                    client=fast_client,
+                    messages=extraction_messages,
+                    response_model=CitationExtractionResult,
+                    mock_identity=mock_identity,
+                    validation_context=validation_context,
+                )
+                if not isinstance(res, CitationExtractionResult):
+                    res = CitationExtractionResult.model_validate(res)
+                return res, usage
+            except Exception as ex:
+                logger.warning("Ensemble citation extraction call failed: %s", ex, exc_info=True)
+                return None, None
+
         try:
-            extraction_result_raw, _ = await executor.execute_structured_task(
-                client=fast_client,
-                messages=extraction_messages,
-                response_model=CitationExtractionResult,
-                mock_identity=mock_identity,
-                validation_context=validation_context,
-            )
-            if isinstance(extraction_result_raw, CitationExtractionResult):
-                extraction_result = extraction_result_raw
-            else:
-                extraction_result = CitationExtractionResult.model_validate(extraction_result_raw)
+            async with asyncio.TaskGroup() as tg:
+                task1 = tg.create_task(run_single_extraction())
+                task2 = tg.create_task(run_single_extraction())
+                task3 = tg.create_task(run_single_extraction())
+
+            res1, usage1 = task1.result()
+            res2, usage2 = task2.result()
+            res3, usage3 = task3.result()
         except Exception as e:
-            err_msg = f"Phase 0 Citation Extraction failed for step '{step_name}'."
+            err_msg = f"Phase 0 Citation Extraction TaskGroup failed for step '{step_name}'."
             logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg, exc_info=True)
-            if isinstance(e, AppException):
-                raise
             raise AppException(
                 message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value}
             ) from e
+
+        successful_runs = []
+        for res, usage in [(res1, usage1), (res2, usage2), (res3, usage3)]:
+            if res is not None:
+                successful_runs.append((res, usage))
+                if usage:
+                    total_usage += usage
+
+        N = len(successful_runs)
+        if N == 0:
+            err_msg = f"Phase 0 Citation Extraction failed for step '{step_name}'. All ensemble runs failed."
+            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg)
+            raise AppException(message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value})
+
+        from collections import defaultdict
+
+        run_appearances: defaultdict[str, int] = defaultdict(int)
+        normalized_to_original = {}
+
+        for res, _ in successful_runs:
+            seen_in_this_run = set()
+            for citation in res.citations:
+                norm_claim, _ = AnchorValidationService.normalize_text_with_mapping(citation.claim_text)
+                if norm_claim not in seen_in_this_run:
+                    seen_in_this_run.add(norm_claim)
+                    run_appearances[norm_claim] += 1
+                    if norm_claim not in normalized_to_original:
+                        normalized_to_original[norm_claim] = citation
+
+        required_count = 2 if N >= 2 else 1
+        consensus_citations = []
+        for res, _ in successful_runs:
+            for citation in res.citations:
+                norm_claim, _ = AnchorValidationService.normalize_text_with_mapping(citation.claim_text)
+                if run_appearances[norm_claim] >= required_count:
+                    if citation not in consensus_citations:
+                        consensus_citations.append(citation)
+
+        extraction_result = CitationExtractionResult(citations=consensus_citations)
 
         tool_call_count = 0
 
@@ -362,13 +431,73 @@ async def execute_tool_loop[T: BaseModel](
             query = citation.search_query.strip()
 
             # Physical Anchoring Mandate: Validate exact string match
-            if claim and claim not in source_context:
-                err_msg = f"Hallucinated claim detected. '{claim}' not found in source text."
-                logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg)
-                raise SemanticEvidenceError(
-                    message=err_msg,
-                    details={"error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value, "claim_text": claim},
-                )
+            # If strictness_level < 100, bypass strict substring verification entirely.
+            if strictness_level >= 100:
+                is_match = AnchorValidationService.strict_match(source_context, [claim])
+                if not is_match:
+                    logger.info(
+                        "Physical anchoring failed for claim: '%s'. Initiating self-correction.",
+                        claim,
+                    )
+                    correction_user_msg = (
+                        "<failed_claim>\n"
+                        f"{claim}\n"
+                        "</failed_claim>\n\n"
+                        "<source_context>\n"
+                        f"{source_context}\n"
+                        "</source_context>"
+                    )
+                    correction_messages = [
+                        {"role": "system", "content": _SELF_CORRECTION_SYSTEM_INSTRUCTION},
+                        {"role": "user", "content": correction_user_msg},
+                    ]
+                    try:
+                        correction_res_raw, correction_usage = await executor.execute_structured_task(
+                            client=fast_client,
+                            messages=correction_messages,
+                            response_model=CitationCorrectionResult,
+                            mock_identity=mock_identity,
+                            validation_context=validation_context,
+                        )
+                        if correction_usage:
+                            total_usage += correction_usage
+
+                        if isinstance(correction_res_raw, CitationCorrectionResult):
+                            correction_res = correction_res_raw
+                        else:
+                            correction_res = CitationCorrectionResult.model_validate(correction_res_raw)
+
+                        corrected_claim = correction_res.corrected_claim.strip()
+
+                        if corrected_claim and AnchorValidationService.strict_match(source_context, [corrected_claim]):
+                            logger.info(
+                                "Self-correction succeeded. Corrected claim: '%s' (originally: '%s')",
+                                corrected_claim,
+                                claim,
+                            )
+                            claim = corrected_claim
+                        else:
+                            err_msg = f"Self-correction failed to locate exact substring match for: '{claim}'."
+                            logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg)
+                            raise SemanticEvidenceError(
+                                message=err_msg,
+                                details={
+                                    "error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value,
+                                    "claim_text": claim,
+                                },
+                            )
+                    except Exception as e:
+                        if isinstance(e, SemanticEvidenceError):
+                            raise
+                        err_msg = f"Self-correction failed due to task error: {e}"
+                        logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg, exc_info=True)
+                        raise SemanticEvidenceError(
+                            message=err_msg,
+                            details={
+                                "error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value,
+                                "claim_text": claim,
+                            },
+                        ) from e
 
             if not query:
                 continue
@@ -453,10 +582,11 @@ async def execute_tool_loop[T: BaseModel](
             mock_identity=mock_identity,
             validation_context=validation_context,
         )
+        completion_usage = usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=audit_traces,
-            usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            usage=total_usage + completion_usage,
         )
     except AppException:
         raise

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 
 void main() {
   group('Domain Parity (Isolate.run) strict tests', () {
@@ -74,5 +75,20 @@ void main() {
         );
       },
     );
+
+    test('Isolate parsing extracts Workflows perfectly from SSoT', () async {
+      final rawWorkflows = seedData['workflows'] as List<dynamic>;
+      expect(
+        rawWorkflows.isNotEmpty,
+        true,
+        reason: 'Seed should have workflows',
+      );
+
+      // Send the list to background parser
+      final List<Workflow> parsedWorkflows =
+          await Workflow.parseListInBackground(rawWorkflows);
+
+      expect(parsedWorkflows.length, rawWorkflows.length);
+    });
   });
 }

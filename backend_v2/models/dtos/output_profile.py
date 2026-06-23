@@ -51,6 +51,8 @@ class OutputProfileCreateDTO(V2CoreBase):
     name: I18nText = Field(..., description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
     custom_preface: I18nText | None = Field(default=None, description="Rich text preface.")
+    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
@@ -109,6 +111,8 @@ class OutputProfileUpdateDTO(V2CoreBase):
     name: I18nText | None = Field(default=None, description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
     custom_preface: I18nText | None = Field(default=None, description="Rich text preface.")
+    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+
     organization_id: str | None = Field(default=None, description="Tenant organization scope.")
     visible_metadata: list[str] | None = Field(
         default=None,
@@ -169,6 +173,8 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     name: I18nText
     description: I18nText | None = None
     custom_preface: I18nText | None = None
+    tone_instruction: I18nText | None = None
+
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"]
     )
