@@ -421,6 +421,8 @@ async def execute_workflow_job(
                         },
                     )
 
+                if redis:
+                    # Enqueue the background synthesis and PDF generation
                     await redis.enqueue_job("render_profile_job", exec_id, profile_id=profile_id)
                     logger.info(f"[Job] Enqueued render_profile_job for {exec_id} with profile {profile_id}")
                 else:

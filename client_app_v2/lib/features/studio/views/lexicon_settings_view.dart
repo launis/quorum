@@ -9,13 +9,13 @@ import 'package:client_app/core/ui/error_view.dart';
 class LexiconSettingsView extends HookConsumerWidget {
   const LexiconSettingsView({super.key});
 
-  Future<void> _addPhrases(
+  Future<int> _addPhrases(
     WidgetRef ref,
     SystemConfigPerformativeLexicons config,
     String lang,
     List<String> newPhrases,
   ) async {
-    if (newPhrases.isEmpty) return;
+    if (newPhrases.isEmpty) return 0;
 
     final lexiconConfigs = config.lexiconConfigs;
     final currentConfig =
@@ -35,7 +35,23 @@ class LexiconSettingsView extends HookConsumerWidget {
       }
     }
 
-    if (added == 0) return;
+    updatedWords.sort();
+
+    bool changed = added > 0;
+    if (!changed) {
+      if (currentConfig.words.length != updatedWords.length) {
+        changed = true;
+      } else {
+        for (int i = 0; i < currentConfig.words.length; i++) {
+          if (currentConfig.words[i] != updatedWords[i]) {
+            changed = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!changed) return 0;
 
     final updatedConfigPayload = currentConfig.copyWith(words: updatedWords);
     final updatedLexiconConfigs = Map<String, LexiconConfigPayload>.from(
@@ -45,6 +61,7 @@ class LexiconSettingsView extends HookConsumerWidget {
 
     final newConfig = config.copyWith(lexiconConfigs: updatedLexiconConfigs);
     await ref.read(lexiconControllerProvider.notifier).saveLexicons(newConfig);
+    return added;
   }
 
   Future<void> _discoverPhrases(
@@ -58,15 +75,19 @@ class LexiconSettingsView extends HookConsumerWidget {
           .read(lexiconControllerProvider.notifier)
           .discoverPhrases(lang);
 
-      if (context.mounted && phrases.isNotEmpty) {
-        await _addPhrases(ref, config, lang, phrases);
-        if (context.mounted) {
+      if (context.mounted) {
+        if (phrases.isNotEmpty) {
+          final addedCount = await _addPhrases(ref, config, lang, phrases);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Discovered and added ${phrases.length} new phrases.',
+                'Discovered and added $addedCount new phrases (out of ${phrases.length}).',
               ),
             ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No new phrases discovered.')),
           );
         }
       }
@@ -90,13 +111,21 @@ class LexiconSettingsView extends HookConsumerWidget {
           .read(lexiconControllerProvider.notifier)
           .translatePhrases(lang);
 
-      if (context.mounted && phrases.isNotEmpty) {
-        await _addPhrases(ref, config, lang, phrases);
-        if (context.mounted) {
+      if (context.mounted) {
+        if (phrases.isNotEmpty) {
+          final addedCount = await _addPhrases(ref, config, lang, phrases);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Translated and added ${phrases.length} missing phrases.',
+                'Translated and added $addedCount missing phrases.',
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'No missing phrases to translate (did you forget to save the English words first?).',
               ),
             ),
           );
@@ -243,38 +272,44 @@ class LexiconSettingsView extends HookConsumerWidget {
               const SizedBox(height: 16),
               Expanded(
                 child: Card(
-                  child: ListView.builder(
-                    itemCount: currentConfig.words.length,
-                    itemBuilder: (context, index) {
-                      final word = currentConfig.words[index];
-                      return ListTile(
-                        leading: const Icon(Icons.abc),
-                        title: Text(word),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () {
-                            // Local mutation pattern
-                            final updatedWords = List<String>.from(
-                              currentConfig.words,
-                            )..removeAt(index);
-                            final updatedConfigPayload = currentConfig.copyWith(
-                              words: updatedWords,
-                            );
-                            final updatedLexiconConfigs =
-                                Map<String, LexiconConfigPayload>.from(
-                                  lexiconConfigs,
-                                );
-                            updatedLexiconConfigs[selectedLang] =
-                                updatedConfigPayload;
+                  child: Builder(
+                    builder: (context) {
+                      final displayWords = List<String>.from(
+                        currentConfig.words,
+                      )..sort();
+                      return ListView.builder(
+                        itemCount: displayWords.length,
+                        itemBuilder: (context, index) {
+                          final word = displayWords[index];
+                          return ListTile(
+                            leading: const Icon(Icons.abc),
+                            title: Text(word),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () {
+                                // Local mutation pattern
+                                final updatedWords = List<String>.from(
+                                  currentConfig.words,
+                                )..remove(word);
+                                final updatedConfigPayload = currentConfig
+                                    .copyWith(words: updatedWords);
+                                final updatedLexiconConfigs =
+                                    Map<String, LexiconConfigPayload>.from(
+                                      lexiconConfigs,
+                                    );
+                                updatedLexiconConfigs[selectedLang] =
+                                    updatedConfigPayload;
 
-                            final newConfig = config.copyWith(
-                              lexiconConfigs: updatedLexiconConfigs,
-                            );
-                            ref
-                                .read(lexiconControllerProvider.notifier)
-                                .saveLexicons(newConfig);
-                          },
-                        ),
+                                final newConfig = config.copyWith(
+                                  lexiconConfigs: updatedLexiconConfigs,
+                                );
+                                ref
+                                    .read(lexiconControllerProvider.notifier)
+                                    .saveLexicons(newConfig);
+                              },
+                            ),
+                          );
+                        },
                       );
                     },
                   ),

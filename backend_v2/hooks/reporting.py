@@ -245,13 +245,25 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     prof_metrics = gvars.step_profiler.metrics if gvars.step_profiler and gvars.step_profiler.metrics else None
 
     # Calculate Mechanical-Cognitive Variance & Alignment Verdict
-    authenticity_score = 3.0
+    authenticity_score = None
     if gvars.step_detector and gvars.step_detector.raw_score is not None:
         authenticity_score = gvars.step_detector.raw_score
 
-    performative_phrases_count = 0
-    if gvars.step_linguistics and gvars.step_linguistics.performative_patterns:
+    performative_phrases_count = None
+    if gvars.step_linguistics and gvars.step_linguistics.performative_patterns is not None:
         performative_phrases_count = len(gvars.step_linguistics.performative_patterns)
+
+    if authenticity_score is None or performative_phrases_count is None:
+        msg = (
+            "Strict Fail-Fast Enforced: 'variance_validation' generation failed because authenticity_score "
+            f"({authenticity_score}) or performative_phrases_count ({performative_phrases_count}) is missing."
+        )
+        logger.error("[ReportingHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     variance_res = calculate_mechanical_cognitive_variance(
         llm_authenticity_score=authenticity_score,

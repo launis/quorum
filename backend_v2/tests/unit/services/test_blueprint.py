@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.enums import ExecutionStatus, ScoringStrategy
+from backend_v2.models.enums import ExecutionStatus, ScoringStrategy, XaiExtensionType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, RenderedSynthesisCache, ReportDataDTO
 from backend_v2.services.blueprint import BlueprintTransformer
@@ -928,3 +928,232 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
     assert len(axis.quotes_list) == 2
     assert "This is a duplicated quote." in axis.quotes_list
     assert "This is a unique quote." in axis.quotes_list
+
+
+@pytest.mark.asyncio
+async def test_blueprint_variance_validation_success(mock_repo_transformer: Any) -> None:
+    """Test that build_report_dto computes variance validation using context variables."""
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000009",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        execution_trace=[],
+        active_profile_id="prf_dddd1111dddd1111",
+        context_variables={
+            "step_detector": {"raw_score": 4.0},
+            "step_linguistics": {
+                "performative_patterns": [
+                    {"pattern_id": "pat_1", "detected_phrase": "basically", "category": "performative_filler"}
+                ]
+            },
+        },
+        metadata={"target_locale": "en"},
+    )
+    mock_repo_transformer.get_all_output_profiles_models.return_value = dict_to_obj(
+        [
+            {
+                "id": "prf_dddd1111dddd1111",
+                "slug": "default",
+                "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                "workflow_id": "wf_1234abcd1234abcd",
+                "synthesis": None,
+                "layouts": [],
+                "display_scale": "original",
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                "max_extension_items": 2,
+                "strictness_level": 50,
+                "scoring_strategy": None,
+                "visible_metadata": [],
+                "custom_preface": None,
+            }
+        ]
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )
+    dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
+
+    assert "variance_validation" in dto.grouped_extensions
+    ext = dto.grouped_extensions["variance_validation"][0]
+    assert ext["extension_type"] == "variance_validation"
+    assert ext["mechanical_metric_ref"] == "performative_phrases_count"
+    assert ext["cognitive_metric_ref"] == "llm_authenticity_score"
+    # authenticity_score = 4.0, performative_phrases_count = 1 -> target mechanical = 3.0 - 0.2 = 2.8. Variance: abs(4.0 - 2.8) = 1.2
+    assert ext["variance_score"] == 1.2
+    assert ext["alignment_verdict"] == "MISALIGNED_SYCOPHANCY"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transformer: Any) -> None:
+    """Test that build_report_dto crashes when variance_validation is requested but context_variables is empty."""
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000010",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        execution_trace=[],
+        active_profile_id="prf_dddd1111dddd1111",
+        context_variables={},  # Empty context variables to trigger the crash
+        metadata={"target_locale": "en"},
+    )
+    mock_repo_transformer.get_all_output_profiles_models.return_value = dict_to_obj(
+        [
+            {
+                "id": "prf_dddd1111dddd1111",
+                "slug": "default",
+                "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                "workflow_id": "wf_1234abcd1234abcd",
+                "synthesis": None,
+                "layouts": [],
+                "display_scale": "original",
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                "max_extension_items": 2,
+                "strictness_level": 50,
+                "scoring_strategy": None,
+                "visible_metadata": [],
+                "custom_preface": None,
+            }
+        ]
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000010", accept_language="en")
+
+    assert exc_info.value.status_code == 500
+    assert "Strict Fail-Fast Enforced: 'variance_validation' requested but authenticity_score" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_transformer: Any) -> None:
+    """Test that build_report_dto falls back to execution_trace when context_variables is empty."""
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000011",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        execution_trace=[
+            TraceEvent(
+                step_name="sr_1d7e6d26b02b457b",
+                event_type="output",
+                content={
+                    "blk_fb15f8dcf23f4865": {
+                        "raw_score": 4.0222,
+                        "normalized_score": 75.55,
+                    }
+                },
+            ),
+            TraceEvent(
+                step_name="sr_f0a26d17cc9b48a7",
+                event_type="decision",
+                content={
+                    "step_linguistics": {
+                        "performative_patterns": []
+                    }
+                },
+            ),
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        context_variables={},  # Empty to force fallback lookup
+        metadata={"target_locale": "en"},
+    )
+
+    # Configure workflow steps
+    mock_repo_transformer.get_workflow.return_value = dict_to_obj(
+        {
+            "id": "wf_1234abcd1234abcd",
+            "slug": "wf_1",
+            "name": {"default_locale": "en", "translations": {"en": "Workflow Name"}},
+            "description": {"default_locale": "en", "translations": {"en": "Workflow Desc"}},
+            "status": "published",
+            "version": 1,
+            "default_profile_id": "prf_dddd1111dddd1111",
+            "default_strictness_level": 50,
+            "default_scoring_strategy": ScoringStrategy.WATERFALL,
+            "steps": [
+                {
+                    "id": "sr_1d7e6d26b02b457b",
+                    "task_blueprint": "sp_7f9649114d2344dc",
+                }
+            ],
+        }
+    )
+
+    # Configure prompt blocks with scale definitions for blk_fb15f8dcf23f4865
+    mock_repo_transformer.get_all_prompt_blocks_models.return_value = dict_to_obj(
+        [
+            {
+                "id": "blk_fb15f8dcf23f4865",
+                "slug": "matrix_archivist",
+                "category_id": "matrix",
+                "type": "float",
+                "is_evaluative": True,
+                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "scales": [
+                    {"score": 1, "name": {"default_locale": "en", "translations": {"en": "Min"}}, "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "claim"}]},
+                    {"score": 5, "name": {"default_locale": "en", "translations": {"en": "Max"}}, "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "claim"}]},
+                ],
+                "computed_min": 1,
+                "computed_max": 5,
+                "scale_min": 1,
+                "scale_max": 5,
+            }
+        ]
+    )
+
+    mock_repo_transformer.get_all_output_profiles_models.return_value = dict_to_obj(
+        [
+            {
+                "id": "prf_dddd1111dddd1111",
+                "slug": "default",
+                "name": {"default_locale": "en", "translations": {"en": "Default"}},
+                "workflow_id": "wf_1234abcd1234abcd",
+                "synthesis": None,
+                "layouts": [],
+                "display_scale": "original",
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                "max_extension_items": 2,
+                "strictness_level": 50,
+                "scoring_strategy": None,
+                "visible_metadata": [],
+                "custom_preface": None,
+            }
+        ]
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )
+
+    dto = await transformer.build_report_dto("exe_0000000000000011", accept_language="en")
+
+    assert "variance_validation" in dto.grouped_extensions
+    ext = dto.grouped_extensions["variance_validation"][0]
+    assert ext["extension_type"] == "variance_validation"
+    assert ext["mechanical_metric_ref"] == "performative_phrases_count"
+    assert ext["cognitive_metric_ref"] == "llm_authenticity_score"
+    
+    # authenticity_score scaled from raw 4.0222 (on 1-5 scale) to (1-3 scale):
+    # ((4.0222 - 1.0) / 4.0) * 2.0 + 1.0 = 2.5111
+    # performative_phrases_count = 0
+    # Target mechanical score = 3.0 - 0.0 * 0.2 = 3.0
+    # Variance = abs(2.5111 - 3.0) = 0.4889
+    assert round(ext["variance_score"], 4) == 0.4889
+    assert ext["alignment_verdict"] == "ALIGNED"
+
+

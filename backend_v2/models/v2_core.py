@@ -1281,6 +1281,7 @@ class RenderedSynthesisCache(V2CoreBase):
     row_explanations: dict[str, str] = Field(
         default_factory=dict, description="Synthesized row explanations by matrix ID"
     )
+    row_curated_quotes: dict[str, list[str]] = Field(default_factory=dict, description="Curated quotes by matrix ID")
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
     xai_highlights: list[XaiHighlightItem] = Field(default_factory=list, description="Generated XAI highlight boxes")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

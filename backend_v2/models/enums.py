@@ -282,7 +282,8 @@ class SystemConcurrency(int, Enum):
     # ~29% evaluation quality degradation due to Role Degradation (the LLM treats
     # user-role instructions less strictly than system-role). Default: DISABLED (0).
     CONTENT_CACHE_ENABLED = 0
-    SCHEMA_MAX_QUOTES = 5
+    SCHEMA_MAX_QUOTES_TARGET = 5
+    SCHEMA_MAX_QUOTES = SCHEMA_MAX_QUOTES_TARGET + 5
     SCHEMA_MAX_QUOTE_LENGTH = 150
 
 

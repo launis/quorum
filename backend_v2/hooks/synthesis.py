@@ -396,7 +396,12 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     enable_masking = synthesis_cfg.enable_pii_masking
     historical_mode = synthesis_cfg.historical_context_mode
     active_exts = getattr(active_profile_dto, "visible_block_extensions", [])
-    max_items = active_profile_dto.max_extension_items or 2
+
+    if active_profile_dto.max_extension_items is None:
+        msg = f"Strict Fail-Fast Enforced: 'max_extension_items' missing from active profile '{profile_to_use}'."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+    max_items = active_profile_dto.max_extension_items
 
     preamble = preamble_dict.resolve(language) if preamble_dict else ""
     tone_text = (
@@ -654,7 +659,11 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "  <rule>NO RECURSION: Nested blocks inside blocks are strictly banned.</rule>\n"
         "  <rule>NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.</rule>\n"
         "  <rule>CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.</rule>\n"
-        "  <rule>XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block in the source data. You must curate, deduplicate, and select the most critical, actionable insights and tips from the raw extensions, up to the maximum limit specified in <max_extension_items>. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content` (which must be at most 2 sentences).</rule>\n"
+        "  <rule>XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. "
+        "Create up to <max_extension_items> MOST CRITICAL items per category. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. "
+        "Make each item's content an ultra-short, punchy bullet point (max 1 sentence). "
+        "CRITICAL TONE: Address the user directly ('you', 'your text') inside each highlight's content. Do not use passive voice. "
+        "CRITICAL LANGUAGE MANDATE: You must generate the content of each highlight exclusively in the language specified in <target_language>.</rule>\n"
     )
 
     if length_constraint:
@@ -793,27 +802,30 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     seen.add(uid)
 
         row_explanations_dict = {}
+        row_curated_quotes_dict = {}
         row_exp_rule = "MAXIMUM LENGTH IS 30 WORDS. KEEP IT CONCISE BUT INFORMATIVE."
 
         row_rules = [
-            "  <rule>Focus strictly on the core reason for the score.</rule>",
+            "  <rule>Focus strictly on the core reason for the score in row_explanation.</rule>",
         ]
         if tone_text:
             row_rules.append(f"  <rule>TONE INSTRUCTION: {tone_text}</rule>")
         row_rules.extend(
             [
-                "  <rule>Do not use markdown, line breaks, or bullet points.</rule>",
+                "  <rule>Do not use markdown, line breaks, or bullet points in row_explanation.</rule>",
                 f"  <rule>{row_exp_rule}</rule>",
-                "  <rule>CRITICAL LANGUAGE MANDATE: You must generate the explanation exclusively in "
-                "the language specified in <target_language>.</rule>",
+                "  <rule>CRITICAL QUOTES RULE: The curated_quotes MUST be verbatim from the user's text (unless it's a contextual override). You MUST strip out any tables, raw numbers, markdown, or formatting from the quotes.</rule>",
+                "  <rule>CRITICAL TONE: Speak directly to the user (e.g. 'You stated...', 'Your approach...'). Focus entirely on the user's input.</rule>",
+                "  <rule>CRITICAL LANGUAGE MANDATE: You must generate the row_explanation exclusively in the language specified in <target_language>.</rule>",
             ]
         )
 
         row_exp_prompt = (
             "<system_directive>\n"
-            "<objective>Summarize EACH of the provided execution justifications into EXACTLY ONE "
-            "short, punchy sentence. You must return an explanation for EVERY matrix_id in the "
-            "source_data.</objective>\n"
+            "<objective>\n"
+            "1. 'row_explanation': Summarize the justification into exactly ONE short sentence addressing the user directly.\n"
+            "2. 'curated_quotes': Review the provided quotes. Select up to <max_extension_items> MOST CONCRETE quotes verbatim from the user's original input.\n"
+            "</objective>\n"
             "<rules>\n" + "\n".join(row_rules) + "\n"
             "</rules>\n"
             "</system_directive>"
@@ -846,6 +858,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 user_msg = (
                     "<execution_parameters>\n"
                     "  <task>generate_row_explanations</task>\n"
+                    f"  <max_extension_items>{max_items}</max_extension_items>\n"
                     f"  <target_language>{language}</target_language>\n"
                     "</execution_parameters>\n"
                     "<source_data>\n"
@@ -862,6 +875,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
                 for item in exp_res.explanations:
                     row_explanations_dict[item.matrix_id] = item.row_explanation
+                    row_curated_quotes_dict[item.matrix_id] = item.curated_quotes
 
                 updated_usage = updated_usage + exp_usage
             except Exception as e:
@@ -875,6 +889,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 "cited_sources": result.cited_sources,
                 "xai_highlights": raw_highlights,
                 "row_explanations": row_explanations_dict,
+                "row_curated_quotes": row_curated_quotes_dict,
                 "step_metadata_updates": {"token_usage": updated_usage.model_dump(mode="json")},
                 "mcp_tool_audit": raw_audits,
             },

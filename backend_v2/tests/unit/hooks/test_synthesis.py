@@ -51,6 +51,7 @@ def valid_output_profile_data() -> dict[str, Any]:
         "workflow_id": "wf_1234567890abcdef1234567890abcdef",
         "name": {"default_locale": "en", "translations": {"en": "Test Profile", "fi": "Test Profile"}},
         "display_scale": "original",
+        "max_extension_items": 4,
         "synthesis": {
             "system_prompt": "You are a synthesizer.",
             "historical_context_mode": "DISABLED",
@@ -456,6 +457,7 @@ async def test_synthesis_hook_success(
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "max_extension_items": 4,
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 500,
@@ -577,6 +579,7 @@ async def test_synthesis_hook_multi_profile_routing(
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "max_extension_items": 4,
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 100,
@@ -588,6 +591,7 @@ async def test_synthesis_hook_multi_profile_routing(
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "max_extension_items": 4,
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 900,
@@ -675,6 +679,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                     {"target_blocks": ["stp_2222222222222222"], "preset_view": "default"},
                     {"target_blocks": ["*"], "preset_view": "default"},
                 ],
+                "max_extension_items": 4,
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 100,
@@ -852,6 +857,7 @@ async def test_synthesis_hook_historical_context_mode(
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "max_extension_items": 4,
                 "synthesis": {
                     "historical_context_mode": "SLIDING_WINDOW_3",
                     "system_prompt": "Test sys prompt",

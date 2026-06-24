@@ -141,7 +141,7 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
     from backend_v2.exceptions import ConfigurationError
 
     with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
-        mock_pre.return_value = mock_hook_state
+        mock_pre.return_value = (mock_hook_state, [])
         with pytest.raises(ConfigurationError) as exc_info:
             await llm_strategy.execute(
                 step=step,
@@ -204,7 +204,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
     from unittest.mock import patch
 
     with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
-        mock_pre.return_value = mock_hook_state
+        mock_pre.return_value = (mock_hook_state, [])
         with pytest.raises(AppException) as exc_info:
             await llm_strategy.execute(
                 step=step,
@@ -295,10 +295,10 @@ async def test_execute_success_path_structured_output(
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
     ):
-        mock_pre.return_value = mock_hook_state
+        mock_pre.return_value = (mock_hook_state, [])
         mock_post_hook_state = MagicMock()
         mock_post_hook_state.inputs = {"blocks": []}
-        mock_post.return_value = mock_post_hook_state
+        mock_post.return_value = (mock_post_hook_state, [])
 
         # Mock Compiler returns
         mock_compiler.compile_static_instructions.return_value = "static"
@@ -534,7 +534,7 @@ async def test_execute_accumulates_dlq_status_instead_of_raising(
     from unittest.mock import patch
 
     with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
-        mock_pre.return_value = mock_hook_state
+        mock_pre.return_value = (mock_hook_state, [])
 
         # Mock Compiler
         mock_compiler.compile_static_instructions.return_value = "static"
@@ -678,10 +678,10 @@ async def test_execute_with_frozen_ctx_triggers_schema_build_strictness_level(
         ) as mock_chunk,
     ):
         mock_chunk.return_value = ({"_dlq_status": "FAILED/DLQ"}, None, [], {})
-        mock_pre.return_value = mock_hook_state
+        mock_pre.return_value = (mock_hook_state, [])
         mock_post_hook_state = MagicMock()
         mock_post_hook_state.inputs = {"blocks": []}
-        mock_post.return_value = mock_post_hook_state
+        mock_post.return_value = (mock_post_hook_state, [])
 
         mock_client_instance = MagicMock()
         mock_client_instance.call_llm = AsyncMock(return_value={"raw_response": "{}"})

@@ -110,13 +110,20 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
 async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
     committer = ExecutionCommitter(mock_repo, "exec_123")
 
-    await committer.commit_trace(trace=[], status=ExecutionStatus.RUNNING, step_states={}, error="test error")
+    await committer.commit_trace(
+        trace=[],
+        status=ExecutionStatus.RUNNING,
+        step_states={},
+        error="test error",
+        context_variables={"test_key": "test_val"},
+    )
 
     mock_repo.update_execution.assert_called_once()
     args, kwargs = mock_repo.update_execution.call_args
     assert args[0] == "exec_123"
     assert args[1]["status"] == "running"
     assert args[1]["error"] == "test error"
+    assert args[1]["context_variables"] == {"test_key": "test_val"}
 
 
 @pytest.mark.asyncio

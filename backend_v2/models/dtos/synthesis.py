@@ -47,10 +47,15 @@ class SynthesisRowExplanationDTO(V2CoreBase):
     Attributes:
         matrix_id: The ID of the matrix.
         row_explanation: The ultra-short synthesized explanation.
+        curated_quotes: Curated verbatim quotes by the LLM.
     """
 
     matrix_id: Annotated[str, Field(description="The ID of the matrix")]
     row_explanation: Annotated[str, Field(description="The ultra-short synthesized explanation")]
+    curated_quotes: Annotated[
+        list[str],
+        Field(default_factory=list, description="Curated verbatim quotes by the LLM"),
+    ]
 
 
 class MatrixExplanationsResult(V2CoreBase):

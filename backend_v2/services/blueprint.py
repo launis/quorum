@@ -179,6 +179,7 @@ class BlueprintTransformer:
         profile: OutputProfile | EmbeddedOutputProfile,
         row_explanations_cache: dict[str, str],
         workflow_ext_values: list[str],
+        row_curated_quotes_cache: dict[str, list[str]],
     ) -> tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO]]:
         """Parses folded results into MatrixScorecardRowDTOs and populates grouped XAI extensions.
 
@@ -428,24 +429,28 @@ class BlueprintTransformer:
                         atom_quotes = r_dto.payload
                         break
 
-                if b_id in atom_quotes and isinstance(atom_quotes[b_id], list):
+                raw_quotes = None
+                if b_id in row_curated_quotes_cache and isinstance(row_curated_quotes_cache[b_id], list):
+                    raw_quotes = row_curated_quotes_cache[b_id]
+                elif b_id in atom_quotes and isinstance(atom_quotes[b_id], list):
                     raw_quotes = atom_quotes[b_id]
-                    if raw_quotes:
-                        quotes_list = []
-                        seen_quotes = set()
-                        for q in raw_quotes:
-                            q_str = str(q).strip()
-                            if not q_str or q_str in seen_quotes:
-                                continue
-                            seen_quotes.add(q_str)
-                            q_str = re.sub(r"[*_#`>]", "", q_str).strip()
-                            if not q_str:
-                                continue
-                            q_str = q_str[0].upper() + q_str[1:]
-                            if len(q_str) > 150:
-                                quotes_list.append(q_str[:147] + "...")
-                            else:
-                                quotes_list.append(q_str)
+
+                if raw_quotes:
+                    quotes_list = []
+                    seen_quotes = set()
+                    for q in raw_quotes:
+                        q_str = str(q).strip()
+                        if not q_str or q_str in seen_quotes:
+                            continue
+                        seen_quotes.add(q_str)
+                        q_str = re.sub(r"[*_#`>]", "", q_str).strip()
+                        if not q_str:
+                            continue
+                        q_str = q_str[0].upper() + q_str[1:]
+                        if len(q_str) > 150:
+                            quotes_list.append(q_str[:147] + "...")
+                        else:
+                            quotes_list.append(q_str)
 
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
@@ -695,6 +700,7 @@ class BlueprintTransformer:
         original_synthesis_md = synthesis_md
         section_syntheses: dict[str, list[dict[str, Any]]] = {}
         row_explanations_cache: dict[str, str] = {}
+        row_curated_quotes_cache: dict[str, list[str]] = {}
         xai_highlights_cache: list[Any] = []
         content_blocks = None
 
@@ -703,6 +709,7 @@ class BlueprintTransformer:
             content_blocks = profile_cache.content_blocks or None
             synthesis_md = original_synthesis_md
             row_explanations_cache = profile_cache.row_explanations or {}
+            row_curated_quotes_cache = profile_cache.row_curated_quotes or {}
             xai_highlights_cache = profile_cache.xai_highlights or []
         else:
             synthesis_md = original_synthesis_md
@@ -739,20 +746,99 @@ class BlueprintTransformer:
 
         for wf_ext in workflow_ext_values:
             if wf_ext == "variance_validation" and wf_ext in grouped_extensions and not grouped_extensions[wf_ext]:
-                authenticity_score = 3.0
-                performative_phrases_count = 0
+                authenticity_score = None
+                performative_phrases_count = None
 
-                for dto in results:
-                    if dto.step_id == "step_detector" or dto.block_id == "step_detector":
-                        if isinstance(dto.payload, dict) and "raw_score" in dto.payload:
-                            val = dto.payload.get("raw_score")
-                            if val is not None:
-                                authenticity_score = float(val)
-                    elif dto.step_id == "step_linguistics" or dto.block_id == "step_linguistics":
-                        if isinstance(dto.payload, dict) and "performative_patterns" in dto.payload:
-                            patterns = dto.payload.get("performative_patterns", [])
-                            if isinstance(patterns, list):
-                                performative_phrases_count = len(patterns)
+                cv = execution.context_variables or {}
+
+                # Retrieve authenticity score from step_detector payload in context_variables
+                step_det = cv.get("step_detector")
+                if isinstance(step_det, dict) and "raw_score" in step_det:
+                    val = step_det.get("raw_score")
+                    if val is not None:
+                        authenticity_score = float(val)
+                elif step_det is not None and hasattr(step_det, "raw_score") and step_det.raw_score is not None:
+                    authenticity_score = float(step_det.raw_score)
+
+                if authenticity_score is None:
+                    # Dynamically resolve authenticity score from the performativity detector step in the folded trace
+                    performativity_step_ids = {
+                        step.id for step in workflow_obj.steps if step.task_blueprint == "sp_7f9649114d2344dc"
+                    }
+                    for result_dto in results:
+                        if result_dto.step_id in performativity_step_ids:
+                            payload = result_dto.payload
+                            if isinstance(payload, dict) and "raw_score" in payload:
+                                raw_val = payload.get("raw_score")
+                                if raw_val is not None:
+                                    block = blocks_by_id.get(result_dto.block_id)
+                                    if block and block.computed_min is not None and block.computed_max is not None:
+                                        math_min = float(block.computed_min)
+                                        math_max = float(block.computed_max)
+                                        if math_max > math_min:
+                                            # Scale the authenticity score from [math_min, math_max] to the [1.0, 3.0] scale
+                                            authenticity_score = (
+                                                (float(raw_val) - math_min) / (math_max - math_min)
+                                            ) * 2.0 + 1.0
+                                            break
+                                        else:
+                                            msg_bounds = f"PromptBlock '{result_dto.block_id}' has invalid math boundaries: math_min={math_min}, math_max={math_max}"
+                                            logger.error(
+                                                "[BlueprintTransformer] %s: %s",
+                                                ErrorCodes.VALIDATION_FAILED.name,
+                                                msg_bounds,
+                                            )
+                                            raise AppException(
+                                                message=msg_bounds,
+                                                status_code=500,
+                                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                            )
+                                    else:
+                                        msg_missing = f"PromptBlock '{result_dto.block_id}' computed bounds are missing or block not found."
+                                        logger.error(
+                                            "[BlueprintTransformer] %s: %s",
+                                            ErrorCodes.VALIDATION_FAILED.name,
+                                            msg_missing,
+                                        )
+                                        raise AppException(
+                                            message=msg_missing,
+                                            status_code=500,
+                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                        )
+
+                # Retrieve performative phrases count from step_linguistics payload in context_variables
+                step_ling = cv.get("step_linguistics")
+                if isinstance(step_ling, dict) and "performative_patterns" in step_ling:
+                    patterns = step_ling.get("performative_patterns")
+                    if isinstance(patterns, list):
+                        performative_phrases_count = len(patterns)
+                elif step_ling is not None and hasattr(step_ling, "performative_patterns"):
+                    patterns = step_ling.performative_patterns
+                    if isinstance(patterns, list):
+                        performative_phrases_count = len(patterns)
+
+                if performative_phrases_count is None:
+                    # Dynamically resolve linguistics performative patterns count from decision events in execution trace
+                    for event in reversed(execution.execution_trace):
+                        if event.event_type == "decision" and "step_linguistics" in event.content:
+                            trace_ling = event.content.get("step_linguistics")
+                            if isinstance(trace_ling, dict) and "performative_patterns" in trace_ling:
+                                trace_patterns = trace_ling.get("performative_patterns")
+                                if isinstance(trace_patterns, list):
+                                    performative_phrases_count = len(trace_patterns)
+                                    break
+
+                if authenticity_score is None or performative_phrases_count is None:
+                    msg = (
+                        "Strict Fail-Fast Enforced: 'variance_validation' requested but authenticity_score "
+                        f"({authenticity_score}) or performative_phrases_count ({performative_phrases_count}) is missing."
+                    )
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
 
                 variance_res = calculate_mechanical_cognitive_variance(
                     llm_authenticity_score=authenticity_score,
@@ -804,6 +890,7 @@ class BlueprintTransformer:
             profile,
             row_explanations_cache,
             workflow_ext_values,
+            row_curated_quotes_cache,
         )
 
         try:

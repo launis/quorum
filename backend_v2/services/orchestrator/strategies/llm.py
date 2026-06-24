@@ -89,6 +89,9 @@ class LLMNodeStrategy(NodeStrategy):
             "raw_inputs": raw_inputs_payload,
         }
 
+        pre_events: list[TraceEvent] = []
+        post_events: list[TraceEvent] = []
+
         blueprint_id = step.task_blueprint
         if not blueprint_id:
             logger.error(
@@ -141,7 +144,7 @@ class LLMNodeStrategy(NodeStrategy):
             inputs=state_data,
         )
 
-        hook_state = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
+        hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
         state_data = hook_state.inputs.copy()
 
         all_prompt_blocks_raw = await self.comp_repo.get_all_prompt_blocks()
@@ -556,7 +559,7 @@ class LLMNodeStrategy(NodeStrategy):
                 }
             )
 
-            post_hook_state = await self.run_post_hooks(
+            post_hook_state, post_events = await self.run_post_hooks(
                 step_obj=step_obj,
                 step=step,
                 hook_state=post_hook_state,
@@ -606,16 +609,20 @@ class LLMNodeStrategy(NodeStrategy):
             # Phase 1, Step 1.1: Ensure model_strategy is persisted in trace event metadata for execution fingerprinting
             meta["model_strategy"] = strategy_name
 
-        return [
-            TraceEvent(
-                step_name=step.id,
-                event_type="output",
-                content=final_dict,
-                metadata={
-                    "latency_ms": latency_ms,
-                    "chunk_size": len(chunks_list),
-                    "context_char_length": context_char_length,
-                    "prompt_contexts": all_prompt_contexts,
-                },
-            )
-        ]
+        return (
+            pre_events
+            + post_events
+            + [
+                TraceEvent(
+                    step_name=step.id,
+                    event_type="output",
+                    content=final_dict,
+                    metadata={
+                        "latency_ms": latency_ms,
+                        "chunk_size": len(chunks_list),
+                        "context_char_length": context_char_length,
+                        "prompt_contexts": all_prompt_contexts,
+                    },
+                )
+            ]
+        )

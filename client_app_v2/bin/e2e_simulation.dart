@@ -60,7 +60,8 @@ void main(List<String> args) async {
   final rawInputs = {
     "dynamic_inputs": {
       "product_text": "Sample product text for E2E",
-      "chat_log": "User: Hei, miten Quorumin raportit toimivat?\nAI: Quorum analysoi syötteet ja luo niistä Map-Reduce-raportin.",
+      "chat_log":
+          "User: Hei, miten Quorumin raportit toimivat?\nAI: Quorum analysoi syötteet ja luo niistä Map-Reduce-raportin.",
       "reflection_text": "Sample reflection",
     },
   };

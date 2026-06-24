@@ -156,7 +156,7 @@ class LightweightExtractionAtom(V2CoreBase):
         max_length=SystemConcurrency.SCHEMA_MAX_QUOTES.value,
         description=(
             f"A list of physically contiguous, character-for-character verbatim substrings extracted "
-            f"directly from the source text. Each quote MUST be UNDER {SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value} characters. "
+            f"directly from the source text. Maximum {SystemConcurrency.SCHEMA_MAX_QUOTES_TARGET.value} items. Each quote MUST be UNDER {SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value} characters. "
             f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
             f"in the ORIGINAL language of the source document."
         ),
@@ -259,7 +259,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
         max_length=SystemConcurrency.SCHEMA_MAX_QUOTES.value,
         description=(
             f"A list of physically contiguous, character-for-character verbatim substrings extracted "
-            f"directly from the source text. Each quote MUST be UNDER {SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value} characters. "
+            f"directly from the source text. Maximum {SystemConcurrency.SCHEMA_MAX_QUOTES_TARGET.value} items. Each quote MUST be UNDER {SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value} characters. "
             f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
             f"in the ORIGINAL language of the source document."
         ),

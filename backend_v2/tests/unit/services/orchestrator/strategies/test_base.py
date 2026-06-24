@@ -60,8 +60,9 @@ async def test_run_pre_hooks_empty(dummy_strategy: DummyStrategy) -> None:
     hook_state = HookState.model_construct(
         execution_id="e1", workflow_id="w1", metadata={}, global_context_vars={}, inputs={}
     )
-    res = await dummy_strategy.run_pre_hooks(step_obj, MagicMock(), hook_state, MagicMock())
-    assert res == hook_state
+    res_state, res_events = await dummy_strategy.run_pre_hooks(step_obj, MagicMock(), hook_state, MagicMock())
+    assert res_state == hook_state
+    assert res_events == []
 
 
 @pytest.mark.asyncio
@@ -70,5 +71,6 @@ async def test_run_post_hooks_empty(dummy_strategy: DummyStrategy) -> None:
     hook_state = HookState.model_construct(
         execution_id="e1", workflow_id="w1", metadata={}, global_context_vars={}, inputs={}
     )
-    res = await dummy_strategy.run_post_hooks(step_obj, MagicMock(), hook_state, MagicMock())
-    assert res == hook_state
+    res_state, res_events = await dummy_strategy.run_post_hooks(step_obj, MagicMock(), hook_state, MagicMock())
+    assert res_state == hook_state
+    assert res_events == []

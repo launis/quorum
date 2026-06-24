@@ -137,6 +137,12 @@ def test_reporting_hook_success_with_valid_schema() -> None:
         global_context_vars={
             "step_xai": {"executive_summary": "All looks great."},
             "step_judge": {"critical_findings": ["Finding A", "Finding B"]},
+            "step_detector": {"raw_score": 4.0},
+            "step_linguistics": {
+                "performative_patterns": [
+                    {"pattern_id": "pat_1", "detected_phrase": "basically", "category": "performative_filler"}
+                ]
+            },
         },
     )
     mock_exec_repo = AsyncMock()

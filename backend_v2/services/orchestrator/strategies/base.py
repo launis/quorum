@@ -151,7 +151,7 @@ class NodeStrategy(ABC):
         step: StepRule,
         hook_state: HookState,
         hook_deps: HookDependencies,
-    ) -> HookState:
+    ) -> tuple[HookState, list[TraceEvent]]:
         """Executes all pre-hooks associated with the step safely and deterministically.
 
         Extracts common pre-hook loops previously bundled inside the God Method execution branches.
@@ -163,11 +163,12 @@ class NodeStrategy(ABC):
             hook_deps: Dependencies injected into the hook.
 
         Returns:
-            The mutated HookState after running all pre-hooks.
+            A tuple containing the mutated HookState and a list of TraceEvents.
         """
+        emitted_events: list[TraceEvent] = []
         # SSOT Enforcement: Only the Blueprint (step_obj) owns pre_hooks
         if not step_obj.pre_hooks:
-            return hook_state
+            return hook_state, emitted_events
 
         for pre_hook in step_obj.pre_hooks:
             res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
@@ -185,6 +186,17 @@ class NodeStrategy(ABC):
                     new_gvars.update(gvars_updates)
                     hook_state = hook_state.model_copy(update={"global_context_vars": new_gvars})
 
+                    # V2 Mandate: Emit an explicit event sourcing trace for context updates
+                    # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
+                    emitted_events.append(
+                        TraceEvent(
+                            step_name=step.id,
+                            event_type="decision",
+                            content=gvars_updates,
+                            metadata={"is_context_update": True},
+                        )
+                    )
+
                 current_data = deep_merge_dicts(hook_state.inputs, delta)
                 hook_state = hook_state.model_copy(update={"inputs": current_data})
             elif not res.success:
@@ -195,7 +207,7 @@ class NodeStrategy(ABC):
                     step_obj.slug,
                 )
 
-        return hook_state
+        return hook_state, emitted_events
 
     async def run_post_hooks(
         self,
@@ -203,7 +215,7 @@ class NodeStrategy(ABC):
         step: StepRule,
         hook_state: HookState,
         hook_deps: HookDependencies,
-    ) -> HookState:
+    ) -> tuple[HookState, list[TraceEvent]]:
         """Executes all post-hooks deterministically across both AI and synchronous domains.
 
         Safely relies on the strictly typed HookState which must be populated before calling this.
@@ -215,11 +227,12 @@ class NodeStrategy(ABC):
             hook_deps: Dependencies injected into the hook.
 
         Returns:
-            The mutated HookState after running all post-hooks.
+            A tuple containing the mutated HookState and a list of TraceEvents.
         """
+        emitted_events: list[TraceEvent] = []
         # SSOT Enforcement: Only the Blueprint (step_obj) owns post_hooks.
         if not step_obj.post_hooks:
-            return hook_state
+            return hook_state, emitted_events
 
         for post_hook in step_obj.post_hooks:
             ph_res = await hook_registry.execute(post_hook, hook_state, hook_deps)
@@ -237,6 +250,17 @@ class NodeStrategy(ABC):
                     new_gvars.update(gvars_updates)
                     hook_state = hook_state.model_copy(update={"global_context_vars": new_gvars})
 
+                    # V2 Mandate: Emit an explicit event sourcing trace for context updates
+                    # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
+                    emitted_events.append(
+                        TraceEvent(
+                            step_name=step.id,
+                            event_type="decision",
+                            content=gvars_updates,
+                            metadata={"is_context_update": True},
+                        )
+                    )
+
                 final_data = deep_merge_dicts(hook_state.inputs, delta)
                 hook_state = hook_state.model_copy(update={"inputs": final_data})
             elif not ph_res.success:
@@ -247,4 +271,4 @@ class NodeStrategy(ABC):
                     step_obj.slug,
                 )
 
-        return hook_state
+        return hook_state, emitted_events

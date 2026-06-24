@@ -121,7 +121,7 @@ class LogicNodeStrategy(NodeStrategy):
         )
 
         # 2. Pre-Hooks
-        hook_state = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
+        hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
         state_data = dict(hook_state.inputs)  # Refresh state after pre-hooks
 
         # 3. Main Logic Hook Execution
@@ -150,7 +150,7 @@ class LogicNodeStrategy(NodeStrategy):
             }
         )
 
-        post_hook_state = await self.run_post_hooks(
+        post_hook_state, post_events = await self.run_post_hooks(
             step_obj=step_obj,
             step=step,
             hook_state=post_hook_state,
@@ -159,10 +159,14 @@ class LogicNodeStrategy(NodeStrategy):
         final_outputs = dict(post_hook_state.inputs)
 
         # 5. Emit Immutable Event
-        return [
-            TraceEvent(
-                step_name=step.id,
-                event_type="output",
-                content=final_outputs,
-            )
-        ]
+        return (
+            pre_events
+            + post_events
+            + [
+                TraceEvent(
+                    step_name=step.id,
+                    event_type="output",
+                    content=final_outputs,
+                )
+            ]
+        )

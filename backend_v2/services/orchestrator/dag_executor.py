@@ -60,6 +60,7 @@ class ExecutionCommitter:
         step_states: dict[str, ExecutionStepState],
         error: str | None = None,
         frozen_context: Any | None = None,
+        context_variables: dict[str, Any] | None = None,
     ) -> None:
         """Flushes the event array to persistent DB safely.
 
@@ -81,6 +82,9 @@ class ExecutionCommitter:
             }
             if frozen_context:
                 payload["frozen_context"] = frozen_context.model_dump(mode="json")
+
+            if context_variables is not None:
+                payload["context_variables"] = context_variables
 
             if error:
                 payload["error"] = error
@@ -453,6 +457,7 @@ class DAGExecutor:
                     step_states=current.step_states,
                     error=error_override if error_override is not None else getattr(current, "error", None),
                     frozen_context=current.frozen_context,
+                    context_variables=current.context_variables,
                 )
 
         async def run_step_wrapper(step_id: str) -> None:
@@ -512,9 +517,18 @@ class DAGExecutor:
                 finally:
                     watcher_task.cancel()
 
+                new_cv = dict(exec_record.context_variables)
+                has_cv_updates = False
                 for e in events:
                     exec_record.execution_trace.append(e)
                     projector.apply_delta(e)
+                    if e.event_type == "decision" and e.metadata and e.metadata.get("is_context_update"):
+                        new_cv.update(e.content)
+                        has_cv_updates = True
+
+                if has_cv_updates:
+                    async with _update_lock:
+                        exec_record = exec_record.model_copy(update={"context_variables": new_cv})
 
                 if any(isinstance(e, ErrorTraceEvent) for e in events):
                     async with _update_lock:
@@ -557,7 +571,10 @@ class DAGExecutor:
                     tg.create_task(run_step_wrapper(step.id))
 
             await self.committer.commit_trace(
-                trace=exec_record.execution_trace, status=exec_record.status, step_states=exec_record.step_states
+                trace=exec_record.execution_trace,
+                status=exec_record.status,
+                step_states=exec_record.step_states,
+                context_variables=exec_record.context_variables,
             )
             return exec_record
 
@@ -578,6 +595,7 @@ class DAGExecutor:
                 status=exec_record.status,
                 step_states=exec_record.step_states,
                 error=exec_record.error,
+                context_variables=exec_record.context_variables,
             )
 
             if isinstance(primary_err, AppException):
@@ -601,6 +619,7 @@ class DAGExecutor:
                 status=exec_record.status,
                 step_states=exec_record.step_states,
                 error=exec_record.error,
+                context_variables=exec_record.context_variables,
             )
 
             if isinstance(unexpected_err, AppException):
