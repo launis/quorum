@@ -37,7 +37,7 @@ class StrippedBaseMatrixXAI(BaseModel):
 
     semantic_reasoning: str = Field(
         default="",
-        description="Analytical reasoning and qualitative justification for the assigned matrix score.",
+        description="Max 1 short sentence focusing purely on structural evidence.",
     )
 
 
@@ -55,7 +55,7 @@ class StrippedBaseTDAExtraction(BaseModel):
         description=DESC_CONTEXTUAL_OVERRIDE,
     )
     semantic_reasoning: str = Field(
-        description="Detailed analytical reasoning in target language explaining the match.",
+        description="Max 1 short sentence focusing purely on structural evidence.",
     )
 
 
@@ -149,7 +149,7 @@ class SchemaFactory:
                 str,
                 Field(
                     ...,
-                    description="Detailed step-by-step reasoning trace of the audit process.",
+                    description="Max 1 short sentence focusing purely on structural evidence.",
                 ),
             ),
             "evaluation_notes": (

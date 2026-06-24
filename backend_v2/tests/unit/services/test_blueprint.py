@@ -163,7 +163,7 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
     axis = dto.layouts[0].axes[0]
     assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic", "Logic *"]  # noqa: E501
     assert axis.score == 75.0
-    assert axis.row_explanation == "Very logical."
+    assert axis.row_explanation == ""
 
 
 @pytest.mark.asyncio
@@ -612,7 +612,7 @@ async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) 
     assert len(dto.layouts) == 1
     axis = dto.layouts[0].axes[0]
     assert axis.score == 85.0
-    assert axis.row_explanation == "Strictly suffix-based justification."
+    assert axis.row_explanation == ""
     assert axis.coaching == "Keep it up"
 
 
@@ -1056,11 +1056,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             TraceEvent(
                 step_name="sr_f0a26d17cc9b48a7",
                 event_type="decision",
-                content={
-                    "step_linguistics": {
-                        "performative_patterns": []
-                    }
-                },
+                content={"step_linguistics": {"performative_patterns": []}},
             ),
         ],
         active_profile_id="prf_dddd1111dddd1111",
@@ -1101,8 +1097,26 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "description": {"default_locale": "en", "translations": {"en": "Desc"}},
                 "label": {"default_locale": "en", "translations": {"en": "Label"}},
                 "scales": [
-                    {"score": 1, "name": {"default_locale": "en", "translations": {"en": "Min"}}, "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "claim"}]},
-                    {"score": 5, "name": {"default_locale": "en", "translations": {"en": "Max"}}, "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "claim"}]},
+                    {
+                        "score": 1,
+                        "name": {"default_locale": "en", "translations": {"en": "Min"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "ai_description": "claim",
+                            }
+                        ],
+                    },
+                    {
+                        "score": 5,
+                        "name": {"default_locale": "en", "translations": {"en": "Max"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "ai_description": "claim",
+                            }
+                        ],
+                    },
                 ],
                 "computed_min": 1,
                 "computed_max": 5,
@@ -1147,7 +1161,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert ext["extension_type"] == "variance_validation"
     assert ext["mechanical_metric_ref"] == "performative_phrases_count"
     assert ext["cognitive_metric_ref"] == "llm_authenticity_score"
-    
+
     # authenticity_score scaled from raw 4.0222 (on 1-5 scale) to (1-3 scale):
     # ((4.0222 - 1.0) / 4.0) * 2.0 + 1.0 = 2.5111
     # performative_phrases_count = 0
@@ -1157,3 +1171,171 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert ext["alignment_verdict"] == "ALIGNED"
 
 
+@pytest.mark.asyncio
+async def test_blueprint_skips_raw_extensions_when_curated_exists(mock_repo_transformer: Any) -> None:
+    """Verify that blueprint.py skips appending raw matrix extensions when curated/synthesized ones exist,
+    and falls back to "" for row explanation when explanations cache is empty.
+    """
+    from backend_v2.models.dtos.synthesis import XaiHighlightItem
+    from backend_v2.models.v2_core import RenderedSynthesisCache
+
+    # Set up mock repos to return custom execution record
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000012",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                synthesized_markdown="Global MD",
+                row_explanations={},  # Empty explanations cache to trigger fallback to ""
+            )
+        },
+        execution_trace=[
+            TraceEvent(
+                step_name="step_test",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 4.0,
+                        "justification": "This raw justification should NOT be in row_explanation",
+                        "extensions": {
+                            "coaching": "This is raw coaching tip",
+                        },
+                    },
+                },
+            )
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "en"},
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )
+
+    # Let's populate grouped_extensions with a curated item for 'coaching'
+    # Normally this happens when global curation runs
+
+    # We will invoke build_report_dto and verify behavior
+    dto = await transformer.build_report_dto("exe_0000000000000012", accept_language="en")
+
+    # Verify row_explanation falls back to "" instead of the raw justification
+    assert len(dto.layouts) == 1
+    axis = dto.layouts[0].axes[0]
+    assert axis.row_explanation == ""
+
+    # Now let's inject a curated coaching tip into the transformer execution cache path:
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000013",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                synthesized_markdown="Global MD",
+                xai_highlights=[XaiHighlightItem(extension_type="coaching", content="This is curated coaching tip")],
+            )
+        },
+        execution_trace=[
+            TraceEvent(
+                step_name="step_test",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 4.0,
+                        "extensions": {
+                            "coaching": "This is raw coaching tip",
+                        },
+                    },
+                },
+            )
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "en"},
+    )
+
+    dto_curated = await transformer.build_report_dto("exe_0000000000000013", accept_language="en")
+
+    # Check that coaching list contains ONLY the curated item, and the raw item was skipped
+    assert "coaching" in dto_curated.grouped_extensions
+    coaching_items = dto_curated.grouped_extensions["coaching"]
+    assert len(coaching_items) == 1
+    assert coaching_items[0]["content"] == "This is curated coaching tip"
+    assert coaching_items[0].get("_is_synthesized") is True
+
+
+async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo_transformer: Any) -> None:
+    """Verify that if a synthesis cache is active, raw extensions are skipped entirely
+    even if the cache has NO curated highlights for a specific category (leaving it empty).
+    """
+    from backend_v2.models.dtos.synthesis import XaiHighlightItem
+    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+
+    # Active cache exists, but ONLY contains remediation_steps, NO coaching or justification
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000014",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                synthesized_markdown="Global MD",
+                xai_highlights=[
+                    XaiHighlightItem(extension_type="remediation_steps", content="This is curated remediation")
+                ],
+            )
+        },
+        execution_trace=[
+            TraceEvent(
+                step_name="step_test",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 4.0,
+                        "extensions": {
+                            "coaching": "This is raw coaching tip",
+                            "justification": "This is raw justification",
+                            "remediation_steps": "This is raw remediation",
+                        },
+                    },
+                },
+            )
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "en"},
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )
+
+    # Mock visible extensions for this test and restore after
+    profiles = mock_repo_transformer.get_all_output_profiles_models.return_value
+    orig_exts = profiles[0].visible_block_extensions
+    profiles[0].visible_block_extensions = [
+        XaiExtensionType.JUSTIFICATION,
+        XaiExtensionType.COACHING,
+        XaiExtensionType.REMEDIATION_STEPS,
+    ]
+    try:
+        dto = await transformer.build_report_dto("exe_0000000000000014", accept_language="en")
+    finally:
+        profiles[0].visible_block_extensions = orig_exts
+
+    # Check that remediation_steps has only the curated item
+    assert "remediation_steps" in dto.grouped_extensions
+    remediation_items = dto.grouped_extensions["remediation_steps"]
+    assert len(remediation_items) == 1
+    assert remediation_items[0]["content"] == "This is curated remediation"
+
+    # Check that coaching and justification have NO items (raw tips are skipped entirely)
+    assert "coaching" in dto.grouped_extensions
+    assert len(dto.grouped_extensions["coaching"]) == 0
+    assert "justification" in dto.grouped_extensions
+    assert len(dto.grouped_extensions["justification"]) == 0

@@ -100,3 +100,26 @@ async def test_tavily_search_malformed_json(mock_settings: Any) -> None:
 
         assert exc_info.value.status_code == 502
         assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_tavily_search_empty_results_success(mock_settings: Any) -> None:
+    """Test that a successful HTTP 200 with empty results and answer returns an empty TavilySearchResult without exception."""
+    mock_response = httpx.Response(
+        status_code=200,
+        json={
+            "answer": "",
+            "results": [],
+        },
+        request=httpx.Request("POST", "https://api.tavily.com/search"),
+    )
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = mock_response
+
+        result = await tavily_search("Finland population")
+
+        assert result.query == "Finland population"
+        assert result.answer == ""
+        assert len(result.source_urls) == 0
+        assert result.raw_content == ""

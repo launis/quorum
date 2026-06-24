@@ -112,9 +112,9 @@ for i in range(2):
 
     trigger_execution()
 
-    print("Polling database for execution completion (max 15 mins)...")
+    print("Polling database for execution completion (max 60 mins)...")
     db_path = r"c:\src\quorum\data\db_v2.json"
-    timeout = 900
+    timeout = 3600
     start = time.time()
     done = False
 
@@ -142,7 +142,7 @@ print("\n=== FINAL CLEANUP ===")
 subprocess.run([r"c:\src\quorum\kill_services.bat"], input="\n", text=True, capture_output=True, shell=True)
 
 print("\n=== RUNNING DIFF EXECUTIONS ===")
-res = subprocess.run(["uv", "run", "python", r"c:\src\quorum\scratch\diff_executions.py"], capture_output=True, text=True, shell=True)
+res = subprocess.run(["uv", "run", "python", r"c:\src\quorum\scripts\diff_executions.py"], capture_output=True, text=True, shell=True)
 print(res.stdout)
 if res.stderr:
     print("STDERR:")

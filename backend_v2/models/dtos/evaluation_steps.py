@@ -52,7 +52,7 @@ class StepDTOStrict(BaseExtractionDTO):
         semantic_reasoning: Short summary statement of decision logic.
     """
 
-    reasoning_steps: str = Field(description="Max 1 short sentence. Be extremely brief.")
+    reasoning_steps: str = Field(description="Max 1 short sentence focusing purely on structural evidence.")
     exact_quotes: list[str] = Field(default_factory=list, description=DESC_EXACT_QUOTES)
     structural_location: str = Field(description="Exact structural location (e.g. 'page 3'). Must be 'N/A' if missing.")
     localized_anchors_found: list[str] = Field(
@@ -93,7 +93,7 @@ class StepDTOSemantic(BaseExtractionDTO):
         semantic_reasoning: Short summary statement of decision logic.
     """
 
-    reasoning_steps: str = Field(description="Max 1 short sentence. Be extremely brief.")
+    reasoning_steps: str = Field(description="Max 1 short sentence focusing purely on structural evidence.")
     exact_quotes: list[str] = Field(
         default_factory=list,
         description=DESC_EXACT_QUOTES,

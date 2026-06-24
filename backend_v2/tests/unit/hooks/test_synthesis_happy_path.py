@@ -43,6 +43,7 @@ def valid_output_profile_data_for_synthesis() -> dict[str, Any]:
         "strictness_level": 85,
         "scoring_strategy": "WATERFALL",
         "display_scale": "original",
+        "max_extension_items": 4,
         "synthesis": {
             "system_prompt": "You are a synthesizer.",
             "historical_context_mode": "DISABLED",

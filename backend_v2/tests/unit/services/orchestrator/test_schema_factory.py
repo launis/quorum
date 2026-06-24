@@ -59,7 +59,10 @@ def test_schema_strictness_triggers_dlq_fallback(schema_factory: SchemaFactory) 
     with pytest.raises(pydantic.ValidationError) as exc:
         model.model_validate_json(json_str)
 
-    assert "List should have at most 20 items after validation, not 22" in str(exc.value)
+    from backend_v2.models.enums import SystemConcurrency
+
+    expected_max = SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS.value
+    assert f"List should have at most {expected_max} items after validation, not 22" in str(exc.value)
 
 
 def test_dunder_hallucination_rejected_by_extra_forbid() -> None:

@@ -180,6 +180,7 @@ class BlueprintTransformer:
         row_explanations_cache: dict[str, str],
         workflow_ext_values: list[str],
         row_curated_quotes_cache: dict[str, list[str]],
+        has_synthesis_cache: bool = False,
     ) -> tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO]]:
         """Parses folded results into MatrixScorecardRowDTOs and populates grouped XAI extensions.
 
@@ -374,8 +375,6 @@ class BlueprintTransformer:
                     axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
                     collision_counter += 1
 
-            justification = matrix_payload.justification or ""
-
             axis_level_breakdown = None
             raw_breakdown = matrix_payload.level_breakdown
             if raw_breakdown and isinstance(raw_breakdown, dict):
@@ -416,7 +415,8 @@ class BlueprintTransformer:
             if b_id in row_explanations_cache:
                 final_explanation = row_explanations_cache[b_id]
             else:
-                final_explanation = justification
+                # Curation of Matrix Extensions, Step 2: Fall back to empty string instead of justification
+                final_explanation = ""
 
             if final_explanation and len(final_explanation) > 300:
                 final_explanation = final_explanation[:297] + "..."
@@ -494,6 +494,11 @@ class BlueprintTransformer:
 
             for ext_key, ext_val in ext_dict.items():
                 if ext_val and ext_key in grouped_extensions:
+                    # Curation of Matrix Extensions, Step 3: Skip raw step-level extensions if curated synthesis exists/has run
+                    if has_synthesis_cache:
+                        continue
+                    if any(item.get("_is_synthesized") for item in grouped_extensions[ext_key]):
+                        continue
                     grouped_extensions[ext_key].append(
                         {
                             "axis_name": axis_name,
@@ -891,6 +896,7 @@ class BlueprintTransformer:
             row_explanations_cache,
             workflow_ext_values,
             row_curated_quotes_cache,
+            has_synthesis_cache=profile_cache is not None,
         )
 
         try:

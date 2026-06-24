@@ -2405,11 +2405,11 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "REQUIRED TARGET: If role prefixes exist, the exact quote MUST be located in an block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
+                  "concept_description": "REQUIRED TARGET: Identify explicit absolute status declarations that completely ignore challenges and risks. BANNED PATTERN: Retrospective comments or technical observations about errors, missing data, or operational flaws in the source material/process (e.g. 'error in source data', 'missing source files'). These retrospective audit notes are NOT absolute compliance claims.",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit absolute status declarations.",
                   "bounding_box_scope": "paragraph",
-                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+                  "contrastive_example": "ACCEPTABLE: \"The source material contained layout formatting errors, which were corrected.\" (Retrospective observation of a technical error, not an absolute claim ignoring risks).\nUNACCEPTABLE: \"Our system has achieved 100% perfect compliance and is completely without risk.\" (Absolute claim ignoring risks)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit absolute compliance claims that physically lack risk terminology."
@@ -2428,11 +2428,11 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "REQUIRED TARGET: Identify instances where editorial, structural, or formatting decisions are presented as content-level source claims. BANNED PATTERN: Describing purely formatting actions (e.g. shortening text, removing empty rows, converting tables to markdown) as source-criticism violations or appeals to authority.",
                   "extraction_rule": "",
                   "anchor_target": "Find implicit authority markers.",
                   "bounding_box_scope": "sentence",
-                  "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+                  "contrastive_example": "ACCEPTABLE: \"I reformatted the table layout and trimmed empty lines.\" (Purely editorial/formatting action without modifying source intent).\nUNACCEPTABLE: \"This statement must be true because I personally adjusted the text.\" (Claiming authority over content verification)."
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a reliance on undocumented or unverified internal knowledge."
@@ -4119,11 +4119,11 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "BANNED LOGIC: Do not evaluate.",
+                  "concept_description": "REQUIRED TARGET: Identify logical leaps where a probabilistic statement or uncertain assumption is converted into an absolute, definitive conclusion without facts. BANNED PATTERN: Strong declarative statements that do not build on prior probabilistic qualifiers.",
                   "anchor_target": "Find probabilistic markers.",
                   "bounding_box_scope": "sentence",
                   "extraction_rule": "a definitive conclusion is drawn from these markers as an absolute truth.",
-                  "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+                  "contrastive_example": "ACCEPTABLE: \"In conclusion, the transition is permanent.\" (Direct declarative claim without prior probabilistic assumptions).\nUNACCEPTABLE: \"The data might suggest a trend, which proves that the outcome is 100% certain.\" (Leaping from 'might/suggest' to an absolute conclusion)."
                 }
               ]
             }

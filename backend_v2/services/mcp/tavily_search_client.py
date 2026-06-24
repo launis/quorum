@@ -117,16 +117,13 @@ async def tavily_search(query: str) -> TavilySearchResult:
         answer = str(parsed_data.answer or "")
         results_list = parsed_data.results
 
+        # Allow empty results gracefully without raising exception.
+        # Downstream scoring will naturally handle the lack of evidence, avoiding pipeline crashes.
         if not results_list and not answer.strip():
-            msg = "Tavily search returned zero results. Zero-Compromise Fail-Fast enforced."
-            logger.error("[TavilyClient] %s: %s", ErrorCodes.FETCH_FAILED.name, msg)
-            raise AppException(
-                message=msg,
-                status_code=404,
-                details={"error_code": ErrorCodes.FETCH_FAILED.value},
-            )
+            logger.info("[TavilyClient] Search returned zero results; returning empty search result structure.")
 
         source_urls: list[str] = []
+
         content_parts: list[str] = []
         seen_urls: set[str] = set()
 

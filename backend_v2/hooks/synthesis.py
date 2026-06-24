@@ -606,6 +606,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                         if isinstance(ext_items, list):
                             for item in ext_items:
                                 raw_highlights.append({"extension_type": ext_name, "content": str(item)})
+                        elif isinstance(ext_items, str) and ext_items.strip():
+                            # Curation of Matrix Extensions, Step 1: Harvest string-based extensions
+                            raw_highlights.append({"extension_type": ext_name, "content": ext_items.strip()})
 
     raw_ext_blocks = []
     for item in raw_highlights:
@@ -660,7 +663,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "  <rule>NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.</rule>\n"
         "  <rule>CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.</rule>\n"
         "  <rule>XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. "
-        "Create up to <max_extension_items> MOST CRITICAL items per category. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. "
+        "Create up to <max_extension_items> MOST CRITICAL items for each individual category (meaning up to <max_extension_items> items of type 'justification', up to <max_extension_items> items of type 'coaching', etc.). "
+        "The total length of the `xai_highlights` array may be up to `max_extension_items * number_of_categories`. "
+        "Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. "
         "Make each item's content an ultra-short, punchy bullet point (max 1 sentence). "
         "CRITICAL TONE: Address the user directly ('you', 'your text') inside each highlight's content. Do not use passive voice. "
         "CRITICAL LANGUAGE MANDATE: You must generate the content of each highlight exclusively in the language specified in <target_language>.</rule>\n"

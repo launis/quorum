@@ -246,8 +246,45 @@ class ChunkWorker:
         running_event: asyncio.Event | None = None,
         step_metadata: dict[str, Any] | None = None,
     ) -> tuple[dict[str, Any], TokenUsage | None, list[Any], PromptContextDTO | None]:
+        """Processes a single execution chunk with optional ensemble voting and DLQ fallback.
+
+        Normalizes the user payload to reduce layout and tokenization variance
+        before compiling the LLM prompt.
+
+        Args:
+            chunk: The chunk of blind atoms or items to evaluate.
+            sem: Semaphore for limiting concurrent LLM calls.
+            compiler: The PromptCompiler instance.
+            criteria_blocks: List of PromptBlocks defining the rules.
+            user_payload: The raw text input block/chunk context.
+            global_source_text: The complete un-normalized source document.
+            base_system_prompt: Pre-compiled static system guidelines.
+            has_search: Whether to merge search results.
+            has_shuffled_atoms: True if the atoms are randomized/blind.
+            atom_to_block_ids: Mapping of atoms to parent block criteria.
+            effective_mcp_tools: List of executable tools if permitted.
+            bound_client: The configured client model endpoint.
+            step_id: Unique string identifier for telemetry.
+            target_locale: Target translation language.
+            synthesis_instructions: Formatting rules for reporting.
+            output_profile: Profile mapping UI preferences.
+            strictness_level: Validation threshold factor.
+            running_event: Event to coordinate step startup state.
+            step_metadata: General execution context metadata.
+
+        Returns:
+            A tuple containing:
+                - Dict: Final parsed evaluation outputs or DLQ envelope.
+                - TokenUsage: Cumulative token counts consumed by this chunk.
+                - List: List of telemetry and self-correction audit traces.
+                - PromptContextDTO: Compiled prompt representation for logs.
+        """
+        from backend_v2.utils.normalization import normalize_evaluation_input
+
         if running_event is not None and not running_event.is_set():
             running_event.set()
+
+        user_payload = normalize_evaluation_input(user_payload)
 
         sem = sem or asyncio.Semaphore(1)
 
