@@ -1,6 +1,3 @@
-import pytest
-from pydantic import ValidationError
-
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.enums import SystemConcurrency
 
@@ -18,10 +15,10 @@ def test_step_dto_strict_validation() -> None:
     obj = StepDTOStrict.model_validate(data)
     assert obj.decision is True
 
-    # Check max_length constraint
+    # Check max_length constraint has been removed (accepts large lists without failing)
     data["localized_anchors_found"] = ["a"] * (SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS + 1)
-    with pytest.raises(ValidationError):
-        StepDTOStrict.model_validate(data)
+    obj_large = StepDTOStrict.model_validate(data)
+    assert len(obj_large.localized_anchors_found) == SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS + 1
 
 
 def test_step_dto_semantic_validation() -> None:

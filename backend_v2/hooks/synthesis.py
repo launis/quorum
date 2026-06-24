@@ -792,31 +792,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     all_audit_traces.append(t)
                     seen.add(uid)
 
-        if getattr(workflow_data, "system_audit_trail", False) and all_audit_traces:
-            lines = []
-            for t in all_audit_traces:
-                tool = getattr(t, "tool_id", "Unknown")
-                query = getattr(t, "query", "")
-                summary = getattr(t, "response_summary", "")
-                if summary and len(summary) > 200:
-                    summary = summary[:200] + "..."
-                urls = getattr(t, "source_urls", [])
-                lines.append(f"- Tool: {tool} | Query: {query} | URLs: {urls} | Summary: {summary}")
-            joined_traces = "\n".join(lines)
-
-            audit_title = "System Audit Trail"
-            if language.startswith("fi"):
-                audit_title = "Järjestelmän Tarkastusloki"
-
-            global_blocks.append(
-                {
-                    "block_type": "alert",
-                    "variant": "info",
-                    "title": audit_title,
-                    "text": f"Raportin laatimisessa on hyödynnetty seuraavia järjestelmätyökaluja ja ulkoisia lähteitä:\n\n{joined_traces}",
-                }
-            )
-
         row_explanations_dict = {}
         row_exp_rule = "MAXIMUM LENGTH IS 30 WORDS. KEEP IT CONCISE BUT INFORMATIVE."
 

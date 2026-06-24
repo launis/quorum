@@ -540,6 +540,10 @@ class LLMClient:
             config=self._config,
         )
 
+        # Force parallel tool calls to dramatically speed up MCP tool execution (Epic 85 Phase 2)
+        if tools:
+            extra_kwargs["parallel_tool_calls"] = True
+
         # Generate
         try:
             response = await provider.generate(

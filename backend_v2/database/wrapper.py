@@ -68,7 +68,7 @@ def db_lock(db_path: str) -> Generator[None]:
                             raise TimeoutError(f"Database lock timeout on {lock_file_path}") from e
                         time.sleep(0.02)
                 wait_time_ms = (time.time() - start_time) * 1000
-                logger.info("[TinyDB Lock] Acquired MSVCRT lock on %s in %.1f ms", lock_file_path, wait_time_ms)
+                logger.debug("[TinyDB Lock] Acquired MSVCRT lock on %s in %.1f ms", lock_file_path, wait_time_ms)
                 yield
             finally:
                 try:
@@ -89,7 +89,7 @@ def db_lock(db_path: str) -> Generator[None]:
                             raise TimeoutError(f"Database lock timeout on {lock_file_path}") from e
                         time.sleep(0.02)
                 wait_time_ms = (time.time() - start_time) * 1000
-                logger.info("[TinyDB Lock] Acquired FCNTL lock on %s in %.1f ms", lock_file_path, wait_time_ms)
+                logger.debug("[TinyDB Lock] Acquired FCNTL lock on %s in %.1f ms", lock_file_path, wait_time_ms)
                 yield
             finally:
                 fcntl.flock(f, fcntl.LOCK_UN)  # type: ignore[attr-defined] # Unix-only attribute
@@ -114,7 +114,7 @@ def db_lock(db_path: str) -> Generator[None]:
                     time.sleep(0.02)
             try:
                 wait_time_ms = (time.time() - start_time) * 1000
-                logger.info("[TinyDB Lock] Acquired directory lock on %s in %.1f ms", lock_dir, wait_time_ms)
+                logger.debug("[TinyDB Lock] Acquired directory lock on %s in %.1f ms", lock_dir, wait_time_ms)
                 yield
             finally:
                 try:
@@ -247,7 +247,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 res = self._get_table(db).all()
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Retrieve all completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Retrieve all completed in %.1f ms", self._name, db_time)
         return list(res)
 
     def search(self, query: Any) -> list[dict[str, Any]]:
@@ -257,7 +257,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 res = self._get_table(db).search(query)
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Search completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Search completed in %.1f ms", self._name, db_time)
         return list(res)
 
     def get(self, query: Any) -> dict[str, Any] | None:
@@ -267,7 +267,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 res = self._get_table(db).get(query)
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Get completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Get completed in %.1f ms", self._name, db_time)
         if isinstance(res, list):
             res = res[0] if res else None
         return res
@@ -321,7 +321,7 @@ class TinyDBTable(AbstractTable):
                 else:
                     res = len(self._get_table(db))
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Count completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Count completed in %.1f ms", self._name, db_time)
         return res
 
     def contains(self, query: Any) -> bool:
@@ -331,7 +331,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 res = self._get_table(db).contains(query)
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Contains completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Contains completed in %.1f ms", self._name, db_time)
         return res
 
 

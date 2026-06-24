@@ -21,6 +21,8 @@ async def test_concurrency_throttle_limits_overlap(monkeypatch: pytest.MonkeyPat
     """Proves that LiteLLMProvider dynamically throttles concurrent requests
     under low RPM limits to prevent concurrent request explosions.
     """
+    monkeypatch.setattr(LiteLLMProvider, "_semaphores", {})
+
     # 1. Setup mock settings and limits
     mock_settings = MagicMock()
     mock_settings.llm_default_timeout = 10

@@ -534,19 +534,19 @@
 
         {% if report_data.mcp_tool_audit %}
         <div class="card" style="border-top: 3px solid #009688;">
-            <h2 style="color: #00796b;">Tekoälyn Asiantuntijalähteet (Faktantarkistus)</h2>
+            <h2 style="color: #00796b;">{{ l10n.systemAuditTrailLabel | default('Järjestelmän Faktantarkistusloki') }}</h2>
             {% for audit in report_data.mcp_tool_audit %}
             <div style="background-color: #f7f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 15px;">
                 <div style="font-size: 13px; font-weight: bold; color: #333; margin-bottom: 6px;">
-                    <span style="font-size: 11px; float: right; font-weight: normal; color: #888; background-color: #eee; padding: 2px 6px; border-radius: 10px;">Kesto: {{ audit.duration_ms }}ms</span>
+                    <span style="font-size: 11px; float: right; font-weight: normal; color: #888; background-color: #eee; padding: 2px 6px; border-radius: 10px;">{{ l10n.pdfAuditDuration | default('Kesto:') }} {{ audit.duration_ms }}ms</span>
                     <span style="font-family: monospace; font-size: 10px; background-color: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; border-radius: 4px; padding: 2px 6px; margin-right: 6px;">{{ audit.tool_id }}</span>
-                    🔍 Hakukysely: "{{ audit.query }}"
+                    🔍 {{ l10n.pdfAuditQuery | default('Hakukysely:') }} "{{ audit.query }}"
                 </div>
                 <div style="font-size: 12px; color: #555; margin-bottom: 10px; line-height: 1.5; clear: both;">
                     {{ audit.response_summary | md | safe }}
                 </div>
                 {% if audit.source_urls %}
-                <div style="font-size: 11px; font-weight: bold; color: #009688; margin-bottom: 4px;">Lähteet</div>
+                <div style="font-size: 11px; font-weight: bold; color: #009688; margin-bottom: 4px;">{{ l10n.pdfAuditSources | default('Lähteet') }}</div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px; clear: both;">
                     {% for url in audit.source_urls %}
                     <div style="background-color: #e3f2fd; border: 1px solid #bbdefb; color: #1976D2; padding: 4px 8px; border-radius: 4px; font-size: 10px; text-decoration: none; word-break: break-all; display: inline-block;">

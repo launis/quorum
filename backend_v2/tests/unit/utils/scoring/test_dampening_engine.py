@@ -1,10 +1,7 @@
-import pytest
-
 from backend_v2.models.enums import CognitiveFlowStatus
 from backend_v2.utils.scoring.dampening_engine import DampeningScoringEngine
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_dampening_engine_calculate() -> None:
     engine = DampeningScoringEngine()
     stats = {
@@ -24,8 +21,8 @@ def test_dampening_engine_calculate() -> None:
 
     # String breakdown test for UI
     assert (
-        "Tasolta 2.0 saatiin 0 osumaa. Käytetään Strictness 50:n mukaista "
-        "joustokerrointa (0.30), joten pisteitä vaimennettiin pehmeästi."
+        "Tasolta 2.0 saatiin 0 osumaa. Käytetään Strictness 85:n mukaista "
+        "joustokerrointa (0.10), joten pisteitä vaimennettiin pehmeästi."
     ) in log_str
 
     # Standard log checks
@@ -33,7 +30,6 @@ def test_dampening_engine_calculate() -> None:
     assert breakdown["1.0"]["hits"] == 1
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_dampening_engine_optimal_flow() -> None:
     engine = DampeningScoringEngine()
     stats = {

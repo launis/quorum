@@ -308,6 +308,15 @@ class LLMTaskExecutor:
                         if not is_lightweight:
                             _perform_semantic_validation(validated_model, validation_context)
 
+                    if getattr(validated_model, "contextual_override", False):
+                        logger.info(
+                            "💡 [QUALITY] LLM applied Contextual Override.",
+                            extra={
+                                "reason": getattr(validated_model, "override_reason", "No reason provided"),
+                                "schema": response_model.__name__,
+                            },
+                        )
+
                     if attempt > 0:
                         logger.info(
                             "Self-Healing successful.",
@@ -360,7 +369,7 @@ class LLMTaskExecutor:
                     schema_attempts += 1
 
                     logger.warning(
-                        "LLM Schema Validation Failed. Capturing raw payload for Pydantic Extra field analysis.",
+                        f"LLM Schema Validation Failed. Error: {error_msg}",
                         extra={"raw_payload_dump": raw_payload, "validation_error": error_msg},
                     )
 
@@ -427,7 +436,7 @@ class LLMTaskExecutor:
                     failed_json = validated_model.model_dump_json() if validated_model else "{}"
 
                     logger.warning(
-                        "LLM Logical Validation Failed. Capturing internal_logic_en trace.",
+                        f"LLM Logical Validation Failed. Error: {error_msg}",
                         extra={"failed_json_dump": failed_json, "logical_error": error_msg},
                     )
 

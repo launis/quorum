@@ -51,7 +51,7 @@ def test_schema_strictness_triggers_dlq_fallback(schema_factory: SchemaFactory) 
     model = schema_factory.build_chunk_response_schema("ChunkSchema", DummyPayload)
 
     records = []
-    for i in range(16):
+    for i in range(22):
         records.append({"original_id": f"id_{i}", "payload": {"test_field": "val"}})
 
     json_str = '{"chunk_id": "chunk_1", "records": ' + json.dumps(records) + "}"
@@ -59,7 +59,7 @@ def test_schema_strictness_triggers_dlq_fallback(schema_factory: SchemaFactory) 
     with pytest.raises(pydantic.ValidationError) as exc:
         model.model_validate_json(json_str)
 
-    assert "List should have at most 15 items after validation, not 16" in str(exc.value)
+    assert "List should have at most 20 items after validation, not 22" in str(exc.value)
 
 
 def test_dunder_hallucination_rejected_by_extra_forbid() -> None:

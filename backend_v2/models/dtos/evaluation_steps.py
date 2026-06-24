@@ -53,11 +53,10 @@ class StepDTOStrict(BaseExtractionDTO):
     """
 
     reasoning_steps: str = Field(description="Max 1 short sentence. Be extremely brief.")
-    exact_quotes: list[str] = Field(default_factory=list, max_length=3, description=DESC_EXACT_QUOTES)
+    exact_quotes: list[str] = Field(default_factory=list, description=DESC_EXACT_QUOTES)
     structural_location: str = Field(description="Exact structural location (e.g. 'page 3'). Must be 'N/A' if missing.")
     localized_anchors_found: list[str] = Field(
         default_factory=list,
-        max_length=5,
         description="Keywords in target language.",
     )
     falsification_argument: str = Field(
@@ -97,7 +96,6 @@ class StepDTOSemantic(BaseExtractionDTO):
     reasoning_steps: str = Field(description="Max 1 short sentence. Be extremely brief.")
     exact_quotes: list[str] = Field(
         default_factory=list,
-        max_length=3,
         description=DESC_EXACT_QUOTES,
     )
     structural_location: str = Field(
@@ -105,7 +103,6 @@ class StepDTOSemantic(BaseExtractionDTO):
     )
     localized_anchors_found: list[str] = Field(
         default_factory=list,
-        max_length=5,
         description="Keywords in target language.",
     )
     contextual_override: bool = Field(

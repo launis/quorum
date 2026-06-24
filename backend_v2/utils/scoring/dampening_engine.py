@@ -83,6 +83,7 @@ class DampeningScoringEngine(ScoringEngineBase):
                         )
                     else:
                         status = f"{CognitiveFlowStatus.WEAK.value} ({hit_rate:.2f})"
+                        logger.warning(f"📉 [QUALITY] Cognitive Flow Drop at Level {s_level}. Hit Rate: {hit_rate:.2f}")
 
                 log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
                 modifier = modifier * modifier_factor

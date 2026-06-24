@@ -1161,5 +1161,8 @@
   "systemAuditTrailLabel": "Järjestelmän Faktantarkistusloki",
   "systemAuditTrailDescription": "Ottaa käyttöön MCPAuditTrace -pohjaisen faktantarkistusraportin loppuun.",
   "workflowInputScanPerformative": "Skannaa AI-jargonia (Aitous)",
-  "xaiAuthenticityEvaluationTitle": "Lähdedatan aitous (AI-jargon)"
+  "xaiAuthenticityEvaluationTitle": "Lähdedatan aitous (AI-jargon)",
+  "pdfAuditDuration": "Kesto:",
+  "pdfAuditQuery": "Hakukysely:",
+  "pdfAuditSources": "Lähteet"
 }

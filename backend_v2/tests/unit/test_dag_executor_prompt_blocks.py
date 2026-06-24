@@ -67,6 +67,7 @@ def mock_compiler() -> Any:
     compiler = MagicMock()
     compiler.build_xml_context.return_value = "<test>context</test>"
     schema_mock = MagicMock()
+    schema_mock.__name__ = "MockSchema"
     schema_mock.model_json_schema.return_value = {"type": "object"}
 
     mock_validated = MagicMock()
@@ -134,6 +135,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             MagicMock(model_dump=lambda **kwargs: {"blk_0123456789abcdef0123456789ab": mock_payload}),
             TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
+        mock_bound_client._config = MagicMock()
+        mock_bound_client._config.provider = "mock_llm_99"
         mock_strategy.return_value = mock_bound_client
 
         mock_repo.get_execution.return_value = {

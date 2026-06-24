@@ -114,13 +114,29 @@
           "language_name": "English",
           "fuzz_threshold": 90,
           "words": [
-            "delve into", "tapestry", "comprehensive overview", "rich history",
-            "testament to", "underscore the importance", "pivotal role",
-            "landscape of", "realm of", "foster a sense of", "game changer",
-            "cutting edge", "revolutionary", "dive deep", "in conclusion",
-            "it is important to note", "vast array", "myriad of",
-            "unleash the power", "embark on a journey", "beacon of",
-            "multifaceted", "gobeliini"
+            "delve into",
+            "tapestry",
+            "comprehensive overview",
+            "rich history",
+            "testament to",
+            "underscore the importance",
+            "pivotal role",
+            "landscape of",
+            "realm of",
+            "foster a sense of",
+            "game changer",
+            "cutting edge",
+            "revolutionary",
+            "dive deep",
+            "in conclusion",
+            "it is important to note",
+            "vast array",
+            "myriad of",
+            "unleash the power",
+            "embark on a journey",
+            "beacon of",
+            "multifaceted",
+            "gobeliini"
           ]
         },
         "fi": {
@@ -128,18 +144,52 @@
           "language_name": "Finnish",
           "fuzz_threshold": 90,
           "words": [
-            "syventyä", "kattava katsaus", "rikas historia", "osoitus siitä",
-            "korostaa merkitystä", "keskeinen rooli", "merkittävä rooli",
-            "maisema", "kenttä", "luoda tunnetta", "mullistava",
-            "huippuluokan", "vallankumouksellinen", "sukeltaa syvälle",
-            "yhteenvetona", "on tärkeää huomata", "voidaan todeta",
-            "laaja kirjo", "lukuisia", "vapauttaa voima", "lähteä matkalle",
-            "majakka", "dynaaminen", "innovatiivinen", "saumaton",
-            "synergia", "kokonaisvaltainen", "merkittävästi", "avainasemassa",
-            "tulevaisuuden näkymät", "digitaalinen aikakausi", "virstanpylväs",
-            "paradigm", "ekosysteemi", "kärkihanke", "strateginen",
-            "optimoitu", "resonoimaan", "navigoida", "monitahoinen", 
-            "kukoistaa", "kudottu", "elävä kudos", "elävä osoitus", "gobeliini", "näyttämö"
+            "syventyä",
+            "kattava katsaus",
+            "rikas historia",
+            "osoitus siitä",
+            "korostaa merkitystä",
+            "keskeinen rooli",
+            "merkittävä rooli",
+            "maisema",
+            "kenttä",
+            "luoda tunnetta",
+            "mullistava",
+            "huippuluokan",
+            "vallankumouksellinen",
+            "sukeltaa syvälle",
+            "yhteenvetona",
+            "on tärkeää huomata",
+            "voidaan todeta",
+            "laaja kirjo",
+            "lukuisia",
+            "vapauttaa voima",
+            "lähteä matkalle",
+            "majakka",
+            "dynaaminen",
+            "innovatiivinen",
+            "saumaton",
+            "synergia",
+            "kokonaisvaltainen",
+            "merkittävästi",
+            "avainasemassa",
+            "tulevaisuuden näkymät",
+            "digitaalinen aikakausi",
+            "virstanpylväs",
+            "paradigm",
+            "ekosysteemi",
+            "kärkihanke",
+            "strateginen",
+            "optimoitu",
+            "resonoimaan",
+            "navigoida",
+            "monitahoinen",
+            "kukoistaa",
+            "kudottu",
+            "elävä kudos",
+            "elävä osoitus",
+            "gobeliini",
+            "näyttämö"
           ]
         }
       }
@@ -2584,7 +2634,8 @@
         "confidence",
         "source_id"
       ],
-      "is_evaluative": false
+      "is_evaluative": false,
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_c5804a9143c34cb1",
@@ -3047,7 +3098,8 @@
         "confidence",
         "source_id"
       ],
-      "is_evaluative": false
+      "is_evaluative": false,
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_518904fe9010453b",
@@ -4140,7 +4192,8 @@
         "remediation_steps",
         "emotional_sentiment"
       ],
-      "is_evaluative": false
+      "is_evaluative": false,
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_bd7c5a9f27504a2c",
@@ -5185,7 +5238,8 @@
       },
       "ai_description": "CORE MANDATE: Act as a Critical Analytical Deconstruction Engine enforcing Claim Deconstruction, exhibiting Critical Neutrality. You are a precise and objective evaluator of text—neither generating conversational filler nor hallucinating data. Assume all input text requires robust, surgical parsing to meticulously isolate every verifiable claim, re-formulate it as a precise, testable hypothesis, and engineer an optimal search query for external verification. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere summary of claims is insufficient; you must systematically document the exact evidentiary structure (the 'how' and 'why') step-by-step for each distinct claim by formulating hypotheses explicitly in the evaluation notes. The 'search_query' field is critical and must be objectively optimized for machine-driven evidence retrieval from external knowledge bases. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any hallucinations, explanatory text, apologies, or conversational filler. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. If evidence is present within the source text itself ('evidence_found' is true), you are REQUIRED to demonstrably anchor this by extracting verbatim quotations and citing quotes verbatim in the text. Output must be a comprehensive plain text evaluation. Any deviation, inclusion of non-schema text, or failure to isolate claims with surgical precision constitutes a catastrophic system failure and must be met with objective, evidence-based penalization. Ensure the output is a pure, logically sound signal of deconstructed claims.",
       "slug": "block_taskanalyst",
-      "output_extensions": []
+      "output_extensions": [],
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_9c0c7c46568648c4",
@@ -5212,7 +5266,8 @@
       },
       "ai_description": "CORE MANDATE: Act as a Critical Cognitive & Tonal Auditor enforcing Cognitive Profiling, exhibiting Critical Neutrality. You are a precise and objective evaluator of subtext and intent—neither generating conversational filler nor hallucinating behavioral data. Assume all input text requires robust, forensic parsing to meticulously deconstruct its tone, underlying intent, and expose all cognitive biases, logical fallacies, and manipulative rhetoric. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial reading is insufficient; you must systematically document the exact evidentiary structure and linguistic markers (the 'how' and 'why') step-by-step for each identified bias, tone, or intent. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any hallucinations, explanatory text, apologies, or conversational filler within your own output. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations must be demonstrably anchored to verifiable evidence within the text. Your output MUST strictly adhere to the `ProfilerOutput` JSON schema. Generate your analysis and output it EXACTLY as defined by the schema structure. Any deviation, failure to conform to the schema, or superficial response constitutes a catastrophic system failure and must be treated with surgical precision as a mission failure. Ensure the output is a pure, logically sound signal of forensic cognitive analysis.",
       "slug": "block_taskprofiler",
-      "output_extensions": []
+      "output_extensions": [],
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_652fce41dcb54793",
@@ -5751,7 +5806,8 @@
         "confidence",
         "source_id"
       ],
-      "is_evaluative": true
+      "is_evaluative": true,
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_43e297666d3b4359",
@@ -5778,7 +5834,8 @@
       "ai_description": "CORE MANDATE: Act as a Critical Causal Analyst enforcing Causal Impact Verification, exhibiting Critical Neutrality. You are a precise and objective evaluator of cause-and-effect relationships—neither generating conversational filler nor hallucinating empirical data. Assume all claims require robust, systematic scrutiny to evaluate the causal chain between assertions made within the provided material and verifiable actions documented in the evidence. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere correlation is insufficient; you must systematically document the exact evidentiary structure and causal pathways (the 'how' and 'why') step-by-step. Dynamically parse the inputs to identify all available files, utilizing the file where `is_chat_history: true` as the absolute ground truth for communication. If a separate reflection file exists, perform a rigorous Say-Do Gap Analysis by cross-referencing it against the chat history; do not penalize for the absence of a reflection file. You must populate the `counterfactual_test` object with uncompromising completeness, executing a Counterfactual Simulation and deducing numerical scores based on provided matrices. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Your causal verification MUST be demonstrably anchored strictly in the empirical facts retrieved via the `search_result` object. The output must strictly conform to the `CausalOutput` JSON schema, returning a top-level `causal_analysis` object containing all nested fields and the 'reasoning_trace' string formatted as strict JSON without pipe (|) characters. Do not flatten the structure. Any deviation, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, logically sound signal of verified causal impact.",
       "slug": "block_taskcausal",
       "allow_decimals": false,
-      "output_extensions": []
+      "output_extensions": [],
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_3744757fbff44175",
@@ -6626,7 +6683,8 @@
       },
       "ai_description": "CORE MANDATE: Act as a Critical Illusion of Control Auditor enforcing the Task Performativity Audit, exhibiting Critical Neutrality. You are a precise and objective evaluator of directorial control—neither generating conversational filler nor indulging grandiose user self-evaluations. Assume all interactions require robust scrutiny to detect 'Illusion of Control' scenarios where the user's perceived input is superficial while the AI is the primary driver of content and structure. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere review of task completion is insufficient; you must systematically document the exact power dynamics and prompt effort (the 'how' and 'why') step-by-step. Identify and objectively isolate 'Lazy Prompts' (e.g., 'continue', 'more', 'go on') that feign directorial control. Implement strict Assumption Flagging: aggressively flag interactions as 'Performative' if the user's substantive intellectual contribution is negligible, yet their self-evaluation claims significant co-creation. Apply Goodhart's Law to aggressively scrutinize outputs for 'Suspicious Perfection'—instances where flawless AI compliance to a low-effort prompt indicates the completion metric has obscured true capability assessment. GROUNDED PERFORMATIVITY COGNITION: You MUST base your qualitative assessments and the Illusion of Control analysis on the values provided in the &lt;mechanical_anchors&gt; XML block (specifically comparing say_do_gap, automation_bias, and checking detected_performative_phrases count). Ground your evaluation strictly against these physical truth anchors. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All performativity flags must be demonstrably anchored to verbatim prompt inputs.   Return your complete analysis as cohesive markdown inside the evaluation notes. Any deviation, flattening of the structure, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of verified performativity.",
       "slug": "block_taskperformativity",
-      "output_extensions": []
+      "output_extensions": [],
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_3584789303284f7f",
@@ -7199,7 +7257,8 @@
         "confidence",
         "source_id"
       ],
-      "is_evaluative": true
+      "is_evaluative": true,
+      "is_lightweight_protocol": true
     },
     {
       "id": "blk_573802341db9d68c",
@@ -7963,7 +8022,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "fast",
+      "model_strategy": "strict",
       "expected_inputs": [
         "inputs",
         "context"
@@ -8422,7 +8481,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "fast",
+      "model_strategy": "strict",
       "expected_inputs": [
         "inputs",
         "context"
