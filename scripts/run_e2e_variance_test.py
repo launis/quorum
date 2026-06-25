@@ -7,39 +7,40 @@ import time
 import requests
 
 
-def check_backend():
+def check_backend() -> bool:
     for _ in range(45):
         try:
             r = requests.get("http://127.0.0.1:8000/docs", timeout=2)
             if r.status_code == 200:
                 return True
-        except:
+        except Exception:
             pass
         time.sleep(2)
     return False
 
-def trigger_execution():
+
+def trigger_execution(bp_id: str) -> None:
     print("Triggering E2E execution natively via Python requests...")
     import requests
-    
+
     # 1. Read Inputs
     inputs_file = os.environ.get("TEST_INPUTS_FILE", "")
     if not inputs_file:
         inputs_file = r"c:\src\quorum\backend_v2\tests\test_data\exe_c0bc_inputs.json"
-    
-    with open(inputs_file, "r", encoding="utf-8") as f:
+
+    with open(inputs_file, encoding="utf-8") as f:
         raw_inputs = json.load(f)
-        
+
     # 2. Setup requests session
     headers = {"Authorization": "Bearer mock-token:usr_18a0d5f6151349a5"}
     base_url = "http://127.0.0.1:8000/api/v2"
-    
+
     # 3. Get Workflow ID
     w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=10)
     w_res.raise_for_status()
     workflows = w_res.json()
     workflow_id = workflows[0]["id"] if workflows else "wf_9d68c573802341db"
-    
+
     # 4. Trigger Execution
     print(f"Sending POST to {base_url}/execution/executions/ using workflow {workflow_id}")
     resp = requests.post(
@@ -49,14 +50,14 @@ def trigger_execution():
             "workflow_id": workflow_id,
             "profile_id": "prf_5d6e7f8091a2b3c4",
             "raw_inputs": {"dynamic_inputs": raw_inputs},
-            "target_locale": "fi"
+            "target_locale": "fi",
         },
-        timeout=300
+        timeout=300,
     )
     if not resp.ok:
         print(f"HTTP ERROR {resp.status_code}: {resp.text}")
     resp.raise_for_status()
-    
+
     # 5. Save Trace
     out_trace = r"c:\src\quorum\backend_v2\tests\test_data\e2e_new_trace.json"
     trace_data = resp.json().get("execution_trace")
@@ -68,8 +69,9 @@ def trigger_execution():
         print("Error: execution_trace missing from response!")
         sys.exit(1)
 
+
 for i in range(2):
-    print(f"\n=== RUN {i+1} ===")
+    print(f"\n=== RUN {i + 1} ===")
     print("Cleaning up old services...")
     subprocess.run([r"c:\src\quorum\kill_services.bat"], input="\n", text=True, capture_output=True, shell=True)
 
@@ -90,9 +92,9 @@ for i in range(2):
         print("Injecting noise into inputs for Run 2 (to test normalizer)...")
         input_path = r"c:\src\quorum\backend_v2\tests\test_data\exe_c0bc_inputs.json"
         noisy_path = r"c:\src\quorum\backend_v2\tests\test_data\exe_c0bc_inputs_NOISY.json"
-        with open(input_path, "r", encoding="utf-8") as f:
+        with open(input_path, encoding="utf-8") as f:
             data = json.load(f)
-        
+
         # Add a zero-width space, some trailing spaces, and change a regular space to multiple spaces in product_text
         if "product_text" in data and isinstance(data["product_text"], str):
             original_text = data["product_text"]
@@ -100,10 +102,10 @@ for i in range(2):
             # A single typo (one extra letter) early in the text that BYPASSES normalization.py
             noisy_text = original_text.replace(" a ", " aa ", 1)
             data["product_text"] = noisy_text
-        
+
         with open(noisy_path, "w", encoding="utf-8") as f:
             json.dump(data, f)
-        
+
         # Tell the dart test to use the noisy file
         os.environ["TEST_INPUTS_FILE"] = noisy_path
     else:
@@ -142,7 +144,9 @@ print("\n=== FINAL CLEANUP ===")
 subprocess.run([r"c:\src\quorum\kill_services.bat"], input="\n", text=True, capture_output=True, shell=True)
 
 print("\n=== RUNNING DIFF EXECUTIONS ===")
-res = subprocess.run(["uv", "run", "python", r"c:\src\quorum\scripts\diff_executions.py"], capture_output=True, text=True, shell=True)
+res = subprocess.run(
+    ["uv", "run", "python", r"c:\src\quorum\scripts\diff_executions.py"], capture_output=True, text=True, shell=True
+)
 print(res.stdout)
 if res.stderr:
     print("STDERR:")
