@@ -42,4 +42,4 @@ if exist "backend_v2\__pycache__" rmdir /s /q "backend_v2\__pycache__" 2>nul
 echo [4/4] Done. All backend and frontend services killed, and cache flushed.
 echo You can now safely spin up the V3 environment.
 echo.
-pause
+if "%1" NEQ "--no-pause" pause
