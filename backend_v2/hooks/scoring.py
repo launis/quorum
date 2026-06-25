@@ -1,7 +1,7 @@
 """Scoring Hook for evaluating agent performance and applying penalties."""
 
 import logging
-from typing import Any
+from typing import Any, Literal, cast
 
 from pydantic import ConfigDict, Field, ValidationError
 
@@ -662,6 +662,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         missing_atoms_by_block: dict[str, list[str]] = {}
         evaluated_atoms_by_block: dict[str, dict[str, bool | str]] = {}
         atom_quotes_by_block: dict[str, list[str]] = {}
+        contested_atoms_by_block: dict[str, int] = {}
 
         # 2. Iterate evaluations using whitelisted ASTEvaluator for 3-State Logic
 
@@ -705,6 +706,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             missing_atoms_by_block[pb_id] = []
             evaluated_atoms_by_block[pb_id] = {}
             atom_quotes_by_block[pb_id] = []
+            contested_atoms_by_block[pb_id] = 0
 
             for scale in scales:
                 s_val = float(scale.score)
@@ -719,14 +721,16 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                             text = tda.concept_description
 
                             # Determine evaluation track
+                            final_state: Literal["TRUE", "FALSE", "DLQ", "CONTESTED"]
                             if tda.evaluation_track == "EXTRACTIVE_SENSOR" and tda.logical_expression:
                                 # Deterministic AST boolean evaluation on merged facts with DLQ tolerance
-                                final_state = ASTEvaluator.evaluate(
+                                ast_res = ASTEvaluator.evaluate(
                                     expression=tda.logical_expression,
                                     facts=merged_facts,
                                     total_chunks=total_evals or 1,
                                     dlq_chunks=dlq_evals,
                                 )
+                                final_state = cast(Literal["TRUE", "FALSE", "DLQ", "CONTESTED"], ast_res)
                             else:
                                 # Fallback or cognitive track: look up chunk evaluations by atom_id
                                 final_state = "FALSE"
@@ -792,10 +796,13 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                             if is_satisfied == "DLQ":
                                                 final_state = "DLQ"
                                             else:
-                                                final_state = "TRUE" if is_satisfied else "FALSE"
+                                                if getattr(ev_dto, "status", None) == "CONTESTED":
+                                                    final_state = "CONTESTED"
+                                                else:
+                                                    final_state = "TRUE" if is_satisfied else "FALSE"
 
                                                 has_evidence = (
-                                                    (ev_dto.status == "PASS")
+                                                    (ev_dto.status in ("PASS", "CONTESTED"))
                                                     if getattr(ev_dto, "status", None)
                                                     else (
                                                         ev_dto.evidence_found
@@ -821,12 +828,17 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                         atom_quotes_by_block[pb_id].append(f"📍 {loc}: {rsn}")
                                             break
 
-                            # Record the 3-state logic outcomes
+                            # Record the logic outcomes
                             if final_state == "DLQ":
                                 evaluated_atoms_by_block[pb_id][aid] = "DLQ"
                                 block_scale_stats[pb_id][s_val]["total"] += 1
                                 block_scale_stats[pb_id][s_val]["dlqs"] += 1
                                 missing_atoms_by_block[pb_id].append(f"- {text} (DLQ - Unscorable)")
+                            elif final_state == "CONTESTED":
+                                evaluated_atoms_by_block[pb_id][aid] = "CONTESTED"
+                                block_scale_stats[pb_id][s_val]["total"] += 1
+                                block_scale_stats[pb_id][s_val]["hits"] += 1
+                                contested_atoms_by_block[pb_id] += 1
                             elif final_state == "TRUE":
                                 evaluated_atoms_by_block[pb_id][aid] = True
                                 block_scale_stats[pb_id][s_val]["total"] += 1
@@ -860,9 +872,18 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             global_hits = sum(level_data["hits"] for level_data in stats.values())
             global_dlqs = sum(level_data["dlqs"] for level_data in stats.values())
 
+            n_contested = contested_atoms_by_block.get(pb_id, 0)
+
+            # Cognitive Collapse safety lock
+            # If a matrix has strictly more than 3 CONTESTED atoms OR strictly more than 50% CONTESTED atoms
+            cognitive_collapse = n_contested > 3 or (global_total > 0 and (n_contested / global_total) > 0.5)
+
             # Epic 56 Invariant 3: DLQ-failed items must be scored as 0/1 (hits=0, total=total).
             # If infra_dlqs / total > 0.10, fail the whole matrix to INDETERMINATE.
             is_indeterminate = global_total > 0 and (infra_dlqs / global_total) > 0.10
+
+            if cognitive_collapse:
+                is_indeterminate = True
 
             total_true_atoms += global_hits
             total_false_atoms += global_total - global_hits - global_dlqs
@@ -919,10 +940,16 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 raw_score = None
                 formatted_breakdown = None
                 xai_log = None
-                justification = (
-                    f"[INDETERMINATE] Matrix score invalidated because the DLQ ratio "
-                    f"({global_dlqs / global_total:.2%}) exceeded the 10.00% threshold."
-                )
+                if cognitive_collapse:
+                    justification = (
+                        f"[INDETERMINATE] Matrix score invalidated because the cognitive collapse safety lock was triggered "
+                        f"({n_contested} CONTESTED atoms exceeded thresholds)."
+                    )
+                else:
+                    justification = (
+                        f"[INDETERMINATE] Matrix score invalidated because the DLQ ratio "
+                        f"({global_dlqs / global_total:.2%}) exceeded the 10.00% threshold."
+                    )
             else:
                 engine = get_scoring_engine(scoring_strategy)
                 raw_score, xai_log, formatted_breakdown = engine.calculate(
@@ -931,6 +958,14 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     math_max=math_max,
                     strictness_level=strictness_level,
                 )
+
+                # Apply dynamic penalty here
+                if raw_score is not None and n_contested > 0:
+                    raw_score = raw_score * (1 - 0.05 * n_contested)
+                    raw_score = max(raw_score, math_min)
+
+                    penalty_pct = n_contested * 5
+                    justification = f"[DYNAMIC PENALTY APPLIED: -{penalty_pct}% for CONTESTED atoms]\n{justification}"
 
             pb_meta = next((pb_model for pid, pb_model in matrix_blocks if pid == pb_id), None)
             allowed_exts = None

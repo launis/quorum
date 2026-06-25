@@ -144,8 +144,10 @@ def resolve_majority_vote(
         for aid, votes in atom_votes.items():
             pass_votes = 0
             fail_votes = 0
+            contested_votes = 0
             best_pass = None
             best_fail = None
+            best_contested = None
 
             for v in votes:
                 try:
@@ -155,6 +157,10 @@ def resolve_majority_vote(
                         pass_votes += 1
                         if best_pass is None:
                             best_pass = v
+                    elif status == "CONTESTED":
+                        contested_votes += 1
+                        if best_contested is None:
+                            best_contested = v
                     else:
                         fail_votes += 1
                         if best_fail is None:
@@ -163,14 +169,24 @@ def resolve_majority_vote(
                     logger.warning(f"Failed to parse consensus vote for {aid}: {e}")
                     fail_votes += 1
 
-            if pass_votes > fail_votes:
+            total_votes = len(votes)
+            if pass_votes > fail_votes and pass_votes > contested_votes:
                 chosen = best_pass if best_pass else votes[0]
-                chosen["status"] = "PASS"
-                chosen["confidence"] = pass_votes / len(votes)
+                confidence = pass_votes / total_votes
+                if confidence <= 0.67:
+                    chosen["status"] = "CONTESTED"
+                    chosen["confidence"] = confidence
+                else:
+                    chosen["status"] = "PASS"
+                    chosen["confidence"] = confidence
+            elif contested_votes >= pass_votes and contested_votes >= fail_votes:
+                chosen = best_contested if best_contested else votes[0]
+                chosen["status"] = "CONTESTED"
+                chosen["confidence"] = contested_votes / total_votes if total_votes > 0 else 1.0
             else:
                 chosen = best_fail if best_fail else votes[0]
                 chosen["status"] = "FAIL"
-                chosen["confidence"] = fail_votes / len(votes) if fail_votes > 0 else 1.0
+                chosen["confidence"] = fail_votes / total_votes if total_votes > 0 else 1.0
 
             final_evals.append(chosen)
 
@@ -186,8 +202,10 @@ def resolve_majority_vote(
 
             pass_votes = 0
             fail_votes = 0
+            contested_votes = 0
             best_pass = None
             best_fail = None
+            best_contested = None
 
             # Fix list comprehension Any | None typing
             votes_raw = [r.get(crit.id) for r in results]
@@ -201,6 +219,10 @@ def resolve_majority_vote(
                         pass_votes += 1
                         if best_pass is None:
                             best_pass = v
+                    elif status == "CONTESTED":
+                        contested_votes += 1
+                        if best_contested is None:
+                            best_contested = v
                     else:
                         fail_votes += 1
                         if best_fail is None:
@@ -209,14 +231,24 @@ def resolve_majority_vote(
                     logger.warning(f"Failed to parse consensus vote for {crit.id}: {e}")
                     fail_votes += 1
 
-            if pass_votes > fail_votes:
+            total_votes = len(block_votes)
+            if pass_votes > fail_votes and pass_votes > contested_votes:
                 chosen = best_pass if best_pass else (block_votes[0] if block_votes else {})
-                chosen["status"] = "PASS"
-                chosen["confidence"] = pass_votes / len(block_votes) if block_votes else 0.0
+                confidence = pass_votes / total_votes if total_votes > 0 else 0.0
+                if confidence <= 0.67:
+                    chosen["status"] = "CONTESTED"
+                    chosen["confidence"] = confidence
+                else:
+                    chosen["status"] = "PASS"
+                    chosen["confidence"] = confidence
+            elif contested_votes >= pass_votes and contested_votes >= fail_votes:
+                chosen = best_contested if best_contested else (block_votes[0] if block_votes else {})
+                chosen["status"] = "CONTESTED"
+                chosen["confidence"] = contested_votes / total_votes if total_votes > 0 else 1.0
             else:
                 chosen = best_fail if best_fail else (block_votes[0] if block_votes else {})
                 chosen["status"] = "FAIL"
-                chosen["confidence"] = fail_votes / len(block_votes) if block_votes and fail_votes > 0 else 1.0
+                chosen["confidence"] = fail_votes / total_votes if total_votes > 0 else 1.0
 
             final_res[crit.id] = chosen
 

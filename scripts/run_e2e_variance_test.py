@@ -19,7 +19,7 @@ def check_backend() -> bool:
     return False
 
 
-def trigger_execution(bp_id: str) -> None:
+def trigger_execution() -> None:
     print("Triggering E2E execution natively via Python requests...")
     import requests
 

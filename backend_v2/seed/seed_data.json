@@ -7279,7 +7279,7 @@
       },
       "category_id": "protocol",
       "type": "instruction",
-      "ai_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields or instructions. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate if the data is 'good', only its physical presence. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema. defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails. FINAL JSON BINDING RULE: Never use the ambiguous words PASS or FAIL in your reasoning. Conclude strictly with 'CONDITION MET' or 'CONDITION NOT MET'. If your step-by-step audit concludes with 'CONDITION NOT MET', you MUST force the exact_quote field to be strictly null in the final JSON. Outputting a quote after failing the validation is a catastrophic system error. SYMMETRICAL BURDEN OF PROOF: If the source text explicitly contradicts the claim, you MUST extract the contradicting text into the 'counter_quote' field and set the status to 'CONTESTED'. Never attempt to contest or fail a claim without providing physical counter-evidence.",
+      "ai_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields or instructions. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate if the data is 'good', only its physical presence. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema. defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails. FINAL JSON BINDING RULE: Never use the ambiguous words PASS or FAIL in your reasoning. Conclude strictly with 'CONDITION MET', 'CONDITION NOT MET', or 'CONTESTED' (only if explicit evidence BOTH supports and contradicts the condition). Excessive use of CONTESTED will result in failure. If your step-by-step audit concludes with 'CONDITION NOT MET', you MUST force the exact_quote field to be strictly null in the final JSON. Outputting a quote after failing the validation is a catastrophic system error. SYMMETRICAL BURDEN OF PROOF: If the source text explicitly contradicts the claim, you MUST extract the contradicting text into the 'counter_quote' field and set the status to 'CONTESTED'. Never attempt to contest or fail a claim without providing physical counter-evidence.",
       "is_evaluative": false
     },
     {
@@ -7916,7 +7916,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "fast",
+      "model_strategy": "strict",
       "expected_inputs": [
         "inputs",
         "context"
@@ -8195,7 +8195,7 @@
       ],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "fast",
+      "model_strategy": "strict",
       "expected_inputs": [
         "inputs",
         "context"
@@ -8305,7 +8305,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "fast",
+      "model_strategy": "strict",
       "expected_inputs": [
         "inputs",
         "context"
@@ -8359,7 +8359,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "fast",
+      "model_strategy": "strict",
       "expected_inputs": [
         "inputs",
         "context"
@@ -8412,7 +8412,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "fast",
+      "model_strategy": "strict",
       "expected_inputs": [
         "inputs",
         "context"

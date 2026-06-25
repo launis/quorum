@@ -133,7 +133,7 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
     )
 
     assert "evaluations" in final
-    assert final["evaluations"][0]["status"] in ["PASS", "FAIL", "DLQ"]
+    assert final["evaluations"][0]["status"] in ["PASS", "FAIL", "CONTESTED", "DLQ"]
     assert "VALIDATION DECISION:" in final["evaluations"][0]["semantic_reasoning"]
     assert usage is not None
     assert usage.prompt_tokens == 30
@@ -321,7 +321,7 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
     )
 
     assert final["inst_12345678901234567890123456789012"] == "This is raw instruction text"
-    assert final["crit_12345678901234567890123456789012"]["status"] in ["PASS", "FAIL", "DLQ"]
+    assert final["crit_12345678901234567890123456789012"]["status"] in ["PASS", "FAIL", "CONTESTED", "DLQ"]
 
 
 @pytest.mark.asyncio

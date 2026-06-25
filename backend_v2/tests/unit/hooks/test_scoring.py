@@ -798,3 +798,122 @@ def test_apply_scoring_logic_fails_fast_on_global_context_bug() -> None:
     # So I just write the test without pytest.raises so the user can see it crash.
     result = cast(HookResult, apply_scoring_logic_hook(state, deps))
     assert result.success is True
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_dynamic_penalty() -> None:
+    """Test that matrix_level score correctly applies the dynamic penalty without affecting the global scale improperly."""
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    evaluations = []
+
+    # Total 5 atoms, 1 CONTESTED, 4 PASS
+    for i in range(1, 5):
+        evaluations.append(
+            {
+                "atom_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": "PASS",
+                "semantic_reasoning": "Hyväksytty",
+                "contextual_override": False,
+                "structural_location": "",
+            }
+        )
+    evaluations.append(
+        {
+            "atom_id": generate_atom_hash("atom_5", mandate),
+            "status": "CONTESTED",
+            "semantic_reasoning": "Contested",
+            "contextual_override": False,
+            "structural_location": "",
+        }
+    )
+
+    state = HookState(
+        execution_id="exec_0123456789abcdef",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata={},
+        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        global_context_vars={},
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    assert result.success is True
+
+    # 5 atoms -> 100% hits. Unpenalized score is 5.0.
+    # 1 CONTESTED atom -> 5% penalty -> 5.0 * 0.95 = 4.75.
+    raw_score = result.state_delta["pb_1234567890123456"]["raw_score"]
+    assert abs(raw_score - 4.75) < 0.01
+    assert (
+        "DYNAMIC PENALTY APPLIED: -5% for CONTESTED atoms" in result.state_delta["pb_1234567890123456"]["justification"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_cognitive_collapse() -> None:
+    """Test that Cognitive Collapse lock correctly rejects a matrix exceeding the 3 atom or 50% threshold."""
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    evaluations = []
+
+    # 5 atoms, 4 CONTESTED, 1 PASS -> >3 contested atoms AND >50% contested
+    for i in range(1, 2):
+        evaluations.append(
+            {
+                "atom_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": "PASS",
+                "semantic_reasoning": "Hyväksytty",
+                "contextual_override": False,
+                "structural_location": "",
+            }
+        )
+    for i in range(2, 6):
+        evaluations.append(
+            {
+                "atom_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": "CONTESTED",
+                "semantic_reasoning": "Contested",
+                "contextual_override": False,
+                "structural_location": "",
+            }
+        )
+
+    state = HookState(
+        execution_id="exec_abcdef0123456789",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata={},
+        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        global_context_vars={},
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    assert result.success is True
+
+    # Should trigger cognitive collapse lock
+    raw_score = result.state_delta["pb_1234567890123456"].get("raw_score")
+    assert raw_score is None
+    assert (
+        "[INDETERMINATE] Matrix score invalidated because the cognitive collapse safety lock was triggered"
+        in result.state_delta["pb_1234567890123456"]["justification"]
+    )

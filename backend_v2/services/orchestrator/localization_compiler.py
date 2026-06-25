@@ -152,14 +152,8 @@ class LocalizationCompiler:
 
                             mandate_text = mandate_str
 
-                            if assertion.inverse_evidence:
-                                mandate_text += (
-                                    " This is an inverse rule (Vice). "
-                                    "If rule_satisfied = True (no issues found), evidence_found MUST be False "
-                                    'and you must return an empty string "" for exact_quote. '
-                                    "If rule_satisfied = False (violation found), evidence_found MUST be True "
-                                    "and you MUST quote the exact violation."
-                                )
+                            # Epic 85 / System 2 Variance: Removed inverse_evidence 'Vice' logic
+                            # to eliminate the double-inversion trap. The LLM acts purely as an objective sensor.
 
                             if assertion.allow_contextual_override:
                                 mandate_text += (

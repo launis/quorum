@@ -203,6 +203,9 @@ class LightweightExtractionAtom(V2CoreBase):
         if self.status:
             if self.status == "DLQ":
                 return "DLQ"
+            # Phase 1: CONTESTED bypasses inversion logic
+            if self.status == "CONTESTED":
+                return True
             evidence_found = self.status == "PASS"
             if inverse_evidence:
                 return not evidence_found
@@ -348,6 +351,9 @@ class AtomEvaluationItemDTO(V2CoreBase):
         if self.status:
             if self.status == "DLQ":
                 return "DLQ"
+            # Phase 1: CONTESTED bypasses inversion logic
+            if self.status == "CONTESTED":
+                return True
             evidence_found = self.status == "PASS"
             if inverse_evidence:
                 return not evidence_found
