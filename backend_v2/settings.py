@@ -198,6 +198,9 @@ class Settings(BaseSettings):
         str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
     ] = None
     environment: Annotated[str, Field(description="development, staging, or production")] = "production"
+    fast_dev_mode: Annotated[
+        bool, BeforeValidator(strip_whitespace), Field(description="Enable FastDev performance overrides")
+    ] = True
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 
     api_url: Annotated[str | None, Field(description="Public API Base URL")] = "http://localhost:8000"

@@ -76,7 +76,9 @@ echo [!] Redis Queues flushed!
 echo [2/3] Launching Backend ^& Worker (Uvicorn + Arq)...
 echo       Mode: LOCAL
 echo       Config: LOCAL DB (db_v2.json), REAL LLM, MOCK AUTH
-echo       Notes:  Allows testing local database and real LLMs with mock login.
+echo       FastDev: ENABLED BY DEFAULT (Flash models, 5-word limit, 0 delays).
+echo                To bypass for full LLM quality (Pro models, full length), run:
+echo                $env:FAST_DEV_MODE="false"; .\run_local.bat
 
 set USE_FIREBASE_AUTH=false
 set DISABLE_VERTEX_CACHE=false
@@ -86,7 +88,7 @@ if "%1"=="--no-cache" (
 )
 
 :: Backend
-start "CQ Backend V2 (LOCAL)" cmd /k "chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --log-config backend_v2/uvicorn_logging.yaml"
+start "CQ Backend V2 (LOCAL)" cmd /k "chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --timeout-keep-alive 30 --log-config backend_v2/uvicorn_logging.yaml"
 
 :: Worker
 start "CQ Worker V2 (LOCAL)" cmd /k "chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run python -m backend_v2.run_worker"

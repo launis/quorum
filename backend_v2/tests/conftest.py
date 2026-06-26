@@ -66,6 +66,8 @@ patch_pydantic_base_model_cache()
 
 os.environ["DISABLE_LOGFIRE"] = "true"
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+# Force FAST_DEV_MODE false globally for unit tests to ensure they test production limits
+os.environ["FAST_DEV_MODE"] = "false"
 
 
 @pytest.fixture(autouse=True, scope="session")

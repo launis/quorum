@@ -54,6 +54,18 @@ def calculate_mechanical_cognitive_variance(
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
+        
+    import math
+    if math.isnan(llm_authenticity_score) or math.isinf(llm_authenticity_score):
+        logger.error(
+            f"Validation failed for llm_authenticity_score: invalid mathematical value ({llm_authenticity_score})",
+            exc_info=True,
+        )
+        raise AppException(
+            message="llm_authenticity_score cannot be NaN or Infinity.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     # Normalization mapping count from 0-10+ to 0.0-2.0 scale
     normalized_performative_count = min((performative_phrases_count / 10.0) * 2.0, 2.0)

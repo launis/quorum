@@ -171,7 +171,17 @@ for i in range(2):
 
     print("Starting run_local.bat...")
     # creationflags=subprocess.CREATE_NEW_CONSOLE allows it to spawn detached windows just like a user double-clicking it
-    p = subprocess.Popen([r"c:\src\quorum\run_local.bat"], creationflags=subprocess.CREATE_NEW_CONSOLE)
+
+    # ---------------------------------------------------------
+    # FastDev Bypass (Full Quality E2E)
+    # Automatically disables the 5-word limits, Flash model downgrades,
+    # and zero-delay optimizations enforced by FAST_DEV_MODE.
+    # This ensures the e2e test uses actual production-grade models
+    # and realistic timings while still allowing mock-tokens in dev mode.
+    # ---------------------------------------------------------
+    backend_env = os.environ.copy()
+    backend_env["FAST_DEV_MODE"] = "false"
+    p = subprocess.Popen([r"c:\src\quorum\run_local.bat"], env=backend_env, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
     print("Waiting for backend to become responsive...")
     if not check_backend():

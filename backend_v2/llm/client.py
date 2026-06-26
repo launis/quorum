@@ -64,6 +64,12 @@ class LLMClient:
             # Fail Fast: Enforce strict dependency injection (Zero-Fallback)
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_strategy.")
 
+        # 0. Apply generic system strategy aliases (if any exist in config)
+        from backend_v2.models.enums import SystemOverrides
+
+        if strategy_name in SystemOverrides.STRATEGY_ALIASES.value:
+            strategy_name = SystemOverrides.STRATEGY_ALIASES.value[strategy_name]
+
         # 1. Fetch Raw Registry (Opaque ID Standard Supported)
         try:
             raw_registry = await repository.get_model_registry()
@@ -103,17 +109,10 @@ class LLMClient:
 
         target_provider = target_strategy.provider
         target_model_name = target_strategy.model_name
-
-        from backend_v2.settings import get_settings
-
-        if get_settings().environment == "development":
-            if "-pro" in target_model_name.lower():
-                target_model_name = target_model_name.replace("-pro", "-flash").replace("-PRO", "-FLASH")
-            if target_strategy.rpm_limit and target_strategy.rpm_limit < 100:
-                target_strategy.rpm_limit = 100
+        target_rpm_limit = target_strategy.rpm_limit
 
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
-        if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
+        if target_strategy.tpm_limit is None or target_rpm_limit is None:
             raise ConfigurationError(
                 f"Strict Mode: Strategy '{strategy_name}' is missing required 'tpm_limit' "
                 "or 'rpm_limit' in Model Registry.",
@@ -139,7 +138,7 @@ class LLMClient:
             top_p=target_strategy.top_p,
             top_k=target_strategy.top_k,
             tpm_limit=target_strategy.tpm_limit,
-            rpm_limit=target_strategy.rpm_limit,
+            rpm_limit=target_rpm_limit,
             default_max_tokens=target_strategy.max_tokens,
             supports_grounding=target_strategy.supports_grounding,
             parsing_mode=target_strategy.parsing_mode,
@@ -215,29 +214,6 @@ class LLMClient:
             for msg in messages:
                 # Create a deep copy to prevent mutating the original Orchestrator payload
                 final_messages.append(copy.deepcopy(msg))
-
-        from backend_v2.settings import get_settings
-
-        if get_settings().environment == "development":
-            dev_instruction = "\n\n[SYSTEM: FAST-DEV MODE ACTIVE]\nKeep ALL string fields, explanations, and justifications strictly UNDER 5 WORDS. Speed is the only priority."
-            user_msg_found = False
-            for msg in reversed(final_messages):
-                if msg.get("role") == "user":
-                    content = msg.get("content")
-                    if isinstance(content, str):
-                        msg["content"] = content + dev_instruction
-                        user_msg_found = True
-                        break
-                    elif isinstance(content, list):
-                        for part in content:
-                            if isinstance(part, dict) and part.get("type") == "text":
-                                part["text"] = (part.get("text") or "") + dev_instruction
-                                user_msg_found = True
-                                break
-                        if user_msg_found:
-                            break
-            if not user_msg_found:
-                final_messages.append({"role": "user", "content": dev_instruction.strip()})
 
         # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
         # We process the raw messages array dynamically before handing it to the provider.
