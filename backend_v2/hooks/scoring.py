@@ -180,6 +180,7 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     # 2. Falsifier Penalty Check
     falsifier_data = _extract_falsifier_data(lookup_ctx)
     is_post_hoc = _calculate_falsifier_penalty(falsifier_data)
+    penalties: list[str] = []
 
     total_score_accum = 0.0
     count = 0
@@ -231,6 +232,41 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         scores_found.append(v_float)
 
     if count == 0:
+        # Tarkistetaan, johtuuko nollatulos validista indeterminate-tilasta
+        is_valid_indeterminate = False
+        for _, v in lookup_ctx.items():
+            if isinstance(v, dict) and "[INDETERMINATE]" in v.get("justification", ""):
+                is_valid_indeterminate = True
+                break
+
+        if not is_valid_indeterminate and "steps" in lookup_ctx and isinstance(lookup_ctx["steps"], list):
+            for step_val in lookup_ctx["steps"]:
+                payload = None
+                if isinstance(step_val, dict):
+                    payload = step_val.get("payload")
+                elif hasattr(step_val, "payload"):
+                    payload = step_val.payload
+
+                if isinstance(payload, dict):
+                    for _, v in payload.items():
+                        if isinstance(v, dict) and "[INDETERMINATE]" in v.get("justification", ""):
+                            is_valid_indeterminate = True
+                            break
+                    if is_valid_indeterminate:
+                        break
+
+        if is_valid_indeterminate:
+            logger.warning(
+                "[ScoringHook] Matrix score is indeterminate due to Cognitive Collapse or DLQ limits. Skipping crash."
+            )
+            indet_result = {
+                "total_score": None,
+                "final_score": None,
+                "penalties_applied": penalties,
+                "aggregation_status": "INDETERMINATE - Cognitive Collapse / Quality Check Failed",
+            }
+            return HookResult(success=True, state_delta={"scoring_result": indet_result})
+
         # Enforce Fail-Fast! Silent fallbacks and graceful degradation are BANNED.
         msg = (
             "Strict Fail-Fast Enforced: '_evaluative_matrices' missing from state. "
@@ -246,7 +282,6 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     settings = get_settings()
 
     final_score = average_score
-    penalties = []
 
     total_penalty_factor = 0.0
 
@@ -960,12 +995,15 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 )
 
                 # Apply dynamic penalty here
-                if raw_score is not None and n_contested > 0:
-                    raw_score = raw_score * (1 - 0.05 * n_contested)
+                if raw_score is not None and n_contested > 0 and global_total > 0:
+                    penalty_factor = (n_contested / global_total) * 0.15
+                    raw_score = raw_score * (1.0 - penalty_factor)
                     raw_score = max(raw_score, math_min)
 
-                    penalty_pct = n_contested * 5
-                    justification = f"[DYNAMIC PENALTY APPLIED: -{penalty_pct}% for CONTESTED atoms]\n{justification}"
+                    penalty_pct = penalty_factor * 100
+                    justification = (
+                        f"[DYNAMIC PENALTY APPLIED: -{penalty_pct:.1f}% for CONTESTED atoms]\n{justification}"
+                    )
 
             pb_meta = next((pb_model for pid, pb_model in matrix_blocks if pid == pb_id), None)
             allowed_exts = None

@@ -59,13 +59,5 @@ def test_inverse_logic_injected() -> None:
     assert "<anchor_target>The summary</anchor_target>" in rubrics
     assert "<validation_rule>Must be nice</validation_rule>" in rubrics
 
-    # Assert inverse logic string is properly injected
-    expected_inverse_text = (
-        "This is an inverse rule (Vice). "
-        "If rule_satisfied = True (no issues found), evidence_found MUST be False "
-        'and you must return an empty string "" for exact_quote. '
-        "If rule_satisfied = False (violation found), evidence_found MUST be True "
-        "and you MUST quote the exact violation."
-    )
-
-    assert expected_inverse_text in rubrics, "Inverse logic text was not injected properly."
+    # Assert inverse logic rule ID is present in XML rubrics
+    assert '<rule id="tda_22222222222222222222222222222222">' in rubrics

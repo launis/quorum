@@ -851,11 +851,12 @@ async def test_matrix_scoring_hook_dynamic_penalty() -> None:
     assert result.success is True
 
     # 5 atoms -> 100% hits. Unpenalized score is 5.0.
-    # 1 CONTESTED atom -> 5% penalty -> 5.0 * 0.95 = 4.75.
+    # 1 CONTESTED atom -> relative penalty (1/5 * 15% = 3%) -> 5.0 * 0.97 = 4.85.
     raw_score = result.state_delta["pb_1234567890123456"]["raw_score"]
-    assert abs(raw_score - 4.75) < 0.01
+    assert abs(raw_score - 4.85) < 0.01
     assert (
-        "DYNAMIC PENALTY APPLIED: -5% for CONTESTED atoms" in result.state_delta["pb_1234567890123456"]["justification"]
+        "DYNAMIC PENALTY APPLIED: -3.0% for CONTESTED atoms"
+        in result.state_delta["pb_1234567890123456"]["justification"]
     )
 
 

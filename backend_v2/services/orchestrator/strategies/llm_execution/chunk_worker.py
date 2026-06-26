@@ -185,8 +185,13 @@ def resolve_majority_vote(
                 chosen["confidence"] = contested_votes / total_votes if total_votes > 0 else 1.0
             else:
                 chosen = best_fail if best_fail else votes[0]
-                chosen["status"] = "FAIL"
-                chosen["confidence"] = fail_votes / total_votes if total_votes > 0 else 1.0
+                confidence = fail_votes / total_votes if total_votes > 0 else 1.0
+                if confidence <= 0.67:
+                    chosen["status"] = "CONTESTED"
+                    chosen["confidence"] = confidence
+                else:
+                    chosen["status"] = "FAIL"
+                    chosen["confidence"] = confidence
 
             final_evals.append(chosen)
 
@@ -247,8 +252,13 @@ def resolve_majority_vote(
                 chosen["confidence"] = contested_votes / total_votes if total_votes > 0 else 1.0
             else:
                 chosen = best_fail if best_fail else (block_votes[0] if block_votes else {})
-                chosen["status"] = "FAIL"
-                chosen["confidence"] = fail_votes / total_votes if total_votes > 0 else 1.0
+                confidence = fail_votes / total_votes if total_votes > 0 else 1.0
+                if confidence <= 0.67:
+                    chosen["status"] = "CONTESTED"
+                    chosen["confidence"] = confidence
+                else:
+                    chosen["status"] = "FAIL"
+                    chosen["confidence"] = confidence
 
             final_res[crit.id] = chosen
 

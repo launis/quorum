@@ -1,4 +1,3 @@
-import base64
 import json
 import os
 import subprocess
@@ -56,6 +55,7 @@ def load_inputs_from_path(path: str) -> dict[str, Any]:
             if ext == ".pdf":
                 import fitz
                 import pymupdf4llm
+
                 with open(file_path, "rb") as f:
                     content_bytes = f.read()
                 doc = fitz.open(stream=content_bytes, filetype="pdf")
@@ -68,6 +68,7 @@ def load_inputs_from_path(path: str) -> dict[str, Any]:
                     pdf_date = metadata.get("modDate") or metadata.get("creationDate")
                     if pdf_date:
                         from backend_v2.services.document_extraction import DocumentExtractionService
+
                         parsed_date = DocumentExtractionService.parse_pdf_date(pdf_date)
                         if parsed_date:
                             extracted_dates.append(parsed_date)
@@ -79,7 +80,7 @@ def load_inputs_from_path(path: str) -> dict[str, Any]:
             elif ext in (".txt", ".md"):
                 with open(file_path, encoding="utf-8") as f:
                     inputs[mapped_key] = f.read()
-        
+
         if extracted_dates:
             valid_dates = sorted(extracted_dates, reverse=True)
             inputs["document_date"] = valid_dates[0]
@@ -160,7 +161,9 @@ execution_ids = []
 for i in range(2):
     print(f"\n=== RUN {i + 1} ===")
     print("Cleaning up old services...")
-    subprocess.run([r"c:\src\quorum\kill_services.bat", "--no-pause"], input="\n", text=True, capture_output=True, shell=True)
+    subprocess.run(
+        [r"c:\src\quorum\kill_services.bat", "--no-pause"], input="\n", text=True, capture_output=True, shell=True
+    )
 
     # Allow Windows sufficient time to release file and DLL locks from killed processes
     print("Waiting 5 seconds for Windows to release file locks...")
@@ -184,6 +187,7 @@ for i in range(2):
     # Inject noise for Run 2 to test the normalizer
     if i == 1:
         print("Injecting noise into inputs for Run 2 (to test normalizer)...")
+
         # Add a zero-width space, some trailing spaces, and change a regular space to multiple spaces in product_text
         def inject_noise(text: str) -> str:
             if " a " in text:
@@ -258,7 +262,9 @@ for i in range(2):
         sys.exit(1)
 
 print("\n=== FINAL CLEANUP ===")
-subprocess.run([r"c:\src\quorum\kill_services.bat", "--no-pause"], input="\n", text=True, capture_output=True, shell=True)
+subprocess.run(
+    [r"c:\src\quorum\kill_services.bat", "--no-pause"], input="\n", text=True, capture_output=True, shell=True
+)
 
 print("\n=== RUNNING DIFF EXECUTIONS ===")
 diff_cmd = ["uv", "run", "python", r"c:\src\quorum\scripts\diff_executions.py"] + execution_ids

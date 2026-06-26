@@ -98,8 +98,8 @@ def test_resolve_majority_vote_pure_majority() -> None:
 
         evals = merged["evaluations"]
         assert len(evals) == 1
-        assert evals[0]["status"] == "FAIL"
-        assert evals[0]["confidence"] == 2 / 3  # 2 FAILs, 1 PASS
+        assert evals[0]["status"] == "CONTESTED"
+        assert evals[0]["confidence"] == 2 / 3  # 2 FAILs, 1 PASS (confidence <= 0.67 causes override to CONTESTED)
         assert evals[0]["exact_quotes"] == ["q"]
 
 
