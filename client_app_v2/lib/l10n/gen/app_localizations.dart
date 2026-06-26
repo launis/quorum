@@ -6393,26 +6393,50 @@ abstract class AppLocalizations {
   /// No description provided for @xaiVarianceValidationTitle.
   ///
   /// In en, this message translates to:
-  /// **'Mechanical vs Cognitive Balance'**
+  /// **'🤖 VARIANCE (COGNITIVE VS. MECHANICAL)'**
   String get xaiVarianceValidationTitle;
 
   /// No description provided for @xaiVerdictAligned.
   ///
   /// In en, this message translates to:
-  /// **'Aligned (ALIGNED)'**
+  /// **'✅ Aligned'**
   String get xaiVerdictAligned;
 
   /// No description provided for @xaiVerdictSycophancy.
   ///
   /// In en, this message translates to:
-  /// **'Cognitive Sycophancy (MISALIGNED_SYCOPHANCY)'**
+  /// **'❌ Sycophancy'**
   String get xaiVerdictSycophancy;
 
   /// No description provided for @xaiVerdictMisaligned.
   ///
   /// In en, this message translates to:
-  /// **'Misaligned (MISALIGNED)'**
+  /// **'⚠️ Misaligned'**
   String get xaiVerdictMisaligned;
+
+  /// No description provided for @xaiVarianceBarAligned.
+  ///
+  /// In en, this message translates to:
+  /// **'Aligned'**
+  String get xaiVarianceBarAligned;
+
+  /// No description provided for @xaiVarianceBarMild.
+  ///
+  /// In en, this message translates to:
+  /// **'Mild Conflict'**
+  String get xaiVarianceBarMild;
+
+  /// No description provided for @xaiVarianceBarSevere.
+  ///
+  /// In en, this message translates to:
+  /// **'Severe Conflict'**
+  String get xaiVarianceBarSevere;
+
+  /// No description provided for @xaiVarianceInfoText.
+  ///
+  /// In en, this message translates to:
+  /// **'This metric reveals whether the AI\'s self-evaluation contradicts hard mechanical facts. For example, if the AI claims its output is perfectly authentic, but the mechanical scanner detects multiple AI filler words, a variance conflict is flagged.'**
+  String get xaiVarianceInfoText;
 
   /// No description provided for @tdaAnchorTarget.
   ///
@@ -6455,6 +6479,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI Jargon (Authenticity)'**
   String get xaiAuthenticityEvaluationTitle;
+
+  /// No description provided for @penaltySecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Threat Detected (-{percentage}%)'**
+  String penaltySecurity(String percentage);
+
+  /// No description provided for @penaltyPostHoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Post-Hoc Rationalization Detected (-{percentage}%)'**
+  String penaltyPostHoc(String percentage);
+
+  /// No description provided for @penaltySlop.
+  ///
+  /// In en, this message translates to:
+  /// **'-5% Slop Penalty (AI Jargon): detected {phrases}'**
+  String penaltySlop(String phrases);
 }
 
 class _AppLocalizationsDelegate

@@ -23,6 +23,7 @@ async def test_check_resumability_failed_only() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -49,6 +50,7 @@ async def test_check_resumability_allows_zero_outputs() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=usage_mock,
         executor=Mock(),
     )
@@ -85,6 +87,7 @@ async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=usage_mock,
         executor=Mock(),
     )
@@ -124,6 +127,7 @@ async def test_check_resumability_structural_mismatch() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -163,6 +167,7 @@ async def test_check_resumability_workflow_version_drift() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -198,6 +203,7 @@ async def test_check_resumability_quota_exceeded() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=usage_mock,
         executor=Mock(),
     )
@@ -237,6 +243,7 @@ async def test_check_resumability_successful_resumption() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=usage_mock,
         executor=Mock(),
     )
@@ -274,6 +281,7 @@ async def test_resume_execution_firewall_denied() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=Mock(),
     )

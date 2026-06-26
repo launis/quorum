@@ -330,8 +330,7 @@ class VarianceGaugeWidget extends StatelessWidget {
               ),
             ),
             Tooltip(
-              message:
-                  'Compares performative linguistic patterns ($mechanicalRef) against cognitive authenticity ($cognitiveRef).',
+              message: l10n.xaiVarianceInfoText,
               child: Icon(
                 Icons.info_outline,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -365,9 +364,9 @@ class VarianceGaugeWidget extends StatelessWidget {
                           child: Container(
                             color: const Color(0xFFE8F5E9),
                             alignment: Alignment.center,
-                            child: const Text(
-                              'Aligned',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.xaiVarianceBarAligned,
+                              style: const TextStyle(
                                 fontSize: 8,
                                 color: Color(0xFF1B5E20),
                                 fontWeight: FontWeight.bold,
@@ -380,9 +379,9 @@ class VarianceGaugeWidget extends StatelessWidget {
                           child: Container(
                             color: const Color(0xFFFFF3E0),
                             alignment: Alignment.center,
-                            child: const Text(
-                              'Mild',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.xaiVarianceBarMild,
+                              style: const TextStyle(
                                 fontSize: 8,
                                 color: Color(0xFFE65100),
                                 fontWeight: FontWeight.bold,
@@ -395,9 +394,9 @@ class VarianceGaugeWidget extends StatelessWidget {
                           child: Container(
                             color: const Color(0xFFFFEBEE),
                             alignment: Alignment.center,
-                            child: const Text(
-                              'Severe',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.xaiVarianceBarSevere,
+                              style: const TextStyle(
                                 fontSize: 8,
                                 color: Color(0xFFC62828),
                                 fontWeight: FontWeight.bold,

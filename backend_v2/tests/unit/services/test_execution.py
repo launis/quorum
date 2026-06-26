@@ -64,6 +64,7 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )  # noqa: E501
@@ -86,6 +87,7 @@ async def test_list_executions_admin_sees_all() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -124,6 +126,7 @@ async def test_list_executions_tenant_sees_own() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -165,6 +168,7 @@ async def test_get_execution_admin_sees_any() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -196,6 +200,7 @@ async def test_get_execution_tenant_sees_own() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -228,6 +233,7 @@ async def test_delete_execution_tenant_deletes_own() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -255,6 +261,7 @@ async def test_start_execution_success() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -309,6 +316,7 @@ async def test_render_execution_flat() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -350,6 +358,7 @@ async def test_render_execution_json() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -414,6 +423,7 @@ async def test_enqueue_pdf_generation_success() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )

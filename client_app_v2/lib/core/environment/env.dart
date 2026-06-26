@@ -36,4 +36,14 @@ class Env {
     }
     return url;
   }
+
+  /// The active environment mode (e.g. development, production).
+  /// Defaults to production if not specified to enforce security natively.
+  static String get environment {
+    final env = dotenv.env['ENVIRONMENT'];
+    if (env == null || env.isEmpty) {
+      return 'production';
+    }
+    return env;
+  }
 }

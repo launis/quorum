@@ -290,7 +290,8 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         if p_val > 0:
             total_penalty_factor += p_val
             pct_val = p_val * 100
-            penalties.append(f"Security Threat Detected (-{pct_val:.0f}%)")
+            # Use structured key format to defer localization to presentation boundaries
+            penalties.append(f"PENALTY_SECURITY:{pct_val:.0f}")
         else:
             logger.warning("[ScoringHook] Security Threat Detected (Logged Only - Penalty Disabled in Settings)")
 
@@ -299,7 +300,8 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         if p_val > 0:
             total_penalty_factor += p_val
             pct_val = p_val * 100
-            penalties.append(f"Post-Hoc Rationalization Detected (-{pct_val:.0f}%)")
+            # Use structured key format to defer localization to presentation boundaries
+            penalties.append(f"PENALTY_POST_HOC:{pct_val:.0f}")
         else:
             logger.warning(
                 "[ScoringHook] Post-Hoc Rationalization Detected (Logged Only - Penalty Disabled in Settings)"

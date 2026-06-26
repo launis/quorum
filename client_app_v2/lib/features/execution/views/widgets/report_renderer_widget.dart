@@ -221,8 +221,26 @@ class ReportRendererWidget extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            ...payload.penaltiesApplied.map(
-              (penalty) => Padding(
+            ...payload.penaltiesApplied.map((penalty) {
+              final l10n = AppLocalizations.of(context)!;
+              final String localizedText;
+              if (penalty.startsWith("PENALTY_SECURITY:")) {
+                final pct = penalty.substring("PENALTY_SECURITY:".length);
+                localizedText = l10n.penaltySecurity(pct);
+              } else if (penalty.startsWith("PENALTY_POST_HOC:")) {
+                final pct = penalty.substring("PENALTY_POST_HOC:".length);
+                localizedText = l10n.penaltyPostHoc(pct);
+              } else if (penalty.startsWith("PENALTY_SLOP:")) {
+                final phrases = penalty.substring("PENALTY_SLOP:".length);
+                localizedText = l10n.penaltySlop(phrases);
+              } else {
+                // Enforce Zero-Compromise check: old runs fail fast, no legacy fallbacks allowed.
+                throw Exception(
+                  "Zero-Compromise Check Failed: Legacy or unsupported penalty format: $penalty",
+                );
+              }
+
+              return Padding(
                 padding: const EdgeInsets.only(bottom: 4.0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +255,7 @@ class ReportRendererWidget extends ConsumerWidget {
                     ),
                     Expanded(
                       child: Text(
-                        penalty,
+                        localizedText,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.red.shade800,
@@ -246,8 +264,8 @@ class ReportRendererWidget extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ),
-            ),
+              );
+            }),
           ],
         ),
       ),
@@ -740,6 +758,7 @@ class ReportRendererWidget extends ConsumerWidget {
                             axis: axis,
                             textDeliveryMode: layout.textDeliveryMode,
                             showQuote: shouldShowQuote[index],
+                            groupedExtensions: payload.groupedExtensions,
                           ),
                         ],
                       ),

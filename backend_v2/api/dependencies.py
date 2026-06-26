@@ -336,6 +336,7 @@ async def get_execution_service(
     workflow_repo: WorkflowRepoDep,
     comp_repo: ComponentRepoDep,
     identity_repo: IdentityRepoDep,
+    system_repo: SystemRepoDep,
     usage_service: UsageServiceDep,
     executor: Annotated[DAGExecutor, Depends(get_dag_executor)],
 ) -> ExecutionService:
@@ -346,6 +347,7 @@ async def get_execution_service(
         workflow_repo: Workflow repository.
         comp_repo: Component repository.
         identity_repo: Identity repository.
+        system_repo: System repository.
         usage_service: Usage service.
         executor: DAG executor.
 
@@ -357,6 +359,7 @@ async def get_execution_service(
         workflow_repo=workflow_repo,
         comp_repo=comp_repo,
         identity_repo=identity_repo,
+        system_repo=system_repo,
         usage_service=usage_service,
         executor=executor,
     )

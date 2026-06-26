@@ -13,6 +13,7 @@ from backend_v2.models.domain.linguistics import (
     LinguisticsResultDTO,
     PerformativePatternDTO,
 )
+from backend_v2.models.enums import SystemConfigID
 from backend_v2.models.v2_core import ReportDataDTO, SystemConfigPerformativeLexicons
 
 logger = logging.getLogger(__name__)
@@ -77,10 +78,10 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
 
     # Fetch from DB (Strict Fail-Fast)
     try:
-        config_data = await deps.system_repo.get_system_config("sys_e0b2a3c4d5e6f7a8")
+        config_data = await deps.system_repo.get_system_config(SystemConfigID.PERFORMATIVE_LEXICONS.value)
         if not config_data:
             raise AppException(
-                message="Fail-Fast: Performative Lexicon config 'sys_e0b2a3c4d5e6f7a8' missing from database.",
+                message=f"Fail-Fast: Performative Lexicon config '{SystemConfigID.PERFORMATIVE_LEXICONS.value}' missing from database.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )

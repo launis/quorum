@@ -278,7 +278,7 @@ class SchemaFactory:
                         dynamic_fields[ext] = (
                             float,
                             Field(
-                                default=0.0,
+                                ...,
                                 description=f"Numeric score (0.0 to 1.0) for '{ext}'.",
                             ),
                         )
@@ -286,7 +286,7 @@ class SchemaFactory:
                         dynamic_fields[ext] = (
                             bool,
                             Field(
-                                default=False,
+                                ...,
                                 description=f"Boolean flag for '{ext}'.",
                             ),
                         )
@@ -294,8 +294,8 @@ class SchemaFactory:
                         dynamic_fields[ext] = (
                             str,
                             Field(
-                                default="",
-                                description=f"Qualitative extension for '{ext}' based on the matrix evaluation.",
+                                ...,
+                                description=f"Detailed textual explanation or citation for '{ext}'.",
                             ),
                         )
 

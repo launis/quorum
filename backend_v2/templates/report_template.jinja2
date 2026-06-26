@@ -280,6 +280,12 @@
                             </div>
                         {% endif %}
 
+                        {% if report_data and report_data.grouped_extensions and 'confidence' in report_data.grouped_extensions and axis.confidence is not none %}
+                            <div style="margin-top: 8px; font-size: 11px; color: #3f51b5; font-weight: bold;">
+                                🎯 {{ l10n.get('reportConfidenceTitle', 'Tekoälyn varmuus: {value}%').replace('{value}', (axis.confidence * 100) | int | string) }}
+                            </div>
+                        {% endif %}
+
                         {% if layout.text_delivery_mode == 'full' %}
                             {% if axis.evidence_type %}
                                 <div style="margin-top: 8px; font-size: 11px;">
@@ -311,7 +317,7 @@
                 'remediation_steps': '🛠️ KORJAAVAT TOIMENPITEET',
                 'emotional_sentiment': '🎭 EMOTIONAALINEN SÄVY',
                 'confidence': 'LUOTETTAVUUS JA VARMUUS',
-                'variance_validation': '⚖️ MEKAANINEN VS KOGNITIIVINEN TASAPAINO'
+                'variance_validation': l10n.get('xaiVarianceValidationTitle', '🤖 VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)')
             } %}
 
             {% for ext_key, ext_items in report_data.grouped_extensions.items() %}
@@ -360,13 +366,13 @@
                                 
                                 {% set verdict_label = verdict %}
                                 {% if verdict == 'ALIGNED' %}
-                                    {% set verdict_label = l10n.xaiVerdictAligned %}
+                                    {% set verdict_label = l10n.get('xaiVerdictAligned', '✅ Aligned') %}
                                     {% set verdict_color = '#2e7d32' %}
                                 {% elif verdict == 'MISALIGNED_SYCOPHANCY' %}
-                                    {% set verdict_label = l10n.xaiVerdictSycophancy %}
+                                    {% set verdict_label = l10n.get('xaiVerdictSycophancy', '❌ Sycophancy') %}
                                     {% set verdict_color = '#d32f2f' %}
                                 {% elif verdict == 'MISALIGNED' %}
-                                    {% set verdict_label = l10n.xaiVerdictMisaligned %}
+                                    {% set verdict_label = l10n.get('xaiVerdictMisaligned', '⚠️ Misaligned') %}
                                     {% set verdict_color = '#e65100' %}
                                 {% endif %}
                                 
@@ -374,7 +380,7 @@
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                                         <span style="font-size: 13px; font-weight: bold; color: {{ verdict_color }};">{{ verdict_label }}</span>
                                         <span style="font-size: 10px; color: #666; font-style: italic;">
-                                            Compares performative patterns ({{ mech_ref }}) against cognitive authenticity ({{ cog_ref }}).
+                                            {{ l10n.get('xaiVarianceInfoText', 'Tämä mittari paljastaa, onko tekoälyn oma arvio suorituksestaan (kognitiivinen) ristiriidassa kylmien faktojen (mekaaninen skannaus) kanssa.') }}
                                         </span>
                                     </div>
                                     
@@ -384,9 +390,9 @@
                                     <div style="position: relative; margin: 24px 0 16px 0; padding-top: 10px; height: 35px; width: 100%;">
                                         <!-- The progress bar segments -->
                                         <div style="display: flex; height: 16px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; width: 100%; position: absolute; top: 12px; left: 0;">
-                                            <div style="width: 25%; background-color: #E8F5E9; text-align: center; color: #1B5E20; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #c8e6c9;">Aligned (0.0-0.5)</div>
-                                            <div style="width: 25%; background-color: #FFF3E0; text-align: center; color: #E65100; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #ffe0b2;">Mild (0.5-1.0)</div>
-                                            <div style="width: 50%; background-color: #FFEBEE; text-align: center; color: #C62828; font-size: 8px; line-height: 16px; font-weight: bold;">Severe (1.0-2.0)</div>
+                                            <div style="width: 25%; background-color: #E8F5E9; text-align: center; color: #1B5E20; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #c8e6c9;">{{ l10n.get('xaiVarianceBarAligned', 'Aligned') }} (0.0-0.5)</div>
+                                            <div style="width: 25%; background-color: #FFF3E0; text-align: center; color: #E65100; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #ffe0b2;">{{ l10n.get('xaiVarianceBarMild', 'Mild') }} (0.5-1.0)</div>
+                                            <div style="width: 50%; background-color: #FFEBEE; text-align: center; color: #C62828; font-size: 8px; line-height: 16px; font-weight: bold;">{{ l10n.get('xaiVarianceBarSevere', 'Severe') }} (1.0-2.0)</div>
                                         </div>
                                         
                                         <!-- Float marker triangle pointing down -->
@@ -562,10 +568,24 @@
 
         {% if report_data.penalties_applied %}
         <div style="margin-top: 40px; padding: 15px; background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 6px;">
-            <div style="font-size: 13px; font-weight: bold; color: #c62828; margin-bottom: 8px;">Rangaistukset (Sovelletut vääristymät)</div>
+            <div style="font-size: 13px; font-weight: bold; color: #c62828; margin-bottom: 8px;">{{ l10n.reportPenaltiesApplied | default('Rangaistukset (Sovelletut vääristymät)') }}</div>
             <ul style="margin: 0; padding-left: 20px; font-size: 11px; color: #b71c1c;">
                 {% for penalty in report_data.penalties_applied %}
-                <li>{{ penalty }}</li>
+                <li>
+                    {% if penalty.startswith('PENALTY_SECURITY:') %}
+                        {% set pct = penalty.split(':')[1] %}
+                        {{ l10n.penaltySecurity | default('Security Threat Detected (-{percentage}%)') | replace('{percentage}', pct) }}
+                    {% elif penalty.startswith('PENALTY_POST_HOC:') %}
+                        {% set pct = penalty.split(':')[1] %}
+                        {{ l10n.penaltyPostHoc | default('Post-Hoc Rationalization Detected (-{percentage}%)') | replace('{percentage}', pct) }}
+                    {% elif penalty.startswith('PENALTY_SLOP:') %}
+                        {% set phrases = penalty.split(':', 1)[1] %}
+                        {{ l10n.penaltySlop | default('-5% Slop Penalty (AI Jargon): detected {phrases}') | replace('{phrases}', phrases) }}
+                    {% else %}
+                        {# Zero-Compromise check: crash/fail-fast on legacy formats by invoking undefined #}
+                        {{ ZERO_COMPROMISE_CRASH_LEGACY_PENALTY_FORMAT_DETECTION }}
+                    {% endif %}
+                </li>
                 {% endfor %}
             </ul>
         </div>

@@ -10,12 +10,13 @@ from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
+    ISystemRepository,
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.report import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
-from backend_v2.models.enums import SystemLocale, VirtualSystemStepID
+from backend_v2.models.enums import SystemConfigID, SystemLocale, VirtualSystemStepID
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
@@ -41,6 +42,7 @@ class BlueprintTransformer:
         workflow_repo: IWorkflowRepository,
         comp_repo: IComponentRepository,
         identity_repo: IIdentityRepository,
+        system_repo: ISystemRepository,
     ):
         """Initializes the BlueprintTransformer with required repository interfaces.
 
@@ -49,11 +51,13 @@ class BlueprintTransformer:
             workflow_repo: Repository for workflow definitions.
             comp_repo: Repository for component definitions.
             identity_repo: Repository for identity management.
+            system_repo: Repository for system configurations.
         """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
         self.identity_repo = identity_repo
+        self.system_repo = system_repo
 
     @staticmethod
     def _resolve_i18n_str(val: dict[str, Any] | None, lang: str, fallback: str) -> str:
@@ -872,7 +876,19 @@ class BlueprintTransformer:
                 global_score = float(round(float(t_score), 1)) if t_score is not None else None
                 raw_penalties = score_dto.penalties_applied
                 if isinstance(raw_penalties, list):
-                    penalties_applied = [str(p) for p in raw_penalties]
+                    for p in raw_penalties:
+                        p_str = str(p)
+                        if p_str.startswith("PENALTY_SECURITY:") or p_str.startswith("PENALTY_POST_HOC:"):
+                            penalties_applied.append(p_str)
+                        else:
+                            # Enforce Zero-Compromise Check: fail fast on legacy/unsupported penalty format
+                            msg_legacy = f"Zero-Compromise Check Failed: Legacy or unsupported penalty string detected: '{p_str}'"
+                            logger.error("[BlueprintTransformer] %s", msg_legacy)
+                            raise AppException(
+                                message=msg_legacy,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
             except Exception as e:
                 logger.error(
                     "[BlueprintTransformer] %s: Scoring payload extraction failed: %s",
@@ -1028,22 +1044,6 @@ class BlueprintTransformer:
                         seen_audits.add(audit_hash)
                         mcp_audit_data.append(audit)
 
-            if evaluative_matrices:
-                total_norm = sum(m.normalized_score for m in evaluative_matrices if m.normalized_score is not None)
-                count_norm = sum(1 for m in evaluative_matrices if m.normalized_score is not None)
-                if count_norm > 0:
-                    base_avg = total_norm / count_norm
-
-                    effective_penalty = 0.0
-                    for penalty_str in penalties_applied:
-                        match = re.search(r"-\s*(\d+)%", penalty_str)
-                        if match:
-                            effective_penalty += float(match.group(1)) / 100.0
-
-                    effective_penalty = min(effective_penalty, 0.40)
-                    recalc_final = base_avg * (1.0 - effective_penalty)
-                    global_score = float(round(max(0.0, recalc_final), 1))
-
             strictness_level = (
                 profile.strictness_level
                 if profile.strictness_level is not None
@@ -1064,6 +1064,118 @@ class BlueprintTransformer:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
 
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
+
+            # Run dynamic performative AI jargon (slop) scanning if enabled
+            should_scan_slop = any(
+                inp.scan_for_performative_patterns for inp in getattr(workflow_obj, "expected_inputs", None) or []
+            )
+
+            if should_scan_slop:
+                lang = locale or "en"
+                # Fetch system config using proper SystemRepository
+                config_data = await self.system_repo.get_system_config(SystemConfigID.PERFORMATIVE_LEXICONS.value)
+                if not config_data:
+                    msg_cfg = f"Fail-Fast: Performative Lexicon config '{SystemConfigID.PERFORMATIVE_LEXICONS.value}' missing from database."
+                    logger.error("[BlueprintTransformer] %s", msg_cfg)
+                    raise AppException(
+                        message=msg_cfg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+
+                from backend_v2.models.v2_core import SystemConfigPerformativeLexicons
+
+                config_obj = SystemConfigPerformativeLexicons.model_validate(config_data)
+                target_lexicon = config_obj.lexicon_configs.get(lang)
+                if not target_lexicon or not target_lexicon.words:
+                    msg_lex = f"Fail-Fast: Missing performative lexicon words for language '{lang}'."
+                    logger.error("[BlueprintTransformer] %s", msg_lex)
+                    raise AppException(
+                        message=msg_lex,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+
+                lexicon = target_lexicon.words
+                fuzz_threshold = target_lexicon.fuzz_threshold
+
+                # Build a temporary ReportDataDTO for the slop scanner
+                temp_dto = ReportDataDTO(
+                    strictness_level=strictness_level,
+                    scoring_strategy=scoring_strategy,
+                    scoring_engine_name=engine_str,
+                    user_name=user_name,
+                    workflow_id=execution.workflow_id,
+                    profile_id=resolved_pid,
+                    profile_name=profile_name_dict,
+                    available_profiles=available_profiles_map,
+                    created_at=execution.created_at,
+                    local_time_str=local_time_str,
+                    custom_preface_md=resolved_preface_md,
+                    org_name=org_name,
+                    global_score=0.0,
+                    has_warning=has_warning,
+                    content_blocks=content_blocks,
+                    visible_metadata=visible_metadata,
+                    layouts=layouts_list,
+                    cost_estimate=cost,
+                    total_tokens=t_tokens,
+                    prompt_tokens=p_tokens,
+                    completion_tokens=c_tokens,
+                    reasoning_tokens=r_tokens,
+                    mcp_tool_audit=mcp_audit_data,
+                    grouped_extensions=grouped_extensions,
+                    penalties_applied=penalties_applied,
+                    evaluative_matrices=evaluative_matrices,
+                    informational_matrices=informational_matrices,
+                    matrix_visible_columns=matrix_visible_cols,
+                )
+
+                from backend_v2.hooks.linguistics import scan_report_for_slop
+
+                slop_phrases = scan_report_for_slop(temp_dto, lexicon, fuzz_threshold)
+
+                if len(slop_phrases) >= 3:
+                    logger.warning(
+                        "[BlueprintTransformer] OutputQualityScanner detected slop for %s: %s",
+                        execution.id,
+                        slop_phrases,
+                    )
+                    has_warning = True
+                    phrases_str = ",".join(slop_phrases)
+                    penalties_applied.append(f"PENALTY_SLOP:{phrases_str}")
+
+            if evaluative_matrices:
+                total_norm = sum(m.normalized_score for m in evaluative_matrices if m.normalized_score is not None)
+                count_norm = sum(1 for m in evaluative_matrices if m.normalized_score is not None)
+                if count_norm > 0:
+                    base_avg = total_norm / count_norm
+
+                    effective_penalty = 0.0
+                    for penalty_str in penalties_applied:
+                        if penalty_str.startswith("PENALTY_SECURITY:"):
+                            pct = float(penalty_str.split(":")[1])
+                            effective_penalty += pct / 100.0
+                        elif penalty_str.startswith("PENALTY_POST_HOC:"):
+                            pct = float(penalty_str.split(":")[1])
+                            effective_penalty += pct / 100.0
+                        elif penalty_str.startswith("PENALTY_SLOP:"):
+                            effective_penalty += 0.05
+                        else:
+                            # Enforce Zero-Compromise Check: fail fast on legacy/unsupported penalty format
+                            msg_fmt = (
+                                f"Zero-Compromise Check Failed: Unsupported or legacy penalty format: '{penalty_str}'"
+                            )
+                            logger.error("[BlueprintTransformer] %s", msg_fmt)
+                            raise AppException(
+                                message=msg_fmt,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+
+                    effective_penalty = min(effective_penalty, 0.40)
+                    recalc_final = base_avg * (1.0 - effective_penalty)
+                    global_score = float(round(max(0.0, recalc_final), 1))
 
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,

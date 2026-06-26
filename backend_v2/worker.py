@@ -17,7 +17,6 @@ from backend_v2.core.registry import TaskRegistry
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
-from backend_v2.hooks.linguistics import scan_report_for_slop
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
@@ -534,7 +533,9 @@ async def generate_pdf_task(
     try:
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
-        transformer = BlueprintTransformer(exec_repo=repo, workflow_repo=repo, comp_repo=repo, identity_repo=repo)  # noqa: E501
+        transformer = BlueprintTransformer(
+            exec_repo=repo, workflow_repo=repo, comp_repo=repo, identity_repo=repo, system_repo=repo
+        )  # noqa: E501
 
         # 0. Guard: Execution may have been deleted while PDF job was queued
         execution_dict = await repo.get_execution(execution_id)
@@ -563,56 +564,21 @@ async def generate_pdf_task(
         dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
 
         # 1.5 Scan for Performative AI Slop (Prong 2)
-        workflow_dict = await repo.get_workflow(execution_record.workflow_id)
-        if not workflow_dict:
-            raise RuntimeError(f"Fail-Fast: Workflow {execution_record.workflow_id} not found.")
-        from backend_v2.models.v2_core import Workflow
+        # Simply inspect penalties_applied computed in build_report_dto
+        has_slop_penalty = any(p.startswith("PENALTY_SLOP:") for p in (dto.penalties_applied or []))
+        if has_slop_penalty:
+            slop_penalty = next(p for p in dto.penalties_applied if p.startswith("PENALTY_SLOP:"))
+            phrases_str = slop_penalty.split(":", 1)[1]
+            logger.warning(f"[Task] OutputQualityScanner detected slop for {execution_id}: {phrases_str}")
 
-        workflow = Workflow.model_validate(workflow_dict)
-
-        should_scan_slop = any(inp.scan_for_performative_patterns for inp in workflow.expected_inputs)
-
-        if should_scan_slop:
-            lang = accept_language or "en"
-
-            # Fetch from DB (Strict Fail-Fast)
-            config_data = await repo.get_system_config("sys_e0b2a3c4d5e6f7a8")
-            if not config_data:
-                raise RuntimeError(
-                    "Fail-Fast: Performative Lexicon config 'sys_e0b2a3c4d5e6f7a8' missing from database."
-                )
-            from backend_v2.models.v2_core import SystemConfigPerformativeLexicons
-
-            config = SystemConfigPerformativeLexicons.model_validate(config_data)
-            target_lexicon = config.lexicon_configs.get(lang)
-            if not target_lexicon or not target_lexicon.words:
-                raise RuntimeError(f"Fail-Fast: Missing performative lexicon words for language '{lang}'.")
-
-            lexicon = target_lexicon.words
-            fuzz_threshold = target_lexicon.fuzz_threshold
-            slop_phrases = scan_report_for_slop(dto, lexicon, fuzz_threshold)
-
-            if len(slop_phrases) >= 3:
-                logger.warning(f"[Task] OutputQualityScanner detected slop for {execution_id}: {slop_phrases}")
-
-                # Apply penalties immutably
-                new_penalties = list(dto.penalties_applied) + ["-5% Slop Penalty"]
-                new_score = dto.global_score * 0.95 if dto.global_score is not None else None
-
-                dto = dto.model_copy(
-                    update={"has_warning": True, "global_score": new_score, "penalties_applied": new_penalties}
-                )
-
-                # Update DB ExecutionRecord
-                exec_record_local = await repo.get_execution(execution_id, hydrate=False)
-                if exec_record_local:
-                    new_meta = dict(exec_record_local.metadata)
-                    new_meta["has_slop_warning"] = True
-                    await repo.update_execution(execution_id, {"metadata": new_meta})
-            else:
-                logger.info(
-                    f"[Task] OutputQualityScanner approved {execution_id}: {len(slop_phrases)} slop phrases found (below threshold)."
-                )
+            # Update DB ExecutionRecord metadata for frontend quick querying
+            exec_record_local = await repo.get_execution(execution_id, hydrate=False)
+            if exec_record_local:
+                new_meta = dict(exec_record_local.metadata)
+                new_meta["has_slop_warning"] = True
+                await repo.update_execution(execution_id, {"metadata": new_meta})
+        else:
+            logger.info(f"[Task] OutputQualityScanner approved {execution_id}: no slop penalty applied.")
 
         # 2. Feed structured DTO to PDF Engine instead of DB fetching
         service = PdfReportService(exec_repo=repo, workflow_repo=repo)

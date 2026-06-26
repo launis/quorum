@@ -102,6 +102,15 @@ class LLMClient:
             raise ConfigurationError(f"Strategy '{strategy_name}' not found in registry.")
 
         target_provider = target_strategy.provider
+        target_model_name = target_strategy.model_name
+
+        from backend_v2.settings import get_settings
+
+        if get_settings().environment == "development":
+            if "-pro" in target_model_name.lower():
+                target_model_name = target_model_name.replace("-pro", "-flash").replace("-PRO", "-FLASH")
+            if target_strategy.rpm_limit and target_strategy.rpm_limit < 100:
+                target_strategy.rpm_limit = 100
 
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
         if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
@@ -124,7 +133,7 @@ class LLMClient:
         provider_config = LLMProviderConfig(
             id=f"prv_{uuid.uuid4().hex}",
             provider=target_provider,
-            model_name=target_strategy.model_name,
+            model_name=target_model_name,
             api_key=target_strategy.api_key,
             temperature=target_strategy.temperature,
             top_p=target_strategy.top_p,
@@ -206,6 +215,29 @@ class LLMClient:
             for msg in messages:
                 # Create a deep copy to prevent mutating the original Orchestrator payload
                 final_messages.append(copy.deepcopy(msg))
+
+        from backend_v2.settings import get_settings
+
+        if get_settings().environment == "development":
+            dev_instruction = "\n\n[SYSTEM: FAST-DEV MODE ACTIVE]\nKeep ALL string fields, explanations, and justifications strictly UNDER 5 WORDS. Speed is the only priority."
+            user_msg_found = False
+            for msg in reversed(final_messages):
+                if msg.get("role") == "user":
+                    content = msg.get("content")
+                    if isinstance(content, str):
+                        msg["content"] = content + dev_instruction
+                        user_msg_found = True
+                        break
+                    elif isinstance(content, list):
+                        for part in content:
+                            if isinstance(part, dict) and part.get("type") == "text":
+                                part["text"] = (part.get("text") or "") + dev_instruction
+                                user_msg_found = True
+                                break
+                        if user_msg_found:
+                            break
+            if not user_msg_found:
+                final_messages.append({"role": "user", "content": dev_instruction.strip()})
 
         # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
         # We process the raw messages array dynamically before handing it to the provider.

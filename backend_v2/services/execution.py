@@ -16,6 +16,7 @@ from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
+    ISystemRepository,
     IWorkflowRepository,
 )
 from backend_v2.exceptions import (
@@ -108,6 +109,7 @@ class ExecutionService:
         workflow_repo: IWorkflowRepository,
         comp_repo: IComponentRepository,
         identity_repo: IIdentityRepository,
+        system_repo: ISystemRepository,
         usage_service: UsageService,
         executor: DAGExecutor,
     ):
@@ -115,6 +117,7 @@ class ExecutionService:
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
         self.identity_repo = identity_repo
+        self.system_repo = system_repo
         self.usage_service = usage_service
         self.executor = executor
 
@@ -671,7 +674,9 @@ class ExecutionService:
             )
 
         if fmt == "json":
-            transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
+            transformer = BlueprintTransformer(
+                self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo, self.system_repo
+            )
             dto = await transformer.build_report_dto(
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
@@ -689,7 +694,9 @@ class ExecutionService:
                     )
                 accept_language = str(execution.metadata["target_locale"])
 
-            transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
+            transformer = BlueprintTransformer(
+                self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo, self.system_repo
+            )
             dto = await transformer.build_report_dto(
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
@@ -732,7 +739,9 @@ class ExecutionService:
                     )
                 accept_language = str(execution.metadata["target_locale"])
 
-            transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
+            transformer = BlueprintTransformer(
+                self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo, self.system_repo
+            )
             dto = await transformer.build_report_dto(
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )

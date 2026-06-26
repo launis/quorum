@@ -7,6 +7,7 @@ import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/environment/env.dart';
 
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key});
@@ -16,7 +17,6 @@ class LoginScreen extends HookConsumerWidget {
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final emailController = useTextEditingController();
     final passwordController = useTextEditingController();
-    final mockIdController = useTextEditingController();
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
@@ -25,9 +25,6 @@ class LoginScreen extends HookConsumerWidget {
       // Success is handled by Router listening to Auth State
     );
 
-    // Mock login state since it's a dev tool explicitly ignored from refactoring rules
-    final isMockLoading = useState(false);
-
     Future<void> submit() async {
       if (!formKey.currentState!.validate()) return;
       await loginMutation.mutate(() async {
@@ -35,32 +32,6 @@ class LoginScreen extends HookConsumerWidget {
             .read(authControllerProvider.notifier)
             .signIn(emailController.text.trim(), passwordController.text);
       });
-    }
-
-    Future<void> mockLogin(String id) async {
-      isMockLoading.value = true;
-      try {
-        await ref.read(authControllerProvider.notifier).debugMockLogin(id);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Mock Login Successful! Redirecting...'),
-            ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          String msg = e.toString().replaceAll('Exception: ', '');
-          if (e is AppException) {
-            msg = e.toLocalizedHint(l10n);
-          }
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.mockLoginFailed(msg))));
-        }
-      } finally {
-        if (context.mounted) isMockLoading.value = false;
-      }
     }
 
     return Scaffold(
@@ -149,100 +120,129 @@ class LoginScreen extends HookConsumerWidget {
                   ),
 
                   // Debug Feature: Mock Login (Ignored per user constraint rule)
-                  const SizedBox(height: 24),
-                  Column(
-                    children: [
-                      const Divider(),
-                      const Text(
-                        'Development Tools',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: mockIdController,
-                        decoration: const InputDecoration(
-                          labelText: 'Custom Mock User ID',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.teal,
-                        ),
-                        onPressed: isMockLoading.value
-                            ? null
-                            : () {
-                                if (mockIdController.text.isNotEmpty) {
-                                  mockLogin(mockIdController.text.trim());
-                                }
-                              },
-                        child: const Text('Mock Login (Custom ID)'),
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.purple,
-                        ),
-                        onPressed: isMockLoading.value
-                            ? null
-                            : () => mockLogin(
-                                'usr_a3fd6b3d77c748f4', // ROOT
-                              ),
-                        child: const Text('Mock Login (Root Master)'),
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.orange,
-                        ),
-                        onPressed: isMockLoading.value
-                            ? null
-                            : () => mockLogin(
-                                'usr_18a0d5f6151349a5', // ADMIN
-                              ),
-                        child: const Text('Mock Login (Admin)'),
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.green,
-                        ),
-                        onPressed: isMockLoading.value
-                            ? null
-                            : () => mockLogin(
-                                'usr_936983a7a6c643ab', // MANAGER
-                              ),
-                        child: const Text('Mock Login (Manager)'),
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                        ),
-                        onPressed: isMockLoading.value
-                            ? null
-                            : () => mockLogin(
-                                'usr_1c1cf9c5178846bb', // MEMBER
-                              ),
-                        child: const Text('Mock Login (Member)'),
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.grey,
-                        ),
-                        onPressed: isMockLoading.value
-                            ? null
-                            : () => mockLogin(
-                                'usr_b2d6e4487afc4e69', // VIEWER
-                              ),
-                        child: const Text('Mock Login (Viewer)'),
-                      ),
-                    ],
-                  ),
+                  if (Env.environment == 'development') ...[
+                    const SizedBox(height: 24),
+                    const MockLoginPanel(),
+                  ],
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class MockLoginPanel extends HookConsumerWidget {
+  const MockLoginPanel({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mockIdController = useTextEditingController();
+    final l10n = AppLocalizations.of(context)!;
+    final isMockLoading = useState(false);
+
+    Future<void> mockLogin(String id) async {
+      isMockLoading.value = true;
+      try {
+        await ref.read(authControllerProvider.notifier).debugMockLogin(id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Mock Login Successful! Redirecting...'),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          String msg = e.toString().replaceAll('Exception: ', '');
+          if (e is AppException) {
+            msg = e.toLocalizedHint(l10n);
+          }
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.mockLoginFailed(msg))));
+        }
+      } finally {
+        if (context.mounted) isMockLoading.value = false;
+      }
+    }
+
+    return Column(
+      children: [
+        const Divider(),
+        const Text(
+          'Development Tools',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: mockIdController,
+          decoration: const InputDecoration(
+            labelText: 'Custom Mock User ID',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: Colors.teal),
+          onPressed: isMockLoading.value
+              ? null
+              : () {
+                  if (mockIdController.text.isNotEmpty) {
+                    mockLogin(mockIdController.text.trim());
+                  }
+                },
+          child: const Text('Mock Login (Custom ID)'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: Colors.purple),
+          onPressed: isMockLoading.value
+              ? null
+              : () => mockLogin(
+                  'usr_a3fd6b3d77c748f4', // ROOT
+                ),
+          child: const Text('Mock Login (Root Master)'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: Colors.orange),
+          onPressed: isMockLoading.value
+              ? null
+              : () => mockLogin(
+                  'usr_18a0d5f6151349a5', // ADMIN
+                ),
+          child: const Text('Mock Login (Admin)'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: Colors.green),
+          onPressed: isMockLoading.value
+              ? null
+              : () => mockLogin(
+                  'usr_936983a7a6c643ab', // MANAGER
+                ),
+          child: const Text('Mock Login (Manager)'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: Colors.blue),
+          onPressed: isMockLoading.value
+              ? null
+              : () => mockLogin(
+                  'usr_1c1cf9c5178846bb', // MEMBER
+                ),
+          child: const Text('Mock Login (Member)'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: Colors.grey),
+          onPressed: isMockLoading.value
+              ? null
+              : () => mockLogin(
+                  'usr_b2d6e4487afc4e69', // VIEWER
+                ),
+          child: const Text('Mock Login (Viewer)'),
+        ),
+      ],
     );
   }
 }

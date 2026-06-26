@@ -54,5 +54,5 @@ def test_schema_max_localized_anchors_is_at_least_15() -> None:
     """Verify the SystemConcurrency constant allows sufficient anchors."""
     assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS >= 15, (
         f"SCHEMA_MAX_LOCALIZED_ANCHORS={SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS} "
-        f"is too low for strict multi-word anchor searches. Must be >= 15."
+        "should be >= 15 for the overflow test."
     )

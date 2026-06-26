@@ -306,7 +306,18 @@ class AuthService:
             logger.debug("PyJWT decoding failed, falling back: %s", jwt_err)
 
         # 2. Mock/Dev Mode check
-        if not self.use_firebase or token.startswith("mock-token:"):
+        from backend_v2.settings import get_settings
+
+        is_dev = get_settings().environment == "development"
+        is_mock_token = token.startswith("mock-token:")
+
+        # 1. Torjutaan mock-tokenit tuotannossa heti (Fail-Fast)
+        if is_mock_token and not is_dev:
+            raise AuthenticationError(
+                message="Mock tokens are strictly forbidden in production.", details={"error_code": "FORBIDDEN_TOKEN"}
+            )
+
+        if not self.use_firebase or (is_mock_token and is_dev):
             # Expect format "mock-token:<id>"
             if token.startswith("mock-token:"):
                 id = token.split(":")[1]

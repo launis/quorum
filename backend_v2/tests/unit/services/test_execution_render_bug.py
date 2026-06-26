@@ -18,6 +18,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
+        system_repo=repo_mock,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )

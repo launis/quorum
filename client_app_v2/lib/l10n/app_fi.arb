@@ -1151,10 +1151,14 @@
   "protocolBlockDescription": "Mekaaniset säännöt sokeaan matemaattiseen poimintaan.",
   "criteriaBlocksTitle": "Arvioitavat kriteerilohkot",
   "criteriaBlocksDescription": "Spesifit domain-tason arviointikriteerit.",
-  "xaiVarianceValidationTitle": "Mekaaninen vs Kognitiivinen Tasapaino",
-  "xaiVerdictAligned": "Tasapainossa (ALIGNED)",
-  "xaiVerdictSycophancy": "Kognitiivinen Mielistely (MISALIGNED_SYCOPHANCY)",
-  "xaiVerdictMisaligned": "Poikkeama (MISALIGNED)",
+  "xaiVarianceValidationTitle": "🤖 VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
+  "xaiVerdictAligned": "✅ Yhdenmukainen",
+  "xaiVerdictSycophancy": "❌ Mielistelyharha",
+  "xaiVerdictMisaligned": "⚠️ Looginen ristiriita",
+  "xaiVarianceBarAligned": "Yhdenmukainen",
+  "xaiVarianceBarMild": "Lievä poikkeama",
+  "xaiVarianceBarSevere": "Vakava poikkeama",
+  "xaiVarianceInfoText": "Tämä mittari paljastaa, onko tekoälyn oma arvio suorituksestaan (kognitiivinen) ristiriidassa kylmien faktojen (mekaaninen skannaus) kanssa. Esimerkiksi: Jos tekoäly väittää kirjoittaneensa täydellistä asiatekstiä, mutta järjestelmä löytää tekstistä silti paljon tekoäly-jargonia, syntyy ristiriita.",
   "tdaAnchorTarget": "Ankkurikohde",
   "tdaBoundingBox": "Hakuikkunan Laajuus",
   "tdaExtractionRule": "Poiminnan Sääntö",
@@ -1164,5 +1168,29 @@
   "xaiAuthenticityEvaluationTitle": "Lähdedatan aitous (AI-jargon)",
   "pdfAuditDuration": "Kesto:",
   "pdfAuditQuery": "Hakukysely:",
-  "pdfAuditSources": "Lähteet"
+  "pdfAuditSources": "Lähteet",
+  "penaltySecurity": "Turvallisuusuhka havaittu (-{percentage}%)",
+  "@penaltySecurity": {
+    "placeholders": {
+      "percentage": {
+        "type": "String"
+      }
+    }
+  },
+  "penaltyPostHoc": "Jälkikäteinen perustelu havaittu (-{percentage}%)",
+  "@penaltyPostHoc": {
+    "placeholders": {
+      "percentage": {
+        "type": "String"
+      }
+    }
+  },
+  "penaltySlop": "-5% Slop-rangaistus (Tekoäly-jargon): havaittu {phrases}",
+  "@penaltySlop": {
+    "placeholders": {
+      "phrases": {
+        "type": "String"
+      }
+    }
+  }
 }

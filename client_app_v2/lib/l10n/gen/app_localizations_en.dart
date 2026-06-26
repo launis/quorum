@@ -3498,17 +3498,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'Specific domain semantic claims to evaluate.';
 
   @override
-  String get xaiVarianceValidationTitle => 'Mechanical vs Cognitive Balance';
+  String get xaiVarianceValidationTitle =>
+      '🤖 VARIANCE (COGNITIVE VS. MECHANICAL)';
 
   @override
-  String get xaiVerdictAligned => 'Aligned (ALIGNED)';
+  String get xaiVerdictAligned => '✅ Aligned';
 
   @override
-  String get xaiVerdictSycophancy =>
-      'Cognitive Sycophancy (MISALIGNED_SYCOPHANCY)';
+  String get xaiVerdictSycophancy => '❌ Sycophancy';
 
   @override
-  String get xaiVerdictMisaligned => 'Misaligned (MISALIGNED)';
+  String get xaiVerdictMisaligned => '⚠️ Misaligned';
+
+  @override
+  String get xaiVarianceBarAligned => 'Aligned';
+
+  @override
+  String get xaiVarianceBarMild => 'Mild Conflict';
+
+  @override
+  String get xaiVarianceBarSevere => 'Severe Conflict';
+
+  @override
+  String get xaiVarianceInfoText =>
+      'This metric reveals whether the AI\'s self-evaluation contradicts hard mechanical facts. For example, if the AI claims its output is perfectly authentic, but the mechanical scanner detects multiple AI filler words, a variance conflict is flagged.';
 
   @override
   String get tdaAnchorTarget => 'Anchor Target';
@@ -3532,4 +3545,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get xaiAuthenticityEvaluationTitle => 'AI Jargon (Authenticity)';
+
+  @override
+  String penaltySecurity(String percentage) {
+    return 'Security Threat Detected (-$percentage%)';
+  }
+
+  @override
+  String penaltyPostHoc(String percentage) {
+    return 'Post-Hoc Rationalization Detected (-$percentage%)';
+  }
+
+  @override
+  String penaltySlop(String phrases) {
+    return '-5% Slop Penalty (AI Jargon): detected $phrases';
+  }
 }

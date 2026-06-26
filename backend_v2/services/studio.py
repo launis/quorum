@@ -19,6 +19,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedErro
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.report import PromptContextDTO
+from backend_v2.models.enums import SystemConfigID
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
     LexiconSuggestionListDTO,
@@ -1666,12 +1667,14 @@ class StudioService:
 
     async def get_performative_lexicons_config(self) -> SystemConfigPerformativeLexicons:
         """Get the performative lexicons configuration."""
-        config_data = await self.system_repo.get_system_config("sys_e0b2a3c4d5e6f7a8")
+        config_data = await self.system_repo.get_system_config(SystemConfigID.PERFORMATIVE_LEXICONS.value)
         if not config_data:
             logger.error(
                 "[StudioService] %s: Performative lexicons config not found.", ErrorCodes.RESOURCE_NOT_FOUND.name
             )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id="sys_e0b2a3c4d5e6f7a8")
+            raise ResourceNotFoundError(
+                resource_type="system_config", resource_id=SystemConfigID.PERFORMATIVE_LEXICONS.value
+            )
         return SystemConfigPerformativeLexicons.model_validate(config_data)
 
     async def save_performative_lexicons_config(
@@ -1680,7 +1683,7 @@ class StudioService:
         """Save the performative lexicons configuration."""
         self._enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
         dump = data.model_dump(mode="json")
-        dump["id"] = "sys_e0b2a3c4d5e6f7a8"
+        dump["id"] = SystemConfigID.PERFORMATIVE_LEXICONS.value
         await self.system_repo.create_system_config(dump)
         return await self.get_performative_lexicons_config()
 

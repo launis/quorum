@@ -153,6 +153,7 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )  # noqa: E501
     dto = await transformer.build_report_dto("exe_0000000000000001", accept_language="en")
 
@@ -181,6 +182,7 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )  # noqa: E501
     dto = await transformer.build_report_dto("exe_0000000000000002")
 
@@ -369,6 +371,7 @@ async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any)
         workflow_repo=mock_repo_microcot,
         comp_repo=mock_repo_microcot,
         identity_repo=mock_repo_microcot,
+        system_repo=mock_repo_transformer,
     )  # noqa: E501
 
     with pytest.raises(AppException) as exc_info:
@@ -473,7 +476,11 @@ def mock_repo_sdui() -> AsyncMock:
 @pytest.mark.asyncio
 async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
     transformer = BlueprintTransformer(
-        exec_repo=mock_repo_sdui, workflow_repo=mock_repo_sdui, comp_repo=mock_repo_sdui, identity_repo=mock_repo_sdui
+        exec_repo=mock_repo_sdui,
+        workflow_repo=mock_repo_sdui,
+        comp_repo=mock_repo_sdui,
+        identity_repo=mock_repo_sdui,
+        system_repo=mock_repo_sdui,
     )  # noqa: E501
 
     mock_execution = ExecutionRecord(
@@ -523,7 +530,11 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
 @pytest.mark.asyncio
 async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock) -> None:
     transformer = BlueprintTransformer(
-        exec_repo=mock_repo_sdui, workflow_repo=mock_repo_sdui, comp_repo=mock_repo_sdui, identity_repo=mock_repo_sdui
+        exec_repo=mock_repo_sdui,
+        workflow_repo=mock_repo_sdui,
+        comp_repo=mock_repo_sdui,
+        identity_repo=mock_repo_sdui,
+        system_repo=mock_repo_sdui,
     )  # noqa: E501
 
     mock_execution = ExecutionRecord(
@@ -606,6 +617,7 @@ async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) 
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )  # noqa: E501
     dto = await transformer.build_report_dto("exe_0000000000000003", accept_language="en")
 
@@ -649,6 +661,7 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )  # noqa: E501
     dto = await transformer.build_report_dto("exe_0000000000000004")
 
@@ -696,7 +709,11 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
     and TraceScoringPayloadDTO strictly validates them according to Phase 9 schema rules.
     """
     transformer = BlueprintTransformer(
-        exec_repo=mock_repo_sdui, workflow_repo=mock_repo_sdui, comp_repo=mock_repo_sdui, identity_repo=mock_repo_sdui
+        exec_repo=mock_repo_sdui,
+        workflow_repo=mock_repo_sdui,
+        comp_repo=mock_repo_sdui,
+        identity_repo=mock_repo_sdui,
+        system_repo=mock_repo_sdui,
     )
 
     mock_execution = ExecutionRecord(
@@ -752,6 +769,7 @@ async def test_blueprint_virtual_matrix_allows_missing_justification(mock_repo_t
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )
 
     # This should NOT raise an exception, it should handle missing justification gracefully.
@@ -796,6 +814,7 @@ async def test_blueprint_xai_extensions_type_coercion(mock_repo_transformer: Any
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )
     # This should succeed without raising any Pydantic ValidationError.
     dto = await transformer.build_report_dto("exe_0000000000000007", accept_language="en")
@@ -812,7 +831,11 @@ async def test_blueprint_xai_extensions_type_coercion(mock_repo_transformer: Any
 async def test_blueprint_2d_compare_graceful_degradation(mock_repo_sdui: AsyncMock) -> None:
     """Tier 4 Bug Hunting: 2d_compare must gracefully degrade to 'bar' if only 1 axis is found, instead of crashing."""
     transformer = BlueprintTransformer(
-        exec_repo=mock_repo_sdui, workflow_repo=mock_repo_sdui, comp_repo=mock_repo_sdui, identity_repo=mock_repo_sdui
+        exec_repo=mock_repo_sdui,
+        workflow_repo=mock_repo_sdui,
+        comp_repo=mock_repo_sdui,
+        identity_repo=mock_repo_sdui,
+        system_repo=mock_repo_sdui,
     )
     mock_repo_sdui.get_all_output_profiles_models.return_value = dict_to_obj(
         [
@@ -913,6 +936,7 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )
 
     dto = await transformer.build_report_dto("exe_0000000000000008", accept_language="en")
@@ -975,15 +999,18 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )
     dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
 
+    assert dto.grouped_extensions is not None
     assert "variance_validation" in dto.grouped_extensions
     ext = dto.grouped_extensions["variance_validation"][0]
     assert ext["extension_type"] == "variance_validation"
     assert ext["mechanical_metric_ref"] == "performative_phrases_count"
     assert ext["cognitive_metric_ref"] == "llm_authenticity_score"
-    # authenticity_score = 4.0, performative_phrases_count = 1 -> target mechanical = 3.0 - 0.2 = 2.8. Variance: abs(4.0 - 2.8) = 1.2
+    # authenticity_score = 4.0, performative_phrases_count = 1 -> target mechanical = 3.0 - 0.2 = 2.8.
+    # Variance: abs(4.0 - 2.8) = 1.2
     assert ext["variance_score"] == 1.2
     assert ext["alignment_verdict"] == "MISALIGNED_SYCOPHANCY"
 
@@ -1026,6 +1053,7 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -1152,10 +1180,12 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )
 
     dto = await transformer.build_report_dto("exe_0000000000000011", accept_language="en")
 
+    assert dto.grouped_extensions is not None
     assert "variance_validation" in dto.grouped_extensions
     ext = dto.grouped_extensions["variance_validation"][0]
     assert ext["extension_type"] == "variance_validation"
@@ -1214,6 +1244,7 @@ async def test_blueprint_skips_raw_extensions_when_curated_exists(mock_repo_tran
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )
 
     # Let's populate grouped_extensions with a curated item for 'coaching'
@@ -1259,6 +1290,7 @@ async def test_blueprint_skips_raw_extensions_when_curated_exists(mock_repo_tran
     dto_curated = await transformer.build_report_dto("exe_0000000000000013", accept_language="en")
 
     # Check that coaching list contains ONLY the curated item, and the raw item was skipped
+    assert dto_curated.grouped_extensions is not None
     assert "coaching" in dto_curated.grouped_extensions
     coaching_items = dto_curated.grouped_extensions["coaching"]
     assert len(coaching_items) == 1
@@ -1313,6 +1345,7 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
     )
 
     # Mock visible extensions for this test and restore after
@@ -1329,13 +1362,220 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
         profiles[0].visible_block_extensions = orig_exts
 
     # Check that remediation_steps has only the curated item
+    assert dto.grouped_extensions is not None
     assert "remediation_steps" in dto.grouped_extensions
     remediation_items = dto.grouped_extensions["remediation_steps"]
     assert len(remediation_items) == 1
     assert remediation_items[0]["content"] == "This is curated remediation"
 
     # Check that coaching and justification have NO items (raw tips are skipped entirely)
+    assert dto.grouped_extensions is not None
     assert "coaching" in dto.grouped_extensions
     assert len(dto.grouped_extensions["coaching"]) == 0
     assert "justification" in dto.grouped_extensions
     assert len(dto.grouped_extensions["justification"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_blueprint_slop_scanning_applied_successfully(mock_repo_transformer: Any) -> None:
+    """Verify that build_report_dto runs slop scanning, detects jargon, reduces score and sets warnings."""
+    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.models.v2_core import ExecutionRecord
+
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000005",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        execution_trace=[
+            TraceEvent(
+                step_name="step_analyst",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 100.0,
+                        "normalized_score": 100.0,
+                        "justification": "Very logical.",
+                    }
+                },
+            ),
+            TraceEvent(
+                step_name="step_scoring",
+                event_type="output",
+                content={
+                    "scoring_result": {
+                        "total_score": 100.0,
+                        "final_score": 100.0,
+                        "penalties_applied": ["PENALTY_SECURITY:10"],
+                        "aggregation_status": "V2 Commensurate Average of 1 matrices",
+                    }
+                },
+            ),
+            TraceEvent(
+                step_name="step_synthesis",
+                event_type="output",
+                content={
+                    "_evaluative_matrices": {"matrix_1": 100.0},
+                    "synthesized_markdown": "We need to leverage our robust synergy and drive disruption.",
+                },
+            ),
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "en"},
+    )
+
+    mock_workflow = dict_to_obj(
+        {
+            "id": "wf_1234abcd1234abcd",
+            "slug": "wf_1",
+            "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}},
+            "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
+            "status": "published",
+            "version": 1,
+            "default_profile_id": "prf_dddd1111dddd1111",
+            "default_strictness_level": 50,
+            "default_scoring_strategy": ScoringStrategy.WATERFALL,
+            "steps": [],
+            "expected_inputs": [
+                {
+                    "input_key": "history_text",
+                    "label": {"default_locale": "en", "translations": {"en": "History", "fi": "Historia"}},
+                    "required": True,
+                    "scan_for_performative_patterns": True,
+                    "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
+                }
+            ],
+            "output_profiles": {
+                "prf_dddd1111dddd1111": {
+                    "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                    "synthesis": None,
+                    "layouts": [
+                        {
+                            "preset_view": "1d_metrics",
+                            "text_delivery_mode": "full",
+                            "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+                            "target_blocks": ["*"],
+                            "synthesis": None,
+                        }
+                    ],
+                }
+            },
+        }
+    )
+    mock_repo_transformer.get_workflow.return_value = mock_workflow
+
+    mock_repo_transformer.get_system_config.return_value = {
+        "id": "sys_e0b2a3c4d5e6f7a8",
+        "slug": "performative_lexicons",
+        "lexicon_configs": {
+            "en": {
+                "language_code": "en",
+                "language_name": "English",
+                "words": ["synergy", "disruption", "leverage", "robust"],
+                "fuzz_threshold": 90.0,
+            }
+        },
+    }
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    dto = await transformer.build_report_dto("exe_0000000000000005", accept_language="en")
+
+    assert dto.has_warning is True
+    # Base average is 100. Security penalty is 10%, Slop penalty is 5%.
+    # Capped or combined penalty: 15%. Total score = 100 * 0.85 = 85.0
+    assert dto.global_score == 85.0
+    assert any(p.startswith("PENALTY_SLOP:") for p in dto.penalties_applied)
+    slop_penalty = next(p for p in dto.penalties_applied if p.startswith("PENALTY_SLOP:"))
+    phrases = slop_penalty.split(":", 1)[1].split(",")
+    assert len(phrases) >= 3
+    assert set(phrases).issubset({"synergy", "disruption", "leverage", "robust"})
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
+    """Proves that BlueprintTransformer correctly calls get_system_config on system_repo."""
+    from backend_v2.services.blueprint import BlueprintTransformer
+
+    mock_system_repo = AsyncMock()
+    mock_exec_repo = AsyncMock()
+    mock_workflow_repo = AsyncMock()
+    mock_comp_repo = AsyncMock()
+
+    from backend_v2.models.enums import ExecutionStatus, ScoringStrategy
+    from backend_v2.models.v2_core import ExecutionRecord, OutputProfile
+
+    mock_exec_repo.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000001",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        profile_syntheses={},
+    )
+
+    def dict_to_obj(d):
+        from types import SimpleNamespace
+
+        from backend_v2.models.v2_core import I18nText
+
+        if isinstance(d, dict):
+            if "translations" in d and "default_locale" in d:
+                return I18nText(**d)
+            return SimpleNamespace(**{k: dict_to_obj(v) for k, v in d.items()})
+        elif isinstance(d, list):
+            return [dict_to_obj(v) for v in d]
+        return d
+
+    mock_workflow_repo.get_workflow.return_value = dict_to_obj(
+        {
+            "id": "wf_1234abcd1234abcd",
+            "slug": "wf_1",
+            "name": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
+            "expected_inputs": [{"id": "doc1", "type": "document", "scan_for_performative_patterns": True}],
+            "default_profile_id": "prf_dddd1111dddd1111",
+            "default_strictness_level": 50,
+            "default_scoring_strategy": ScoringStrategy.AVERAGE,
+            "steps": [],
+            "output_profiles": {
+                "prf_dddd1111dddd1111": {
+                    "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                    "layouts": [],
+                }
+            },
+        }
+    )
+
+    profile = OutputProfile.model_validate(
+        {
+            "id": "prf_dddd1111dddd1111",
+            "slug": "default",
+            "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+            "workflow_id": "wf_1234abcd1234abcd",
+            "display_scale": "original",
+            "layouts": [],
+        }
+    )
+
+    mock_comp_repo.get_all_output_profiles_models.return_value = [profile]
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_exec_repo,
+        workflow_repo=mock_workflow_repo,
+        comp_repo=mock_comp_repo,
+        identity_repo=AsyncMock(),
+        system_repo=mock_system_repo,
+    )
+
+    try:
+        await transformer.build_report_dto("exe_0000000000000001", accept_language="en")
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+
+    mock_system_repo.get_system_config.assert_called_once()

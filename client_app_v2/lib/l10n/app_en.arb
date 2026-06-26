@@ -1808,15 +1808,43 @@
   "protocolBlockDescription": "Standard mecanic rules for blind mathematical verification.",
   "criteriaBlocksTitle": "Evaluation Criteria Matrices",
   "criteriaBlocksDescription": "Specific domain semantic claims to evaluate.",
-  "xaiVarianceValidationTitle": "Mechanical vs Cognitive Balance",
-  "xaiVerdictAligned": "Aligned (ALIGNED)",
-  "xaiVerdictSycophancy": "Cognitive Sycophancy (MISALIGNED_SYCOPHANCY)",
-  "xaiVerdictMisaligned": "Misaligned (MISALIGNED)",
+  "xaiVarianceValidationTitle": "🤖 VARIANCE (COGNITIVE VS. MECHANICAL)",
+  "xaiVerdictAligned": "✅ Aligned",
+  "xaiVerdictSycophancy": "❌ Sycophancy",
+  "xaiVerdictMisaligned": "⚠️ Misaligned",
+  "xaiVarianceBarAligned": "Aligned",
+  "xaiVarianceBarMild": "Mild Conflict",
+  "xaiVarianceBarSevere": "Severe Conflict",
+  "xaiVarianceInfoText": "This metric reveals whether the AI's self-evaluation contradicts hard mechanical facts. For example, if the AI claims its output is perfectly authentic, but the mechanical scanner detects multiple AI filler words, a variance conflict is flagged.",
   "tdaAnchorTarget": "Anchor Target",
   "tdaBoundingBox": "Bounding Box Scope",
   "tdaExtractionRule": "Extraction Rule",
   "systemAuditTrailLabel": "System Audit Trail",
   "systemAuditTrailDescription": "Enables MCPAuditTrace fact-checking report injection at the end of the document.",
   "workflowInputScanPerformative": "Scan for AI Jargon (Authenticity)",
-  "xaiAuthenticityEvaluationTitle": "AI Jargon (Authenticity)"
+  "xaiAuthenticityEvaluationTitle": "AI Jargon (Authenticity)",
+  "penaltySecurity": "Security Threat Detected (-{percentage}%)",
+  "@penaltySecurity": {
+    "placeholders": {
+      "percentage": {
+        "type": "String"
+      }
+    }
+  },
+  "penaltyPostHoc": "Post-Hoc Rationalization Detected (-{percentage}%)",
+  "@penaltyPostHoc": {
+    "placeholders": {
+      "percentage": {
+        "type": "String"
+      }
+    }
+  },
+  "penaltySlop": "-5% Slop Penalty (AI Jargon): detected {phrases}",
+  "@penaltySlop": {
+    "placeholders": {
+      "phrases": {
+        "type": "String"
+      }
+    }
+  }
 }

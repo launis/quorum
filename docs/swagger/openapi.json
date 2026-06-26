@@ -6472,6 +6472,17 @@
             "title": "Row Explanations",
             "description": "Synthesized row explanations by matrix ID"
           },
+          "row_curated_quotes": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Row Curated Quotes",
+            "description": "Curated quotes by matrix ID"
+          },
           "cited_sources": {
             "items": {
               "type": "string"

@@ -629,7 +629,6 @@ class OutputProfileCrudView extends HookConsumerWidget {
                         final isWorkflowExtension = [
                           XaiExtensionType.varianceValidation,
                           XaiExtensionType.authenticityEvaluation,
-                          XaiExtensionType.confidence,
                         ].contains(ext);
 
                         if (isWorkflowExtension) return const SizedBox.shrink();
@@ -677,8 +676,6 @@ class OutputProfileCrudView extends HookConsumerWidget {
                       [
                         XaiExtensionType.varianceValidation,
                         XaiExtensionType.authenticityEvaluation,
-                        XaiExtensionType
-                            .confidence, // Assuming confidence might be workflow-level or keep it static?
                       ].map((ext) {
                         final l10n = AppLocalizations.of(context)!;
                         String label = ext.name;

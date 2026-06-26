@@ -7,12 +7,14 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   final MatrixScorecardRowDto axis;
   final String textDeliveryMode;
   final bool showQuote;
+  final Map<String, List<dynamic>> groupedExtensions;
 
   const XAIAxisTelemetryGrid({
     super.key,
     required this.axis,
     required this.textDeliveryMode,
     required this.showQuote,
+    required this.groupedExtensions,
   });
 
   @override
@@ -179,12 +181,15 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
 
     final List<Widget> boxes = [];
 
-    if (axis.confidence != null) {
+    if (axis.confidence != null &&
+        groupedExtensions.containsKey('confidence')) {
       boxes.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Text(
-            l10n.reportConfidenceTitle(axis.confidence!.toStringAsFixed(1)),
+            l10n.reportConfidenceTitle(
+              (axis.confidence! * 100).toStringAsFixed(0),
+            ),
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.indigo,

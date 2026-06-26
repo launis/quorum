@@ -3525,17 +3525,29 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get xaiVarianceValidationTitle =>
-      'Mekaaninen vs Kognitiivinen Tasapaino';
+      '🤖 VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)';
 
   @override
-  String get xaiVerdictAligned => 'Tasapainossa (ALIGNED)';
+  String get xaiVerdictAligned => '✅ Yhdenmukainen';
 
   @override
-  String get xaiVerdictSycophancy =>
-      'Kognitiivinen Mielistely (MISALIGNED_SYCOPHANCY)';
+  String get xaiVerdictSycophancy => '❌ Mielistelyharha';
 
   @override
-  String get xaiVerdictMisaligned => 'Poikkeama (MISALIGNED)';
+  String get xaiVerdictMisaligned => '⚠️ Looginen ristiriita';
+
+  @override
+  String get xaiVarianceBarAligned => 'Yhdenmukainen';
+
+  @override
+  String get xaiVarianceBarMild => 'Lievä poikkeama';
+
+  @override
+  String get xaiVarianceBarSevere => 'Vakava poikkeama';
+
+  @override
+  String get xaiVarianceInfoText =>
+      'Tämä mittari paljastaa, onko tekoälyn oma arvio suorituksestaan (kognitiivinen) ristiriidassa kylmien faktojen (mekaaninen skannaus) kanssa. Esimerkiksi: Jos tekoäly väittää kirjoittaneensa täydellistä asiatekstiä, mutta järjestelmä löytää tekstistä silti paljon tekoäly-jargonia, syntyy ristiriita.';
 
   @override
   String get tdaAnchorTarget => 'Ankkurikohde';
@@ -3558,4 +3570,19 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get xaiAuthenticityEvaluationTitle => 'Lähdedatan aitous (AI-jargon)';
+
+  @override
+  String penaltySecurity(String percentage) {
+    return 'Turvallisuusuhka havaittu (-$percentage%)';
+  }
+
+  @override
+  String penaltyPostHoc(String percentage) {
+    return 'Jälkikäteinen perustelu havaittu (-$percentage%)';
+  }
+
+  @override
+  String penaltySlop(String phrases) {
+    return '-5% Slop-rangaistus (Tekoäly-jargon): havaittu $phrases';
+  }
 }
