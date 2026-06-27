@@ -14,8 +14,10 @@ from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.directives import (
     ANTI_ID_MANDATE,
     ANTI_SCORE_MANDATE,
+    EPISTEMIC_GLOSSARY_MANDATE,
     EXTENSION_ANCHORING_MANDATE,
     SCHEMA_PURITY_MANDATE,
+    SEMANTIC_BLEED_MANDATE,
 )
 from backend_v2.models.enums import EvaluationMandate
 from backend_v2.models.v2_core import PromptBlock
@@ -156,6 +158,15 @@ class LocalizationCompiler:
                                         "    <ANTI_PATTERNS>\n" + "\n".join(ap_lines) + "\n    </ANTI_PATTERNS>"
                                     )
 
+                            # Phase 1, Step 3: Inject contrastive_example negative constraints calibration when available
+                            if getattr(assertion, "contrastive_example", None):
+                                assertion_xml.append(
+                                    "    <RULE_CALIBRATION_EXAMPLES>\n"
+                                    "      <WARNING>These are HYPOTHETICAL concepts. DO NOT extract quotes from this section.</WARNING>\n"
+                                    f"      <EXAMPLE>{assertion.contrastive_example}</EXAMPLE>\n"
+                                    "    </RULE_CALIBRATION_EXAMPLES>"
+                                )
+
                             mandate_text = mandate_str
 
                             # Epic 85 / System 2 Variance: Removed inverse_evidence 'Vice' logic
@@ -208,6 +219,10 @@ class LocalizationCompiler:
 
         # Schema Purity Mandate to prevent JSON schema hallucinations
         xml_blocks.append(SCHEMA_PURITY_MANDATE)
+
+        # Phase 1, Step 3: Append prompt safety and evaluation glossary mandates
+        xml_blocks.append(SEMANTIC_BLEED_MANDATE)
+        xml_blocks.append(EPISTEMIC_GLOSSARY_MANDATE)
 
         return "\n".join(xml_blocks)
 

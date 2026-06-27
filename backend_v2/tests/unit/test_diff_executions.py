@@ -1,6 +1,6 @@
 import pytest
 
-from scratch.diff_executions import (
+from scripts.diff_executions import (
     calculate_cohens_kappa,
     calculate_entropy,
     calculate_fleiss_kappa,

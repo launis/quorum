@@ -49,15 +49,15 @@ async def test_chunk_worker_pop_reasoning_steps_bug():
     # 2. Mock the LLM Task Executor to return a perfectly valid LLM response
     class DummyAtomResponse(BaseModel):
         atom_id: str = tda_id
-        reasoning_steps: str = "I reasoned this carefully."
+        rule_internalization: str = "Test internalization"
+        source_document_ids: list[str] = ["N/A"]
         exact_quotes: list[str] = []
-        structural_location: str = "N/A"
-        localized_anchors_found: list[str] = []
-        contextual_override: bool = False
-        override_reason: str | None = None
+        reasoning_steps: str = "I reasoned this carefully."
         falsification_argument: str = "N/A"
         decision: bool = True
         semantic_reasoning: str = "It is true."
+        contextual_override: bool = False
+        override_reason: str | None = None
 
     class DummyResponse(BaseModel):
         evaluations: list[DummyAtomResponse]

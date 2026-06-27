@@ -822,6 +822,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 row_exp_rule,
                 VERBATIM_EXTRACTION_MANDATE,
                 TONE_MANDATE,
+                LANGUAGE_MANDATE,
             ]
         )
 

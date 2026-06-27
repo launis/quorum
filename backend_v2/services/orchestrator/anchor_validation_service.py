@@ -90,6 +90,25 @@ class AnchorValidationService:
         return True
 
     @staticmethod
+    def calculate_fuzzy_score(norm_quote: str, norm_text: str) -> float:
+        """Choose fuzzy algorithm based on length of the normalized quote.
+
+        Args:
+            norm_quote: The normalized quote string.
+            norm_text: The normalized source text context.
+
+        Returns:
+            The fuzzy similarity score (0.0 to 100.0).
+        """
+        # Phase 4: Component: Anchor Validation Service - Length-weighted hybrid validation logic
+        if len(norm_quote) < 30:
+            # Short quotes: enforce strict partial_ratio for contiguous matches (contiguity-guard)
+            return float(fuzz.partial_ratio(norm_quote, norm_text))
+        else:
+            # Long quotes: allow token_set_ratio to accommodate word ordering / Finnish morphological conjugations
+            return float(fuzz.token_set_ratio(norm_quote, norm_text))
+
+    @staticmethod
     def validate_evidence(
         pdf_text: str,
         exact_quotes: list[str] | None,
@@ -201,8 +220,8 @@ class AnchorValidationService:
                         message=f"Lexical validation failed: strictness is ABSOLUTE. 100% exact match required for '{quote[:50]}...'."
                     )
 
-                # Fallback to RapidFuzz
-                score = fuzz.partial_ratio(norm_quote, norm_pdf)
+                # Phase 4: Component: Anchor Validation Service
+                score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_pdf)
                 if score >= tier_threshold:
                     logger.warning(
                         f"Lexical Verifier used Fuzzy Fallback for '{quote[:50]}...'. Score {score:.1f}% >= threshold {tier_threshold}%",

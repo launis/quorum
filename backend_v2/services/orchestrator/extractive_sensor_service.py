@@ -1,11 +1,13 @@
 from pydantic import BaseModel, ConfigDict
+from rapidfuzz import fuzz
 
+from backend_v2.models.enums import get_lexical_fuzz_threshold
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
 
 class PreFlightResult(BaseModel):
-    """Result of the deterministric pre-flight evaluation."""
+    """Result of the deterministic pre-flight evaluation."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -21,7 +23,28 @@ class ExtractiveSensorService:
     """
 
     @staticmethod
-    def pre_evaluate(tda: TDAAssertion, source_text: str) -> PreFlightResult:
+    def _fuzzy_match(source_text: str, anchor: str, locale: str | None = None) -> bool:
+        """Fuzzy match tolerating minor typos/OCR issues in the source text.
+
+        Checks strict match first, then falls back to rapidfuzz partial ratio
+        against the language-dependent threshold.
+
+        Args:
+            source_text: The complete raw text context.
+            anchor: The syntactic anchor string to look for.
+            locale: Optional target locale/language code.
+
+        Returns:
+            True if the anchor is matched strictly or fuzzily within the text,
+            otherwise False.
+        """
+        if AnchorValidationService.strict_match(source_text, [anchor]):
+            return True
+        threshold = get_lexical_fuzz_threshold(locale)
+        return fuzz.partial_ratio(anchor.lower(), source_text.lower()) >= threshold
+
+    @staticmethod
+    def pre_evaluate(tda: TDAAssertion, source_text: str, locale: str | None = None) -> PreFlightResult:
         """Evaluates TDA against source text without LLM if pre-flight is enabled.
 
         Acts as an EARLY EXIT:
@@ -29,6 +52,14 @@ class ExtractiveSensorService:
           without invoking the LLM (decided=True, exact_quotes=None).
         - If the anchors ARE FOUND, we CANNOT pass or fail it definitively here because we must
           allow the LLM to evaluate complex Bounding Box and Negative Conditions (decided=False).
+
+        Args:
+            tda: The TDAAssertion definition containing anchors and constraints.
+            source_text: The raw source text.
+            locale: Optional language code for dynamic fuzzy thresholding.
+
+        Returns:
+            A PreFlightResult indicating if the decision was resolved early.
         """
         import logging
 
@@ -37,7 +68,7 @@ class ExtractiveSensorService:
         if not tda.enforce_pre_flight or not tda.syntactic_anchors:
             return PreFlightResult(decided=False)
 
-        found = [a for a in tda.syntactic_anchors if AnchorValidationService.strict_match(source_text, [a])]
+        found = [a for a in tda.syntactic_anchors if ExtractiveSensorService._fuzzy_match(source_text, a, locale)]
         logger.info(
             "[ExtractiveSensor] TDA %s | Anchors: %s | Found: %s | Aggregation: %s",
             tda.tda_id,

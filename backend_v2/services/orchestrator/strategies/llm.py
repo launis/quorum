@@ -341,6 +341,20 @@ class LLMNodeStrategy(NodeStrategy):
         else:
             chunks_list = [None]
 
+        # Resolve source_document_ids from input_mappings and state_data
+        source_doc_ids = []
+        for logical_name, source_path in input_mappings.items():
+            try:
+                val = self.compiler._extract_value_from_state(source_path, llm_context_data)
+                if val:
+                    source_doc_ids.append(logical_name)
+            except Exception:
+                pass
+
+        if hook_state.metadata is None:
+            hook_state.metadata = {}
+        hook_state.metadata["source_document_ids"] = source_doc_ids
+
         has_search = any("search_result" in v for v in state_data.values() if type(v) is dict)
 
         if frozen_ctx:
@@ -351,6 +365,7 @@ class LLMNodeStrategy(NodeStrategy):
                 has_shuffled_atoms=has_shuffled_atoms,
                 target_locale=target_locale,
                 strictness_level=context.strictness_level,
+                source_document_ids=source_doc_ids,
             )
             frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()
 

@@ -141,7 +141,8 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
     assert traces == []
 
     # V3: ChunkWorker delegates to compile_chunk_prompt (which internally calls compile_xml_rubrics)
-    mock_compiler.compile_chunk_prompt.assert_called_once()
+    # Under Phase 3, this is called 3 times (once initially, and twice for the shuffled ensemble runs)
+    assert mock_compiler.compile_chunk_prompt.call_count == 3
     mock_compiler.build_dynamic_schema.assert_called_once()
 
     # Check that client was called with correct arguments

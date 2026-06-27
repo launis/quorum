@@ -44,6 +44,7 @@ def test_inverse_logic_injected() -> None:
                                 "extraction_rule": "Must not be mean",
                                 "inverse_evidence": True,
                                 "aggregation_mode": "EXISTS",
+                                "contrastive_example": "This is a contrastive example text.",
                             },
                         ],
                     }
@@ -61,3 +62,8 @@ def test_inverse_logic_injected() -> None:
 
     # Assert inverse logic rule ID is present in XML rubrics
     assert '<rule id="tda_22222222222222222222222222222222">' in rubrics
+
+    # Phase 4: Component: Prompt Compiler Integration Tests
+    # Assert rule calibration and contrastive example tags are compiled correctly
+    assert "<RULE_CALIBRATION_EXAMPLES>" in rubrics
+    assert "<EXAMPLE>This is a contrastive example text.</EXAMPLE>" in rubrics

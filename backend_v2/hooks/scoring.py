@@ -232,33 +232,27 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         scores_found.append(v_float)
 
     if count == 0:
-        # Tarkistetaan, johtuuko nollatulos validista indeterminate-tilasta
+        # Phase 4, Component: Scoring Hooks - Check if the zero count is due to valid INDETERMINATE matrices
         is_valid_indeterminate = False
         for _, v in lookup_ctx.items():
-            if isinstance(v, dict) and "[INDETERMINATE]" in v.get("justification", ""):
+            if isinstance(v, dict) and "[INDETERMINATE]" in str(v.get("justification", "")):
                 is_valid_indeterminate = True
                 break
 
+        # Also check within steps payload if present
         if not is_valid_indeterminate and "steps" in lookup_ctx and isinstance(lookup_ctx["steps"], list):
             for step_val in lookup_ctx["steps"]:
-                payload = None
-                if isinstance(step_val, dict):
-                    payload = step_val.get("payload")
-                elif hasattr(step_val, "payload"):
-                    payload = step_val.payload
-
+                payload = step_val.get("payload") if isinstance(step_val, dict) else getattr(step_val, "payload", None)
                 if isinstance(payload, dict):
                     for _, v in payload.items():
-                        if isinstance(v, dict) and "[INDETERMINATE]" in v.get("justification", ""):
+                        if isinstance(v, dict) and "[INDETERMINATE]" in str(v.get("justification", "")):
                             is_valid_indeterminate = True
                             break
                     if is_valid_indeterminate:
                         break
 
         if is_valid_indeterminate:
-            logger.warning(
-                "[ScoringHook] Matrix score is indeterminate due to Cognitive Collapse or DLQ limits. Skipping crash."
-            )
+            logger.warning("[ScoringHook] All matrices are INDETERMINATE. Skipping aggregation.")
             indet_result = {
                 "total_score": None,
                 "final_score": None,
@@ -974,7 +968,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             evaluated_atoms = evaluated_atoms_by_block[pb_id]
 
             if is_indeterminate:
-                raw_score = None
+                raw_score = math_min
                 formatted_breakdown = None
                 xai_log = None
                 if cognitive_collapse:

@@ -1,7 +1,6 @@
 from typing import Any, Literal
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_validator
-from rapidfuzz import fuzz
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxXaiExtensionType, SystemConcurrency, get_lexical_fuzz_threshold
@@ -442,7 +441,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
                         if not norm_quote:
                             continue
                         if norm_quote not in norm_source:
-                            score = fuzz.partial_ratio(norm_quote, norm_source)
+                            score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_source)
                             if score < threshold:
                                 raise ValueError(
                                     f"exact_quote '{quote[:20]}...' not found in source text with high enough similarity "

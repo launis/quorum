@@ -108,3 +108,57 @@ def test_normal_typo_still_rejected_by_extra_forbid() -> None:
         StrippedBaseTDAExtraction.model_validate(data)
 
     assert "extra_forbidden" in str(exc.value)
+
+
+def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFactory) -> None:
+    """Verify that build_dynamic_schema enforces dynamic Literal validation on source_document_ids."""
+    from pydantic import ValidationError
+
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+    from backend_v2.models.v2_core import I18nText, PromptBlock
+
+    criteria = [
+        PromptBlock(
+            id="blk_1234567890abcdef1234567890abcdef",
+            slug="test-slug-1",
+            label=I18nText(default_locale="en", translations={"en": "Test Label"}),
+            description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
+            ai_description="Test AI instruction",
+            category_id=PromptBlockCategory.SYSTEM_RULE,
+            type=BlockDataType.COMPLIANCE,
+            output_extensions=[],
+        )
+    ]
+
+    allowed_docs = ["doc_a", "doc_b"]
+    DynamicModel = schema_factory.build_dynamic_schema(
+        "DynamicTestSchema",
+        criteria,
+        strictness_level=100,
+        source_document_ids=allowed_docs,
+    )
+
+    assert "blk_1234567890abcdef1234567890abcdef" in DynamicModel.model_fields
+    inner_model = DynamicModel.model_fields["blk_1234567890abcdef1234567890abcdef"].annotation
+
+    valid_data = {
+        "rule_internalization": "Criteria require checking X.",
+        "source_document_ids": ["doc_a"],
+        "exact_quotes": ["quote"],
+        "reasoning_steps": "1) R requires X. 2) T has Y. 3) F.",
+        "falsification_argument": "None",
+        "decision": True,
+        "semantic_reasoning": "Pass",
+    }
+
+    obj = inner_model.model_validate(valid_data)
+    assert obj.source_document_ids == ["doc_a"]
+
+    invalid_data = valid_data.copy()
+    invalid_data["source_document_ids"] = ["doc_invalid"]
+    with pytest.raises(ValidationError) as exc:
+        inner_model.model_validate(invalid_data)
+
+    assert "doc_invalid" in str(exc.value)
+    assert "doc_a" in str(exc.value)
+    assert "N/A" in str(exc.value)

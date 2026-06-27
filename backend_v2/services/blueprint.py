@@ -418,6 +418,8 @@ class BlueprintTransformer:
 
             if b_id in row_explanations_cache:
                 final_explanation = row_explanations_cache[b_id]
+            elif matrix_payload.justification and "[INDETERMINATE]" in matrix_payload.justification:
+                final_explanation = matrix_payload.justification
             else:
                 # Curation of Matrix Extensions, Step 2: Fall back to empty string instead of justification
                 final_explanation = ""
@@ -566,11 +568,12 @@ class BlueprintTransformer:
             else:
                 axes = list(all_parsed_matrices.values())
 
-            if preset_view == "3d_complex" and len(axes) < 3:
+            if preset_view in ["3d_complex", "3d_matrix"] and len(axes) < 3:
                 logger.warning(
-                    "[BlueprintTransformer] Downgrading layout '%s' from 3d_complex to "
+                    "[BlueprintTransformer] Downgrading layout '%s' from %s to "
                     "2d_compare because only %s axes found.",
                     layout_title,
+                    preset_view,
                     len(axes),
                 )
                 preset_view = "2d_compare"
@@ -584,7 +587,7 @@ class BlueprintTransformer:
                 )
                 preset_view = "1d_metrics"
 
-            if axes or preset_view == "text_only":
+            if axes or preset_view == "text_only" or layout_def.synthesis:
                 synthesis_config = layout_def.synthesis
                 layout_id = f"layout_{idx}_{preset_view}"
 

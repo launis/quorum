@@ -555,6 +555,44 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
+                                    initialValue: tda.contrastiveExample,
+                                    decoration: const InputDecoration(
+                                      labelText:
+                                          'Contrastive Example (Correct vs Incorrect)',
+                                      helperText:
+                                          'Calibration examples: ACCEPTABLE: X affects Y. UNACCEPTABLE: X is associated with Y.',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    maxLines: 2,
+                                    onChanged: (newVal) {
+                                      setState(() {
+                                        final newTdas = List<TDAAssertion>.from(
+                                          claim.tdaAssertions,
+                                        );
+                                        newTdas[tdaIdx] = tda.copyWith(
+                                          contrastiveExample:
+                                              newVal.trim().isEmpty
+                                              ? null
+                                              : newVal.trim(),
+                                        );
+                                        final newClaims =
+                                            List<MatrixClaim>.from(
+                                              _editableScale.claims,
+                                            );
+                                        newClaims[index] = claim.copyWith(
+                                          tdaAssertions: newTdas,
+                                        );
+                                        _editableScale = _editableScale
+                                            .copyWith(claims: newClaims);
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
                                     initialValue: tda.acceptanceCriteria
                                         .map((a) => a.instruction)
                                         .join('\n'),

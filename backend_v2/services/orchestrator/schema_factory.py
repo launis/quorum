@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
@@ -87,6 +87,7 @@ class SchemaFactory:
         target_locale: str = "en",
         *,
         strictness_level: int,
+        source_document_ids: list[str] | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -96,6 +97,8 @@ class SchemaFactory:
             has_search_result: Whether to include search result extensions.
             has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
             target_locale: Target language code for label resolution.
+            strictness_level: Strictness level to control field leniency.
+            source_document_ids: Dynamic literals corresponding to available documents.
 
         Returns:
             A dynamically generated Pydantic model class.
@@ -104,15 +107,21 @@ class SchemaFactory:
         # and delegating to an LRU cached private method.
         # Epic 43: Serialize strictly typed PromptBlocks back to json for the cache key.
         criteria_ids = "_".join(sorted(str(c.id) for c in criteria if c.id))
-        cache_key = (
-            f"{schema_name}_{criteria_ids}_{has_search_result}_{has_shuffled_atoms}_{target_locale}_{strictness_level}"
-        )
+        doc_ids_str = "_".join(sorted(source_document_ids)) if source_document_ids else ""
+        cache_key = f"{schema_name}_{criteria_ids}_{has_search_result}_{has_shuffled_atoms}_{target_locale}_{strictness_level}_{doc_ids_str}"
 
         if cache_key in self._schema_cache:
             return self._schema_cache[cache_key]
 
         return self._build_dynamic_schema_internal(
-            schema_name, has_search_result, has_shuffled_atoms, target_locale, strictness_level, criteria, cache_key
+            schema_name,
+            has_search_result,
+            has_shuffled_atoms,
+            target_locale,
+            strictness_level,
+            criteria,
+            cache_key,
+            source_document_ids=source_document_ids,
         )
 
     def _build_dynamic_schema_internal(
@@ -124,6 +133,8 @@ class SchemaFactory:
         strictness_level: int,
         criteria: list[PromptBlock],
         cache_key: str,
+        *,
+        source_document_ids: list[str] | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -144,6 +155,38 @@ class SchemaFactory:
             ConfigurationError (ErrorCodes.VALIDATION_FAILED): If a PromptBlock is missing required fields.
             AppException (ErrorCodes.INTERNAL_SERVER_ERROR): If dynamic schema compilation fails critically.
         """
+        # Resolve target base classes, overriding source_document_ids if requested
+        step_strict_class = StepDTOStrict
+        step_semantic_class = StepDTOSemantic
+
+        if source_document_ids is not None:
+            choices = list(set(source_document_ids))
+            if not choices:
+                choices = ["N/A"]
+            elif "N/A" not in choices:
+                choices.append("N/A")
+            choices.sort()
+            DocIdsLiteral = Literal[tuple(choices)]  # type: ignore
+
+            step_strict_class = create_model(
+                "StepDTOStrictDynamic",
+                __base__=StepDTOStrict,
+                source_document_ids=(
+                    list[DocIdsLiteral],  # type: ignore
+                    Field(default_factory=list, description="Dynamic literals corresponding to available documents."),
+                ),
+                __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
+            )
+            step_semantic_class = create_model(
+                "StepDTOSemanticDynamic",
+                __base__=StepDTOSemantic,
+                source_document_ids=(
+                    list[DocIdsLiteral],  # type: ignore
+                    Field(default_factory=list, description="Dynamic literals corresponding to available documents."),
+                ),
+                __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
+            )
+
         fields: dict[str, Any] = {
             "reasoning_trace": (
                 str,
@@ -180,13 +223,13 @@ class SchemaFactory:
             AtomResponse: Any
             if strictness_level >= 100:
 
-                class AtomResponseStrict(StepDTOStrict, AtomResponseBase):
+                class AtomResponseStrict(step_strict_class, AtomResponseBase):  # type: ignore
                     pass
 
                 AtomResponse = AtomResponseStrict
             else:
 
-                class AtomResponseSemantic(StepDTOSemantic, AtomResponseBase):
+                class AtomResponseSemantic(step_semantic_class, AtomResponseBase):  # type: ignore
                     pass
 
                 AtomResponse = AtomResponseSemantic
@@ -251,9 +294,9 @@ class SchemaFactory:
                                     rule_allows_override = True
 
                 if strictness_level >= 100 or not rule_allows_override:
-                    base_class = StepDTOStrict
+                    base_class = step_strict_class
                 else:
-                    base_class = StepDTOSemantic
+                    base_class = step_semantic_class
 
             # Dynamic short and concise description for the LLM to understand this specific evaluation field
             label_str = self._resolve_i18n(crit.label, target_locale) if crit.label else ""

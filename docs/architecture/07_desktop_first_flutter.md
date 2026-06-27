@@ -89,6 +89,24 @@ Asiakassovelluksen visualisointi koki Epic 57 -vaiheessa premium-tason laajennuk
 * **Tietotyökaluvihje (Tooltip):** Mittarin otsikon viereen on sijoitettu asiantuntijaikonin sisältävä `Tooltip`, joka avaa käyttäjälle selitteen: *"Compares performative linguistic patterns (performative_phrases_count) against cognitive authenticity (llm_authenticity_score)."*
 * **Design Tokenit & No-String Mandate:** Kaikki värit ja asetteluvälit noudattavat sovelluksen globaaleja teemoja (`Theme.of(context)`). Kaikki tekstit (kuten "Mechanical vs Cognitive Balance" ja tuomion "Aligned" / "Misaligned Sycophancy" käännökset) ladataan yksinomaan `.arb`-lokalisaatiotiedostoista, noudattaen ehdotonta `AppLocalizations`-standardia.
 
+## 7. Mallirekisterin (Model Registry) Frontend-toteutus (Studio V2)
+
+Mallirekisterin käyttöliittymätoteutus noudattaa **De-Generator Mandate** -vaatimusta, joka kieltää staattiset DTO:t Studion toimialueella. Käyttöliittymä toimii rekursiivisena lomakerakentajana suoraan `Map<String, dynamic>` -rakenteelle.
+
+*   **ModelRegistryController**: Toteutettu Riverpodin `AsyncNotifier`-luokkana.
+    *   **Tila**: `AsyncValue<Map<String, dynamic>>`.
+    *   **Optimistinen UI**: Päivittää paikallisen tilan *ennen* verkkokutsun valmistumista antaen käyttäjälle välittömän palautteen.
+    *   **Snapshot Revert (Rollback)**: Tallentaa edellisen tilan ja palauttaa sen automaattisesti taustajärjestelmän antamilla `4xx/5xx` API-virheillä.
+*   **ModelRegistryView**: Dynaaminen lomake-käyttöliittymä.
+    *   **Syväkopioitu alustus**: Luo paikallisen muokattavan kopion rekisterin `Map`-rakenteesta lomakkeen `onSaved`-takaisinkutsujen käsittelemiseksi turvallisesti ilman provider-tilan suoraa muuttamista.
+
+### 7.1 Multiplexed-haku ja rekursiivinen lomake
+Ohjain hakee datan reitillä `StudioClient.getSystemConfig('model_registry')` taustan monikäyttöisen (multiplexed) päätepisteen kautta. Käyttöliittymä käy läpi sisäkkäisen `models`-sanakirjan ja luo laajennuspaneelit (Expansion Tiles) kullekin tarjoajalle (kuten `google`, `openai`). Tarjoajan sisällä luodaan syöttökentät seuraaville parametreille: `model_name` (teksti), `temperature` (numeerinen), `max_tokens` (numeerinen) ja `supports_grounding` (kytkin).
+
+### 7.2 Toiminnalliset vaaratilanteet ja korjaustoimenpiteet
+*   **RSOD-tyyppikaatumiset (String as Map):** Mikäli jotkin rekisterin tarjoajat sisältävät roolimäppäyksiä (esim. `"AnalystAgent": "fast"`) koko strategiakuvan rinnalla, käyttöliittymä suorittaa tyyppitarkistuksen `if (value is String)` estääkseen tyyppimuunnoskaatumiset ja piirtää ne yksinkertaisina `ListTile`-elementteinä.
+*   **TDA-kriteerien kalibrointi ja kontrastiviset esimerkit (Phase 5):** Testi-indikaattoreiden (TDA) muokkaimeen ([scale_editor_modal.dart](file:///c:/src/quorum/client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart)) on lisätty `contrastive_example`-tekstikenttä. Tämä antaa ylläpitäjille mahdollisuuden asettaa kontrastivisia esimerkkejä (ACCEPTABLE vs UNACCEPTABLE) suoraan käyttöliittymästä negatiivisten rajojen kalibroimiseksi. Valittu arvo tallennetaan DTO-mallin `contrastive_example`-kenttään.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Flutterin arkkitehtuurin ymmärtämisen jälkeen, lue [08_dynamic_rendering_sdui.md](./08_dynamic_rendering_sdui.md) nähdäksesi, kuinka palvelin ohjaa käyttöliittymän asetteluita dynaamisesti (Server-Driven UI) ilman, että käyttöliittymää tarvitsee päivittää.

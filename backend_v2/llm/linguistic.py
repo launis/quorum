@@ -20,7 +20,10 @@ LANGUAGE_MANDATE: str = (
     "(justification, coaching, falsification, remediation_steps, emotional_sentiment, "
     "theory_link, evaluation_notes, missing_context, semantic_reasoning, content_blocks, "
     "xai_highlights) exclusively in the language specified in <required_output_language>. "
-    "Internal fields (reasoning_trace) may remain in English for maximum analytical depth.</rule>"
+    "Internal fields (reasoning_trace) may remain in English for maximum analytical depth.\n"
+    "CRITICAL EXCEPTION: The JSON field `exact_quotes` MUST ALWAYS remain in the raw, "
+    "original language of the source text. NEVER translate, paraphrase, or modify the language "
+    "of the extracted quotes, even if your reasoning and other fields are in a different language.</rule>"
 )
 """The canonical language mandate rule.
 
@@ -54,7 +57,8 @@ def build_linguistic_context(
         f"  <source_data_language>{source_language}</source_data_language>\n"
         f"  <required_output_language>{target_locale}</required_output_language>\n"
         "  <required_reasoning_language>English</required_reasoning_language>\n"
-        "</linguistic_context>"
+        "</linguistic_context>\n"
+        f"{LANGUAGE_MANDATE}"
     )
 
 

@@ -547,12 +547,6 @@ class ReportRendererWidget extends ConsumerWidget {
     WidgetRef ref,
     ReportLayoutDTO layout,
   ) {
-    if (layout.axes.isEmpty) {
-      throw AppException.validation(
-        'CRITICAL FAIL-FAST: layout.axes is empty!',
-      );
-    }
-
     final lang = Localizations.localeOf(context).languageCode;
     final title = layout.title?.get(lang);
     final desc = layout.description?.get(lang);
@@ -563,6 +557,12 @@ class ReportRendererWidget extends ConsumerWidget {
 
     Widget content;
     try {
+      if (layout.axes.isEmpty && layout.presetView != PresetView.textOnly) {
+        throw AppException.validation(
+          'CRITICAL FAIL-FAST: layout.axes is empty for ${layout.presetView.name}!',
+        );
+      }
+
       if (layout.visibleColumns.isEmpty) {
         content = const SizedBox();
       } else {

@@ -97,3 +97,26 @@ def test_extractive_sensor_service_inverse_evidence_early_exit() -> None:
     # Poison löytyy -> Ei voida päättää (saattaa olla ettei ehto silti täyty esim contextin takia)
     result2 = ExtractiveSensorService.pre_evaluate(tda, "Text with poison inside.")
     assert not result2.decided
+
+
+def test_extractive_sensor_service_fuzzy_match() -> None:
+    """Varmistaa että sumea mätsäys toimii lokaalipohjaisella kynnysarvolla."""
+    tda = TDAAssertion(
+        enforce_pre_flight=True,
+        syntactic_anchors=["must_find_this"],
+        aggregation_mode="EXISTS",
+        evaluation_track="EXTRACTIVE_SENSOR",
+        facts_to_find=["Fakta"],
+        logical_expression="Fakta",
+        concept_description="desc",
+        inverse_evidence=False,
+    )
+
+    # 1. Pitäisi delegoida LLM:lle (decided=False), koska ankkuri "löytyy" sumeasti (typo "must_fiind_this")
+    result_fi = ExtractiveSensorService.pre_evaluate(tda, "Some text where must_fiind_this is located.", locale="fi")
+    assert not result_fi.decided
+
+    # 2. Pitäisi failata early exitillä, jos typoja on liikaa (esim. "must_fxxnd_this")
+    result_fail = ExtractiveSensorService.pre_evaluate(tda, "Some text where must_fxxnd_this is located.", locale="en")
+    assert result_fail.decided
+    assert result_fail.result == "FAIL"

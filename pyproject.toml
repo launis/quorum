@@ -67,7 +67,7 @@ dev = [
 [tool.ruff]
 target-version = "py314"
 line-length = 120
-exclude = ["scratch", ".venv", ".git", "docs"]
+exclude = ["scratch", "tmp", ".venv", ".git", "docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "D"]
@@ -108,7 +108,7 @@ python_version = "3.14"
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 check_untyped_defs = true
-exclude = ["docs/", "scratch/", "client_app_v2/", "tools/", "tests/", "backend_v2/tests/"]
+exclude = ["docs/", "scratch/", "tmp/", "client_app_v2/", "tools/", "tests/", "backend_v2/tests/"]
 
 [[tool.mypy.overrides]]
 module = [

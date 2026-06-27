@@ -911,9 +911,9 @@ async def test_matrix_scoring_hook_cognitive_collapse() -> None:
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
 
-    # Should trigger cognitive collapse lock
+    # Should trigger cognitive collapse lock but assign the minimum mathematical score (1.0)
     raw_score = result.state_delta["pb_1234567890123456"].get("raw_score")
-    assert raw_score is None
+    assert raw_score == 1.0
     assert (
         "[INDETERMINATE] Matrix score invalidated because the cognitive collapse safety lock was triggered"
         in result.state_delta["pb_1234567890123456"]["justification"]

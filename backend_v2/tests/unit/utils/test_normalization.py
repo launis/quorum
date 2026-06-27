@@ -35,3 +35,16 @@ def test_normalize_evaluation_input_handles_empty_or_none() -> None:
     """Verify that empty inputs are handled safely without throwing exceptions."""
     assert normalize_evaluation_input("") == ""
     assert normalize_evaluation_input(None) == ""  # type: ignore[arg-type]
+
+
+def test_normalize_evaluation_input_unicode_and_quotes() -> None:
+    """Verify that Unicode normalization, zero-width characters, and quotes/dashes are handled."""
+    raw_nfd = "a\u0308"
+    assert normalize_evaluation_input(raw_nfd) == "\u00e4"
+
+    raw_zw = "Hello\u200bWorld\u200c!\ufeff\u00ad"
+    assert normalize_evaluation_input(raw_zw) == "HelloWorld!"
+
+    raw_quotes = "“Smart double” and ‘smart single’ quotes — en–dash."
+    expected = "\"Smart double\" and 'smart single' quotes - en-dash."
+    assert normalize_evaluation_input(raw_quotes) == expected

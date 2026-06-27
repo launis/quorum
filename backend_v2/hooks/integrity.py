@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import rapidfuzz.fuzz as fuzz
 from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
@@ -130,7 +129,7 @@ def _is_hallucinated(quote: str, norm_corpus: str, threshold: float) -> bool:
         return True
 
     # Harmonized unified search
-    if fuzz.partial_ratio(norm_q, norm_corpus) >= threshold:
+    if AnchorValidationService.calculate_fuzzy_score(norm_q, norm_corpus) >= threshold:
         return False
     return True
 

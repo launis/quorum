@@ -124,6 +124,7 @@ class PromptCompiler:
         target_locale: str = "en",
         *,
         strictness_level: int,
+        source_document_ids: list[str] | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -134,6 +135,7 @@ class PromptCompiler:
             has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
             target_locale: Target language code for label resolution.
             strictness_level: Strictness level to control field leniency.
+            source_document_ids: Dynamic literals corresponding to available documents.
 
         Returns:
             A dynamically generated Pydantic model class.
@@ -145,6 +147,7 @@ class PromptCompiler:
             has_shuffled_atoms,
             target_locale,
             strictness_level=strictness_level,
+            source_document_ids=source_document_ids,
         )
 
     def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:

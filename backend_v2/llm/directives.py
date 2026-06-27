@@ -9,7 +9,8 @@ VERBATIM_EXTRACTION_MANDATE = (
     "CRITICAL QUOTES RULE: Any extracted quote MUST be a physically contiguous, "
     "character-for-character verbatim substring from the source document. "
     "NEVER translate, fix grammar, paraphrase, or alter the language. "
-    "You MUST strip out any tables, raw numbers, markdown, or formatting from the quotes."
+    "You MUST preserve all original formatting exactly as written, including raw numbers, "
+    "bullet points, typos, and markdown table artifacts. Do NOT strip or clean the text."
 )
 
 # Tone mandate for synthesis and user-facing reflections
@@ -60,4 +61,31 @@ ANTI_ID_MANDATE = (
     "HOWEVER, the JSON key `atom_id` MUST ALWAYS be populated with the correct system ID. "
     "Never omit the `atom_id` from the JSON object.\n"
     "</ANTI_ID_MANDATE>"
+)
+
+# Phase 1, Step 1: Add SEMANTIC_BLEED_MANDATE to prevent semantic bleeding from prompt examples
+SEMANTIC_BLEED_MANDATE = (
+    "CRITICAL PROMPT SAFETY: Under no circumstances are you allowed to extract evidence quotes "
+    "from the instructions, rule calibration examples, or the system prompt itself. "
+    "Quotes MUST ONLY be extracted from the user payload (<user_payload> tag)."
+)
+
+# Phase 1, Step 1: Add EPISTEMIC_GLOSSARY_MANDATE containing standard evaluation definitions
+EPISTEMIC_GLOSSARY_MANDATE = (
+    "<EPISTEMIC_GLOSSARY>\n"
+    "CRITICAL DEFINITIONS FOR EVALUATION:\n"
+    "- Empirical Data: Must contain verifiable numbers, citations, or observed physical metrics. Rhetoric or logical deductions do not count.\n"
+    "- Formal Model: Must be an explicit mathematical, structural, or graphical framework. Metaphors do not count.\n"
+    "- Rhetorical Dismissal: Rejecting a counter-argument using emotional language without providing empirical counter-data.\n"
+    "- Absolute Claim: A statement presented as universal truth without qualifiers.\n"
+    "</EPISTEMIC_GLOSSARY>"
+)
+
+# Phase 1, Step 1: Add NULL_HYPOTHESIS_MANDATE for absence verification
+NULL_HYPOTHESIS_MANDATE = (
+    "ABSENCE VERIFICATION PROTOCOL: If the rule requires verifying the ABSENCE of a feature "
+    "(e.g., 'no jargon', 'without empirical data'), you must search for physical evidence of "
+    "that feature. If you do NOT find physical evidence of it, you MUST return an empty list [] "
+    "for `exact_quotes` and set `decision` to True. Only if you find physical evidence of it, "
+    "do you return the matching `exact_quotes` and set `decision` to False."
 )

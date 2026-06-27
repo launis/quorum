@@ -531,7 +531,9 @@ class ChunkWorker:
                                                     break
 
                             if tda_for_atom:
-                                pf_res = ExtractiveSensorService.pre_evaluate(tda_for_atom, global_source_text)
+                                pf_res = ExtractiveSensorService.pre_evaluate(
+                                    tda_for_atom, global_source_text, target_locale
+                                )
                                 if pf_res.decided:
                                     logger.info(
                                         "[Pre-Flight] Early exit triggered for TDA %s. Result: %s",
@@ -573,6 +575,15 @@ class ChunkWorker:
             atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
             chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\\n{atoms_json}\\n</BLIND_ATOMS_TO_EVALUATE>"
 
+        # Phase 3, Step 1: Dynamic source document ID extraction using regex
+        import re
+
+        source_text_to_scan = global_source_text or user_payload or ""
+        extracted_source_ids = list(set(re.findall(r'<matrix_input\s+source_id="([^"]+)"', source_text_to_scan)))
+        if not extracted_source_ids:
+            extracted_source_ids = ["N/A"]
+        source_document_ids = extracted_source_ids
+
         local_dynamic_schema = compiler.build_dynamic_schema(
             schema_name=f"Step_{step_id}_Response",
             criteria=chunk_criteria,
@@ -580,6 +591,7 @@ class ChunkWorker:
             has_shuffled_atoms=has_shuffled_atoms,
             target_locale=target_locale,
             strictness_level=strictness_level,
+            source_document_ids=source_document_ids,
         )
 
         is_lightweight = False
@@ -642,6 +654,35 @@ class ChunkWorker:
                     base_delay = index * EnsembleJitter.BASE_DELAY.value
                     random_jitter = random.uniform(0.0, EnsembleJitter.BASE_DELAY.value)
                     await asyncio.sleep(base_delay + random_jitter)
+
+                local_prompt = prompt
+                if index > 0 and has_shuffled_atoms and chunk is not None:
+                    # Phase 3, Step 3: Implement random deterministic atom shuffling per ensemble iteration (index > 0)
+                    import random
+
+                    rng = random.Random(index)  # Deterministic seed per ensemble index
+                    shuffled_items = list(chunk.items)
+                    rng.shuffle(shuffled_items)
+                    chunk_shuffled = chunk.model_copy(update={"items": shuffled_items})
+
+                    blind_items = []
+                    for item in chunk_shuffled.items:
+                        aid = item.get("atom_id")
+                        blind_items.append({"atom_id": aid, "rule_anchor": aid, "question": item.get("question", "")})
+
+                    atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
+                    local_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
+
+                    local_prompt = compiler.compile_chunk_prompt(
+                        base_system_prompt=base_system_prompt,
+                        chunk_criteria=chunk_criteria,
+                        base_payload=user_payload,
+                        chunk_atoms_xml=local_atoms_xml,
+                        strictness_level=strictness_level,
+                        target_locale=target_locale,
+                        allowed_atom_ids=allowed_atom_ids if has_shuffled_atoms else None,
+                    )
+
                 import time
 
                 queue_start = time.time()
@@ -660,7 +701,7 @@ class ChunkWorker:
                             loop_res = await execute_tool_loop(
                                 llm_client=bound_client,
                                 executor=executor,
-                                messages=prompt.to_flat_messages(),
+                                messages=local_prompt.to_flat_messages(),
                                 response_model=model_schema,
                                 allowed_tools=effective_mcp_tools,
                                 step_name=step_id,
@@ -690,7 +731,7 @@ class ChunkWorker:
                         else:
                             res, usg = await executor.execute_structured_task(
                                 client=bound_client,
-                                messages=prompt,
+                                messages=local_prompt,
                                 response_model=model_schema,
                                 mock_identity=step_id,
                                 max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,

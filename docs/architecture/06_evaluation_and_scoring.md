@@ -40,6 +40,15 @@ Arviointiohjeistukset perustuvat nykyään asiantuntijoiden valmiiksi kirjoittam
 **Decoupled TDA Semantic Extractor (Epic 56):**
 Järjestelmä siirtyi V5-versioinnissa täydelliseen **Decoupled TDA** -arkkitehtuuriin. Tekoälyltä on **riistetty kognitiivinen tuomiovalta** kokonaan. LLM toimii sokeana semantteisena poimijana (N-Dimensional Semantic Extractor) palauttaen dynaamisen Pydantic-mallien tehtaan (`DynamicExtractionResponse` & `ExtractedFactsDTO`) luoman JSON-rakenteen säännön määlettelemien `facts_to_find`-kenttien perusteella. Lopullinen looginen Pass/Fail -arviointi suoritetaan 100 % deterministisesti Python-koodissa hyödyntäen whitelistattua **AST-arviointimoottoria** (`ast_evaluator.py`). Tämä eliminoi kognitiivisen päättelyvarianssin ja rationalisoinnin.
 
+### Dynaaminen Literal-pohjainen Lähdedokumenttivalidointi ja Provenance Forcing
+
+Jotta tekoäly ei voisi hallusinoida olemattomia lähteitä tai sekoittaa arvioitavia dokumentteja (kognitiivinen romahdus), järjestelmässä käytetään tiukkaa **alkuperän pakottamista (Provenance Forcing)** Pydantic-kaavatasolla:
+
+1. **Aktiivisen työtilan dokumenttirajoitus:** Ajon aikana `llm.py`-strategia tunnistaa dynaamisesti kaikki työtilaan ladatut ja voimassa olevat lähdedokumentit (esim. `document`, `attachment_1`) suoraan `input_mappings`-määritysten ja ajonaikaisen suoritustilan perusteella.
+2. **Dynaaminen Literal-kaava (`SchemaFactory`):** Skeematehdas (`schema_factory.py`) rakentaa lennosta Pythonin `typing.Literal`-tyypin sallituista dokumenttitunnuksista (sisältäen aina `"N/A"`-oletusarvon).
+3. **Pydantic-validointi rajapinnassa:** Luodut dynaamiset arviointikaavat (`StepDTOStrict` ja `StepDTOSemantic` aliluokat) korvaavat yleisen `list[str]`-tyyppisen `source_document_ids`-kentän tyypillä `list[DocIdsLiteral]`. 
+4. **Vertex AI JSON Schema -enum-pakotus:** Tämä kääntyy Vertex AI:n suuntaan tiukaksi JSON Schema `enum`-rajoitukseksi. Jos malli yrittää palauttaa viitteen johonkin muuhun kuin sallittuun lähdedokumenttiin, rajapinta heittää välittömästi `ValidationError`-virheen ja ohjaa ajon virheentunnistus- ja korjausputkeen (DLQ).
+
 ### Pearl's Rung 3 (Abduktiivinen Päättely) ja XML-Kääntäjä (`localization_compiler.py`)
 
 Järjestelmä noudattaa Judea Pearlin kausaalisen päättelyn tikapuiden kolmatta tasoa (Rung 3: Counterfactuals / Abductive reasoning) arvioidessaan TDA-väitteitä. Jotta LLM ei eksy litteän tekstin rationalisointiin, `localization_compiler.py` kääntää `TDAAssertion`-säännöt tiukkaan XML-muotoon. Aiemman raa'an merkkijonon (`ai_rule_description`) sijaan väitteet injektoidaan LLM:lle tiukasti jäsenneltynä rakenteena:
@@ -96,7 +105,7 @@ Tämä saavutetaan seuraavilla suojamuureilla:
 
 1. **Map-Merge-Evaluate -malli:**
    * **Map:** Jokainen chunk-worker poimii semanttiset faktat LLM:llä sokeasti hyödyntäen dynaamista Pydantic-luokkamallia (`DynamicExtractionResponse`).
-   * **Consensus (Ensemble):** Arvioinnit ajetaan rinnakkain (esim. Best-of-3) ja niiden tulokset pakotetaan tiukan `ConsensusVotePayload` -mallin läpi (`extra="ignore"`), mikä siivoaa ylimääräiset datat ja normalisoi `exact_quotes` -taulukot. Järjestelmä ratkaisee tuloksen puhtaalla matemaattisella 2/3 enemmistöllä (`_apply_majority_consensus`) poistaen kaikki vanhentuneet vähemmistö-veto (minority veto) -oikotiet, mikä takaa matemaattisen riippumattomuuden ja eheyden.
+   * **Consensus (Ensemble):** Arvioinnit ajetaan rinnakkain (esim. Best-of-3) ja niiden tulokset pakotetaan tiukan `ConsensusVotePayload` -mallin läpi (`extra="ignore"`), mikä siivoaa ylimääräiset datat ja normalisoi `exact_quotes` -taulukot. Jotta vältetään Transformer-kielimallien spatiaalinen sijaintiharha (lost-in-the-middle / positional bias), ensemble-ajojen rinnakkaissuorituksissa (index > 0) arvioitavat atomit sekoitetaan deterministisesti sekoitusindeksiin perustuvalla satunnaissiemenellä (`random.Random(index)`). Kunkin ajon LLM-promptin sokeiden atomien järjestys synkronoidaan sekoitetun järjestyksen kanssa, ja lopullinen `resolve_majority_vote` -äänestys kohdistaa ja ryhmittelee arvioinnit takaisin muuttumattomien `atom_id`-tunnisteiden mukaan. Järjestelmä ratkaisee lopullisen tuloksen puhtaalla matemaattisella 2/3 enemmistöllä (`_apply_majority_consensus`) poistaen kaikki vanhentuneet vähemmistö-veto (minority veto) -oikotiet, mikä takaa matemaattisen riippumattomuuden ja eheyden.
    * **Merge:** Workerien palauttamat poiminnat yhdistetään yhdeksi globaaliksi `MergedFactsDTO`-tietorakenteeksi. Jos useampi chunk löytää saman faktan (esim. eri sivuilta), törmäys ratkaistaan deterministisellä **First-Wins** -törmäyksenestolla (kronologisesti pienin `chunk_index` säilytetään), mikä takaa XAI-lainauksille stabiiliuden.
    * **Evaluate:** Whitelistattu AST-evaluaattori (`ast_evaluator.py`) ajaa 3-tilaista logiikkaa (`TRUE`, `FALSE`, `DLQ`) globaalille `merged_facts` -sanakirjalle. AST-evaluaattori estää `eval()`-haavoittuvuudet sallimalla vain whitelistatut solmut (`ast.And`, `ast.Or`, `ast.Not`, `ast.Name`, jne.).
 
@@ -104,6 +113,7 @@ Tämä saavutetaan seuraavilla suojamuureilla:
    * **EHDOTON KIELTO:** DLQ-sääntöjä EI SAA poistaa nimittäjästä (ei optimistista `effective_total`-laskentaa).
    * **0/1 Pisteytys:** Dead Letter Queue -tilaan (DLQ) päätynyt sääntö pisteytetään matemaattisesti nollana (0/1) pessimistic & reliable scoring -periaatteella. Tämä takaa, ettei matriisin arvosanaa paranneta keinotekoisesti silloin, kun evidenssidata on viallista. Käyttöliittymää varten tällaiselle matriisille asetetaan erillinen "Data Quality Flag" (keltainen "Puutteellinen data" -merkintä).
    * **Indeterminate-kynnysraja (10 % katto):** Jos viallisten/lainaamattomien DLQ-väitteiden suhde on liian suuri (`dlq_count / total > 0.10`), eli yli 10 % atomeista on DLQ-tilassa, koko matriisin lopputulokseksi asetetaan suoraan tila `INDETERMINATE` laadun ja eheyden takaamiseksi.
+   * **Indeterminate-matriisien aggregaatio pistelaskukoukussa (Scoring Hook):** Kun pistelaskukoukku (`apply_scoring_logic_hook`) suorittaa matriisien aggregaatiota, siinä on suojamekanismi (Crash Protection) tilanteille, joissa kaikki matriisit ovat päätyneet validiin `[INDETERMINATE]`-tilaan (esim. kognitiivisen romahduksen tai DLQ-rajojen ylittymisen vuoksi). Tällöin pistelaskukoukku ohittaa normaalin keskiarvojen laskennan, ei kaada järjestelmää, vaan asettaa lopputuloksen pisteytystilaksi `INDETERMINATE - Cognitive Collapse / Quality Check Failed` ja asettaa pisteet (`total_score` ja `final_score`) arvoon `None`.
 
 3. **Nollahypoteesi ja Antagonistinen Syyttäjä:**
    Jotta arviointi olisi matemaattisesti stabiili eikä altis tekoälyn mielistelylle (Sycophancy), kaikki arviointi nojaa **Nollahypoteesi-mandaattiin**. LLM toimi puhtaasti "Antagonistisena syyttäjänä":
@@ -123,6 +133,10 @@ Tämä saavutetaan seuraavilla suojamuureilla:
        * `STANDARD (50)`: 80.0 % samankaltaisuus vaaditaan.
        * `RELAXED (30)`: 65.0 % samankaltaisuus vaaditaan.
      Tämä korvaa aiemman joustamattoman 100 % vaatimuksen matemaattisen joustavalla, mutta yhä deterministisellä mallilla, poistaen tarpeettomat DLQ-virheet OCR-kohinasta johtuvan tekstin rikkoutumisen takia.
+
+5. **Syötteen Normalisointi ja Sumea Pre-Flight -reititys (Fuzzy Pre-Flight Matching & Input Normalization):**
+   * **Unicode- ja lainausmerkkien normalisointi:** Ennen LLM-promptin muodostamista tai ankkurien etsintää, syöteteksti normalisoidaan deterministisesti NFC-muotoon (`unicodedata.normalize("NFC", text)`), zero-width- ja piilomerkit (kuten ZWSP, ZWJ, ZWNJ, BOM ja pehmeät tavuviivat) poistetaan ja smart/curly-lainausmerkit sekä en/em-viivat korvataan standardeilla ASCII-merkeillä. Tämä estää näkymättömät muutokset attention-matriisissa ja stabiloi tokenisoinnin.
+   * **Sumea Pre-Flight -mätsäys:** Esiarvioinnissa (`pre_evaluate`) ankkurien strict-osumisen fallbackina käytetään sumeaa hakua kieleen perustuvalla kynnysarvolla (`get_lexical_fuzz_threshold(locale)`). Tämä sallii pienet kirjoitusvirheet ja OCR-kohinan kieliagnostisesti ilman, että ohjausta pudotetaan ei-deterministiselle LLM-arvioinnille (estää deterministisen path divergencen).
 
 ---
 

@@ -9,6 +9,14 @@ import pytest
 
 # Hotfix for Python 3.14 + pytest-cov import crash on BaseModel MRO matching and descriptor proxy reloads
 def patch_pydantic_base_model_cache() -> None:
+    # Ensure pydantic.root_model is registered in sys.modules for Python 3.14 + coverage support
+    try:
+        import pydantic.root_model
+
+        sys.modules["pydantic.root_model"] = pydantic.root_model
+    except Exception:
+        pass
+
     def custom_import_cached_base_model() -> Any:
         frame: Any = sys._getframe(1)
         while frame:
