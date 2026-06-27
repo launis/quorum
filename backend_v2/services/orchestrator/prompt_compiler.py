@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.llm.directives import SCHEMA_PURITY_MANDATE, VERBATIM_EXTRACTION_MANDATE
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 from backend_v2.services.orchestrator.schema_factory import (
@@ -237,29 +238,6 @@ class PromptCompiler:
 
         return compiled
 
-    def get_critical_language_mandate(self, target_locale: str) -> str:
-        """Epic 56 Phase 3: Exposes the mandate so ChunkWorker can place it at the exact end of the prompt.
-
-        Args:
-            target_locale: The target language code for generation.
-
-        Returns:
-            An XML-wrapped critical language mandate string.
-        """
-        return (
-            f"<CRITICAL_LANGUAGE_MANDATE>\n"
-            f"You MUST do your deep analytical step-by-step Chain of Thought reasoning in English inside the `internal_logic_en` structured object. "
-            f"After concluding your reasoning, you must formulate the final justification strictly in the '{target_locale}' "
-            f"language inside the `semantic_reasoning` field. All JSON keys must strictly remain in English.\n"
-            f"\n"
-            f"CRITICAL: The `exact_quote` MUST ALWAYS be extracted in the exact original language of the source text. NEVER translate the quote, even if your reasoning is in another language.\n"
-            f"\n"
-            f"ZERO-HIT FALLBACK RULE: If you find absolutely NO evidence in the text to satisfy an evaluation "
-            f"criteria, you MUST formulate the negative 'not found' explanation completely in "
-            f"the '{target_locale}' language inside the `semantic_reasoning` field.\n"
-            f"</CRITICAL_LANGUAGE_MANDATE>"
-        )
-
     def _extract_value_from_state(self, path: str, state_data: dict[str, Any]) -> str:
         """Extract a value from workflow state using a path like '$inputs.history_text'.
 
@@ -450,8 +428,7 @@ class PromptCompiler:
                 "Your previous response was structurally valid JSON, but failed domain-specific logical validation:\n"
                 f"Error: {error_msg}\n\n"
                 "You MUST adhere strictly to the cognitive directives and logical constraints. "
-                "CRITICAL: If the error mentions 'exact_quote', you MUST provide a physically contiguous, "
-                "VERBATIM substring from the source text (without ANY markdown or alterations). "
+                f"{VERBATIM_EXTRACTION_MANDATE}\n"
                 "If no such verbatim string exists, you MUST return null or an empty string.\n"
                 "Regenerate your response ensuring all logical validations pass."
             )
@@ -460,12 +437,11 @@ class PromptCompiler:
             "[SYSTEM: STRICT JSON SCHEMA VALIDATION FAILED]\n"
             "Your previous response contained invalid JSON or failed Pydantic schema validation.\n"
             f"Error details: {error_msg}\n\n"
-            "CRITICAL SCHEMA RULES:\n"
-            "1. You MUST return ONLY valid JSON matching the exact schema requested.\n"
-            "2. If the error says 'Field required' (e.g., missing 'atom_id'), you MUST provide it. Every evaluation MUST have a valid 'atom_id' from your <BLIND_ATOMS_TO_EVALUATE> list.\n"
-            "3. If you evaluated a concept that was NOT explicitly listed in your instructions, REMOVE that evaluation block entirely. Do not hallucinate items.\n"
-            "4. Do not include markdown blocks, conversational text, or any explanations outside the JSON.\n"
-            "5. NO EXTRA FIELDS: If the error mentions 'Extra inputs are not permitted', you MUST remove them. Do not create or invent new JSON keys that were not explicitly requested in the schema."
+            f"{SCHEMA_PURITY_MANDATE}\n"
+            "ADDITIONAL RECOVERY INSTRUCTIONS:\n"
+            "1. If the error says 'Field required' (e.g., missing 'atom_id'), you MUST provide it. Every evaluation MUST have a valid 'atom_id' from your <BLIND_ATOMS_TO_EVALUATE> list.\n"
+            "2. If you evaluated a concept that was NOT explicitly listed in your instructions, REMOVE that evaluation block entirely. Do not hallucinate items.\n"
+            "3. Do not include markdown blocks, conversational text, or any explanations outside the JSON."
         )
 
         if strictness_level is not None and strictness_level >= 100:

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationError, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
+from backend_v2.llm.linguistic import build_linguistic_context
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.report import PromptContextDTO
 from backend_v2.models.enums import EvaluationRunCount, SystemConcurrency
@@ -589,15 +590,12 @@ class ChunkWorker:
             doc_lang = step_metadata.get("document_language", "Unknown/Original")
             source_language = step_metadata.get("source_language", doc_lang)
 
-        linguistic_context = (
-            "<linguistic_context>\\n"
-            f"  <source_data_language>{source_language}</source_data_language>\\n"
-            f"  <required_output_language>{target_locale}</required_output_language>\\n"
-            "  <required_reasoning_language>English</required_reasoning_language>\\n"
-            "</linguistic_context>"
+        linguistic_context = build_linguistic_context(
+            target_locale=target_locale,
+            source_language=source_language,
         )
 
-        base_system_prompt = f"{linguistic_context}\\n\\n{base_system_prompt}"
+        base_system_prompt = f"{linguistic_context}\n\n{base_system_prompt}"
 
         allowed_atom_ids = set()
         if has_shuffled_atoms and chunk is not None:

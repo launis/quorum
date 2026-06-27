@@ -96,8 +96,12 @@ def create_extraction_model(
 
     # 2. Build the dynamic ExtractedFactsDTO model
     facts_fields: dict[str, Any] = {}
-    for fact in unique_facts:
-        facts_fields[fact] = (str | None, Field(default=None, description=f"Extracted value for '{fact}'"))
+    for index, fact in enumerate(unique_facts):
+        alias_name = f"fact_{index + 1}"
+        facts_fields[fact] = (
+            str | None,
+            Field(default=None, description=f"Extracted value for '{fact}'", alias=alias_name),
+        )
 
     model_suffix = secrets.token_hex(4)
     extracted_facts_dto_name = f"ExtractedFactsDTO_{model_suffix}"
@@ -105,6 +109,7 @@ def create_extraction_model(
     ExtractedFactsDTO = create_model(
         extracted_facts_dto_name,
         __base__=ExtractedFactsDTOBase,
+        __config__=ConfigDict(populate_by_name=True),
         **facts_fields,
     )
 

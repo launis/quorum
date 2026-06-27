@@ -9,6 +9,7 @@ import logging
 from datetime import UTC, datetime
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.mcp import TavilySearchResult
 from backend_v2.models.domain.source_verification import (
     SourceClaimDTO,
@@ -83,14 +84,17 @@ class SourceVerificationService:
         # Safe truncation
         safe_text = text[:MAX_EXTRACTION_CHARS]
 
-        system_prompt = (
-            "You are an expert fact-checker. Read the provided document and extract "
-            "all explicit references to external sources, research, studies, guidelines, or institutions. "
-            "Extract the exact claim being attributed to them. Do not include internal cross-references. "
-            "Return an empty list if none are found."
+        system_prompt = build_system_directive(
+            objective="Read the provided document and extract all explicit references to external sources, research, studies, guidelines, or institutions.",
+            role="Expert Fact-Checker",
+            rules=[
+                "Extract the exact claim being attributed to them.",
+                "Do not include internal cross-references.",
+                "Return an empty list if none are found.",
+            ],
         )
 
-        user_message = f"<document>\n{safe_text}\n</document>"
+        user_message = f"<source_data>\n{safe_text}\n</source_data>"
 
         try:
             messages = [
@@ -138,15 +142,22 @@ class SourceVerificationService:
             search_res: TavilySearchResult = await tavily_search(query)
 
             # Fast chat evaluation to determine status based on Tavily context
-            system_prompt = (
-                "You are an expert fact-checker. Compare the original source claim against "
-                "the search results provided. Determine if the claim is VERIFIED (supported by search), "
-                "HALLUCINATION (contradicted or clearly fabricated), or INCONCLUSIVE (not enough info found). "
-                "Return ONLY the exact word: VERIFIED, HALLUCINATION, or INCONCLUSIVE."
+            system_prompt = build_system_directive(
+                objective="Compare the original source claim against the search results provided.",
+                role="Expert Fact-Checker",
+                rules=[
+                    "Determine if the claim is VERIFIED (supported by search), HALLUCINATION (contradicted or clearly fabricated), or INCONCLUSIVE (not enough info found).",
+                    "Return ONLY the exact word: VERIFIED, HALLUCINATION, or INCONCLUSIVE.",
+                ],
             )
             user_msg = (
-                f"<claim>\n{claim.claim_text}\n</claim>\n"
-                f"<search_results>\n{search_res.answer}\n\n{search_res.raw_content}\n</search_results>"
+                f"<source_data>\n"
+                f"  <claim>{claim.claim_text}</claim>\n"
+                f"  <search_results>\n"
+                f"    <answer>{search_res.answer}</answer>\n"
+                f"    <raw_content>{search_res.raw_content}</raw_content>\n"
+                f"  </search_results>\n"
+                f"</source_data>"
             )
 
             messages = [

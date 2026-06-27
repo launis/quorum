@@ -3946,7 +3946,7 @@
             "type": "integer",
             "title": "Matrix Sampling Strategy",
             "description": "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to 10 locally to mitigate LLM JSON schema context limits.",
-            "default": 0
+            "default": 2
           },
           "raw_inputs": {
             "$ref": "#/components/schemas/WorkflowInputsIngress",
@@ -4693,6 +4693,12 @@
             "type": "string",
             "title": "Query",
             "description": "The search query or tool input."
+          },
+          "reasoning": {
+            "type": "string",
+            "title": "Reasoning",
+            "description": "Brief explanation of why this claim was verified.",
+            "default": ""
           },
           "response_summary": {
             "type": "string",

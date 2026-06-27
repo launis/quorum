@@ -118,6 +118,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         'contextual_override',
         'semantic_reasoning',
         'quotes_list',
+        'used_evidence_ids',
       ],
     );
     final val = _MatrixScorecardRowDto(
@@ -205,6 +206,11 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      usedEvidenceIds: $checkedConvert(
+        'used_evidence_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
     );
     return val;
   },
@@ -235,6 +241,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
     'contextualOverride': 'contextual_override',
     'semanticReasoning': 'semantic_reasoning',
     'quotesList': 'quotes_list',
+    'usedEvidenceIds': 'used_evidence_ids',
   },
 );
 
@@ -273,6 +280,7 @@ Map<String, dynamic> _$MatrixScorecardRowDtoToJson(
   'contextual_override': instance.contextualOverride,
   'semantic_reasoning': instance.semanticReasoning,
   'quotes_list': instance.quotesList,
+  'used_evidence_ids': instance.usedEvidenceIds,
 };
 
 const _$EvidenceTypeEnumMap = {

@@ -21,7 +21,6 @@ from backend_v2.hooks import (
     scoring,
     security,
     synthesis,
-    translation_hook,
     validation,
 )
 
@@ -42,6 +41,5 @@ __all__ = [
     "scoring",
     "security",
     "synthesis",
-    "translation_hook",
     "validation",
 ]

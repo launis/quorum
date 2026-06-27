@@ -17,6 +17,9 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.context_mapper import ContextMapper
 from backend_v2.llm.client import LLMClient
+from backend_v2.llm.directives import TONE_MANDATE, VERBATIM_EXTRACTION_MANDATE
+from backend_v2.llm.linguistic import LANGUAGE_MANDATE, build_linguistic_context
+from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
@@ -270,7 +273,7 @@ def _build_section_instructions(layouts: list[Any], language: str, all_blocks: l
         )
 
         if language:
-            instruction += f"    <target_language>{language}</target_language>\n"
+            instruction += f"    <required_output_language>{language}</required_output_language>\n"
 
         if l_synthesis.length_constraint:
             instruction += f"    <length_constraint_chars>{l_synthesis.length_constraint}</length_constraint_chars>\n"
@@ -651,47 +654,44 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     scoring_strategy = active_profile_dto.scoring_strategy.value
 
-    sys_prompt = "<system_directive>\n"
-    sys_prompt += f"<objective>\n{str(custom_sys_prompt).strip()}\n</objective>\n<rules>\n"
-
-    sys_prompt += (
-        "  <rule>CRITICAL LANGUAGE MANDATE: You must process the input and generate all your output text "
-        "and source justifications exclusively in the language specified in <target_language>.</rule>\n"
-        "  <rule>SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY the allowed SDUI `content_blocks`.</rule>\n"
-        "  <rule>ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.</rule>\n"
-        "  <rule>NO RECURSION: Nested blocks inside blocks are strictly banned.</rule>\n"
-        "  <rule>NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.</rule>\n"
-        "  <rule>CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.</rule>\n"
-        "  <rule>XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. "
-        "Create up to <max_extension_items> MOST CRITICAL items for each individual category (meaning up to <max_extension_items> items of type 'justification', up to <max_extension_items> items of type 'coaching', etc.). "
-        "The total length of the `xai_highlights` array may be up to `max_extension_items * number_of_categories`. "
-        "Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. "
-        "Make each item's content an ultra-short, punchy bullet point (max 1 sentence). "
-        "CRITICAL TONE: Address the user directly ('you', 'your text') inside each highlight's content. Do not use passive voice. "
-        "CRITICAL LANGUAGE MANDATE: You must generate the content of each highlight exclusively in the language specified in <target_language>.</rule>\n"
-    )
+    rules = [
+        LANGUAGE_MANDATE,
+        TONE_MANDATE,
+        "SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY the allowed SDUI `content_blocks`.",
+        "ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.",
+        "NO RECURSION: Nested blocks inside blocks are strictly banned.",
+        "NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.",
+        "CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.",
+        (
+            "XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. "
+            "Create up to <max_extension_items> MOST CRITICAL items for each individual category (meaning up to <max_extension_items> items of type 'justification', up to <max_extension_items> items of type 'coaching', etc.). "
+            "The total length of the `xai_highlights` array may be up to `max_extension_items * number_of_categories`. "
+            "Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. "
+            "Make each item's content an ultra-short, punchy bullet point (max 1 sentence)."
+        ),
+    ]
 
     if length_constraint:
-        sys_prompt += (
-            "  <rule>GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
-            "specified in <global_length_constraint_chars>.</rule>\n"
+        rules.append(
+            "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
+            "specified in <global_length_constraint_chars>."
         )
 
     if tone_text:
-        sys_prompt += f"  <rule>TONE INSTRUCTION: {tone_text}</rule>\n"
+        rules.append(f"TONE INSTRUCTION: {tone_text}")
 
     if section_instructions:
-        sys_prompt += "  <rule>=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
-        sys_prompt += (
+        section_rules = (
+            "=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
             "CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.\n"
             "You MUST ALSO provide targeted synthesized summaries for the following "
             "distinct sections as an array in `section_syntheses`.\n\n"
         )
-        sys_prompt += "\n\n".join(section_instructions)
-        sys_prompt += "\n  </rule>\n"
+        section_rules += "\n\n".join(section_instructions)
+        rules.append(section_rules)
 
-    sys_prompt += (
-        "  <rule>Omit internal system identifiers or raw JSON keys. "
+    rules.append(
+        "Omit internal system identifiers or raw JSON keys. "
         "When referring to information, use inline numerical tags like [1], [2].\n"
         "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond "
         "to the items in the `cited_sources` list (1-indexed). "
@@ -699,34 +699,35 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "is an actual literary reference, empirical citation, methodology framework, or external "
         "document (e.g., 'Toulmin 2003', 'Sitra Report'). "
         "DO NOT use citation tags for general analysis sections, step titles, or internal data "
-        "dumps. If you mention internal findings, state them directly without using it.</rule>\n"
+        "dumps. If you mention internal findings, state them directly without using it."
     )
 
-    sys_prompt += (
-        "  <rule>STATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand "
+    rules.append(
+        "STATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand "
         "the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, summarize, "
         "or report on the substantive topics, subjects, or domains discussed in the historical context. "
-        "Your output must be STRICTLY based on the current <source_data>.</rule>\n"
+        "Your output must be STRICTLY based on the current <source_data>."
     )
 
-    sys_prompt += "</rules>\n</system_directive>\n\n"
-
-    sys_prompt += "<execution_parameters>\n"
     source_language = state.metadata.get("source_language", state.metadata.get("document_language", "Unknown/Original"))
-    linguistic_context = (
-        "<linguistic_context>\n"
-        f"  <source_data_language>{source_language}</source_data_language>\n"
-        f"  <required_output_language>{language}</required_output_language>\n"
-        "  <required_reasoning_language>English</required_reasoning_language>\n"
-        "</linguistic_context>\n"
+    linguistic_context = build_linguistic_context(
+        target_locale=language,
+        source_language=source_language,
     )
-    sys_prompt += linguistic_context
-    sys_prompt += f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>\n"
-    sys_prompt += f"  <max_extension_items>{max_items}</max_extension_items>\n"
 
+    exec_params = [
+        linguistic_context.strip(),
+        f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>",
+        f"  <max_extension_items>{max_items}</max_extension_items>",
+    ]
     if length_constraint:
-        sys_prompt += f"  <global_length_constraint_chars>{length_constraint}</global_length_constraint_chars>\n"
-    sys_prompt += "</execution_parameters>"
+        exec_params.append(f"  <global_length_constraint_chars>{length_constraint}</global_length_constraint_chars>")
+
+    sys_prompt = build_system_directive(
+        objective=str(custom_sys_prompt).strip(),
+        rules=rules,
+        execution_parameters="\n".join(exec_params),
+    )
 
     messages = [
         {"role": "system", "content": sys_prompt},
@@ -811,29 +812,25 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         row_exp_rule = "MAXIMUM LENGTH IS 30 WORDS. KEEP IT CONCISE BUT INFORMATIVE."
 
         row_rules = [
-            "  <rule>Focus strictly on the core reason for the score in row_explanation.</rule>",
+            "Focus strictly on the core reason for the score in row_explanation.",
         ]
         if tone_text:
-            row_rules.append(f"  <rule>TONE INSTRUCTION: {tone_text}</rule>")
+            row_rules.append(f"TONE INSTRUCTION: {tone_text}")
         row_rules.extend(
             [
-                "  <rule>Do not use markdown, line breaks, or bullet points in row_explanation.</rule>",
-                f"  <rule>{row_exp_rule}</rule>",
-                "  <rule>CRITICAL QUOTES RULE: The curated_quotes MUST be verbatim from the user's text (unless it's a contextual override). You MUST strip out any tables, raw numbers, markdown, or formatting from the quotes.</rule>",
-                "  <rule>CRITICAL TONE: Speak directly to the user (e.g. 'You stated...', 'Your approach...'). Focus entirely on the user's input.</rule>",
-                "  <rule>CRITICAL LANGUAGE MANDATE: You must generate the row_explanation exclusively in the language specified in <target_language>.</rule>",
+                "Do not use markdown, line breaks, or bullet points in row_explanation.",
+                row_exp_rule,
+                VERBATIM_EXTRACTION_MANDATE,
+                TONE_MANDATE,
             ]
         )
 
-        row_exp_prompt = (
-            "<system_directive>\n"
-            "<objective>\n"
-            "1. 'row_explanation': Summarize the justification into exactly ONE short sentence addressing the user directly.\n"
-            "2. 'curated_quotes': Review the provided quotes. Select up to <max_extension_items> MOST CONCRETE quotes verbatim from the user's original input.\n"
-            "</objective>\n"
-            "<rules>\n" + "\n".join(row_rules) + "\n"
-            "</rules>\n"
-            "</system_directive>"
+        row_exp_prompt = build_system_directive(
+            objective=(
+                "1. 'row_explanation': Summarize the justification into exactly ONE short sentence addressing the user directly.\n"
+                "2. 'curated_quotes': Review the provided quotes. Select up to <max_extension_items> MOST CONCRETE quotes verbatim from the user's original input."
+            ),
+            rules=row_rules,
         )
 
         atom_quotes: dict[str, list[str]] = {}
@@ -864,7 +861,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     "<execution_parameters>\n"
                     "  <task>generate_row_explanations</task>\n"
                     f"  <max_extension_items>{max_items}</max_extension_items>\n"
-                    f"  <target_language>{language}</target_language>\n"
+                    f"  <required_output_language>{language}</required_output_language>\n"
                     "</execution_parameters>\n"
                     "<source_data>\n"
                     f"{json.dumps(matrices_to_explain, indent=2)}\n"

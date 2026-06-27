@@ -1579,3 +1579,73 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
         traceback.print_exc()
 
     mock_system_repo.get_system_config.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_blueprint_causal_mapping_reverse_lookup(mock_repo_transformer: Any) -> None:
+    """Epic 87: Verifies that used_evidence_ids from Matrix output blocks are
+    correctly mapped backwards into MCPAuditTrace.impacted_axis_names.
+    """
+    from backend_v2.models.v2_core import FrozenContext, MCPAuditTrace
+
+    # 1) Setup a frozen context with a Tavily search trace
+    frozen = FrozenContext(
+        mcp_tool_audit=[
+            MCPAuditTrace(
+                id="tavily_1234",
+                tool_id="mcp_tavily_search",
+                step_name="step_1",
+                query="AI ethics",
+            ),
+            MCPAuditTrace(
+                id="tavily_5678",
+                tool_id="mcp_tavily_search",
+                step_name="step_2",
+                query="Bias detection",
+            ),
+        ]
+    )
+    # 2) Setup Execution record where a block extraction references 'tavily_1234'
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000011112222",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        execution_trace=[
+            TraceEvent(
+                step_name="step_analyst",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 80.0,
+                        "justification": "Checked with sources.",
+                        "used_evidence_ids": ["tavily_1234"],
+                    }
+                },
+            )
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        frozen_context=frozen,
+        metadata={"target_locale": "en"},
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    dto = await transformer.build_report_dto("exe_0000000011112222", accept_language="en")
+
+    # 3) Verification:
+    # There are 2 mcp traces. tavily_1234 should have "Logic" in impacted_axis_names (since blk_1234abcd1234abcd is "Logic").
+    # tavily_5678 should have empty impacted_axis_names.
+
+    assert len(dto.mcp_tool_audit) == 2
+
+    trace_1234 = next(t for t in dto.mcp_tool_audit if t.id == "tavily_1234")
+    trace_5678 = next(t for t in dto.mcp_tool_audit if t.id == "tavily_5678")
+
+    assert "Logic *" in trace_1234.impacted_axis_names
+    assert len(trace_5678.impacted_axis_names) == 0

@@ -584,9 +584,14 @@ class MCPAuditTrace(V2CoreBase):
     id: str | None = Field(default=None, description="Unique identifier for the trace injected by the driver.")
     tool_id: str = Field(description="Which tool was called.")
     step_name: str = Field(description="DAG step that triggered the call.")
+    claim_text: str | None = Field(default=None, description="The verbatim claim that triggered this search.")
     query: str = Field(description="The search query or tool input.")
+    reasoning: str = Field(default="", description="Brief explanation of why this claim was verified.")
     response_summary: str = Field(default="", description="Extracted text summary.")
     source_urls: list[str] = Field(default_factory=list, description="Source URLs returned.")
+    impacted_axis_names: list[str] = Field(
+        default_factory=list, description="List of matrix axis names that used this trace."
+    )
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc), description="UTC timestamp of the tool call."
     )
@@ -888,6 +893,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
     quotes_list: list[str] | None = Field(
         default=None, description="Array of exact quotes hoisted from successful atoms. Truncated to 150 chars each."
     )
+    used_evidence_ids: list[str] = Field(default_factory=list, description="Trace IDs used for this row.")
 
     tda_state: dict[str, Any] | None = Field(default=None, description="TDAState union representation.")
 

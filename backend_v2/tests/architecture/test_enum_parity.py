@@ -1,9 +1,11 @@
+import os
 import re
 
-DART_ENUM_PATH = "client_app_v2/lib/core/models/enums.dart"
-PYTHON_V2_CORE_PATH = "backend_v2/models/v2_core.py"
-PYTHON_ENUMS_PATH = "backend_v2/models/enums.py"
-PYTHON_SDUI_PATH = "backend_v2/models/view/sdui.py"
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+DART_ENUM_PATH = os.path.join(repo_root, "client_app_v2", "lib", "core", "models", "enums.dart")
+PYTHON_V2_CORE_PATH = os.path.join(repo_root, "backend_v2", "models", "v2_core.py")
+PYTHON_ENUMS_PATH = os.path.join(repo_root, "backend_v2", "models", "enums.py")
+PYTHON_SDUI_PATH = os.path.join(repo_root, "backend_v2", "models", "view", "sdui.py")
 
 
 def read_file(path: str) -> str:

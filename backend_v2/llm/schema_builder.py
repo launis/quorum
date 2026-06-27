@@ -29,7 +29,7 @@ class SchemaCompilerService:
 
     @staticmethod
     @functools.lru_cache(maxsize=1024)
-    def _get_or_create_model(schema_hash: str, fields_tuple: tuple[tuple[str, Any, str], ...]) -> type[BaseModel]:
+    def _get_or_create_model(schema_hash: str, fields_tuple: tuple[tuple[str, Any, str, str], ...]) -> type[BaseModel]:
         """Retrieves or creates a Pydantic Model based on the fields tuple.
         LRU Cache strictly prevents Python `type` memory leaks (OOM) during dynamic creation.
 
@@ -41,11 +41,12 @@ class SchemaCompilerService:
             type[BaseModel]: The dynamically generated Pydantic model class.
         """
         fields: dict[str, Any] = {
-            name: (type_hint, Field(..., description=desc)) for name, type_hint, desc in fields_tuple
+            name: (type_hint, Field(..., description=desc, alias=alias))
+            for name, type_hint, desc, alias in fields_tuple
         }
         return create_model(
             f"DynamicSchema_{schema_hash[:8]}",
-            __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
+            __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
             **fields,
         )
 
@@ -75,9 +76,10 @@ class SchemaCompilerService:
         schema_hash = cls._generate_hash(blocks_config)
 
         # 2. Build the fields tuple for Pydantic (must be hashable for lru_cache)
-        fields_list: list[tuple[str, Any, str]] = []
-        for cfg in blocks_config:
+        fields_list: list[tuple[str, Any, str, str]] = []
+        for index, cfg in enumerate(blocks_config):
             slug = str(cfg["slug"])
+            alias_name = f"eval_{index + 1}"
             b_type = cfg["type"]
 
             type_hint: Any
@@ -92,7 +94,7 @@ class SchemaCompilerService:
                 type_hint = str
                 desc = f"Extracted text content for {slug}"
 
-            fields_list.append((slug, type_hint, desc))
+            fields_list.append((slug, type_hint, desc, alias_name))
 
             # Dynamically inject requested XAI output extensions into Pydantic schema
             extensions = cfg["output_extensions"]
@@ -104,6 +106,7 @@ class SchemaCompilerService:
                         f"Extensive analytical reasoning and justification for the {slug} output. "
                         "STRICT MANDATE: DO NOT output any final mathematical scores, grades, "
                         "or 'Arvosana' in this text. ONLY explain the qualitative reasoning.",
+                        f"{alias_name}_{XaiExtensionType.JUSTIFICATION.value}",
                     )
                 )
             if XaiExtensionType.CITATION.value in extensions:
@@ -112,6 +115,7 @@ class SchemaCompilerService:
                         f"{slug}_{XaiExtensionType.CITATION.value}",
                         str,
                         f"Direct exact quote from the source text strongly supporting the {slug} justification.",
+                        f"{alias_name}_{XaiExtensionType.CITATION.value}",
                     )
                 )
             if XaiExtensionType.COACHING.value in extensions:
@@ -121,6 +125,7 @@ class SchemaCompilerService:
                         str,
                         "STRICT MANDATE: Provide one concrete, actionable step to patch the observed data "
                         "or logic gap. DO NOT give general tips or encouraging advice.",
+                        f"{alias_name}_{XaiExtensionType.COACHING.value}",
                     )
                 )
             if XaiExtensionType.CONFIDENCE.value in extensions:
@@ -129,6 +134,7 @@ class SchemaCompilerService:
                         f"{slug}_{XaiExtensionType.CONFIDENCE.value}",
                         float,
                         "Numerical confidence from 0.0 to 100.0 based strictly on source evidence.",
+                        f"{alias_name}_{XaiExtensionType.CONFIDENCE.value}",
                     )
                 )
             if XaiExtensionType.FALSIFICATION.value in extensions:
@@ -138,6 +144,7 @@ class SchemaCompilerService:
                         str,
                         "STRICT MANDATE: List the exact business scenario where the user's model or "
                         "claim crashes 100%. No mitigating words allowed.",
+                        f"{alias_name}_{XaiExtensionType.FALSIFICATION.value}",
                     )
                 )
             if XaiExtensionType.MISSING_CONTEXT.value in extensions:
@@ -147,6 +154,7 @@ class SchemaCompilerService:
                         str,
                         "Exact missing data from the provided text that would have altered the evaluation score. "
                         "No theoretical assumptions.",
+                        f"{alias_name}_{XaiExtensionType.MISSING_CONTEXT.value}",
                     )
                 )
             if XaiExtensionType.RISK_FLAG.value in extensions:
@@ -155,6 +163,7 @@ class SchemaCompilerService:
                         f"{slug}_{XaiExtensionType.RISK_FLAG.value}",
                         bool,
                         "True ONLY if there is a severe, documentable risk present; False otherwise.",
+                        f"{alias_name}_{XaiExtensionType.RISK_FLAG.value}",
                     )
                 )
             if XaiExtensionType.REMEDIATION_STEPS.value in extensions:
@@ -163,6 +172,7 @@ class SchemaCompilerService:
                         f"{slug}_{XaiExtensionType.REMEDIATION_STEPS.value}",
                         list[str],
                         "Numbered actionable list of distinct textual remediation steps.",
+                        f"{alias_name}_{XaiExtensionType.REMEDIATION_STEPS.value}",
                     )
                 )
             if XaiExtensionType.EMOTIONAL_SENTIMENT.value in extensions:
@@ -171,6 +181,7 @@ class SchemaCompilerService:
                         f"{slug}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
                         str,
                         "Analysis of the user's emotional state or tone regarding this metric.",
+                        f"{alias_name}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
                     )
                 )
             if XaiExtensionType.THEORY_LINK.value in extensions:
@@ -179,6 +190,7 @@ class SchemaCompilerService:
                         f"{slug}_{XaiExtensionType.THEORY_LINK.value}",
                         str,
                         "Direct logical connection of the observation back to the governing theory framework.",
+                        f"{alias_name}_{XaiExtensionType.THEORY_LINK.value}",
                     )
                 )
 

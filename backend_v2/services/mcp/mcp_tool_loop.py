@@ -17,6 +17,8 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
+from backend_v2.llm.directives import VERBATIM_EXTRACTION_MANDATE
+from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
     CitationExtractionResult,
@@ -36,14 +38,15 @@ logger = logging.getLogger(__name__)
 # EPIC §3 "The Infinite Loop Limit".
 MAX_TOOL_CALLS_PER_STEP = 3
 
-_SELF_CORRECTION_SYSTEM_INSTRUCTION = (
-    "<system_directive>\n"
-    "  <objective>Locate and return the exact physical substring from the source context "
-    "that is semantically equivalent to the failed claim.</objective>\n"
-    "  <rule>The returned corrected_claim MUST be a 100% exact substring match from the "
-    "source context (including case, spaces, and diacritics).</rule>\n"
-    "  <rule>Do not paraphrase or summarize.</rule>\n"
-    "</system_directive>"
+_SELF_CORRECTION_SYSTEM_INSTRUCTION = build_system_directive(
+    objective=(
+        "Locate and return the exact physical substring from the source context "
+        "that is semantically equivalent to the failed claim."
+    ),
+    rules=[
+        "The returned corrected_claim MUST be a 100% exact substring match from the source context (including case, spaces, and diacritics).",
+        "Do not paraphrase or summarize.",
+    ],
 )
 
 # The only tool currently registered in the system.
@@ -84,7 +87,7 @@ def validate_query_relevance(query: str, source_context: str) -> bool:
         source_context: The text of the document being evaluated.
 
     Returns:
-        bool: True if relevant (or if validation cannot be determined), False if clearly hallucinated.
+        True if relevant (or if validation cannot be determined), False if clearly hallucinated.
     """
     if not source_context or not source_context.strip():
         return True
@@ -128,7 +131,7 @@ def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
         allowed_tools: List of allowed tool IDs (e.g., ["mcp_tavily_search"]).
 
     Returns:
-        list[dict[str, Any]]: List of valid OpenAI function declarations.
+        List of valid OpenAI function declarations.
     """
     declarations: list[dict[str, Any]] = []
     for tool_id in allowed_tools:
@@ -140,7 +143,12 @@ def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
 
 
 async def _execute_tavily_search(
-    query: str, step_name: str, target_language: str = "en", llm_client: Any = None
+    query: str,
+    step_name: str,
+    target_language: str,
+    llm_client: Any | None = None,
+    reasoning: str = "",
+    claim_text: str | None = None,
 ) -> MCPAuditTrace:
     """Execute a Tavily search and return an audit trace.
 
@@ -154,26 +162,39 @@ async def _execute_tavily_search(
         llm_client: Bound LLM client (optional).
 
     Returns:
-        MCPAuditTrace: Audit record containing the search results.
+        Audit record containing the search results.
 
     Raises:
-        AppException: If the search fails critically.
+        AppException: If the search fails critically (ErrorCodes.FETCH_FAILED).
     """
     start_ms = int(time.monotonic() * 1000)
     try:
         result = await tavily_search(query)
         response_summary = result.answer
 
-        # NOTE: We previously did an explicit LLM call here to translate `response_summary`
-        # to `target_language`. This was removed to save 1 LLM call per search (5 RPM limit).
-        # The main LLM (Phase 2) is perfectly capable of reading English evidence and outputting Finnish.
+        if target_language and target_language.lower() != "en" and response_summary and llm_client:
+            from backend_v2.llm.linguistic import translate_text
+
+            response_summary = await translate_text(
+                text=response_summary,
+                target_lang=target_language,
+                llm_client=llm_client,
+                source_language="English/Original",
+            )
 
         elapsed_ms = int(time.monotonic() * 1000) - start_ms
 
+        import uuid
+
+        trace_id = f"tavily_{uuid.uuid4().hex[:8]}"
+
         return MCPAuditTrace(
+            id=trace_id,
             tool_id=TAVILY_TOOL_ID,
             step_name=step_name,
+            claim_text=claim_text,
             query=query,
+            reasoning=reasoning,
             response_summary=response_summary,
             source_urls=result.source_urls,
             timestamp=datetime.now(timezone.utc),
@@ -207,7 +228,7 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
                       Must match exactly for LiteLLM/Gemini transformation.
 
     Returns:
-        dict[str, str]: Tool message formatted for OpenAI/LiteLLM.
+        Tool message formatted for OpenAI/LiteLLM.
     """
     if not audit.response_summary and not audit.source_urls:
         return {
@@ -266,7 +287,12 @@ async def execute_tool_loop[T: BaseModel](
         synthesis_instructions: Epic 13 OutputProfile limits and preamble constraints.
 
     Returns:
-        MCPToolLoopResult with structured data and audit traces.
+        Structured tool loop results and audit traces.
+
+    Raises:
+        AppException: If Phase 0 ensemble extraction, parameter validation, or Phase 2
+            completion fails critically (ErrorCodes.FETCH_FAILED,
+            ErrorCodes.VALIDATION_FAILED, or ErrorCodes.WORKFLOW_EXECUTION_FAILED).
     """
     audit_traces: list[MCPAuditTrace] = []
     tool_declarations = _build_tool_declarations(allowed_tools)
@@ -321,12 +347,13 @@ async def execute_tool_loop[T: BaseModel](
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
     if TAVILY_TOOL_ID in allowed_tools:
-        extraction_sys_msg = (
-            "<system_instruction>\n"
-            "  <objective>Extract factual claims that require external verification.</objective>\n"
-            "  <rule>Return a structured list of citations.</rule>\n"
-            "  <rule>The claim_text MUST be an exact physical substring from the source document.</rule>\n"
-            "</system_instruction>"
+        extraction_sys_msg = build_system_directive(
+            objective="Extract factual claims that require external verification.",
+            rules=[
+                "Return a structured list of citations.",
+                VERBATIM_EXTRACTION_MANDATE,
+                f"Provide a short max 100 character reasoning sentence for each extraction in the language code '{target_language}'.",
+            ],
         )
 
         extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
@@ -507,7 +534,14 @@ async def execute_tool_loop[T: BaseModel](
                 extra={"step_name": step_name, "query": query},
             )
 
-            audit = await _execute_tavily_search(query, step_name, target_language, llm_client)
+            audit = await _execute_tavily_search(
+                query=query,
+                step_name=step_name,
+                target_language=target_language,
+                llm_client=llm_client,
+                reasoning=citation.reasoning,
+                claim_text=claim,
+            )
             audit_traces.append(audit)
             tool_call_count += 1
 
@@ -518,7 +552,8 @@ async def execute_tool_loop[T: BaseModel](
     if audit_traces:
         evidence_blocks = []
         for audit in audit_traces:
-            content = f"<search_result>\n  <query>{audit.query}</query>\n"
+            trace_id = audit.id or "unknown"
+            content = f'<search_result id="{trace_id}">\n  <query>{audit.query}</query>\n'
             if audit.response_summary:
                 content += f"  <summary>{audit.response_summary}</summary>\n"
             if audit.source_urls:
@@ -537,13 +572,7 @@ async def execute_tool_loop[T: BaseModel](
                     "<external_evidence>\n"
                     f"{evidence_str}\n"
                     "</external_evidence>\n\n"
-                    "<system_instruction>\n"
-                    "  <objective>EVIDENCE INJECTION COMPLETE</objective>\n"
-                    "  <rule>You now have external search evidence above.</rule>\n"
-                    "  <rule>Complete the evaluation matrix using both the original context AND "
-                    "the search evidence.</rule>\n"
-                    "  <rule>Output your response strictly in the required JSON schema format.</rule>\n"
-                    "</system_instruction>"
+                    f"{build_system_directive(objective='EVIDENCE INJECTION COMPLETE', rules=['You now have external search evidence above.', 'Complete the evaluation matrix using both the original context AND the search evidence.', 'Output your response strictly in the required JSON schema format.'])}"
                 ),
             }
         )

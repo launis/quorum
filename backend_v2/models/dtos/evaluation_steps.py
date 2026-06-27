@@ -19,6 +19,11 @@ class BaseExtractionDTO(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+    used_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="List of exact <search_result id> strings you relied upon for this specific extraction.",
+    )
+
     @model_validator(mode="before")
     @classmethod
     def _enforce_contextual_override_exclusivity(cls, data: Any) -> Any:

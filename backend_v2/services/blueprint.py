@@ -1044,6 +1044,35 @@ class BlueprintTransformer:
                         seen_audits.add(audit_hash)
                         mcp_audit_data.append(audit)
 
+            # Phase 2.3: Reverse Lookup Mapping for MCP Audit Traces
+            if mcp_audit_data:
+                evidence_to_axes: dict[str, set[str]] = {}
+
+                def extract_evidence_ids(payload_data: Any, b_id: str) -> None:
+                    if isinstance(payload_data, dict):
+                        if "used_evidence_ids" in payload_data and isinstance(payload_data["used_evidence_ids"], list):
+                            for e_id in payload_data["used_evidence_ids"]:
+                                if isinstance(e_id, str):
+                                    evidence_to_axes.setdefault(e_id, set()).add(b_id)
+                        for val in payload_data.values():
+                            extract_evidence_ids(val, b_id)
+                    elif isinstance(payload_data, list):
+                        for item in payload_data:
+                            extract_evidence_ids(item, b_id)
+
+                for dto in results:
+                    extract_evidence_ids(dto.payload, dto.block_id)
+
+                block_to_axis = {matrix_row.block_id: matrix_row.name for matrix_row in all_parsed_matrices.values()}
+
+                for idx, audit in enumerate(mcp_audit_data):
+                    if audit.id in evidence_to_axes:
+                        axis_names = set()
+                        for block_id in evidence_to_axes[audit.id]:
+                            if block_id in block_to_axis:
+                                axis_names.add(block_to_axis[block_id])
+                        mcp_audit_data[idx] = audit.model_copy(update={"impacted_axis_names": sorted(list(axis_names))})
+
             strictness_level = (
                 profile.strictness_level
                 if profile.strictness_level is not None

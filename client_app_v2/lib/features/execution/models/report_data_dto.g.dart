@@ -232,64 +232,79 @@ const _$PresetViewEnumMap = {
   PresetView.defaultView: 'default',
 };
 
-_MCPToolAuditDTO _$MCPToolAuditDTOFromJson(Map<String, dynamic> json) =>
-    $checkedCreate(
-      '_MCPToolAuditDTO',
+_MCPToolAuditDTO _$MCPToolAuditDTOFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_MCPToolAuditDTO',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
       json,
-      ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'id',
-            'tool_id',
-            'step_name',
-            'query',
-            'response_summary',
-            'source_urls',
-            'timestamp',
-            'duration_ms',
-          ],
-        );
-        final val = _MCPToolAuditDTO(
-          id: $checkedConvert('id', (v) => v as String?),
-          toolId: $checkedConvert('tool_id', (v) => v as String),
-          stepName: $checkedConvert('step_name', (v) => v as String),
-          query: $checkedConvert('query', (v) => v as String),
-          responseSummary: $checkedConvert(
-            'response_summary',
-            (v) => v as String? ?? '',
-          ),
-          sourceUrls: $checkedConvert(
-            'source_urls',
-            (v) =>
-                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-                const [],
-          ),
-          timestamp: $checkedConvert('timestamp', (v) => v as String?),
-          durationMs: $checkedConvert(
-            'duration_ms',
-            (v) => (v as num?)?.toInt() ?? 0,
-          ),
-        );
-        return val;
-      },
-      fieldKeyMap: const {
-        'toolId': 'tool_id',
-        'stepName': 'step_name',
-        'responseSummary': 'response_summary',
-        'sourceUrls': 'source_urls',
-        'durationMs': 'duration_ms',
-      },
+      allowedKeys: const [
+        'id',
+        'tool_id',
+        'step_name',
+        'claim_text',
+        'query',
+        'reasoning',
+        'response_summary',
+        'source_urls',
+        'impacted_axis_names',
+        'timestamp',
+        'duration_ms',
+      ],
     );
+    final val = _MCPToolAuditDTO(
+      id: $checkedConvert('id', (v) => v as String?),
+      toolId: $checkedConvert('tool_id', (v) => v as String),
+      stepName: $checkedConvert('step_name', (v) => v as String),
+      claimText: $checkedConvert('claim_text', (v) => v as String?),
+      query: $checkedConvert('query', (v) => v as String),
+      reasoning: $checkedConvert('reasoning', (v) => v as String? ?? ''),
+      responseSummary: $checkedConvert(
+        'response_summary',
+        (v) => v as String? ?? '',
+      ),
+      sourceUrls: $checkedConvert(
+        'source_urls',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      impactedAxisNames: $checkedConvert(
+        'impacted_axis_names',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      timestamp: $checkedConvert('timestamp', (v) => v as String?),
+      durationMs: $checkedConvert(
+        'duration_ms',
+        (v) => (v as num?)?.toInt() ?? 0,
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'toolId': 'tool_id',
+    'stepName': 'step_name',
+    'claimText': 'claim_text',
+    'responseSummary': 'response_summary',
+    'sourceUrls': 'source_urls',
+    'impactedAxisNames': 'impacted_axis_names',
+    'durationMs': 'duration_ms',
+  },
+);
 
 Map<String, dynamic> _$MCPToolAuditDTOToJson(_MCPToolAuditDTO instance) =>
     <String, dynamic>{
       'id': instance.id,
       'tool_id': instance.toolId,
       'step_name': instance.stepName,
+      'claim_text': instance.claimText,
       'query': instance.query,
+      'reasoning': instance.reasoning,
       'response_summary': instance.responseSummary,
       'source_urls': instance.sourceUrls,
+      'impacted_axis_names': instance.impactedAxisNames,
       'timestamp': instance.timestamp,
       'duration_ms': instance.durationMs,
     };

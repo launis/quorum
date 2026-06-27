@@ -28,13 +28,13 @@ def test_schema_compiler_basic_compile() -> None:
 
     DynamicModel = SchemaCompilerService.compile([block])
 
-    # Should validate correct data
-    instance = DynamicModel.model_validate({"test_metric": 3.5})
+    # Should validate correct data using the alias
+    instance = DynamicModel.model_validate({"eval_1": 3.5})
     assert instance.model_dump()["test_metric"] == 3.5
 
     # Should forbid extra fields due to strict=True, extra='forbid'
     with pytest.raises(ValidationError):
-        DynamicModel.model_validate({"test_metric": 3.5, "extra_field": "bad"})
+        DynamicModel.model_validate({"eval_1": 3.5, "extra_field": "bad"})
 
 
 def test_schema_compiler_xai_extensions() -> None:
@@ -49,10 +49,10 @@ def test_schema_compiler_xai_extensions() -> None:
     schema = DynamicModel.model_json_schema()
 
     properties = schema.get("properties", {})
-    assert "obs_1" in properties
+    assert "eval_1" in properties
 
-    coaching_key = f"obs_1_{XaiExtensionType.COACHING.value}"
-    falsification_key = f"obs_1_{XaiExtensionType.FALSIFICATION.value}"
+    coaching_key = f"eval_1_{XaiExtensionType.COACHING.value}"
+    falsification_key = f"eval_1_{XaiExtensionType.FALSIFICATION.value}"
 
     assert coaching_key in properties
     assert falsification_key in properties

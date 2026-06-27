@@ -185,6 +185,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get xaiEvidenceImpactedAxes =>
+      'This information was used in evaluating the following axes:';
+
+  @override
   String get executionDetails => 'Execution Details';
 
   @override
@@ -2427,6 +2431,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get xaiEvidenceTitle => 'AI Expert Sources (Fact-Check)';
 
   @override
+  String get xaiEvidenceClaim => 'Original Claim';
+
+  @override
   String get xaiEvidenceQuery => 'Search query';
 
   @override
@@ -2434,6 +2441,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get xaiEvidenceDuration => 'Duration';
+
+  @override
+  String get xaiEvidenceReasoning => 'Reasoning';
 
   @override
   String get stepBuilderMCPToolsTitle => 'Allowed MCP Tools';

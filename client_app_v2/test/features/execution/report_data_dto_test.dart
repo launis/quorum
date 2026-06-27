@@ -125,5 +125,38 @@ void main() {
       final dto = ReportDataDTO.fromJson(json);
       expect(dto.contentBlocks.length, 1);
     });
+
+    test(
+      'Successfully parses MCPToolAuditDTO with reasoning key (Tier 4 Fix)',
+      () {
+        final json = {
+          "workflow_id": "wf_123",
+          "profile_id": "prof_1",
+          "layouts": [],
+          "mcp_tool_audit": [
+            {
+              "id": "1",
+              "tool_id": "tavily_search",
+              "step_name": "sr_123",
+              "query": "test query",
+              "response_summary": "test response",
+              "source_urls": [],
+              "impacted_axis_names": [],
+              "timestamp": "2026-06-26T22:35:38",
+              "duration_ms": 1000,
+              "reasoning": "This field will cause CheckedFromJsonException",
+            },
+          ],
+        };
+
+        // Verify that reasoning is correctly parsed.
+        final dto = ReportDataDTO.fromJson(json);
+        expect(dto.mcpToolAudit.length, 1);
+        expect(
+          dto.mcpToolAudit[0].reasoning,
+          "This field will cause CheckedFromJsonException",
+        );
+      },
+    );
   });
 }

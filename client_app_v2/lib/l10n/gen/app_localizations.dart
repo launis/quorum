@@ -404,6 +404,12 @@ abstract class AppLocalizations {
   /// **'Failed to restart generation: {error}'**
   String regenerateProfileFailed(String error);
 
+  /// No description provided for @xaiEvidenceImpactedAxes.
+  ///
+  /// In en, this message translates to:
+  /// **'This information was used in evaluating the following axes:'**
+  String get xaiEvidenceImpactedAxes;
+
   /// No description provided for @executionDetails.
   ///
   /// In en, this message translates to:
@@ -4490,6 +4496,12 @@ abstract class AppLocalizations {
   /// **'AI Expert Sources (Fact-Check)'**
   String get xaiEvidenceTitle;
 
+  /// Label for the original verbatim claim that triggered the search
+  ///
+  /// In en, this message translates to:
+  /// **'Original Claim'**
+  String get xaiEvidenceClaim;
+
   /// Label for the search query in XAI evidence entries
   ///
   /// In en, this message translates to:
@@ -4507,6 +4519,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Duration'**
   String get xaiEvidenceDuration;
+
+  /// Label for AI reasoning in XAI evidence entries
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning'**
+  String get xaiEvidenceReasoning;
 
   /// Title for MCP tools section in step builder
   ///

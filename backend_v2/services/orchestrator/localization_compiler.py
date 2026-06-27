@@ -11,6 +11,12 @@ import logging
 from typing import Any
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.llm.directives import (
+    ANTI_ID_MANDATE,
+    ANTI_SCORE_MANDATE,
+    EXTENSION_ANCHORING_MANDATE,
+    SCHEMA_PURITY_MANDATE,
+)
 from backend_v2.models.enums import EvaluationMandate
 from backend_v2.models.v2_core import PromptBlock
 
@@ -192,52 +198,16 @@ class LocalizationCompiler:
         xml_blocks.append(anti_sycophancy_mandate)
 
         # Extension Anchoring Mandate: Prevent generic consulting jargon in dynamic extensions
-        extension_anchoring_mandate = (
-            "<EXTENSION_ANCHORING_MANDATE>\n"
-            "CRITICAL XAI RULE: Every generated extension field (e.g. coaching, falsification, "
-            "remediation, missing_context) MUST be explicitly anchored to the user's raw input "
-            "or the extracted evidence quote. Do NOT output generic theoretical advice, assumed "
-            "knowledge, or standard consultant jargon. If you offer a coaching tip, falsification, "
-            "or point out missing context, it MUST directly address a specific flaw or gap found "
-            "in the user's text.\n"
-            "</EXTENSION_ANCHORING_MANDATE>"
-        )
-        xml_blocks.append(extension_anchoring_mandate)
+        xml_blocks.append(EXTENSION_ANCHORING_MANDATE)
 
         # Anti-ID Mandate to prevent raw UUID/System-ID hallucination
-        anti_id_mandate = (
-            "<ANTI_ID_MANDATE>\n"
-            "CRITICAL FORMATTING RULE for textual fields (e.g., semantic_reasoning, exact_quote):\n"
-            "Do NOT include raw system IDs in your explanatory text. "
-            "Refer to concepts by their human-readable names in your text.\n"
-            "HOWEVER, the JSON key `atom_id` MUST ALWAYS be populated with the correct system ID. "
-            "Never omit the `atom_id` from the JSON object.\n"
-            "</ANTI_ID_MANDATE>"
-        )
-        xml_blocks.append(anti_id_mandate)
+        xml_blocks.append(ANTI_ID_MANDATE)
 
         # Anti-Score Mandate to enforce Zero-Trust Auditor architecture
-        anti_score_mandate = (
-            "<ANTI_SCORE_MANDATE>\n"
-            "CRITICAL ARCHITECTURAL RULE: You are a blind micro-evaluator. You MUST NEVER declare a final score, "
-            "a final grade, or use text like 'Arvioidaan tasolle 4' or 'Pysyn arviossa 3' in your justification text. "
-            "Your ONLY job is to analytically explain the presence or absence of logical elements and evidence. "
-            "The final mathematical calculation and grading will be done strictly by the backend system. "
-            "Do NOT attempt to act as the final judge.\n"
-            "</ANTI_SCORE_MANDATE>"
-        )
-        xml_blocks.append(anti_score_mandate)
+        xml_blocks.append(ANTI_SCORE_MANDATE)
 
         # Schema Purity Mandate to prevent JSON schema hallucinations
-        schema_purity_mandate = (
-            "<SCHEMA_PURITY_MANDATE>\n"
-            "CRITICAL SCHEMA RULE: You MUST strictly adhere to the provided JSON schema. "
-            "You are FORBIDDEN from creating, hallucinating, or injecting any extra fields or keys "
-            "that are not explicitly defined in the schema. Your output will be parsed with 'extra=forbid' strictness, "
-            "and any unauthorized fields will cause an immediate systemic crash.\n"
-            "</SCHEMA_PURITY_MANDATE>"
-        )
-        xml_blocks.append(schema_purity_mandate)
+        xml_blocks.append(SCHEMA_PURITY_MANDATE)
 
         return "\n".join(xml_blocks)
 

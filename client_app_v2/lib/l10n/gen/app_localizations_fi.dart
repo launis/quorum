@@ -187,6 +187,10 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String get xaiEvidenceImpactedAxes =>
+      'Tätä tietoa käytettiin seuraavien osioiden arvioinnissa:';
+
+  @override
   String get executionDetails => 'Suorituksen tiedot';
 
   @override
@@ -2438,6 +2442,9 @@ class AppLocalizationsFi extends AppLocalizations {
       'Tekoälyn Asiantuntijalähteet (Faktantarkistus)';
 
   @override
+  String get xaiEvidenceClaim => 'Alkuperäinen väite';
+
+  @override
   String get xaiEvidenceQuery => 'Hakukysely';
 
   @override
@@ -2445,6 +2452,9 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get xaiEvidenceDuration => 'Kesto';
+
+  @override
+  String get xaiEvidenceReasoning => 'Perustelu';
 
   @override
   String get stepBuilderMCPToolsTitle => 'Sallitut MCP-työkalut';

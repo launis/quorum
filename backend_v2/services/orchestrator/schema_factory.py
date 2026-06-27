@@ -209,11 +209,13 @@ class SchemaFactory:
         else:
             schema_criteria = criteria
 
-        for crit in schema_criteria:
+        for index, crit in enumerate(schema_criteria):
             crit_id = crit.id
             if not crit_id:
                 logger.warning("[SchemaFactory] Found criterion without a valid string 'id': %s. Skipping.", crit)
                 continue
+
+            alias_name = f"eval_{index + 1}"
 
             if crit.category_id != "matrix" and crit.type == "instruction":
                 fields[crit_id] = (
@@ -221,6 +223,7 @@ class SchemaFactory:
                     Field(
                         ...,
                         description="Instruction-based response and verification synthesis.",
+                        alias=alias_name,
                     ),
                 )
                 continue
@@ -304,14 +307,14 @@ class SchemaFactory:
                     DynamicBlock = create_model(
                         f"BlockExtraction_{crit_id}",
                         __base__=base_class,
-                        __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
+                        __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
                         **dynamic_fields,
                     )
-                    fields[crit_id] = (DynamicBlock, Field(..., description=desc_val))
+                    fields[crit_id] = (DynamicBlock, Field(..., description=desc_val, alias=alias_name))
                 else:
-                    fields[crit_id] = (base_class, Field(..., description=desc_val))
+                    fields[crit_id] = (base_class, Field(..., description=desc_val, alias=alias_name))
             else:
-                fields[crit_id] = (base_class, Field(..., description=desc_val))
+                fields[crit_id] = (base_class, Field(..., description=desc_val, alias=alias_name))
 
         if not fields:
             fields["acknowledged_instruction"] = (
@@ -321,7 +324,9 @@ class SchemaFactory:
 
         try:
             DynamicModel = create_model(
-                schema_name, __config__=ConfigDict(extra="forbid", strict=True, frozen=True), **fields
+                schema_name,
+                __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
+                **fields,
             )
             model_class = cast(type[BaseModel], DynamicModel)
             self._schema_cache[cache_key] = model_class

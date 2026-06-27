@@ -97,9 +97,14 @@ abstract class MCPToolAuditDTO with _$MCPToolAuditDTO {
     String? id,
     @JsonKey(name: 'tool_id') required String toolId,
     @JsonKey(name: 'step_name') required String stepName,
+    @JsonKey(name: 'claim_text') String? claimText,
     required String query,
+    @Default('') String reasoning,
     @JsonKey(name: 'response_summary') @Default('') String responseSummary,
     @JsonKey(name: 'source_urls') @Default([]) List<String> sourceUrls,
+    @JsonKey(name: 'impacted_axis_names')
+    @Default([])
+    List<String> impactedAxisNames,
     String? timestamp,
     @JsonKey(name: 'duration_ms') @Default(0) int durationMs,
   }) = _MCPToolAuditDTO;

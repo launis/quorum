@@ -23,7 +23,6 @@ async def test_chunk_worker_usage_name_error() -> None:
     compiler.compile_xml_rubrics.return_value = "<rubrics></rubrics>"
     # This test mocks compiler, so it doesn't need modification
     compiler.calibrate_strictness.return_value = "Balanced"
-    compiler.get_critical_language_mandate.return_value = "Use English"
 
     # Mock schema return to avoid magicmock on model_dump
     mock_schema = MagicMock()

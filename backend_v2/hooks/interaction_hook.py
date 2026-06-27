@@ -13,6 +13,7 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.hooks.metrics import calculate_behavioral_metrics, calculate_control_ratio
 from backend_v2.llm.client import LLMClient
+from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO, InteractionInput
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -20,43 +21,22 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_INSTRUCTION: str = """<system_directive>
-<objective>
-Analyze the user's interaction behavior and assign a precise cognitive role based on the provided
-conversation history and hard mathematical heuristics.
-</objective>
-<role>Interaction Analyst</role>
-<rules>
-  <rule>
-    You must classify the user into one of four roles: ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER,
-    or ROLE_ARCHITECT.
-  </rule>
-  <rule>
-    ROLE_PASSENGER: The user provides minimal input, relying almost entirely on the AI to lead,
-    structure, and generate content.
-  </rule>
-  <rule>
-    ROLE_NAVIGATOR: The user provides direction and goals but relies on the AI to execute the details.
-  </rule>
-  <rule>
-    ROLE_DRIVER: The user actively controls the execution, providing specific constraints, structural
-    requirements, and detailed data.
-  </rule>
-  <rule>
-    ROLE_ARCHITECT: The user defines the entire conceptual framework, methodology, and strict rules,
-    treating the AI purely as a compiler or executor of their complex design.
-  </rule>
-  <rule>
-    HYBRID TRUTH MANDATE: You MUST respect the hard mathematical metrics provided in the
-    <execution_parameters> tag. The mathematical `control_ratio` is the ultimate baseline.
-    If the user's control ratio is low, they CANNOT be an Architect, regardless of their tone.
-  </rule>
-  <rule>
-    Do NOT output Markdown. You MUST output ONLY the requested strict JSON schema matching
-    InteractionAnalysisDTO.
-  </rule>
-</rules>
-</system_directive>"""
+_SYSTEM_INSTRUCTION: str = build_system_directive(
+    objective=(
+        "Analyze the user's interaction behavior and assign a precise cognitive role based on the provided\n"
+        "conversation history and hard mathematical heuristics."
+    ),
+    role="Interaction Analyst",
+    rules=[
+        "You must classify the user into one of four roles: ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, or ROLE_ARCHITECT.",
+        "ROLE_PASSENGER: The user provides minimal input, relying almost entirely on the AI to lead, structure, and generate content.",
+        "ROLE_NAVIGATOR: The user provides direction and goals but relies on the AI to execute the details.",
+        "ROLE_DRIVER: The user actively controls the execution, providing specific constraints, structural requirements, and detailed data.",
+        "ROLE_ARCHITECT: The user defines the entire conceptual framework, methodology, and strict rules, treating the AI purely as a compiler or executor of their complex design.",
+        "HYBRID TRUTH MANDATE: You MUST respect the hard mathematical metrics provided in the <execution_parameters> tag. The mathematical `control_ratio` is the ultimate baseline. If the user's control ratio is low, they CANNOT be an Architect, regardless of their tone.",
+        "Do NOT output Markdown. You MUST output ONLY the requested strict JSON schema matching InteractionAnalysisDTO.",
+    ],
+)
 
 
 @hook_registry.register(name="analyze_interaction_role")

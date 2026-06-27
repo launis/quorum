@@ -151,6 +151,7 @@
       }
     }
   },
+  "xaiEvidenceImpactedAxes": "This information was used in evaluating the following axes:",
   "executionDetails": "Execution Details",
   "overview": "Overview",
   "report": "Report",
@@ -1181,6 +1182,10 @@
   "@xaiEvidenceTitle": {
     "description": "Title for the XAI Evidence Box showing MCP tool search results"
   },
+  "xaiEvidenceClaim": "Original Claim",
+  "@xaiEvidenceClaim": {
+    "description": "Label for the original verbatim claim that triggered the search"
+  },
   "xaiEvidenceQuery": "Search query",
   "@xaiEvidenceQuery": {
     "description": "Label for the search query in XAI evidence entries"
@@ -1192,6 +1197,10 @@
   "xaiEvidenceDuration": "Duration",
   "@xaiEvidenceDuration": {
     "description": "Label for search duration in XAI evidence entries"
+  },
+  "xaiEvidenceReasoning": "Reasoning",
+  "@xaiEvidenceReasoning": {
+    "description": "Label for AI reasoning in XAI evidence entries"
   },
   "stepBuilderMCPToolsTitle": "Allowed MCP Tools",
   "@stepBuilderMCPToolsTitle": {

@@ -30,7 +30,10 @@ def _make_mock_executor(extracted_claims: list[str] | None = None) -> MagicMock:
 
         response_model = kwargs.get("response_model")
         if response_model == CitationExtractionResult:
-            citations = [CitationExtractionItemDTO(claim_text=c, search_query=c) for c in (extracted_claims or [])]
+            citations = [
+                CitationExtractionItemDTO(claim_text=c, search_query=c, reasoning="Mock reasoning.")
+                for c in (extracted_claims or [])
+            ]
             return (
                 CitationExtractionResult(citations=citations),
                 TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=10),
@@ -163,7 +166,9 @@ async def test_ensemble_vote_consensus() -> None:
                 claims = ["claim B", "claim C"]
             else:
                 claims = ["claim B"]
-            citations = [CitationExtractionItemDTO(claim_text=c, search_query=c) for c in claims]
+            citations = [
+                CitationExtractionItemDTO(claim_text=c, search_query=c, reasoning="Mock reasoning.") for c in claims
+            ]
             return (
                 CitationExtractionResult(citations=citations),
                 TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
@@ -180,10 +185,11 @@ async def test_ensemble_vote_consensus() -> None:
         from backend_v2.models.v2_core import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
+            query = kwargs.get("query") or (args[0] if args else "")
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
                 step_name="test_step",
-                query=args[0],
+                query=query,
                 response_summary="Found",
                 source_urls=[],
                 timestamp=datetime.now(timezone.utc),
@@ -218,10 +224,11 @@ async def test_strictness_override_bypasses_physical_anchoring() -> None:
         from backend_v2.models.v2_core import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
+            query = kwargs.get("query") or (args[0] if args else "")
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
                 step_name="test_step",
-                query=args[0],
+                query=query,
                 response_summary="Found",
                 source_urls=[],
                 timestamp=datetime.now(timezone.utc),
@@ -255,7 +262,11 @@ async def test_agentic_self_reflection_success() -> None:
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs.get("response_model")
         if response_model == CitationExtractionResult:
-            citations = [CitationExtractionItemDTO(claim_text="imprecise claim", search_query="query")]
+            citations = [
+                CitationExtractionItemDTO(
+                    claim_text="imprecise claim", search_query="query", reasoning="Mock reasoning."
+                )
+            ]
             return (
                 CitationExtractionResult(citations=citations),
                 TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
@@ -278,10 +289,11 @@ async def test_agentic_self_reflection_success() -> None:
         from backend_v2.models.v2_core import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
+            query = kwargs.get("query") or (args[0] if args else "")
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
                 step_name="test_step",
-                query=args[0],
+                query=query,
                 response_summary="Found",
                 source_urls=[],
                 timestamp=datetime.now(timezone.utc),
@@ -315,7 +327,11 @@ async def test_agentic_self_reflection_failure_raises_error() -> None:
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs.get("response_model")
         if response_model == CitationExtractionResult:
-            citations = [CitationExtractionItemDTO(claim_text="totally hallucinated claim", search_query="query")]
+            citations = [
+                CitationExtractionItemDTO(
+                    claim_text="totally hallucinated claim", search_query="query", reasoning="Mock reasoning."
+                )
+            ]
             return (
                 CitationExtractionResult(citations=citations),
                 TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),

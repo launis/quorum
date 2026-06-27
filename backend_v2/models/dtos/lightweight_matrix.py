@@ -166,6 +166,15 @@ class LightweightExtractionAtom(V2CoreBase):
     )
     confidence: float | None = Field(default=None)
 
+    @field_validator("exact_quotes", mode="before")
+    @classmethod
+    def _truncate_quotes(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            max_len = SystemConcurrency.SCHEMA_MAX_QUOTES.value
+            if len(v) > max_len:
+                return v[:max_len]
+        return v
+
     @field_validator("confidence")
     @classmethod
     def _validate_confidence(cls, v: float | None) -> float | None:
@@ -256,6 +265,10 @@ class AtomEvaluationItemDTO(V2CoreBase):
     """
 
     atom_id: str
+    used_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="List of exact <search_result id> strings you relied upon for this specific extraction.",
+    )
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
     exact_quotes: list[str] = Field(
         default_factory=list,
@@ -299,6 +312,15 @@ class AtomEvaluationItemDTO(V2CoreBase):
         ),
     )
     dlq_status: bool | None = None
+
+    @field_validator("exact_quotes", mode="before")
+    @classmethod
+    def _truncate_quotes(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            max_len = SystemConcurrency.SCHEMA_MAX_QUOTES.value
+            if len(v) > max_len:
+                return v[:max_len]
+        return v
 
     @property
     def evidence_found(self) -> bool:

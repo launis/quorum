@@ -74,6 +74,10 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
 
     // Epic 70: Forensic Evidence Quotes
     @JsonKey(name: 'quotes_list') @Default([]) List<String> quotesList,
+
+    @JsonKey(name: 'used_evidence_ids')
+    @Default([])
+    List<String> usedEvidenceIds,
   }) = _MatrixScorecardRowDto;
 
   factory MatrixScorecardRowDto.fromJson(Map<String, dynamic> json) =>

@@ -54,8 +54,9 @@ def calculate_mechanical_cognitive_variance(
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
-        
+
     import math
+
     if math.isnan(llm_authenticity_score) or math.isinf(llm_authenticity_score):
         logger.error(
             f"Validation failed for llm_authenticity_score: invalid mathematical value ({llm_authenticity_score})",

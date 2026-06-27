@@ -104,6 +104,9 @@ class CitationExtractionItemDTO(V2CoreBase):
 
     claim_text: str = Field(description="Exact quote of the claim from the text.")
     search_query: str = Field(description="Optimized search query for the tool to verify the claim.")
+    reasoning: str = Field(
+        max_length=150, description="Max 1 short sentence. Briefly explain WHY you are verifying this claim."
+    )
 
 
 class CitationExtractionResult(V2CoreBase):

@@ -78,6 +78,7 @@ async def test_linguistic_context_dynamic_injection() -> None:
     kwargs = compiler_mock.compile_chunk_prompt.call_args.kwargs
     base_system_prompt_used = kwargs.get("base_system_prompt", "")
 
+    # Centralized linguistic module assertions
     assert "<linguistic_context>" in base_system_prompt_used
     assert "<source_data_language>fr</source_data_language>" in base_system_prompt_used
     assert "<required_output_language>fi</required_output_language>" in base_system_prompt_used

@@ -551,6 +551,12 @@
                 <div style="font-size: 12px; color: #555; margin-bottom: 10px; line-height: 1.5; clear: both;">
                     {{ audit.response_summary | md | safe }}
                 </div>
+                {% if audit.impacted_axis_names %}
+                <div style="font-size: 11px; font-weight: bold; color: #2E7D32; margin-bottom: 10px; padding: 6px; background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; clear: both;">
+                    🎯 {{ l10n.pdfAuditImpactedAxes | default('Tätä tietoa käytettiin seuraavien osioiden arvioinnissa:') }}
+                    <span style="font-weight: normal; color: #1b5e20;">{{ audit.impacted_axis_names | join(', ') }}</span>
+                </div>
+                {% endif %}
                 {% if audit.source_urls %}
                 <div style="font-size: 11px; font-weight: bold; color: #009688; margin-bottom: 4px;">{{ l10n.pdfAuditSources | default('Lähteet') }}</div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px; clear: both;">

@@ -64,6 +64,32 @@ class XAIEvidenceBox extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (audit.claimText != null && audit.claimText!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${l10n.xaiEvidenceClaim}: ',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal.shade800,
+                        ),
+                      ),
+                      TextSpan(
+                        text: '"${audit.claimText}"',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.grey.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // Query row with duration badge
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,7 +149,35 @@ class XAIEvidenceBox extends ConsumerWidget {
               ],
             ),
 
-            // Summary (if present)
+            // Reasoning (Language specific LLM explanation)
+            if (audit.reasoning.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 26),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${l10n.xaiEvidenceReasoning}: ',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal.shade800,
+                        ),
+                      ),
+                      TextSpan(
+                        text: audit.reasoning,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade900,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Summary (if present) - Raw tool response
             if (audit.responseSummary.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8, left: 26),
@@ -131,11 +185,64 @@ class XAIEvidenceBox extends ConsumerWidget {
                   audit.responseSummary,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade800,
+                    color: Colors.grey.shade700,
+                    fontStyle: FontStyle.italic,
                     height: 1.4,
                   ),
                 ),
               ),
+
+            // Impacted Axes (if present)
+            if (audit.impactedAxisNames.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 26),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: Colors.green.shade700,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${l10n.xaiEvidenceImpactedAxes} ',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green.shade800,
+                                ),
+                              ),
+                              TextSpan(
+                                text: audit.impactedAxisNames.join(', '),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.green.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
 
             // Source URLs as clickable chips
             if (audit.sourceUrls.isNotEmpty) ...[

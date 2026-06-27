@@ -191,6 +191,16 @@ class ExecutionController extends _$ExecutionController {
         );
         merged['report_data'] = reportData;
         merged['results'] = renderData; // Temporary legacy support
+
+        // DEFENSIVE MERGE (Tier 4 Bugfix): If we successfully downloaded and parsed
+        // the final Heavy payload, the execution is mathematically guaranteed to be
+        // completed (otherwise /render would have returned 202 Pending or 400).
+        // This prevents asynchronous Race Conditions where state.value was momentarily stale.
+        final currentStatus = merged['status']?.toString().toLowerCase();
+        if (currentStatus != 'failed') {
+          merged['status'] = 'completed';
+        }
+
         state = AsyncValue.data(merged);
       }
     } catch (e, stack) {

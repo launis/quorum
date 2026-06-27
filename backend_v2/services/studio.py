@@ -1694,18 +1694,19 @@ class StudioService:
         from backend_v2.services.llm_task_executor import LLMTaskExecutor
 
         client = await LLMClient.from_strategy("fast", repository=self.system_repo)
+        from backend_v2.llm.prompt_builder import build_system_directive
         from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
         compiler = PromptCompiler()
         executor = LLMTaskExecutor(prompt_compiler=compiler)
 
-        _SYSTEM_INSTRUCTION = """<system_directive>
-<objective>Identify new overused 'slop' or AI-generated corporate jargon phrases.</objective>
-<rules>
-  <rule>Return a list of heavily overused phrases (1-4 words max per phrase).</rule>
-  <rule>Output must strictly be in the requested target language.</rule>
-</rules>
-</system_directive>"""
+        _SYSTEM_INSTRUCTION = build_system_directive(
+            objective="Identify new overused 'slop' or AI-generated corporate jargon phrases.",
+            rules=[
+                "Return a list of heavily overused phrases (1-4 words max per phrase).",
+                "Output must strictly be in the requested target language.",
+            ],
+        )
 
         messages = [
             {"role": "system", "content": _SYSTEM_INSTRUCTION},
@@ -1741,18 +1742,19 @@ class StudioService:
         existing_words = target_lexicon.words if target_lexicon else []
 
         client = await LLMClient.from_strategy("fast", repository=self.system_repo)
+        from backend_v2.llm.prompt_builder import build_system_directive
         from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
         compiler = PromptCompiler()
         executor = LLMTaskExecutor(prompt_compiler=compiler)
 
-        _SYSTEM_INSTRUCTION = """<system_directive>
-<objective>Translate the provided list of AI 'slop' corporate jargon into the target language.</objective>
-<rules>
-  <rule>Translate them intentionally literally as 'translation flowers' (käännöskukkasia).</rule>
-  <rule>Do NOT return words that are already in the existing_words list.</rule>
-</rules>
-</system_directive>"""
+        _SYSTEM_INSTRUCTION = build_system_directive(
+            objective="Translate the provided list of AI 'slop' corporate jargon into the target language.",
+            rules=[
+                "Translate them intentionally literally as 'translation flowers' (käännöskukkasia).",
+                "Do NOT return words that are already in the existing_words list.",
+            ],
+        )
 
         messages = [
             {"role": "system", "content": _SYSTEM_INSTRUCTION},
