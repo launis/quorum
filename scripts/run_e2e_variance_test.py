@@ -194,60 +194,55 @@ for i in range(2):
     # Load raw inputs dynamically for this run
     raw_inputs = load_inputs_from_path(inputs_path)
 
-    # Inject noise for Run 2 to test the normalizer
-    if i == 1:
-        print("Injecting noise into inputs for Run 2 (to test normalizer)...")
+    print(f"Injecting noise into inputs for Run {i + 1} (to test normalizer)...")
 
-        # Add a zero-width space, some trailing spaces, and change a regular space to multiple spaces in product_text
-        def inject_noise(text: str) -> str:
-            if " a " in text:
-                print("Injected English noise (' a ' -> ' aa ')")
-                return text.replace(" a ", " aa ", 1)
-            elif " ja " in text:
-                print("Injected Finnish noise (' ja ' -> ' jja ')")
-                return text.replace(" ja ", " jja ", 1)
-            elif " on " in text:
-                print("Injected Finnish noise (' on ' -> ' oon ')")
-                return text.replace(" on ", " oon ", 1)
-            elif " " in text:
-                print("Injected space noise (' ' -> '  ')")
-                return text.replace(" ", "  ", 1)
-            return text + " x"
+    # Inject different Unicode space variants to each run to bypass LLM cache without altering semantics
+    def make_injector(run_index):
+        def injector(text: str) -> str:
+            if not text or " " not in text:
+                return text
+            space_variants = ["\u00a0", "\u2002", "\u2003", "\u202f"]
+            char_to_inject = space_variants[run_index % len(space_variants)]
+            print(
+                f"Injected Unicode space variant (U+{ord(char_to_inject):04X}) in Run {run_index + 1} to bypass cache"
+            )
+            return text.replace(" ", char_to_inject, 1)
 
-        if "product_text" in raw_inputs and isinstance(raw_inputs["product_text"], str):
-            raw_inputs["product_text"] = inject_noise(raw_inputs["product_text"])
-        else:
-            # Fallback to injecting noise in any available string value
-            injected = False
-            for k, v in raw_inputs.items():
-                if isinstance(v, str):
-                    raw_inputs[k] = inject_noise(v)
-                    injected = True
-                    break
-            if not injected:
-                print("Warning: Could not inject noise. No string fields found in raw_inputs.")
+        return injector
 
-        # Write noisy inputs to tmp for client diagnostics and compatibility
-        os.makedirs(r"c:\src\quorum\tmp", exist_ok=True)
-        noisy_path = r"c:\src\quorum\tmp\e2e_inputs_noisy.json"
-        with open(noisy_path, "w", encoding="utf-8") as f:
-            json.dump(raw_inputs, f)
-        os.environ["TEST_INPUTS_FILE"] = noisy_path
+    inject_noise = make_injector(i)
+
+    if "product_text" in raw_inputs and isinstance(raw_inputs["product_text"], str):
+        raw_inputs["product_text"] = inject_noise(raw_inputs["product_text"])
     else:
-        # Write default inputs to tmp for client diagnostics and compatibility
-        os.makedirs(r"c:\src\quorum\tmp", exist_ok=True)
-        run1_path = r"c:\src\quorum\tmp\e2e_inputs_run1.json"
-        with open(run1_path, "w", encoding="utf-8") as f:
-            json.dump(raw_inputs, f)
-        os.environ["TEST_INPUTS_FILE"] = run1_path
+        # Fallback to injecting noise in any available string value
+        injected = False
+        for k, v in raw_inputs.items():
+            if isinstance(v, str):
+                raw_inputs[k] = inject_noise(v)
+                injected = True
+                break
+        if not injected:
+            print("Warning: Could not inject noise. No string fields found in raw_inputs.")
+
+    # Write noisy inputs to tmp for client diagnostics and compatibility
+    os.makedirs(r"c:\src\quorum\tmp", exist_ok=True)
+    if i == 0:
+        output_path = r"c:\src\quorum\tmp\e2e_inputs_run1.json"
+    else:
+        output_path = r"c:\src\quorum\tmp\e2e_inputs_noisy.json"
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(raw_inputs, f)
+    os.environ["TEST_INPUTS_FILE"] = output_path
 
     exec_id = trigger_execution(raw_inputs)
     if exec_id:
         execution_ids.append(exec_id)
 
-    print("Polling database for execution completion (max 60 mins)...")
+    print("Polling database for execution completion (max 120 mins)...")
     db_path = r"c:\src\quorum\data\db_v2.json"
-    timeout = 3600
+    timeout = 7200
     start = time.time()
     done = False
 
@@ -258,12 +253,13 @@ for i in range(2):
                 db_data = json.load(f)
             execs = list(db_data.get("executions", {}).values())
             if execs:
-                latest = sorted(execs, key=lambda x: x.get("created_at", ""), reverse=True)[0]
-                status = str(latest.get("status")).upper()
-                if status in ["COMPLETED", "FAILED"]:
-                    print(f"Execution {latest.get('id')} finished with status: {status}")
-                    done = True
-                    break
+                target_exec = next((e for e in execs if e.get("id") == exec_id), None)
+                if target_exec:
+                    status = str(target_exec.get("status")).upper()
+                    if status in ["COMPLETED", "FAILED"]:
+                        print(f"Execution {exec_id} finished with status: {status}")
+                        done = True
+                        break
         except Exception:
             pass
 

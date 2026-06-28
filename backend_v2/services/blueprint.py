@@ -570,8 +570,7 @@ class BlueprintTransformer:
 
             if preset_view in ["3d_complex", "3d_matrix"] and len(axes) < 3:
                 logger.warning(
-                    "[BlueprintTransformer] Downgrading layout '%s' from %s to "
-                    "2d_compare because only %s axes found.",
+                    "[BlueprintTransformer] Downgrading layout '%s' from %s to 2d_compare because only %s axes found.",
                     layout_title,
                     preset_view,
                     len(axes),
