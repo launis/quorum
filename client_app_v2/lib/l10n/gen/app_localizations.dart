@@ -6515,6 +6515,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'-5% Slop Penalty (AI Jargon): detected {phrases}'**
   String penaltySlop(String phrases);
+
+  /// No description provided for @reject_quote_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject Evidence'**
+  String get reject_quote_title;
+
+  /// No description provided for @reject_quote_confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to reject this piece of evidence?'**
+  String get reject_quote_confirm;
+
+  /// No description provided for @quote_rejected_warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: All evidence for this observation has been rejected.'**
+  String get quote_rejected_warning;
+
+  /// No description provided for @reject_quote_reason_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional: Reason for rejection'**
+  String get reject_quote_reason_hint;
 }
 
 class _AppLocalizationsDelegate

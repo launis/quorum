@@ -433,6 +433,7 @@ class PromptCompiler:
                 "You MUST adhere strictly to the cognitive directives and logical constraints. "
                 f"{VERBATIM_EXTRACTION_MANDATE}\n"
                 "If no such verbatim string exists, you MUST return null or an empty string.\n"
+                "IF these sources do not actually contain your claim, RETURN AN EMPTY LIST []. Do not invent sources.\n"
                 "Regenerate your response ensuring all logical validations pass."
             )
 

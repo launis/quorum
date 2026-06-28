@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from typing import Any
 
 import requests
@@ -197,7 +198,7 @@ for i in range(2):
     print(f"Injecting noise into inputs for Run {i + 1} (to test normalizer)...")
 
     # Inject different Unicode space variants to each run to bypass LLM cache without altering semantics
-    def make_injector(run_index):
+    def make_injector(run_index: int) -> Callable[[str], str]:
         def injector(text: str) -> str:
             if not text or " " not in text:
                 return text

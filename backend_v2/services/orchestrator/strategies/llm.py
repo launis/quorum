@@ -147,6 +147,44 @@ class LLMNodeStrategy(NodeStrategy):
         hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
         state_data = hook_state.inputs.copy()
 
+        # PHASE 2: MCP Aliasing & Unified Source Pipeline
+        import uuid
+        from datetime import datetime, timezone
+
+        from backend_v2.services.mcp.alias_registry import AliasRegistry
+
+        def _apply_alias_chunks_and_audit(data: dict[str, Any], prefix: str = "") -> dict[str, Any]:
+            result: dict[str, Any] = {}
+            for k, v in data.items():
+                if isinstance(v, dict):
+                    result[k] = _apply_alias_chunks_and_audit(v, prefix=f"{prefix}{k}_")
+                elif isinstance(v, str) and len(v) > 200:
+                    alias = f"<<QRM-SRC-INT-{prefix.upper()}{k.upper()}>>"
+                    chunks = AliasRegistry.wrap_source_chunks(v, alias)
+                    result[k] = "\n".join(chunks)
+
+                    if frozen_ctx is not None:
+                        trace_id = f"int_{uuid.uuid4().hex[:8]}"
+                        trace = MCPAuditTrace(
+                            id=trace_id,
+                            tool_id="internal_source",
+                            step_name=step.id,
+                            query=f"Internal Source: {k}",
+                            response_summary=f"file://internal/{alias}",
+                            source_urls=[f"file://internal/{alias}"],
+                            timestamp=datetime.now(timezone.utc),
+                            duration_ms=0,
+                        )
+                        existing_ids = {t.id for t in frozen_ctx.mcp_tool_audit if t.id}
+                        if trace_id not in existing_ids:
+                            frozen_ctx.mcp_tool_audit.append(trace)
+                else:
+                    result[k] = v
+            return result
+
+        state_data = _apply_alias_chunks_and_audit(state_data)
+        hook_state = hook_state.model_copy(update={"inputs": state_data})
+
         all_prompt_blocks_raw = await self.comp_repo.get_all_prompt_blocks()
         all_prompt_blocks: list[PromptBlock] = []
         for raw in all_prompt_blocks_raw:

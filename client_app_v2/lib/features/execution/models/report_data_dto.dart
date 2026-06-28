@@ -100,6 +100,8 @@ abstract class MCPToolAuditDTO with _$MCPToolAuditDTO {
     @JsonKey(name: 'claim_text') String? claimText,
     required String query,
     @Default('') String reasoning,
+    @JsonKey(name: 'knowledge_gap') String? knowledgeGap,
+    @JsonKey(name: 'search_rationale') String? searchRationale,
     @JsonKey(name: 'response_summary') @Default('') String responseSummary,
     @JsonKey(name: 'source_urls') @Default([]) List<String> sourceUrls,
     @JsonKey(name: 'impacted_axis_names')

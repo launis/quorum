@@ -220,17 +220,16 @@ async def test_execute_structured_task_system_wide_lexical_verifier(
     with patch("backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence") as mock_validate:
         mock_validate.side_effect = SemanticEvidenceError(message="fail fast")
 
-        res_model, res_usage = await executor.execute_structured_task(
-            client=mock_client,
-            messages=[{"role": "user", "content": "this is a valid test payload"}],
-            response_model=TestResponseModel,
-            max_logical_retries=1,
-            validation_context={"source_text": "real text"},
-        )
+        with pytest.raises(AgentExecutionError) as exc_info:
+            await executor.execute_structured_task(
+                client=mock_client,
+                messages=[{"role": "user", "content": "this is a valid test payload"}],
+                response_model=TestResponseModel,
+                max_logical_retries=1,
+                validation_context={"source_text": "real text"},
+            )
 
-        assert res_model.score is None
-        assert res_model.exact_quotes == []
-        assert res_model.justification == "[SYSTEM ERROR: LLM Unable to verify.]"
+        assert exc_info.value.error_code == str(ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED)
         mock_validate.assert_called_with("real text", ["fake quote"], reasoning_trace="fake trace", locale=None)
 
 
@@ -278,15 +277,13 @@ async def test_execute_structured_task_dynamic_model_fallback(
     with patch("backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence") as mock_validate:
         mock_validate.side_effect = SemanticEvidenceError(message="fail fast")
 
-        res_model, res_usage = await executor.execute_structured_task(
-            client=mock_client,
-            messages=[{"role": "user", "content": "this is a valid test payload"}],
-            response_model=DynamicResponseModel,
-            max_logical_retries=1,
-            validation_context={"source_text": "real text"},
-        )
+        with pytest.raises(AgentExecutionError) as exc_info:
+            await executor.execute_structured_task(
+                client=mock_client,
+                messages=[{"role": "user", "content": "this is a valid test payload"}],
+                response_model=DynamicResponseModel,
+                max_logical_retries=1,
+                validation_context={"source_text": "real text"},
+            )
 
-        assert len(res_model.evaluations) == 1
-        assert res_model.evaluations[0].atom_id == "atom_1"
-        assert res_model.evaluations[0].exact_quotes == []
-        assert res_model.evaluations[0].semantic_reasoning == "[SYSTEM ERROR: LLM Unable to verify.]"
+        assert exc_info.value.error_code == str(ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED)

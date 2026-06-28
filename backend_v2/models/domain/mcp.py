@@ -104,6 +104,8 @@ class CitationExtractionItemDTO(V2CoreBase):
 
     claim_text: str = Field(description="Exact quote of the claim from the text.")
     search_query: str = Field(description="Optimized search query for the tool to verify the claim.")
+    knowledge_gap: str = Field(default="", description="The specific knowledge gap needing resolution.")
+    search_rationale: str = Field(default="", description="The rationale mapping the query to the knowledge gap.")
     reasoning: str = Field(
         max_length=150, description="Max 1 short sentence. Briefly explain WHY you are verifying this claim."
     )

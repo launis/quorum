@@ -1333,6 +1333,77 @@
         }
       }
     },
+    "/api/v2/execution/executions/{execution_id}/evidence/{evq_id}/reject": {
+      "put": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Reject Evidence Quote",
+        "description": "Reject an evidence quote and soft delete it from the synthesis.\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    evq_id: The opaque evidence quote ID.\n    payload: The rejection request payload containing the reason.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    A success message.\n\nRaises:\n    AppException: If rejection fails or permission is denied.",
+        "operationId": "reject_evidence_quote_api_v2_execution_executions__execution_id__evidence__evq_id__reject_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          },
+          {
+            "name": "evq_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evq Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceRejectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Reject Evidence Quote Api V2 Execution Executions  Execution Id  Evidence  Evq Id  Reject Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/execution/workflows/{workflow_id}/ui_schema": {
       "get": {
         "tags": [
@@ -3918,6 +3989,22 @@
         "title": "ErrorTraceEvent",
         "description": "Specific event representing a fail-fast error katkos."
       },
+      "EvidenceRejectionRequest": {
+        "properties": {
+          "rejection_reason": {
+            "type": "string",
+            "title": "Rejection Reason",
+            "description": "Reason for rejecting the evidence quote."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rejection_reason"
+        ],
+        "title": "EvidenceRejectionRequest",
+        "description": "Request DTO for rejecting a specific evidence quote."
+      },
       "ExecutionCreate": {
         "properties": {
           "workflow_id": {
@@ -4689,10 +4776,34 @@
             "title": "Step Name",
             "description": "DAG step that triggered the call."
           },
+          "claim_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Text",
+            "description": "The verbatim claim that triggered this search."
+          },
           "query": {
             "type": "string",
             "title": "Query",
             "description": "The search query or tool input."
+          },
+          "knowledge_gap": {
+            "type": "string",
+            "title": "Knowledge Gap",
+            "description": "The knowledge gap that needs to be resolved.",
+            "default": ""
+          },
+          "search_rationale": {
+            "type": "string",
+            "title": "Search Rationale",
+            "description": "The rationale for the search query.",
+            "default": ""
           },
           "reasoning": {
             "type": "string",
@@ -4713,6 +4824,14 @@
             "type": "array",
             "title": "Source Urls",
             "description": "Source URLs returned."
+          },
+          "impacted_axis_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Impacted Axis Names",
+            "description": "List of matrix axis names that used this trace."
           },
           "timestamp": {
             "type": "string",
@@ -7713,7 +7832,8 @@
               "decision",
               "error",
               "output",
-              "tombstone"
+              "tombstone",
+              "evidence_override"
             ],
             "title": "Event Type",
             "description": "Type of the event.",

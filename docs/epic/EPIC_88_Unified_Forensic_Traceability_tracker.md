@@ -6,15 +6,15 @@ To process this Epic, execute the tasks below strictly in order. Do not mix Back
 
 ## Task List
 
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase1_backend_models.md` - Backend DTO Models & CoT
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase2_mcp_aliasing.md` - MCP Aliasing & Unified Source Pipeline
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase3_prompt_escape_hatch.md` - Prompt Escape Hatch & Validation
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase4_soft_delete_api.md` - Soft Delete API & Trace Events
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase5_worker_fuzzy_matching.md` - Async Fuzzy Matching & Worker Pre-Calculation
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase6_blueprint_transformer.md` - Blueprint Transformer & RowForensicsDTO
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase7_flutter_models.md` - Flutter Frontend DTOs
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase8_flutter_ui.md` - Flutter UI & Optimistic Soft Delete
-- [NOK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase9_pdf_jinja.md` - PDF Rendering & Jinja2 Template Parity
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase1_backend_models.md` - Backend DTO Models & CoT
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase2_mcp_aliasing.md` - MCP Aliasing & Unified Source Pipeline
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase3_prompt_escape_hatch.md` - Prompt Escape Hatch & Validation
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase4_soft_delete_api.md` - Soft Delete API & Trace Events
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase5_worker_fuzzy_matching.md` - Async Fuzzy Matching & Worker Pre-Calculation
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase6_blueprint_transformer.md` - Blueprint Transformer & RowForensicsDTO
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase7_flutter_models.md` - Flutter Frontend DTOs
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase8_flutter_ui.md` - Flutter UI & Optimistic Soft Delete
+- [OK] `docs/epic/tasks_EPIC_88_Unified_Forensic_Traceability/phase9_pdf_jinja.md` - PDF Rendering & Jinja2 Template Parity
 
 ## Instructions for the Execution Agent
 1. Pick the first `[NOK]` task from the list.
@@ -29,5 +29,5 @@ To process this Epic, execute the tasks below strictly in order. Do not mix Back
 Kun aloitat uuden puhdaskontekstisen session (uusi chat-ikkuna) varsinaista koodausta varten, anna tekoälylle seuraava komento. Se lataa tämän trackerin ja kertoo, mitä olemme jo tehneet.
 
 ```
-/tier5-resume --target="docs/epic/EPIC_88_Unified_Forensic_Traceability_tracker.md" --done="Epic 88 (Unified Forensic Traceability) on pilkottu 9:ään mikro-toteutussuunnitelmaan (phase_1 - phase_9). Tässä suunnittelu-ikkunassa käytiin läpi Epicin vaatimukset (System 2, XAI-jäljitettävyys, Soft Delete, MCP Aliasing, Fuzzy Match Workerissä). Koodausta ei vielä aloitettu." --next="Lataa Tracker ja aloita ensimmäisen [NOK] -vaiheen toteutus /tier2-execute -komennon kautta."
+/tier5-resume --target="docs/epic/EPIC_88_Unified_Forensic_Traceability_tracker.md" --done="Phase 1-8 on valmis. Flutter UI ja Optimistic Soft Delete ovat toiminnassa ja kaikki laatuportit on läpäisty." --next="Aloita Phase 9:n (PDF Rendering & Jinja2 Template Parity) toteutus /tier2-execute -komennon kautta."
 ```

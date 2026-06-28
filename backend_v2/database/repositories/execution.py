@@ -208,6 +208,34 @@ class ExecutionRepositoryImpl(BaseRepository):
         await self._offload_payloads(execution_id, updates)
         return await self.driver.update("executions", execution_id, updates)
 
+    async def append_trace_event(self, execution_id: str, event_data: dict[str, Any]) -> bool:
+        """Repository method implementation.
+
+        Args:
+            execution_id: The ID of the execution.
+            event_data: The TraceEvent dictionary to append.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
+        data = await self.driver.get("executions", execution_id)
+        if not data:
+            return False
+
+        try:
+            await self._hydrate_payloads(data)
+        except Exception as e:
+            logger.error("[ExecutionRepository] Failed to hydrate during append: %s", e)
+            raise
+
+        trace = data.get("execution_trace", [])
+        trace.append(event_data)
+
+        return await self.update_execution(execution_id, {"execution_trace": trace})
+
     async def delete_execution(self, execution_id: str) -> bool:
         """Repository method implementation.
 

@@ -123,9 +123,13 @@ V2.7 arkkitehtuuri on tuonut kompromissittoman ja abstrahoidun tason LLM-välimu
   * **In-Band vs Out-of-Band:** Anthropic käyttää In-Band välimuistia manipuloimalla `cache_control` -tägejä JSON-rakenteessa. Vertex AI käyttää raskasta Out-of-Band välimuistia GCP `CachedContent` API:n kautta. Vertex-adapteri käyttää Redis-hajautuslukkoa (`SETNX`) eliminoimaan **Thundering Herd** -ongelman, varmistaen ettei klusteri yritä luoda sataa identtistä välimuistia samanaikaisesti Google Cloudiin (ja rikkoa RPM=5 sääntöä). Adapteri on myös suojattu tiukalla Zero-Compromise Fail-Soft `try-except` -lohkolla Googlen API-murrosten (Bit Rot) varalta.
 * **FinOps-tarkkuus ja `TokenUsage` -polymorfia:** Tavallinen `TokenUsage` on korvattu mallikohtaisilla malleilla (esim. `AnthropicTokenUsage`, `VertexTokenUsage`). Ne seuraavat `cached_tokens` ja `cache_creation_input_tokens` määriä ja laskevat tarkan kustannus-säästön (`estimated_savings_usd`) reaaliajassa jokaisesta askeleesta.
 
-### Machine Control Protocol (MCP) Tool Loop
+### Machine Control Protocol (MCP) Tool Loop & Unified Source Pipeline
 
 V2.6 arkkitehtuuri on tuonut mukanaan Model Context Protocol (MCP) -integraatiot, jotka mahdollistavat LLM-mallien turvallisen työkalujen käytön (`services/mcp/`). MCP Tool Loop -malli eristää dynaamisen työkalukutsun turvalliseen, pydantic-validoituun "hiekkalaatikkoon" (Sandbox Loop). Työkalukehä ei koskaan palauta paljaita sanakirjoja (Naked Dicts), vaan pakottaa tarkasti rajatun Pydantic V2 objektin.
+
+**Sandwich Prompting & Unified Evidence Injection (Epic 88):**
+* **AliasRegistry & Chunking:** Ulkoiset MCP-haut ja sisäiset lähdedokumentit (kuten massiiviset PDF:t) yhdenmukaistetaan arkkitehtuurissa "Sandwich Prompting" -mekanismilla. `AliasRegistry` pilkkoo pitkät tekstit ~1000-1500 tokenin (n. 5000 merkkiä) paloihin 150-200 tokenin lomituksella (overlap). Jokainen pala kääritään XML-rakenteeseen (`<search_result ID="<<QRM-SRC-N>>" chunk="M/T">`). Tämä estää huomioarvon laimentumisen (Attention Dilution) massiivisissa syötteissä ja parantaa faktojen fuzzy-matching osumatarkkuutta merkittävästi.
+* **Unified Storage & Pointer Logic:** Järjestelmä ei koskaan tallenna alkuperäisten PDF-dokumenttien raakatekstiä tietokantaan (välttää Firestoren 1 MiB rajan). Sen sijaan sisäiset lähteet injektoidaan ajo-kontekstiin (`FrozenContext.mcp_tool_audit`) virtuaalisina `MCPAuditTrace`-objekteina hyödyntäen Pointer-logiikkaa (`file://internal/<<QRM-SRC-N>>`). Tämä abstraktio sallii `BlueprintTransformer`:n lukea sisäisiä PDF-lähteitä ja MCP-hakutuloksia täysin symmetrisesti yhdenmukaisella pointteri-arkkitehtuurilla.
 
 ### Injektiosuojat, Roolien Eristäminen ja Natiivikieli (Mandates)
 

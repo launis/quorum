@@ -111,22 +111,23 @@ def _process_questionnaire(raw_val: dict[str, Any], key: str, expected_input: Ex
 
 
 async def _process_chat_history(resolved_text: str, key: str, system_repo: Any) -> dict[str, str]:
-    """Parses unstructured chat history into a Markdown formatted conversation.
+    """Parses raw unstructured chat logs into strict JSON via ChatParserService and formats to Markdown.
 
     Args:
-        resolved_text: The raw unstructured chat text.
-        key: The input key being processed.
-        system_repo: The system repository for prompt lookup.
+        resolved_text: The raw, unstructured chat text.
+        key: The input key (e.g., 'chat_log').
+        system_repo: The system configuration repository.
 
     Returns:
-        A dictionary containing the structured Markdown chat text:
-        - combined: the full log
-        - user_only: only the user's messages
-        - ai_only: only the AI's messages
-
-    Raises:
-        AppException: If chat parsing using the LLM fails.
+        dict: A dictionary containing 'combined', 'user_only', and 'ai_only' Markdown formatted strings.
     """
+    try:
+        import ftfy
+
+        resolved_text = ftfy.fix_text(resolved_text)
+    except ImportError:
+        logger.warning("[InputProcessingHook] ftfy is not installed, proceeding without text fixing.")
+
     logger.info("[InputProcessingHook] Unstructured chat detected for %s. Invoking ChatParserLLM...", key)
     try:
         chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)

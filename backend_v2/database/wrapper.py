@@ -237,7 +237,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 res = self._get_table(db).insert(document)
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Insert completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Insert completed in %.1f ms", self._name, db_time)
         return res
 
     def all(self) -> list[dict[str, Any]]:
@@ -279,7 +279,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 res = self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Update completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Update completed in %.1f ms", self._name, db_time)
         return res
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
@@ -289,7 +289,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 res = self._get_table(db).upsert(document, query)
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Upsert completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Upsert completed in %.1f ms", self._name, db_time)
         return res
 
     def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
@@ -299,7 +299,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 res = self._get_table(db).remove(query, doc_ids=doc_ids)
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Remove completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Remove completed in %.1f ms", self._name, db_time)
         return res
 
     def truncate(self) -> None:
@@ -309,7 +309,7 @@ class TinyDBTable(AbstractTable):
             with TinyDB(self._path, encoding="utf-8") as db:
                 self._get_table(db).truncate()
         db_time = (time.time() - db_start) * 1000
-        logger.info("[TinyDBTable:%s] Truncate completed in %.1f ms", self._name, db_time)
+        logger.debug("[TinyDBTable:%s] Truncate completed in %.1f ms", self._name, db_time)
 
     def count(self, query: Any = None) -> int:
         """Count documents."""

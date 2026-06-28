@@ -72,8 +72,9 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'contextual_override') bool? contextualOverride,
     @JsonKey(name: 'semantic_reasoning') String? semanticReasoning,
 
-    // Epic 70: Forensic Evidence Quotes
-    @JsonKey(name: 'quotes_list') @Default([]) List<String> quotesList,
+    // Epic 88: Unified Forensic Traceability
+    @JsonKey(name: 'quotes_list') List<String>? quotesList,
+    @JsonKey(name: 'row_forensics') RowForensicsDto? forensics,
 
     @JsonKey(name: 'used_evidence_ids')
     @Default([])
@@ -82,4 +83,52 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
 
   factory MatrixScorecardRowDto.fromJson(Map<String, dynamic> json) =>
       _$MatrixScorecardRowDtoFromJson(json);
+}
+
+@Freezed(equal: false)
+abstract class EvidenceQuoteDto with _$EvidenceQuoteDto {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory EvidenceQuoteDto({
+    required String id,
+    required String text,
+    @JsonKey(name: 'source_reference') String? sourceReference,
+    @JsonKey(name: 'user_rejected') @Default(false) bool userRejected,
+    @JsonKey(name: 'rejection_reason') String? rejectionReason,
+    @JsonKey(name: 'is_mcp_verified') @Default(false) bool isMcpVerified,
+    @JsonKey(name: 'used_evidence_ids')
+    @Default([])
+    List<String> usedEvidenceIds,
+  }) = _EvidenceQuoteDto;
+
+  factory EvidenceQuoteDto.fromJson(Map<String, dynamic> json) =>
+      _$EvidenceQuoteDtoFromJson(json);
+}
+
+@Freezed(equal: false)
+abstract class LevelQuotesDto with _$LevelQuotesDto {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory LevelQuotesDto({
+    required int level,
+    @JsonKey(name: 'level_name') required String levelName,
+    @Default([]) List<EvidenceQuoteDto> quotes,
+  }) = _LevelQuotesDto;
+
+  factory LevelQuotesDto.fromJson(Map<String, dynamic> json) =>
+      _$LevelQuotesDtoFromJson(json);
+}
+
+@Freezed(equal: false)
+abstract class RowForensicsDto with _$RowForensicsDto {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory RowForensicsDto({
+    @JsonKey(name: 'level_quotes')
+    @Default([])
+    List<LevelQuotesDto> levelQuotes,
+    @JsonKey(name: 'all_evidence_rejected')
+    @Default(false)
+    bool allEvidenceRejected,
+  }) = _RowForensicsDto;
+
+  factory RowForensicsDto.fromJson(Map<String, dynamic> json) =>
+      _$RowForensicsDtoFromJson(json);
 }

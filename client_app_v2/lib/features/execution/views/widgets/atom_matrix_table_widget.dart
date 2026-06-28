@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/shared/widgets/output_renderer.dart';
 
 /// Renders the atomic level breakdown for the given matrix in a tabular format.
 /// Enforces Zero-Math SDUI rules: only renders data provided by the backend DTO.
-class AtomMatrixTableWidget extends StatelessWidget {
+class AtomMatrixTableWidget extends ConsumerWidget {
   final List<MatrixScorecardRowDto> matrices;
   final List<String> visibleColumns;
 
@@ -16,7 +17,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
@@ -50,8 +51,8 @@ class AtomMatrixTableWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8.0),
               ),
               child: isSmallScreen
-                  ? _buildMobileList(context, tableMatrices, theme)
-                  : _buildDataTable(context, tableMatrices, theme),
+                  ? _buildMobileList(context, ref, tableMatrices, theme)
+                  : _buildDataTable(context, ref, tableMatrices, theme),
             ),
             if (tableMatrices.any((m) => m.isEvaluative)) ...[
               const SizedBox(height: 8),
@@ -71,6 +72,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
 
   Widget _buildDataTable(
     BuildContext context,
+    WidgetRef ref,
     List<MatrixScorecardRowDto> tableMatrices,
     ThemeData theme,
   ) {
@@ -162,15 +164,34 @@ class AtomMatrixTableWidget extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              (Localizations.localeOf(context).languageCode ==
-                                          'fi'
-                                      ? (m.labelI18n.get('fi'))
-                                      : (m.labelI18n.get('en'))) +
-                                  (m.isEvaluative ? ' *' : ''),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  (Localizations.localeOf(
+                                                context,
+                                              ).languageCode ==
+                                              'fi'
+                                          ? (m.labelI18n.get('fi'))
+                                          : (m.labelI18n.get('en'))) +
+                                      (m.isEvaluative ? ' *' : ''),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (m.forensics?.allEvidenceRejected == true)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 4.0),
+                                    child: Tooltip(
+                                      message: l10n.quote_rejected_warning,
+                                      child: const Icon(
+                                        Icons.warning,
+                                        color: Colors.amber,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             if (m.description != null &&
                                 m.description!.isNotEmpty)
@@ -223,20 +244,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     if (visibleColumns.contains('quotes'))
                       Expanded(
                         flex: 3,
-                        child: m.quotesList.isEmpty
-                            ? const Text(
-                                '-',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontStyle: FontStyle.italic,
-                                  color: Colors.grey,
-                                ),
-                              )
-                            : OutputRenderer(
-                                markdownContent: m.quotesList
-                                    .map((q) => '- $q')
-                                    .join('\n'),
-                              ),
+                        child: _buildQuotesColumn(context, ref, m),
                       ),
                     if (visibleColumns.contains('normalized_score'))
                       Expanded(
@@ -274,6 +282,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
 
   Widget _buildMobileList(
     BuildContext context,
+    WidgetRef ref,
     List<MatrixScorecardRowDto> tableMatrices,
     ThemeData theme,
   ) {
@@ -296,12 +305,29 @@ class AtomMatrixTableWidget extends StatelessWidget {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                (Localizations.localeOf(context).languageCode == 'fi'
-                        ? (m.labelI18n.get('fi'))
-                        : (m.labelI18n.get('en'))) +
-                    (m.isEvaluative ? ' *' : ''),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    (Localizations.localeOf(context).languageCode == 'fi'
+                            ? (m.labelI18n.get('fi'))
+                            : (m.labelI18n.get('en'))) +
+                        (m.isEvaluative ? ' *' : ''),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  if (m.forensics?.allEvidenceRejected == true)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4.0),
+                      child: Tooltip(
+                        message: l10n.quote_rejected_warning,
+                        child: const Icon(
+                          Icons.warning,
+                          color: Colors.amber,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               if (m.description != null && m.description!.isNotEmpty)
                 Padding(
@@ -346,12 +372,10 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (visibleColumns.contains('quotes') && m.quotesList.isNotEmpty)
+              if (visibleColumns.contains('quotes'))
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: OutputRenderer(
-                    markdownContent: m.quotesList.map((q) => '- $q').join('\n'),
-                  ),
+                  child: _buildQuotesColumn(context, ref, m),
                 ),
             ],
           ),
@@ -370,6 +394,145 @@ class AtomMatrixTableWidget extends StatelessWidget {
               : [],
         );
       },
+    );
+  }
+
+  Widget _buildQuotesColumn(
+    BuildContext context,
+    WidgetRef ref,
+    MatrixScorecardRowDto m,
+  ) {
+    if (m.forensics == null || m.forensics!.levelQuotes.isEmpty) {
+      return const Text(
+        '-',
+        style: TextStyle(
+          fontSize: 13,
+          fontStyle: FontStyle.italic,
+          color: Colors.grey,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: m.forensics!.levelQuotes.map((lq) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${lq.level} - ${lq.levelName}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              ...lq.quotes.map((q) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('- ', style: TextStyle(fontSize: 13)),
+                      Expanded(
+                        child: Text(
+                          q.text,
+                          style: TextStyle(
+                            fontSize: 13,
+                            decoration: q.userRejected
+                                ? TextDecoration.lineThrough
+                                : null,
+                            color: q.userRejected
+                                ? Colors.red.withValues(alpha: 0.6)
+                                : null,
+                          ),
+                        ),
+                      ),
+                      if (q.isMcpVerified && !q.userRejected)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4.0),
+                          child: Icon(
+                            Icons.verified,
+                            color: Colors.green,
+                            size: 16,
+                          ),
+                        ),
+                      if (!q.userRejected)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4.0),
+                          child: InkWell(
+                            onTap: () => _showRejectDialog(context, ref, q.id),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.red,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _showRejectDialog(BuildContext context, WidgetRef ref, String quoteId) {
+    final l10n = AppLocalizations.of(context)!;
+    final reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.reject_quote_title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.reject_quote_confirm),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              decoration: InputDecoration(
+                hintText: l10n.reject_quote_reason_hint,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final reason = reasonController.text.trim();
+              final executionId =
+                  ref.read(executionControllerProvider).value?['id'] as String?;
+              if (executionId != null) {
+                ref
+                    .read(executionControllerProvider.notifier)
+                    .rejectEvidenceQuote(
+                      executionId,
+                      quoteId,
+                      reason.isNotEmpty ? reason : null,
+                    );
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: Text(l10n.reject_quote_title),
+          ),
+        ],
+      ),
     );
   }
 }

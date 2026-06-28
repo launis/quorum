@@ -73,7 +73,10 @@ class DocumentExtractionService:
 
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         try:
+            import ftfy
+
             md_text = str(pymupdf4llm.to_markdown(doc))
+            md_text = ftfy.fix_text(md_text)
 
             # Read modDate first, fallback to creationDate
             metadata = doc.metadata or {}
@@ -121,7 +124,10 @@ class DocumentExtractionService:
                             extracted_dates.append(parsed_date)
                     else:
                         logger.info("[DocumentExtractionService] Found text file %s. Decoding.", attachment.filename)
-                        new_dynamic_inputs[key] = file_bytes.decode("utf-8", errors="ignore")
+                        import ftfy
+
+                        decoded_text = file_bytes.decode("utf-8", errors="ignore")
+                        new_dynamic_inputs[key] = ftfy.fix_text(decoded_text)
                 except Exception as e:
                     logger.error("[DocumentExtractionService] Failed to extract %s", attachment.filename, exc_info=True)
                     raise AppException(

@@ -1,11 +1,9 @@
-import collections.abc
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from typing import Any, get_args, get_origin
+from typing import Any
 
 from pydantic import BaseModel
-from pydantic_core import PydanticUndefined
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -24,101 +22,6 @@ from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 
 logger = logging.getLogger(__name__)
-
-
-def _build_null_fallback(
-    model_cls: type[BaseModel],
-    existing: Any | None = None,
-    validation_context: dict[str, Any] | None = None,
-) -> Any:
-    """Phase 1: Extract Pydantic reflection fallback generation to remove DRY violation.
-
-    Recursively builds a null-object shell of the target Pydantic model for self-healing
-    failovers when the LLM refuses to parse data correctly.
-
-    Args:
-        model_cls: The target Pydantic model class to build.
-        existing: An existing partially populated dictionary or object to scavenge fields from.
-        validation_context: The context dictionary required for contextual validation.
-
-    Returns:
-        An instantiated model_cls object constructed via model_construct (bypassing validation).
-    """
-    fallback_data: dict[str, Any] = {}
-
-    for name, field_info in model_cls.model_fields.items():
-        annotation = field_info.annotation
-
-        is_list = False
-        inner_cls: type[BaseModel] | None = None
-
-        origin = get_origin(annotation)
-        if origin is list or origin is collections.abc.Sequence:
-            is_list = True
-            args = get_args(annotation)
-            if args and isinstance(args[0], type) and issubclass(args[0], BaseModel):
-                inner_cls = args[0]
-        elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
-            inner_cls = annotation
-
-        existing_val = getattr(existing, name, None) if existing else None
-
-        if is_list and inner_cls:
-            if existing_val and isinstance(existing_val, list):
-                new_list = []
-                for item in existing_val:
-                    if validation_context and item:
-                        try:
-                            _perform_semantic_validation(item, validation_context)
-                            new_list.append(item)
-                        except LogicalValidationError:
-                            new_list.append(_build_null_fallback(inner_cls, item, validation_context))
-                    else:
-                        new_list.append(_build_null_fallback(inner_cls, item, validation_context))
-                fallback_data[name] = new_list
-            else:
-                fallback_data[name] = []
-        elif inner_cls:
-            if validation_context and existing_val:
-                try:
-                    _perform_semantic_validation(existing_val, validation_context)
-                    fallback_data[name] = existing_val
-                except LogicalValidationError:
-                    fallback_data[name] = _build_null_fallback(inner_cls, existing_val, validation_context)
-            else:
-                fallback_data[name] = _build_null_fallback(inner_cls, existing_val, validation_context)
-        else:
-            if name in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]:
-                fallback_data[name] = None
-            elif name in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]:
-                fallback_data[name] = []
-            elif name in ["score", "step_5_boolean"]:
-                fallback_data[name] = None
-            elif name in ["reasoning_trace", "step_1_reasoning_trace"]:
-                if existing_val and isinstance(existing_val, str):
-                    fallback_data[name] = existing_val
-                else:
-                    fallback_data[name] = "[SYSTEM ERROR: LLM Unable to verify.]"
-            elif name in ["justification", "semantic_reasoning", "step_3_implicit_justification", "step_4_reasoning"]:
-                fallback_data[name] = "[SYSTEM ERROR: LLM Unable to verify.]"
-
-            elif name in ["contextual_override"]:
-                fallback_data[name] = False
-            else:
-                if existing_val is not None:
-                    fallback_data[name] = existing_val
-                elif field_info.default is not PydanticUndefined:
-                    fallback_data[name] = field_info.default
-                elif field_info.default_factory is not None:
-                    # Ignore call-arg because default_factory technically has no arguments, but MyPy complains generically
-                    fallback_data[name] = field_info.default_factory()  # type: ignore[call-arg]
-                else:
-                    fallback_data[name] = None
-
-    # Warning: model_construct() intentionally bypasses Pydantic Fail-Fast validation.
-    # This is an architectural exception specifically designed to provide a Null Object
-    # Fallback when the LLM has catastrophically failed all healing attempts.
-    return model_cls.model_construct(**fallback_data)
 
 
 def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt) -> None:
@@ -177,37 +80,158 @@ def _perform_semantic_validation(validated_model: BaseModel, validation_context:
 
     source_text = validation_context.get("source_text", "")
     locale = validation_context.get("locale")
+    alias_map = validation_context.get("alias_map", {})
+
+    mcp_source_texts = validation_context.get("mcp_source_texts", {})
+
+    from backend_v2.models.enums import get_lexical_fuzz_threshold
+    from backend_v2.services.mcp.alias_registry import AliasRegistry
 
     def validate_recursive(data: Any, src_text: str) -> None:
-        if isinstance(data, dict):
+        if isinstance(data, BaseModel):
+            trace_val = getattr(data, "reasoning_trace", None) or getattr(data, "mechanical_trace", None)
+            reasoning_trace = trace_val if isinstance(trace_val, str) else None
+
+            used_evidence_ids = getattr(data, "used_evidence_ids", None)
+            mcp_texts_to_search = {}
+            if isinstance(used_evidence_ids, list):
+                if alias_map:
+                    for e_id in used_evidence_ids:
+                        if isinstance(e_id, str):
+                            try:
+                                AliasRegistry.resolve(e_id, alias_map)
+                                if e_id in mcp_source_texts:
+                                    mcp_texts_to_search[e_id] = mcp_source_texts[e_id]
+                            except SemanticEvidenceError as e:
+                                raise LogicalValidationError(validation_error_msg=e.message) from e
+
+            for field_name in data.model_fields:
+                v = getattr(data, field_name, None)
+                is_quote_str = field_name in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
+                is_quote_list = field_name in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]
+
+                if mcp_texts_to_search and (is_quote_str or is_quote_list):
+                    quotes = [v] if is_quote_str else (v if isinstance(v, list) else [])
+                    valid_quotes = [q for q in quotes if isinstance(q, str) and q.strip()]
+
+                    if valid_quotes:
+                        threshold = get_lexical_fuzz_threshold(locale)
+                        for quote in valid_quotes:
+                            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
+                            if not norm_quote:
+                                continue
+
+                            match_found = False
+                            matched_e_id = None
+                            for e_id, mcp_text in mcp_texts_to_search.items():
+                                norm_mcp, _ = AnchorValidationService.normalize_text_with_mapping(mcp_text)
+                                score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_mcp)
+                                if score >= threshold:
+                                    match_found = True
+                                    matched_e_id = e_id
+                                    break
+
+                            if not match_found:
+                                raise LogicalValidationError(
+                                    validation_error_msg="Sitaattia ei löydy fyysisesti lähteestä. Älä tiivistä, kopioi sanatarkasti."
+                                )
+
+                            if hasattr(data, "is_mcp_verified"):
+                                data.is_mcp_verified = True
+                            if hasattr(data, "mcp_source_reference"):
+                                data.mcp_source_reference = matched_e_id
+                else:
+                    if is_quote_str and isinstance(v, str) and v.strip():
+                        try:
+                            AnchorValidationService.validate_evidence(
+                                src_text, [v], reasoning_trace=reasoning_trace, locale=locale
+                            )
+                        except SemanticEvidenceError as e:
+                            raise LogicalValidationError(validation_error_msg=e.message) from e
+                    elif is_quote_list and isinstance(v, list) and any(isinstance(i, str) and i.strip() for i in v):
+                        try:
+                            AnchorValidationService.validate_evidence(
+                                src_text, v, reasoning_trace=reasoning_trace, locale=locale
+                            )
+                        except SemanticEvidenceError as e:
+                            raise LogicalValidationError(validation_error_msg=e.message) from e
+
+                if isinstance(v, (BaseModel, list, dict)):
+                    validate_recursive(v, src_text)
+
+        elif isinstance(data, dict):
             trace_val = data.get("reasoning_trace") or data.get("mechanical_trace")
             reasoning_trace = trace_val if isinstance(trace_val, str) else None
+
+            used_evidence_ids = data.get("used_evidence_ids")
+            mcp_texts_to_search = {}
+            if isinstance(used_evidence_ids, list):
+                if alias_map:
+                    for e_id in used_evidence_ids:
+                        if isinstance(e_id, str):
+                            try:
+                                AliasRegistry.resolve(e_id, alias_map)
+                                if e_id in mcp_source_texts:
+                                    mcp_texts_to_search[e_id] = mcp_source_texts[e_id]
+                            except SemanticEvidenceError as e:
+                                raise LogicalValidationError(validation_error_msg=e.message) from e
 
             for k, v in data.items():
                 is_quote_str = k in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
                 is_quote_list = k in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]
 
-                if is_quote_str and isinstance(v, str) and v.strip():
-                    try:
-                        AnchorValidationService.validate_evidence(
-                            src_text, [v], reasoning_trace=reasoning_trace, locale=locale
-                        )
-                    except SemanticEvidenceError as e:
-                        raise LogicalValidationError(validation_error_msg=e.message) from e
-                elif is_quote_list and isinstance(v, list) and any(isinstance(i, str) and i.strip() for i in v):
-                    try:
-                        AnchorValidationService.validate_evidence(
-                            src_text, v, reasoning_trace=reasoning_trace, locale=locale
-                        )
-                    except SemanticEvidenceError as e:
-                        raise LogicalValidationError(validation_error_msg=e.message) from e
-                elif isinstance(v, (dict, list)):
+                if mcp_texts_to_search and (is_quote_str or is_quote_list):
+                    quotes = [v] if is_quote_str else (v if isinstance(v, list) else [])
+                    valid_quotes = [q for q in quotes if isinstance(q, str) and q.strip()]
+
+                    if valid_quotes:
+                        threshold = get_lexical_fuzz_threshold(locale)
+                        for quote in valid_quotes:
+                            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
+                            if not norm_quote:
+                                continue
+
+                            match_found = False
+                            matched_e_id = None
+                            for e_id, mcp_text in mcp_texts_to_search.items():
+                                norm_mcp, _ = AnchorValidationService.normalize_text_with_mapping(mcp_text)
+                                score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_mcp)
+                                if score >= threshold:
+                                    match_found = True
+                                    matched_e_id = e_id
+                                    break
+
+                            if not match_found:
+                                raise LogicalValidationError(
+                                    validation_error_msg="Sitaattia ei löydy fyysisesti lähteestä. Älä tiivistä, kopioi sanatarkasti."
+                                )
+
+                            data["is_mcp_verified"] = True
+                            data["mcp_source_reference"] = matched_e_id
+                else:
+                    if is_quote_str and isinstance(v, str) and v.strip():
+                        try:
+                            AnchorValidationService.validate_evidence(
+                                src_text, [v], reasoning_trace=reasoning_trace, locale=locale
+                            )
+                        except SemanticEvidenceError as e:
+                            raise LogicalValidationError(validation_error_msg=e.message) from e
+                    elif is_quote_list and isinstance(v, list) and any(isinstance(i, str) and i.strip() for i in v):
+                        try:
+                            AnchorValidationService.validate_evidence(
+                                src_text, v, reasoning_trace=reasoning_trace, locale=locale
+                            )
+                        except SemanticEvidenceError as e:
+                            raise LogicalValidationError(validation_error_msg=e.message) from e
+
+                if isinstance(v, (BaseModel, list, dict)):
                     validate_recursive(v, src_text)
+
         elif isinstance(data, list):
             for item in data:
                 validate_recursive(item, src_text)
 
-    validate_recursive(validated_model.model_dump(), source_text)
+    validate_recursive(validated_model, source_text)
 
 
 class LLMTaskExecutor:
@@ -397,7 +421,7 @@ class LLMTaskExecutor:
 
                     if logical_attempts >= max_logical_retries:
                         logger.error(
-                            "Max self-healing retries (%s) exhausted for %s. Injecting Null Object Fallback.",
+                            "Max self-healing retries (%s) exhausted for %s. Failing Fast.",
                             max_logical_retries,
                             response_model.__name__,
                             extra={
@@ -406,13 +430,16 @@ class LLMTaskExecutor:
                                 "logical_attempts": logical_attempts,
                             },
                         )
-                        fallback = _build_null_fallback(response_model, validated_model, validation_context)
-                        return fallback, cumulative_usage
+                        err = AgentExecutionError(
+                            detail=ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
+                            original_error=e,
+                        )
+                        raise err from e
 
                     # Stuck Loop Detection
                     if error_msg == previous_error_msg:
                         logger.error(
-                            "Stuck Loop Detected in Logical Validation for %s. Injecting Null Object Fallback.",
+                            "Stuck Loop Detected in Logical Validation for %s. Breaking immediately.",
                             response_model.__name__,
                             extra={
                                 "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name,
@@ -420,8 +447,11 @@ class LLMTaskExecutor:
                                 "logical_attempts": logical_attempts,
                             },
                         )
-                        fallback = _build_null_fallback(response_model, validated_model, validation_context)
-                        return fallback, cumulative_usage
+                        err = AgentExecutionError(
+                            detail=ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
+                            original_error=e,
+                        )
+                        raise err from e
 
                     previous_error_msg = error_msg
                     logical_attempts += 1

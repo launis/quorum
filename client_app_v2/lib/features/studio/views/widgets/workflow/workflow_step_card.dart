@@ -252,7 +252,7 @@ class WorkflowStepCard extends StatelessWidget {
                 }
                 availableSources.add(
                   DropdownMenuItem(
-                    value: '\$steps.$prevId.outputs',
+                    value: '\$steps.$prevId',
                     child: Text(label),
                   ),
                 );

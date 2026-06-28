@@ -118,6 +118,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         'contextual_override',
         'semantic_reasoning',
         'quotes_list',
+        'row_forensics',
         'used_evidence_ids',
       ],
     );
@@ -203,8 +204,13 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
       ),
       quotesList: $checkedConvert(
         'quotes_list',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      ),
+      forensics: $checkedConvert(
+        'row_forensics',
+        (v) => v == null
+            ? null
+            : RowForensicsDto.fromJson(v as Map<String, dynamic>),
       ),
       usedEvidenceIds: $checkedConvert(
         'used_evidence_ids',
@@ -241,6 +247,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
     'contextualOverride': 'contextual_override',
     'semanticReasoning': 'semantic_reasoning',
     'quotesList': 'quotes_list',
+    'forensics': 'row_forensics',
     'usedEvidenceIds': 'used_evidence_ids',
   },
 );
@@ -280,6 +287,7 @@ Map<String, dynamic> _$MatrixScorecardRowDtoToJson(
   'contextual_override': instance.contextualOverride,
   'semantic_reasoning': instance.semanticReasoning,
   'quotes_list': instance.quotesList,
+  'row_forensics': instance.forensics?.toJson(),
   'used_evidence_ids': instance.usedEvidenceIds,
 };
 
@@ -288,3 +296,128 @@ const _$EvidenceTypeEnumMap = {
   EvidenceType.impliedIntent: 'IMPLIED_INTENT',
   EvidenceType.noEvidence: 'NO_EVIDENCE',
 };
+
+_EvidenceQuoteDto _$EvidenceQuoteDtoFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_EvidenceQuoteDto',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'id',
+        'text',
+        'source_reference',
+        'user_rejected',
+        'rejection_reason',
+        'is_mcp_verified',
+        'used_evidence_ids',
+      ],
+    );
+    final val = _EvidenceQuoteDto(
+      id: $checkedConvert('id', (v) => v as String),
+      text: $checkedConvert('text', (v) => v as String),
+      sourceReference: $checkedConvert('source_reference', (v) => v as String?),
+      userRejected: $checkedConvert(
+        'user_rejected',
+        (v) => v as bool? ?? false,
+      ),
+      rejectionReason: $checkedConvert('rejection_reason', (v) => v as String?),
+      isMcpVerified: $checkedConvert(
+        'is_mcp_verified',
+        (v) => v as bool? ?? false,
+      ),
+      usedEvidenceIds: $checkedConvert(
+        'used_evidence_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'sourceReference': 'source_reference',
+    'userRejected': 'user_rejected',
+    'rejectionReason': 'rejection_reason',
+    'isMcpVerified': 'is_mcp_verified',
+    'usedEvidenceIds': 'used_evidence_ids',
+  },
+);
+
+Map<String, dynamic> _$EvidenceQuoteDtoToJson(_EvidenceQuoteDto instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'text': instance.text,
+      'source_reference': instance.sourceReference,
+      'user_rejected': instance.userRejected,
+      'rejection_reason': instance.rejectionReason,
+      'is_mcp_verified': instance.isMcpVerified,
+      'used_evidence_ids': instance.usedEvidenceIds,
+    };
+
+_LevelQuotesDto _$LevelQuotesDtoFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('_LevelQuotesDto', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['level', 'level_name', 'quotes']);
+      final val = _LevelQuotesDto(
+        level: $checkedConvert('level', (v) => (v as num).toInt()),
+        levelName: $checkedConvert('level_name', (v) => v as String),
+        quotes: $checkedConvert(
+          'quotes',
+          (v) =>
+              (v as List<dynamic>?)
+                  ?.map(
+                    (e) => EvidenceQuoteDto.fromJson(e as Map<String, dynamic>),
+                  )
+                  .toList() ??
+              const [],
+        ),
+      );
+      return val;
+    }, fieldKeyMap: const {'levelName': 'level_name'});
+
+Map<String, dynamic> _$LevelQuotesDtoToJson(_LevelQuotesDto instance) =>
+    <String, dynamic>{
+      'level': instance.level,
+      'level_name': instance.levelName,
+      'quotes': instance.quotes.map((e) => e.toJson()).toList(),
+    };
+
+_RowForensicsDto _$RowForensicsDtoFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_RowForensicsDto',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const ['level_quotes', 'all_evidence_rejected'],
+        );
+        final val = _RowForensicsDto(
+          levelQuotes: $checkedConvert(
+            'level_quotes',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map(
+                      (e) => LevelQuotesDto.fromJson(e as Map<String, dynamic>),
+                    )
+                    .toList() ??
+                const [],
+          ),
+          allEvidenceRejected: $checkedConvert(
+            'all_evidence_rejected',
+            (v) => v as bool? ?? false,
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'levelQuotes': 'level_quotes',
+        'allEvidenceRejected': 'all_evidence_rejected',
+      },
+    );
+
+Map<String, dynamic> _$RowForensicsDtoToJson(_RowForensicsDto instance) =>
+    <String, dynamic>{
+      'level_quotes': instance.levelQuotes.map((e) => e.toJson()).toList(),
+      'all_evidence_rejected': instance.allEvidenceRejected,
+    };

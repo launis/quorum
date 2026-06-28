@@ -3570,4 +3570,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String penaltySlop(String phrases) {
     return '-5% Slop Penalty (AI Jargon): detected $phrases';
   }
+
+  @override
+  String get reject_quote_title => 'Reject Evidence';
+
+  @override
+  String get reject_quote_confirm =>
+      'Are you sure you want to reject this piece of evidence?';
+
+  @override
+  String get quote_rejected_warning =>
+      'Warning: All evidence for this observation has been rejected.';
+
+  @override
+  String get reject_quote_reason_hint => 'Optional: Reason for rejection';
 }

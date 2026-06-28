@@ -281,6 +281,27 @@ classDiagram
         +extension_type
     }
 
+    class EvidenceQuoteDTO{
+        +str id
+        +str text
+        +str source_reference
+        +bool user_rejected
+        +str rejection_reason
+        +bool is_mcp_verified
+        +List~str~ used_evidence_ids
+    }
+
+    class LevelQuotesDTO{
+        +List~EvidenceQuoteDTO~ quotes
+        +int level
+        +str level_name
+    }
+
+    class RowForensicsDTO{
+        +List~LevelQuotesDTO~ level_quotes
+        +bool all_evidence_rejected
+    }
+
     class LightweightMatrixOutput{
         +float raw_score
         +float normalized_score
@@ -363,6 +384,9 @@ classDiagram
     V2CoreBase <|-- TokenUsage
     TokenUsage <|-- VertexTokenUsage
     TokenUsage <|-- AnthropicTokenUsage
+    V2CoreBase <|-- EvidenceQuoteDTO
+    V2CoreBase <|-- LevelQuotesDTO
+    V2CoreBase <|-- RowForensicsDTO
 
     Workflow *-- ExpectedInput : "määrittää syötteet"
     Workflow *-- StepRule : "sisältää (Opaque DAG Nodes)"
@@ -474,6 +498,16 @@ Tekoälyn tuottamat selittävyyskomponentit ("Explainable AI") toteutetaan **Dis
   - `variance_score`: Laskettu absoluuttinen varianssi liukulukuna (`float`)
   - `alignment_verdict`: Sanallinen päätös (`ALIGNED`, `MISALIGNED_SYCOPHANCY` tai `MISALIGNED`)
 * **Token Shielding ja Turvallisuus:** Tämä polymorfisuus suojaa järjestelmän käyttöliittymää (Flutter). Jos taustalla toimiva tekoälymalli hallusinoi vääränlaisen laajennustyypin tai sen kentät ovat rikki, Pydantic hylkää palasen välittömästi reitityksessä. Sovellus ei näin koskaan yritä renderöidä korruptoitunutta laajennusta, taaten Token Shielding -tason vikasietoisuuden.
+
+## Forensic Traceability (Epic 88 - Phase 1)
+
+Osana "Unified Forensic Traceability" -laajennusta, järjestelmä kykenee tarkasti jäljittämään jokaisen arvioidun rivin (dimension) tarkan lähdemateriaalin DTO-rakenteisiin. Tämä erottaa järjestelmän pelkistä synteesigeneraattoreista muuttamalla väitteet auditoitaviksi lähdeviittauksiksi.
+
+1. **`EvidenceQuoteDTO`**: Tarkka ja verifioitu lainaus lähdeaineistosta. Tämä sisältää Opaque Stripe ID:n (`evq_xxxx`), tiedot siitä, onko käyttäjä hylännyt todisteen (`user_rejected`, `rejection_reason`), sekä kytköksen alkuperäisiin MCP-hakuihin (`used_evidence_ids`).
+2. **`LevelQuotesDTO`**: Ryhmittelee lainaukset tietylle arviointitasolle (esim. pisteytysasteikon taso 3).
+3. **`RowForensicsDTO`**: Kokoaa dimensiotason (esim. yksittäisen arviointikriteerin) todisteet yhteen ja tarjoaa automaattisesti laskettavan ominaisuuden (`all_evidence_rejected`), joka laukeaa `True`, mikäli ihminen on käsin hylännyt KAIKKI rivin automaattiset poiminnat (mikä viestittää käyttöliittymälle ja myöhemmille työnkuluille vaatimuksen arvioida tämä kohta uudestaan puutteellisen evidenssin takia).
+
+Lisäksi ulkoisia hakuja (Tavily, yms) taltioiva **`MCPAuditTrace`** ja alkuperäinen poimintapyyntö **`CitationExtractionItemDTO`** on rikastettu kentillä `knowledge_gap` (mitä tietoa mallilta puuttui ennen hakua) ja `search_rationale` (miksi haku päätettiin tehdä juuri kyseisellä sanamuodolla). Tämä vahvistaa System 2 -tason ajattelua (CoT) ja antaa tilintarkastajille tarkan ymmärryksen tekoälyn "epävarmuudesta" ennen tiedonhakuprosessia.
 
 <br><hr>
 

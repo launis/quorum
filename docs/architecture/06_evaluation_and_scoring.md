@@ -158,6 +158,12 @@ Kun tekoäly (System 1) havaitsee epäsuoran tai lieventävän asiayhteyden, se 
    
    Mikäli nämä ehdot eivät täyty, Pydantic heittää `ValidationError`-virheen ja käynnistää korjaavan uudelleenyrityksen (`Self-Healing`).
 
+### Escape Hatch (Pako-ovi) & Negatiiviset Rajoitteet
+
+Järjestelmän deterministinen rakenne sallii niin sanotun Escape Hatch (Pako-ovi) -mekanismin negatiivisten rajoitteiden (kuten "asiakirja EI SAA sisältää...") arvioinnille. Jos sääntö on puhtaasti negatiivinen ja tekstistä ei luonnollisestikaan löydy lainausta tälle kiellolle, tekoälyn yritykset hallusinoida lainauksia tai ajautua ikuiseen DLQ-luuppiin estetään:
+1. **Prompt-tason Escape Hatch:** Kielimallia ohjeistetaan, että tyhjä lista `[]` on täysin oikea ja validi vastaus silloin, kun haettavaa faktaa tai negatiivista rajoitetta ei ole tekstissä.
+2. **DLQ Loop Breaker:** Jos malli jää jumiin keksimään olemattomia lähdeviitteitä, Self-Healing-mekanismi antaa mallille tiukan komennon palauttaa tyhjä lista keksittyjen lähteiden sijaan. Tämä katkaisee päättymättömän korjauskierteen.
+
 ---
 
 ## 5. Pisteytyslogiikka: Soft Scoring V3 ja Kireystasot

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast  # noqa: F401
 if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -72,6 +72,9 @@ __all__ = [
     "TDAAssertion",
     "MatrixClaim",
     "BaseTDAExtraction",
+    "EvidenceQuoteDTO",
+    "LevelQuotesDTO",
+    "RowForensicsDTO",
 ]
 
 
@@ -586,6 +589,8 @@ class MCPAuditTrace(V2CoreBase):
     step_name: str = Field(description="DAG step that triggered the call.")
     claim_text: str | None = Field(default=None, description="The verbatim claim that triggered this search.")
     query: str = Field(description="The search query or tool input.")
+    knowledge_gap: str = Field(default="", description="The knowledge gap that needs to be resolved.")
+    search_rationale: str = Field(default="", description="The rationale for the search query.")
     reasoning: str = Field(default="", description="Brief explanation of why this claim was verified.")
     response_summary: str = Field(default="", description="Extracted text summary.")
     source_urls: list[str] = Field(default_factory=list, description="Source URLs returned.")
@@ -848,7 +853,6 @@ class MatrixScorecardRowDTO(V2CoreBase):
 
     true_atoms: int | None = Field(default=None, description="Global hits found.")
     total_atoms: int | None = Field(default=None, description="Total atoms available to evaluate.")
-
     row_explanation: str = Field(..., description="The one-sentence justification.")
     evidence_type: str | None = Field(default=None, description="The EvidenceType extracted from AtomResponse")
 
@@ -894,6 +898,10 @@ class MatrixScorecardRowDTO(V2CoreBase):
         default=None, description="Array of exact quotes hoisted from successful atoms. Truncated to 150 chars each."
     )
     used_evidence_ids: list[str] = Field(default_factory=list, description="Trace IDs used for this row.")
+
+    row_forensics: RowForensicsDTO | None = Field(
+        default=None, description="Epic 88: Hierarchical forensics data grouped by evaluation levels."
+    )
 
     tda_state: dict[str, Any] | None = Field(default=None, description="TDAState union representation.")
 
@@ -1354,6 +1362,12 @@ class JobAcceptedDTO(V2CoreBase):
     execution_id: str
 
 
+class EvidenceRejectionRequest(V2CoreBase):
+    """Request DTO for rejecting a specific evidence quote."""
+
+    rejection_reason: str = Field(description="Reason for rejecting the evidence quote.")
+
+
 WorkflowSchemaResponse = dict[str, Any]
 
 
@@ -1412,3 +1426,69 @@ class BaseTDAExtraction(BaseModel):
                     "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
                 )
         return data
+
+
+class EvidenceQuoteDTO(V2CoreBase):
+    """A verified or user-rejected exact quote from the source material."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    id: str = Field(
+        default_factory=lambda: f"evq_{uuid.uuid4().hex}",
+        pattern=r"^evq_[a-fA-F0-9]{32}$",
+        description="Opaque Stripe ID for this evidence quote.",
+    )
+    text: str = Field(description="The verbatim exact quote.")
+    source_reference: str | None = Field(default=None, description="Optional citation reference.")
+    user_rejected: bool = Field(default=False, description="True if user rejected this evidence.")
+    rejection_reason: str | None = Field(default=None, description="Reason for rejection.")
+    is_mcp_verified: bool = Field(default=False, description="True if verified via MCP tool.")
+    used_evidence_ids: list[str] | None = Field(default=None, description="References to related MCP trace IDs.")
+
+    @field_validator("used_evidence_ids", mode="before")
+    @classmethod
+    def _sanitize_used_evidence_ids(cls, v: Any) -> Any:
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [v]
+        return v
+
+
+class LevelQuotesDTO(V2CoreBase):
+    """Evidence quotes linked to a specific sub-level of evaluation."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    quotes: list[EvidenceQuoteDTO] | None = Field(default=None, description="Evidence quotes for this level.")
+    level: int = Field(description="The evaluation level number.")
+    level_name: str = Field(description="The name of the evaluation level.")
+
+    @field_validator("quotes", mode="before")
+    @classmethod
+    def _sanitize_quotes(cls, v: Any) -> Any:
+        if v is None:
+            return []
+        return v
+
+
+class RowForensicsDTO(V2CoreBase):
+    """Forensic traceability for a specific evaluation row/dimension."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    level_quotes: list[LevelQuotesDTO] = Field(..., description="Quotes grouped by level.")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def all_evidence_rejected(self) -> bool:
+        """Returns True if len > 0 and all quotes have user_rejected == True."""
+        all_quotes = []
+        for lq in self.level_quotes:
+            if lq.quotes:
+                all_quotes.extend(lq.quotes)
+
+        if not all_quotes:
+            return False
+
+        return all(q.user_rejected for q in all_quotes)

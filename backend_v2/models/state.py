@@ -68,6 +68,16 @@ class ReasoningTrace(V2CoreBase):
     )
 
 
+class EvidenceOverrideDTO(V2CoreBase):
+    """Payload for evidence override events."""
+
+    evq_id: str = Field(description="The opaque evidence quote ID.")
+    user_rejected: bool = Field(description="Whether the user explicitly rejected this evidence.")
+    rejection_reason: str = Field(description="The user-provided reason for rejection.")
+    rejected_by: str = Field(description="User ID who made the rejection.")
+    rejected_at: datetime = Field(description="Timestamp of the rejection.")
+
+
 class TraceEvent(V2CoreBase):
     """Immutable event log item representing a distinct step or state change."""
 
@@ -83,7 +93,7 @@ class TraceEvent(V2CoreBase):
         json_schema_extra={"x-ui-label": "Step Name"},
     )
 
-    event_type: Literal["input", "reasoning", "decision", "error", "output", "tombstone"] = Field(
+    event_type: Literal["input", "reasoning", "decision", "error", "output", "tombstone", "evidence_override"] = Field(
         ..., description="Type of the event.", json_schema_extra={"x-ui-label": "Event Type"}
     )
 

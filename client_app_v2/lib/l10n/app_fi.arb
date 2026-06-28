@@ -1195,5 +1195,9 @@
         "type": "String"
       }
     }
-  }
+  },
+  "reject_quote_title": "Hylkää todiste",
+  "reject_quote_confirm": "Haluatko varmasti hylätä tämän todisteen?",
+  "quote_rejected_warning": "Varoitus: Kaikki havainnon todisteet on hylätty.",
+  "reject_quote_reason_hint": "Valinnainen: Hylkäyksen syy"
 }

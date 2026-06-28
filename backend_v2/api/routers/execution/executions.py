@@ -10,7 +10,7 @@ from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, DocumentExtractionServiceDep, ExecutionServiceDep
-from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, JobAcceptedDTO
+from backend_v2.models.v2_core import EvidenceRejectionRequest, ExecutionCreate, ExecutionRecord, JobAcceptedDTO
 
 logger = logging.getLogger(__name__)
 
@@ -316,3 +316,35 @@ async def delete_profile_synthesis(
     await execution_service.clear_profile_synthesis(
         initiator=current_user, execution_id=execution_id, profile_id=profile_id
     )
+
+
+@router.put("/{execution_id}/evidence/{evq_id}/reject", status_code=status.HTTP_200_OK)
+async def reject_evidence_quote(
+    execution_id: str,
+    evq_id: str,
+    payload: EvidenceRejectionRequest,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> dict[str, str]:
+    """Reject an evidence quote and soft delete it from the synthesis.
+
+    Args:
+        execution_id: The unique identifier of the execution.
+        evq_id: The opaque evidence quote ID.
+        payload: The rejection request payload containing the reason.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Returns:
+        A success message.
+
+    Raises:
+        AppException: If rejection fails or permission is denied.
+    """
+    await execution_service.reject_evidence_quote(
+        initiator=current_user,
+        execution_id=execution_id,
+        evq_id=evq_id,
+        reason=payload.rejection_reason,
+    )
+    return {"status": "ok", "message": "Evidence quote rejected successfully."}

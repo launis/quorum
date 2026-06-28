@@ -73,6 +73,21 @@ class IExecutionRepository(Protocol):
         """
         ...
 
+    async def append_trace_event(self, execution_id: str, event_data: dict[str, Any]) -> bool:
+        """Protocol method definition.
+
+        Args:
+            *args: Protocol arguments.
+            **kwargs: Protocol keyword arguments.
+
+        Returns:
+            The specified return type.
+
+        Raises:
+            AppException: If the operation fails.
+        """
+        ...
+
     async def delete_execution(self, execution_id: str) -> bool:
         """Protocol method definition.
 

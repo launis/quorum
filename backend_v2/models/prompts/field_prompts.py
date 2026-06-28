@@ -7,7 +7,8 @@ DESC_EXACT_QUOTES = (
     "ABSOLUTE PRIORITY over contextual override. MUST be empty if contextual_override is True. "
     "CRITICAL: MUST ALWAYS be extracted in the exact original language of the source text, "
     "as physically contiguous VERBATIM substrings (do not add/remove words, markdown, or fix typos). "
-    "NEVER translate the quotes, even if your reasoning is in another language."
+    "NEVER translate the quotes, even if your reasoning is in another language. "
+    "Jos sääntö on negatiivinen rajoite ja teksti noudattaa sitä, palauta tyhjä lista []. Tyhjä lista on täysin oikea vastaus faktojen puuttuessa."
 )
 
 DESC_CONTEXTUAL_OVERRIDE = (

@@ -185,6 +185,7 @@ class BlueprintTransformer:
         workflow_ext_values: list[str],
         row_curated_quotes_cache: dict[str, list[str]],
         has_synthesis_cache: bool = False,
+        rejected_evq_ids: set[str] | None = None,
     ) -> tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO]]:
         """Parses folded results into MatrixScorecardRowDTOs and populates grouped XAI extensions.
 
@@ -428,35 +429,155 @@ class BlueprintTransformer:
                 final_explanation = final_explanation[:297] + "..."
 
             quotes_list = None
+            row_forensics = None
             if "quotes" in matrix_visible_cols:
-                atom_quotes = {}
-                for r_dto in results:
-                    if r_dto.step_id == step_id and r_dto.block_id == "atom_quotes" and isinstance(r_dto.payload, dict):
-                        atom_quotes = r_dto.payload
-                        break
+                import uuid
 
-                raw_quotes = None
-                if b_id in row_curated_quotes_cache and isinstance(row_curated_quotes_cache[b_id], list):
-                    raw_quotes = row_curated_quotes_cache[b_id]
-                elif b_id in atom_quotes and isinstance(atom_quotes[b_id], list):
-                    raw_quotes = atom_quotes[b_id]
+                from backend_v2.models.v2_core import EvidenceQuoteDTO, LevelQuotesDTO, RowForensicsDTO
 
-                if raw_quotes:
-                    quotes_list = []
-                    seen_quotes = set()
-                    for q in raw_quotes:
-                        q_str = str(q).strip()
-                        if not q_str or q_str in seen_quotes:
-                            continue
-                        seen_quotes.add(q_str)
-                        q_str = re.sub(r"[*_#`>]", "", q_str).strip()
-                        if not q_str:
-                            continue
-                        q_str = q_str[0].upper() + q_str[1:]
-                        if len(q_str) > 150:
-                            quotes_list.append(q_str[:147] + "...")
-                        else:
-                            quotes_list.append(q_str)
+                level_map: dict[int, LevelQuotesDTO] = {}
+                quotes_list = []
+                seen_quotes = set()
+
+                # V2 Strategy: Map evaluated_atoms directly from PromptBlock scales
+                v2_mapped = False
+                if pb_meta.scales and matrix_payload.evaluated_atoms:
+                    step_evals_map = {}
+                    for r_dto in results:
+                        if (
+                            r_dto.step_id == step_id
+                            and r_dto.block_id == "evaluations"
+                            and isinstance(r_dto.payload, list)
+                        ):
+                            for ev in r_dto.payload:
+                                if isinstance(ev, dict) and "atom_id" in ev:
+                                    step_evals_map[ev["atom_id"]] = ev
+                            break
+
+                    for scale in pb_meta.scales:
+                        l_val = scale.score
+                        l_name = level_names.get(str(l_val), f"Taso {l_val}")
+                        for claim in scale.claims:
+                            for tda in claim.tda_assertions:
+                                if tda.tda_id in matrix_payload.evaluated_atoms:
+                                    tda_status = matrix_payload.evaluated_atoms[tda.tda_id]
+                                    is_rejected = tda_status is False or tda_status == "DLQ"
+
+                                    ev_data = step_evals_map.get(tda.tda_id, {})
+                                    exact_quotes = ev_data.get("exact_quotes", [])
+
+                                    q_strings = []
+                                    if (
+                                        exact_quotes
+                                        and isinstance(exact_quotes, list)
+                                        and any(str(q).strip() for q in exact_quotes)
+                                    ):
+                                        for q in exact_quotes:
+                                            if str(q).strip():
+                                                q_strings.append(str(q).strip())
+                                    else:
+                                        fallback_str = (
+                                            claim.label.resolve("fi") if hasattr(claim.label, "resolve") else "Väite"
+                                        )
+                                        if not fallback_str:
+                                            fallback_str = getattr(tda, "concept_description", None) or "Väite"
+                                        if fallback_str:
+                                            q_strings.append(fallback_str.strip())
+
+                                    for q_str in q_strings:
+                                        legacy_id = f"evq_{uuid.uuid4().hex}"
+                                        eq_dto = EvidenceQuoteDTO(
+                                            id=legacy_id,
+                                            text=q_str,
+                                            source_reference=None,
+                                            user_rejected=is_rejected,
+                                            is_mcp_verified=False,
+                                        )
+
+                                        if l_val not in level_map:
+                                            level_map[l_val] = LevelQuotesDTO(level=l_val, level_name=l_name, quotes=[])
+
+                                        _level_quotes = level_map[l_val].quotes
+                                        if _level_quotes is not None:
+                                            _level_quotes.append(eq_dto)
+                                            v2_mapped = True
+
+                                        if q_str not in seen_quotes:
+                                            seen_quotes.add(q_str)
+                                            clean_q = re.sub(r"[*_#`>]", "", q_str).strip()
+                                            if clean_q:
+                                                clean_q = clean_q[0].upper() + clean_q[1:]
+                                                quotes_list.append(
+                                                    clean_q[:147] + "..." if len(clean_q) > 150 else clean_q
+                                                )
+
+                if not v2_mapped:
+                    # Legacy fallback logic for V1 executions
+                    atom_quotes = {}
+                    for r_dto in results:
+                        if (
+                            r_dto.step_id == step_id
+                            and r_dto.block_id == "atom_quotes"
+                            and isinstance(r_dto.payload, dict)
+                        ):
+                            atom_quotes = r_dto.payload
+                            break
+
+                    raw_quotes = None
+                    if b_id in row_curated_quotes_cache and isinstance(row_curated_quotes_cache[b_id], list):
+                        raw_quotes = row_curated_quotes_cache[b_id]
+                    elif b_id in atom_quotes and isinstance(atom_quotes[b_id], list):
+                        raw_quotes = atom_quotes[b_id]
+
+                    if raw_quotes:
+                        for q in raw_quotes:
+                            if isinstance(q, dict) and "quote" in q and "level" in q:
+                                l_val = q["level"]
+                                l_name = q["level_name"]
+                                q_data = q["quote"]
+                                eq_dto = EvidenceQuoteDTO.model_validate(q_data)
+
+                                if rejected_evq_ids and eq_dto.id in rejected_evq_ids:
+                                    eq_dto = eq_dto.model_copy(update={"user_rejected": True})
+                                if l_val not in level_map:
+                                    level_map[l_val] = LevelQuotesDTO(level=l_val, level_name=l_name, quotes=[])
+
+                                _level_quotes = level_map[l_val].quotes
+                                if _level_quotes is not None:
+                                    _level_quotes.append(eq_dto)
+
+                                q_str = str(eq_dto.text).strip()
+                            else:
+                                q_str = str(q).strip()
+                                if q_str:
+                                    legacy_id = f"evq_{uuid.uuid4().hex}"
+                                    eq_dto = EvidenceQuoteDTO(
+                                        id=legacy_id, text=q_str, source_reference=None, is_mcp_verified=False
+                                    )
+                                    l_val = int(score_float) if score_float is not None else 0
+                                    l_name = level_names.get(str(l_val), f"Taso {l_val}")
+
+                                    if l_val not in level_map:
+                                        level_map[l_val] = LevelQuotesDTO(level=l_val, level_name=l_name, quotes=[])
+
+                                    _level_quotes = level_map[l_val].quotes
+                                    if _level_quotes is not None:
+                                        _level_quotes.append(eq_dto)
+
+                            if not q_str or q_str in seen_quotes:
+                                continue
+                            seen_quotes.add(q_str)
+                            q_str = re.sub(r"[*_#`>]", "", q_str).strip()
+                            if not q_str:
+                                continue
+                            q_str = q_str[0].upper() + q_str[1:]
+                            if len(q_str) > 150:
+                                quotes_list.append(q_str[:147] + "...")
+                            else:
+                                quotes_list.append(q_str)
+
+                if level_map:
+                    row_forensics = RowForensicsDTO(level_quotes=list(level_map.values()))
 
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
@@ -493,6 +614,7 @@ class BlueprintTransformer:
                 ui_plot_ratio=ui_plot_ratio,
                 is_evaluative=pb_meta.is_evaluative,
                 quotes_list=quotes_list,
+                row_forensics=row_forensics,
             )
 
             unique_k = f"{step_id}_{b_id}"
@@ -904,6 +1026,16 @@ class BlueprintTransformer:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
+        # Epic 88 Phase 6: Pass rejected_evq_ids to the matrix extractor
+        rejected_evq_ids: set[str] = set()
+        if execution.execution_trace:
+            for ev in execution.execution_trace:
+                if ev.event_type == "evidence_override" and isinstance(ev.content, dict):
+                    if ev.content.get("user_rejected") is True:
+                        evq_id = ev.content.get("evq_id")
+                        if isinstance(evq_id, str):
+                            rejected_evq_ids.add(evq_id)
+
         evaluative_matrices, informational_matrices, all_parsed_matrices = self._extract_matrices_and_extensions(
             results,
             locale,
@@ -915,6 +1047,7 @@ class BlueprintTransformer:
             workflow_ext_values,
             row_curated_quotes_cache,
             has_synthesis_cache=profile_cache is not None,
+            rejected_evq_ids=rejected_evq_ids,
         )
 
         try:
@@ -1041,6 +1174,9 @@ class BlueprintTransformer:
                 raw_audits: list[MCPAuditTrace] = execution.frozen_context.mcp_tool_audit
                 seen_audits: set[str] = set()
                 for audit in raw_audits:
+                    if audit.tool_id == "internal_source":
+                        continue
+
                     audit_hash = f"{audit.tool_id}::{audit.query}"
                     if audit_hash not in seen_audits:
                         seen_audits.add(audit_hash)
@@ -1054,6 +1190,10 @@ class BlueprintTransformer:
                     if isinstance(payload_data, dict):
                         if "used_evidence_ids" in payload_data and isinstance(payload_data["used_evidence_ids"], list):
                             for e_id in payload_data["used_evidence_ids"]:
+                                if isinstance(e_id, str):
+                                    evidence_to_axes.setdefault(e_id, set()).add(b_id)
+                        if "used_mcp_ids" in payload_data and isinstance(payload_data["used_mcp_ids"], list):
+                            for e_id in payload_data["used_mcp_ids"]:
                                 if isinstance(e_id, str):
                                     evidence_to_axes.setdefault(e_id, set()).add(b_id)
                         for val in payload_data.values():

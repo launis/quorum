@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/models/report_data_dto.dart';
 
 void main() {
   group('ReportAxisDTO XAI Extensions', () {
@@ -98,6 +99,44 @@ void main() {
         final dto = MatrixScorecardRowDto.fromJson(json);
 
         expect(dto.blockId, 'blk_123');
+      },
+    );
+
+    test(
+      'TDD REPRO: fromJson throws when backend sends quotes_list and row_forensics',
+      () {
+        final json = {
+          'block_id': 'blk_123',
+          'name': 'Matrix Risk',
+          'label_i18n': {
+            'default_locale': 'en',
+            'translations': {'fi': 'Matriisi Riski'},
+          },
+          'row_explanation': 'Valid logic structure.',
+          'is_evaluative': true,
+          // Unrecognized keys sent by the backend:
+          'quotes_list': ['quote 1'],
+          'row_forensics': {'level_quotes': [], 'all_evidence_rejected': false},
+        };
+
+        // This will throw CheckedFromJsonException because of unrecognized keys
+        MatrixScorecardRowDto.fromJson(json);
+      },
+    );
+
+    test(
+      'TDD REPRO: MCPToolAuditDTO throws on knowledge_gap and search_rationale',
+      () {
+        final json = {
+          'tool_id': 'search_web',
+          'step_name': 'Fact Check',
+          'query': 'what is the capital of Finland',
+          'knowledge_gap': 'Need to confirm capital',
+          'search_rationale': 'Checking official sources',
+        };
+
+        // This will throw CheckedFromJsonException because of unrecognized keys
+        MCPToolAuditDTO.fromJson(json);
       },
     );
   });

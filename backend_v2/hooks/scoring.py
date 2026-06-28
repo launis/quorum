@@ -604,6 +604,11 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # Epic 47 Phase 2: Dynamic Orchestration & Scoring Resolution
         strictness_level = None
         scoring_strategy = None
+        locale = (
+            execution_data.metadata.get("target_locale", "fi")
+            if execution_data.metadata and isinstance(execution_data.metadata, dict)
+            else "fi"
+        )
 
         profile_id = execution_data.output_profile_id
         if profile_id:
@@ -692,7 +697,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         block_scale_stats: dict[str, dict[float, dict[str, int]]] = {}
         missing_atoms_by_block: dict[str, list[str]] = {}
         evaluated_atoms_by_block: dict[str, dict[str, bool | str]] = {}
-        atom_quotes_by_block: dict[str, list[str]] = {}
+        atom_quotes_by_block: dict[str, list[Any]] = {}
         contested_atoms_by_block: dict[str, int] = {}
 
         # 2. Iterate evaluations using whitelisted ASTEvaluator for 3-State Logic
@@ -741,6 +746,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             for scale in scales:
                 s_val = float(scale.score)
+                s_name = scale.name.resolve(locale) if scale.name else str(scale.score)
                 block_scale_stats[pb_id][s_val] = {"hits": 0, "total": 0, "dlqs": 0}
 
                 claims = scale.claims
@@ -845,7 +851,29 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 )
                                                 if has_evidence:
                                                     if ev_dto.exact_quotes:
-                                                        atom_quotes_by_block[pb_id].extend(ev_dto.exact_quotes)
+                                                        # Epic 88 Phase 6: Generate EvidenceQuoteDTOs for traceability
+                                                        from backend_v2.models.v2_core import EvidenceQuoteDTO
+
+                                                        for qt in ev_dto.exact_quotes:
+                                                            eq_dto = EvidenceQuoteDTO(
+                                                                text=qt,
+                                                                is_mcp_verified=getattr(
+                                                                    ev_dto, "is_mcp_verified", False
+                                                                ),
+                                                                source_reference=getattr(
+                                                                    ev_dto, "mcp_source_reference", None
+                                                                ),
+                                                                used_evidence_ids=getattr(
+                                                                    ev_dto, "used_evidence_ids", []
+                                                                ),
+                                                            )
+                                                            atom_quotes_by_block[pb_id].append(
+                                                                {
+                                                                    "level": s_val,
+                                                                    "level_name": s_name,
+                                                                    "quote": eq_dto.model_dump(),
+                                                                }
+                                                            )
                                                     elif (
                                                         getattr(ev_dto, "contextual_override", False)
                                                         and effective_override

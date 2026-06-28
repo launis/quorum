@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:uuid/uuid.dart';
 
 class ScaleEditorModal extends StatefulWidget {
   final MatrixScale initialScale;
@@ -217,7 +218,8 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                     claim.tdaAssertions,
                                   );
                                   newTdas.add(
-                                    TDAAssertion.create(
+                                    TDAAssertion(
+                                      tdaId: 'tda_${Uuid().v4().replaceAll('-', '')}',
                                       conceptDescription: '',
                                       inverseEvidence: false,
                                       aggregationMode: AggregationMode.exists,

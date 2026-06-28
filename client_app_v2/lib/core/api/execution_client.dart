@@ -75,4 +75,17 @@ class ExecutionClient {
     final response = await _dio.get('/execution/scorecard/$executionId');
     return response.data as Map<String, dynamic>;
   }
+
+  /// Rejects a specific evidence quote (Soft Delete)
+  Future<Map<String, dynamic>> rejectEvidenceQuote(
+    String executionId,
+    String quoteId,
+    String? reason,
+  ) async {
+    final response = await _dio.put(
+      '/execution/executions/$executionId/evidence/$quoteId/reject',
+      data: {if (reason != null && reason.isNotEmpty) 'reason': reason},
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }

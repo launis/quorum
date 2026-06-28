@@ -550,19 +550,29 @@ async def execute_tool_loop[T: BaseModel](
     final_messages = list(messages)
 
     if audit_traces:
+        from backend_v2.services.mcp.alias_registry import AliasRegistry
+
         evidence_blocks = []
-        for audit in audit_traces:
-            trace_id = audit.id or "unknown"
-            content = f'<search_result id="{trace_id}">\n  <query>{audit.query}</query>\n'
+        if validation_context is None:
+            validation_context = {}
+        if "mcp_source_texts" not in validation_context:
+            validation_context["mcp_source_texts"] = {}
+        if "alias_map" not in validation_context:
+            validation_context["alias_map"] = {}
+
+        for i, audit in enumerate(audit_traces, 1):
+            alias = f"<<QRM-SRC-MCP-{i}>>"
+            text_payload = f"Query: {audit.query}\n"
             if audit.response_summary:
-                content += f"  <summary>{audit.response_summary}</summary>\n"
+                text_payload += f"Summary: {audit.response_summary}\n"
             if audit.source_urls:
-                content += "  <sources>\n"
-                for url in audit.source_urls:
-                    content += f"    <url>{url}</url>\n"
-                content += "  </sources>\n"
-            content += "</search_result>"
-            evidence_blocks.append(content)
+                text_payload += f"Sources: {', '.join(audit.source_urls)}\n"
+
+            validation_context["mcp_source_texts"][alias] = text_payload
+            validation_context["alias_map"][alias] = audit.id
+
+            chunks = AliasRegistry.wrap_source_chunks(text_payload, alias)
+            evidence_blocks.extend(chunks)
 
         evidence_str = "\n".join(evidence_blocks)
         final_messages.append(

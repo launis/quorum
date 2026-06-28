@@ -3595,4 +3595,18 @@ class AppLocalizationsFi extends AppLocalizations {
   String penaltySlop(String phrases) {
     return '-5% Slop-rangaistus (Tekoäly-jargon): havaittu $phrases';
   }
+
+  @override
+  String get reject_quote_title => 'Hylkää todiste';
+
+  @override
+  String get reject_quote_confirm =>
+      'Haluatko varmasti hylätä tämän todisteen?';
+
+  @override
+  String get quote_rejected_warning =>
+      'Varoitus: Kaikki havainnon todisteet on hylätty.';
+
+  @override
+  String get reject_quote_reason_hint => 'Valinnainen: Hylkäyksen syy';
 }

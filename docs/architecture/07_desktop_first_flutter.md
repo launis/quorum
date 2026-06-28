@@ -67,6 +67,7 @@ Jotta tekoälyn tekemät contextual override -ohitukset ovat täysin auditoitavi
 
 * **Mekaanisen sitaatin korvaaminen:** Kun `contextual_override = true` palautetaan API-rajapinnasta, käyttöliittymä poistaa normaalin mekaanisen *"Ote alkuperäisestä tekstistä"* -laatikon ja korvaa sen korostetulla, **amber-reunaisella perustelulaatikolla**.
 * **Lokalisaatiopariteetti:** Kaikki UI-tekstit haetaan täysin lokalisoituna `AppLocalizations` -luokan kautta (`reportSemanticExplanationTitle` tai `reportSemanticReasoningTitle`), varmistaen Zero-Math ja No-Magic-Strings -vaatimusten ehdottoman toteutumisen.
+* **Unified Forensic Traceability (Epic 88):** Käyttöliittymä hyödyntää `RowForensicsDto` -mallia, joka jäsentää kerätyt todisteet (Evidence) tasoittain (`LevelQuotesDto`). Jokainen todistekappale (`EvidenceQuoteDto`) sisältää tarkan lähdeviitteen ja auditoitavan tiedon siitä, onko tekoäly mahdollisesti hylännyt sen (esim. ohitettavat lainaukset, pehmeä poisto). `RowForensicsDto` on kytketty dynaamisesti suoraan SDUI-tietueeseen (`MatrixScorecardRowDto.forensics`), ja se tukee Fail-Fast -validointia ilman lokaalia koodimuunnosta.
 
 ## 6. Keskeinen Hakemistokartta ja Komponentit
 

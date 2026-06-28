@@ -1855,5 +1855,9 @@
         "type": "String"
       }
     }
-  }
+  },
+  "reject_quote_title": "Reject Evidence",
+  "reject_quote_confirm": "Are you sure you want to reject this piece of evidence?",
+  "quote_rejected_warning": "Warning: All evidence for this observation has been rejected.",
+  "reject_quote_reason_hint": "Optional: Reason for rejection"
 }

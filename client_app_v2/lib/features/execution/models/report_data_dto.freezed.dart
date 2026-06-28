@@ -1225,7 +1225,7 @@ $I18nTextCopyWith<$Res>? get description {
 /// @nodoc
 mixin _$MCPToolAuditDTO {
 
- String? get id;@JsonKey(name: 'tool_id') String get toolId;@JsonKey(name: 'step_name') String get stepName;@JsonKey(name: 'claim_text') String? get claimText; String get query; String get reasoning;@JsonKey(name: 'response_summary') String get responseSummary;@JsonKey(name: 'source_urls') List<String> get sourceUrls;@JsonKey(name: 'impacted_axis_names') List<String> get impactedAxisNames; String? get timestamp;@JsonKey(name: 'duration_ms') int get durationMs;
+ String? get id;@JsonKey(name: 'tool_id') String get toolId;@JsonKey(name: 'step_name') String get stepName;@JsonKey(name: 'claim_text') String? get claimText; String get query; String get reasoning;@JsonKey(name: 'knowledge_gap') String? get knowledgeGap;@JsonKey(name: 'search_rationale') String? get searchRationale;@JsonKey(name: 'response_summary') String get responseSummary;@JsonKey(name: 'source_urls') List<String> get sourceUrls;@JsonKey(name: 'impacted_axis_names') List<String> get impactedAxisNames; String? get timestamp;@JsonKey(name: 'duration_ms') int get durationMs;
 /// Create a copy of MCPToolAuditDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1240,7 +1240,7 @@ $MCPToolAuditDTOCopyWith<MCPToolAuditDTO> get copyWith => _$MCPToolAuditDTOCopyW
 
 @override
 String toString() {
-  return 'MCPToolAuditDTO(id: $id, toolId: $toolId, stepName: $stepName, claimText: $claimText, query: $query, reasoning: $reasoning, responseSummary: $responseSummary, sourceUrls: $sourceUrls, impactedAxisNames: $impactedAxisNames, timestamp: $timestamp, durationMs: $durationMs)';
+  return 'MCPToolAuditDTO(id: $id, toolId: $toolId, stepName: $stepName, claimText: $claimText, query: $query, reasoning: $reasoning, knowledgeGap: $knowledgeGap, searchRationale: $searchRationale, responseSummary: $responseSummary, sourceUrls: $sourceUrls, impactedAxisNames: $impactedAxisNames, timestamp: $timestamp, durationMs: $durationMs)';
 }
 
 
@@ -1251,7 +1251,7 @@ abstract mixin class $MCPToolAuditDTOCopyWith<$Res>  {
   factory $MCPToolAuditDTOCopyWith(MCPToolAuditDTO value, $Res Function(MCPToolAuditDTO) _then) = _$MCPToolAuditDTOCopyWithImpl;
 @useResult
 $Res call({
- String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName,@JsonKey(name: 'claim_text') String? claimText, String query, String reasoning,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls,@JsonKey(name: 'impacted_axis_names') List<String> impactedAxisNames, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
+ String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName,@JsonKey(name: 'claim_text') String? claimText, String query, String reasoning,@JsonKey(name: 'knowledge_gap') String? knowledgeGap,@JsonKey(name: 'search_rationale') String? searchRationale,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls,@JsonKey(name: 'impacted_axis_names') List<String> impactedAxisNames, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
 });
 
 
@@ -1268,7 +1268,7 @@ class _$MCPToolAuditDTOCopyWithImpl<$Res>
 
 /// Create a copy of MCPToolAuditDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? toolId = null,Object? stepName = null,Object? claimText = freezed,Object? query = null,Object? reasoning = null,Object? responseSummary = null,Object? sourceUrls = null,Object? impactedAxisNames = null,Object? timestamp = freezed,Object? durationMs = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? toolId = null,Object? stepName = null,Object? claimText = freezed,Object? query = null,Object? reasoning = null,Object? knowledgeGap = freezed,Object? searchRationale = freezed,Object? responseSummary = null,Object? sourceUrls = null,Object? impactedAxisNames = null,Object? timestamp = freezed,Object? durationMs = null,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
@@ -1276,7 +1276,9 @@ as String,stepName: null == stepName ? _self.stepName : stepName // ignore: cast
 as String,claimText: freezed == claimText ? _self.claimText : claimText // ignore: cast_nullable_to_non_nullable
 as String?,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,reasoning: null == reasoning ? _self.reasoning : reasoning // ignore: cast_nullable_to_non_nullable
-as String,responseSummary: null == responseSummary ? _self.responseSummary : responseSummary // ignore: cast_nullable_to_non_nullable
+as String,knowledgeGap: freezed == knowledgeGap ? _self.knowledgeGap : knowledgeGap // ignore: cast_nullable_to_non_nullable
+as String?,searchRationale: freezed == searchRationale ? _self.searchRationale : searchRationale // ignore: cast_nullable_to_non_nullable
+as String?,responseSummary: null == responseSummary ? _self.responseSummary : responseSummary // ignore: cast_nullable_to_non_nullable
 as String,sourceUrls: null == sourceUrls ? _self.sourceUrls : sourceUrls // ignore: cast_nullable_to_non_nullable
 as List<String>,impactedAxisNames: null == impactedAxisNames ? _self.impactedAxisNames : impactedAxisNames // ignore: cast_nullable_to_non_nullable
 as List<String>,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
@@ -1366,10 +1368,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query,  String reasoning, @JsonKey(name: 'knowledge_gap')  String? knowledgeGap, @JsonKey(name: 'search_rationale')  String? searchRationale, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MCPToolAuditDTO() when $default != null:
-return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.reasoning,_that.knowledgeGap,_that.searchRationale,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
   return orElse();
 
 }
@@ -1387,10 +1389,10 @@ return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query,  String reasoning, @JsonKey(name: 'knowledge_gap')  String? knowledgeGap, @JsonKey(name: 'search_rationale')  String? searchRationale, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)  $default,) {final _that = this;
 switch (_that) {
 case _MCPToolAuditDTO():
-return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.reasoning,_that.knowledgeGap,_that.searchRationale,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1407,10 +1409,10 @@ return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query,  String reasoning, @JsonKey(name: 'knowledge_gap')  String? knowledgeGap, @JsonKey(name: 'search_rationale')  String? searchRationale, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,) {final _that = this;
 switch (_that) {
 case _MCPToolAuditDTO() when $default != null:
-return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.reasoning,_that.knowledgeGap,_that.searchRationale,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
   return null;
 
 }
@@ -1422,7 +1424,7 @@ return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _MCPToolAuditDTO implements MCPToolAuditDTO {
-  const _MCPToolAuditDTO({this.id, @JsonKey(name: 'tool_id') required this.toolId, @JsonKey(name: 'step_name') required this.stepName, @JsonKey(name: 'claim_text') this.claimText, required this.query, this.reasoning = '', @JsonKey(name: 'response_summary') this.responseSummary = '', @JsonKey(name: 'source_urls') final  List<String> sourceUrls = const [], @JsonKey(name: 'impacted_axis_names') final  List<String> impactedAxisNames = const [], this.timestamp, @JsonKey(name: 'duration_ms') this.durationMs = 0}): _sourceUrls = sourceUrls,_impactedAxisNames = impactedAxisNames;
+  const _MCPToolAuditDTO({this.id, @JsonKey(name: 'tool_id') required this.toolId, @JsonKey(name: 'step_name') required this.stepName, @JsonKey(name: 'claim_text') this.claimText, required this.query, this.reasoning = '', @JsonKey(name: 'knowledge_gap') this.knowledgeGap, @JsonKey(name: 'search_rationale') this.searchRationale, @JsonKey(name: 'response_summary') this.responseSummary = '', @JsonKey(name: 'source_urls') final  List<String> sourceUrls = const [], @JsonKey(name: 'impacted_axis_names') final  List<String> impactedAxisNames = const [], this.timestamp, @JsonKey(name: 'duration_ms') this.durationMs = 0}): _sourceUrls = sourceUrls,_impactedAxisNames = impactedAxisNames;
   factory _MCPToolAuditDTO.fromJson(Map<String, dynamic> json) => _$MCPToolAuditDTOFromJson(json);
 
 @override final  String? id;
@@ -1431,6 +1433,8 @@ class _MCPToolAuditDTO implements MCPToolAuditDTO {
 @override@JsonKey(name: 'claim_text') final  String? claimText;
 @override final  String query;
 @override@JsonKey() final  String reasoning;
+@override@JsonKey(name: 'knowledge_gap') final  String? knowledgeGap;
+@override@JsonKey(name: 'search_rationale') final  String? searchRationale;
 @override@JsonKey(name: 'response_summary') final  String responseSummary;
  final  List<String> _sourceUrls;
 @override@JsonKey(name: 'source_urls') List<String> get sourceUrls {
@@ -1464,7 +1468,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'MCPToolAuditDTO(id: $id, toolId: $toolId, stepName: $stepName, claimText: $claimText, query: $query, reasoning: $reasoning, responseSummary: $responseSummary, sourceUrls: $sourceUrls, impactedAxisNames: $impactedAxisNames, timestamp: $timestamp, durationMs: $durationMs)';
+  return 'MCPToolAuditDTO(id: $id, toolId: $toolId, stepName: $stepName, claimText: $claimText, query: $query, reasoning: $reasoning, knowledgeGap: $knowledgeGap, searchRationale: $searchRationale, responseSummary: $responseSummary, sourceUrls: $sourceUrls, impactedAxisNames: $impactedAxisNames, timestamp: $timestamp, durationMs: $durationMs)';
 }
 
 
@@ -1475,7 +1479,7 @@ abstract mixin class _$MCPToolAuditDTOCopyWith<$Res> implements $MCPToolAuditDTO
   factory _$MCPToolAuditDTOCopyWith(_MCPToolAuditDTO value, $Res Function(_MCPToolAuditDTO) _then) = __$MCPToolAuditDTOCopyWithImpl;
 @override @useResult
 $Res call({
- String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName,@JsonKey(name: 'claim_text') String? claimText, String query, String reasoning,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls,@JsonKey(name: 'impacted_axis_names') List<String> impactedAxisNames, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
+ String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName,@JsonKey(name: 'claim_text') String? claimText, String query, String reasoning,@JsonKey(name: 'knowledge_gap') String? knowledgeGap,@JsonKey(name: 'search_rationale') String? searchRationale,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls,@JsonKey(name: 'impacted_axis_names') List<String> impactedAxisNames, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
 });
 
 
@@ -1492,7 +1496,7 @@ class __$MCPToolAuditDTOCopyWithImpl<$Res>
 
 /// Create a copy of MCPToolAuditDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? toolId = null,Object? stepName = null,Object? claimText = freezed,Object? query = null,Object? reasoning = null,Object? responseSummary = null,Object? sourceUrls = null,Object? impactedAxisNames = null,Object? timestamp = freezed,Object? durationMs = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? toolId = null,Object? stepName = null,Object? claimText = freezed,Object? query = null,Object? reasoning = null,Object? knowledgeGap = freezed,Object? searchRationale = freezed,Object? responseSummary = null,Object? sourceUrls = null,Object? impactedAxisNames = null,Object? timestamp = freezed,Object? durationMs = null,}) {
   return _then(_MCPToolAuditDTO(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
@@ -1500,7 +1504,9 @@ as String,stepName: null == stepName ? _self.stepName : stepName // ignore: cast
 as String,claimText: freezed == claimText ? _self.claimText : claimText // ignore: cast_nullable_to_non_nullable
 as String?,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,reasoning: null == reasoning ? _self.reasoning : reasoning // ignore: cast_nullable_to_non_nullable
-as String,responseSummary: null == responseSummary ? _self.responseSummary : responseSummary // ignore: cast_nullable_to_non_nullable
+as String,knowledgeGap: freezed == knowledgeGap ? _self.knowledgeGap : knowledgeGap // ignore: cast_nullable_to_non_nullable
+as String?,searchRationale: freezed == searchRationale ? _self.searchRationale : searchRationale // ignore: cast_nullable_to_non_nullable
+as String?,responseSummary: null == responseSummary ? _self.responseSummary : responseSummary // ignore: cast_nullable_to_non_nullable
 as String,sourceUrls: null == sourceUrls ? _self._sourceUrls : sourceUrls // ignore: cast_nullable_to_non_nullable
 as List<String>,impactedAxisNames: null == impactedAxisNames ? _self._impactedAxisNames : impactedAxisNames // ignore: cast_nullable_to_non_nullable
 as List<String>,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable

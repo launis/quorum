@@ -598,6 +598,32 @@ class ExecutionService:
             extra={"execution_id": execution_id, "profile_id": profile_id},
         )
 
+    async def reject_evidence_quote(self, initiator: TokenData, execution_id: str, evq_id: str, reason: str) -> None:
+        """Reject an evidence quote and append the event to the execution trace."""
+        record = await self.get_execution(initiator, execution_id)
+
+        # SSOT MANDATE: Tenant Isolation Check
+        org_id = getattr(initiator, "organization_id", None)
+        if initiator.role != "ROOT" and record.organization_id != org_id and record.created_by != initiator.id:
+            msg = "You do not have permission to modify this execution."
+            raise PermissionDeniedError(msg)
+
+        from backend_v2.models.state import EvidenceOverrideDTO, TraceEvent
+
+        dto = EvidenceOverrideDTO(
+            evq_id=evq_id,
+            user_rejected=True,
+            rejection_reason=reason,
+            rejected_by=initiator.id,
+            rejected_at=datetime.now(timezone.utc),
+        )
+
+        event = TraceEvent(
+            step_name="manual_override", event_type="evidence_override", content=dto.model_dump(mode="json")
+        )
+
+        await self.exec_repo.append_trace_event(execution_id, event.model_dump(mode="json"))
+
     async def render_execution(
         self,
         initiator: TokenData,

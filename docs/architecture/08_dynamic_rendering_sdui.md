@@ -169,7 +169,14 @@ Raportointiarkkitehtuuri on yhdistetty täydellisesti, mikä tarkoittaa absoluut
    * Tilalle `ReportAxisDTO`:n `semantic_reasoning` -kenttään sijoitetaan tekoälyn antama laadukas perustelu ja se merkitään dynaamisen visualisointiohjauksen alle.
    * Flutter-sovellus ja PDF-moottori tunnistavat tämän ja piirtävät mekaanisen sitaatin tilalle **amber-reunaisen perustelulaatikon** käyttäen lokalisoitua otsikkoa `reportSemanticExplanationTitle` `AppLocalizations`-kautta.
 
-### C. Skaalauksen kolme tilaa (`display_scale`)
+### C. RowForensicsDTO ja Hierarkkinen Jäljitettävyys (Epic 88)
+`BlueprintTransformer` purkaa LLM-suoritusvaiheesta generoidun `RowForensicsDTO` -objektin osaksi lopullista raporttia. Tämä takaa rikkoutumattoman (Fail-Fast) auditoitavuuden:
+1. **Tasokohtainen Ryhmittely (`LevelQuotesDTO`):** Matriisien raakasitaatit on ryhmitelty täsmälleen arvioidun kriteeritason mukaan, jolloin käyttöliittymä osaa kohdistaa sitaatit oikeaan skaalapisteeseen.
+2. **Opaque Stripe ID (`evq_xxxx`):** Jokainen sitaatti kantaa mukanaan asynkronisessa Worker-vaiheessa luotua yksilöivää Stripe ID:tä (`EvidenceQuoteDTO.id`). Tämä estää hajautettujen järjestelmien Soft Delete -törmäykset.
+3. **MCP Verifiointi:** Asynkroninen Fuzzy Matching tarkistaa sitaattien täydellisen alkuperän lähdetekstistä. `is_mcp_verified = True` takaa hallusinaatiovapaan lähdeauditoinnin, ja valheelliset sitaatit merkitään välittömästi hylätyiksi.
+4. **Soft Delete & Evidence Override (Optimistic Update):** Jos admin hylkää sitaatin käyttöliittymässä (✕-painike), tehdään asynkroninen PUT-kutsu taustajärjestelmään ja Riverpod-tilanhallinnassa suoritetaan välitön "Optimistic Update" -tilamuutos. `BlueprintTransformer` (ja Frontendin Controller) ylikirjoittaa sitaatin lipun `user_rejected = True`. Käyttöliittymä reagoi tähän yliviivaamalla tekstin punaisella opacity-maskilla ja varoittamalla keltaisella Tooltip-ikonilla rivin otsikossa, mikäli kaikki tason todisteet on hylätty (Cascading Warning). API-virheen sattuessa tilamuutos perutaan ja rajapinnan tuottama AppException käsitellään. Legacy-yhteensopivuus taataan kääntämällä litteät tekstisitaatit taaksepäin `quotes_list` -rakenteeseen.
+
+### D. Skaalauksen kolme tilaa (`display_scale`)
 
 | `display_scale` | Pistelähde | Rajat UI:lle |
 |---|---|---|
@@ -186,7 +193,7 @@ ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
 ```
 Flutter ja PDF eivät tee lainkaan laskentaa, vaan ne piirtävät visualisoinnit suoraan tämän valmiin `ui_plot_ratio` [0.0 - 1.0] suhdeluvun mukaan.
 
-### D. Akselijärjestys — `target_blocks` määrää
+### E. Akselijärjestys — `target_blocks` määrää
 `OutputProfile.layouts[n].target_blocks` -lista määrää akselijärjestyksen **täsmälleen** Admin Studion määrittämässä järjestyksessä:
 ```python
 for target_k in target_blocks:          # UI:n määräämä järjestys
@@ -196,7 +203,7 @@ for target_k in target_blocks:          # UI:n määräämä järjestys
 ```
 Wildcard (`*`) → akselijärjestys on DAG:n steppijärjestys (criteria_block_ids aakkosjärjestys).
 
-### E. Minimiakseli-vaatimukset — Fail-Fast
+### F. Minimiakseli-vaatimukset — Fail-Fast
 ```python
 if preset_view == "3d_complex" and len(axes) < 3:
     raise AppException(...)   # kaatuu ennen UI-renderöintiä
@@ -205,7 +212,7 @@ elif preset_view == "2d_compare" and len(axes) < 2:
 ```
 Jos layout-konfiguraatio on virheellinen, järjestelmä kaatuu backendissä, ei Flutterissa.
 
-### F. XAI Extensions ja Grouped Highlights
+### G. XAI Extensions ja Grouped Highlights
 `OutputProfile.visible_block_extensions` (ja `visible_workflow_extensions`) määrää mitä XAI-laajennusryhmiä populoidaan. Extension-data poimitaan V2-skeemasta nested dict -rakenteesta:
 ```python
 ext_dict = matrix_payload.extensions or {}
@@ -222,7 +229,7 @@ XAI-laajennukset noudattavat tiukkaa Map-Reduce -suoritusmallia, joka erottaa ti
    * Jos synteesivälimuistista löytyy valmiiksi generoitu globaali kohokohta (`xai_highlights`), se siirretään kyseiseen laajennuskategoriaan `_is_synthesized=True` -lipulla ja se ottaa kategorian kokonaan haltuunsa.
    * **TÄRKEÄ TURVAMANDAATTI:** Mikäli globaalia synteettistä kohokohtaa ei löydy tästä kategoriasta, Järjestelmä suppressaa ja tyhjentää kaikki kyseisen ryhmän yksittäiset matriisitason raakamerkinnät kokonaan (`grouped_extensions[ext_key] = []`).
 
-### G. XSS-suojaus (bleach) ennen PDF/SDUI
+### H. XSS-suojaus (bleach) ennen PDF/SDUI
 Synthesisoitu markdown sanitoidaan Bleach-kirjastolla ennen `ReportDataDTO`-konstruktiota:
 ```python
 safe_md = bleach.clean(str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True)

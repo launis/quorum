@@ -261,6 +261,8 @@ class AtomEvaluationItemDTO(V2CoreBase):
         contextual_override: Boolean flag enabling non-strict logic jumps.
         structural_location: Location reference where exact context occurred.
         dlq_status: Internal indicator to track failure tracking queues.
+        is_mcp_verified: True if quotes were dynamically verified against MCP source texts.
+        mcp_source_reference: The ID of the MCP source where the quote was matched.
     """
 
     atom_id: str
@@ -311,6 +313,8 @@ class AtomEvaluationItemDTO(V2CoreBase):
         ),
     )
     dlq_status: bool | None = None
+    is_mcp_verified: bool = False
+    mcp_source_reference: str | None = None
 
     @field_validator("exact_quotes", mode="before")
     @classmethod
