@@ -11,13 +11,11 @@ from backend_v2.exceptions import (
     ErrorCodes,
     LLMSchemaValidationError,
     LogicalValidationError,
-    SemanticEvidenceError,
 )
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 
@@ -60,200 +58,6 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
             )
-
-
-def _perform_semantic_validation(validated_model: BaseModel, validation_context: dict[str, Any]) -> None:
-    """Phase 1: Extract recursive semantic verification.
-
-    Recursively traces through the validated Pydantic model, searching for quote
-    keys and asserting their presence in the original source text.
-
-    Args:
-        validated_model: The successfully parsed Pydantic model to verify.
-        validation_context: The validation context containing source_text and locale.
-
-    Raises:
-        LogicalValidationError: If a semantic quote mismatch is found.
-    """
-    if not hasattr(validated_model, "model_dump"):
-        return
-
-    source_text = validation_context.get("source_text", "")
-    locale = validation_context.get("locale")
-    alias_map = validation_context.get("alias_map", {})
-
-    mcp_source_texts = validation_context.get("mcp_source_texts", {})
-
-    from backend_v2.models.enums import get_lexical_fuzz_threshold
-    from backend_v2.services.mcp.alias_registry import AliasRegistry
-
-    def validate_recursive(data: Any, src_text: str) -> None:
-        if isinstance(data, BaseModel):
-            trace_val = getattr(data, "reasoning_trace", None) or getattr(data, "mechanical_trace", None)
-            reasoning_trace = trace_val if isinstance(trace_val, str) else None
-
-            used_evidence_ids = getattr(data, "used_evidence_ids", None)
-            mcp_texts_to_search = {}
-            if isinstance(used_evidence_ids, list):
-                if alias_map:
-                    for e_id in used_evidence_ids:
-                        if isinstance(e_id, str):
-                            try:
-                                AliasRegistry.resolve(e_id, alias_map)
-                                if e_id in mcp_source_texts:
-                                    mcp_texts_to_search[e_id] = mcp_source_texts[e_id]
-                            except SemanticEvidenceError as e:
-                                raise LogicalValidationError(validation_error_msg=e.message) from e
-
-            for field_name in data.model_fields:
-                v = getattr(data, field_name, None)
-                if isinstance(v, str) and v.startswith("<<QRM-SRC-") and alias_map:
-                    try:
-                        resolved = AliasRegistry.resolve(v, alias_map)
-                        setattr(data, field_name, resolved)
-                        v = resolved
-                    except SemanticEvidenceError:
-                        pass
-                
-                is_quote_str = field_name in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
-                is_quote_list = field_name in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]
-
-                if mcp_texts_to_search and (is_quote_str or is_quote_list):
-                    quotes = [v] if is_quote_str else (v if isinstance(v, list) else [])
-                    valid_quotes = [q for q in quotes if isinstance(q, str) and q.strip()]
-
-                    if valid_quotes:
-                        threshold = get_lexical_fuzz_threshold(locale)
-                        for quote in valid_quotes:
-                            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
-                            if not norm_quote:
-                                continue
-
-                            match_found = False
-                            matched_e_id = None
-                            for e_id, mcp_text in mcp_texts_to_search.items():
-                                norm_mcp, _ = AnchorValidationService.normalize_text_with_mapping(mcp_text)
-                                score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_mcp)
-                                if score >= threshold:
-                                    match_found = True
-                                    matched_e_id = e_id
-                                    break
-
-                            if not match_found:
-                                raise LogicalValidationError(
-                                    validation_error_msg="Sitaattia ei löydy fyysisesti lähteestä. Älä tiivistä, kopioi sanatarkasti."
-                                )
-
-                            if hasattr(data, "is_mcp_verified"):
-                                data.is_mcp_verified = True
-                            if hasattr(data, "mcp_source_reference"):
-                                data.mcp_source_reference = matched_e_id
-                else:
-                    if is_quote_str and isinstance(v, str) and v.strip():
-                        try:
-                            AnchorValidationService.validate_evidence(
-                                src_text, [v], reasoning_trace=reasoning_trace, locale=locale
-                            )
-                        except SemanticEvidenceError as e:
-                            raise LogicalValidationError(validation_error_msg=e.message) from e
-                    elif is_quote_list and isinstance(v, list) and any(isinstance(i, str) and i.strip() for i in v):
-                        try:
-                            AnchorValidationService.validate_evidence(
-                                src_text, v, reasoning_trace=reasoning_trace, locale=locale
-                            )
-                        except SemanticEvidenceError as e:
-                            raise LogicalValidationError(validation_error_msg=e.message) from e
-
-                if isinstance(v, (BaseModel, list, dict)):
-                    validate_recursive(v, src_text)
-
-        elif isinstance(data, dict):
-            trace_val = data.get("reasoning_trace") or data.get("mechanical_trace")
-            reasoning_trace = trace_val if isinstance(trace_val, str) else None
-
-            used_evidence_ids = data.get("used_evidence_ids")
-            mcp_texts_to_search = {}
-            if isinstance(used_evidence_ids, list):
-                if alias_map:
-                    for e_id in used_evidence_ids:
-                        if isinstance(e_id, str):
-                            try:
-                                AliasRegistry.resolve(e_id, alias_map)
-                                if e_id in mcp_source_texts:
-                                    mcp_texts_to_search[e_id] = mcp_source_texts[e_id]
-                            except SemanticEvidenceError as e:
-                                raise LogicalValidationError(validation_error_msg=e.message) from e
-
-            for k, v in data.items():
-                if isinstance(v, str) and v.startswith("<<QRM-SRC-") and alias_map:
-                    try:
-                        resolved = AliasRegistry.resolve(v, alias_map)
-                        data[k] = resolved
-                        v = resolved
-                    except SemanticEvidenceError:
-                        pass
-
-                is_quote_str = k in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
-                is_quote_list = k in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]
-
-                if mcp_texts_to_search and (is_quote_str or is_quote_list):
-                    quotes = [v] if is_quote_str else (v if isinstance(v, list) else [])
-                    valid_quotes = [q for q in quotes if isinstance(q, str) and q.strip()]
-
-                    if valid_quotes:
-                        threshold = get_lexical_fuzz_threshold(locale)
-                        for quote in valid_quotes:
-                            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
-                            if not norm_quote:
-                                continue
-
-                            match_found = False
-                            matched_e_id = None
-                            for e_id, mcp_text in mcp_texts_to_search.items():
-                                norm_mcp, _ = AnchorValidationService.normalize_text_with_mapping(mcp_text)
-                                score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_mcp)
-                                if score >= threshold:
-                                    match_found = True
-                                    matched_e_id = e_id
-                                    break
-
-                            if not match_found:
-                                raise LogicalValidationError(
-                                    validation_error_msg="Sitaattia ei löydy fyysisesti lähteestä. Älä tiivistä, kopioi sanatarkasti."
-                                )
-
-                            data["is_mcp_verified"] = True
-                            data["mcp_source_reference"] = matched_e_id
-                else:
-                    if is_quote_str and isinstance(v, str) and v.strip():
-                        try:
-                            AnchorValidationService.validate_evidence(
-                                src_text, [v], reasoning_trace=reasoning_trace, locale=locale
-                            )
-                        except SemanticEvidenceError as e:
-                            raise LogicalValidationError(validation_error_msg=e.message) from e
-                    elif is_quote_list and isinstance(v, list) and any(isinstance(i, str) and i.strip() for i in v):
-                        try:
-                            AnchorValidationService.validate_evidence(
-                                src_text, v, reasoning_trace=reasoning_trace, locale=locale
-                            )
-                        except SemanticEvidenceError as e:
-                            raise LogicalValidationError(validation_error_msg=e.message) from e
-
-                if isinstance(v, (BaseModel, list, dict)):
-                    validate_recursive(v, src_text)
-
-        elif isinstance(data, list):
-            for i, item in enumerate(data):
-                if isinstance(item, str) and item.startswith("<<QRM-SRC-") and alias_map:
-                    try:
-                        data[i] = AliasRegistry.resolve(item, alias_map)
-                    except SemanticEvidenceError:
-                        pass
-                else:
-                    validate_recursive(item, src_text)
-
-    validate_recursive(validated_model, source_text)
 
 
 class LLMTaskExecutor:
@@ -347,12 +151,6 @@ class LLMTaskExecutor:
                     # Asynchronous Domain Validation
                     if validator_hook:
                         await validator_hook(validated_model)
-
-                    # --- SYSTEM-WIDE LEXICAL VERIFIER (FAIL-FAST)
-                    if validation_context and "source_text" in validation_context:
-                        is_lightweight = validation_context.get("is_lightweight_extraction")
-                        if not is_lightweight:
-                            _perform_semantic_validation(validated_model, validation_context)
 
                     if getattr(validated_model, "contextual_override", False):
                         logger.info(

@@ -735,6 +735,7 @@ class ChunkWorker:
                                     if step_metadata
                                     else 0,
                                     "source_documents": source_docs,
+                                    "alias_map": step_metadata.get("alias_map", {}) if step_metadata else {},
                                 },
                                 source_context=global_source_text,
                             )
@@ -765,6 +766,7 @@ class ChunkWorker:
                                     else 0,
                                     "has_mcp_tools": bool(effective_mcp_tools),
                                     "source_documents": source_docs,
+                                    "alias_map": step_metadata.get("alias_map", {}) if step_metadata else {},
                                 },
                             )
                             llm_time_ms = (time.time() - llm_start) * 1000

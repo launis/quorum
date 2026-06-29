@@ -550,8 +550,6 @@ async def execute_tool_loop[T: BaseModel](
     final_messages = list(messages)
 
     if audit_traces:
-        from backend_v2.services.mcp.alias_registry import AliasRegistry
-
         evidence_blocks = []
         if validation_context is None:
             validation_context = {}
@@ -560,19 +558,23 @@ async def execute_tool_loop[T: BaseModel](
         if "alias_map" not in validation_context:
             validation_context["alias_map"] = {}
 
-        for i, audit in enumerate(audit_traces, 1):
-            alias = f"<<QRM-SRC-MCP-{i}>>"
+        # Continue numbering from existing alias_map size
+        start_idx = len(validation_context["alias_map"]) + 1
+
+        for i, audit in enumerate(audit_traces):
+            local_id = f"src_{start_idx + i}"
             text_payload = f"Query: {audit.query}\n"
             if audit.response_summary:
                 text_payload += f"Summary: {audit.response_summary}\n"
             if audit.source_urls:
                 text_payload += f"Sources: {', '.join(audit.source_urls)}\n"
 
-            validation_context["mcp_source_texts"][alias] = text_payload
-            validation_context["alias_map"][alias] = audit.id
+            validation_context["mcp_source_texts"][local_id] = text_payload
+            validation_context["alias_map"][local_id] = audit.id
 
-            chunks = AliasRegistry.wrap_source_chunks(text_payload, alias)
-            evidence_blocks.extend(chunks)
+            evidence_blocks.append(
+                f'<source ID="{local_id}" label="Web Search: {audit.query}">\n{text_payload}\n</source>'
+            )
 
         evidence_str = "\n".join(evidence_blocks)
         final_messages.append(

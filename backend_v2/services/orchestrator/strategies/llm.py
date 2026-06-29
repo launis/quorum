@@ -151,7 +151,8 @@ class LLMNodeStrategy(NodeStrategy):
         import uuid
         from datetime import datetime, timezone
 
-        from backend_v2.services.mcp.alias_registry import AliasRegistry
+        alias_map: dict[str, str] = {}
+        src_counter = [1]
 
         def _apply_alias_chunks_and_audit(data: dict[str, Any], prefix: str = "") -> dict[str, Any]:
             result: dict[str, Any] = {}
@@ -159,9 +160,11 @@ class LLMNodeStrategy(NodeStrategy):
                 if isinstance(v, dict):
                     result[k] = _apply_alias_chunks_and_audit(v, prefix=f"{prefix}{k}_")
                 elif isinstance(v, str) and len(v) > 200:
-                    alias = f"<<QRM-SRC-INT-{prefix.upper()}{k.upper()}>>"
-                    chunks = AliasRegistry.wrap_source_chunks(v, alias)
-                    result[k] = "\n".join(chunks)
+                    local_id = f"src_{src_counter[0]}"
+                    src_counter[0] += 1
+                    alias_map[local_id] = k
+
+                    result[k] = f'<source ID="{local_id}" label="{k}">\n{v}\n</source>'
 
                     if frozen_ctx is not None:
                         trace_id = f"int_{uuid.uuid4().hex[:8]}"
@@ -170,8 +173,8 @@ class LLMNodeStrategy(NodeStrategy):
                             tool_id="internal_source",
                             step_name=step.id,
                             query=f"Internal Source: {k}",
-                            response_summary=f"file://internal/{alias}",
-                            source_urls=[f"file://internal/{alias}"],
+                            response_summary=f"source_id: {local_id}",
+                            source_urls=[f"source_id: {local_id}"],
                             timestamp=datetime.now(timezone.utc),
                             duration_ms=0,
                         )
@@ -183,6 +186,9 @@ class LLMNodeStrategy(NodeStrategy):
             return result
 
         state_data = _apply_alias_chunks_and_audit(state_data)
+        if hook_state.metadata is None:
+            hook_state.metadata = {}
+        hook_state.metadata["alias_map"] = alias_map
         hook_state = hook_state.model_copy(update={"inputs": state_data})
 
         all_prompt_blocks_raw = await self.comp_repo.get_all_prompt_blocks()

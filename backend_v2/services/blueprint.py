@@ -1209,6 +1209,8 @@ class BlueprintTransformer:
 
                 def extract_evidence_ids(payload_data: Any, b_id: str) -> None:
                     if isinstance(payload_data, dict):
+                        if "source_id" in payload_data and isinstance(payload_data["source_id"], str):
+                            evidence_to_axes.setdefault(payload_data["source_id"], set()).add(b_id)
                         if "used_evidence_ids" in payload_data and isinstance(payload_data["used_evidence_ids"], list):
                             for e_id in payload_data["used_evidence_ids"]:
                                 if isinstance(e_id, str):
