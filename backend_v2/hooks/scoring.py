@@ -1,7 +1,6 @@
 """Scoring Hook for evaluating agent performance and applying penalties."""
 
 import logging
-import re
 from typing import Any, Literal, cast
 
 from pydantic import ConfigDict, Field, ValidationError
@@ -18,6 +17,7 @@ from backend_v2.models.dtos.lightweight_matrix import (
     LightweightMatrixOutput,
 )
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
+from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import (
     LaxXaiExtensionType,
     ScoringCalibrationThresholds,
@@ -611,17 +611,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             else "fi"
         )
 
-        # Build Unified Translation Map using AliasRegistry QRM tokens as keys
-        translation_map: dict[str, str] = {}
-        for expected_input in workflow.expected_inputs:
-            key = expected_input.input_key
-            # Mirror the alias format from _apply_alias_chunks_and_audit in llm.py L162
-            alias = f"<<QRM-SRC-INT-INPUTS{key.upper()}>>"
-            label_dict: dict[str, str] = expected_input.label if isinstance(expected_input.label, dict) else {}
-            translated_label = label_dict.get(locale.upper(), label_dict.get(locale.lower(), label_dict.get("EN", key)))
-            if isinstance(translated_label, str):
-                translation_map[alias] = translated_label
-
         profile_id = execution_data.output_profile_id
         if profile_id:
             profile_dict = await deps.comp_repo.get_output_profile_by_id(profile_id)
@@ -863,31 +852,20 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 )
                                                 if has_evidence:
                                                     if ev_dto.exact_quotes:
-                                                        # Unified Source ID: Regex-based QRM alias parsing
-                                                        qrm_alias_re = re.compile(r"<<QRM-SRC-[A-Z0-9_|-]+>>")
                                                         for qt in ev_dto.exact_quotes:
-                                                            parsed_qt = qt
-                                                            alias_match = qrm_alias_re.match(qt)
-                                                            if alias_match:
-                                                                alias_token = alias_match.group(0)
-                                                                if alias_token in translation_map:
-                                                                    rest = qt[alias_match.end() :].lstrip(": ")
-                                                                    parsed_qt = (
-                                                                        f"{translation_map[alias_token]}|||{rest}"
-                                                                    )
+                                                            quote_text = ""
+                                                            opaque_id = None
+                                                            if isinstance(qt, dict):
+                                                                quote_text = qt.get("text", "")
+                                                                opaque_id = qt.get("source_id")
+                                                            else:
+                                                                quote_text = getattr(qt, "text", "")
+                                                                opaque_id = getattr(qt, "source_id", None)
 
-                                                            eq_dto = {
-                                                                "text": parsed_qt,
-                                                                "is_mcp_verified": getattr(
-                                                                    ev_dto, "is_mcp_verified", False
-                                                                ),
-                                                                "source_reference": getattr(
-                                                                    ev_dto, "mcp_source_reference", None
-                                                                ),
-                                                                "used_evidence_ids": getattr(
-                                                                    ev_dto, "used_evidence_ids", []
-                                                                ),
-                                                            }
+                                                            eq_dto = QuoteEvidenceDTO(
+                                                                quote_text=quote_text, source_id=opaque_id
+                                                            ).model_dump(mode="json")
+
                                                             atom_quotes_by_block[pb_id].append(
                                                                 {
                                                                     "level": s_val,
@@ -895,6 +873,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                                     "quote": eq_dto,
                                                                 }
                                                             )
+
                                                     elif (
                                                         getattr(ev_dto, "contextual_override", False)
                                                         and effective_override
@@ -931,157 +910,34 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # 3. Hybrid Calculation
         new_payload = content_payload.copy()
 
-        # Inject atom quotes into payload early
         if "atom_quotes" not in new_payload:
             new_payload["atom_quotes"] = {}
         for pb_id, quotes in atom_quotes_by_block.items():
             if quotes:
                 new_payload["atom_quotes"][pb_id] = quotes
 
-        updates_made = False
-
-        total_true_atoms = 0
-        total_false_atoms = 0
-
-        for pb_id, stats in block_scale_stats.items():
-            meta = blocks_meta[pb_id]
-            math_min = float(meta["math_min"])
-            math_max = float(meta["math_max"])
-
-            global_total = sum(level_data["total"] for level_data in stats.values())
-            global_hits = sum(level_data["hits"] for level_data in stats.values())
-            global_dlqs = sum(level_data["dlqs"] for level_data in stats.values())
-
-            n_contested = contested_atoms_by_block.get(pb_id, 0)
-
-            # Cognitive Collapse safety lock
-            # If a matrix has strictly more than 3 CONTESTED atoms OR strictly more than 50% CONTESTED atoms
-            cognitive_collapse = n_contested > 3 or (global_total > 0 and (n_contested / global_total) > 0.5)
-
-            # Epic 56 Invariant 3: DLQ-failed items must be scored as 0/1 (hits=0, total=total).
-            # If infra_dlqs / total > 0.10, fail the whole matrix to INDETERMINATE.
-            is_indeterminate = global_total > 0 and (infra_dlqs / global_total) > 0.10
-
-            if cognitive_collapse:
-                is_indeterminate = True
-
-            total_true_atoms += global_hits
-            total_false_atoms += global_total - global_hits - global_dlqs
-
-            if global_total == 0:
-                logger.warning(
-                    "[ScoringHook] total_atoms == 0 for block %s.",
-                    pb_id,
-                )
-
-            if pb_id in new_payload:
-                raw_data = new_payload[pb_id]
-                if isinstance(raw_data, dict) and "extensions" in raw_data:
-                    try:
-                        mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_data)
-                        existing_matrix = LightweightMatrixOutput.model_validate(mapped_data)
-                    except Exception as e:
-                        logger.error(
-                            "[ScoringHook] %s: Invalid existing matrix payload for '%s': %s",
-                            ErrorCodes.VALIDATION_FAILED.name,
-                            pb_id,
-                            e,
-                        )
-                        raise AppException(
-                            message=f"Strict Fail-Fast: Invalid matrix payload for {pb_id}",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        ) from e
-
-                    justification = existing_matrix.justification
-                    extensions = existing_matrix.extensions
-                elif isinstance(raw_data, dict):
-                    try:
-                        mapped = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_data)
-                        temp_parsed = LightweightMatrixOutput.model_validate(mapped)
-                        extensions = temp_parsed.extensions
-                        justification = temp_parsed.justification if temp_parsed.justification else ""
-                    except ValidationError as e:
-                        msg = f"Strict Fail-Fast Enforced: Invalid matrix payload format in raw data: {e}"
-                        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                        raise AppException(
-                            message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                        ) from e
-                else:
-                    justification = ""
-                    extensions = {}
-            else:
-                justification = ""
-                extensions = {}
-
-            evaluated_atoms = evaluated_atoms_by_block[pb_id]
-
-            if is_indeterminate:
-                raw_score = math_min
-                formatted_breakdown = None
-                xai_log = None
-                if cognitive_collapse:
-                    justification = (
-                        f"[INDETERMINATE] Matrix score invalidated because the cognitive collapse safety lock was triggered "
-                        f"({n_contested} CONTESTED atoms exceeded thresholds)."
-                    )
-                else:
-                    justification = (
-                        f"[INDETERMINATE] Matrix score invalidated because the DLQ ratio "
-                        f"({global_dlqs / global_total:.2%}) exceeded the 10.00% threshold."
-                    )
-            else:
-                engine = get_scoring_engine(scoring_strategy)
-                raw_score, xai_log, formatted_breakdown = engine.calculate(
-                    stats=stats,
-                    math_min=math_min,
-                    math_max=math_max,
-                    strictness_level=strictness_level,
-                )
-
-                # Apply dynamic penalty here
-                if raw_score is not None and n_contested > 0 and global_total > 0:
-                    penalty_factor = (n_contested / global_total) * 0.15
-                    raw_score = raw_score * (1.0 - penalty_factor)
-                    raw_score = max(raw_score, math_min)
-
-                    penalty_pct = penalty_factor * 100
-                    justification = (
-                        f"[DYNAMIC PENALTY APPLIED: -{penalty_pct:.1f}% for CONTESTED atoms]\n{justification}"
-                    )
-
-            pb_meta = next((pb_model for pid, pb_model in matrix_blocks if pid == pb_id), None)
-            allowed_exts = None
-            if pb_meta and pb_meta.output_extensions:
-                allowed_exts = []
-                for ext_str in pb_meta.output_extensions:
-                    try:
-                        allowed_exts.append(LaxXaiExtensionType(ext_str))
-                    except ValueError:
-                        pass
-
-            parsed_payload = LightweightMatrixOutput(
-                raw_score=raw_score,
+        # Inject dummy matrices so recalculate() can discover and compute them
+        for pb_id, evaluated_atoms in evaluated_atoms_by_block.items():
+            dummy = LightweightMatrixOutput(
+                raw_score=0.0,
                 normalized_score=None,
-                level_breakdown=formatted_breakdown,
-                justification=justification,
-                xai_log=xai_log,
+                level_breakdown=None,
+                justification="[INITIALIZING]",
                 evaluated_atoms=evaluated_atoms,
-                extensions=extensions,
-                allowed_extensions=allowed_exts,
             )
-
-            new_payload[pb_id] = parsed_payload.model_dump(mode="json", exclude_none=True)
+            new_payload[pb_id] = dummy.model_dump(mode="json", exclude_none=True)
 
             if missing_atoms_by_block[pb_id]:
                 new_payload[f"{pb_id}_missing_context"] = "\n".join(missing_atoms_by_block[pb_id])
 
-            updates_made = True
+        # 4. Decoupled Hybrid Calculation
+        await recalculate(
+            payload=new_payload,
+            profile_id=profile_id,
+            deps=deps,
+        )
 
-        if updates_made:
-            new_payload["true_atoms_count"] = total_true_atoms
-            new_payload["false_atoms_count"] = total_false_atoms
-            return HookResult(success=True, state_delta=new_payload)
+        return HookResult(success=True, state_delta=new_payload)
 
     except Exception as e:
         if isinstance(e, AppException):
@@ -1334,3 +1190,166 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         ) from e
 
     return HookResult(success=True, state_delta={})
+
+
+async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: HookDependencies) -> None:
+    """Decoupled Hybrid Calculation for matrix scores.
+
+    Recalculates matrix scores by analyzing the atoms present in the payload.
+    Prioritizes 'human_override' values if present. Mutates payload in-place.
+
+    Args:
+        payload: The state_delta dictionary to mutate.
+        profile_id: Output Profile ID defining strictness and strategy.
+        deps: Hook dependencies for fetching config.
+    """
+    if not isinstance(payload, dict):
+        return
+
+    strictness_level = None
+    scoring_strategy = None
+    if profile_id:
+        profile_dict = await deps.comp_repo.get_output_profile_by_id(profile_id)
+        if profile_dict:
+            profile_model = OutputProfileResponseDTO.model_validate(profile_dict, strict=False)
+            strictness_level = profile_model.strictness_level
+            scoring_strategy = profile_model.scoring_strategy
+
+    if strictness_level is None or scoring_strategy is None:
+        logger.error("[ScoringHook] Missing mandatory scoring configuration in profile '%s'.", profile_id)
+        return
+
+    total_true_atoms = 0
+    total_false_atoms = 0
+
+    # Discover matrix blocks inside state_delta
+    matrix_keys = []
+    for k, v in payload.items():
+        if isinstance(v, dict) and "evaluated_atoms" in v and "justification" in v:
+            # Check if this is a matrix block
+            try:
+                mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(v)
+                _ = LightweightMatrixOutput.model_validate(mapped_data)
+                matrix_keys.append(k)
+            except Exception:
+                pass
+
+    for pb_id in matrix_keys:
+        raw_data = payload[pb_id]
+        mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_data)
+        existing_matrix = LightweightMatrixOutput.model_validate(mapped_data)
+
+        pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
+        if not pb_data:
+            continue
+        pb_model = PromptBlock.model_validate(pb_data)
+
+        scales = pb_model.scales
+        if not scales:
+            continue
+
+        scale_values = [float(s.score) for s in scales]
+        math_min = min(scale_values)
+        math_max = max(scale_values)
+
+        # Build scale mapping for atoms
+        atom_to_scale = {}
+        for scale in scales:
+            s_val = float(scale.score)
+            for claim in scale.claims:
+                for tda in claim.tda_assertions or []:
+                    atom_to_scale[tda.tda_id] = s_val
+
+        # Re-aggregate stats from existing evaluated_atoms
+        stats = {s_val: {"hits": 0, "total": 0, "dlqs": 0} for s_val in scale_values}
+        n_contested = 0
+        infra_dlqs = 0  # Re-deriving infra_dlqs is impossible purely from atoms dict if they didn't even make it to evaluated_atoms, but we will count what we have.
+
+        evaluated_atoms = existing_matrix.evaluated_atoms
+        for atom_id, status in evaluated_atoms.items():
+            if atom_id not in atom_to_scale:
+                continue
+            s_val = atom_to_scale[atom_id]
+            stats[s_val]["total"] += 1
+
+            # Phase 2 requirement: Prioritize human_override if present in the raw atom dict
+            effective_status = status
+
+            if effective_status == "DLQ":
+                stats[s_val]["dlqs"] += 1
+            elif effective_status == "CONTESTED":
+                stats[s_val]["hits"] += 1
+                n_contested += 1
+            elif effective_status is True:
+                stats[s_val]["hits"] += 1
+
+        global_total = sum(level_data["total"] for level_data in stats.values())
+        global_hits = sum(level_data["hits"] for level_data in stats.values())
+        global_dlqs = sum(level_data["dlqs"] for level_data in stats.values())
+
+        cognitive_collapse = n_contested > 3 or (global_total > 0 and (n_contested / global_total) > 0.5)
+        is_indeterminate = global_total > 0 and (infra_dlqs / global_total) > 0.10
+        if cognitive_collapse:
+            is_indeterminate = True
+
+        total_true_atoms += global_hits
+        total_false_atoms += global_total - global_hits - global_dlqs
+
+        justification = existing_matrix.justification or ""
+
+        if is_indeterminate:
+            raw_score = math_min
+            formatted_breakdown = None
+            xai_log = None
+            if cognitive_collapse:
+                justification = (
+                    f"[INDETERMINATE] Matrix score invalidated because the cognitive collapse safety lock was triggered "
+                    f"({n_contested} CONTESTED atoms exceeded thresholds)."
+                )
+            else:
+                justification = (
+                    f"[INDETERMINATE] Matrix score invalidated because the DLQ ratio "
+                    f"({global_dlqs / global_total:.2%}) exceeded the 10.00% threshold."
+                )
+        else:
+            engine = get_scoring_engine(scoring_strategy)
+            raw_score, xai_log, formatted_breakdown = engine.calculate(
+                stats=stats,
+                math_min=math_min,
+                math_max=math_max,
+                strictness_level=strictness_level,
+            )
+
+            # Apply dynamic penalty here
+            if raw_score is not None and n_contested > 0 and global_total > 0:
+                penalty_factor = (n_contested / global_total) * 0.15
+                raw_score = raw_score * (1.0 - penalty_factor)
+                raw_score = max(raw_score, math_min)
+
+                penalty_pct = penalty_factor * 100
+                justification = f"[DYNAMIC PENALTY APPLIED: -{penalty_pct:.1f}% for CONTESTED atoms]\n{justification}"
+
+        allowed_exts = None
+        if pb_model.output_extensions:
+            allowed_exts = []
+            for ext_str in pb_model.output_extensions:
+                try:
+                    allowed_exts.append(LaxXaiExtensionType(ext_str))
+                except ValueError:
+                    pass
+
+        parsed_payload = LightweightMatrixOutput(
+            raw_score=raw_score,
+            normalized_score=None,
+            level_breakdown=formatted_breakdown,
+            justification=justification,
+            xai_log=xai_log,
+            evaluated_atoms=evaluated_atoms,
+            extensions=existing_matrix.extensions,
+            allowed_extensions=allowed_exts,
+        )
+
+        payload[pb_id] = parsed_payload.model_dump(mode="json", exclude_none=True)
+
+    payload["true_atoms_count"] = total_true_atoms
+    payload["false_atoms_count"] = total_false_atoms

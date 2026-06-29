@@ -76,9 +76,9 @@ def test_resolve_majority_vote_pure_majority() -> None:
     ]
 
     res_list = [
-        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": ["q"]}]},
-        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": ["q"]}]},
-        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": ["q"]}]},
+        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": [{"text": "q"}]}]},
+        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": [{"text": "q"}]}]},
+        {"evaluations": [{"atom_id": "tda_11111111111111111111111111111111", "exact_quotes": [{"text": "q"}]}]},
     ]
 
     with patch(
@@ -100,7 +100,7 @@ def test_resolve_majority_vote_pure_majority() -> None:
         assert len(evals) == 1
         assert evals[0]["status"] == "CONTESTED"
         assert evals[0]["confidence"] == 2 / 3  # 2 FAILs, 1 PASS (confidence <= 0.67 causes override to CONTESTED)
-        assert evals[0]["exact_quotes"] == ["q"]
+        assert evals[0]["exact_quotes"] == [{"text": "q"}]
 
 
 @pytest.mark.asyncio

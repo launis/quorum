@@ -1,7 +1,13 @@
-from pydantic import BaseModel, ConfigDict, Field
+import logging
+
+from pydantic import Field
+
+from backend_v2.models.core_base import V2CoreBase
+
+logger = logging.getLogger(__name__)
 
 
-class TokenUsage(BaseModel):
+class TokenUsage(V2CoreBase):
     """Strictly typed token usage statistics.
 
     Attributes:
@@ -41,8 +47,6 @@ class TokenUsage(BaseModel):
         json_schema_extra={"x-ui-label": "Estimated Savings"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
     def __add__(self, other: TokenUsage) -> TokenUsage:
         """Allows adding two TokenUsage objects together.
 
@@ -64,14 +68,14 @@ class TokenUsage(BaseModel):
         )
 
 
-class UsageAggregate(BaseModel):
+class UsageAggregate(V2CoreBase):
     """Cumulative aggregated usage statistics per scope and entity.
 
     Attributes:
         scope: Scope of the aggregate (system, organization, user).
         entity_id: Optional ID of the scoped entity.
-        period: The reporting period string (e.g. '2026-02', 'all-time').
-        usage: TokenUsage instance capturing cumulative token and cost statistics.
+        period: Reporting period (e.g. '2026-02', 'all-time').
+        usage: Cumulative token and cost statistics.
         total_executions: Total number of recorded execution traces in the period.
     """
 
@@ -85,19 +89,17 @@ class UsageAggregate(BaseModel):
     )
     total_executions: int = Field(default=0, ge=0, description="Total number of recorded executions in this period.")
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class UsageReport(BaseModel):
+class UsageReport(V2CoreBase):
     """Report for aggregated usage statistics across different scopes.
 
     Attributes:
         scope: Scope of the report (system, organization, user).
         entity_id: Optional ID of the scoped entity.
-        period: The reporting period string.
-        usage: Aggregated token and cost statistics wrapped in TokenUsage.
+        period: Reporting period.
+        usage: Aggregated token and cost statistics.
         quota_limit_usd: Optional quota limit constraint defined in USD.
-        percentage_used: Optional percentage value indicating quota consumption.
+        percentage_used: Optional percentage indicating quota consumption.
     """
 
     scope: str = Field(..., min_length=1, description="Scope of the report (system, organization, user).")
@@ -111,5 +113,3 @@ class UsageReport(BaseModel):
 
     quota_limit_usd: float | None = Field(default=None, ge=0.0, description="Quota limit in USD, if applicable.")
     percentage_used: float | None = Field(default=None, ge=0.0, description="Percentage of quota used, if applicable.")
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

@@ -6,12 +6,15 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pydantic import Field, ValidationInfo, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeItem(V2CoreBase):
@@ -72,6 +75,7 @@ class CitationAudit(V2CoreBase):
         """
         if not (0.0 <= v <= 1.0):
             msg = "integrity_score must be between 0.0 and 1.0 inclusive"
+            logger.error("[CitationAudit] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 

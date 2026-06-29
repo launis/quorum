@@ -141,7 +141,7 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
             "pb_1234567890123456": {
                 "raw_score": 5.0,
                 "normalized_score": 100.0,
-                "justification": "",
+                "justification": "[INITIALIZING]",
                 "evaluated_atoms": {},
                 "extensions": {},
             }
@@ -438,7 +438,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
     assert result.success is True
     assert result.state_delta is not None
     assert result.state_delta["pb_1234567890123456"]["raw_score"] == 5.0
-    assert result.state_delta["pb_1234567890123456"]["justification"] == ""
+    assert result.state_delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
     assert result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_waterfall_engine_breakdown"
 
 
@@ -702,7 +702,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     assert result.success is True
     assert result.state_delta is not None
     assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 3.306) < 0.01
-    assert result.state_delta["pb_1234567890123456"]["justification"] == ""
+    assert result.state_delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
     assert result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_dampening_engine_breakdown"
 
 

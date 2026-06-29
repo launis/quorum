@@ -42,7 +42,7 @@ def test_localized_anchors_accepts_12_items() -> None:
         "localized_anchors_found": SITRA_ANCHORS_12,
         "semantic_reasoning": "Säännön ankkurit löydetty monikollisesti tekstistä.",
         "contextual_override": False,
-        "exact_quotes": ["Koska syyt ovat johtaneet tähän..."],
+        "exact_quotes": [{"source_alias": "test_alias", "text": "Koska syyt ovat johtaneet tähän..."}],
     }
 
     # This MUST NOT raise ValidationError

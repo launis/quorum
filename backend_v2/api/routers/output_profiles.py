@@ -9,7 +9,7 @@ import logging
 from fastapi import APIRouter, status
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import (
     OutputProfileCreateDTO,
@@ -108,13 +108,14 @@ async def upsert_output_profile(
         logger.error(
             "[OutputProfilesRouter] %s",
             msg,
+            exc_info=True,
             extra={
-                "error_code": "ID_MISMATCH",
+                "error_code": ErrorCodes.ID_MISMATCH,
                 "path_id": profile_id,
                 "payload_id": dto.id,
             },
         )
-        raise AppException(message=msg, status_code=400, details={"error_code": "ID_MISMATCH"})
+        raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.ID_MISMATCH})
 
     # Domain conversion (hydrates DTO -> Domain)
     profile_data = OutputProfile.model_validate(dto.model_dump())

@@ -144,6 +144,33 @@ abstract class ReasoningStepDto with _$ReasoningStepDto {
 }
 
 @Freezed(equal: false)
+abstract class QuoteEvidenceDto with _$QuoteEvidenceDto {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory QuoteEvidenceDto({
+    @JsonKey(name: 'quote_text') required String quoteText,
+    @JsonKey(name: 'source_id') String? sourceId,
+    @JsonKey(name: 'display_name') String? displayName,
+  }) = _QuoteEvidenceDto;
+
+  factory QuoteEvidenceDto.fromJson(Map<String, dynamic> json) =>
+      _$QuoteEvidenceDtoFromJson(json);
+}
+
+@Freezed(equal: false)
+abstract class HumanOverrideDto with _$HumanOverrideDto {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory HumanOverrideDto({
+    @JsonKey(name: 'new_status') required String newStatus,
+    required String reason,
+    @JsonKey(name: 'evidence_quotes')
+    required List<QuoteEvidenceDto> evidenceQuotes,
+  }) = _HumanOverrideDto;
+
+  factory HumanOverrideDto.fromJson(Map<String, dynamic> json) =>
+      _$HumanOverrideDtoFromJson(json);
+}
+
+@Freezed(equal: false)
 abstract class ScorecardAtomDto with _$ScorecardAtomDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ScorecardAtomDto({
@@ -153,13 +180,14 @@ abstract class ScorecardAtomDto with _$ScorecardAtomDto {
     @JsonKey(name: 'claim_label') required String claimLabel,
     @JsonKey(name: 'extracted_facts')
     required Map<String, String?> extractedFacts,
-    @JsonKey(name: 'exact_quotes') required List<String> exactQuotes,
+    @JsonKey(name: 'exact_quotes') required List<QuoteEvidenceDto> exactQuotes,
     @JsonKey(name: 'internal_logic_en')
     required ReasoningStepDto internalLogicEn,
     String? status,
     @JsonKey(name: 'semantic_reasoning') required String semanticReasoning,
     @JsonKey(name: 'contextual_override') required bool contextualOverride,
     @JsonKey(name: 'structural_location') required String structuralLocation,
+    @JsonKey(name: 'human_override') HumanOverrideDto? humanOverride,
   }) = _ScorecardAtomDto;
 
   factory ScorecardAtomDto.fromJson(Map<String, dynamic> json) =>

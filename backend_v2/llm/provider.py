@@ -534,6 +534,19 @@ class LiteLLMProvider(LLMProvider):
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")
 
+            actual_model = getattr(response, "model", self.model_name)
+            if (
+                isinstance(actual_model, str)
+                and actual_model
+                and self.model_name not in actual_model
+                and actual_model not in self.model_name
+            ):
+                logger.info(
+                    "[LiteLLMProvider] LLM Fallback utilized: Primary model '%s' failed, successfully routed to fallback model '%s'.",
+                    self.model_name,
+                    actual_model,
+                )
+
             latency_ms = int((time.perf_counter() - start_time) * 1000)
 
             # Extract basic content

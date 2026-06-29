@@ -54,6 +54,15 @@ class MockExecutionClient implements ExecutionClient {
   Future<Map<String, dynamic>> getScorecard(String executionId) async {
     return {};
   }
+
+  @override
+  Future<Map<String, dynamic>> overrideAtom({
+    required String executionId,
+    required String atomId,
+    required Map<String, dynamic> payload,
+  }) async {
+    return {};
+  }
 }
 
 class MockSseClient implements SseClient {

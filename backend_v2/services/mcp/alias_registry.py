@@ -81,3 +81,23 @@ class AliasRegistry:
                 details={"error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value, "alias": alias},
             )
         return alias_map[alias]
+
+    @classmethod
+    def resolve_graceful(cls, alias: str, alias_map: dict[str, str]) -> str | None:
+        """Validates the alias gracefully and returns the mapped source.
+
+        Args:
+            alias: The source alias (e.g., '<<QRM-SRC-1>>').
+            alias_map: Mapping of aliases to source identifiers.
+
+        Returns:
+            The resolved source identifier or None if the alias is unknown.
+        """
+        if alias not in alias_map:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Alias '%s' not found in alias_map. Graceful degradation applied.", alias
+            )
+            return None
+        return alias_map[alias]

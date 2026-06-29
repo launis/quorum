@@ -17,6 +17,7 @@ def test_create_execution_record_factory_success() -> None:
         workflow_id="wf_1",
         raw_inputs=raw_inputs,
         frozen_context=frozen_context,
+        source_identity_manifest={},
         output_profile_id="prof_1",
     )
 
@@ -39,6 +40,7 @@ def test_create_execution_record_factory_fail_fast() -> None:
             workflow_id="wf_1",
             raw_inputs=raw_inputs,
             frozen_context=frozen_context,
+            source_identity_manifest={},
         )
 
     assert exc_info.value.status_code == 500
@@ -454,3 +456,89 @@ async def test_enqueue_pdf_generation_success() -> None:
         custom_preface_md=None,
         local_time_str=None,
     )
+
+
+@pytest.mark.asyncio
+async def test_override_atom_success() -> None:
+    from unittest.mock import patch
+
+    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+    from backend_v2.models.v2_core import (
+        ExecutionStepState,
+        HumanOverrideRequest,
+        ScorecardAtomDTO,
+    )
+
+    repo_mock = AsyncMock()
+    executor_mock = Mock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=executor_mock,
+    )
+
+    # Initialize a clean ExecutionRecord
+    record = create_execution_record(
+        execution_id="exe_1234567890abcdef",
+        workflow_id="wf_1",
+        raw_inputs=WorkflowInputs(),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        output_profile_id="prof_1",
+    )
+
+    # Setup step_states with a ScorecardAtomDTO
+    atom = ScorecardAtomDTO(
+        atom_id="tda_1",
+        level=1,
+        level_name="T1",
+        claim_label="Claim label",
+        extracted_facts={},
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="",
+            step_2_scan_source="",
+            step_3_evaluate_anti_patterns="",
+            step_4_final_conclusion="",
+        ),
+        status="FAIL",
+        semantic_reasoning="",
+        contextual_override=False,
+        structural_location="N/A",
+    )
+
+    step_state = ExecutionStepState(
+        id="sr_1_step",
+        label="Label",
+        status="completed",
+        scorecard_atoms={"tda_1": atom},
+    )
+
+    record = record.model_copy(
+        update={"step_states": {"sr_1": step_state}, "organization_id": "org_1", "created_by": "u2"}
+    )
+
+    repo_mock.get_execution.return_value = record
+
+    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+    payload = HumanOverrideRequest(
+        new_status="PASS",
+        reason="Override reason",
+        evidence_quotes=[],
+    )
+
+    with patch("backend_v2.hooks.scoring.recalculate", AsyncMock()) as mock_recalc:
+        await service.override_atom(
+            initiator=initiator,
+            execution_id="exe_1234567890abcdef",
+            atom_id="tda_1",
+            payload=payload,
+        )
+        mock_recalc.assert_called_once()
+
+    repo_mock.update_execution.assert_called_once()
+    repo_mock.append_trace_event.assert_called_once()

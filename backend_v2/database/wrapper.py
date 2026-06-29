@@ -12,6 +12,7 @@ from typing import Any
 from tinydb import TinyDB
 from tinydb.table import Table
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import get_settings
 
 # from backend_v2.config import USE_MOCK_DB, DB_PATH # Removed
@@ -465,9 +466,8 @@ class FirestoreTable(AbstractTable):
             return [1] * len(matches)
         else:
             # Insert new
-            doc_id = document.get("id")
-            if doc_id:
-                self._collection.document(str(doc_id)).set(document)
+            if "id" in document and document["id"]:
+                self._collection.document(str(document["id"])).set(document)
             else:
                 self._collection.add(document)
             return [1]
@@ -493,7 +493,12 @@ class FirestoreTable(AbstractTable):
                 ref.delete()
                 removed_count += 1
             except Exception as e:
-                logger.error("[FirestoreTable] Failed to delete doc %s: %s", ref.id, e)
+                logger.error("[FirestoreTable] Failed to delete doc %s: %s", ref.id, e, exc_info=True)
+                raise AppException(
+                    message=f"Failed to delete document {ref.id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                ) from e
 
         return [1] * removed_count
 
@@ -529,6 +534,7 @@ class FirestoreTable(AbstractTable):
                 snapshots = aggregate_query.get()
                 return int(snapshots[0][0].value)
             except Exception:
+                logger.warning("Firestore count fallback triggered", exc_info=True)
                 docs = self._collection.stream()
                 return len(list(docs))
 
@@ -599,8 +605,12 @@ class FirestoreClient(AbstractDatabase):
             list(self.db.collection("connectivity_test").limit(1).stream())
             logger.info("[Firestore] Connection VERIFIED successfully.")
         except Exception as e:
-            logger.critical("[Firestore] Connection ping FAILED: %s", e)
-            raise RuntimeError(f"Firestore connectivity test failed. Error: {e}") from e
+            logger.critical("[Firestore] Connection ping FAILED: %s", e, exc_info=True)
+            raise AppException(
+                message=f"Firestore connectivity test failed. Error: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+            ) from e
 
     def table(self, name: str) -> AbstractTable:
         """Get table."""

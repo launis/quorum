@@ -322,7 +322,7 @@ class UsageRecord(V2CoreBase):
             Validated float amount.
 
         Raises:
-            AppException: If amount is negative.
+            AppException: If amount is negative (ErrorCodes.VALIDATION_FAILED).
         """
         if v < 0.0:
             msg = f"USD amount cannot be negative, got {v}"

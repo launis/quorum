@@ -93,7 +93,7 @@ class Organization(V2CoreBase):
     # Billing & SaaS Fields (Phase 4)
     billing_id: Annotated[str | None, Field(description="External Billing ID (Stripe/etc)")] = None
     subscription_status: Annotated[LaxSubscriptionStatus, Field(description="Current billing status")]
-    quota_limit: Annotated[float, Field(ge=0.0, description="Monthly API call quota (USD)")]
+    quota_limit: Annotated[float, Field(description="Monthly API call quota (USD)")]
     tpm_limit: Annotated[int, Field(ge=1000, description="Tokens Per Minute Limit")]
     rpm_limit: Annotated[int, Field(ge=1, description="Requests Per Minute Limit")]
 
@@ -102,6 +102,26 @@ class Organization(V2CoreBase):
     def parse_datetime(cls, v: Any) -> Any:
         if isinstance(v, str):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
+        return v
+
+    @field_validator("quota_limit")
+    @classmethod
+    def validate_quota_limit(cls, v: float) -> float:
+        """Validates quota limit is not negative.
+
+        Args:
+            v: Input limit.
+
+        Returns:
+            float: Validated limit.
+
+        Raises:
+            ValueError: If limit is negative.
+        """
+        if v < 0.0:
+            msg = "Quota limit cannot be negative."
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise ValueError(msg)
         return v
 
     @field_validator("id", "name")
@@ -220,6 +240,17 @@ class User(UserBase):
     @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
+        """Validates string is not empty.
+
+        Args:
+            v: Input string.
+
+        Returns:
+            str: Validated string.
+
+        Raises:
+            ValueError: If string is empty or whitespace only.
+        """
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -366,6 +397,17 @@ class TokenData(V2CoreBase):
     @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
+        """Validates string is not empty.
+
+        Args:
+            v: Input string.
+
+        Returns:
+            str: Validated string.
+
+        Raises:
+            ValueError: If string is empty or whitespace only.
+        """
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -394,7 +436,12 @@ class TokenData(V2CoreBase):
 
 
 class UserDeleteResponse(BaseResponseDTO):
-    """Payload response for deleting a user."""
+    """Payload response for deleting a user.
+
+    Attributes:
+        status (str): Deletion status message.
+        id (str): ID of the deleted user.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -403,7 +450,11 @@ class UserDeleteResponse(BaseResponseDTO):
 
 
 class TokenPayload(BaseDTO):
-    """Payload for token verification."""
+    """Payload for token verification.
+
+    Attributes:
+        token (str): JWT token string.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -411,7 +462,13 @@ class TokenPayload(BaseDTO):
 
 
 class LoginResponse(BaseResponseDTO):
-    """Response model for successful login."""
+    """Response model for successful login.
+
+    Attributes:
+        user (User): Authenticated user object.
+        token_valid (bool): Whether the token is valid.
+        debug_msg (Optional[str]): Optional debug message.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -421,7 +478,11 @@ class LoginResponse(BaseResponseDTO):
 
 
 class ImpersonationRequest(BaseDTO):
-    """Request payload for impersonation."""
+    """Request payload for impersonation.
+
+    Attributes:
+        target_id (str): ID of the user to impersonate.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -429,7 +490,12 @@ class ImpersonationRequest(BaseDTO):
 
 
 class ImpersonationResponse(BaseResponseDTO):
-    """Response containing the impersonation token."""
+    """Response containing the impersonation token.
+
+    Attributes:
+        access_token (str): Impersonation access token.
+        token_type (str): Token type (usually 'bearer').
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -438,7 +504,12 @@ class ImpersonationResponse(BaseResponseDTO):
 
 
 class OrganizationDeleteResponse(BaseResponseDTO):
-    """Payload response for deleting an organization."""
+    """Payload response for deleting an organization.
+
+    Attributes:
+        status (str): Deletion status message.
+        deleted_id (str): ID of the deleted organization.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

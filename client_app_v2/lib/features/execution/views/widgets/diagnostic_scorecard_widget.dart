@@ -8,12 +8,14 @@ class DiagnosticScorecardWidget extends StatelessWidget {
   final List<MatrixScorecardRowDto> evaluativeMatrices;
   final List<MatrixScorecardRowDto> informationalMatrices;
   final List<String> visibleColumns;
+  final String executionId;
 
   const DiagnosticScorecardWidget({
     super.key,
     required this.evaluativeMatrices,
     required this.informationalMatrices,
     required this.visibleColumns,
+    required this.executionId,
   });
 
   @override
@@ -34,6 +36,7 @@ class DiagnosticScorecardWidget extends StatelessWidget {
           AtomMatrixTableWidget(
             matrices: [...evaluativeMatrices, ...informationalMatrices],
             visibleColumns: visibleColumns,
+            executionId: executionId,
           ),
         ],
       ),

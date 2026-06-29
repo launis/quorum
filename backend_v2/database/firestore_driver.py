@@ -7,6 +7,7 @@ from typing import Any
 from google.cloud import firestore  # type: ignore[attr-defined]
 
 from backend_v2.database.driver import Filter, StorageDriver
+from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -123,8 +124,12 @@ class FirestoreDriver(StorageDriver):
             await doc_ref.update(safe_updates)
             return True
         except Exception as e:
-            logger.error("Firestore update failed: %s", e)
-            return False
+            logger.error("Firestore update failed: %s", e, exc_info=True)
+            raise AppException(
+                message=f"Firestore update failed: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+            ) from e
 
     async def delete(self, collection: str, doc_id: str) -> bool:
         """Delete a document.
@@ -143,8 +148,12 @@ class FirestoreDriver(StorageDriver):
             await self.db.collection(collection).document(doc_id).delete()
             return True
         except Exception as e:
-            logger.error("Firestore delete failed: %s", e)
-            return False
+            logger.error("Firestore delete failed: %s", e, exc_info=True)
+            raise AppException(
+                message=f"Firestore delete failed: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+            ) from e
 
     async def query(
         self,
@@ -210,6 +219,7 @@ class FirestoreDriver(StorageDriver):
             snapshots = await aggregate_query.get()
             return int(snapshots[0][0].value)
         except Exception:
+            logger.warning("Firestore count fallback triggered", exc_info=True)
             # Fallback for older SDKs or emulators?
             docs = await query.stream()
             # len() on async generator doesn't work, need to iterate

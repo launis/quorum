@@ -969,7 +969,7 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
     assert axis.evaluated_atoms is not None
     assert len(axis.evaluated_atoms) > 1
     # In V2, deduplication can be checked if exact_quotes are mapped properly
-    assert "This is a unique quote." in axis.evaluated_atoms[1].exact_quotes
+    assert any(q.quote_text == "This is a unique quote." for q in axis.evaluated_atoms[1].exact_quotes)
 
 
 @pytest.mark.asyncio

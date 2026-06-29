@@ -8,8 +8,8 @@ def test_step_dto_strict_validation() -> None:
     """Verify validation of StepDTOStrict with the new cognitive pipeline fields."""
     data = {
         "rule_internalization": "Criteria require checking X.",
-        "source_document_ids": ["doc_123"],
-        "exact_quotes": ["This is a verbatim quote."],
+        "source_document_aliases": ["doc_123"],
+        "exact_quotes": [{"source_alias": "doc_123", "text": "This is a verbatim quote."}],
         "reasoning_steps": "1) Rule requires X. 2) Text has X. 3) Pass.",
         "falsification_argument": "This could fail if text is fake.",
         "decision": True,
@@ -17,8 +17,8 @@ def test_step_dto_strict_validation() -> None:
     }
     obj = StepDTOStrict.model_validate(data)
     assert obj.rule_internalization == "Criteria require checking X."
-    assert obj.source_document_ids == ["doc_123"]
-    assert obj.exact_quotes == ["This is a verbatim quote."]
+    assert obj.source_document_aliases == ["doc_123"]
+    assert obj.exact_quotes[0].text == "This is a verbatim quote."
     assert obj.decision is True
 
     # Verify that deleted fields (like structural_location, counter_quote) trigger extra_forbidden
@@ -34,8 +34,8 @@ def test_step_dto_semantic_validation() -> None:
     # Test valid contextual override
     data = {
         "rule_internalization": "Criteria require checking X.",
-        "source_document_ids": ["doc_123"],
-        "exact_quotes": ["quote1"],
+        "source_document_aliases": ["doc_123"],
+        "exact_quotes": [{"source_alias": "doc_123", "text": "quote1"}],
         "reasoning_steps": "1) Rule requires X. 2) Text has X. 3) Pass.",
         "falsification_argument": "This could fail if text is fake.",
         "decision": True,
@@ -48,6 +48,6 @@ def test_step_dto_semantic_validation() -> None:
     assert obj.override_reason == "Implied semantic match."
 
     # Test pre-validator clears exact_quotes automatically if contextual_override is True
-    data["exact_quotes"] = ["Some quote"]
+    data["exact_quotes"] = [{"source_alias": "doc_123", "text": "Some quote"}]
     obj2 = StepDTOSemantic.model_validate(data)
     assert obj2.exact_quotes == []

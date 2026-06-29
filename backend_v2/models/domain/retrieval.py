@@ -3,12 +3,18 @@
 This module contains the schemas for the Retrieval Agent, focusing on facts extracted from sources.
 """
 
-from pydantic import BaseModel, ConfigDict, Field
+import logging
 
+from pydantic import ConfigDict, Field, field_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
+logger = logging.getLogger(__name__)
 
-class RetrievalInput(BaseModel):
+
+class RetrievalInput(V2CoreBase):
     """Strict input schema for RetrievalAgent.
 
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
@@ -26,10 +32,10 @@ class RetrievalInput(BaseModel):
     )
     product_text: str | None = Field(None, description="Reference text/documents to retrieve from.", min_length=1)
 
-    model_config = ConfigDict(frozen=True, extra="allow")
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
 
-class RetrievedFact(BaseModel):
+class RetrievedFact(V2CoreBase):
     """A single fact extracted from the material.
 
     Attributes:
@@ -53,10 +59,28 @@ class RetrievedFact(BaseModel):
         min_length=1,
     )
     relevance_score: int = Field(
-        ..., description="Relevance to the objective (1-5).", json_schema_extra={"x-ui-label": "Relevance"}, ge=1, le=5
+        ..., description="Relevance to the objective (1-5).", json_schema_extra={"x-ui-label": "Relevance"}
     )
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    @field_validator("relevance_score")
+    @classmethod
+    def validate_relevance_score(cls, v: int) -> int:
+        """Ensure relevance score is between 1 and 5.
+
+        Args:
+            v: The score to validate.
+
+        Returns:
+            The validated score.
+
+        Raises:
+            AppException: If score is not between 1 and 5.
+        """
+        if not (1 <= v <= 5):
+            msg = "relevance_score must be between 1 and 5"
+            logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v
 
 
 class RetrievalDTO(ReasoningTraceDTO):
@@ -80,10 +104,6 @@ class RetrievalDTO(ReasoningTraceDTO):
         min_length=1,
     )
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
 
 class RetrievalOutput(RetrievalDTO, ReasoningTrace):
     """Output schema for the Retrieval Agent."""
-
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

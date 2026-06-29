@@ -154,7 +154,7 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
         contextual_override=False,
         structural_location="N/A",
         semantic_reasoning="No evidence found for failure before phase 2 in the sliced context.",
-        exact_quotes=["None"],  # Blacklisted sentinel meaning no quote found
+        exact_quotes=[{"text": "None", "source_alias": "N/A"}],  # Blacklisted sentinel meaning no quote found
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="P",
             step_2_scan_source="S",

@@ -149,18 +149,18 @@ class CognitiveLevel(V2CoreBase):
         """Enforce limits locally to bypass Vertex AI 400 Field schema constraint parser rules.
 
         Args:
-            v: The validation candidate float score.
+            v: The validation candidate score.
 
         Returns:
-            The validated float score if within bounds.
+            The validated score if within bounds.
 
         Raises:
             AppException: If bloom_score is not between 0.0 and 6.0.
         """
         if not (0.0 <= v <= 6.0):
-            raise AppException(
-                message="bloom_score must be between 0.0 and 6.0", details={"error_code": ErrorCodes.VALIDATION_FAILED}
-            )
+            msg = "bloom_score must be between 0.0 and 6.0"
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
     @field_validator("strategic_score")
@@ -169,17 +169,19 @@ class CognitiveLevel(V2CoreBase):
         """Enforce limits locally to bypass Vertex AI 400 Field schema constraint parser rules.
 
         Args:
-            v: The validation candidate float score.
+            v: The validation candidate score.
 
         Returns:
-            The validated float score if within bounds.
+            The validated score if within bounds.
 
         Raises:
             AppException: If strategic_score is not between 1.0 and 4.0.
         """
         if not (1.0 <= v <= 4.0):
+            msg = "strategic_score must be between 1.0 and 4.0"
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
-                message="strategic_score must be between 1.0 and 4.0",
+                message=msg,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
             )
         return v
@@ -257,17 +259,19 @@ class LogicianData(V2CoreBase):
         """Enforce limits locally to bypass Vertex AI 400 Field schema constraint parser rules.
 
         Args:
-            v: The validation candidate float score.
+            v: The validation candidate score.
 
         Returns:
-            The validated float score if within bounds.
+            The validated score if within bounds.
 
         Raises:
             AppException: If toulmin_score is not between 0.0 and 6.0.
         """
         if not (0.0 <= v <= 6.0):
+            msg = "toulmin_score must be between 0.0 and 6.0"
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
-                message="toulmin_score must be between 0.0 and 6.0",
+                message=msg,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
             )
         return v

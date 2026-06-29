@@ -4,21 +4,12 @@ import logging
 
 from fastapi import APIRouter
 
-from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
+from backend_v2.models.dtos.system import StrictnessConfigDTO, StrictnessConfigListResponse
 from backend_v2.models.enums import StrictnessAnchor
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/configs", tags=["System Configs"])
-
-
-class StrictnessConfigDTO(BaseDTO):
-    level: int
-    localization_key: str
-
-
-class StrictnessConfigListResponse(BaseResponseDTO):
-    configs: list[StrictnessConfigDTO]
 
 
 @router.get("/strictness", response_model=StrictnessConfigListResponse)

@@ -14,14 +14,26 @@ from backend_v2.models.v2_core import MCPAuditTrace
 
 
 class OpenAIFunctionCallDTO(V2CoreBase):
-    """Schema for a function call in an OpenAI tool call."""
+    """Schema for a function call in an OpenAI tool call.
+
+    Attributes:
+        name: Function name.
+        arguments: Function arguments as a string or dict.
+    """
 
     name: str
     arguments: str | dict[str, Any]
 
 
 class OpenAIToolCallDTO(V2CoreBase):
-    """Schema for an OpenAI tool call."""
+    """Schema for an OpenAI tool call.
+
+    Attributes:
+        index: Call index.
+        id: Tool call ID.
+        type: Call type, defaults to 'function'.
+        function: The function call payload.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
 
@@ -32,20 +44,35 @@ class OpenAIToolCallDTO(V2CoreBase):
 
 
 class OpenAIProbeResponseDTO(V2CoreBase):
-    """Schema for parsing the LLM response during the Tool Loop Phase 1 probe."""
+    """Schema for parsing the LLM response during the Tool Loop Phase 1 probe.
+
+    Attributes:
+        tool_calls: Optional list of tool calls requested by the LLM.
+        content: Optional conversational response from the LLM.
+    """
 
     tool_calls: list[OpenAIToolCallDTO] | None = None
     content: str | None = None
 
 
 class TavilyToolArgsDTO(V2CoreBase):
-    """Arguments for a Tavily tool call."""
+    """Arguments for a Tavily tool call.
+
+    Attributes:
+        query: The search query.
+    """
 
     query: str
 
 
 class MCPToolLoopResult(V2CoreBase):
-    """Result from the Tool Loop — structured output + audit trail."""
+    """Result from the Tool Loop — structured output + audit trail.
+
+    Attributes:
+        result_data: Final structured output dict.
+        audit_traces: Audit log of all tool invocations.
+        usage: Cumulative token usage.
+    """
 
     result_data: dict[str, Any] = Field(description="Final structured output dict.")
     audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Audit log of all tool invocations.")
@@ -56,16 +83,30 @@ class MCPToolLoopResult(V2CoreBase):
 
 
 class MCPSynthesisInstructionsDTO(V2CoreBase):
-    """Execution parameters injected into the tool loop for formatting/synthesis constraints."""
+    """Execution parameters injected into the tool loop for formatting/synthesis constraints.
+
+    Attributes:
+        synthesis_preamble: Optional text prepended to synthesis.
+        synthesis_length_limit: Optional length limit for synthesis.
+    """
 
     synthesis_preamble: str | None = None
     synthesis_length_limit: int | None = None
 
 
 class TavilyApiResultItemDTO(V2CoreBase):
-    """A single search result item from Tavily API."""
+    """A single search result item from Tavily API.
 
-    model_config = ConfigDict(extra="ignore")
+    Attributes:
+        title: Title of the search result.
+        url: URL of the search result.
+        content: Search result content.
+        raw_content: Unprocessed raw content, if available.
+        score: Relevance score.
+        published_date: Published date, if available.
+    """
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
 
     title: str = Field(default="")
     url: str = Field(default="")
@@ -76,9 +117,17 @@ class TavilyApiResultItemDTO(V2CoreBase):
 
 
 class TavilyApiResponseDTO(V2CoreBase):
-    """Complete response payload from Tavily API."""
+    """Complete response payload from Tavily API.
 
-    model_config = ConfigDict(extra="ignore")
+    Attributes:
+        query: The original search query.
+        answer: AI-generated answer, if requested.
+        response_time: Response time in seconds.
+        images: List of related images.
+        results: Search results list from Tavily.
+    """
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
 
     query: str = Field(default="")
     answer: str | None = Field(default="")
@@ -88,7 +137,15 @@ class TavilyApiResponseDTO(V2CoreBase):
 
 
 class TavilySearchResult(V2CoreBase):
-    """Parsed Tavily response for downstream consumption."""
+    """Parsed Tavily response for downstream consumption.
+
+    Attributes:
+        query: Echo of the original search query.
+        answer: AI-generated summary from Tavily.
+        source_urls: Deduplicated source URLs.
+        raw_content: Concatenated source texts (truncated).
+        duration_ms: Round-trip latency in milliseconds.
+    """
 
     query: str = Field(description="Echo of the original search query.")
     answer: str = Field(default="", description="AI-generated summary from Tavily.")
@@ -98,7 +155,15 @@ class TavilySearchResult(V2CoreBase):
 
 
 class CitationExtractionItemDTO(V2CoreBase):
-    """A single extracted citation claim and its corresponding search query."""
+    """A single extracted citation claim and its corresponding search query.
+
+    Attributes:
+        claim_text: Exact quote of the claim from the text.
+        search_query: Optimized search query for the tool to verify the claim.
+        knowledge_gap: The specific knowledge gap needing resolution.
+        search_rationale: The rationale mapping the query to the knowledge gap.
+        reasoning: Max 1 short sentence. Briefly explain WHY you are verifying this claim.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -112,7 +177,11 @@ class CitationExtractionItemDTO(V2CoreBase):
 
 
 class CitationExtractionResult(V2CoreBase):
-    """Result of Phase 0 extraction from source document."""
+    """Result of Phase 0 extraction from source document.
+
+    Attributes:
+        citations: List of extracted claims to verify.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -122,7 +191,11 @@ class CitationExtractionResult(V2CoreBase):
 
 
 class CitationCorrectionResult(V2CoreBase):
-    """Result of the citation self-correction LLM task."""
+    """Result of the citation self-correction LLM task.
+
+    Attributes:
+        corrected_claim: The verbatim corrected claim text found in the source context.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

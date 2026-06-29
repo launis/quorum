@@ -26,6 +26,12 @@ Jos kehittäjä epähuomiossa lisää jo perityn kentän uudelleen aliluokkaan (
 
 Kaikki järjestelmän XAI-laajennokset on reititettävä luotettavasti joko `block`- tai `workflow`-tasolle. Tämän varmistamiseksi CI-putkessa ajetaan automaattinen Meta-testi (`test_xai_extension_scope_completeness`), joka iteroi läpi jokaisen `XaiExtensionType`-enumeraation jäsenen ja varmistaa "Fail-Fast"-periaatteella, että kyseiselle laajennokselle on määritelty skooppi `XAI_EXTENSION_SCOPE` -sanakirjassa. Tämä estää hiljaiset virheet uusien laajennosten lisäämisen yhteydessä. Myös alkulatausdata (`seed_data.json`) noudattaa tätä kaksiportaista jaottelua `visible_block_extensions`- ja `visible_workflow_extensions`-määritysten avulla.
 
+## Domain Isolation for Evidence Quotes (Epic 91)
+
+V2 arkkitehtuurissa ote- ja lähdeviitteet (Quotes) on tiukasti eristetty primitiivisistä merkkijonoista. Alkuperäisen tekstin lainaukset käsitellään `LLMExtractedQuote`-luokan avulla (tai vastaavilla DTO-malleilla, kuten `QuoteEvidenceDTO`), joissa on erikseen `source_alias` ja itse `text`. 
+
+Tämä korjaa "Primitive Obsession" -ongelmat, joissa alias ja teksti pakattiin yhteen merkkijonoon (esim. `DOC-1|||teksti`), mikä hajosi LLM-hallusinaatioiden sattuessa. Pydantic-mallin `model_config = ConfigDict(extra="ignore")` sallii LLM:n palauttaman JSONin sisältävän ylimääräisiä kenttiä kaatumatta, noudattaen "Graceful Degradation yli Fail-Fastin" sääntöä spesifisti LLM-tuotoksien ote-evaluaatioissa. Samalla SSOT (Single Source of Truth) säilyy tietokantatasolla ehjänä käyttämällä Opaque ID -tunnisteita globaalisti.
+
 ## Ydinmallisto ja Opaque ID -reititys
 
 Järjestelmä hylkää ihmisluettavat "slugit" identifioijina taustalogiikassa. Kaikki relaatiot ja datamallit pakottavat joustavan "Opaque Stripe ID" -reitityksen (esim. `blk_abc12345`), joka takaa sen, että mallien sisäiset ihmisluettavat nimimuutokset eivät koskaan riko järjestelmän topologiaa.

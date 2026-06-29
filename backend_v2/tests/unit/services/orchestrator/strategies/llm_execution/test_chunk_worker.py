@@ -226,6 +226,26 @@ def test_deterministic_extraction_scoring() -> None:
     assert evaluate_extraction(ext3, "test text", 0) == "PASS"
 
 
+def test_deterministic_extraction_scoring_with_quote_objects() -> None:
+    """Test evaluate_extraction with exact_quotes containing LLMExtractedQuote objects."""
+    from pydantic import BaseModel
+
+    from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+    from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import evaluate_extraction
+
+    class MockExtraction(BaseModel):
+        exact_quotes: list[Any] | None = None
+        contextual_override: bool = False
+        semantic_reasoning: str | None = ""
+        override_reason: str | None = ""
+
+    quote_obj = LLMExtractedQuote(source_alias="DOC-1", text="test text")
+    ext_obj = MockExtraction(exact_quotes=[quote_obj], contextual_override=False)
+
+    # This should pass without raising TypeError
+    assert evaluate_extraction(ext_obj, "test text", 0) == "PASS"
+
+
 @pytest.mark.asyncio
 async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_class: Any) -> None:
     """Test standard block evaluation skips instruction blocks which are raw strings."""

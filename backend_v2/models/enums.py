@@ -29,7 +29,9 @@ class EvaluationRunCount(int, Enum):
 
 
 class EnsembleJitter(float, Enum):
-    """Määrittelee viivekertoimen (sekunneissa) ensemble-ajoille, jolla pakotetaan Vertex AI -välimuistin divergenssi."""
+    """Määrittelee viivekertoimen (sekunneissa) ensemble-ajoille,
+    jolla pakotetaan Vertex AI -välimuistin divergenssi.
+    """
 
     BASE_DELAY = 0.200
 
@@ -614,3 +616,7 @@ LaxEvaluationRunCount = Annotated[EvaluationRunCount, Field(strict=False)]
 LaxPlausibilityLevel = Annotated[PlausibilityLevel, Field(strict=False)]
 LaxAbductiveConclusion = Annotated[AbductiveConclusion, Field(strict=False)]
 LaxFidelityLevel = Annotated[FidelityLevel, Field(strict=False)]
+LaxRiskLevel = Annotated[RiskLevel, Field(strict=False)]
+LaxSimulationType = Annotated[SimulationType, Field(strict=False)]
+LaxRoleClassification = Annotated[RoleClassification, Field(strict=False)]
+LaxInteractionStrategy = Annotated[InteractionStrategy, Field(strict=False)]

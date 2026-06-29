@@ -22,15 +22,15 @@ class SynthesisMetadataDTO(V2CoreBase):
     Attributes:
         target_locale: Target localization code.
         token_usage: Comprehensive tracker for LLM token usage metrics.
-        step_results: List of completed step outputs mapped during parsing.
-        profile_id: Optional identifier string of user persona profile.
-        target_profile_id: Optional ID of the targeted evaluation profile.
-        matrix_sampling_strategy: Numeric index defining sampling patterns.
+        step_results: Completed step outputs mapped during parsing.
+        profile_id: Identifier of user persona profile.
+        target_profile_id: ID of the targeted evaluation profile.
+        matrix_sampling_strategy: Index defining sampling patterns.
         workflow_version: Tracked version of execution state flow.
         total_tokens: Total tokens consumed across all steps.
         prompt_tokens: Cumulative tokens consumed via prompt inputs.
         completion_tokens: Cumulative tokens returned by upstream APIs.
-        cost_estimate: Float estimate representing financial metrics.
+        cost_estimate: Estimate representing financial metrics.
     """
 
     target_locale: str = Field(..., min_length=1)
@@ -65,7 +65,7 @@ class SynthesisStepDataDTO(StepExecutionEnvelope):
         token_usage: Usage statistics for this execution iteration.
     """
 
-    model_config = ConfigDict(extra="ignore", frozen=True)
+    model_config = ConfigDict(extra="ignore", frozen=True, strict=True)
 
     reasoning_trace: ReasoningTrace | None = Field(default=None)
     token_usage: TokenUsage = Field(

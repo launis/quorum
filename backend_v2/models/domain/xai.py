@@ -11,6 +11,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import Field, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -33,8 +34,8 @@ class XAIReporterInput(V2CoreBase):
     V2 Dynamic: 'chat_log' is mandatory, but other inputs are allowed dynamically.
 
     Attributes:
-        chat_log: The mandatory conversation history to be analyzed.
-        last_reasoning_trace: Previous reasoning trace output.
+        chat_log: Conversation history to be analyzed.
+        last_reasoning_trace: Previous reasoning trace.
         step_judge: Standard evaluate output.
         step_judge_cognitive: Cognitive Judge output.
         step_analyst: Analyst hypotheses and RAG data.
@@ -48,9 +49,7 @@ class XAIReporterInput(V2CoreBase):
         dynamic_inputs: Dynamically passed variables.
     """
 
-    chat_log: str = Field(
-        ..., description="The mandatory conversation history.", json_schema_extra={"x-ui-label": "Chatlog"}
-    )
+    chat_log: str = Field(..., description="Conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
     step_judge: JudgeOutput | None = Field(default=None, description="Standard evaluate output.")
     step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
@@ -222,24 +221,24 @@ class XAIOutputDTO(ReasoningTraceDTO):
     """Data Transfer Object for XAI Reporter Agent (Content Only).
 
     Attributes:
-        output_extensions: Polymorphic list of XAI extensions.
+        output_extensions: XAI extensions.
         comparison_data: Structured progress and comparison data.
-        executive_summary: High-level summary string.
-        verified_facts: Synthesis of verified facts string.
-        cognitive_behavior: Synthesis of Profiler and Falsifier findings string.
-        causal_chain: Synthesis of Causal and Logician findings string.
-        analysis_strengths: Identified strengths string.
-        analysis_weaknesses: Identified weaknesses string.
-        analysis_opportunities: Identified opportunities string.
-        analysis_recommendations: Recommendations string.
-        final_verdict: Final conclusion string.
-        confidence_score: Float value representing confidence factor (0.0-1.0).
-        xai_report_formatted: Optional markdown formatted report string.
+        executive_summary: High-level summary.
+        verified_facts: Synthesis of verified facts.
+        cognitive_behavior: Synthesis of Profiler and Falsifier findings.
+        causal_chain: Synthesis of Causal and Logician findings.
+        analysis_strengths: Identified strengths.
+        analysis_weaknesses: Identified weaknesses.
+        analysis_opportunities: Identified opportunities.
+        analysis_recommendations: Recommendations.
+        final_verdict: Final conclusion.
+        confidence_score: Confidence factor (0.0-1.0).
+        xai_report_formatted: Markdown formatted report.
     """
 
     output_extensions: list[XAIExtension] = Field(
         default_factory=list,
-        description="Polymorphic list of XAI extensions.",
+        description="XAI extensions.",
     )
     comparison_data: ComparisonDataDTO | None = Field(
         default=None,
@@ -324,10 +323,12 @@ class XAIOutputDTO(ReasoningTraceDTO):
             The validated confidence score value.
 
         Raises:
-            ValueError: If the computed value is outside of the physical closed boundary [0.0, 1.0].
+            AppException: If the computed value is outside of the physical closed boundary [0.0, 1.0].
         """
         if not (0.0 <= v <= 1.0):
-            raise ValueError("confidence_score must be between 0.0 and 1.0")
+            msg = "confidence_score must be between 0.0 and 1.0"
+            logger.error("[XAIOutputDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -358,15 +359,15 @@ class ReportResult(V2CoreBase):
     """Result of the report generation (Hook).
 
     Attributes:
-        report_content: The generated Markdown report string.
-        format: The report format string.
-        data: The structured data dictionary used to generate the report.
+        report_content: Generated Markdown report.
+        format: Report format.
+        data: Structured data used to generate the report.
     """
 
     report_content: str = Field(
         ...,
         min_length=1,
-        description="The generated Markdown report.",
+        description="Generated Markdown report.",
         json_schema_extra={"x-ui-label": "Report Content"},
     )
     format: str = Field(
@@ -375,6 +376,4 @@ class ReportResult(V2CoreBase):
         description="Report format.",
         json_schema_extra={"x-ui-label": "Format"},
     )
-    data: dict[str, Any] | None = Field(
-        default=None, description="The structured data used to generate the report (SSOT)."
-    )
+    data: dict[str, Any] | None = Field(default=None, description="Structured data used to generate the report (SSOT).")

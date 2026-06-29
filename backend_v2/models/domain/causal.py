@@ -185,3 +185,5 @@ class CausalOutput(CausalDTO, ReasoningTrace):
     Attributes:
         causal_analysis: Causal audit result inherited from CausalDTO.
     """
+
+    pass

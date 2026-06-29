@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/views/widgets/human_override_dialog.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -9,11 +10,13 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 class AtomMatrixTableWidget extends ConsumerWidget {
   final List<MatrixScorecardRowDto> matrices;
   final List<String> visibleColumns;
+  final String executionId;
 
   const AtomMatrixTableWidget({
     super.key,
     required this.matrices,
     required this.visibleColumns,
+    required this.executionId,
   });
 
   @override
@@ -427,78 +430,77 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                         );
                     if (isSkipped) continue;
 
-                    final isPass =
-                        atom.status?.toUpperCase() == 'PASS' ||
-                        atom.status?.toUpperCase() == 'CONTESTED';
+                    bool hasOverride = atom.humanOverride != null;
+                    final isPass = hasOverride
+                        ? (atom.humanOverride!.newStatus.toUpperCase() ==
+                                  'PASS' ||
+                              atom.humanOverride!.newStatus.toUpperCase() ==
+                                  'CONTESTED')
+                        : (atom.status?.toUpperCase() == 'PASS' ||
+                              atom.status?.toUpperCase() == 'CONTESTED');
 
-                    // Parse quotes with badges
-                    final uniqueQuotes = <String>{};
-                    final parsedQuotes = <Widget>[];
-                    for (final q in atom.exactQuotes) {
-                      if (!uniqueQuotes.add(q)) continue;
+                    // 1. AI Evidence rendering
+                    final aiQuotes = _buildQuoteWidgets(
+                      atom.exactQuotes,
+                      isPass,
+                      hasOverride,
+                    ); // Fade if overridden
 
-                      String displayQuote = q;
-                      String? badgeText;
-                      if (q.contains('|||')) {
-                        final parts = q.split('|||');
-                        badgeText = parts[0];
-                        displayQuote = parts.length > 1 ? parts[1] : parts[0];
-                      }
-
-                      parsedQuotes.add(
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: RichText(
-                            text: TextSpan(
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.black87,
-                              ),
+                    // 2. Human Override rendering
+                    Widget? overrideBox;
+                    if (hasOverride) {
+                      final humanQuotes = _buildQuoteWidgets(
+                        atom.humanOverride!.evidenceQuotes,
+                        isPass,
+                        false,
+                      );
+                      overrideBox = Container(
+                        margin: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.1),
+                          border: Border.all(color: Colors.amber.shade300),
+                          borderRadius: BorderRadius.circular(4.0),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                if (badgeText != null) ...[
-                                  WidgetSpan(
-                                    alignment: PlaceholderAlignment.middle,
-                                    child: Container(
-                                      margin: const EdgeInsets.only(right: 6.0),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6.0,
-                                        vertical: 2.0,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        border: Border.all(
-                                          color: Colors.blue.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                          4.0,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        badgeText.toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blue[800],
-                                        ),
-                                      ),
-                                    ),
+                                const Icon(
+                                  Icons.gavel,
+                                  size: 16,
+                                  color: Colors.amber,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "👨‍⚖️ Ihmisen päätös (EU AI Act)",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber.shade900,
+                                    fontSize: 12,
                                   ),
-                                ],
-                                TextSpan(
-                                  text: displayQuote,
-                                  style: isPass
-                                      ? const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        )
-                                      : null,
                                 ),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Perustelu: ${atom.humanOverride!.reason}",
+                              style: TextStyle(
+                                fontStyle: FontStyle.italic,
+                                color: Colors.amber.shade900,
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (humanQuotes.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: humanQuotes,
+                                ),
+                              ),
+                          ],
                         ),
                       );
                     }
@@ -514,25 +516,67 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    atom.claimLabel,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: isPass
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      color: isPass
-                                          ? Colors.black87
-                                          : Colors.black54,
-                                    ),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          atom.claimLabel,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: isPass
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            color: isPass
+                                                ? Colors.black87
+                                                : Colors.black54,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.gavel, size: 16),
+                                        tooltip: 'Yliohjaa päätös',
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (ctx) =>
+                                                HumanOverrideDialog(
+                                                  atom: atom,
+                                                  executionId: executionId,
+                                                ),
+                                          ).then((wasSaved) {
+                                            if (wasSaved == true) {
+                                              // Triggers a refresh of the report view optimally
+                                              // by invalidating the reportProvider.
+                                              // In a real app we'd dispatch an event or use ref.invalidate
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Päätös yliohjattu! Päivitä raportti nähdäksesi muutokset.',
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          });
+                                        },
+                                        constraints: const BoxConstraints(
+                                          minWidth: 24,
+                                          minHeight: 24,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                    ],
                                   ),
-                                  if (parsedQuotes.isNotEmpty)
+                                  if (aiQuotes.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 2.0),
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        children: parsedQuotes,
+                                        children: aiQuotes,
                                       ),
                                     ),
                                   if (atom.semanticReasoning.isNotEmpty)
@@ -544,11 +588,16 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                           fontSize: 12,
                                           fontStyle: FontStyle.italic,
                                           color: isPass
-                                              ? Colors.black54
-                                              : Colors.black38,
+                                              ? (hasOverride
+                                                    ? Colors.black26
+                                                    : Colors.black54)
+                                              : (hasOverride
+                                                    ? Colors.black26
+                                                    : Colors.black38),
                                         ),
                                       ),
                                     ),
+                                  if (overrideBox != null) overrideBox,
                                 ],
                               ),
                             ),
@@ -591,5 +640,73 @@ class AtomMatrixTableWidget extends ConsumerWidget {
         );
       }).toList(),
     );
+  }
+
+  List<Widget> _buildQuoteWidgets(
+    List<QuoteEvidenceDto> quotes,
+    bool isPass,
+    bool isFaded,
+  ) {
+    final uniqueQuotes = <String>{};
+    final parsedQuotes = <Widget>[];
+    for (final q in quotes) {
+      final disp = q.displayName ?? q.sourceId;
+      final uniqueKey = '${disp ?? 'unknown'}::${q.quoteText}';
+      if (!uniqueQuotes.add(uniqueKey)) continue;
+
+      parsedQuotes.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 13,
+                color: isFaded ? Colors.black38 : Colors.black87,
+              ),
+              children: [
+                if (disp != null && disp.isNotEmpty) ...[
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 6.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6.0,
+                        vertical: 2.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isFaded
+                            ? Colors.grey.withValues(alpha: 0.1)
+                            : Colors.blue.withValues(alpha: 0.1),
+                        border: Border.all(
+                          color: isFaded
+                              ? Colors.grey.withValues(alpha: 0.3)
+                              : Colors.blue.withValues(alpha: 0.3),
+                        ),
+                        borderRadius: BorderRadius.circular(4.0),
+                      ),
+                      child: Text(
+                        disp.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isFaded ? Colors.grey[600] : Colors.blue[800],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                TextSpan(
+                  text: q.quoteText,
+                  style: isPass && !isFaded
+                      ? const TextStyle(fontWeight: FontWeight.bold)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return parsedQuotes;
   }
 }

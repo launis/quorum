@@ -75,4 +75,17 @@ class ExecutionClient {
     final response = await _dio.get('/execution/scorecard/$executionId');
     return response.data as Map<String, dynamic>;
   }
+
+  /// Manually overrides an atom's score and logic (Epic 91 Phase 4).
+  Future<Map<String, dynamic>> overrideAtom({
+    required String executionId,
+    required String atomId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _dio.patch(
+      '/execution/executions/$executionId/atoms/$atomId/override',
+      data: payload,
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }

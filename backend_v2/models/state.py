@@ -10,7 +10,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal  # noqa: F401
 
-from pydantic import BaseModel, Field
+from fastapi import status
+from pydantic import BaseModel, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -60,12 +61,36 @@ class ReasoningTrace(V2CoreBase):
         pattern=r"\S",
         description="The final conclusion derived from the reasoning. MUST be written strictly in English.",
     )
-    confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in the conclusion.")
+    confidence_score: float = Field(description="Confidence in the conclusion.")
     model_name: str | None = Field(default=None, description="The model used for reasoning.")
     token_usage: TokenUsage = Field(
         default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         description="Token usage statistics.",
     )
+
+    @field_validator("confidence_score", mode="after")
+    @classmethod
+    def validate_confidence_score(cls, v: float) -> float:
+        """Validates that confidence_score is between 0.0 and 1.0.
+
+        Args:
+            v: The confidence score.
+
+        Returns:
+            The validated confidence score.
+
+        Raises:
+            AppException: If score is out of bounds.
+        """
+        if not (0.0 <= v <= 1.0):
+            msg = "confidence_score must be between 0.0 and 1.0"
+            logger.error("[ReasoningTrace] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        return v
 
 
 class EvidenceOverrideDTO(V2CoreBase):

@@ -8,8 +8,7 @@ DESC_EXACT_QUOTES = (
     "CRITICAL: MUST ALWAYS be extracted in the exact original language of the source text, "
     "as physically contiguous VERBATIM substrings (do not add/remove words, markdown, or fix typos). "
     "NEVER translate the quotes, even if your reasoning is in another language. "
-    "You MUST always prefix the quote with the exact ID attribute from the <search_result> tag the quote was extracted from, "
-    "followed by a colon. For example: `<<QRM-SRC-INT-INPUTSPRODUCTTEXT>>: [exact quote]`. "
+    'You MUST always return a JSON object list format: `[{"text": "..."}]`. '
     "Jos sääntö on negatiivinen rajoite ja teksti noudattaa sitä, palauta tyhjä lista []. Tyhjä lista on täysin oikea vastaus faktojen puuttuessa."
 )
 

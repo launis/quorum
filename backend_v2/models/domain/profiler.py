@@ -10,6 +10,7 @@ import logging
 
 from pydantic import Field, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
@@ -28,9 +29,9 @@ class TextMetrics(V2CoreBase):
         control_ratio: User/AI token ratio.
     """
 
-    word_count: int = Field(..., ge=0, description="Total word count.", json_schema_extra={"x-ui-label": "Word Count"})
+    word_count: int = Field(..., description="Total word count.", json_schema_extra={"x-ui-label": "Word Count"})
     sentence_count: int = Field(
-        ..., ge=0, description="Total sentence count.", json_schema_extra={"x-ui-label": "Sentence Count"}
+        ..., description="Total sentence count.", json_schema_extra={"x-ui-label": "Sentence Count"}
     )
     avg_sentence_length: float = Field(
         ..., description="Average words per sentence.", json_schema_extra={"x-ui-label": "Avg Sentence Length"}
@@ -47,22 +48,32 @@ class TextMetrics(V2CoreBase):
         default=0.0, description="User/AI token ratio.", json_schema_extra={"x-ui-label": "Control Ratio"}
     )
 
-    @field_validator("avg_sentence_length", "lexical_diversity", "capitalization_ratio", "control_ratio", mode="before")
+    @field_validator(
+        "word_count",
+        "sentence_count",
+        "avg_sentence_length",
+        "lexical_diversity",
+        "capitalization_ratio",
+        "control_ratio",
+        mode="before",
+    )
     @classmethod
-    def validate_non_negative_floats(cls, v: float) -> float:
+    def validate_non_negative_metrics(cls, v: int | float) -> int | float:
         """Validator to replace Field level float constraints to prevent Vertex AI 400 errors.
 
         Args:
-            v: The float value to validate.
+            v: The value to validate.
 
         Returns:
-            The validated float value.
+            The validated value.
 
         Raises:
-            ValueError: If the validation check fails on negative numbers.
+            AppException: If the validation check fails on negative numbers.
         """
-        if v < 0.0:
-            raise ValueError("Value must be greater than or equal to 0.0")
+        if v < 0:
+            msg = "Value must be greater than or equal to 0"
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
@@ -91,27 +102,30 @@ class BehavioralMetrics(V2CoreBase):
     )
     imperative_command_count: int = Field(
         ...,
-        ge=0,
         description="Number of imperative commands.",
         json_schema_extra={"x-ui-label": "Command Count"},
     )
 
-    @field_validator("say_do_gap", "automation_bias", "illusion_of_competence", mode="before")
+    @field_validator(
+        "say_do_gap", "automation_bias", "illusion_of_competence", "imperative_command_count", mode="before"
+    )
     @classmethod
-    def validate_behavioral_floats(cls, v: float) -> float:
+    def validate_behavioral_metrics(cls, v: int | float) -> int | float:
         """Validator to replace Field level float constraints to prevent Vertex AI 400 errors.
 
         Args:
-            v: The float value to validate.
+            v: The value to validate.
 
         Returns:
-            The validated float value.
+            The validated value.
 
         Raises:
-            ValueError: If the validation check fails on negative numbers.
+            AppException: If the validation check fails on negative numbers.
         """
-        if v < 0.0:
-            raise ValueError("Value must be greater than or equal to 0.0")
+        if v < 0:
+            msg = "Value must be greater than or equal to 0"
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 

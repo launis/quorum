@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.profiler import (
     ProfilerInput,
     ProfilerMetrics,
@@ -32,7 +33,7 @@ def test_text_metrics_validates_constraints() -> None:
         "lexical_diversity": 0.0,
         "capitalization_ratio": 0.0,
     }
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         TextMetrics.model_validate(data)
 
 

@@ -15,6 +15,7 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.report import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import SystemConfigID, SystemLocale, VirtualSystemStepID
 from backend_v2.models.state import StateProjector
@@ -27,6 +28,7 @@ from backend_v2.models.v2_core import (
     PromptBlock,
     ReportDataDTO,
     ReportLayoutDTO,
+    ScorecardAtomDTO,
 )
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
@@ -187,8 +189,14 @@ class BlueprintTransformer:
         has_synthesis_cache: bool = False,
         rejected_evq_ids: set[str] | None = None,
         mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
-        translation_map: dict[str, str] | None = None,
-    ) -> tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO]]:
+        source_identity_manifest: dict[str, str] | None = None,
+        execution: Any = None,
+    ) -> tuple[
+        list[MatrixScorecardRowDTO],
+        list[MatrixScorecardRowDTO],
+        dict[str, MatrixScorecardRowDTO],
+        dict[str, dict[str, ScorecardAtomDTO]],
+    ]:
         """Parses folded results into MatrixScorecardRowDTOs and populates grouped XAI extensions.
 
         Args:
@@ -200,9 +208,11 @@ class BlueprintTransformer:
             profile: The resolved OutputProfile model.
             row_explanations_cache: Rendered explanations to override raw LLM justification.
             workflow_ext_values: List of requested workflow-level extension types.
+            source_identity_manifest: Optional map of source ID to display names.
+            execution: Optional ExecutionRecord model.
 
         Returns:
-            A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices).
+            A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms).
 
         Raises:
             AppException: Triggered if strict matrix structure constraints are violated.
@@ -210,6 +220,7 @@ class BlueprintTransformer:
         evaluative_matrices: list[MatrixScorecardRowDTO] = []
         informational_matrices: list[MatrixScorecardRowDTO] = []
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
+        step_scorecard_atoms: dict[str, dict[str, ScorecardAtomDTO]] = {}
 
         # Safe attribute access using V2 Models
         display_scale = profile.display_scale
@@ -478,29 +489,27 @@ class BlueprintTransformer:
                                     raw_quotes = ev_data.get("exact_quotes", [])
                                     parsed_quotes = []
                                     if raw_quotes:
-                                        qrm_alias_re = re.compile(r"<<QRM-SRC-[A-Z0-9_|-]+>>")
-                                        t_map = translation_map or {}
+                                        s_manifest = source_identity_manifest or {}
                                         for qt in raw_quotes:
-                                            p_qt = qt
-                                            alias_match = qrm_alias_re.search(qt)
-                                            if alias_match:
-                                                alias_token = alias_match.group(0)
-                                                rest = qt.replace(alias_token, "").strip(" -:")
-                                                translated = False
-                                                if "MCP-SEARCH" in alias_token:
-                                                    p_qt = f"Web-lähde (MCP)|||{rest}"
-                                                    translated = True
-                                                else:
-                                                    for fuzzy_key, label in t_map.items():
-                                                        if fuzzy_key in alias_token:
-                                                            p_qt = f"{label}|||{rest}"
-                                                            translated = True
-                                                            break
-                                                if not translated:
-                                                    p_qt = f"Viite|||{rest}"
-                                            parsed_quotes.append(p_qt)
+                                            if isinstance(qt, dict):
+                                                source_id = qt.get("source_id") or "unknown"
+                                                text = qt.get("text", "")
+                                            else:
+                                                source_id = "unknown"
+                                                text = str(qt)
 
-                                    evidence_found = ev_data.get("evidence_found", False)
+                                            display_name = s_manifest.get(source_id, "Tuntematon lähde")
+                                            parsed_quotes.append(
+                                                QuoteEvidenceDTO(
+                                                    quote_text=text, source_id=source_id, display_name=display_name
+                                                )
+                                            )
+
+                                    evidence_found = (
+                                        ev_data.get("decision", False)
+                                        or ev_data.get("status") == "PASS"
+                                        or ev_data.get("evidence_found", False)
+                                    )
                                     is_dlq = evidence_found is True and not parsed_quotes
                                     calc_status = "PASS" if (evidence_found and not is_dlq) else "FAIL"
 
@@ -523,6 +532,7 @@ class BlueprintTransformer:
                                         structural_location=ev_data.get("structural_location", "N/A"),
                                     )
                                     evaluated_atoms_list.append(s_atom)
+                                    step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
 
                                     u_ids = ev_data.get("used_evidence_ids", [])
                                     if isinstance(u_ids, list):
@@ -549,6 +559,7 @@ class BlueprintTransformer:
                                         structural_location="N/A",
                                     )
                                     evaluated_atoms_list.append(s_atom)
+                                    step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
 
                 if mcp_audit_map:
                     for uid in used_evidence_ids_set:
@@ -628,7 +639,7 @@ class BlueprintTransformer:
                 combined = synthesized + raw_items
                 grouped_extensions[ext_key] = combined[:max_items]
 
-        return evaluative_matrices, informational_matrices, all_parsed_matrices
+        return evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms
 
     def _build_layouts(
         self,
@@ -1019,30 +1030,46 @@ class BlueprintTransformer:
                 if trace.id:
                     mcp_audit_map[trace.id] = trace
 
-        # Build translation map for Unified Source ID Architecture
-        translation_map: dict[str, str] = {}
-        for expected_input in getattr(workflow_obj, "expected_inputs", None) or []:
-            key = expected_input.input_key
-            label_dict: dict[str, str] = expected_input.label if isinstance(expected_input.label, dict) else {}
-            translated_label = label_dict.get(locale.upper(), label_dict.get(locale.lower(), label_dict.get("EN", key)))
-            if isinstance(translated_label, str):
-                translation_map[key.upper().replace("_", "")] = translated_label
-
-        evaluative_matrices, informational_matrices, all_parsed_matrices = self._extract_matrices_and_extensions(
-            results,
-            locale,
-            blocks_by_id,
-            workflow_steps,
-            grouped_extensions,
-            profile,
-            row_explanations_cache,
-            workflow_ext_values,
-            row_curated_quotes_cache,
-            has_synthesis_cache=profile_cache is not None,
-            rejected_evq_ids=rejected_evq_ids,
-            mcp_audit_map=mcp_audit_map,
-            translation_map=translation_map,
+        evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms = (
+            self._extract_matrices_and_extensions(
+                results,
+                locale,
+                blocks_by_id,
+                workflow_steps,
+                grouped_extensions,
+                profile,
+                row_explanations_cache,
+                workflow_ext_values,
+                row_curated_quotes_cache,
+                has_synthesis_cache=profile_cache is not None,
+                rejected_evq_ids=rejected_evq_ids,
+                mcp_audit_map=mcp_audit_map,
+                source_identity_manifest=execution.source_identity_manifest,
+                execution=execution,
+            )
         )
+
+        modified_step_states = False
+        new_step_states = dict(execution.step_states)
+        for step_id, atoms_dict in step_scorecard_atoms.items():
+            if step_id in new_step_states:
+                updated_atoms = {}
+                for atom_id, s_atom in atoms_dict.items():
+                    existing_atom = new_step_states[step_id].scorecard_atoms.get(atom_id)
+                    if existing_atom and existing_atom.human_override:
+                        s_atom = s_atom.model_copy(update={"human_override": existing_atom.human_override})
+                    updated_atoms[atom_id] = s_atom
+
+                new_step_states[step_id] = new_step_states[step_id].model_copy(
+                    update={"scorecard_atoms": updated_atoms}
+                )
+                modified_step_states = True
+
+        if modified_step_states:
+            execution = execution.model_copy(update={"step_states": new_step_states})
+            await self.exec_repo.update_execution(
+                execution.id, {"step_states": {k: v.model_dump(mode="json") for k, v in new_step_states.items()}}
+            )
 
         try:
             layouts_list = self._build_layouts(layout_defs, all_parsed_matrices, section_syntheses)

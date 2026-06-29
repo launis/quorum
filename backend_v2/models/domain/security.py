@@ -6,7 +6,9 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import Field, TypeAdapter
+
+from backend_v2.models.core_base import V2CoreBase
 
 _dict_adapter = TypeAdapter(dict[str, Any])
 
@@ -19,14 +21,14 @@ class SecurityPayloadDTO:
     before any iterative logic executes, satisfying the Phase 9 Zero-Compromise mandate.
 
     Attributes:
-        root: The underlying dictionary representing raw state inputs.
+        root: Raw state inputs.
     """
 
     def __init__(self, root: dict[str, Any]) -> None:
         """Initialize the DTO with the underlying dictionary.
 
         Args:
-            root: The underlying dictionary representing raw state inputs.
+            root: Raw state inputs.
         """
         self.root = root
 
@@ -35,29 +37,27 @@ class SecurityPayloadDTO:
         """Validate using strict Pydantic TypeAdapter.
 
         Args:
-            data: Arbitrary input data to validate as a dictionary.
+            data: Arbitrary input data to validate.
 
         Returns:
-            A validated SecurityPayloadDTO wrapping the dictionary.
+            A validated SecurityPayloadDTO.
 
         Raises:
-            ValidationError: If the input data is not a valid dictionary.
+            ValidationError: If validation fails.
         """
         validated = _dict_adapter.validate_python(data)
         return cls(root=validated)
 
 
-class SanitizationResultDTO(BaseModel):
+class SanitizationResultDTO(V2CoreBase):
     """Result payload for text sanitization.
 
     Attributes:
-        sanitized_inputs: Map of original keys to sanitized string values.
-        security_status: Overall string status description of the security check.
-        threat_detected: Boolean flag indicating if any threat was detected during sanitization.
+        sanitized_inputs: Original keys mapped to sanitized values.
+        security_status: Overall status of the security check.
+        threat_detected: Flag indicating if a threat was detected.
     """
 
     sanitized_inputs: dict[str, str] = Field(..., description="The inputs after sanitization")
     security_status: str = Field(..., min_length=1, description="Status of the security check")
     threat_detected: bool = Field(..., description="Whether a threat was detected")
-
-    model_config = ConfigDict(frozen=True, extra="forbid")

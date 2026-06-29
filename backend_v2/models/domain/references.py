@@ -2,7 +2,9 @@
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import ConfigDict, Field, TypeAdapter
+
+from backend_v2.models.core_base import V2CoreBase
 
 _dict_adapter = TypeAdapter(dict[str, Any])
 
@@ -22,7 +24,7 @@ class ReferencesInputsDTO:
         """Initialize the DTO with the underlying dictionary.
 
         Args:
-            root: The underlying dictionary containing the raw reference payload data.
+            root: The raw reference payload data.
         """
         self.root = root
 
@@ -31,19 +33,19 @@ class ReferencesInputsDTO:
         """Validate using strict Pydantic TypeAdapter.
 
         Args:
-            data: Arbitrary input data to validate as a dictionary.
+            data: Arbitrary input data to validate.
 
         Returns:
-            A validated ReferencesInputsDTO wrapping the dictionary.
+            A validated ReferencesInputsDTO.
 
         Raises:
-            ValidationError: If the input data is not a valid dictionary.
+            ValidationError: If validation fails.
         """
         validated = _dict_adapter.validate_python(data)
         return cls(root=validated)
 
 
-class ReferenceDTO(BaseModel):
+class ReferenceDTO(V2CoreBase):
     """Domain model for a single reference citation.
 
     Attributes:
@@ -61,7 +63,7 @@ class ReferenceDTO(BaseModel):
     url: str | None = Field(default=None)
 
 
-class ReferencesContextDTO(BaseModel):
+class ReferencesContextDTO(V2CoreBase):
     """Schema for safely parsing global_context_vars in Reference hook.
 
     Attributes:
@@ -75,7 +77,7 @@ class ReferencesContextDTO(BaseModel):
     knowledge_base: dict[str, Any] | None = None
 
 
-class BibliographyResultDTO(BaseModel):
+class BibliographyResultDTO(V2CoreBase):
     """Strict payload for injecting bibliography into state.
 
     Attributes:

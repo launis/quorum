@@ -3,9 +3,11 @@
 This module contains models related to evaluation matrices and structure validation.
 """
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
 from pydantic import Field, field_validator, model_validator
 
@@ -123,7 +125,7 @@ class EvaluationResult(ReasoningTrace):
         return v
 
     @model_validator(mode="after")
-    def validate_scores_range(self) -> EvaluationResult:
+    def validate_scores_range(self) -> Self:
         """Validate that scale_min is less than scale_max.
 
         Returns:
@@ -153,7 +155,7 @@ class ValidationResult(V2CoreBase):
     )
 
     @model_validator(mode="after")
-    def validate_logic(self) -> ValidationResult:
+    def validate_logic(self) -> Self:
         """Validate that invalid results contain errors.
 
         Returns:

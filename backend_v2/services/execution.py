@@ -36,6 +36,7 @@ from backend_v2.models.v2_core import (
     ExecutionStatus,
     ExecutionStepState,
     FrozenContext,
+    HumanOverrideRequest,
     PromptBlock,
     Step,
     Workflow,
@@ -59,6 +60,7 @@ def create_execution_record(
     workflow_id: str,
     raw_inputs: WorkflowInputs,
     frozen_context: FrozenContext,
+    source_identity_manifest: dict[str, str],
     **extra_persistence_fields: Any,
 ) -> ExecutionRecord:
     """Type-safe factory for ExecutionRecord creation.
@@ -85,6 +87,7 @@ def create_execution_record(
             workflow_id=workflow_id,
             raw_inputs=raw_inputs,
             frozen_context=frozen_context,
+            source_identity_manifest=source_identity_manifest,
             **extra_persistence_fields,
         )
     except ValidationError as e:
@@ -237,6 +240,14 @@ class ExecutionService:
         doc_service: DocumentExtractionService | None = None,
     ) -> ExecutionRecord:
         """Initialize and trigger workflow securely."""
+        # 1. O(1) Manifesti: Poimi alkuperäiset tiedostojen nimet (ja muut näyttönimet)
+        # ennen kuin Eager Extraction muuntaa ne pelkäksi tekstiksi.
+        source_identity_manifest: dict[str, str] = {}
+        if payload.raw_inputs and payload.raw_inputs.dynamic_inputs:
+            for k, v in payload.raw_inputs.dynamic_inputs.items():
+                if isinstance(v, dict) and "content_base64" in v:
+                    source_identity_manifest[k] = v.get("filename", "Tuntematon lähde")
+
         # EAGER EXTRACTION MUST HAPPEN HERE BEFORE DB COMMIT
         if doc_service and payload.raw_inputs:
             processed_ingress = await doc_service.process_ingress_payload(payload.raw_inputs)
@@ -295,6 +306,11 @@ class ExecutionService:
 
         # Strict Target Locale from Payload (Fail-Fast)
         target_locale = payload.target_locale
+
+        # 2. O(1) Manifesti: Täytä puuttuvat lähteet workflow schema labelilla
+        for expected in workflow.expected_inputs:
+            if expected.input_key not in source_identity_manifest:
+                source_identity_manifest[expected.input_key] = expected.label.resolve(target_locale)
 
         # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
         ui_hints: dict[str, DataDictionaryField] = {}
@@ -407,6 +423,7 @@ class ExecutionService:
             workflow_id=workflow.id,
             raw_inputs=WorkflowInputs.model_validate(payload.raw_inputs.model_dump(exclude_unset=True)),
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
+            source_identity_manifest=source_identity_manifest,
             output_profile_id=resolved_profile_id,
             step_states=step_states,
             metadata={
@@ -597,6 +614,93 @@ class ExecutionService:
             "[ExecutionService] Cleared profile synthesis",
             extra={"execution_id": execution_id, "profile_id": profile_id},
         )
+
+    async def override_atom(
+        self,
+        initiator: TokenData,
+        execution_id: str,
+        atom_id: str,
+        payload: HumanOverrideRequest,
+    ) -> None:
+        """Apply a human override to a specific ScorecardAtomDTO."""
+        record = await self.get_execution(initiator, execution_id)
+
+        # SSOT MANDATE: Tenant Isolation Check
+        org_id = getattr(initiator, "organization_id", None)
+        if initiator.role != "ROOT" and record.organization_id != org_id and record.created_by != initiator.id:
+            msg = "You do not have permission to modify this execution."
+            raise PermissionDeniedError(msg)
+
+        found_step_id = None
+        for step_id, state in record.step_states.items():
+            if atom_id in state.scorecard_atoms:
+                found_step_id = step_id
+                break
+
+        if not found_step_id:
+            raise AppException(f"Atom '{atom_id}' not found in any step_states", status_code=404)
+
+        from datetime import datetime, timezone
+
+        from backend_v2.models.v2_core import HumanOverrideDTO
+
+        override_dto = HumanOverrideDTO(
+            new_status=payload.new_status,
+            reason=payload.reason,
+            evidence_quotes=payload.evidence_quotes,
+            overridden_by=initiator.id,
+            overridden_at=datetime.now(timezone.utc),
+        )
+
+        # Compliantly update the scorecard_atoms and step_states of frozen models
+        updated_atoms = dict(record.step_states[found_step_id].scorecard_atoms)
+        updated_atoms[atom_id] = updated_atoms[atom_id].model_copy(update={"human_override": override_dto})
+
+        new_step_states = dict(record.step_states)
+        new_step_states[found_step_id] = new_step_states[found_step_id].model_copy(
+            update={"scorecard_atoms": updated_atoms}
+        )
+
+        record = record.model_copy(update={"step_states": new_step_states})
+
+        for _k, v in record.context_variables.items():
+            if isinstance(v, dict) and "evaluated_atoms" in v:
+                if atom_id in v["evaluated_atoms"]:
+                    v["evaluated_atoms"][atom_id] = payload.new_status
+                    if "raw_atoms" in v and isinstance(v["raw_atoms"], list):
+                        for ra in v["raw_atoms"]:
+                            if ra.get("tda_id") == atom_id or ra.get("atom_id") == atom_id:
+                                ra["human_override"] = payload.new_status
+
+        from typing import cast
+
+        from backend_v2.core.hook_registry import HookDependencies
+        from backend_v2.hooks.scoring import recalculate
+
+        deps = HookDependencies(
+            exec_repo=self.exec_repo,
+            workflow_repo=self.workflow_repo,
+            comp_repo=self.comp_repo,
+            identity_repo=self.identity_repo,
+            audit_repo=cast(Any, None),
+            system_repo=self.system_repo,
+        )
+        await recalculate(record.context_variables, record.active_profile_id, deps)
+
+        update_payload = {
+            "step_states": {k: v.model_dump(mode="json") for k, v in record.step_states.items()},
+            "context_variables": record.context_variables,
+        }
+        await self.exec_repo.update_execution(execution_id, update_payload)
+
+        from backend_v2.models.state import TraceEvent
+
+        event = TraceEvent(
+            step_name="manual_override",
+            event_type="evidence_override",
+            content={"atom_id": atom_id, "override": override_dto.model_dump(mode="json")},
+        )
+        await self.exec_repo.append_trace_event(execution_id, event.model_dump(mode="json"))
 
     async def reject_evidence_quote(self, initiator: TokenData, execution_id: str, evq_id: str, reason: str) -> None:
         """Reject an evidence quote and append the event to the execution trace."""

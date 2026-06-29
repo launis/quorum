@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
@@ -116,7 +116,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
             Mutated dictionary with compliance_score.
 
         Raises:
-            ValueError: If compliance_analysis is invalid.
+            AppException: If compliance_analysis is invalid (ErrorCodes.VALIDATION_FAILED).
         """
         if isinstance(data, dict):
             # Map Literal to Score
@@ -134,7 +134,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
                 # STRICT VALIDATION: No fallback allowed.
                 msg = f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}"
                 logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise ValueError(msg)
+                raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
             if val and "compliance_score" not in data:
                 data["compliance_score"] = mapping[val]

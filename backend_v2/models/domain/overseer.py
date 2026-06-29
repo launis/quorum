@@ -10,6 +10,7 @@ import logging
 
 from pydantic import Field, computed_field, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -71,16 +72,18 @@ class FactCheckRFI(V2CoreBase):
         """Validate that the string is not empty or whitespace only.
 
         Args:
-            v: The string value to validate.
+            v: The value to validate.
 
         Returns:
             The stripped string.
 
         Raises:
-            ValueError: If the string is empty or whitespace only.
+            AppException: If the string is empty or whitespace only.
         """
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty")
+            msg = "Field cannot be empty"
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
@@ -121,16 +124,18 @@ class EthicalObservation(V2CoreBase):
         """Validate that the string is not empty or whitespace only.
 
         Args:
-            v: The string value to validate.
+            v: The value to validate.
 
         Returns:
             The stripped string.
 
         Raises:
-            ValueError: If the string is empty or whitespace only.
+            AppException: If the string is empty or whitespace only.
         """
         if not v or not v.strip():
-            raise ValueError("Field cannot be empty")
+            msg = "Field cannot be empty"
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
@@ -171,10 +176,12 @@ class OverseerData(V2CoreBase):
             The validated list.
 
         Raises:
-            ValueError: If the list is empty.
+            AppException: If the list is empty.
         """
         if not v:
-            raise ValueError("Ethical issues list cannot be empty")
+            msg = "Ethical issues list cannot be empty"
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 

@@ -12,6 +12,9 @@ class V2CoreBase(BaseModel):
     This model serves as the foundational class for all V2 DTOs and models,
     guaranteeing strict validation, forbidding extra fields, and enforcing
     immutability.
+
+    Attributes:
+        model_config (ConfigDict): Pydantic configuration dictionary.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

@@ -6,9 +6,15 @@ This module defines clean Pydantic DTO models supporting structured, layered pro
 packaging designed to optimize Anthropic/OpenAI prompt cache hit ratios.
 """
 
+import logging
 from typing import Any, Self
 
+from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 
 class CompiledPrompt(BaseModel):
@@ -44,13 +50,19 @@ class CompiledPrompt(BaseModel):
         Violating this would silently contaminate the cache with per-chunk system content.
 
         Raises:
-            ValueError: If 'system' role is found in dynamic_messages.
+            AppException: If 'system' role is found in dynamic_messages.
         """
         for msg in self.dynamic_messages:
             if msg.get("role") == "system":
-                raise ValueError(
+                msg_text = (
                     "ARCHITECTURE VIOLATION: 'system' role forbidden in dynamic_messages. "
                     "System instructions must be in static_messages for caching integrity."
+                )
+                logger.error("[CompiledPrompt] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg_text, exc_info=True)
+                raise AppException(
+                    message=msg_text,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
         return self
 

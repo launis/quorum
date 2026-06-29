@@ -59,6 +59,7 @@ class ReportRendererWidget extends ConsumerWidget {
           evaluativeMatrices: payload.evaluativeMatrices,
           informationalMatrices: payload.informationalMatrices,
           visibleColumns: payload.matrixVisibleColumns,
+          executionId: executionId,
         ),
 
         // XAI Evidence Box — only renders when MCP tool searches were executed

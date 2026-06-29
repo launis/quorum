@@ -4,9 +4,15 @@ Provides strict Pydantic V2 validation schemas for the metrics hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
 
+import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import ConfigDict, Field, TypeAdapter, field_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+
+logger = logging.getLogger(__name__)
 
 _dict_adapter = TypeAdapter(dict[str, Any])
 
@@ -47,7 +53,7 @@ class MetricsPayloadDTO:
         return cls(root=validated)
 
 
-class TextMetricsDTO(BaseModel):
+class TextMetricsDTO(V2CoreBase):
     """Core text metrics.
 
     Attributes:
@@ -61,15 +67,42 @@ class TextMetricsDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    word_count: int = Field(ge=0)
-    sentence_count: int = Field(ge=0)
-    avg_sentence_length: float = Field(ge=0.0)
-    lexical_diversity: float = Field(ge=0.0)
-    capitalization_ratio: float = Field(ge=0.0)
-    control_ratio: float = Field(ge=0.0)
+    word_count: int = Field(default=0)
+    sentence_count: int = Field(default=0)
+    avg_sentence_length: float = Field(default=0.0)
+    lexical_diversity: float = Field(default=0.0)
+    capitalization_ratio: float = Field(default=0.0)
+    control_ratio: float = Field(default=0.0)
+
+    @field_validator(
+        "word_count",
+        "sentence_count",
+        "avg_sentence_length",
+        "lexical_diversity",
+        "capitalization_ratio",
+        "control_ratio",
+    )
+    @classmethod
+    def validate_non_negative(cls, v: int | float) -> int | float:
+        """Enforce non-negative limits locally to bypass Vertex AI constraint errors.
+
+        Args:
+            v: The numeric value.
+
+        Returns:
+            The validated non-negative value.
+
+        Raises:
+            AppException: If value is negative.
+        """
+        if v < 0:
+            msg = f"Text metric must be >= 0, got {v}"
+            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v
 
 
-class BehavioralMetricsDTO(BaseModel):
+class BehavioralMetricsDTO(V2CoreBase):
     """Behavioral heuristics.
 
     Attributes:
@@ -81,13 +114,38 @@ class BehavioralMetricsDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    say_do_gap: float = Field(ge=0.0)
-    automation_bias: float = Field(ge=0.0)
-    illusion_of_competence: float = Field(ge=0.0)
-    imperative_command_count: int = Field(ge=0)
+    say_do_gap: float = Field(default=0.0)
+    automation_bias: float = Field(default=0.0)
+    illusion_of_competence: float = Field(default=0.0)
+    imperative_command_count: int = Field(default=0)
+
+    @field_validator(
+        "say_do_gap",
+        "automation_bias",
+        "illusion_of_competence",
+        "imperative_command_count",
+    )
+    @classmethod
+    def validate_non_negative(cls, v: int | float) -> int | float:
+        """Enforce non-negative limits locally to bypass Vertex AI constraint errors.
+
+        Args:
+            v: The numeric value.
+
+        Returns:
+            The validated non-negative value.
+
+        Raises:
+            AppException: If value is negative.
+        """
+        if v < 0:
+            msg = f"Behavioral metric must be >= 0, got {v}"
+            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v
 
 
-class ProfilerMetricsDTO(BaseModel):
+class ProfilerMetricsDTO(V2CoreBase):
     """Combined metrics for profiler state injection.
 
     Attributes:
@@ -105,13 +163,44 @@ class ProfilerMetricsDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    word_count: int = Field(ge=0)
-    sentence_count: int = Field(ge=0)
-    avg_sentence_length: float = Field(ge=0.0)
-    lexical_diversity: float = Field(ge=0.0)
-    capitalization_ratio: float = Field(ge=0.0)
-    control_ratio: float = Field(ge=0.0)
-    say_do_gap: float = Field(ge=0.0)
-    automation_bias: float = Field(ge=0.0)
-    illusion_of_competence: float = Field(ge=0.0)
-    imperative_command_count: int = Field(ge=0)
+    word_count: int = Field(default=0)
+    sentence_count: int = Field(default=0)
+    avg_sentence_length: float = Field(default=0.0)
+    lexical_diversity: float = Field(default=0.0)
+    capitalization_ratio: float = Field(default=0.0)
+    control_ratio: float = Field(default=0.0)
+    say_do_gap: float = Field(default=0.0)
+    automation_bias: float = Field(default=0.0)
+    illusion_of_competence: float = Field(default=0.0)
+    imperative_command_count: int = Field(default=0)
+
+    @field_validator(
+        "word_count",
+        "sentence_count",
+        "avg_sentence_length",
+        "lexical_diversity",
+        "capitalization_ratio",
+        "control_ratio",
+        "say_do_gap",
+        "automation_bias",
+        "illusion_of_competence",
+        "imperative_command_count",
+    )
+    @classmethod
+    def validate_non_negative(cls, v: int | float) -> int | float:
+        """Enforce non-negative limits locally to bypass Vertex AI constraint errors.
+
+        Args:
+            v: The numeric value.
+
+        Returns:
+            The validated non-negative value.
+
+        Raises:
+            AppException: If value is negative.
+        """
+        if v < 0:
+            msg = f"Profiler metric must be >= 0, got {v}"
+            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v

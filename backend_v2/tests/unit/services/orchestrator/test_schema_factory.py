@@ -144,7 +144,7 @@ def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFac
     valid_data = {
         "rule_internalization": "Criteria require checking X.",
         "source_document_ids": ["doc_a"],
-        "exact_quotes": ["quote"],
+        "exact_quotes": [{"text": "quote", "source_alias": "N/A"}],
         "reasoning_steps": "1) R requires X. 2) T has Y. 3) F.",
         "falsification_argument": "None",
         "decision": True,

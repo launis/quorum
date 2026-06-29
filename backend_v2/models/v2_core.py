@@ -13,12 +13,14 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast  # noqa: F401
 if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
+from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEvidenceDTO
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
@@ -73,6 +75,8 @@ __all__ = [
     "TDAAssertion",
     "MatrixClaim",
     "BaseTDAExtraction",
+    "HumanOverrideRequest",
+    "HumanOverrideDTO",
     "ScorecardAtomDTO",
 ]
 
@@ -98,7 +102,7 @@ class I18nText(V2CoreBase):
         to be added as needed.
 
         Raises:
-            ValueError: If the English translation is missing or empty.
+            AppException: If the English translation is missing or empty.
 
         Returns:
             The validated I18nText instance.
@@ -110,7 +114,12 @@ class I18nText(V2CoreBase):
                 "I18nText must contain a valid English ('en') translation as a baseline fallback. "
                 f"Payload: {self.translations}"
             )
-            raise ValueError(msg)
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
 
         if self.default_locale not in self.translations or not self.translations.get(self.default_locale):
             logger.warning(
@@ -266,22 +275,26 @@ class TDAAssertion(V2CoreBase):
         """Validates the consistency of the assertion constraints.
 
         Raises:
-            ValueError: If constraints are mathematically or logically invalid.
+            AppException: If constraints are mathematically or logically invalid.
 
         Returns:
             The validated assertion.
         """
         if self.inverse_evidence and self.aggregation_mode == "ALL_MUST_COMPLY":
-            raise ValueError("Käänteinen sääntö (myrkyn etsintä) vaatii EHDOTTOMASTI 'EXISTS' -aggregaation...")
+            msg = "Käänteinen sääntö (myrkyn etsintä) vaatii EHDOTTOMASTI 'EXISTS' -aggregaation..."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise ValueError(msg)
 
         # Phase 1, Milestone 1: Enforce strict dual-track TDA validations
         if self.evaluation_track == "EXTRACTIVE_SENSOR":
             if not self.facts_to_find:
-                raise ValueError("EXTRACTIVE_SENSOR -rata vaatii vähintään yhden haettavan faktan (facts_to_find).")
+                msg = "EXTRACTIVE_SENSOR -rata vaatii vähintään yhden haettavan faktan (facts_to_find)."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
             if not self.logical_expression or not self.logical_expression.strip():
-                raise ValueError(
-                    "EXTRACTIVE_SENSOR -rata vaatii määrittämään loogisen lausekkeen (logical_expression)."
-                )
+                msg = "EXTRACTIVE_SENSOR -rata vaatii määrittämään loogisen lausekkeen (logical_expression)."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
         return self
 
 
@@ -427,7 +440,7 @@ class PromptBlock(V2CoreBase):
             data: Unvalidated dictionary input mapping.
 
         Raises:
-            ValueError: If structure is malformed or internally inconsistent.
+            AppException: If structure is malformed or internally inconsistent.
 
         Returns:
             The sanitized dictionary matching schema expectations.
@@ -456,6 +469,7 @@ class PromptBlock(V2CoreBase):
         valid_numeric = ["float", "int", "string", BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
         if allow_decimals and block_type not in valid_numeric:
             msg = f"PromptBlock '{block_id}': allow_decimals is only valid for numeric logic."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
 
         if scales is not None:
@@ -467,12 +481,14 @@ class PromptBlock(V2CoreBase):
                         f"PromptBlock '{block_id}': scale_max ({scale_max}) "
                         f"on oltava suurempi kuin scale_min ({scale_min})."
                     )
+                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise ValueError(msg)
             if len(scales) == 0:
                 msg = (
                     f"PromptBlock '{block_id}': Jos scales on valittu käyttöön, "
                     "siellä on pakko olla vähintään yksi MatrixScale (len > 0)."
                 )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             for scale in scales:
                 claims = scale.get("claims") if isinstance(scale, dict) else getattr(scale, "claims", None)
@@ -497,6 +513,7 @@ class PromptBlock(V2CoreBase):
                     f"PromptBlock '{block_id}': Kun category_id on 'matrix', "
                     "computed_min ja computed_max on pakko pystyä laskemaan (scales-taulukosta)."
                 )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
 
         return data
@@ -708,7 +725,7 @@ class Step(V2CoreBase):
         """Strict fail-fast validation to ensure Step is structurally complete.
 
         Raises:
-            ValueError: If structure is malformed or internally inconsistent.
+            AppException: If structure is malformed or internally inconsistent.
 
         Returns:
             The sanitized Step matching schema expectations.
@@ -716,15 +733,19 @@ class Step(V2CoreBase):
         if self.type == "llm":
             if not self.model_strategy:
                 msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if not self.criteria_block_ids:
                 msg = f"LLM Step '{self.slug}' must define at least one criteria_block_id."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if not self.extraction_protocol_block_id:
                 msg = f"LLM Step '{self.slug}' must define a valid extraction_protocol_block_id."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         if self.type == "logic" and not self.hook:
             msg = f"Logic Step '{self.slug}' must define a native 'hook' execution target."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return self
 
@@ -812,17 +833,21 @@ class ExpectedInput(V2CoreBase):
         """
         if not self.input_modes:
             msg = f"ExpectedInput '{self.input_key}' must have at least one input_mode."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
 
         if "questionnaire" in self.input_modes:
             if self.is_chat_history:
                 msg = f"ExpectedInput '{self.input_key}' cannot use 'questionnaire' mode when flagged as chat history."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if len(self.input_modes) > 1:
                 msg = f"ExpectedInput '{self.input_key}' cannot mix 'questionnaire' with other input modes."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if not self.questionnaire_definition:
                 msg = f"ExpectedInput '{self.input_key}' uses 'questionnaire' mode but lacks definitions."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         else:
             if self.questionnaire_definition:
@@ -830,9 +855,30 @@ class ExpectedInput(V2CoreBase):
                     f"ExpectedInput '{self.input_key}' cannot have questionnaire_definition "
                     "when 'questionnaire' mode is not active."
                 )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
 
         return self
+
+
+class HumanOverrideRequest(V2CoreBase):
+    """Payload for human override requests."""
+
+    new_status: str = Field(description="The overridden status (e.g., TRUE, FALSE, DLQ).")
+    reason: str = Field(description="The reason for the override.")
+    evidence_quotes: list[QuoteEvidenceDTO] = Field(
+        default_factory=list, description="Selected quotes to support the override."
+    )
+
+
+class HumanOverrideDTO(V2CoreBase):
+    """Schema for human-initiated state override."""
+
+    new_status: str = Field(description="The overridden status (e.g., TRUE, FALSE, DLQ).")
+    reason: str = Field(description="The reason for the override.")
+    evidence_quotes: list[QuoteEvidenceDTO] = Field(description="Selected quotes to support the override.")
+    overridden_by: str = Field(description="User ID who performed the override.")
+    overridden_at: datetime = Field(description="Timestamp of the override.")
 
 
 class ScorecardAtomDTO(V2CoreBase):
@@ -845,12 +891,13 @@ class ScorecardAtomDTO(V2CoreBase):
     level_name: str
     claim_label: str
     extracted_facts: dict[str, str | None]
-    exact_quotes: list[str]
+    exact_quotes: list[QuoteEvidenceDTO]
     internal_logic_en: ReasoningStepDTO
     status: str | None
     semantic_reasoning: str
     contextual_override: bool
     structural_location: str
+    human_override: HumanOverrideDTO | None = None
 
 
 class MatrixScorecardRowDTO(V2CoreBase):
@@ -1200,7 +1247,7 @@ class Workflow(V2CoreBase):
         """Enforces Directed Acyclic Graph (DAG) structural integrity.
 
         Raises:
-            ValueError: If structure is malformed or internally inconsistent.
+            AppException: If structure is malformed or internally inconsistent.
 
         Returns:
             The sanitized Workflow matching schema expectations.
@@ -1213,7 +1260,7 @@ class Workflow(V2CoreBase):
             for dep in step.depends_on:
                 if dep not in step_ids:
                     msg = f"Step '{step.id}' depends on '{dep}', which does not exist in this workflow."
-                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise ValueError(msg)
                 graph[step.id].append(dep)
 
@@ -1242,7 +1289,7 @@ class Workflow(V2CoreBase):
                         f"Circular dependency detected involving step '{node}'. "
                         "Workflows must be strict Directed Acyclic Graphs (DAG)."
                     )
-                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise ValueError(msg)
 
         return self
@@ -1296,6 +1343,9 @@ class ExecutionStepState(V2CoreBase):
     status: str = Field(default="pending", description="Status: pending, running, completed, failed")
     last_error: str | None = Field(default=None, description="Error message if the step failed")
     message_code: str | None = Field(default=None, description="Optional UX message code for SSE")
+    scorecard_atoms: dict[str, ScorecardAtomDTO] = Field(
+        default_factory=dict, description="Presentation atoms including potential human overrides."
+    )
 
 
 class RenderedSynthesisCache(V2CoreBase):
@@ -1350,6 +1400,9 @@ class ExecutionRecord(ExecutionCoreFields):
     profile_syntheses: dict[str, RenderedSynthesisCache] = Field(
         default_factory=dict, description="Multi-profile synthesis caching"
     )
+    source_identity_manifest: dict[str, str] = Field(
+        default_factory=dict, description="O(1) Snapshot mapping Opaque ID to Display Name for inputs."
+    )
     is_resumable: bool = Field(
         default=False, description="Dynamic flag indicating if a failed/pending execution can be safely resumed."
     )
@@ -1403,7 +1456,7 @@ class BaseTDAExtraction(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    exact_quotes: list[str] = Field(
+    exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,
         max_length=3,
         description="List of verbatim quotes from original text.",
@@ -1420,7 +1473,7 @@ class BaseTDAExtraction(BaseModel):
         """Validates the consistency of the extraction rules before hydration.
 
         Raises:
-            ValueError: If structure is malformed or internally inconsistent.
+            AppException: If structure is malformed or internally inconsistent.
 
         Returns:
             The sanitized data matching schema expectations.
@@ -1436,9 +1489,20 @@ class BaseTDAExtraction(BaseModel):
         if is_override:
             data["exact_quotes"] = []
         else:
-            if isinstance(quotes, list) and any(q == "[CONTEXTUAL_OVERRIDE_APPLIED]" for q in quotes):
-                raise ValueError(
-                    "Cross-validation failed: exact_quotes cannot contain "
-                    "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
-                )
+            if isinstance(quotes, list):
+                for q in quotes:
+                    if isinstance(q, str) and q == "[CONTEXTUAL_OVERRIDE_APPLIED]":
+                        msg = (
+                            "Cross-validation failed: exact_quotes cannot contain "
+                            "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
+                        )
+                        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                        raise ValueError(msg)
+                    elif isinstance(q, dict) and q.get("text") == "[CONTEXTUAL_OVERRIDE_APPLIED]":
+                        msg = (
+                            "Cross-validation failed: exact_quotes cannot contain "
+                            "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
+                        )
+                        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                        raise ValueError(msg)
         return data

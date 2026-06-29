@@ -7,13 +7,14 @@ including input validation and security check results.
 from __future__ import annotations
 
 import logging
+from typing import Self
 
 from pydantic import Field, ValidationInfo, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
-from backend_v2.models.enums import RiskLevel, SimulationType
+from backend_v2.models.enums import LaxRiskLevel, LaxSimulationType
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class GuardInput(V2CoreBase):
     last_reasoning_trace: str | None = Field(default=None, json_schema_extra={"x-ui-label": "Last Reasoning Trace"})
 
     @model_validator(mode="after")
-    def validate_banned_phrases(self, info: ValidationInfo) -> GuardInput:
+    def validate_banned_phrases(self, info: ValidationInfo) -> Self:
         """Validates that no banned phrases are present in the input.
 
         Args:
@@ -128,7 +129,7 @@ class SecurityCheck(V2CoreBase):
         description="Threat detected flag.",
         json_schema_extra={"x-ui-label": "Threat Detected"},
     )
-    risk_level: RiskLevel = Field(
+    risk_level: LaxRiskLevel = Field(
         ...,
         description="Risk level.",
         json_schema_extra={"x-ui-label": "Risk Level"},
@@ -164,7 +165,7 @@ class SecurityCheck(V2CoreBase):
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
-    simulation_result: SimulationType | None = Field(
+    simulation_result: LaxSimulationType | None = Field(
         default=None,
         description="Simulation result description.",
         json_schema_extra={"x-ui-label": "Simulation Result"},

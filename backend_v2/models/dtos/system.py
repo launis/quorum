@@ -43,3 +43,25 @@ class ClientErrorPayload(BaseDTO):
     stack_trace: Annotated[str | None, Field(description="The Dart stack trace lines")] = None
     severity: Annotated[str, Field(description="Severity level, usually 'error' or 'fatal'")] = "error"
     context_data: Annotated[dict[str, Any], Field(default_factory=dict, description="Additional context or state dump")]
+
+
+class StrictnessConfigDTO(BaseDTO):
+    """Schema for strictness level configuration.
+
+    Attributes:
+        level: The integer level of strictness.
+        localization_key: The UI key for translation.
+    """
+
+    level: int
+    localization_key: str
+
+
+class StrictnessConfigListResponse(BaseResponseDTO):
+    """Schema for returning a list of strictness configurations.
+
+    Attributes:
+        configs: The list of configs.
+    """
+
+    configs: list[StrictnessConfigDTO]

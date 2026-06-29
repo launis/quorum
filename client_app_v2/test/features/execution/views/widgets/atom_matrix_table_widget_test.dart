@@ -43,6 +43,7 @@ void main() {
                   'normalized_score',
                   'distribution',
                 ],
+                executionId: 'test_execution_1',
               ),
             ),
           ),
@@ -94,6 +95,7 @@ void main() {
                     'normalized_score',
                     'distribution',
                   ],
+                  executionId: 'test_execution_1',
                 ),
               ),
             ),
@@ -143,6 +145,7 @@ void main() {
                   'normalized_score',
                   'distribution',
                 ],
+                executionId: 'test_execution_1',
               ),
             ),
           ),
@@ -153,6 +156,89 @@ void main() {
       expect(find.byType(AtomMatrixTableWidget), findsOneWidget);
       expect(find.byType(DataTable), findsNothing);
       expect(find.byType(ListView), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'AtomMatrixTableWidget renders Human Override Box instead of AI Box when overridden',
+    (WidgetTester tester) async {
+      final matrices = [
+        const MatrixScorecardRowDto(
+          blockId: 'block_override',
+          labelI18n: I18nText(
+            translations: {'fi': 'Override', 'en': 'Override'},
+          ),
+          name: 'Override',
+          score: 0.0,
+          scaleMax: 5.0,
+          trueAtoms: 0,
+          totalAtoms: 1,
+          levelBreakdown: {'1': '0 / 1'},
+          evaluatedAtoms: [
+            ScorecardAtomDto(
+              atomId: 'atom_1',
+              level: 1,
+              levelName: 'T1',
+              claimLabel: 'Claim test',
+              extractedFacts: {},
+              exactQuotes: [
+                QuoteEvidenceDto(
+                  sourceId: 'doc_1',
+                  displayName: 'DOC-1',
+                  quoteText: 'AI says FAIL',
+                ),
+              ],
+              internalLogicEn: ReasoningStepDto(
+                step1IdentifyPremise: '',
+                step2ScanSource: '',
+                step3EvaluateAntiPatterns: '',
+                step4FinalConclusion: '',
+              ),
+              status: 'FAIL',
+              semanticReasoning: 'AI reasoning',
+              contextualOverride: false,
+              structuralLocation: '',
+              humanOverride: HumanOverrideDto(
+                newStatus: 'PASS',
+                reason: 'Human thinks it is PASS',
+                evidenceQuotes: [
+                  QuoteEvidenceDto(
+                    sourceId: 'manual',
+                    displayName: 'MANUAL',
+                    quoteText: 'Human evidence',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: MediaQuery(
+              data: const MediaQueryData(size: Size(800, 600)),
+              child: Scaffold(
+                body: AtomMatrixTableWidget(
+                  matrices: matrices,
+                  visibleColumns: const ['quotes'],
+                  executionId: 'test_execution_1',
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('👨‍⚖️ Ihmisen päätös (EU AI Act)'), findsOneWidget);
+      expect(find.textContaining('Human thinks it is PASS'), findsOneWidget);
+      expect(find.byType(RichText), findsWidgets);
     },
   );
 }

@@ -1278,9 +1278,525 @@ as String,
 
 
 /// @nodoc
+mixin _$QuoteEvidenceDto {
+
+@JsonKey(name: 'quote_text') String get quoteText;@JsonKey(name: 'source_id') String? get sourceId;@JsonKey(name: 'display_name') String? get displayName;
+/// Create a copy of QuoteEvidenceDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$QuoteEvidenceDtoCopyWith<QuoteEvidenceDto> get copyWith => _$QuoteEvidenceDtoCopyWithImpl<QuoteEvidenceDto>(this as QuoteEvidenceDto, _$identity);
+
+  /// Serializes this QuoteEvidenceDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+
+
+@override
+String toString() {
+  return 'QuoteEvidenceDto(quoteText: $quoteText, sourceId: $sourceId, displayName: $displayName)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $QuoteEvidenceDtoCopyWith<$Res>  {
+  factory $QuoteEvidenceDtoCopyWith(QuoteEvidenceDto value, $Res Function(QuoteEvidenceDto) _then) = _$QuoteEvidenceDtoCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'quote_text') String quoteText,@JsonKey(name: 'source_id') String? sourceId,@JsonKey(name: 'display_name') String? displayName
+});
+
+
+
+
+}
+/// @nodoc
+class _$QuoteEvidenceDtoCopyWithImpl<$Res>
+    implements $QuoteEvidenceDtoCopyWith<$Res> {
+  _$QuoteEvidenceDtoCopyWithImpl(this._self, this._then);
+
+  final QuoteEvidenceDto _self;
+  final $Res Function(QuoteEvidenceDto) _then;
+
+/// Create a copy of QuoteEvidenceDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? quoteText = null,Object? sourceId = freezed,Object? displayName = freezed,}) {
+  return _then(_self.copyWith(
+quoteText: null == quoteText ? _self.quoteText : quoteText // ignore: cast_nullable_to_non_nullable
+as String,sourceId: freezed == sourceId ? _self.sourceId : sourceId // ignore: cast_nullable_to_non_nullable
+as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [QuoteEvidenceDto].
+extension QuoteEvidenceDtoPatterns on QuoteEvidenceDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _QuoteEvidenceDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _QuoteEvidenceDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _QuoteEvidenceDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _QuoteEvidenceDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _QuoteEvidenceDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _QuoteEvidenceDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'quote_text')  String quoteText, @JsonKey(name: 'source_id')  String? sourceId, @JsonKey(name: 'display_name')  String? displayName)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _QuoteEvidenceDto() when $default != null:
+return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'quote_text')  String quoteText, @JsonKey(name: 'source_id')  String? sourceId, @JsonKey(name: 'display_name')  String? displayName)  $default,) {final _that = this;
+switch (_that) {
+case _QuoteEvidenceDto():
+return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'quote_text')  String quoteText, @JsonKey(name: 'source_id')  String? sourceId, @JsonKey(name: 'display_name')  String? displayName)?  $default,) {final _that = this;
+switch (_that) {
+case _QuoteEvidenceDto() when $default != null:
+return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _QuoteEvidenceDto implements QuoteEvidenceDto {
+  const _QuoteEvidenceDto({@JsonKey(name: 'quote_text') required this.quoteText, @JsonKey(name: 'source_id') this.sourceId, @JsonKey(name: 'display_name') this.displayName});
+  factory _QuoteEvidenceDto.fromJson(Map<String, dynamic> json) => _$QuoteEvidenceDtoFromJson(json);
+
+@override@JsonKey(name: 'quote_text') final  String quoteText;
+@override@JsonKey(name: 'source_id') final  String? sourceId;
+@override@JsonKey(name: 'display_name') final  String? displayName;
+
+/// Create a copy of QuoteEvidenceDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$QuoteEvidenceDtoCopyWith<_QuoteEvidenceDto> get copyWith => __$QuoteEvidenceDtoCopyWithImpl<_QuoteEvidenceDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$QuoteEvidenceDtoToJson(this, );
+}
+
+
+
+@override
+String toString() {
+  return 'QuoteEvidenceDto(quoteText: $quoteText, sourceId: $sourceId, displayName: $displayName)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$QuoteEvidenceDtoCopyWith<$Res> implements $QuoteEvidenceDtoCopyWith<$Res> {
+  factory _$QuoteEvidenceDtoCopyWith(_QuoteEvidenceDto value, $Res Function(_QuoteEvidenceDto) _then) = __$QuoteEvidenceDtoCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'quote_text') String quoteText,@JsonKey(name: 'source_id') String? sourceId,@JsonKey(name: 'display_name') String? displayName
+});
+
+
+
+
+}
+/// @nodoc
+class __$QuoteEvidenceDtoCopyWithImpl<$Res>
+    implements _$QuoteEvidenceDtoCopyWith<$Res> {
+  __$QuoteEvidenceDtoCopyWithImpl(this._self, this._then);
+
+  final _QuoteEvidenceDto _self;
+  final $Res Function(_QuoteEvidenceDto) _then;
+
+/// Create a copy of QuoteEvidenceDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? quoteText = null,Object? sourceId = freezed,Object? displayName = freezed,}) {
+  return _then(_QuoteEvidenceDto(
+quoteText: null == quoteText ? _self.quoteText : quoteText // ignore: cast_nullable_to_non_nullable
+as String,sourceId: freezed == sourceId ? _self.sourceId : sourceId // ignore: cast_nullable_to_non_nullable
+as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$HumanOverrideDto {
+
+@JsonKey(name: 'new_status') String get newStatus; String get reason;@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> get evidenceQuotes;
+/// Create a copy of HumanOverrideDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$HumanOverrideDtoCopyWith<HumanOverrideDto> get copyWith => _$HumanOverrideDtoCopyWithImpl<HumanOverrideDto>(this as HumanOverrideDto, _$identity);
+
+  /// Serializes this HumanOverrideDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+
+
+@override
+String toString() {
+  return 'HumanOverrideDto(newStatus: $newStatus, reason: $reason, evidenceQuotes: $evidenceQuotes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $HumanOverrideDtoCopyWith<$Res>  {
+  factory $HumanOverrideDtoCopyWith(HumanOverrideDto value, $Res Function(HumanOverrideDto) _then) = _$HumanOverrideDtoCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'new_status') String newStatus, String reason,@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> evidenceQuotes
+});
+
+
+
+
+}
+/// @nodoc
+class _$HumanOverrideDtoCopyWithImpl<$Res>
+    implements $HumanOverrideDtoCopyWith<$Res> {
+  _$HumanOverrideDtoCopyWithImpl(this._self, this._then);
+
+  final HumanOverrideDto _self;
+  final $Res Function(HumanOverrideDto) _then;
+
+/// Create a copy of HumanOverrideDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? newStatus = null,Object? reason = null,Object? evidenceQuotes = null,}) {
+  return _then(_self.copyWith(
+newStatus: null == newStatus ? _self.newStatus : newStatus // ignore: cast_nullable_to_non_nullable
+as String,reason: null == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
+as String,evidenceQuotes: null == evidenceQuotes ? _self.evidenceQuotes : evidenceQuotes // ignore: cast_nullable_to_non_nullable
+as List<QuoteEvidenceDto>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [HumanOverrideDto].
+extension HumanOverrideDtoPatterns on HumanOverrideDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _HumanOverrideDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _HumanOverrideDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _HumanOverrideDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _HumanOverrideDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _HumanOverrideDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _HumanOverrideDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _HumanOverrideDto() when $default != null:
+return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes)  $default,) {final _that = this;
+switch (_that) {
+case _HumanOverrideDto():
+return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes)?  $default,) {final _that = this;
+switch (_that) {
+case _HumanOverrideDto() when $default != null:
+return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _HumanOverrideDto implements HumanOverrideDto {
+  const _HumanOverrideDto({@JsonKey(name: 'new_status') required this.newStatus, required this.reason, @JsonKey(name: 'evidence_quotes') required final  List<QuoteEvidenceDto> evidenceQuotes}): _evidenceQuotes = evidenceQuotes;
+  factory _HumanOverrideDto.fromJson(Map<String, dynamic> json) => _$HumanOverrideDtoFromJson(json);
+
+@override@JsonKey(name: 'new_status') final  String newStatus;
+@override final  String reason;
+ final  List<QuoteEvidenceDto> _evidenceQuotes;
+@override@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> get evidenceQuotes {
+  if (_evidenceQuotes is EqualUnmodifiableListView) return _evidenceQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_evidenceQuotes);
+}
+
+
+/// Create a copy of HumanOverrideDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$HumanOverrideDtoCopyWith<_HumanOverrideDto> get copyWith => __$HumanOverrideDtoCopyWithImpl<_HumanOverrideDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$HumanOverrideDtoToJson(this, );
+}
+
+
+
+@override
+String toString() {
+  return 'HumanOverrideDto(newStatus: $newStatus, reason: $reason, evidenceQuotes: $evidenceQuotes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$HumanOverrideDtoCopyWith<$Res> implements $HumanOverrideDtoCopyWith<$Res> {
+  factory _$HumanOverrideDtoCopyWith(_HumanOverrideDto value, $Res Function(_HumanOverrideDto) _then) = __$HumanOverrideDtoCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'new_status') String newStatus, String reason,@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> evidenceQuotes
+});
+
+
+
+
+}
+/// @nodoc
+class __$HumanOverrideDtoCopyWithImpl<$Res>
+    implements _$HumanOverrideDtoCopyWith<$Res> {
+  __$HumanOverrideDtoCopyWithImpl(this._self, this._then);
+
+  final _HumanOverrideDto _self;
+  final $Res Function(_HumanOverrideDto) _then;
+
+/// Create a copy of HumanOverrideDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? newStatus = null,Object? reason = null,Object? evidenceQuotes = null,}) {
+  return _then(_HumanOverrideDto(
+newStatus: null == newStatus ? _self.newStatus : newStatus // ignore: cast_nullable_to_non_nullable
+as String,reason: null == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
+as String,evidenceQuotes: null == evidenceQuotes ? _self._evidenceQuotes : evidenceQuotes // ignore: cast_nullable_to_non_nullable
+as List<QuoteEvidenceDto>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ScorecardAtomDto {
 
-@JsonKey(name: 'atom_id') String get atomId; int get level;@JsonKey(name: 'level_name') String get levelName;@JsonKey(name: 'claim_label') String get claimLabel;@JsonKey(name: 'extracted_facts') Map<String, String?> get extractedFacts;@JsonKey(name: 'exact_quotes') List<String> get exactQuotes;@JsonKey(name: 'internal_logic_en') ReasoningStepDto get internalLogicEn; String? get status;@JsonKey(name: 'semantic_reasoning') String get semanticReasoning;@JsonKey(name: 'contextual_override') bool get contextualOverride;@JsonKey(name: 'structural_location') String get structuralLocation;
+@JsonKey(name: 'atom_id') String get atomId; int get level;@JsonKey(name: 'level_name') String get levelName;@JsonKey(name: 'claim_label') String get claimLabel;@JsonKey(name: 'extracted_facts') Map<String, String?> get extractedFacts;@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> get exactQuotes;@JsonKey(name: 'internal_logic_en') ReasoningStepDto get internalLogicEn; String? get status;@JsonKey(name: 'semantic_reasoning') String get semanticReasoning;@JsonKey(name: 'contextual_override') bool get contextualOverride;@JsonKey(name: 'structural_location') String get structuralLocation;@JsonKey(name: 'human_override') HumanOverrideDto? get humanOverride;
 /// Create a copy of ScorecardAtomDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1295,7 +1811,7 @@ $ScorecardAtomDtoCopyWith<ScorecardAtomDto> get copyWith => _$ScorecardAtomDtoCo
 
 @override
 String toString() {
-  return 'ScorecardAtomDto(atomId: $atomId, level: $level, levelName: $levelName, claimLabel: $claimLabel, extractedFacts: $extractedFacts, exactQuotes: $exactQuotes, internalLogicEn: $internalLogicEn, status: $status, semanticReasoning: $semanticReasoning, contextualOverride: $contextualOverride, structuralLocation: $structuralLocation)';
+  return 'ScorecardAtomDto(atomId: $atomId, level: $level, levelName: $levelName, claimLabel: $claimLabel, extractedFacts: $extractedFacts, exactQuotes: $exactQuotes, internalLogicEn: $internalLogicEn, status: $status, semanticReasoning: $semanticReasoning, contextualOverride: $contextualOverride, structuralLocation: $structuralLocation, humanOverride: $humanOverride)';
 }
 
 
@@ -1306,11 +1822,11 @@ abstract mixin class $ScorecardAtomDtoCopyWith<$Res>  {
   factory $ScorecardAtomDtoCopyWith(ScorecardAtomDto value, $Res Function(ScorecardAtomDto) _then) = _$ScorecardAtomDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'atom_id') String atomId, int level,@JsonKey(name: 'level_name') String levelName,@JsonKey(name: 'claim_label') String claimLabel,@JsonKey(name: 'extracted_facts') Map<String, String?> extractedFacts,@JsonKey(name: 'exact_quotes') List<String> exactQuotes,@JsonKey(name: 'internal_logic_en') ReasoningStepDto internalLogicEn, String? status,@JsonKey(name: 'semantic_reasoning') String semanticReasoning,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'structural_location') String structuralLocation
+@JsonKey(name: 'atom_id') String atomId, int level,@JsonKey(name: 'level_name') String levelName,@JsonKey(name: 'claim_label') String claimLabel,@JsonKey(name: 'extracted_facts') Map<String, String?> extractedFacts,@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> exactQuotes,@JsonKey(name: 'internal_logic_en') ReasoningStepDto internalLogicEn, String? status,@JsonKey(name: 'semantic_reasoning') String semanticReasoning,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'structural_location') String structuralLocation,@JsonKey(name: 'human_override') HumanOverrideDto? humanOverride
 });
 
 
-$ReasoningStepDtoCopyWith<$Res> get internalLogicEn;
+$ReasoningStepDtoCopyWith<$Res> get internalLogicEn;$HumanOverrideDtoCopyWith<$Res>? get humanOverride;
 
 }
 /// @nodoc
@@ -1323,7 +1839,7 @@ class _$ScorecardAtomDtoCopyWithImpl<$Res>
 
 /// Create a copy of ScorecardAtomDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? atomId = null,Object? level = null,Object? levelName = null,Object? claimLabel = null,Object? extractedFacts = null,Object? exactQuotes = null,Object? internalLogicEn = null,Object? status = freezed,Object? semanticReasoning = null,Object? contextualOverride = null,Object? structuralLocation = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? atomId = null,Object? level = null,Object? levelName = null,Object? claimLabel = null,Object? extractedFacts = null,Object? exactQuotes = null,Object? internalLogicEn = null,Object? status = freezed,Object? semanticReasoning = null,Object? contextualOverride = null,Object? structuralLocation = null,Object? humanOverride = freezed,}) {
   return _then(_self.copyWith(
 atomId: null == atomId ? _self.atomId : atomId // ignore: cast_nullable_to_non_nullable
 as String,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
@@ -1331,12 +1847,13 @@ as int,levelName: null == levelName ? _self.levelName : levelName // ignore: cas
 as String,claimLabel: null == claimLabel ? _self.claimLabel : claimLabel // ignore: cast_nullable_to_non_nullable
 as String,extractedFacts: null == extractedFacts ? _self.extractedFacts : extractedFacts // ignore: cast_nullable_to_non_nullable
 as Map<String, String?>,exactQuotes: null == exactQuotes ? _self.exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
-as List<String>,internalLogicEn: null == internalLogicEn ? _self.internalLogicEn : internalLogicEn // ignore: cast_nullable_to_non_nullable
+as List<QuoteEvidenceDto>,internalLogicEn: null == internalLogicEn ? _self.internalLogicEn : internalLogicEn // ignore: cast_nullable_to_non_nullable
 as ReasoningStepDto,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String?,semanticReasoning: null == semanticReasoning ? _self.semanticReasoning : semanticReasoning // ignore: cast_nullable_to_non_nullable
 as String,contextualOverride: null == contextualOverride ? _self.contextualOverride : contextualOverride // ignore: cast_nullable_to_non_nullable
 as bool,structuralLocation: null == structuralLocation ? _self.structuralLocation : structuralLocation // ignore: cast_nullable_to_non_nullable
-as String,
+as String,humanOverride: freezed == humanOverride ? _self.humanOverride : humanOverride // ignore: cast_nullable_to_non_nullable
+as HumanOverrideDto?,
   ));
 }
 /// Create a copy of ScorecardAtomDto
@@ -1347,6 +1864,18 @@ $ReasoningStepDtoCopyWith<$Res> get internalLogicEn {
   
   return $ReasoningStepDtoCopyWith<$Res>(_self.internalLogicEn, (value) {
     return _then(_self.copyWith(internalLogicEn: value));
+  });
+}/// Create a copy of ScorecardAtomDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$HumanOverrideDtoCopyWith<$Res>? get humanOverride {
+    if (_self.humanOverride == null) {
+    return null;
+  }
+
+  return $HumanOverrideDtoCopyWith<$Res>(_self.humanOverride!, (value) {
+    return _then(_self.copyWith(humanOverride: value));
   });
 }
 }
@@ -1430,10 +1959,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ScorecardAtomDto() when $default != null:
-return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation);case _:
+return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation,_that.humanOverride);case _:
   return orElse();
 
 }
@@ -1451,10 +1980,10 @@ return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride)  $default,) {final _that = this;
 switch (_that) {
 case _ScorecardAtomDto():
-return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation);case _:
+return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation,_that.humanOverride);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1471,10 +2000,10 @@ return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride)?  $default,) {final _that = this;
 switch (_that) {
 case _ScorecardAtomDto() when $default != null:
-return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation);case _:
+return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation,_that.humanOverride);case _:
   return null;
 
 }
@@ -1486,7 +2015,7 @@ return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ScorecardAtomDto implements ScorecardAtomDto {
-  const _ScorecardAtomDto({@JsonKey(name: 'atom_id') required this.atomId, required this.level, @JsonKey(name: 'level_name') required this.levelName, @JsonKey(name: 'claim_label') required this.claimLabel, @JsonKey(name: 'extracted_facts') required final  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes') required final  List<String> exactQuotes, @JsonKey(name: 'internal_logic_en') required this.internalLogicEn, this.status, @JsonKey(name: 'semantic_reasoning') required this.semanticReasoning, @JsonKey(name: 'contextual_override') required this.contextualOverride, @JsonKey(name: 'structural_location') required this.structuralLocation}): _extractedFacts = extractedFacts,_exactQuotes = exactQuotes;
+  const _ScorecardAtomDto({@JsonKey(name: 'atom_id') required this.atomId, required this.level, @JsonKey(name: 'level_name') required this.levelName, @JsonKey(name: 'claim_label') required this.claimLabel, @JsonKey(name: 'extracted_facts') required final  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes') required final  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en') required this.internalLogicEn, this.status, @JsonKey(name: 'semantic_reasoning') required this.semanticReasoning, @JsonKey(name: 'contextual_override') required this.contextualOverride, @JsonKey(name: 'structural_location') required this.structuralLocation, @JsonKey(name: 'human_override') this.humanOverride}): _extractedFacts = extractedFacts,_exactQuotes = exactQuotes;
   factory _ScorecardAtomDto.fromJson(Map<String, dynamic> json) => _$ScorecardAtomDtoFromJson(json);
 
 @override@JsonKey(name: 'atom_id') final  String atomId;
@@ -1500,8 +2029,8 @@ class _ScorecardAtomDto implements ScorecardAtomDto {
   return EqualUnmodifiableMapView(_extractedFacts);
 }
 
- final  List<String> _exactQuotes;
-@override@JsonKey(name: 'exact_quotes') List<String> get exactQuotes {
+ final  List<QuoteEvidenceDto> _exactQuotes;
+@override@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> get exactQuotes {
   if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_exactQuotes);
@@ -1512,6 +2041,7 @@ class _ScorecardAtomDto implements ScorecardAtomDto {
 @override@JsonKey(name: 'semantic_reasoning') final  String semanticReasoning;
 @override@JsonKey(name: 'contextual_override') final  bool contextualOverride;
 @override@JsonKey(name: 'structural_location') final  String structuralLocation;
+@override@JsonKey(name: 'human_override') final  HumanOverrideDto? humanOverride;
 
 /// Create a copy of ScorecardAtomDto
 /// with the given fields replaced by the non-null parameter values.
@@ -1528,7 +2058,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ScorecardAtomDto(atomId: $atomId, level: $level, levelName: $levelName, claimLabel: $claimLabel, extractedFacts: $extractedFacts, exactQuotes: $exactQuotes, internalLogicEn: $internalLogicEn, status: $status, semanticReasoning: $semanticReasoning, contextualOverride: $contextualOverride, structuralLocation: $structuralLocation)';
+  return 'ScorecardAtomDto(atomId: $atomId, level: $level, levelName: $levelName, claimLabel: $claimLabel, extractedFacts: $extractedFacts, exactQuotes: $exactQuotes, internalLogicEn: $internalLogicEn, status: $status, semanticReasoning: $semanticReasoning, contextualOverride: $contextualOverride, structuralLocation: $structuralLocation, humanOverride: $humanOverride)';
 }
 
 
@@ -1539,11 +2069,11 @@ abstract mixin class _$ScorecardAtomDtoCopyWith<$Res> implements $ScorecardAtomD
   factory _$ScorecardAtomDtoCopyWith(_ScorecardAtomDto value, $Res Function(_ScorecardAtomDto) _then) = __$ScorecardAtomDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'atom_id') String atomId, int level,@JsonKey(name: 'level_name') String levelName,@JsonKey(name: 'claim_label') String claimLabel,@JsonKey(name: 'extracted_facts') Map<String, String?> extractedFacts,@JsonKey(name: 'exact_quotes') List<String> exactQuotes,@JsonKey(name: 'internal_logic_en') ReasoningStepDto internalLogicEn, String? status,@JsonKey(name: 'semantic_reasoning') String semanticReasoning,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'structural_location') String structuralLocation
+@JsonKey(name: 'atom_id') String atomId, int level,@JsonKey(name: 'level_name') String levelName,@JsonKey(name: 'claim_label') String claimLabel,@JsonKey(name: 'extracted_facts') Map<String, String?> extractedFacts,@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> exactQuotes,@JsonKey(name: 'internal_logic_en') ReasoningStepDto internalLogicEn, String? status,@JsonKey(name: 'semantic_reasoning') String semanticReasoning,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'structural_location') String structuralLocation,@JsonKey(name: 'human_override') HumanOverrideDto? humanOverride
 });
 
 
-@override $ReasoningStepDtoCopyWith<$Res> get internalLogicEn;
+@override $ReasoningStepDtoCopyWith<$Res> get internalLogicEn;@override $HumanOverrideDtoCopyWith<$Res>? get humanOverride;
 
 }
 /// @nodoc
@@ -1556,7 +2086,7 @@ class __$ScorecardAtomDtoCopyWithImpl<$Res>
 
 /// Create a copy of ScorecardAtomDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? atomId = null,Object? level = null,Object? levelName = null,Object? claimLabel = null,Object? extractedFacts = null,Object? exactQuotes = null,Object? internalLogicEn = null,Object? status = freezed,Object? semanticReasoning = null,Object? contextualOverride = null,Object? structuralLocation = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? atomId = null,Object? level = null,Object? levelName = null,Object? claimLabel = null,Object? extractedFacts = null,Object? exactQuotes = null,Object? internalLogicEn = null,Object? status = freezed,Object? semanticReasoning = null,Object? contextualOverride = null,Object? structuralLocation = null,Object? humanOverride = freezed,}) {
   return _then(_ScorecardAtomDto(
 atomId: null == atomId ? _self.atomId : atomId // ignore: cast_nullable_to_non_nullable
 as String,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
@@ -1564,12 +2094,13 @@ as int,levelName: null == levelName ? _self.levelName : levelName // ignore: cas
 as String,claimLabel: null == claimLabel ? _self.claimLabel : claimLabel // ignore: cast_nullable_to_non_nullable
 as String,extractedFacts: null == extractedFacts ? _self._extractedFacts : extractedFacts // ignore: cast_nullable_to_non_nullable
 as Map<String, String?>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
-as List<String>,internalLogicEn: null == internalLogicEn ? _self.internalLogicEn : internalLogicEn // ignore: cast_nullable_to_non_nullable
+as List<QuoteEvidenceDto>,internalLogicEn: null == internalLogicEn ? _self.internalLogicEn : internalLogicEn // ignore: cast_nullable_to_non_nullable
 as ReasoningStepDto,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String?,semanticReasoning: null == semanticReasoning ? _self.semanticReasoning : semanticReasoning // ignore: cast_nullable_to_non_nullable
 as String,contextualOverride: null == contextualOverride ? _self.contextualOverride : contextualOverride // ignore: cast_nullable_to_non_nullable
 as bool,structuralLocation: null == structuralLocation ? _self.structuralLocation : structuralLocation // ignore: cast_nullable_to_non_nullable
-as String,
+as String,humanOverride: freezed == humanOverride ? _self.humanOverride : humanOverride // ignore: cast_nullable_to_non_nullable
+as HumanOverrideDto?,
   ));
 }
 
@@ -1581,6 +2112,18 @@ $ReasoningStepDtoCopyWith<$Res> get internalLogicEn {
   
   return $ReasoningStepDtoCopyWith<$Res>(_self.internalLogicEn, (value) {
     return _then(_self.copyWith(internalLogicEn: value));
+  });
+}/// Create a copy of ScorecardAtomDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$HumanOverrideDtoCopyWith<$Res>? get humanOverride {
+    if (_self.humanOverride == null) {
+    return null;
+  }
+
+  return $HumanOverrideDtoCopyWith<$Res>(_self.humanOverride!, (value) {
+    return _then(_self.copyWith(humanOverride: value));
   });
 }
 }

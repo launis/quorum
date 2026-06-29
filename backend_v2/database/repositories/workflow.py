@@ -59,8 +59,12 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                     if "description" not in data:
                         data["description"] = "Loaded from file"
                 except Exception as e:
-                    logger.error("Failed to load workflow from disk: %s", e)
-                    return None
+                    logger.error("Failed to load workflow from disk: %s", e, exc_info=True)
+                    raise AppException(
+                        message=f"Failed to load workflow from disk: {e}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+                    ) from e
             else:
                 return None
 

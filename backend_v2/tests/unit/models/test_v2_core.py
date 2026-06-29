@@ -24,7 +24,7 @@ def test_scorecard_atom_dto_firewall() -> None:
         "level_name": "Level 1",
         "claim_label": "Claim 1",
         "extracted_facts": {},
-        "exact_quotes": ["Quote 1"],
+        "exact_quotes": [{"quote_text": "Quote 1", "source_id": "unknown", "display_name": "Source 1"}],
         "internal_logic_en": {
             "step_1_identify_premise": "1",
             "step_2_scan_source": "2",

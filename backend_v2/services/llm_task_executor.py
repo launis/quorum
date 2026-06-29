@@ -107,6 +107,14 @@ def _perform_semantic_validation(validated_model: BaseModel, validation_context:
 
             for field_name in data.model_fields:
                 v = getattr(data, field_name, None)
+                if isinstance(v, str) and v.startswith("<<QRM-SRC-") and alias_map:
+                    try:
+                        resolved = AliasRegistry.resolve(v, alias_map)
+                        setattr(data, field_name, resolved)
+                        v = resolved
+                    except SemanticEvidenceError:
+                        pass
+                
                 is_quote_str = field_name in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
                 is_quote_list = field_name in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]
 
@@ -177,6 +185,14 @@ def _perform_semantic_validation(validated_model: BaseModel, validation_context:
                                 raise LogicalValidationError(validation_error_msg=e.message) from e
 
             for k, v in data.items():
+                if isinstance(v, str) and v.startswith("<<QRM-SRC-") and alias_map:
+                    try:
+                        resolved = AliasRegistry.resolve(v, alias_map)
+                        data[k] = resolved
+                        v = resolved
+                    except SemanticEvidenceError:
+                        pass
+
                 is_quote_str = k in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]
                 is_quote_list = k in ["exact_quotes", "step_2_quotes", "step_1_evidence_quotes"]
 
@@ -228,8 +244,14 @@ def _perform_semantic_validation(validated_model: BaseModel, validation_context:
                     validate_recursive(v, src_text)
 
         elif isinstance(data, list):
-            for item in data:
-                validate_recursive(item, src_text)
+            for i, item in enumerate(data):
+                if isinstance(item, str) and item.startswith("<<QRM-SRC-") and alias_map:
+                    try:
+                        data[i] = AliasRegistry.resolve(item, alias_map)
+                    except SemanticEvidenceError:
+                        pass
+                else:
+                    validate_recursive(item, src_text)
 
     validate_recursive(validated_model, source_text)
 

@@ -447,6 +447,73 @@ Map<String, dynamic> _$ReasoningStepDtoToJson(_ReasoningStepDto instance) =>
       'step_4_final_conclusion': instance.step4FinalConclusion,
     };
 
+_QuoteEvidenceDto _$QuoteEvidenceDtoFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_QuoteEvidenceDto',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const ['quote_text', 'source_id', 'display_name'],
+        );
+        final val = _QuoteEvidenceDto(
+          quoteText: $checkedConvert('quote_text', (v) => v as String),
+          sourceId: $checkedConvert('source_id', (v) => v as String?),
+          displayName: $checkedConvert('display_name', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'quoteText': 'quote_text',
+        'sourceId': 'source_id',
+        'displayName': 'display_name',
+      },
+    );
+
+Map<String, dynamic> _$QuoteEvidenceDtoToJson(_QuoteEvidenceDto instance) =>
+    <String, dynamic>{
+      'quote_text': instance.quoteText,
+      'source_id': instance.sourceId,
+      'display_name': instance.displayName,
+    };
+
+_HumanOverrideDto _$HumanOverrideDtoFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_HumanOverrideDto',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const ['new_status', 'reason', 'evidence_quotes'],
+        );
+        final val = _HumanOverrideDto(
+          newStatus: $checkedConvert('new_status', (v) => v as String),
+          reason: $checkedConvert('reason', (v) => v as String),
+          evidenceQuotes: $checkedConvert(
+            'evidence_quotes',
+            (v) => (v as List<dynamic>)
+                .map(
+                  (e) => QuoteEvidenceDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList(),
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'newStatus': 'new_status',
+        'evidenceQuotes': 'evidence_quotes',
+      },
+    );
+
+Map<String, dynamic> _$HumanOverrideDtoToJson(
+  _HumanOverrideDto instance,
+) => <String, dynamic>{
+  'new_status': instance.newStatus,
+  'reason': instance.reason,
+  'evidence_quotes': instance.evidenceQuotes.map((e) => e.toJson()).toList(),
+};
+
 _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
     $checkedCreate(
       '_ScorecardAtomDto',
@@ -466,6 +533,7 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
             'semantic_reasoning',
             'contextual_override',
             'structural_location',
+            'human_override',
           ],
         );
         final val = _ScorecardAtomDto(
@@ -479,7 +547,11 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
           ),
           exactQuotes: $checkedConvert(
             'exact_quotes',
-            (v) => (v as List<dynamic>).map((e) => e as String).toList(),
+            (v) => (v as List<dynamic>)
+                .map(
+                  (e) => QuoteEvidenceDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList(),
           ),
           internalLogicEn: $checkedConvert(
             'internal_logic_en',
@@ -498,6 +570,12 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
             'structural_location',
             (v) => v as String,
           ),
+          humanOverride: $checkedConvert(
+            'human_override',
+            (v) => v == null
+                ? null
+                : HumanOverrideDto.fromJson(v as Map<String, dynamic>),
+          ),
         );
         return val;
       },
@@ -511,6 +589,7 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
         'semanticReasoning': 'semantic_reasoning',
         'contextualOverride': 'contextual_override',
         'structuralLocation': 'structural_location',
+        'humanOverride': 'human_override',
       },
     );
 
@@ -521,10 +600,11 @@ Map<String, dynamic> _$ScorecardAtomDtoToJson(_ScorecardAtomDto instance) =>
       'level_name': instance.levelName,
       'claim_label': instance.claimLabel,
       'extracted_facts': instance.extractedFacts,
-      'exact_quotes': instance.exactQuotes,
+      'exact_quotes': instance.exactQuotes.map((e) => e.toJson()).toList(),
       'internal_logic_en': instance.internalLogicEn.toJson(),
       'status': instance.status,
       'semantic_reasoning': instance.semanticReasoning,
       'contextual_override': instance.contextualOverride,
       'structural_location': instance.structuralLocation,
+      'human_override': instance.humanOverride?.toJson(),
     };

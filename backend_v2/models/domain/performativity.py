@@ -147,8 +147,10 @@ class PerformativityAnalysis(V2CoreBase):
             AppException: If the score is outside the range [1.0, 3.0].
         """
         if not (1.0 <= v <= 3.0):
+            msg = "authenticity_score must be between 1.0 and 3.0 inclusive"
+            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
-                message="authenticity_score must be between 1.0 and 3.0 inclusive",
+                message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )

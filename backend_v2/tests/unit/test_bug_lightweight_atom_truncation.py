@@ -8,7 +8,7 @@ def test_lightweight_extraction_atom_exceeds_max_quotes():
     """
     # Generate enough quotes to exactly exceed whatever the current schema limit is
     max_limit = SystemConcurrency.SCHEMA_MAX_QUOTES.value
-    quotes_list = [f"quote {i}" for i in range(max_limit + 1)]
+    quotes_list = [{"text": f"quote {i}", "source_alias": "N/A"} for i in range(max_limit + 1)]
 
     payload = {"atom_id": "test_atom", "exact_quotes": quotes_list, "status": "PASS", "confidence": 0.9}
 

@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.validation import (
     HardeningRetryDirectiveDTO,
     SystemWarningsStateDTO,
@@ -115,11 +116,11 @@ def test_hardening_retry_directive() -> None:
     # Test strictness validation constraint (>100 fails)
     invalid_data = data.copy()
     invalid_data["strictness_override"] = 150
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         HardeningRetryDirectiveDTO.model_validate(invalid_data)
 
     # Test max_retries limit bounds
     invalid_max = data.copy()
     invalid_max["max_retries"] = 10
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         HardeningRetryDirectiveDTO.model_validate(invalid_max)

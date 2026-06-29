@@ -46,12 +46,12 @@ async def verify_user_token(request: Request, payload: TokenPayload, auth_servic
     """Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.
 
     Args:
-        request (Request): The HTTP Request object.
-        payload (TokenPayload): The token payload.
-        auth_service (AuthServiceDep): Authentication service dependency.
+        request: The HTTP Request object.
+        payload: The token payload.
+        auth_service: Authentication service dependency.
 
     Returns:
-        LoginResponse: The authenticated user profile and status.
+        The authenticated user profile and status.
 
     Raises:
         AuthenticationError: If the token is invalid or profile not initialized.
@@ -111,12 +111,12 @@ async def impersonate_user(
     """Generates an impersonation token for the target user. Requires ROOT.
 
     Args:
-        request (ImpersonationRequest): Payload containing target_id.
-        current_user (CurrentUserDep): The requesting user (must be ROOT).
-        auth_service (AuthServiceDep): Auth service.
+        request: Payload containing target_id.
+        current_user: The requesting user (must be ROOT).
+        auth_service: Auth service.
 
     Returns:
-        ImpersonationResponse: The access token.
+        The access token.
 
     Raises:
         PermissionDeniedError: If the requesting user is not ROOT.
@@ -168,13 +168,13 @@ async def create_user(
     """Create a new user.
 
     Args:
-        request (Request): The HTTP Request object.
-        user_data (UserCreate): Payload for the new user.
-        current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).
-        auth_service (AuthServiceDep): Authentication service dependency.
+        request: The HTTP Request object.
+        user_data: Payload for the new user.
+        current_user: The requesting user (must be ROOT, ADMIN, or MANAGER).
+        auth_service: Authentication service dependency.
 
     Returns:
-        User: The created user profile.
+        The created user profile.
 
     Raises:
         PermissionDeniedError: If permission denied.
@@ -241,12 +241,12 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
     Enforces Last Admin Protection.
 
     Args:
-        id (str): The UID of the user to delete.
-        current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).
-        auth_service (AuthServiceDep): Authorization service.
+        id: The UID of the user to delete.
+        current_user: The requesting user (ROOT or ADMIN).
+        auth_service: Authorization service.
 
     Returns:
-        UserDeleteResponse: Status confirmation.
+        Status confirmation.
 
     Raises:
         PermissionDeniedError: If permission denied.
@@ -310,13 +310,13 @@ async def update_user(
     """Update a user (Role, Display Name, etc).
 
     Args:
-        id (str): The UID of the user to update.
-        user_update (UserUpdate): Fields to update.
-        current_user (CurrentUserDep): Requesting user.
-        auth_service (AuthServiceDep): Authorization service.
+        id: The UID of the user to update.
+        user_update: Fields to update.
+        current_user: Requesting user.
+        auth_service: Authorization service.
 
     Returns:
-        User: The updated user profile.
+        The updated user profile.
 
     Raises:
         PermissionDeniedError: If permission denied.
@@ -376,11 +376,11 @@ async def get_my_profile(current_user: CurrentUserDep, auth_service: AuthService
     """Get the currently authenticated user's profile.
 
     Args:
-        current_user (CurrentUserDep): The authenticated user.
-        auth_service (AuthServiceDep): Auth service.
+        current_user: The authenticated user.
+        auth_service: Auth service.
 
     Returns:
-        User: The full user profile.
+        The full user profile.
 
     Raises:
         AuthenticationError: If the user profile is not found.

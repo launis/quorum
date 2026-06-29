@@ -133,6 +133,7 @@ class AnchorValidationService:
             SemanticEvidenceError: If lexical validation or logical Trace consistency fails.
         """
         if contextual_override:
+            logger.info("Lexical Verifier skipped: cognitive override (contextual_override) is active.")
             return None
 
         if not exact_quotes:

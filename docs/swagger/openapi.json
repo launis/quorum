@@ -11,7 +11,7 @@
           "Authentication & Users"
         ],
         "summary": "Verify User Token",
-        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.\n\nArgs:\n    request (Request): The HTTP Request object.\n    payload (TokenPayload): The token payload.\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    LoginResponse: The authenticated user profile and status.\n\nRaises:\n    AuthenticationError: If the token is invalid or profile not initialized.\n    AppException: If an unexpected login failure occurs.",
+        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.\n\nArgs:\n    request: The HTTP Request object.\n    payload: The token payload.\n    auth_service: Authentication service dependency.\n\nReturns:\n    The authenticated user profile and status.\n\nRaises:\n    AuthenticationError: If the token is invalid or profile not initialized.\n    AppException: If an unexpected login failure occurs.",
         "operationId": "verify_user_token_api_v2_iam_auth_verify_post",
         "requestBody": {
           "content": {
@@ -53,7 +53,7 @@
           "Authentication & Users"
         ],
         "summary": "Impersonate User",
-        "description": "Generates an impersonation token for the target user. Requires ROOT.\n\nArgs:\n    request (ImpersonationRequest): Payload containing target_id.\n    current_user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    ImpersonationResponse: The access token.\n\nRaises:\n    PermissionDeniedError: If the requesting user is not ROOT.\n    ResourceNotFoundError: If the target user is not found.",
+        "description": "Generates an impersonation token for the target user. Requires ROOT.\n\nArgs:\n    request: Payload containing target_id.\n    current_user: The requesting user (must be ROOT).\n    auth_service: Auth service.\n\nReturns:\n    The access token.\n\nRaises:\n    PermissionDeniedError: If the requesting user is not ROOT.\n    ResourceNotFoundError: If the target user is not found.",
         "operationId": "impersonate_user_api_v2_iam_auth_impersonate_post",
         "requestBody": {
           "content": {
@@ -155,7 +155,7 @@
           "Authentication & Users"
         ],
         "summary": "Create User",
-        "description": "Create a new user.\n\nArgs:\n    request (Request): The HTTP Request object.\n    user_data (UserCreate): Payload for the new user.\n    current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    User: The created user profile.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    AppException: If validation fails or user creation fails.",
+        "description": "Create a new user.\n\nArgs:\n    request: The HTTP Request object.\n    user_data: Payload for the new user.\n    current_user: The requesting user (must be ROOT, ADMIN, or MANAGER).\n    auth_service: Authentication service dependency.\n\nReturns:\n    The created user profile.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    AppException: If validation fails or user creation fails.",
         "operationId": "create_user_api_v2_iam_auth_users_post",
         "requestBody": {
           "content": {
@@ -202,7 +202,7 @@
           "Authentication & Users"
         ],
         "summary": "Delete User",
-        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    id (str): The UID of the user to delete.\n    current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    UserDeleteResponse: Status confirmation.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    ConflictError: If Last Admin Protection is triggered.\n    AppException: If business logic validation fails or deletion fails.",
+        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    id: The UID of the user to delete.\n    current_user: The requesting user (ROOT or ADMIN).\n    auth_service: Authorization service.\n\nReturns:\n    Status confirmation.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    ConflictError: If Last Admin Protection is triggered.\n    AppException: If business logic validation fails or deletion fails.",
         "operationId": "delete_user_api_v2_iam_auth_users__id__delete",
         "security": [
           {
@@ -248,7 +248,7 @@
           "Authentication & Users"
         ],
         "summary": "Update User",
-        "description": "Update a user (Role, Display Name, etc).\n\nArgs:\n    id (str): The UID of the user to update.\n    user_update (UserUpdate): Fields to update.\n    current_user (CurrentUserDep): Requesting user.\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    User: The updated user profile.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    ResourceNotFoundError: If the user is not found.\n    ConflictError: If Last Admin Protection is triggered.\n    AppException: If update fails.",
+        "description": "Update a user (Role, Display Name, etc).\n\nArgs:\n    id: The UID of the user to update.\n    user_update: Fields to update.\n    current_user: Requesting user.\n    auth_service: Authorization service.\n\nReturns:\n    The updated user profile.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    ResourceNotFoundError: If the user is not found.\n    ConflictError: If Last Admin Protection is triggered.\n    AppException: If update fails.",
         "operationId": "update_user_api_v2_iam_auth_users__id__patch",
         "security": [
           {
@@ -306,7 +306,7 @@
           "Authentication & Users"
         ],
         "summary": "Get My Profile",
-        "description": "Get the currently authenticated user's profile.\n\nArgs:\n    current_user (CurrentUserDep): The authenticated user.\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    User: The full user profile.\n\nRaises:\n    AuthenticationError: If the user profile is not found.",
+        "description": "Get the currently authenticated user's profile.\n\nArgs:\n    current_user: The authenticated user.\n    auth_service: Auth service.\n\nReturns:\n    The full user profile.\n\nRaises:\n    AuthenticationError: If the user profile is not found.",
         "operationId": "get_my_profile_api_v2_iam_auth_me_get",
         "responses": {
           "200": {
@@ -1319,6 +1319,77 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/{execution_id}/atoms/{atom_id}/override": {
+      "patch": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Override Atom",
+        "description": "Apply a human override to a scorecard atom.",
+        "operationId": "override_atom_api_v2_execution_executions__execution_id__atoms__atom_id__override_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          },
+          {
+            "name": "atom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Atom Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanOverrideRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Override Atom Api V2 Execution Executions  Execution Id  Atoms  Atom Id  Override Patch"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -2970,7 +3041,7 @@
           "Admin Studio V2 - Performative Lexicons"
         ],
         "summary": "Get Lexicons",
-        "description": "Get performative lexicons configuration.",
+        "description": "Get performative lexicons configuration.\n\nArgs:\n    initiator: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The performative lexicons configuration.\n\nRaises:\n    AppException: If fetching the configuration fails.",
         "operationId": "get_lexicons_api_v2_studio_lexicons_get",
         "responses": {
           "200": {
@@ -2995,7 +3066,7 @@
           "Admin Studio V2 - Performative Lexicons"
         ],
         "summary": "Update Lexicons",
-        "description": "Update performative lexicons configuration.",
+        "description": "Update performative lexicons configuration.\n\nArgs:\n    data: The new configuration data.\n    initiator: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated performative lexicons configuration.\n\nRaises:\n    AppException: If updating the configuration fails.",
         "operationId": "update_lexicons_api_v2_studio_lexicons_put",
         "requestBody": {
           "content": {
@@ -3042,7 +3113,7 @@
           "Admin Studio V2 - Performative Lexicons"
         ],
         "summary": "Discover New Performative Phrases",
-        "description": "Use LLM to discover completely new AI jargon phrases.",
+        "description": "Use LLM to discover completely new AI jargon phrases.\n\nArgs:\n    lang: The language code to discover phrases for.\n    initiator: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of suggested performative phrases.\n\nRaises:\n    AppException: If the discovery process fails.",
         "operationId": "discover_new_performative_phrases_api_v2_studio_lexicons_discover__lang__post",
         "security": [
           {
@@ -3090,7 +3161,7 @@
           "Admin Studio V2 - Performative Lexicons"
         ],
         "summary": "Translate Performative Phrases",
-        "description": "Translate missing slop words from the English master lexicon.",
+        "description": "Translate missing slop words from the English master lexicon.\n\nArgs:\n    lang_code: The target language code for translation.\n    initiator: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of translated performative phrases.\n\nRaises:\n    AppException: If the translation process fails.",
         "operationId": "translate_performative_phrases_api_v2_studio_lexicons_translate__lang_code__post",
         "security": [
           {
@@ -4187,6 +4258,14 @@
             "title": "Profile Syntheses",
             "description": "Multi-profile synthesis caching"
           },
+          "source_identity_manifest": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Source Identity Manifest",
+            "description": "O(1) Snapshot mapping Opaque ID to Display Name for inputs."
+          },
           "is_resumable": {
             "type": "boolean",
             "title": "Is Resumable",
@@ -4344,6 +4423,14 @@
             ],
             "title": "Message Code",
             "description": "Optional UX message code for SSE"
+          },
+          "scorecard_atoms": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ScorecardAtomDTO"
+            },
+            "type": "object",
+            "title": "Scorecard Atoms",
+            "description": "Presentation atoms including potential human overrides."
           }
         },
         "additionalProperties": false,
@@ -4586,6 +4673,80 @@
         "title": "HookListResponse",
         "description": "Schema for returning available configured hooks.\n\nAttributes:\n    hooks: A list of registered system hooks or callback identifiers."
       },
+      "HumanOverrideDTO": {
+        "properties": {
+          "new_status": {
+            "type": "string",
+            "title": "New Status",
+            "description": "The overridden status (e.g., TRUE, FALSE, DLQ)."
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "The reason for the override."
+          },
+          "evidence_quotes": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteEvidenceDTO"
+            },
+            "type": "array",
+            "title": "Evidence Quotes",
+            "description": "Selected quotes to support the override."
+          },
+          "overridden_by": {
+            "type": "string",
+            "title": "Overridden By",
+            "description": "User ID who performed the override."
+          },
+          "overridden_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Overridden At",
+            "description": "Timestamp of the override."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "new_status",
+          "reason",
+          "evidence_quotes",
+          "overridden_by",
+          "overridden_at"
+        ],
+        "title": "HumanOverrideDTO",
+        "description": "Schema for human-initiated state override."
+      },
+      "HumanOverrideRequest": {
+        "properties": {
+          "new_status": {
+            "type": "string",
+            "title": "New Status",
+            "description": "The overridden status (e.g., TRUE, FALSE, DLQ)."
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "The reason for the override."
+          },
+          "evidence_quotes": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteEvidenceDTO"
+            },
+            "type": "array",
+            "title": "Evidence Quotes",
+            "description": "Selected quotes to support the override."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "new_status",
+          "reason"
+        ],
+        "title": "HumanOverrideRequest",
+        "description": "Payload for human override requests."
+      },
       "I18nText": {
         "properties": {
           "default_locale": {
@@ -4623,7 +4784,7 @@
           "target_id"
         ],
         "title": "ImpersonationRequest",
-        "description": "Request payload for impersonation."
+        "description": "Request payload for impersonation.\n\nAttributes:\n    target_id (str): ID of the user to impersonate."
       },
       "ImpersonationResponse": {
         "properties": {
@@ -4643,7 +4804,7 @@
           "access_token"
         ],
         "title": "ImpersonationResponse",
-        "description": "Response containing the impersonation token."
+        "description": "Response containing the impersonation token.\n\nAttributes:\n    access_token (str): Impersonation access token.\n    token_type (str): Token type (usually 'bearer')."
       },
       "JobAcceptedDTO": {
         "properties": {
@@ -4750,7 +4911,7 @@
           "token_valid"
         ],
         "title": "LoginResponse",
-        "description": "Response model for successful login."
+        "description": "Response model for successful login.\n\nAttributes:\n    user (User): Authenticated user object.\n    token_valid (bool): Whether the token is valid.\n    debug_msg (Optional[str]): Optional debug message."
       },
       "MCPAuditTrace": {
         "properties": {
@@ -5295,7 +5456,6 @@
           },
           "quota_limit": {
             "type": "number",
-            "minimum": 0.0,
             "title": "Quota Limit",
             "description": "Monthly API call quota (USD)"
           },
@@ -5385,7 +5545,7 @@
           "deleted_id"
         ],
         "title": "OrganizationDeleteResponse",
-        "description": "Payload response for deleting an organization."
+        "description": "Payload response for deleting an organization.\n\nAttributes:\n    status (str): Deletion status message.\n    deleted_id (str): ID of the deleted organization."
       },
       "OutputLayoutBlock-Input": {
         "properties": {
@@ -6510,6 +6670,77 @@
         "title": "QuestionnaireItem",
         "description": "A single question definition within a dynamic questionnaire."
       },
+      "QuoteEvidenceDTO": {
+        "properties": {
+          "quote_text": {
+            "type": "string",
+            "title": "Quote Text"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "quote_text"
+        ],
+        "title": "QuoteEvidenceDTO",
+        "description": "Evidence DTO linking a quote to its resolved database ID."
+      },
+      "ReasoningStepDTO": {
+        "properties": {
+          "step_1_identify_premise": {
+            "type": "string",
+            "title": "Step 1 Identify Premise",
+            "description": "Extract the exact claim from the prompt."
+          },
+          "step_2_scan_source": {
+            "type": "string",
+            "title": "Step 2 Scan Source",
+            "description": "Analyze if the source text physically contains evidence for or against the premise."
+          },
+          "step_3_evaluate_anti_patterns": {
+            "type": "string",
+            "title": "Step 3 Evaluate Anti Patterns",
+            "description": "Check if any strict anti-patterns or exclusions apply."
+          },
+          "step_4_final_conclusion": {
+            "type": "string",
+            "title": "Step 4 Final Conclusion",
+            "description": "Synthesize steps 1-3 into a final logical conclusion."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "step_1_identify_premise",
+          "step_2_scan_source",
+          "step_3_evaluate_anti_patterns",
+          "step_4_final_conclusion"
+        ],
+        "title": "ReasoningStepDTO",
+        "description": "Structured micro-CoT reasoning step schema to prevent JSON escaping issues."
+      },
       "ReasoningTrace": {
         "properties": {
           "thought_process": {
@@ -6528,8 +6759,6 @@
           },
           "confidence_score": {
             "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
             "title": "Confidence Score",
             "description": "Confidence in the conclusion."
           },
@@ -6634,6 +6863,99 @@
         "type": "object",
         "title": "RenderedSynthesisCache",
         "description": "Cached synthesis results tied to a specific OutputProfile ID."
+      },
+      "ScorecardAtomDTO": {
+        "properties": {
+          "atom_id": {
+            "type": "string",
+            "title": "Atom Id"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "level_name": {
+            "type": "string",
+            "title": "Level Name"
+          },
+          "claim_label": {
+            "type": "string",
+            "title": "Claim Label"
+          },
+          "extracted_facts": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Extracted Facts"
+          },
+          "exact_quotes": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteEvidenceDTO"
+            },
+            "type": "array",
+            "title": "Exact Quotes"
+          },
+          "internal_logic_en": {
+            "$ref": "#/components/schemas/ReasoningStepDTO"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "semantic_reasoning": {
+            "type": "string",
+            "title": "Semantic Reasoning"
+          },
+          "contextual_override": {
+            "type": "boolean",
+            "title": "Contextual Override"
+          },
+          "structural_location": {
+            "type": "string",
+            "title": "Structural Location"
+          },
+          "human_override": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HumanOverrideDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "atom_id",
+          "level",
+          "level_name",
+          "claim_label",
+          "extracted_facts",
+          "exact_quotes",
+          "internal_logic_en",
+          "status",
+          "semantic_reasoning",
+          "contextual_override",
+          "structural_location"
+        ],
+        "title": "ScorecardAtomDTO",
+        "description": "Explicit DTO firewall for presentation logic of individual atom evaluations."
       },
       "ScoringStrategy": {
         "type": "string",
@@ -7174,7 +7496,8 @@
           "level",
           "localization_key"
         ],
-        "title": "StrictnessConfigDTO"
+        "title": "StrictnessConfigDTO",
+        "description": "Schema for strictness level configuration.\n\nAttributes:\n    level: The integer level of strictness.\n    localization_key: The UI key for translation."
       },
       "StrictnessConfigListResponse": {
         "properties": {
@@ -7191,7 +7514,8 @@
         "required": [
           "configs"
         ],
-        "title": "StrictnessConfigListResponse"
+        "title": "StrictnessConfigListResponse",
+        "description": "Schema for returning a list of strictness configurations.\n\nAttributes:\n    configs: The list of configs."
       },
       "SubscriptionStatus": {
         "type": "string",
@@ -7652,7 +7976,7 @@
           "token"
         ],
         "title": "TokenPayload",
-        "description": "Payload for token verification."
+        "description": "Payload for token verification.\n\nAttributes:\n    token (str): JWT token string."
       },
       "TokenUsage": {
         "properties": {
@@ -8100,7 +8424,7 @@
           "id"
         ],
         "title": "UserDeleteResponse",
-        "description": "Payload response for deleting a user."
+        "description": "Payload response for deleting a user.\n\nAttributes:\n    status (str): Deletion status message.\n    id (str): ID of the deleted user."
       },
       "UserRole": {
         "type": "string",

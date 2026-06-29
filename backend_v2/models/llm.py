@@ -11,7 +11,7 @@ import logging
 from typing import Annotated, Any, Literal
 
 from fastapi import status
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
@@ -72,6 +72,8 @@ class LLMResponse(BaseDTO):
     system_fingerprint: Annotated[
         str | None, Field(description="System fingerprint identifying exact model weights used.")
     ] = None
+
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("content", mode="after")
     @classmethod
@@ -164,8 +166,6 @@ class LLMProviderConfig(BaseDTO):
     temperature: Annotated[
         float,
         Field(
-            ge=0.0,
-            le=2.0,
             description="Sampling temperature.",
             json_schema_extra={"x-ui-label": "Temperature"},
         ),
@@ -173,8 +173,6 @@ class LLMProviderConfig(BaseDTO):
     top_p: Annotated[
         float | None,
         Field(
-            ge=0.0,
-            le=1.0,
             description="Nucleus sampling probability.",
             json_schema_extra={"x-ui-label": "Top-P"},
         ),
@@ -252,22 +250,30 @@ class LLMProviderConfig(BaseDTO):
         default_factory=dict
     )
 
+    model_config = ConfigDict(frozen=True)
+
     @field_validator("temperature", mode="after")
     @classmethod
     def validate_temperature(cls, v: float) -> float:
         """Validates that the temperature is within bounds [0.0, 2.0] at runtime.
 
         Args:
-            v: The float temperature variable.
+            v: The temperature variable.
 
         Returns:
             The validated temperature value.
 
         Raises:
-            ValueError: Raised when temperature falls outside safety bounds.
+            AppException: Raised when temperature falls outside safety bounds.
         """
         if not (0.0 <= v <= 2.0):
-            raise ValueError("Temperature must be between 0.0 and 2.0")
+            msg = "Temperature must be between 0.0 and 2.0"
+            logger.error("[LLMProviderConfig] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return v
 
     @field_validator("top_p", mode="after")
@@ -282,10 +288,16 @@ class LLMProviderConfig(BaseDTO):
             The validated top_p configuration choice.
 
         Raises:
-            ValueError: Raised when top_p boundary constraint is breached.
+            AppException: Raised when top_p boundary constraint is breached.
         """
         if v is not None and not (0.0 <= v <= 1.0):
-            raise ValueError("top_p must be between 0.0 and 1.0")
+            msg = "top_p must be between 0.0 and 1.0"
+            logger.error("[LLMProviderConfig] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return v
 
 
@@ -306,6 +318,8 @@ class AdHocTestRequest(BaseDTO):
     user_prompt: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="User prompt.")]
     model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")]
 
+    model_config = ConfigDict(frozen=True)
+
 
 class AdHocTestResponse(BaseResponseDTO):
     """Response for ephemeral LLM testing.
@@ -319,3 +333,5 @@ class AdHocTestResponse(BaseResponseDTO):
     content: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="Generated content.")]
     latency_ms: Annotated[float, Field(..., ge=0.0, description="Execution latency in milliseconds.")]
     status: Annotated[Literal["success", "error"], Field(..., description="Status string (e.g. 'success', 'error').")]
+
+    model_config = ConfigDict(frozen=True)

@@ -193,14 +193,18 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
                             if not isinstance(eq_list, list):
                                 eq_list = [eq_list] if eq_list else []
 
-                            valid_quotes = [
-                                str(q).strip()
-                                for q in eq_list
-                                if q
-                                and str(q).strip()
-                                and str(q).strip() not in ("None", "null", "N/A", "N/A - insufficient data")
-                                and not (str(q).strip().startswith("[") and str(q).strip().endswith("]"))
-                            ]
+                            valid_quotes = []
+                            for q in eq_list:
+                                if not q:
+                                    continue
+                                q_text = (q.get("quote_text") or q.get("text", "")) if isinstance(q, dict) else str(q)
+                                q_str = q_text.strip()
+                                if (
+                                    q_str
+                                    and q_str not in ("None", "null", "N/A", "N/A - insufficient data")
+                                    and not (q_str.startswith("[") and q_str.endswith("]"))
+                                ):
+                                    valid_quotes.append(q_str)
 
                             if valid_quotes:
                                 lite_evals.append(

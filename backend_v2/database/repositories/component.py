@@ -1,6 +1,9 @@
 """Database repository implementation module."""
 
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
@@ -281,11 +284,7 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 models.append(PromptBlock.model_validate(b, strict=False))
             except Exception as e:
-                import logging
-
-                logger = logging.getLogger(__name__)
                 logger.error("Failed to parse PromptBlock %s: %s", b.get("id"), e, exc_info=True)
-                from backend_v2.exceptions import AppException, ErrorCodes
 
                 raise AppException(
                     message=f"Failed to parse PromptBlock {b.get('id')} from database",
@@ -605,11 +604,7 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 models.append(OutputProfile.model_validate(pd, strict=False))
             except Exception as e:
-                import logging
-
-                logger = logging.getLogger(__name__)
                 logger.error("Failed to parse OutputProfile %s: %s", pd.get("id"), e, exc_info=True)
-                from backend_v2.exceptions import AppException, ErrorCodes
 
                 raise AppException(
                     message="Failed to parse profile from database",

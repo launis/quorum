@@ -63,7 +63,7 @@ class TinyDBDriver(StorageDriver):
         Returns:
             True if the document matches the filter, False otherwise.
         """
-        val = data.get(f.field)
+        val = data[f.field] if f.field in data else None
 
         # Determine strict or loose equality? TinyDB is pythonic.
         if f.operator == "==":
@@ -212,7 +212,7 @@ class TinyDBDriver(StorageDriver):
         # 2. Sort
         if order_by:
             filtered_docs.sort(
-                key=lambda x: x.get(order_by) or "",  # Safe get
+                key=lambda x: x[order_by] if order_by in x and x[order_by] is not None else "",  # Removed get
                 reverse=descending,
             )
 

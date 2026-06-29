@@ -3,6 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.archivist import (
     ArchiveCase,
     ArchivistInput,
@@ -113,9 +114,9 @@ def test_archivist_output_dto_invalid_compliance() -> None:
         "compliance_analysis": "Invalid Value",
         "description_key": "desc_1",
     }
-    with pytest.raises(ValidationError) as exc_info:
+    with pytest.raises(AppException) as exc_info:
         ArchivistOutputDTO.model_validate(data)
-    assert "Invalid compliance_analysis" in str(exc_info.value)
+    assert "Invalid compliance_analysis" in str(exc_info.value.message)
 
 
 def test_archivist_output_dto_min_length() -> None:

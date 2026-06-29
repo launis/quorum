@@ -100,7 +100,11 @@ class ExecutionRepositoryImpl(BaseRepository):
                     data[field] = json.loads(decoded)
                 except Exception as e:
                     logger.warning(
-                        "[ExecutionRepository] Failed to hydrate %s from %s. Error: %s", field, data[path_key], e
+                        "[ExecutionRepository] Failed to hydrate %s from %s. Error: %s",
+                        field,
+                        data[path_key],
+                        e,
+                        exc_info=True,
                     )
                     raise AppException(
                         message=f"Missing blob trace data for {field}.",
@@ -120,7 +124,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                     data["frozen_context"]["mcp_tool_audit"] = trails
             except Exception as e:
                 msg = f"Failed to hydrate audit_trails for {doc_id}: {e}"
-                logger.error("[ExecutionRepository] %s", msg)
+                logger.error("[ExecutionRepository] %s", msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -228,7 +232,7 @@ class ExecutionRepositoryImpl(BaseRepository):
         try:
             await self._hydrate_payloads(data)
         except Exception as e:
-            logger.error("[ExecutionRepository] Failed to hydrate during append: %s", e)
+            logger.error("[ExecutionRepository] Failed to hydrate during append: %s", e, exc_info=True)
             raise
 
         trace = data.get("execution_trace", [])

@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
 from backend_v2.models.v2_core import PromptBlock
@@ -46,7 +47,7 @@ class StrippedBaseTDAExtraction(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    exact_quotes: list[str] = Field(
+    exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,
         max_length=3,
         description=DESC_EXACT_QUOTES,

@@ -360,6 +360,7 @@ class DAGExecutor:
                 workflow_id=workflow.id,
                 raw_inputs=raw_inputs,
                 frozen_context=FrozenContext(),
+                source_identity_manifest={},
                 status=ExecutionStatus.RUNNING,
                 step_states=step_states,
             )

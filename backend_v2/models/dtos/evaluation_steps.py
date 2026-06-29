@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.llm.directives import NULL_HYPOTHESIS_MANDATE
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
 
 
@@ -20,7 +21,7 @@ class BaseExtractionDTO(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    used_evidence_ids: list[str] = Field(
+    used_source_aliases: list[str] = Field(
         default_factory=list,
         description="List of exact <search_result id> strings you relied upon for this specific extraction.",
     )
@@ -60,10 +61,10 @@ class StepDTOStrict(BaseExtractionDTO):
     rule_internalization: str = Field(
         description="Brief internalization of the rule requirements and criteria in English."
     )
-    source_document_ids: list[str] = Field(
+    source_document_aliases: list[str] = Field(
         default_factory=list, description="Dynamic literals corresponding to available documents."
     )
-    exact_quotes: list[str] = Field(default_factory=list, description=DESC_EXACT_QUOTES)
+    exact_quotes: list[LLMExtractedQuote] = Field(default_factory=list, description=DESC_EXACT_QUOTES)
     reasoning_steps: str = Field(
         description=(
             f"Step-by-step mechanical audit trace BEFORE making a decision. {NULL_HYPOTHESIS_MANDATE} "

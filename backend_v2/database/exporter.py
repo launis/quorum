@@ -5,6 +5,7 @@ import os
 
 from tinydb import TinyDB
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import get_settings
 
 # from backend_v2.config import DB_PATH # Removed
@@ -95,7 +96,11 @@ def export_db_to_files(source_db_path: str | None = None) -> dict[str, str]:
 
     except Exception as e:
         print(f"Error exporting seed data: {e}")
-        raise e
+        raise AppException(
+            message=f"Error exporting seed data: {e}",
+            status_code=500,
+            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+        ) from e
 
     return {"status": "success", "message": "Configuration exported to files."}
 

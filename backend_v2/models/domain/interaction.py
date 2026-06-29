@@ -14,7 +14,7 @@ from pydantic import Field, field_validator
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
-from backend_v2.models.enums import InteractionStrategy, RoleClassification
+from backend_v2.models.enums import LaxInteractionStrategy, LaxRoleClassification
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
         strategy: Identified prompting strategy.
     """
 
-    role_classification: RoleClassification = Field(
+    role_classification: LaxRoleClassification = Field(
         ...,
         description="User role classification.",
         json_schema_extra={"x-ui-label": "Role"},
@@ -92,7 +92,7 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
-    strategy: InteractionStrategy = Field(
+    strategy: LaxInteractionStrategy = Field(
         ...,
         description="Identified prompting strategy.",
         json_schema_extra={"x-ui-label": "Strategy"},

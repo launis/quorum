@@ -29,6 +29,20 @@ class JudgeInput(V2CoreBase):
     """Strict Input Schema for Judge Agent (Phase 8).
 
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
+
+    Attributes:
+        chat_log: The mandatory conversation history to evaluate.
+        step_analyst: Analyst or Logician outputs.
+        step_profiler: Profiler Output.
+        step_archivist: Archivist Output.
+        step_logician: Logician Output.
+        step_falsifier: Falsifier Output.
+        step_causal: Causal Output.
+        step_detector: Detector Output.
+        step_overseer: Overseer Output.
+        step_guard: Guard Output.
+        last_reasoning_trace: Previous reasoning trace.
+        dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
     # Context / inputs
@@ -58,7 +72,14 @@ class JudgeInput(V2CoreBase):
 
 
 class DimensionResultItem(V2CoreBase):
-    """Result for a single dimension."""
+    """Result for a single dimension.
+
+    Attributes:
+        dimension_id: ID of the dimension (e.g., 'analysis').
+        dimension_label: Human-readable label.
+        score: Numerical score.
+        reasoning: Justification for the score.
+    """
 
     dimension_id: str = Field(
         ...,
@@ -80,7 +101,17 @@ class DimensionResultItem(V2CoreBase):
     @field_validator("score")
     @classmethod
     def validate_score(cls, v: int | float) -> int | float:
-        """Validate score >= 0."""
+        """Validate score >= 0.
+
+        Args:
+            v: The score to validate.
+
+        Returns:
+            The validated score.
+
+        Raises:
+            AppException: If score is less than 0 (VALIDATION_FAILED).
+        """
         if v < 0:
             msg = f"score must be >= 0, got {v}"
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -96,7 +127,17 @@ class DimensionResultItem(V2CoreBase):
 
 
 class JudgeScoreCard(V2CoreBase):
-    """Summary of a single judgment step."""
+    """Summary of a single judgment step.
+
+    Attributes:
+        agent_name: Name of the judge (e.g. 'Standard Judge').
+        total_score: Total score (0-5).
+        max_score: Max scale.
+        verdict: Short verdict or summary.
+        dimensions: Radar chart data.
+        scale_min: Minimum possible score.
+        scale_max: Maximum possible score.
+    """
 
     agent_name: str = Field(
         ...,
@@ -139,6 +180,14 @@ class JudgeScoreCard(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_scores(self) -> JudgeScoreCard:
+        """Validate the score bounds.
+
+        Returns:
+            The validated scorecard instance.
+
+        Raises:
+            AppException: If scale_min >= scale_max or total_score is out of bounds (VALIDATION_FAILED).
+        """
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be less than scale_max."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -152,7 +201,15 @@ class JudgeScoreCard(V2CoreBase):
 
 
 class JudgeDTO(ReasoningTraceDTO):
-    """Judge DTO (Content Only)."""
+    """Judge DTO (Content Only).
+
+    Attributes:
+        matrix_id: ID of the evaluation matrix used.
+        score_card: Final scorecard.
+        scale_min: Minimum possible score.
+        scale_max: Maximum possible score.
+        critical_findings: Critical issues identified.
+    """
 
     matrix_id: str = Field(
         ...,
@@ -186,7 +243,14 @@ class JudgeOutput(JudgeDTO, ReasoningTrace):
 
 
 class ScoringResult(V2CoreBase):
-    """Result of the scoring logic (Hook)."""
+    """Result of the scoring logic (Hook).
+
+    Attributes:
+        total_score: Total aggregated score.
+        calculated_average: Calculated average.
+        score_summary: Summary text.
+        penalties_applied: List of penalties applied.
+    """
 
     total_score: float = Field(
         ..., description="Total aggregated score.", json_schema_extra={"x-ui-label": "Total Score"}

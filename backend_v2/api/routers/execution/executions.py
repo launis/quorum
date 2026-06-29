@@ -10,7 +10,13 @@ from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, DocumentExtractionServiceDep, ExecutionServiceDep
-from backend_v2.models.v2_core import EvidenceRejectionRequest, ExecutionCreate, ExecutionRecord, JobAcceptedDTO
+from backend_v2.models.v2_core import (
+    EvidenceRejectionRequest,
+    ExecutionCreate,
+    ExecutionRecord,
+    HumanOverrideRequest,
+    JobAcceptedDTO,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -316,6 +322,24 @@ async def delete_profile_synthesis(
     await execution_service.clear_profile_synthesis(
         initiator=current_user, execution_id=execution_id, profile_id=profile_id
     )
+
+
+@router.patch("/{execution_id}/atoms/{atom_id}/override", status_code=status.HTTP_200_OK)
+async def override_atom(
+    execution_id: str,
+    atom_id: str,
+    payload: HumanOverrideRequest,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> dict[str, str]:
+    """Apply a human override to a scorecard atom."""
+    await execution_service.override_atom(
+        initiator=current_user,
+        execution_id=execution_id,
+        atom_id=atom_id,
+        payload=payload,
+    )
+    return {"status": "ok", "message": "Atom overridden and execution recalculated successfully."}
 
 
 @router.put("/{execution_id}/evidence/{evq_id}/reject", status_code=status.HTTP_200_OK)

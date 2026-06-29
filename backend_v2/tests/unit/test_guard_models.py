@@ -8,7 +8,7 @@ def test_guard_fails_fast_on_invalid_risk_level() -> None:
     data = {"threat_detected": True, "risk_level": "APOCALYPSE", "simulation_score": 1.0, "anonymized": False}
     with pytest.raises(ValidationError) as exc_info:
         SecurityCheck.model_validate(data)
-    assert "Input should be an instance of RiskLevel" in str(exc_info.value)
+    assert "Input should be 'RISK_LOW', 'RISK_MEDIUM' or 'RISK_HIGH'" in str(exc_info.value)
 
 
 def test_guard_fails_fast_on_invalid_simulation_type() -> None:
@@ -21,4 +21,4 @@ def test_guard_fails_fast_on_invalid_simulation_type() -> None:
     }
     with pytest.raises(ValidationError) as exc_info:
         SecurityCheck.model_validate(data)
-    assert "Input should be an instance of SimulationType" in str(exc_info.value)
+    assert "Input should be 'SIM_PASSIVE', 'SIM_ACTIVE' or 'SIM_MALICIOUS'" in str(exc_info.value)

@@ -120,3 +120,5 @@ class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
         bibliography: Inherited from CoachingPlanDTO.
         focus_areas: Inherited from CoachingPlanDTO.
     """
+
+    pass

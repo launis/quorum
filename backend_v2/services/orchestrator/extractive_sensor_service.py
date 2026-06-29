@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from rapidfuzz import fuzz
 
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import get_lexical_fuzz_threshold
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
@@ -13,7 +14,7 @@ class PreFlightResult(BaseModel):
 
     decided: bool
     result: str | None = None
-    exact_quotes: list[str] | None = None
+    exact_quotes: list[LLMExtractedQuote] | None = None
 
 
 class ExtractiveSensorService:

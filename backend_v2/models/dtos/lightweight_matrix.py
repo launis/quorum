@@ -3,6 +3,7 @@ from typing import Any, Literal
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import LaxXaiExtensionType, SystemConcurrency, get_lexical_fuzz_threshold
 
 
@@ -149,8 +150,16 @@ class LightweightExtractionAtom(V2CoreBase):
     """
 
     atom_id: str
+    used_source_aliases: list[str] = Field(
+        default_factory=list,
+        description="List of exact <search_result id> strings you relied upon for this specific extraction.",
+    )
+    used_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Resolved document or search IDs relied upon for this specific extraction.",
+    )
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
-    exact_quotes: list[str] = Field(
+    exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,
         max_length=SystemConcurrency.SCHEMA_MAX_QUOTES.value,
         description=(
@@ -191,7 +200,13 @@ class LightweightExtractionAtom(V2CoreBase):
         blacklist = {"null", "none", "n/a", "false", "", "ei löydy", "not found", "-", "[]", "{}"}
         if self.exact_quotes:
             for quote in self.exact_quotes:
-                if quote.strip().lower() not in blacklist:
+                # Support both strings and LLMExtractedQuote for backwards compatibility or parsing transitions
+                text_val = (
+                    quote.text
+                    if hasattr(quote, "text")
+                    else (quote.get("text") if isinstance(quote, dict) else str(quote))
+                )
+                if text_val and text_val.strip().lower() not in blacklist:
                     return True
         for val in self.extracted_facts.values():
             if val is not None and val.strip().lower() not in blacklist:
@@ -266,12 +281,16 @@ class AtomEvaluationItemDTO(V2CoreBase):
     """
 
     atom_id: str
-    used_evidence_ids: list[str] = Field(
+    used_source_aliases: list[str] = Field(
         default_factory=list,
         description="List of exact <search_result id> strings you relied upon for this specific extraction.",
     )
+    used_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Resolved document or search IDs relied upon for this specific extraction.",
+    )
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
-    exact_quotes: list[str] = Field(
+    exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,
         max_length=SystemConcurrency.SCHEMA_MAX_QUOTES.value,
         description=(
@@ -353,7 +372,12 @@ class AtomEvaluationItemDTO(V2CoreBase):
         }
         if self.exact_quotes:
             for quote in self.exact_quotes:
-                if quote.strip().lower() not in blacklist:
+                text_val = (
+                    quote.text
+                    if hasattr(quote, "text")
+                    else (quote.get("text") if isinstance(quote, dict) else str(quote))
+                )
+                if text_val and text_val.strip().lower() not in blacklist:
                     return True
         for val in self.extracted_facts.values():
             if val is not None and val.strip().lower() not in blacklist:
@@ -390,10 +414,85 @@ class AtomEvaluationItemDTO(V2CoreBase):
 
     @model_validator(mode="before")
     @classmethod
-    def _enforce_null_hypothesis_before(cls, data: Any) -> Any:
+    def _enforce_null_hypothesis_before(cls, data: Any, info: ValidationInfo) -> Any:
         if isinstance(data, dict):
             if data.get("contextual_override"):
                 data["exact_quotes"] = []
+                data["used_evidence_ids"] = []
+                return data
+
+            quotes = data.get("exact_quotes")
+            if isinstance(quotes, list) and quotes:
+                context = info.context if info else None
+                source_documents = context.get("source_documents") if context else None
+                mcp_source_texts = context.get("mcp_source_texts") if context else None
+                alias_map = context.get("alias_map") if context else None
+                locale = context.get("locale") if context else None
+                strictness_level = context.get("strictness_level", 50) if context else 50
+
+                from backend_v2.models.enums import get_lexical_fuzz_threshold
+                from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+
+                def _is_match(doc_text: str, q_text: str) -> bool:
+                    norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(doc_text)
+                    norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(q_text)
+                    if not norm_quote:
+                        return False
+                    if norm_quote in norm_pdf:
+                        return True
+                    if len(q_text) < 10:
+                        return False
+                    base_threshold = get_lexical_fuzz_threshold(locale)
+                    if strictness_level >= 100:
+                        modifier = 15.0
+                    elif strictness_level >= 85:
+                        modifier = 10.0
+                    elif strictness_level >= 50:
+                        modifier = -5.0
+                    elif strictness_level >= 30:
+                        modifier = -20.0
+                    else:
+                        modifier = -35.0
+                    tier_threshold = min(100.0, base_threshold + modifier)
+                    if tier_threshold >= 100.0:
+                        return False
+                    score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_pdf)
+                    return score >= tier_threshold
+
+                resolved_ids = set()
+                for q in quotes:
+                    if isinstance(q, dict):
+                        q_text = q.get("text", "")
+                        if q_text and isinstance(q_text, str):
+                            # 1. Match against static source documents
+                            matched = False
+                            if source_documents:
+                                for doc in source_documents:
+                                    doc_text = getattr(doc, "text_content", None) or (
+                                        doc.get("text_content") if isinstance(doc, dict) else None
+                                    )
+                                    doc_id = getattr(doc, "opaque_id", None) or (
+                                        doc.get("opaque_id") if isinstance(doc, dict) else None
+                                    )
+                                    if doc_text and doc_id and _is_match(doc_text, q_text):
+                                        q["source_id"] = doc_id
+                                        resolved_ids.add(doc_id)
+                                        matched = True
+                                        break
+                            # 2. Match against dynamic MCP source texts
+                            if not matched and mcp_source_texts and alias_map:
+                                for alias, mcp_text in mcp_source_texts.items():
+                                    if _is_match(mcp_text, q_text):
+                                        real_id = alias_map.get(alias)
+                                        if real_id:
+                                            q["source_id"] = real_id
+                                            resolved_ids.add(real_id)
+                                            break
+
+                if resolved_ids:
+                    data["used_evidence_ids"] = list(resolved_ids)
+                else:
+                    data["used_evidence_ids"] = []
         return data
 
     @model_validator(mode="after")
@@ -436,19 +535,26 @@ class AtomEvaluationItemDTO(V2CoreBase):
                     max_len = SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value
 
                     for quote in self.exact_quotes:
-                        if len(quote) > max_len:
+                        text_val = (
+                            quote.text
+                            if hasattr(quote, "text")
+                            else (quote.get("text") if isinstance(quote, dict) else str(quote))
+                        )
+                        if not text_val:
+                            continue
+                        if len(text_val) > max_len:
                             raise ValueError(
-                                f"Quote too long ({len(quote)} chars > {max_len}). "
+                                f"Quote too long ({len(text_val)} chars > {max_len}). "
                                 "Split into separate shorter quotes from different source locations."
                             )
-                        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
+                        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(text_val)
                         if not norm_quote:
                             continue
                         if norm_quote not in norm_source:
                             score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_source)
                             if score < threshold:
                                 raise ValueError(
-                                    f"exact_quote '{quote[:20]}...' not found in source text with high enough similarity "
+                                    f"exact_quote '{text_val[:20]}...' not found in source text with high enough similarity "
                                     f"(got {score:.1f}%, required >= {threshold:.1f}%)."
                                 )
         return self

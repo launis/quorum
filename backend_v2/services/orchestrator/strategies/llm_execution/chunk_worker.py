@@ -10,6 +10,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationE
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.linguistic import build_linguistic_context
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.report import PromptContextDTO
 from backend_v2.models.enums import EvaluationRunCount, SystemConcurrency
 from backend_v2.models.prompt import CompiledPrompt
@@ -57,7 +58,7 @@ class AtomIdentifier(BaseModel):
 
 class ConsensusVotePayload(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
-    exact_quotes: list[str] = []
+    exact_quotes: list[LLMExtractedQuote] = []
     contextual_override: bool = False
     override_reason: str | None = None
     reasoning_steps: str | None = ""
@@ -68,9 +69,18 @@ def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
     """
-    exact_quotes = getattr(extraction, "exact_quotes", [])
-    if not isinstance(exact_quotes, list):
-        exact_quotes = []
+    exact_quotes_raw = getattr(extraction, "exact_quotes", [])
+    if not isinstance(exact_quotes_raw, list):
+        exact_quotes_raw = []
+
+    exact_quotes = []
+    for q in exact_quotes_raw:
+        if isinstance(q, str):
+            exact_quotes.append(q)
+        elif hasattr(q, "text") and isinstance(getattr(q, "text", None), str):
+            exact_quotes.append(q.text)
+        elif isinstance(q, dict) and "text" in q and isinstance(q["text"], str):
+            exact_quotes.append(q["text"])
     contextual_override = getattr(extraction, "contextual_override", False)
     if not isinstance(contextual_override, bool):
         contextual_override = False
@@ -97,6 +107,7 @@ def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int
     # Track B: Semantic Override
     else:
         if contextual_override:
+            logger.info("Cognitive Override (contextual_override) utilized. Bypassing exact_quotes requirement.")
             status = "PASS"
         else:
             status = "FAIL"
@@ -596,11 +607,18 @@ class ChunkWorker:
 
         is_lightweight = False
         source_language = "Unknown/Original"
+        source_docs = []
         if step_metadata:
             if step_metadata.get("is_lightweight_extraction"):
                 is_lightweight = True
             doc_lang = step_metadata.get("document_language", "Unknown/Original")
             source_language = step_metadata.get("source_language", doc_lang)
+            if "source_documents" in step_metadata:
+                from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
+
+                for doc_dict in step_metadata["source_documents"]:
+                    if isinstance(doc_dict, dict):
+                        source_docs.append(SourceDocumentContext.model_validate(doc_dict))
 
         linguistic_context = build_linguistic_context(
             target_locale=target_locale,
@@ -716,6 +734,7 @@ class ChunkWorker:
                                     "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                                     if step_metadata
                                     else 0,
+                                    "source_documents": source_docs,
                                 },
                                 source_context=global_source_text,
                             )
@@ -745,6 +764,7 @@ class ChunkWorker:
                                     if step_metadata
                                     else 0,
                                     "has_mcp_tools": bool(effective_mcp_tools),
+                                    "source_documents": source_docs,
                                 },
                             )
                             llm_time_ms = (time.time() - llm_start) * 1000

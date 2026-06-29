@@ -393,6 +393,42 @@ class LLMNodeStrategy(NodeStrategy):
             hook_state.metadata = {}
         hook_state.metadata["source_document_ids"] = source_doc_ids
 
+        # Fetch execution record to build SourceDocumentContext for validation context
+        execution_record_raw = None
+        try:
+            import inspect
+
+            res = self.exec_repo.get_execution(context.execution_id)
+            if inspect.isawaitable(res):
+                execution_record_raw = await res
+            else:
+                execution_record_raw = res
+        except Exception:
+            pass
+
+        if execution_record_raw and isinstance(execution_record_raw, dict):
+            from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
+            from backend_v2.models.v2_core import ExecutionRecord
+
+            try:
+                exec_obj = ExecutionRecord.model_validate(execution_record_raw, strict=False)
+                manifest = exec_obj.source_identity_manifest or {}
+
+                source_docs = []
+                inputs_dict = inputs_payload.get("inputs", {})
+                if isinstance(inputs_dict, dict):
+                    for k, text_content in inputs_dict.items():
+                        if isinstance(text_content, str):
+                            display_name = manifest.get(k, k)
+                            doc_ctx = SourceDocumentContext(
+                                opaque_id=k, text_content=text_content, display_name=display_name
+                            )
+                            source_docs.append(doc_ctx.model_dump(mode="json"))
+
+                hook_state.metadata["source_documents"] = source_docs
+            except Exception:
+                pass
+
         has_search = any("search_result" in v for v in state_data.values() if type(v) is dict)
 
         if frozen_ctx:
