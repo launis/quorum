@@ -15,41 +15,35 @@ def test_report_data_dto_strictness_level_validation() -> None:
     assert dto.strictness_level is None
 
 
-def test_evidence_quote_dto_id_generation() -> None:
-    from backend_v2.models.v2_core import EvidenceQuoteDTO
+def test_scorecard_atom_dto_firewall() -> None:
+    from backend_v2.models.v2_core import ScorecardAtomDTO
 
-    quote1 = EvidenceQuoteDTO(text="Test quote 1")
-    quote2 = EvidenceQuoteDTO(text="Test quote 2")
+    larger_payload = {
+        "atom_id": "atom_1",
+        "level": 1,
+        "level_name": "Level 1",
+        "claim_label": "Claim 1",
+        "extracted_facts": {},
+        "exact_quotes": ["Quote 1"],
+        "internal_logic_en": {
+            "step_1_identify_premise": "1",
+            "step_2_scan_source": "2",
+            "step_3_evaluate_anti_patterns": "3",
+            "step_4_final_conclusion": "4",
+        },
+        "status": "PASS",
+        "semantic_reasoning": "Reason",
+        "contextual_override": False,
+        "structural_location": "N/A",
+        "db_secret_key": "should_be_stripped",
+        "internal_ai_score": 0.99,
+    }
 
-    assert quote1.id.startswith("evq_")
-    assert quote2.id.startswith("evq_")
-    assert len(quote1.id) == 36
-    assert quote1.id != quote2.id
+    dto = ScorecardAtomDTO.model_validate(larger_payload)
 
-    # Test None sanitization
-    quote3 = EvidenceQuoteDTO(text="Test quote 3", used_evidence_ids=None)
-    assert quote3.used_evidence_ids == []
-
-
-def test_row_forensics_dto_all_evidence_rejected() -> None:
-    from backend_v2.models.v2_core import EvidenceQuoteDTO, LevelQuotesDTO, RowForensicsDTO
-
-    # Empty Row
-    row_empty = RowForensicsDTO(level_quotes=[])
-    assert row_empty.all_evidence_rejected is False
-
-    # All quotes rejected
-    q1 = EvidenceQuoteDTO(text="Quote 1", user_rejected=True)
-    q2 = EvidenceQuoteDTO(text="Quote 2", user_rejected=True)
-    level_all_rejected = LevelQuotesDTO(level=1, level_name="L1", quotes=[q1, q2])
-    row_all_rejected = RowForensicsDTO(level_quotes=[level_all_rejected])
-    assert row_all_rejected.all_evidence_rejected is True
-
-    # Mixed quotes rejected
-    q3 = EvidenceQuoteDTO(text="Quote 3", user_rejected=False)
-    level_mixed = LevelQuotesDTO(level=2, level_name="L2", quotes=[q1, q3])
-    row_mixed = RowForensicsDTO(level_quotes=[level_mixed])
-    assert row_mixed.all_evidence_rejected is False
+    assert dto.atom_id == "atom_1"
+    assert not hasattr(dto, "db_secret_key")
+    assert not hasattr(dto, "internal_ai_score")
 
 
 def test_mcp_audit_trace_new_fields() -> None:

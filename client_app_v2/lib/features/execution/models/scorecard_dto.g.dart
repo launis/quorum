@@ -117,8 +117,8 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         'is_evaluative',
         'contextual_override',
         'semantic_reasoning',
-        'quotes_list',
-        'row_forensics',
+        'evaluated_atoms',
+        'clustered_row_sources',
         'used_evidence_ids',
       ],
     );
@@ -202,15 +202,25 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         'semantic_reasoning',
         (v) => v as String?,
       ),
-      quotesList: $checkedConvert(
-        'quotes_list',
-        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      evaluatedAtoms: $checkedConvert(
+        'evaluated_atoms',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => ScorecardAtomDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
       ),
-      forensics: $checkedConvert(
-        'row_forensics',
-        (v) => v == null
-            ? null
-            : RowForensicsDto.fromJson(v as Map<String, dynamic>),
+      clusteredRowSources: $checkedConvert(
+        'clustered_row_sources',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => McpAuditTraceDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
       ),
       usedEvidenceIds: $checkedConvert(
         'used_evidence_ids',
@@ -246,8 +256,8 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
     'isEvaluative': 'is_evaluative',
     'contextualOverride': 'contextual_override',
     'semanticReasoning': 'semantic_reasoning',
-    'quotesList': 'quotes_list',
-    'forensics': 'row_forensics',
+    'evaluatedAtoms': 'evaluated_atoms',
+    'clusteredRowSources': 'clustered_row_sources',
     'usedEvidenceIds': 'used_evidence_ids',
   },
 );
@@ -286,8 +296,10 @@ Map<String, dynamic> _$MatrixScorecardRowDtoToJson(
   'is_evaluative': instance.isEvaluative,
   'contextual_override': instance.contextualOverride,
   'semantic_reasoning': instance.semanticReasoning,
-  'quotes_list': instance.quotesList,
-  'row_forensics': instance.forensics?.toJson(),
+  'evaluated_atoms': instance.evaluatedAtoms.map((e) => e.toJson()).toList(),
+  'clustered_row_sources': instance.clusteredRowSources
+      .map((e) => e.toJson())
+      .toList(),
   'used_evidence_ids': instance.usedEvidenceIds,
 };
 
@@ -297,127 +309,222 @@ const _$EvidenceTypeEnumMap = {
   EvidenceType.noEvidence: 'NO_EVIDENCE',
 };
 
-_EvidenceQuoteDto _$EvidenceQuoteDtoFromJson(
+_McpAuditTraceDto _$McpAuditTraceDtoFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
-  '_EvidenceQuoteDto',
+  '_McpAuditTraceDto',
   json,
   ($checkedConvert) {
     $checkKeys(
       json,
       allowedKeys: const [
         'id',
-        'text',
-        'source_reference',
-        'user_rejected',
-        'rejection_reason',
-        'is_mcp_verified',
-        'used_evidence_ids',
+        'tool_id',
+        'step_name',
+        'claim_text',
+        'query',
+        'knowledge_gap',
+        'search_rationale',
+        'reasoning',
+        'response_summary',
+        'source_urls',
+        'impacted_axis_names',
+        'timestamp',
+        'duration_ms',
       ],
     );
-    final val = _EvidenceQuoteDto(
-      id: $checkedConvert('id', (v) => v as String),
-      text: $checkedConvert('text', (v) => v as String),
-      sourceReference: $checkedConvert('source_reference', (v) => v as String?),
-      userRejected: $checkedConvert(
-        'user_rejected',
-        (v) => v as bool? ?? false,
+    final val = _McpAuditTraceDto(
+      id: $checkedConvert('id', (v) => v as String?),
+      toolId: $checkedConvert('tool_id', (v) => v as String),
+      stepName: $checkedConvert('step_name', (v) => v as String),
+      claimText: $checkedConvert('claim_text', (v) => v as String?),
+      query: $checkedConvert('query', (v) => v as String),
+      knowledgeGap: $checkedConvert('knowledge_gap', (v) => v as String? ?? ''),
+      searchRationale: $checkedConvert(
+        'search_rationale',
+        (v) => v as String? ?? '',
       ),
-      rejectionReason: $checkedConvert('rejection_reason', (v) => v as String?),
-      isMcpVerified: $checkedConvert(
-        'is_mcp_verified',
-        (v) => v as bool? ?? false,
+      reasoning: $checkedConvert('reasoning', (v) => v as String? ?? ''),
+      responseSummary: $checkedConvert(
+        'response_summary',
+        (v) => v as String? ?? '',
       ),
-      usedEvidenceIds: $checkedConvert(
-        'used_evidence_ids',
+      sourceUrls: $checkedConvert(
+        'source_urls',
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      impactedAxisNames: $checkedConvert(
+        'impacted_axis_names',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      timestamp: $checkedConvert('timestamp', (v) => v as String?),
+      durationMs: $checkedConvert(
+        'duration_ms',
+        (v) => (v as num?)?.toInt() ?? 0,
       ),
     );
     return val;
   },
   fieldKeyMap: const {
-    'sourceReference': 'source_reference',
-    'userRejected': 'user_rejected',
-    'rejectionReason': 'rejection_reason',
-    'isMcpVerified': 'is_mcp_verified',
-    'usedEvidenceIds': 'used_evidence_ids',
+    'toolId': 'tool_id',
+    'stepName': 'step_name',
+    'claimText': 'claim_text',
+    'knowledgeGap': 'knowledge_gap',
+    'searchRationale': 'search_rationale',
+    'responseSummary': 'response_summary',
+    'sourceUrls': 'source_urls',
+    'impactedAxisNames': 'impacted_axis_names',
+    'durationMs': 'duration_ms',
   },
 );
 
-Map<String, dynamic> _$EvidenceQuoteDtoToJson(_EvidenceQuoteDto instance) =>
+Map<String, dynamic> _$McpAuditTraceDtoToJson(_McpAuditTraceDto instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'text': instance.text,
-      'source_reference': instance.sourceReference,
-      'user_rejected': instance.userRejected,
-      'rejection_reason': instance.rejectionReason,
-      'is_mcp_verified': instance.isMcpVerified,
-      'used_evidence_ids': instance.usedEvidenceIds,
+      'tool_id': instance.toolId,
+      'step_name': instance.stepName,
+      'claim_text': instance.claimText,
+      'query': instance.query,
+      'knowledge_gap': instance.knowledgeGap,
+      'search_rationale': instance.searchRationale,
+      'reasoning': instance.reasoning,
+      'response_summary': instance.responseSummary,
+      'source_urls': instance.sourceUrls,
+      'impacted_axis_names': instance.impactedAxisNames,
+      'timestamp': instance.timestamp,
+      'duration_ms': instance.durationMs,
     };
 
-_LevelQuotesDto _$LevelQuotesDtoFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('_LevelQuotesDto', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['level', 'level_name', 'quotes']);
-      final val = _LevelQuotesDto(
-        level: $checkedConvert('level', (v) => (v as num).toInt()),
-        levelName: $checkedConvert('level_name', (v) => v as String),
-        quotes: $checkedConvert(
-          'quotes',
-          (v) =>
-              (v as List<dynamic>?)
-                  ?.map(
-                    (e) => EvidenceQuoteDto.fromJson(e as Map<String, dynamic>),
-                  )
-                  .toList() ??
-              const [],
-        ),
-      );
-      return val;
-    }, fieldKeyMap: const {'levelName': 'level_name'});
-
-Map<String, dynamic> _$LevelQuotesDtoToJson(_LevelQuotesDto instance) =>
-    <String, dynamic>{
-      'level': instance.level,
-      'level_name': instance.levelName,
-      'quotes': instance.quotes.map((e) => e.toJson()).toList(),
-    };
-
-_RowForensicsDto _$RowForensicsDtoFromJson(Map<String, dynamic> json) =>
+_ReasoningStepDto _$ReasoningStepDtoFromJson(Map<String, dynamic> json) =>
     $checkedCreate(
-      '_RowForensicsDto',
+      '_ReasoningStepDto',
       json,
       ($checkedConvert) {
         $checkKeys(
           json,
-          allowedKeys: const ['level_quotes', 'all_evidence_rejected'],
+          allowedKeys: const [
+            'step_1_identify_premise',
+            'step_2_scan_source',
+            'step_3_evaluate_anti_patterns',
+            'step_4_final_conclusion',
+          ],
         );
-        final val = _RowForensicsDto(
-          levelQuotes: $checkedConvert(
-            'level_quotes',
-            (v) =>
-                (v as List<dynamic>?)
-                    ?.map(
-                      (e) => LevelQuotesDto.fromJson(e as Map<String, dynamic>),
-                    )
-                    .toList() ??
-                const [],
+        final val = _ReasoningStepDto(
+          step1IdentifyPremise: $checkedConvert(
+            'step_1_identify_premise',
+            (v) => v as String,
           ),
-          allEvidenceRejected: $checkedConvert(
-            'all_evidence_rejected',
-            (v) => v as bool? ?? false,
+          step2ScanSource: $checkedConvert(
+            'step_2_scan_source',
+            (v) => v as String,
+          ),
+          step3EvaluateAntiPatterns: $checkedConvert(
+            'step_3_evaluate_anti_patterns',
+            (v) => v as String,
+          ),
+          step4FinalConclusion: $checkedConvert(
+            'step_4_final_conclusion',
+            (v) => v as String,
           ),
         );
         return val;
       },
       fieldKeyMap: const {
-        'levelQuotes': 'level_quotes',
-        'allEvidenceRejected': 'all_evidence_rejected',
+        'step1IdentifyPremise': 'step_1_identify_premise',
+        'step2ScanSource': 'step_2_scan_source',
+        'step3EvaluateAntiPatterns': 'step_3_evaluate_anti_patterns',
+        'step4FinalConclusion': 'step_4_final_conclusion',
       },
     );
 
-Map<String, dynamic> _$RowForensicsDtoToJson(_RowForensicsDto instance) =>
+Map<String, dynamic> _$ReasoningStepDtoToJson(_ReasoningStepDto instance) =>
     <String, dynamic>{
-      'level_quotes': instance.levelQuotes.map((e) => e.toJson()).toList(),
-      'all_evidence_rejected': instance.allEvidenceRejected,
+      'step_1_identify_premise': instance.step1IdentifyPremise,
+      'step_2_scan_source': instance.step2ScanSource,
+      'step_3_evaluate_anti_patterns': instance.step3EvaluateAntiPatterns,
+      'step_4_final_conclusion': instance.step4FinalConclusion,
+    };
+
+_ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_ScorecardAtomDto',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'atom_id',
+            'level',
+            'level_name',
+            'claim_label',
+            'extracted_facts',
+            'exact_quotes',
+            'internal_logic_en',
+            'status',
+            'semantic_reasoning',
+            'contextual_override',
+            'structural_location',
+          ],
+        );
+        final val = _ScorecardAtomDto(
+          atomId: $checkedConvert('atom_id', (v) => v as String),
+          level: $checkedConvert('level', (v) => (v as num).toInt()),
+          levelName: $checkedConvert('level_name', (v) => v as String),
+          claimLabel: $checkedConvert('claim_label', (v) => v as String),
+          extractedFacts: $checkedConvert(
+            'extracted_facts',
+            (v) => Map<String, String?>.from(v as Map),
+          ),
+          exactQuotes: $checkedConvert(
+            'exact_quotes',
+            (v) => (v as List<dynamic>).map((e) => e as String).toList(),
+          ),
+          internalLogicEn: $checkedConvert(
+            'internal_logic_en',
+            (v) => ReasoningStepDto.fromJson(v as Map<String, dynamic>),
+          ),
+          status: $checkedConvert('status', (v) => v as String?),
+          semanticReasoning: $checkedConvert(
+            'semantic_reasoning',
+            (v) => v as String,
+          ),
+          contextualOverride: $checkedConvert(
+            'contextual_override',
+            (v) => v as bool,
+          ),
+          structuralLocation: $checkedConvert(
+            'structural_location',
+            (v) => v as String,
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'atomId': 'atom_id',
+        'levelName': 'level_name',
+        'claimLabel': 'claim_label',
+        'extractedFacts': 'extracted_facts',
+        'exactQuotes': 'exact_quotes',
+        'internalLogicEn': 'internal_logic_en',
+        'semanticReasoning': 'semantic_reasoning',
+        'contextualOverride': 'contextual_override',
+        'structuralLocation': 'structural_location',
+      },
+    );
+
+Map<String, dynamic> _$ScorecardAtomDtoToJson(_ScorecardAtomDto instance) =>
+    <String, dynamic>{
+      'atom_id': instance.atomId,
+      'level': instance.level,
+      'level_name': instance.levelName,
+      'claim_label': instance.claimLabel,
+      'extracted_facts': instance.extractedFacts,
+      'exact_quotes': instance.exactQuotes,
+      'internal_logic_en': instance.internalLogicEn.toJson(),
+      'status': instance.status,
+      'semantic_reasoning': instance.semanticReasoning,
+      'contextual_override': instance.contextualOverride,
+      'structural_location': instance.structuralLocation,
     };

@@ -73,8 +73,12 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'semantic_reasoning') String? semanticReasoning,
 
     // Epic 88: Unified Forensic Traceability
-    @JsonKey(name: 'quotes_list') List<String>? quotesList,
-    @JsonKey(name: 'row_forensics') RowForensicsDto? forensics,
+    @JsonKey(name: 'evaluated_atoms')
+    @Default([])
+    List<ScorecardAtomDto> evaluatedAtoms,
+    @JsonKey(name: 'clustered_row_sources')
+    @Default([])
+    List<McpAuditTraceDto> clusteredRowSources,
 
     @JsonKey(name: 'used_evidence_ids')
     @Default([])
@@ -83,52 +87,81 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
 
   factory MatrixScorecardRowDto.fromJson(Map<String, dynamic> json) =>
       _$MatrixScorecardRowDtoFromJson(json);
+
+  // Epic 88 Phase 3: Smart Getter for UI grouping by level
+  Map<int, List<ScorecardAtomDto>> get atomsByLevel {
+    final Map<int, List<ScorecardAtomDto>> grouped = {};
+    for (final atom in evaluatedAtoms) {
+      if (!grouped.containsKey(atom.level)) {
+        grouped[atom.level] = [];
+      }
+      grouped[atom.level]!.add(atom);
+    }
+    return grouped;
+  }
 }
 
 @Freezed(equal: false)
-abstract class EvidenceQuoteDto with _$EvidenceQuoteDto {
+abstract class McpAuditTraceDto with _$McpAuditTraceDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory EvidenceQuoteDto({
-    required String id,
-    required String text,
-    @JsonKey(name: 'source_reference') String? sourceReference,
-    @JsonKey(name: 'user_rejected') @Default(false) bool userRejected,
-    @JsonKey(name: 'rejection_reason') String? rejectionReason,
-    @JsonKey(name: 'is_mcp_verified') @Default(false) bool isMcpVerified,
-    @JsonKey(name: 'used_evidence_ids')
+  const factory McpAuditTraceDto({
+    String? id,
+    @JsonKey(name: 'tool_id') required String toolId,
+    @JsonKey(name: 'step_name') required String stepName,
+    @JsonKey(name: 'claim_text') String? claimText,
+    required String query,
+    @JsonKey(name: 'knowledge_gap') @Default('') String knowledgeGap,
+    @JsonKey(name: 'search_rationale') @Default('') String searchRationale,
+    @Default('') String reasoning,
+    @JsonKey(name: 'response_summary') @Default('') String responseSummary,
+    @JsonKey(name: 'source_urls') @Default([]) List<String> sourceUrls,
+    @JsonKey(name: 'impacted_axis_names')
     @Default([])
-    List<String> usedEvidenceIds,
-  }) = _EvidenceQuoteDto;
+    List<String> impactedAxisNames,
+    String? timestamp,
+    @JsonKey(name: 'duration_ms') @Default(0) int durationMs,
+  }) = _McpAuditTraceDto;
 
-  factory EvidenceQuoteDto.fromJson(Map<String, dynamic> json) =>
-      _$EvidenceQuoteDtoFromJson(json);
+  factory McpAuditTraceDto.fromJson(Map<String, dynamic> json) =>
+      _$McpAuditTraceDtoFromJson(json);
 }
 
 @Freezed(equal: false)
-abstract class LevelQuotesDto with _$LevelQuotesDto {
+abstract class ReasoningStepDto with _$ReasoningStepDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory LevelQuotesDto({
+  const factory ReasoningStepDto({
+    @JsonKey(name: 'step_1_identify_premise')
+    required String step1IdentifyPremise,
+    @JsonKey(name: 'step_2_scan_source') required String step2ScanSource,
+    @JsonKey(name: 'step_3_evaluate_anti_patterns')
+    required String step3EvaluateAntiPatterns,
+    @JsonKey(name: 'step_4_final_conclusion')
+    required String step4FinalConclusion,
+  }) = _ReasoningStepDto;
+
+  factory ReasoningStepDto.fromJson(Map<String, dynamic> json) =>
+      _$ReasoningStepDtoFromJson(json);
+}
+
+@Freezed(equal: false)
+abstract class ScorecardAtomDto with _$ScorecardAtomDto {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory ScorecardAtomDto({
+    @JsonKey(name: 'atom_id') required String atomId,
     required int level,
     @JsonKey(name: 'level_name') required String levelName,
-    @Default([]) List<EvidenceQuoteDto> quotes,
-  }) = _LevelQuotesDto;
+    @JsonKey(name: 'claim_label') required String claimLabel,
+    @JsonKey(name: 'extracted_facts')
+    required Map<String, String?> extractedFacts,
+    @JsonKey(name: 'exact_quotes') required List<String> exactQuotes,
+    @JsonKey(name: 'internal_logic_en')
+    required ReasoningStepDto internalLogicEn,
+    String? status,
+    @JsonKey(name: 'semantic_reasoning') required String semanticReasoning,
+    @JsonKey(name: 'contextual_override') required bool contextualOverride,
+    @JsonKey(name: 'structural_location') required String structuralLocation,
+  }) = _ScorecardAtomDto;
 
-  factory LevelQuotesDto.fromJson(Map<String, dynamic> json) =>
-      _$LevelQuotesDtoFromJson(json);
-}
-
-@Freezed(equal: false)
-abstract class RowForensicsDto with _$RowForensicsDto {
-  @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory RowForensicsDto({
-    @JsonKey(name: 'level_quotes')
-    @Default([])
-    List<LevelQuotesDto> levelQuotes,
-    @JsonKey(name: 'all_evidence_rejected')
-    @Default(false)
-    bool allEvidenceRejected,
-  }) = _RowForensicsDto;
-
-  factory RowForensicsDto.fromJson(Map<String, dynamic> json) =>
-      _$RowForensicsDtoFromJson(json);
+  factory ScorecardAtomDto.fromJson(Map<String, dynamic> json) =>
+      _$ScorecardAtomDtoFromJson(json);
 }

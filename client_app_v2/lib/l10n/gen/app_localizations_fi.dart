@@ -459,6 +459,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get chooseAnalysisType => 'Valitse Analyysityyppi';
 
   @override
+  String get lblReasoning => 'Perustelu';
+
+  @override
   String get usageCurrentMonth => 'Nykyisen kuukauden käyttö';
 
   @override
@@ -1653,9 +1656,6 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get lblPostHocRationalization => 'Jälkikäteisrationalisointi';
-
-  @override
-  String get lblReasoning => 'Perustelu';
 
   @override
   String get lblAvgSentenceLength => 'Lauseen keskipituus';

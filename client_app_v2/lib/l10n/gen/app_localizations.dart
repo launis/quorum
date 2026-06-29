@@ -914,6 +914,12 @@ abstract class AppLocalizations {
   /// **'Choose Analysis Type'**
   String get chooseAnalysisType;
 
+  /// No description provided for @lblReasoning.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning'**
+  String get lblReasoning;
+
   /// No description provided for @usageCurrentMonth.
   ///
   /// In en, this message translates to:
@@ -3109,12 +3115,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Post-Hoc Rationalization'**
   String get lblPostHocRationalization;
-
-  /// No description provided for @lblReasoning.
-  ///
-  /// In en, this message translates to:
-  /// **'Reasoning'**
-  String get lblReasoning;
 
   /// No description provided for @lblAvgSentenceLength.
   ///

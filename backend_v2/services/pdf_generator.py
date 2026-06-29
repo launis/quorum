@@ -87,7 +87,23 @@ class PdfReportService:
 
             return str(markdown.markdown(text, extensions=["extra", "nl2br"]))
 
+        def group_atoms_by_level(atoms: list[Any]) -> dict[int, list[Any]]:
+            """Smart getter grouping flat atoms by their level for rendering.
+
+            Args:
+                atoms: Flat list of ScorecardAtomDTOs.
+
+            Returns:
+                Dictionary mapping level int to list of atoms, sorted by level.
+            """
+            grouped: dict[int, list[Any]] = {}
+            if atoms:
+                for a in atoms:
+                    grouped.setdefault(a.level, []).append(a)
+            return {k: grouped[k] for k in sorted(grouped.keys())}
+
         self.env.filters["md"] = md_filter
+        self.env.filters["group_atoms_by_level"] = group_atoms_by_level
 
     async def generate_execution_html(self, execution_id: str, report_dto: ReportDataDTO | None = None) -> str:
         """Generates a dynamic HTML string for the given execution ID using static DTO constraints.

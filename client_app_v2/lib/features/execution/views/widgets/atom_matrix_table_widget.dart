@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
-import 'package:client_app/features/execution/controllers/execution_controller.dart';
+
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Renders the atomic level breakdown for the given matrix in a tabular format.
@@ -179,18 +179,6 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                if (m.forensics?.allEvidenceRejected == true)
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4.0),
-                                    child: Tooltip(
-                                      message: l10n.quote_rejected_warning,
-                                      child: const Icon(
-                                        Icons.warning,
-                                        color: Colors.amber,
-                                        size: 16,
-                                      ),
-                                    ),
-                                  ),
                               ],
                             ),
                             if (m.description != null &&
@@ -315,18 +303,6 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                         (m.isEvaluative ? ' *' : ''),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  if (m.forensics?.allEvidenceRejected == true)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4.0),
-                      child: Tooltip(
-                        message: l10n.quote_rejected_warning,
-                        child: const Icon(
-                          Icons.warning,
-                          color: Colors.amber,
-                          size: 16,
-                        ),
-                      ),
-                    ),
                 ],
               ),
               if (m.description != null && m.description!.isNotEmpty)
@@ -402,7 +378,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
     WidgetRef ref,
     MatrixScorecardRowDto m,
   ) {
-    if (m.forensics == null || m.forensics!.levelQuotes.isEmpty) {
+    if (m.atomsByLevel.isEmpty) {
       return const Text(
         '-',
         style: TextStyle(
@@ -413,126 +389,207 @@ class AtomMatrixTableWidget extends ConsumerWidget {
       );
     }
 
+    final sortedLevels = m.atomsByLevel.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: m.forensics!.levelQuotes.map((lq) {
+      children: sortedLevels.map((level) {
+        final atoms = m.atomsByLevel[level]!;
+        final levelName = m.levelNames?['$level'] ?? 'T$level';
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${lq.level} - ${lq.levelName}',
+                '$level - $levelName',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
               ),
               const SizedBox(height: 4),
-              ...lq.quotes.map((q) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('- ', style: TextStyle(fontSize: 13)),
-                      Expanded(
-                        child: Text(
-                          q.text,
-                          style: TextStyle(
-                            fontSize: 13,
-                            decoration: q.userRejected
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: q.userRejected
-                                ? Colors.red.withValues(alpha: 0.6)
-                                : null,
-                          ),
-                        ),
-                      ),
-                      if (q.isMcpVerified && !q.userRejected)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4.0),
-                          child: Icon(
-                            Icons.verified,
-                            color: Colors.green,
-                            size: 16,
-                          ),
-                        ),
-                      if (!q.userRejected)
+              Builder(
+                builder: (context) {
+                  final itemsToRender = <Widget>[];
+
+                  for (final atom in atoms) {
+                    final lowerStatus = atom.status?.toLowerCase() ?? '';
+                    // Filter non-renderable atoms from Display Tier
+                    final isSkipped =
+                        lowerStatus == 'skipped' ||
+                        lowerStatus == 'none' ||
+                        lowerStatus == 'dlq' ||
+                        atom.semanticReasoning.startsWith(
+                          'Chunk Processing Failed',
+                        );
+                    if (isSkipped) continue;
+
+                    final isPass =
+                        atom.status?.toUpperCase() == 'PASS' ||
+                        atom.status?.toUpperCase() == 'CONTESTED';
+
+                    // Parse quotes with badges
+                    final uniqueQuotes = <String>{};
+                    final parsedQuotes = <Widget>[];
+                    for (final q in atom.exactQuotes) {
+                      if (!uniqueQuotes.add(q)) continue;
+
+                      String displayQuote = q;
+                      String? badgeText;
+                      if (q.contains('|||')) {
+                        final parts = q.split('|||');
+                        badgeText = parts[0];
+                        displayQuote = parts.length > 1 ? parts[1] : parts[0];
+                      }
+
+                      parsedQuotes.add(
                         Padding(
-                          padding: const EdgeInsets.only(left: 4.0),
-                          child: InkWell(
-                            onTap: () => _showRejectDialog(context, ref, q.id),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.red,
-                              size: 16,
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black87,
+                              ),
+                              children: [
+                                if (badgeText != null) ...[
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Container(
+                                      margin: const EdgeInsets.only(right: 6.0),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6.0,
+                                        vertical: 2.0,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        border: Border.all(
+                                          color: Colors.blue.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          4.0,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        badgeText.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue[800],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                TextSpan(
+                                  text: displayQuote,
+                                  style: isPass
+                                      ? const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        )
+                                      : null,
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                );
-              }),
+                      );
+                    }
+
+                    itemsToRender.add(
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('- ', style: TextStyle(fontSize: 13)),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    atom.claimLabel,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isPass
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isPass
+                                          ? Colors.black87
+                                          : Colors.black54,
+                                    ),
+                                  ),
+                                  if (parsedQuotes.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: parsedQuotes,
+                                      ),
+                                    ),
+                                  if (atom.semanticReasoning.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4.0),
+                                      child: Text(
+                                        '${AppLocalizations.of(context)!.lblReasoning}: ${atom.semanticReasoning}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic,
+                                          color: isPass
+                                              ? Colors.black54
+                                              : Colors.black38,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (itemsToRender.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.only(bottom: 4.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('- ', style: TextStyle(fontSize: 13)),
+                          Expanded(
+                            child: Text(
+                              '-',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: itemsToRender,
+                  );
+                },
+              ),
             ],
           ),
         );
       }).toList(),
-    );
-  }
-
-  void _showRejectDialog(BuildContext context, WidgetRef ref, String quoteId) {
-    final l10n = AppLocalizations.of(context)!;
-    final reasonController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.reject_quote_title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.reject_quote_confirm),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              decoration: InputDecoration(
-                hintText: l10n.reject_quote_reason_hint,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              final reason = reasonController.text.trim();
-              final executionId =
-                  ref.read(executionControllerProvider).value?['id'] as String?;
-              if (executionId != null) {
-                ref
-                    .read(executionControllerProvider.notifier)
-                    .rejectEvidenceQuote(
-                      executionId,
-                      quoteId,
-                      reason.isNotEmpty ? reason : null,
-                    );
-              }
-              Navigator.of(ctx).pop();
-            },
-            child: Text(l10n.reject_quote_title),
-          ),
-        ],
-      ),
     );
   }
 }

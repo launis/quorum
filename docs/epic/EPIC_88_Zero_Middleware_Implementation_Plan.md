@@ -14,43 +14,55 @@ Hyväksytkö, että poistamme kokonaan `EvidenceQuoteDTO`, `LevelQuotesDTO` ja `
 
 ## Proposed Changes
 
-### 1. Backend DTO Modernization
+### 1. Backend DTO Modernization (Zero Middleware & DTO Firewall)
 **Tiedostot:** `backend_v2/models/v2_core.py` & `backend_v2/models/dtos/report.py`
-- [DELETE] Poistetaan `EvidenceQuoteDTO`, `LevelQuotesDTO`, `RowForensicsDTO`.
-- [NEW] Luodaan uusi, erittäin yksinkertainen kääre `ScorecardAtomDTO`, joka yhdistää tason tiedot ja suoran tietokantamallin:
+- [ ] [DELETE] Poistetaan `EvidenceQuoteDTO`, `LevelQuotesDTO`, `RowForensicsDTO`.
+- [ ] [NEW] Luodaan uusi kääre `ScorecardAtomDTO`. **Tietoturva ja Trace Bloat -falsifiointi huomioitu:** Emme upota koko tietokantaobjektia raakana sokeasti rajapintaan, vaan noudatamme Explicit Inclusion (DTO Firewall) -periaatetta. Kopioimme vain presentation-kerrokselle turvalliset kentät:
 ```python
 class ScorecardAtomDTO(V2CoreBase):
     atom_id: str
-    level: int                   # Matriisin taso (esim. 0, 1, 2)
-    level_name: str              # Tason nimi ("Taso 0")
-    claim_label: str             # Ihmisluettava kriteeri
-    evaluation: AtomEvaluationItemDTO | None  # SUORAAN tietokannasta (trace)
+    level: int                   
+    level_name: str              
+    claim_label: str             
+    # DTO Firewall: Explicit Inclusion of presentation fields only!
+    extracted_facts: dict[str, str | None]
+    exact_quotes: list[str]
+    internal_logic_en: ReasoningStepDTO
+    status: str | None
+    semantic_reasoning: str
+    contextual_override: bool
+    structural_location: str
 ```
-- [MODIFY] `MatrixScorecardRowDTO`: Korvataan `row_forensics` ja muut V1-kentät suoralla listalla: `evaluated_atoms: list[ScorecardAtomDTO]`.
+- Näin varmistamme, että jos `AtomEvaluationItemDTO`:hon lisätään myöhemmin massiivisia sisäisiä lokeja tai arkaluontoisia prompteja, ne jäävät automaattisesti palomuurin taakse eivätkä kaada mobiililaitteita (OOM) tai vuoda julkiseen verkkoon.
+- [ ] [MODIFY] `MatrixScorecardRowDTO`: Korvataan V1-kentät suoralla listalla: `evaluated_atoms: list[ScorecardAtomDTO]`.
 
-### 2. Backend Middleware Gutting (Blueprint.py)
+### 2. Backend Middleware Gutting & Explicit Skipped States (Blueprint.py)
 **Tiedosto:** `backend_v2/services/blueprint.py`
-- [MODIFY] `_generate_v2_scorecard()`: Poistetaan KAIKKI legacy-koodi ja datan litteytys. Funktio vain poimii `evaluations`-lohkosta aidot `AtomEvaluationItemDTO`:t, paketoi ne `ScorecardAtomDTO`:hon (antaakseen niille matriisin kontekstin, eli mille tasolle ne kuuluivat) ja palauttaa ne sellaisenaan.
+- [ ] [MODIFY] `_generate_v2_scorecard()`: Poistetaan KAIKKI legacy-koodi ja datan litteytys. Funktio vain poimii `evaluations`-lohkosta aidot `AtomEvaluationItemDTO`:t, paketoi ne `ScorecardAtomDTO`:hon.
+- [ ] **Explicit Skipped States:** Jos arviointi on short-circuitattu (esim. Taso 0 epäonnistui, jolloin Tasoja 1 ja 2 ei löydy tracesta), `blueprint.py` päättelee matriisin skeemasta puuttuvat tasot ja palauttaa niille `ScorecardAtomDTO`:n, jossa `evaluation = None`. Tämä poistaa kaiken arvailun renderöintimoottoreilta!
 
 ### 3. Flutter DTO & UI Modernization
 **Tiedosto:** `client_app_v2/lib/features/execution/models/scorecard_dto.dart`
-- [DELETE] Poistetaan Dartin vastineet vanhoille DTO:ille.
-- [NEW] Luodaan Dart-versio `AtomEvaluationItemDto` ja `ScorecardAtomDto`.
-- [MODIFY] `MatrixScorecardRowDto` käyttää nyt uutta listaa `evaluatedAtoms`.
+- [ ] [DELETE] Poistetaan Dartin vastineet vanhoille DTO:ille.
+- [ ] [NEW] Luodaan Dart-versio `AtomEvaluationItemDto` ja `ScorecardAtomDto`.
+- [ ] [MODIFY] `MatrixScorecardRowDto` käyttää nyt uutta litteää listaa `evaluatedAtoms`. 
+- [ ] **Smart Getter:** Lisätään DTO:hon apufunktio (esim. `Map<int, List<ScorecardAtomDto>> get atomsByLevel`), joka ryhmittelee litteän siirtoprotokollalistan lennossa UI:n tarvitsemaan hierarkiaan.
 
 **Tiedosto:** Käyttöliittymän renderöinti (todennäköisesti `client_app_v2/lib/features/execution/widgets/scorecard_matrix_row.dart` tai vastaava).
-- [MODIFY] Päivitetään UI lukemaan uutta yksinkertaista listaa. Ja mikä parasta: UI:lla on nyt suora pääsy `override_reason`, `semantic_reasoning` yms. kenttiin!
+- [ ] [MODIFY] Päivitetään UI piirtämään asiat suoraan uuden litteän listan (tai sen smart getterin) pohjalta. Jos `evaluation == null`, piirretään "Ei arvioitu / Skipped" -tila.
 
 ### 4. PDF Parity (Raporttigeneraattorin päivitys & Output Parity)
 **Tiedostot:** `backend_v2/services/pdf_generator.py` ja HTML-templacet
-- [MODIFY] "PDF Parity and Hardening" -säännön mukaisesti PDF-generaattorin on käytettävä 100% samaa `ScorecardAtomDTO`-rakennetta kuin Flutterin.
-- **Output Parity:** Ei riitä, että vain datamalli on sama. Varmistamme, että lopullinen visuaalinen *output* (miten väitteet, pisteet, perustelut ja kognitiiviset ohitukset esitetään) on täysin linjassa Flutter-käyttöliittymän ja PDF-tulosteen välillä. Molempien on esitettävä sama rikkaan datan informaatio käyttäjälle yhdenmukaisella tavalla.
-- Varmistetaan, että PDF-renderöinti lukee uutta litteää listaa ja osaa näyttää kognitiivisen ohituksen tiedot täsmälleen samalla logiikalla kuin Flutter.
+- [ ] [MODIFY] "PDF Parity and Hardening" -säännön mukaisesti PDF-generaattorin on käytettävä 100% samaa `ScorecardAtomDTO`-rakennetta kuin Flutterin. 
+- [ ] Se käyttää samaa litteää listaa ja ryhmittelee sen Python-päässä identtisellä logiikalla kuin Flutterin smart getter. 
+- [ ] **Parity Guarantee:** Koska backend lähettää ohitetuille tasoille eksplisiittisen `evaluation = None`, sekä Flutter että PDF piirtävät "Skipped"-tilat täsmälleen samalla tavalla ilman, että kummankaan renderöijän tarvitsee yrittää arvata dataa. Tämä poistaa Flutter-PDF-ristiriidan täysin.
 
-### 5. Asiantuntijahakujen Klusterointi (Epic 89 Foundation)
-**Tiedosto:** `backend_v2/services/blueprint.py` (ja UI:n näyttölogiikka)
-- [MODIFY] Vaikka varsinaista Epic 89:n ToolDispatcher-välimuistia ei vielä toteuteta, luomme sille perustan "UI-tasolla". Kun tekoäly tekee samalle matriisiriville useita lähes identtisiä hakuja (esim. eri tasojen arvioinnin yhteydessä), `blueprint.py` tunnistaa nämä ja niputtaa ne yhdeksi ainoaksi esitettäväksi asiantuntijalähteeksi.
-- Tämä estää saman asian toistamisen (slopin) lopullisessa Flutter/PDF-raportissa ja takaa selkeän loppukäyttäjäkokemuksen tulevaisuuden dynaamisille MCP-työkaluille.
+### 5. Asiantuntijahakujen Klusterointi (Epic 89 Foundation & Purity Paradox Resolution)
+**Tiedostot:** `backend_v2/models/dtos/report.py` & `backend_v2/services/blueprint.py`
+- **Falsifiointi huomioitu:** Datan suodattaminen tai muokkaaminen itse `AtomEvaluationItemDTO`:n sisällä rikkoisi välittömästi "Zero Middleware" -säännön ja tuhoaisi audit-trailin eheyden.
+- [ ] [NEW/MODIFY] Ratkaisemme klusteroinnin nostamalla sen abstraktiotasossa ylemmäs! `MatrixScorecardRowDTO`:hon lisätään uusi kenttä `clustered_row_sources: list[MCPAuditTrace]`.
+- [ ] Kun `blueprint.py` kokoaa riviä, se iteroi rivin kaikkien atomien `used_evidence_ids`-viittaukset, hakee niitä vastaavat auditoinnit, ja tallentaa niistä **uniikit** haut tähän uuteen `clustered_row_sources`-listaan.
+- [ ] Näin itse `AtomEvaluationItemDTO` pysyy 100 % pyhänä ja koskemattomana (täysin raakana tietokannasta), mutta Flutter/PDF-käyttöliittymä saa siistin, valmiiksi klusteroidun listan asiantuntijahauista suoraan rivitasolla esitettäväksi!
 
 ---
 

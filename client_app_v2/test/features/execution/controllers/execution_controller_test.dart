@@ -54,15 +54,6 @@ class MockExecutionClient implements ExecutionClient {
   Future<Map<String, dynamic>> getScorecard(String executionId) async {
     return {};
   }
-
-  @override
-  Future<Map<String, dynamic>> rejectEvidenceQuote(
-    String executionId,
-    String quoteId,
-    String? reason,
-  ) async {
-    return {'status': 'success'};
-  }
 }
 
 class MockSseClient implements SseClient {

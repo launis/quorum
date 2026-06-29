@@ -1,6 +1,7 @@
 """Scoring Hook for evaluating agent performance and applying penalties."""
 
 import logging
+import re
 from typing import Any, Literal, cast
 
 from pydantic import ConfigDict, Field, ValidationError
@@ -610,6 +611,17 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             else "fi"
         )
 
+        # Build Unified Translation Map using AliasRegistry QRM tokens as keys
+        translation_map: dict[str, str] = {}
+        for expected_input in workflow.expected_inputs:
+            key = expected_input.input_key
+            # Mirror the alias format from _apply_alias_chunks_and_audit in llm.py L162
+            alias = f"<<QRM-SRC-INT-INPUTS{key.upper()}>>"
+            label_dict: dict[str, str] = expected_input.label if isinstance(expected_input.label, dict) else {}
+            translated_label = label_dict.get(locale.upper(), label_dict.get(locale.lower(), label_dict.get("EN", key)))
+            if isinstance(translated_label, str):
+                translation_map[alias] = translated_label
+
         profile_id = execution_data.output_profile_id
         if profile_id:
             profile_dict = await deps.comp_repo.get_output_profile_by_id(profile_id)
@@ -851,27 +863,36 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 )
                                                 if has_evidence:
                                                     if ev_dto.exact_quotes:
-                                                        # Epic 88 Phase 6: Generate EvidenceQuoteDTOs for traceability
-                                                        from backend_v2.models.v2_core import EvidenceQuoteDTO
-
+                                                        # Unified Source ID: Regex-based QRM alias parsing
+                                                        qrm_alias_re = re.compile(r"<<QRM-SRC-[A-Z0-9_|-]+>>")
                                                         for qt in ev_dto.exact_quotes:
-                                                            eq_dto = EvidenceQuoteDTO(
-                                                                text=qt,
-                                                                is_mcp_verified=getattr(
+                                                            parsed_qt = qt
+                                                            alias_match = qrm_alias_re.match(qt)
+                                                            if alias_match:
+                                                                alias_token = alias_match.group(0)
+                                                                if alias_token in translation_map:
+                                                                    rest = qt[alias_match.end() :].lstrip(": ")
+                                                                    parsed_qt = (
+                                                                        f"{translation_map[alias_token]}|||{rest}"
+                                                                    )
+
+                                                            eq_dto = {
+                                                                "text": parsed_qt,
+                                                                "is_mcp_verified": getattr(
                                                                     ev_dto, "is_mcp_verified", False
                                                                 ),
-                                                                source_reference=getattr(
+                                                                "source_reference": getattr(
                                                                     ev_dto, "mcp_source_reference", None
                                                                 ),
-                                                                used_evidence_ids=getattr(
+                                                                "used_evidence_ids": getattr(
                                                                     ev_dto, "used_evidence_ids", []
                                                                 ),
-                                                            )
+                                                            }
                                                             atom_quotes_by_block[pb_id].append(
                                                                 {
                                                                     "level": s_val,
                                                                     "level_name": s_name,
-                                                                    "quote": eq_dto.model_dump(),
+                                                                    "quote": eq_dto,
                                                                 }
                                                             )
                                                     elif (

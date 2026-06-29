@@ -260,21 +260,24 @@
                             </div>
                         {% endif %}
 
-                        {% if axis.forensics and axis.forensics.level_quotes %}
-                            {% for lq in axis.forensics.level_quotes %}
+                        {% if axis.evaluated_atoms %}
+                            {% set grouped_atoms = axis.evaluated_atoms | group_atoms_by_level %}
+                            {% for level, atoms in grouped_atoms.items() %}
                                 <div style="margin-top: 10px;">
-                                    <strong style="font-size: 11px; color: #444;">{{ lq.level_name }}</strong>
-                                    {% for quote in lq.quotes %}
-                                        <div style="background-color: #f5f5f5; border-left: 3px solid #ccc; padding: 10px; margin-top: 4px; font-style: italic; font-size: 12px; color: #555; page-break-inside: avoid;">
-                                            {% if quote.user_rejected %}
-                                                <del style="color: #999">{{ quote.text }}</del>
+                                    <strong style="font-size: 11px; color: #444;">{{ atoms[0].level_name }}</strong>
+                                    {% for atom in atoms %}
+                                        <div style="background-color: #f5f5f5; border-left: 3px solid #ccc; padding: 10px; margin-top: 4px; font-size: 12px; color: #555; page-break-inside: avoid;">
+                                            <div style="font-weight: bold; margin-bottom: 4px; color: #333;">{{ atom.claim_label }}</div>
+                                            {% if atom.status == 'Skipped' %}
+                                                <div style="color: #888; font-style: italic;">Arviointi ohitettu (Skipped)</div>
                                             {% else %}
-                                                {{ quote.text }}
-                                            {% endif %}
-                                            {% if quote.is_mcp_verified %}
-                                                <div style="margin-top: 4px;">
-                                                    <span style="color:green; font-size: 10px; font-weight: 500;">✅ {{ l10n.get('mcp_verified', 'MCP-Varmennettu') }}</span>
-                                                </div>
+                                                {% if atom.exact_quotes %}
+                                                    {% for quote in atom.exact_quotes %}
+                                                        <div style="font-style: italic; margin-bottom: 4px;">"{{ quote }}"</div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <div style="font-style: italic; color: #888;">{{ atom.semantic_reasoning }}</div>
+                                                {% endif %}
                                             {% endif %}
                                         </div>
                                     {% endfor %}

@@ -186,6 +186,8 @@ class BlueprintTransformer:
         row_curated_quotes_cache: dict[str, list[str]],
         has_synthesis_cache: bool = False,
         rejected_evq_ids: set[str] | None = None,
+        mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
+        translation_map: dict[str, str] | None = None,
     ) -> tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO]]:
         """Parses folded results into MatrixScorecardRowDTOs and populates grouped XAI extensions.
 
@@ -428,156 +430,130 @@ class BlueprintTransformer:
             if final_explanation and len(final_explanation) > 300:
                 final_explanation = final_explanation[:297] + "..."
 
-            quotes_list = None
-            row_forensics = None
+            evaluated_atoms_list = []
+            clustered_row_sources = []
+            used_evidence_ids_set = set()
+
             if "quotes" in matrix_visible_cols:
-                import uuid
+                from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+                from backend_v2.models.v2_core import ScorecardAtomDTO
 
-                from backend_v2.models.v2_core import EvidenceQuoteDTO, LevelQuotesDTO, RowForensicsDTO
+                step_evals_map = {}
+                for r_dto in results:
+                    if r_dto.step_id == step_id and r_dto.block_id == "evaluations" and isinstance(r_dto.payload, list):
+                        for ev in r_dto.payload:
+                            if isinstance(ev, dict) and "atom_id" in ev:
+                                step_evals_map[ev["atom_id"]] = ev
+                        break
 
-                level_map: dict[int, LevelQuotesDTO] = {}
-                quotes_list = []
-                seen_quotes = set()
-
-                # V2 Strategy: Map evaluated_atoms directly from PromptBlock scales
-                v2_mapped = False
-                if pb_meta.scales and matrix_payload.evaluated_atoms:
-                    step_evals_map = {}
-                    for r_dto in results:
-                        if (
-                            r_dto.step_id == step_id
-                            and r_dto.block_id == "evaluations"
-                            and isinstance(r_dto.payload, list)
-                        ):
-                            for ev in r_dto.payload:
-                                if isinstance(ev, dict) and "atom_id" in ev:
-                                    step_evals_map[ev["atom_id"]] = ev
-                            break
-
+                if pb_meta.scales:
                     for scale in pb_meta.scales:
-                        l_val = scale.score
+                        l_val = int(scale.score)
                         l_name = level_names.get(str(l_val), f"Taso {l_val}")
                         for claim in scale.claims:
+                            claim_label = claim.label.resolve(locale) if hasattr(claim.label, "resolve") else "Väite"
                             for tda in claim.tda_assertions:
-                                if tda.tda_id in matrix_payload.evaluated_atoms:
-                                    tda_status = matrix_payload.evaluated_atoms[tda.tda_id]
-                                    is_rejected = tda_status is False or tda_status == "DLQ"
+                                atom_id = tda.tda_id
+                                ev_data = step_evals_map.get(atom_id)
 
-                                    ev_data = step_evals_map.get(tda.tda_id, {})
-                                    exact_quotes = ev_data.get("exact_quotes", [])
-
-                                    q_strings = []
-                                    if (
-                                        exact_quotes
-                                        and isinstance(exact_quotes, list)
-                                        and any(str(q).strip() for q in exact_quotes)
-                                    ):
-                                        for q in exact_quotes:
-                                            if str(q).strip():
-                                                q_strings.append(str(q).strip())
+                                if ev_data:
+                                    raw_logic = ev_data.get("internal_logic_en", {})
+                                    if isinstance(raw_logic, dict):
+                                        r_step = ReasoningStepDTO(
+                                            step_1_identify_premise=raw_logic.get("step_1_identify_premise", ""),
+                                            step_2_scan_source=raw_logic.get("step_2_scan_source", ""),
+                                            step_3_evaluate_anti_patterns=raw_logic.get(
+                                                "step_3_evaluate_anti_patterns", ""
+                                            ),
+                                            step_4_final_conclusion=raw_logic.get("step_4_final_conclusion", ""),
+                                        )
                                     else:
-                                        fallback_str = (
-                                            claim.label.resolve("fi") if hasattr(claim.label, "resolve") else "Väite"
-                                        )
-                                        if not fallback_str:
-                                            fallback_str = getattr(tda, "concept_description", None) or "Väite"
-                                        if fallback_str:
-                                            q_strings.append(fallback_str.strip())
-
-                                    for q_str in q_strings:
-                                        legacy_id = f"evq_{uuid.uuid4().hex}"
-                                        eq_dto = EvidenceQuoteDTO(
-                                            id=legacy_id,
-                                            text=q_str,
-                                            source_reference=None,
-                                            user_rejected=is_rejected,
-                                            is_mcp_verified=False,
+                                        r_step = ReasoningStepDTO(
+                                            step_1_identify_premise="",
+                                            step_2_scan_source="",
+                                            step_3_evaluate_anti_patterns="",
+                                            step_4_final_conclusion="",
                                         )
 
-                                        if l_val not in level_map:
-                                            level_map[l_val] = LevelQuotesDTO(level=l_val, level_name=l_name, quotes=[])
+                                    raw_quotes = ev_data.get("exact_quotes", [])
+                                    parsed_quotes = []
+                                    if raw_quotes:
+                                        qrm_alias_re = re.compile(r"<<QRM-SRC-[A-Z0-9_|-]+>>")
+                                        t_map = translation_map or {}
+                                        for qt in raw_quotes:
+                                            p_qt = qt
+                                            alias_match = qrm_alias_re.search(qt)
+                                            if alias_match:
+                                                alias_token = alias_match.group(0)
+                                                rest = qt.replace(alias_token, "").strip(" -:")
+                                                translated = False
+                                                if "MCP-SEARCH" in alias_token:
+                                                    p_qt = f"Web-lähde (MCP)|||{rest}"
+                                                    translated = True
+                                                else:
+                                                    for fuzzy_key, label in t_map.items():
+                                                        if fuzzy_key in alias_token:
+                                                            p_qt = f"{label}|||{rest}"
+                                                            translated = True
+                                                            break
+                                                if not translated:
+                                                    p_qt = f"Viite|||{rest}"
+                                            parsed_quotes.append(p_qt)
 
-                                        _level_quotes = level_map[l_val].quotes
-                                        if _level_quotes is not None:
-                                            _level_quotes.append(eq_dto)
-                                            v2_mapped = True
+                                    evidence_found = ev_data.get("evidence_found", False)
+                                    is_dlq = evidence_found is True and not parsed_quotes
+                                    calc_status = "PASS" if (evidence_found and not is_dlq) else "FAIL"
 
-                                        if q_str not in seen_quotes:
-                                            seen_quotes.add(q_str)
-                                            clean_q = re.sub(r"[*_#`>]", "", q_str).strip()
-                                            if clean_q:
-                                                clean_q = clean_q[0].upper() + clean_q[1:]
-                                                quotes_list.append(
-                                                    clean_q[:147] + "..." if len(clean_q) > 150 else clean_q
-                                                )
-
-                if not v2_mapped:
-                    # Legacy fallback logic for V1 executions
-                    atom_quotes = {}
-                    for r_dto in results:
-                        if (
-                            r_dto.step_id == step_id
-                            and r_dto.block_id == "atom_quotes"
-                            and isinstance(r_dto.payload, dict)
-                        ):
-                            atom_quotes = r_dto.payload
-                            break
-
-                    raw_quotes = None
-                    if b_id in row_curated_quotes_cache and isinstance(row_curated_quotes_cache[b_id], list):
-                        raw_quotes = row_curated_quotes_cache[b_id]
-                    elif b_id in atom_quotes and isinstance(atom_quotes[b_id], list):
-                        raw_quotes = atom_quotes[b_id]
-
-                    if raw_quotes:
-                        for q in raw_quotes:
-                            if isinstance(q, dict) and "quote" in q and "level" in q:
-                                l_val = q["level"]
-                                l_name = q["level_name"]
-                                q_data = q["quote"]
-                                eq_dto = EvidenceQuoteDTO.model_validate(q_data)
-
-                                if rejected_evq_ids and eq_dto.id in rejected_evq_ids:
-                                    eq_dto = eq_dto.model_copy(update={"user_rejected": True})
-                                if l_val not in level_map:
-                                    level_map[l_val] = LevelQuotesDTO(level=l_val, level_name=l_name, quotes=[])
-
-                                _level_quotes = level_map[l_val].quotes
-                                if _level_quotes is not None:
-                                    _level_quotes.append(eq_dto)
-
-                                q_str = str(eq_dto.text).strip()
-                            else:
-                                q_str = str(q).strip()
-                                if q_str:
-                                    legacy_id = f"evq_{uuid.uuid4().hex}"
-                                    eq_dto = EvidenceQuoteDTO(
-                                        id=legacy_id, text=q_str, source_reference=None, is_mcp_verified=False
+                                    s_atom = ScorecardAtomDTO(
+                                        atom_id=atom_id,
+                                        level=l_val,
+                                        level_name=l_name,
+                                        claim_label=claim_label,
+                                        extracted_facts=ev_data.get("extracted_facts", {}),
+                                        exact_quotes=parsed_quotes,
+                                        internal_logic_en=r_step,
+                                        status=calc_status,
+                                        # Sanitize forensic traces at Display Tier boundary
+                                        semantic_reasoning=re.sub(
+                                            r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]",
+                                            "",
+                                            ev_data.get("semantic_reasoning", ""),
+                                        ).strip(),
+                                        contextual_override=ev_data.get("contextual_override", False),
+                                        structural_location=ev_data.get("structural_location", "N/A"),
                                     )
-                                    l_val = int(score_float) if score_float is not None else 0
-                                    l_name = level_names.get(str(l_val), f"Taso {l_val}")
+                                    evaluated_atoms_list.append(s_atom)
 
-                                    if l_val not in level_map:
-                                        level_map[l_val] = LevelQuotesDTO(level=l_val, level_name=l_name, quotes=[])
+                                    u_ids = ev_data.get("used_evidence_ids", [])
+                                    if isinstance(u_ids, list):
+                                        for u_id in u_ids:
+                                            used_evidence_ids_set.add(u_id)
+                                else:
+                                    dummy_reasoning = ReasoningStepDTO(
+                                        step_1_identify_premise="",
+                                        step_2_scan_source="",
+                                        step_3_evaluate_anti_patterns="",
+                                        step_4_final_conclusion="",
+                                    )
+                                    s_atom = ScorecardAtomDTO(
+                                        atom_id=atom_id,
+                                        level=l_val,
+                                        level_name=l_name,
+                                        claim_label=claim_label,
+                                        extracted_facts={},
+                                        exact_quotes=[],
+                                        internal_logic_en=dummy_reasoning,
+                                        status="FAIL",
+                                        semantic_reasoning="",
+                                        contextual_override=False,
+                                        structural_location="N/A",
+                                    )
+                                    evaluated_atoms_list.append(s_atom)
 
-                                    _level_quotes = level_map[l_val].quotes
-                                    if _level_quotes is not None:
-                                        _level_quotes.append(eq_dto)
-
-                            if not q_str or q_str in seen_quotes:
-                                continue
-                            seen_quotes.add(q_str)
-                            q_str = re.sub(r"[*_#`>]", "", q_str).strip()
-                            if not q_str:
-                                continue
-                            q_str = q_str[0].upper() + q_str[1:]
-                            if len(q_str) > 150:
-                                quotes_list.append(q_str[:147] + "...")
-                            else:
-                                quotes_list.append(q_str)
-
-                if level_map:
-                    row_forensics = RowForensicsDTO(level_quotes=list(level_map.values()))
+                if mcp_audit_map:
+                    for uid in used_evidence_ids_set:
+                        if uid in mcp_audit_map:
+                            clustered_row_sources.append(mcp_audit_map[uid])
 
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
@@ -613,8 +589,9 @@ class BlueprintTransformer:
                 ui_boundary_labels=ui_boundary_labels,
                 ui_plot_ratio=ui_plot_ratio,
                 is_evaluative=pb_meta.is_evaluative,
-                quotes_list=quotes_list,
-                row_forensics=row_forensics,
+                evaluated_atoms=evaluated_atoms_list,
+                clustered_row_sources=clustered_row_sources,
+                used_evidence_ids=list(used_evidence_ids_set),
             )
 
             unique_k = f"{step_id}_{b_id}"
@@ -1036,6 +1013,21 @@ class BlueprintTransformer:
                         if isinstance(evq_id, str):
                             rejected_evq_ids.add(evq_id)
 
+        mcp_audit_map: dict[str, MCPAuditTrace] = {}
+        if execution.frozen_context and execution.frozen_context.mcp_tool_audit:
+            for trace in execution.frozen_context.mcp_tool_audit:
+                if trace.id:
+                    mcp_audit_map[trace.id] = trace
+
+        # Build translation map for Unified Source ID Architecture
+        translation_map: dict[str, str] = {}
+        for expected_input in getattr(workflow_obj, "expected_inputs", None) or []:
+            key = expected_input.input_key
+            label_dict: dict[str, str] = expected_input.label if isinstance(expected_input.label, dict) else {}
+            translated_label = label_dict.get(locale.upper(), label_dict.get(locale.lower(), label_dict.get("EN", key)))
+            if isinstance(translated_label, str):
+                translation_map[key.upper().replace("_", "")] = translated_label
+
         evaluative_matrices, informational_matrices, all_parsed_matrices = self._extract_matrices_and_extensions(
             results,
             locale,
@@ -1048,6 +1040,8 @@ class BlueprintTransformer:
             row_curated_quotes_cache,
             has_synthesis_cache=profile_cache is not None,
             rejected_evq_ids=rejected_evq_ids,
+            mcp_audit_map=mcp_audit_map,
+            translation_map=translation_map,
         )
 
         try:

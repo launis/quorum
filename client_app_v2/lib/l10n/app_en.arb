@@ -236,6 +236,7 @@
   "printVariantSelectorDescription": "Choose a variant for this execution report.",
   "downloadNotImplementedPdf": "Download PDF not implemented yet",
   "chooseAnalysisType": "Choose Analysis Type",
+  "lblReasoning": "Reasoning",
   "usageCurrentMonth": "Current Month Usage",
   "usageQuota": "Usage vs Quota",
   "tokensUsed": "{count} Tokens Used",

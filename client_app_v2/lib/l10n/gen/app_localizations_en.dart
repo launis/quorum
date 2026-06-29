@@ -458,6 +458,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseAnalysisType => 'Choose Analysis Type';
 
   @override
+  String get lblReasoning => 'Reasoning';
+
+  @override
   String get usageCurrentMonth => 'Current Month Usage';
 
   @override
@@ -1648,9 +1651,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lblPostHocRationalization => 'Post-Hoc Rationalization';
-
-  @override
-  String get lblReasoning => 'Reasoning';
 
   @override
   String get lblAvgSentenceLength => 'Average Sentence Length';

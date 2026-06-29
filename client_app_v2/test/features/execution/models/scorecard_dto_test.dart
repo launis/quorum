@@ -2,24 +2,104 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
 
 void main() {
-  group('EvidenceQuoteDto', () {
-    test('fromJson throws when backend sends used_evidence_ids (Epic 88)', () {
+  group('ScorecardAtomDto', () {
+    test('fromJson strictly parses valid atom according to Phase 3 schema', () {
       final json = {
-        'id': 'evq_123',
-        'text': 'Test quote',
-        'source_reference': 'page 1',
-        'user_rejected': false,
-        'rejection_reason': null,
-        'is_mcp_verified': true,
-        'used_evidence_ids': [
-          'abc',
-          'def',
-        ], // <--- THIS is what the backend sends now
+        'atom_id': 'atm_123',
+        'level': 1,
+        'level_name': 'T1',
+        'claim_label': 'Test Claim',
+        'extracted_facts': {'fact1': 'value'},
+        'exact_quotes': ['quote 1', 'quote 2'],
+        'internal_logic_en': {
+          'step_1_identify_premise': 'p',
+          'step_2_scan_source': 's',
+          'step_3_evaluate_anti_patterns': 'e',
+          'step_4_final_conclusion': 'c',
+        },
+        'status': 'SKIPPED',
+        'semantic_reasoning': 'because',
+        'contextual_override': false,
+        'structural_location': 'doc.txt',
       };
 
-      // Test that the new field is parsed correctly without crashing
-      final dto = EvidenceQuoteDto.fromJson(json);
-      expect(dto.usedEvidenceIds, ['abc', 'def']);
+      final dto = ScorecardAtomDto.fromJson(json);
+      expect(dto.atomId, 'atm_123');
+      expect(dto.status, 'SKIPPED');
+      expect(dto.exactQuotes.length, 2);
+    });
+  });
+
+  group('MatrixScorecardRowDto', () {
+    test('atomsByLevel correctly groups atoms by level', () {
+      final json = {
+        'block_id': 'blk_1',
+        'name': 'test_matrix',
+        'label_i18n': {'en': 'Test', 'fi': 'Testi'},
+        'evaluated_atoms': [
+          {
+            'atom_id': 'atm_1',
+            'level': 1,
+            'level_name': 'T1',
+            'claim_label': 'A',
+            'extracted_facts': {},
+            'exact_quotes': [],
+            'internal_logic_en': {
+              'step_1_identify_premise': 'p',
+              'step_2_scan_source': 's',
+              'step_3_evaluate_anti_patterns': 'e',
+              'step_4_final_conclusion': 'c',
+            },
+            'status': 'OK',
+            'semantic_reasoning': 'r',
+            'contextual_override': false,
+            'structural_location': 'L',
+          },
+          {
+            'atom_id': 'atm_2',
+            'level': 1,
+            'level_name': 'T1',
+            'claim_label': 'B',
+            'extracted_facts': {},
+            'exact_quotes': [],
+            'internal_logic_en': {
+              'step_1_identify_premise': 'p',
+              'step_2_scan_source': 's',
+              'step_3_evaluate_anti_patterns': 'e',
+              'step_4_final_conclusion': 'c',
+            },
+            'status': 'OK',
+            'semantic_reasoning': 'r',
+            'contextual_override': false,
+            'structural_location': 'L',
+          },
+          {
+            'atom_id': 'atm_3',
+            'level': 2,
+            'level_name': 'T2',
+            'claim_label': 'C',
+            'extracted_facts': {},
+            'exact_quotes': [],
+            'internal_logic_en': {
+              'step_1_identify_premise': 'p',
+              'step_2_scan_source': 's',
+              'step_3_evaluate_anti_patterns': 'e',
+              'step_4_final_conclusion': 'c',
+            },
+            'status': 'OK',
+            'semantic_reasoning': 'r',
+            'contextual_override': false,
+            'structural_location': 'L',
+          },
+        ],
+      };
+
+      final dto = MatrixScorecardRowDto.fromJson(json);
+
+      final grouped = dto.atomsByLevel;
+      expect(grouped.length, 2);
+      expect(grouped[1]?.length, 2);
+      expect(grouped[2]?.length, 1);
     });
   });
 }

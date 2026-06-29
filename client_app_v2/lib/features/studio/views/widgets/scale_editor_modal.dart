@@ -219,7 +219,8 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                   );
                                   newTdas.add(
                                     TDAAssertion(
-                                      tdaId: 'tda_${Uuid().v4().replaceAll('-', '')}',
+                                      tdaId:
+                                          'tda_${Uuid().v4().replaceAll('-', '')}',
                                       conceptDescription: '',
                                       inverseEvidence: false,
                                       aggregationMode: AggregationMode.exists,
