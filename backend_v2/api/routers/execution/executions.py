@@ -197,6 +197,35 @@ async def download_frozen_context(
     )
 
 
+@router.get("/{execution_id}/export")
+async def download_execution_export(
+    execution_id: str,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> Response:
+    """Download the forensic execution export as an Excel file.
+
+    Args:
+        execution_id: The unique identifier of the execution.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Returns:
+        A Response containing the Excel file.
+
+    Raises:
+        AppException: If the file is not found or permission is denied.
+    """
+    content, filename = await execution_service.get_execution_export_bytes(
+        initiator=current_user, execution_id=execution_id
+    )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get("/{execution_id}/render")
 async def render_execution(
     request: Request,

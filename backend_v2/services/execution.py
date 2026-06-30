@@ -565,6 +565,162 @@ class ExecutionService:
         frozen_json = execution.frozen_context.model_dump_json(indent=2)
         return frozen_json.encode("utf-8"), f"frozen_context_{execution_id}.json"
 
+    async def get_execution_export_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
+        """Generates an Excel export for the execution including Summary and Raw Data tabs.
+
+        Args:
+            initiator: The authenticated user making the request.
+            execution_id: The unique identifier of the execution.
+
+        Returns:
+            A tuple of the Excel file bytes and the suggested filename.
+
+        Raises:
+            AppException: If parsing fails or storage access fails.
+        """
+        import io
+        import json
+
+        import pandas as pd
+
+        execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
+        frozen_bytes, _ = await self.get_frozen_context_bytes(initiator, execution_id)
+        frozen_data = json.loads(frozen_bytes.decode("utf-8"))
+
+        trace_data: list[Any] = []
+        if execution.execution_trace_storage_path:
+            storage = get_storage_driver()
+            try:
+                raw_trace = await storage.read(execution.execution_trace_storage_path)
+                trace_data = json.loads(raw_trace.decode("utf-8"))
+            except Exception as e:
+                logger.error("[ExecutionService] Failed to load trace from storage", exc_info=True)
+                raise AppException(
+                    message="Failed to load execution trace for export",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                ) from e
+        else:
+            trace_data = [t.model_dump(mode="json") for t in execution.execution_trace]
+
+        def find_evals(obj: Any) -> list[dict[str, Any]]:
+            found: list[dict[str, Any]] = []
+            if isinstance(obj, dict):
+                if "atom_id" in obj and ("status" in obj or "decision" in obj):
+                    found.append(obj)
+                for v in obj.values():
+                    found.extend(find_evals(v))
+            elif isinstance(obj, list):
+                for item in obj:
+                    found.extend(find_evals(item))
+            return found
+
+        components = await self.comp_repo.get_all_components("prompt_block")
+        blocks_by_id = {}
+        for b in components:
+            try:
+                b_obj = PromptBlock.model_validate(b)
+                blocks_by_id[b_obj.id] = b_obj
+            except Exception:
+                pass
+
+        atom_to_matrix_title = {}
+        atom_to_claim_label = {}
+        for step_state in execution.step_states.values():
+            for s_atom in step_state.scorecard_atoms.values():
+                atom_to_matrix_title[s_atom.atom_id] = step_state.label
+                atom_to_claim_label[s_atom.atom_id] = s_atom.claim_label
+
+        all_evals = find_evals(trace_data)
+        rows: list[dict[str, Any]] = []
+        for ev in all_evals:
+            status_val = ev.get("status")
+            if status_val is None:
+                status_val = ev.get("decision")
+            num_status = 1 if status_val == "PASS" else 0 if status_val == "CONTESTED" else None
+            reasoning = ev.get("reasoning_steps", "")
+            word_count = len(str(reasoning).split()) if reasoning else 0
+            atom_id = ev.get("atom_id")
+            matrix_title = ""
+            claim_rule = ""
+            claim_translation = ""
+
+            # V2 Protocol Data Fetching
+            if atom_id and not claim_translation:
+                if atom_id in atom_to_claim_label:
+                    claim_translation = atom_to_claim_label[atom_id]
+                    matrix_title = atom_to_matrix_title.get(atom_id, "")
+                elif atom_id in blocks_by_id:
+                    pb = blocks_by_id[atom_id]
+                    claim_translation = pb.label.translations.get(
+                        "fi", pb.label.translations.get(pb.label.default_locale, "Unknown")
+                    )
+                    matrix_title = pb.category_id
+
+                if atom_id in blocks_by_id:
+                    claim_rule = blocks_by_id[atom_id].ai_description or ""
+            quotes = ev.get("exact_quotes", [])
+            if isinstance(quotes, list):
+                quotes_str = "; ".join([q.get("text", str(q)) if isinstance(q, dict) else str(q) for q in quotes])
+            else:
+                quotes_str = str(quotes)
+            sources = ev.get("used_source_aliases", [])
+            sources_str = ", ".join(sources) if isinstance(sources, list) else str(sources)
+            rows.append(
+                {
+                    "Matriisi": matrix_title,
+                    "Kriteerin Nimi (UI)": claim_translation,
+                    "Tekoälyn Sääntö": claim_rule,
+                    "Sisäistetty Sääntö": ev.get("rule_internalization", ""),
+                    "Tulos (Status)": num_status,
+                    "Varmuusarvio": ev.get("confidence"),
+                    "Perustelun Pituus": word_count,
+                    "Löydetyt Lainaukset": quotes_str,
+                    "Käytetyt Lähteet": sources_str,
+                    "Tekoälyn Perustelu": reasoning,
+                    "Falsifiointi": ev.get("falsification_argument", ""),
+                }
+            )
+
+        df_raw = pd.DataFrame(rows)
+        summary_rows: list[dict[str, Any]] = []
+        for event in trace_data:
+            content = event.get("content", {})
+            if isinstance(content, dict) and "scoring_results" in content:
+                for matrix_score in content.get("scoring_results", []):
+                    m_id = matrix_score.get("matrix_id")
+                    m_title = matrix_score.get("matrix_title", m_id)
+                    score = matrix_score.get("score")
+                    max_score = matrix_score.get("max_score")
+                    summary_rows.append({"Matriisi": m_title, "Arvosana (Grade)": score, "Maksimipisteet": max_score})
+
+        df_summary = pd.DataFrame(summary_rows)
+        output = io.BytesIO()
+        try:
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                if not df_summary.empty:
+                    df_summary.to_excel(writer, sheet_name="Yhteenveto", index=False)
+                else:
+                    pd.DataFrame([{"Huomio": "Ei pisteytystuloksia tässä ajossa"}]).to_excel(
+                        writer, sheet_name="Yhteenveto", index=False
+                    )
+                if not df_raw.empty:
+                    df_raw.to_excel(writer, sheet_name="Raakadata", index=False)
+                else:
+                    pd.DataFrame([{"Huomio": "Ei atomeja löytynyt"}]).to_excel(
+                        writer, sheet_name="Raakadata", index=False
+                    )
+        except Exception as e:
+            logger.error("[ExecutionService] Excel writing failed", exc_info=True)
+            raise AppException(
+                message="Failed to generate Excel export",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            ) from e
+
+        output.seek(0)
+        return output.getvalue(), f"execution_export_{execution_id}.xlsx"
+
     async def clear_profile_synthesis(self, initiator: TokenData, execution_id: str, profile_id: str) -> None:
         """Removes the synthesized data for a specific profile to force re-render via LLM Hook."""
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)

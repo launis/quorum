@@ -542,3 +542,87 @@ async def test_override_atom_success() -> None:
 
     repo_mock.update_execution.assert_called_once()
     repo_mock.append_trace_event.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_execution_export_bytes_success() -> None:
+    repo_mock = AsyncMock()
+    executor_mock = Mock()
+
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=executor_mock,
+    )
+
+    initiator = TokenData(id="u1", role=UserRole.ROOT)
+
+    mock_record = Mock(spec=ExecutionRecord)
+    mock_record.frozen_context = FrozenContext()
+    mock_record.frozen_context_storage_path = None
+    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.execution_trace_storage_path = None
+    mock_record.execution_trace = []
+    mock_record.step_states = {}
+    mock_record.organization_id = "org_1"
+    mock_record.model_copy.return_value = mock_record
+
+    repo_mock.get_execution.return_value = mock_record
+
+    bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
+
+    assert filename == "execution_export_exe_123.xlsx"
+    assert len(bytes_out) > 0
+    assert bytes_out.startswith(b"PK")
+
+
+@pytest.mark.asyncio
+async def test_get_execution_export_bytes_quotes_bug() -> None:
+    repo_mock = AsyncMock()
+    executor_mock = Mock()
+
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=executor_mock,
+    )
+
+    initiator = TokenData(id="u1", role=UserRole.ROOT)
+
+    mock_record = Mock(spec=ExecutionRecord)
+    mock_record.frozen_context = FrozenContext()
+    mock_record.frozen_context_storage_path = None
+    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.execution_trace_storage_path = None
+
+    # Simulate a trace event with a list of dicts in exact_quotes
+    from backend_v2.models.state import TraceEvent
+
+    mock_record.execution_trace = [
+        TraceEvent(
+            event_type="output",
+            step_name="step_1",
+            content={
+                "type": "ATOM_COMPLETED",
+                "atom_id": "test_atom_1",
+                "status": "PASS",
+                "exact_quotes": [{"text": "Found quote", "source_alias": "src1"}],
+            },
+        )
+    ]
+    mock_record.step_states = {}
+    mock_record.organization_id = "org_1"
+    mock_record.model_copy.return_value = mock_record
+
+    repo_mock.get_execution.return_value = mock_record
+
+    bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
+    assert filename == "execution_export_exe_123.xlsx"

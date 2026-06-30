@@ -41,6 +41,63 @@ class ExecutionReportView extends ConsumerStatefulWidget {
 class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
   bool _isDownloadingPdf = false;
   bool _isDownloadingContext = false;
+  bool _isDownloadingExcel = false;
+
+  void _downloadExcel() async {
+    setState(() {
+      _isDownloadingExcel = true;
+    });
+
+    try {
+      final dio = ref.read(apiClientProvider);
+      final response = await dio.get<List<int>>(
+        '/execution/executions/${widget.executionId}/export',
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final bytes = Uint8List.fromList(response.data!);
+      await FileSaver.instance
+          .saveAs(
+            name: 'Execution_Export_${widget.executionId}',
+            bytes: bytes,
+            fileExtension: 'xlsx',
+            mimeType: MimeType.microsoftExcel,
+          )
+          .timeout(
+            ReportSettings.downloadTimeout,
+            onTimeout: () => throw AppException.timeout(
+              AppLocalizations.of(context)!.errSaveTimeout,
+            ),
+          );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.downloadSuccess),
+          ),
+        );
+      }
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('ReportView', 'Failed to download Excel export', e, st);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloadingExcel = false;
+        });
+      }
+    }
+  }
 
   void _downloadPdf() async {
     setState(() {
@@ -238,6 +295,20 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
                   onPressed: _downloadPdf,
                 ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _isDownloadingExcel ? null : _downloadExcel,
+        icon: _isDownloadingExcel
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.table_chart),
+        label: const Text('Lataa Excel'),
       ),
       body: switch (reportAsync) {
         AsyncData(:final value) => ReportRendererWidget(

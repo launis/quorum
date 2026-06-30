@@ -1071,6 +1071,52 @@
         }
       }
     },
+    "/api/v2/execution/executions/{execution_id}/export": {
+      "get": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Download Execution Export",
+        "description": "Download the forensic execution export as an Excel file.\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    A Response containing the Excel file.\n\nRaises:\n    AppException: If the file is not found or permission is denied.",
+        "operationId": "download_execution_export_api_v2_execution_executions__execution_id__export_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/execution/executions/{execution_id}/render": {
       "get": {
         "tags": [
@@ -6679,13 +6725,15 @@
           "source_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^([a-z0-9_]{2,30}|[a-z]{2,5}_[a-fA-F0-9]{16,32})$"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Source Id"
+            "title": "Source Id",
+            "description": "Resolved document Opaque ID or input key."
           },
           "display_name": {
             "anyOf": [
