@@ -67,13 +67,14 @@ async def test_run_structured_task_self_healing_success(mock_repository: MagicMo
     executor = LLMTaskExecutor(PromptCompiler())
 
     # 1. Invalid JSON missing quote
-    bad_response = MockLLMResponse('{"id": 1, "name": "Broken}')
-    # 2. Correct JSON
-    good_response = MockLLMResponse('{"id": 1, "name": "Fixed"}')
+    mock_fail_response = MockLLMResponse('{"id": 1, "name": "Broken}')
+
+    # Second try succeeds
+    mock_success_response = MockLLMResponse('{"id": 1, "name": "Fixed"}')
 
     mock_provider = AsyncMock()
     mock_provider.generate = AsyncMock()
-    mock_provider.generate.side_effect = [bad_response, good_response]
+    mock_provider.generate.side_effect = [mock_fail_response, mock_success_response]
 
     with (
         patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider),
@@ -115,10 +116,11 @@ async def test_run_structured_task_self_healing_exhaustion(mock_repository: Magi
     executor = LLMTaskExecutor(PromptCompiler())
 
     # Persistent Pydantic validation failures (e.g. wrong type for id)
-    bad_responses = [
-        MockLLMResponse('{"id": "not_an_int", "name": "Failure1"}'),
-        MockLLMResponse('{"id": "still_fails", "name": "Failure2"}'),
-    ]
+    # First try: schema failure
+    mock_fail_1 = MockLLMResponse('{"id": "not_an_int", "name": "Failure1"}')
+    # Second try: schema failure
+    mock_fail_2 = MockLLMResponse('{"id": "still_fails", "name": "Failure2"}')
+    bad_responses = [mock_fail_1, mock_fail_2]
 
     mock_provider = AsyncMock()
     mock_provider.generate = AsyncMock()

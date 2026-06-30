@@ -119,7 +119,7 @@
         <instruction>Flutter verification MUST follow a strict order of native tools natively mapped inside the core workspace. You must use the unified audit loop script for this process.</instruction>
         <command>Execution: `uv run python scripts/flutter_audit_loop.py client_app_v2`</command>
         <command>Execution (If @riverpod or @freezed changed): `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`</command>
-        <test_mandate>`flutter test`</test_mandate>
+        <test_mandate>Included directly: `uv run python scripts/flutter_audit_loop.py client_app_v2`</test_mandate>
     </frontend_verification>
 
     <rule_block id="zero_deprecation_mandate">

@@ -11,17 +11,7 @@
 
     <rule_block id="inline_terminal_scripting">
         <banned_pattern>Using one-liner terminal commands (`python -c`, `sed`) or PowerShell variable expansion to modify JSON data.</banned_pattern>
-        <mandatory_pattern>ALWAYS create a dedicated `modify_seed.py` script. You MUST strictly use `json.load()` and `json.dump(..., indent=2)` to guarantee file structure integrity.</mandatory_pattern>
-        <code_example>
-            <anti_pattern>run_command("sed -i 's/old_id/new_id/g' backend_v2/seed/seed_data.json")</anti_pattern>
-            <pro_pattern>
-                # modify_seed.py
-                import json
-                with open('backend_v2/seed/seed_data.json', 'r') as f: data = json.load(f)
-                data['users'][0]['id'] = "usr_abc123"
-                with open('backend_v2/seed/seed_data.json', 'w') as f: json.dump(data, f, indent=2)
-            </pro_pattern>
-        </code_example>
+        <mandatory_pattern>ALWAYS use your native MCP structural editing tools (`replace_file_content` / `multi_replace_file_content`) to modify data directly, avoiding the need for standalone python scripts.</mandatory_pattern>
     </rule_block>
 
     <rule_block id="hallucinated_data_keys">
@@ -32,21 +22,24 @@
             <pro_pattern>{ "id": "usr_x8f9a2b1", "email": "test@test.com" } # STRICT ALIGNMENT</pro_pattern>
         </code_example>
     </rule_block>
+
+    <rule_block id="local_data_ephemeral_nature">
+         <banned_pattern>Hesitating to wipe `db_v2.json` or running `run_seed.py` out of fear of losing customer data. Also, attempting to update `db_v2.json` manually on the fly.</banned_pattern>
+         <mandatory_pattern>This is purely a local testing environment with zero real customer data. Always prioritize architectural purity and wipe/re-seed the local database via `uv run python backend_v2/seed/run_seed.py local` whenever corrupted states arise. NEVER update `db_v2.json` directly.</mandatory_pattern>
+    </rule_block>
 </catastrophic_system_bans>
 
 <vault_mutation_protocol>
     <instruction>If requested to alter any data schemas, seed matrices, or internal configurations, you MUST run this sequential procedure:</instruction>
     
     <step id="1_propose">PROPOSE: Render the intended JSON snippet delta in the chat and PAUSE. Wait for the explicit order "PERMISSION GRANTED".</step>
-    <step id="2_modify">MODIFY: Commit structural edits safely into the file `backend_v2/seed/seed_data.json`.</step>
+    <step id="2_modify">MODIFY: Commit structural edits safely into the file `backend_v2/seed/seed_data.json` using your structural editing tools (replace_file_content). Do NOT create standalone python scripts for this.</step>
     <step id="3_backup">BACKUP: Store a precise timestamped backup copy inside `backend_v2/seed/backups/` natively.</step>
-    <step id="4_script">SCRIPT: Formulate `modify_seed.py`. Parse the payload using `json.load()`, manipulate the dictionary, and output with `json.dump(indent=2)`.</step>
-    <step id="5_execute">EXECUTE: Pass the `modify_seed.py` PowerShell command execution strings clearly to the user.</step>
     
     <universal_quality_gate>
-        <step id="6_verify">VERIFY (Critical Gate): Mathematically verify the new blueprint integrity by providing the user the validation command: `uv run pytest backend_v2/tests/unit/test_seed_schema_alignment.py -v`. If the test fails, YOU MUST revert.</step>
+        <step id="4_verify">VERIFY (Critical Gate): Mathematically verify the new blueprint integrity by running the validation command natively: `uv run python scripts/backend_audit_loop.py . --test`. If the test fails, YOU MUST revert.</step>
     </universal_quality_gate>
     
-    <step id="7_report">REPORT: Describe specifically what paths aligned with expectations contextually.</step>
-    <step id="8_reseed">RE-SEED: Once verified, command the ultimate final step: `uv run python backend_v2/seed/run_seed.py local`.</step>
+    <step id="5_report">REPORT: Describe specifically what paths aligned with expectations contextually.</step>
+    <step id="6_reseed">RE-SEED: Once verified, command the ultimate final step to the user: `uv run python backend_v2/seed/run_seed.py local`.</step>
 </vault_mutation_protocol>

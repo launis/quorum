@@ -17,7 +17,6 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
-from backend_v2.llm.directives import VERBATIM_EXTRACTION_MANDATE
 from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
@@ -351,7 +350,6 @@ async def execute_tool_loop[T: BaseModel](
             objective="Extract factual claims that require external verification.",
             rules=[
                 "Return a structured list of citations.",
-                VERBATIM_EXTRACTION_MANDATE,
                 f"Provide a short max 100 character reasoning sentence for each extraction in the language code '{target_language}'.",
             ],
         )

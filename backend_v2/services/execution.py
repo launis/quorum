@@ -585,7 +585,6 @@ class ExecutionService:
 
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
         frozen_bytes, _ = await self.get_frozen_context_bytes(initiator, execution_id)
-        frozen_data = json.loads(frozen_bytes.decode("utf-8"))
 
         trace_data: list[Any] = []
         if execution.execution_trace_storage_path:

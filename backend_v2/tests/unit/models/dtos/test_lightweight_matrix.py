@@ -82,6 +82,8 @@ def test_lightweight_matrix_output_strictness() -> None:
 def test_atom_evaluation_item_dto_strictness() -> None:
     """Test AtomEvaluationItemDTO enforces strict validation and V4.3 Blacklist."""
     item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_123",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -102,6 +104,8 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     # Test forbid extra
     with pytest.raises(ValidationError):
         AtomEvaluationItemDTO(
+            chart_display_label="TestLabel",
+            visual_intent="info",
             atom_id="atom_123",
             internal_logic_en=ReasoningStepDTO(
                 step_1_identify_premise="stub",
@@ -119,6 +123,8 @@ def test_atom_evaluation_item_dto_strictness() -> None:
 
     # Test V4.3 Phantom Boolean Sanity Check
     phantom = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_phantom",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -140,6 +146,8 @@ def test_atom_evaluation_item_dto_strictness() -> None:
 
     # Test status-based inverse evidence logic
     pass_item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_pass",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -157,6 +165,8 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     assert pass_item.calculate_rule_satisfied(inverse_evidence=False) is True
 
     fail_item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_fail",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -180,6 +190,8 @@ def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
     phantom boolean blacklist.
     """
     item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_123",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -199,6 +211,8 @@ def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
 
     # Test phantom blacklist for exact_quote
     phantom = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_123",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -250,6 +264,8 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
     """Test quote verification under zero-variance protocol using context source text."""
     # 1. Matching quote
     item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_1",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -269,6 +285,8 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
 
     # 2. Fuzzy matching quote (similar enough >95%)
     item_fuzzy = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_2",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -287,6 +305,8 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
 
     # 3. Completely hallucinated quote (fails similarity <95%)
     item_hallucinated = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_3",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -310,6 +330,8 @@ def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     """Test anti-laziness constraints on contextual overrides."""
     # 1. Valid override with long reasoning and structural location
     item_valid = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_override_1",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -331,6 +353,8 @@ def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     # 2. Fails anti-laziness due to short reasoning (<50 characters)
     with pytest.raises(ValidationError) as exc:
         AtomEvaluationItemDTO(
+            chart_display_label="TestLabel",
+            visual_intent="info",
             atom_id="atom_override_2",
             internal_logic_en=ReasoningStepDTO(
                 step_1_identify_premise="stub",
@@ -348,6 +372,8 @@ def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     # 3. Fails anti-laziness due to missing structural location reference
     with pytest.raises(ValidationError) as exc:
         AtomEvaluationItemDTO(
+            chart_display_label="TestLabel",
+            visual_intent="info",
             atom_id="atom_override_3",
             internal_logic_en=ReasoningStepDTO(
                 step_1_identify_premise="stub",
@@ -372,6 +398,8 @@ def test_calculate_rule_satisfied_truth_table() -> None:
     # 1. Double-Lock is Active (allow_contextual_override=True, contextual_override=True)
     # Regardless of status/evidence/inverse_evidence, should return True.
     item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_1",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -397,6 +425,8 @@ def test_calculate_rule_satisfied_truth_table() -> None:
 
     # 3. status is DLQ
     dlq_item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_2",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -416,6 +446,8 @@ def test_calculate_rule_satisfied_truth_table() -> None:
 
     # 4. evidence_found is True (exact_quote is valid)
     valid_item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_3",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -436,6 +468,8 @@ def test_calculate_rule_satisfied_truth_table() -> None:
 
     # 5. Sentinel quote is blacklisted and doesn't count as evidence
     sentinel_item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_4",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -487,6 +521,8 @@ def test_calculate_rule_satisfied_truth_table_32(
     )
 
     item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="test_atom",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",
@@ -524,6 +560,8 @@ def test_calculate_rule_satisfied_truth_table_32(
 def test_atom_evaluation_item_dto_contested_state() -> None:
     """Test that CONTESTED status bypasses inverse_evidence logic."""
     item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="atom_contested",
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="stub",

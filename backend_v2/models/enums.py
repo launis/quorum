@@ -91,6 +91,16 @@ class ComponentType(str, Enum):
     HIDDEN = "hidden"
 
 
+class VisualIntent(str, Enum):
+    """UI intent mapping for SDUI visual rendering."""
+
+    SUCCESS = "success"
+    WARNING = "warning"
+    CRITICAL_OVERRIDE = "critical_override"
+    INFO = "info"
+    NEUTRAL = "NEUTRAL"
+
+
 class XaiExtensionType(str, Enum):
     """Supported XAI Output Extensions for global visibility."""
 
@@ -608,6 +618,7 @@ LaxEthicalSeverity = Annotated[EthicalSeverity, Field(strict=False)]
 LaxExecutionStatus = Annotated[ExecutionStatus, Field(strict=False)]
 LaxBlockDataType = Annotated[BlockDataType, Field(strict=False)]
 LaxComponentType = Annotated[ComponentType, Field(strict=False)]
+LaxVisualIntent = Annotated[VisualIntent, Field(strict=False)]
 LaxHistoricalContextMode = Annotated[HistoricalContextMode, Field(strict=False)]
 LaxScoringStrategy = Annotated[ScoringStrategy, Field(strict=False)]
 LaxVirtualSystemStepID = Annotated[VirtualSystemStepID, Field(strict=False)]

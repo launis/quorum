@@ -58,7 +58,14 @@ def mock_repo() -> Any:
         "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
     }
-    repo.get_output_profile_by_id.return_value = None
+    repo.get_output_profile_by_id.return_value = {
+        "id": "prof_dddd1111dddd1111",
+        "slug": "test_profile",
+        "workflow_id": "wf_5555555555555555",
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "visible_block_extensions": [],
+        "visible_workflow_extensions": [],
+    }
     return repo
 
 

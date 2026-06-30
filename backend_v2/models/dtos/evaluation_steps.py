@@ -8,7 +8,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend_v2.llm.directives import NULL_HYPOTHESIS_MANDATE
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
 
@@ -67,7 +66,7 @@ class StepDTOStrict(BaseExtractionDTO):
     exact_quotes: list[LLMExtractedQuote] = Field(default_factory=list, description=DESC_EXACT_QUOTES)
     reasoning_steps: str = Field(
         description=(
-            f"Step-by-step mechanical audit trace BEFORE making a decision. {NULL_HYPOTHESIS_MANDATE} "
+            "Step-by-step mechanical audit trace BEFORE making a decision. "
             "Format: '1) Rule requires X. 2) Text provides Y. 3) Y meets/fails X.' Max 3 sentences."
         )
     )
@@ -75,7 +74,9 @@ class StepDTOStrict(BaseExtractionDTO):
         description="Why this evidence might NOT satisfy the strict causal requirement of the rule."
     )
     decision: bool = Field(description="True if the condition is physically met, False otherwise.")
-    semantic_reasoning: str = Field(description="Final summary of the decision.")
+    semantic_reasoning: str = Field(
+        description="Final summary of the decision. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis."
+    )
 
 
 class StepDTOSemantic(StepDTOStrict):

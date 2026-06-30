@@ -62,6 +62,12 @@
             <pro_pattern>Widget build() { final x = ref.watch(prov); onPressed: () => ref.read(prov); }</pro_pattern>
         </code_example>
     </rule_block>
+
+    <rule_block id="deprecated_commands_ban">
+        <banned_pattern>Calling or proposing `flutter pub run`.</banned_pattern>
+        <mandatory_pattern>ALWAYS use `dart run` instead.</mandatory_pattern>
+        <catastrophic_reason>Deprecated tooling breaks the modern Flutter 3 pipeline and Quality Gate logic.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

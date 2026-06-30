@@ -41,9 +41,9 @@
     </rule_block>
 
     <rule_block id="naked_prompt_injection">
-        <banned_pattern>Appending raw string instructions to the prompt context without XML tags (e.g. `compiled += "\n\nCRITICAL MANDATE: ..."`).</banned_pattern>
-        <mandatory_pattern>All dynamic prompt insertions MUST be wrapped in explicit XML tags (e.g. `<CRITICAL_LANGUAGE_MANDATE>...</CRITICAL_LANGUAGE_MANDATE>`).</mandatory_pattern>
-        <catastrophic_reason>Without XML tags, the LLM suffers from Attention Dilution and struggles to differentiate between source data, user intent, and absolute system constraints. XML tags force boundary recognition.</catastrophic_reason>
+        <banned_pattern>Appending raw string instructions to the prompt context dynamically without structural boundaries (e.g. `compiled += "\n\nCRITICAL MANDATE: ..."`).</banned_pattern>
+        <mandatory_pattern>All dynamic prompt insertions MUST be cleanly separated using Markdown headers or explicit sections, allowing `prompt_compiler_adapter.py` to correctly structure them.</mandatory_pattern>
+        <catastrophic_reason>Without structural boundaries, the LLM suffers from Attention Dilution and struggles to differentiate between source data, user intent, and absolute system constraints.</catastrophic_reason>
     </rule_block>
 </catastrophic_system_bans>
 
@@ -65,10 +65,10 @@
     
     <rule_block id="role_segregation_and_fencing">
         <banned_pattern>Passing unescaped user inputs directly into prompts.</banned_pattern>
-        <mandatory_pattern>You MUST fence untrusted user payloads inside explicit XML tags (e.g., `<user_payload>...</user_payload>`) as a firewall against Prompt Injection.</mandatory_pattern>
+        <mandatory_pattern>You MUST fence untrusted user payloads using clear markdown blocks or relying on the structured compiler injection as a firewall against Prompt Injection.</mandatory_pattern>
         <code_example>
             <anti_pattern>{"role": "user", "content": f"Parse this: {user_text}"}</anti_pattern>
-            <pro_pattern>{"role": "user", "content": f"Data:\n<user_payload>\n{user_text}\n</user_payload>"}</pro_pattern>
+            <pro_pattern>{"role": "user", "content": f"Data:\n```\n{user_text}\n```"}</pro_pattern>
         </code_example>
     </rule_block>
     
@@ -77,23 +77,24 @@
         <mandatory_pattern>Non-workflow Internal LLM Utilities MUST execute as follows: 1) Load client via `await LLMClient.from_strategy("fast", repository=repo)`. 2) Define instructions as a file-level `_SYSTEM_INSTRUCTION` constant. 3) Pass strictly segregated messages to `executor.execute_chat_task(client=...)` or `executor.execute_structured_task(client=...)`.</mandatory_pattern>
     </rule_block>
 
-    <rule_block id="hybrid_prompting_mandate">
-        <banned_pattern>Writing flat, unstructured strings for system prompts.</banned_pattern>
-        <mandatory_pattern>All system prompts MUST use "Hybrid Prompting" (XML tags inside Markdown) to define semantic boundaries.</mandatory_pattern>
+    <rule_block id="de_generator_mandate_no_xml">
+        <banned_pattern>Writing system prompts with manual XML tags (e.g., `<system_directive>`, `<role>`, `<objective>`) in the backend or `seed_data.json`.</banned_pattern>
+        <mandatory_pattern>Enforce the "De-Generator" mandate: write pure business logic using Markdown headings (e.g. `ROLE:`, `OBJECTIVE:`). The backend `prompt_compiler_adapter.py` will automatically handle formatting and structure for the LLM.</mandatory_pattern>
         <code_example>
             <pro_pattern>
-                _SYSTEM = """<system_directive>
-                <objective>Extract data</objective>
-                <rules><rule>Be exact.</rule></rules>
-                </system_directive>"""
+                _SYSTEM = """# SYSTEM DIRECTIVE
+                ## OBJECTIVE
+                Extract data
+                ## RULES
+                - Be exact."""
             </pro_pattern>
         </code_example>
     </rule_block>
 
     <rule_block id="high_fidelity_prompting_and_caching">
         <banned_pattern>Injecting dynamic execution variables (like length constraints or target languages) directly into rule sentences using Python f-strings, or using Markdown mixed with raw text for data structures.</banned_pattern>
-        <mandatory_pattern>Enforce **High-Fidelity Prompting & 100% Caching Efficiency**. All dynamic variables MUST be strictly isolated into an `<execution_parameters>` XML tag at the very beginning of the prompt. All rules and system directives must remain perfectly static. All input data must be rigidly wrapped in `<source_data>` or `<matrix_input>` tags. The usage of unstructured Markdown lists for dynamic data parsing is strictly forbidden.</mandatory_pattern>
-        <catastrophic_reason>Mixing dynamic parameters with static system instructions destroys the LLM's Prompt Caching capability. Isolating variables into `<execution_parameters>` ensures that 95%+ of the prompt remains cacheable, vastly reducing token costs and latency.</catastrophic_reason>
+        <mandatory_pattern>Enforce **High-Fidelity Prompting & 100% Caching Efficiency**. All dynamic variables MUST be strictly isolated via the compiler's dynamic inputs system at the very beginning of the prompt. All rules and system directives must remain perfectly static. All input data must be rigidly separated. The usage of unstructured Markdown lists for dynamic data parsing is strictly forbidden.</mandatory_pattern>
+        <catastrophic_reason>Mixing dynamic parameters with static system instructions destroys the LLM's Prompt Caching capability. Isolating variables ensures that 95%+ of the prompt remains cacheable, vastly reducing token costs and latency.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="llm_structured_execution_mandate">

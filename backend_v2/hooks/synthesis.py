@@ -17,8 +17,6 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.context_mapper import ContextMapper
 from backend_v2.llm.client import LLMClient
-from backend_v2.llm.directives import TONE_MANDATE, VERBATIM_EXTRACTION_MANDATE
-from backend_v2.llm.linguistic import LANGUAGE_MANDATE, build_linguistic_context
 from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
@@ -397,6 +395,11 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         )
 
     synthesis_cfg = active_profile_dto.synthesis
+    if not synthesis_cfg:
+        msg = f"Strict Fail-Fast Enforced: 'synthesis' missing from active profile '{profile_to_use}'."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+
     length_constraint = synthesis_cfg.length_constraint
     preamble_dict = synthesis_cfg.preamble_text
     omit_empty = synthesis_cfg.omit_empty_sections
@@ -659,8 +662,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     scoring_strategy = active_profile_dto.scoring_strategy.value
 
     rules = [
-        LANGUAGE_MANDATE,
-        TONE_MANDATE,
         "SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY the allowed SDUI `content_blocks`.",
         "ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.",
         "NO RECURSION: Nested blocks inside blocks are strictly banned.",
@@ -713,14 +714,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "Your output must be STRICTLY based on the current <source_data>."
     )
 
-    source_language = state.metadata.get("source_language", state.metadata.get("document_language", "Unknown/Original"))
-    linguistic_context = build_linguistic_context(
-        target_locale=language,
-        source_language=source_language,
-    )
-
     exec_params = [
-        linguistic_context.strip(),
         f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>",
         f"  <max_extension_items>{max_items}</max_extension_items>",
     ]
@@ -824,9 +818,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             [
                 "Do not use markdown, line breaks, or bullet points in row_explanation.",
                 row_exp_rule,
-                VERBATIM_EXTRACTION_MANDATE,
-                TONE_MANDATE,
-                LANGUAGE_MANDATE,
             ]
         )
 

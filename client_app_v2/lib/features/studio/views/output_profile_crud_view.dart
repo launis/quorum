@@ -659,7 +659,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   },
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (e, st) => Text('Error loading extensions: $e'),
+                  error: (e, st) => throw e,
                 ),
               ),
               const SizedBox(height: 16),

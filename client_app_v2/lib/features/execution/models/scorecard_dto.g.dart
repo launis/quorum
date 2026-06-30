@@ -534,6 +534,8 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
             'contextual_override',
             'structural_location',
             'human_override',
+            'chart_display_label',
+            'visual_intent',
           ],
         );
         final val = _ScorecardAtomDto(
@@ -576,6 +578,14 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
                 ? null
                 : HumanOverrideDto.fromJson(v as Map<String, dynamic>),
           ),
+          chartDisplayLabel: $checkedConvert(
+            'chart_display_label',
+            (v) => v as String,
+          ),
+          visualIntent: $checkedConvert(
+            'visual_intent',
+            (v) => $enumDecode(_$VisualIntentEnumMap, v),
+          ),
         );
         return val;
       },
@@ -590,6 +600,8 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
         'contextualOverride': 'contextual_override',
         'structuralLocation': 'structural_location',
         'humanOverride': 'human_override',
+        'chartDisplayLabel': 'chart_display_label',
+        'visualIntent': 'visual_intent',
       },
     );
 
@@ -607,4 +619,14 @@ Map<String, dynamic> _$ScorecardAtomDtoToJson(_ScorecardAtomDto instance) =>
       'contextual_override': instance.contextualOverride,
       'structural_location': instance.structuralLocation,
       'human_override': instance.humanOverride?.toJson(),
+      'chart_display_label': instance.chartDisplayLabel,
+      'visual_intent': _$VisualIntentEnumMap[instance.visualIntent]!,
     };
+
+const _$VisualIntentEnumMap = {
+  VisualIntent.success: 'success',
+  VisualIntent.warning: 'warning',
+  VisualIntent.criticalOverride: 'critical_override',
+  VisualIntent.info: 'info',
+  VisualIntent.neutral: 'NEUTRAL',
+};

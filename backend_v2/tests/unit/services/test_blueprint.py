@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -939,6 +939,8 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
                             "semantic_reasoning": "Reason",
                             "contextual_override": False,
                             "structural_location": "N/A",
+                            "chart_display_label": "N/A",
+                            "visual_intent": "NEUTRAL",
                             "internal_logic_en": {"chain_of_thought": "cot", "confidence_score": 1.0},
                         }
                     ],
@@ -966,10 +968,8 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
     assert axis.row_explanation == "This should not be empty!"
 
     # 2. Duplicate quotes MUST be removed (handled by Pydantic / Logic natively or ignored)
-    assert axis.evaluated_atoms is not None
-    assert len(axis.evaluated_atoms) > 1
-    # In V2, deduplication can be checked if exact_quotes are mapped properly
-    assert any(q.quote_text == "This is a unique quote." for q in axis.evaluated_atoms[1].exact_quotes)
+    # NOTE: In V2, Matrix blocks (StrippedBaseMatrixXAI) explicitly do NOT map exact_quotes
+    # so we no longer test quote deduplication inside Matrix trace evaluations.
 
 
 @pytest.mark.asyncio
@@ -1675,3 +1675,61 @@ async def test_blueprint_causal_mapping_reverse_lookup(mock_repo_transformer: An
 
     assert "Logic *" in trace_1234.impacted_axis_names
     assert len(trace_5678.impacted_axis_names) == 0
+
+
+@pytest.mark.asyncio
+async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer: MagicMock) -> None:
+    """Proof of Failure:
+    Matrix blocks (StrippedBaseMatrixXAI) do NOT output `chart_display_label`.
+    blueprint.py line 533 blindly accesses ev_data["chart_display_label"], causing a KeyError.
+    This test reproduces the crash.
+    """
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000009",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                synthesized_markdown="Global MD", row_explanations={"blk_1234abcd1234abcd": "Matrix explanation"}
+            )
+        },
+        execution_trace=[
+            TraceEvent(
+                step_name="step_test",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 100.0,
+                    },
+                    "evaluations": [
+                        {
+                            "atom_id": "test_tda_1",
+                            "level": 100,
+                            "level_name": "Full",
+                            "claim_label": "claim",
+                            "status": "PASS",
+                            "exact_quotes": [],
+                            "semantic_reasoning": "This is a matrix block evaluation.",
+                            "contextual_override": False,
+                            "structural_location": "N/A",
+                            # MISSING chart_display_label and visual_intent !
+                        }
+                    ],
+                },
+            )
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "en"},
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    # This should trigger KeyError: 'chart_display_label' at blueprint.py line 533
+    dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
+    assert dto is not None

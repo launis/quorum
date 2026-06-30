@@ -37,6 +37,7 @@ from backend_v2.models.enums import (
     ScoringStrategy,
     StrictnessAnchor,
     SystemConcurrency,
+    VisualIntent,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields
 
@@ -897,6 +898,8 @@ class ScorecardAtomDTO(V2CoreBase):
     semantic_reasoning: str
     contextual_override: bool
     structural_location: str
+    chart_display_label: str
+    visual_intent: VisualIntent
     human_override: HumanOverrideDTO | None = None
 
 
@@ -1120,6 +1123,8 @@ class OutputProfile(V2CoreBase):
     custom_preface: I18nText | None = Field(
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
+    language: str | None = Field(default=None, description="Target output language.")
+    formatting_directives: list[str] = Field(default_factory=list, description="List of LLM formatting mandates.")
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 
     visible_metadata: list[str] = Field(
@@ -1164,6 +1169,8 @@ class EmbeddedOutputProfile(V2CoreBase):
     custom_preface: I18nText | None = Field(
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
+    language: str | None = Field(default=None, description="Target output language.")
+    formatting_directives: list[str] = Field(default_factory=list, description="List of LLM formatting mandates.")
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 
     visible_metadata: list[str] = Field(

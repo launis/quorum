@@ -414,15 +414,26 @@ class LLMClient:
 
                 raw_content = str(raw_content).strip()
 
-                parsed_json = response_model.model_validate_json(raw_content, context=validation_context)
+                from backend_v2.llm.ingress_pipeline import UniversalIngress
+
+                parsed_dict = UniversalIngress.parse_llm_output(raw_content)
+                parsed_json = response_model.model_validate(parsed_dict, context=validation_context)
+
                 validated_model = cast(T, parsed_json)  # type: ignore[redundant-cast]
 
                 return validated_model, token_usage
 
-            except (json.JSONDecodeError, pydantic.ValidationError) as schema_err:
+            except (json.JSONDecodeError, pydantic.ValidationError, AppException) as schema_err:
+                if isinstance(schema_err, LLMSchemaValidationError):
+                    raise schema_err
+
                 error_str = str(schema_err)
-                is_eof = "EOF while parsing" in error_str
-                error_msg = schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else error_str
+                if isinstance(schema_err, AppException):
+                    error_msg = schema_err.message
+                    is_eof = "Missing" in error_msg or "Malformed JSON" in error_msg
+                else:
+                    is_eof = "EOF while parsing" in error_str
+                    error_msg = schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else error_str
 
                 failed_content = response.content if response else "EMPTY_CONTENT"
 

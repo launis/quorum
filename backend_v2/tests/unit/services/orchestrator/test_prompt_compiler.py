@@ -222,36 +222,6 @@ def test_prompt_compiler_architectural_integrity() -> None:
     assert hasattr(PromptCompiler, "build_dynamic_schema"), msg1
 
 
-def test_compile_xml_rubrics_anti_sycophancy() -> None:
-    """Epic 29 Phase 2: Ensure Anti-Sycophancy XAI Header is injected into XML rubrics."""
-    from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-
-    compiler = PromptCompiler()
-    mock_criteria = [
-        {
-            "id": "blk_3234567890abcdef",
-            "slug": "test",
-            "category_id": "matrix",
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
-            "type": "float",
-            "scale_min": 1,
-            "scale_max": 5,
-            "computed_min": 1,
-            "computed_max": 5,
-            "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-            "ai_description": "Test description",
-        }
-    ]
-
-    from backend_v2.models.v2_core import PromptBlock
-
-    result = compiler.compile_xml_rubrics([PromptBlock.model_validate(c) for c in mock_criteria], target_locale="en")
-
-    assert "<ANTI_SYCOPHANCY_MANDATE>" in result
-    assert "ANTI-SYCOPHANCY MANDATE:" in result
-    assert "Speak like a strict professional auditor." in result
-
-
 def test_dynamic_schema_descriptions_are_present() -> None:
     """Ensure dynamic schemas are enriched with semantic descriptions to guide the LLM."""
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler

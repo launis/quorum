@@ -124,3 +124,24 @@ def test_parity_sdui_block_types() -> None:
         f"CROSS-LANGUAGE PARITY FAILURE: Dart defines SduiBlockType {missing_in_python} "
         "but Python does not allow it! Update sdui.py Literals!"
     )
+
+
+def test_parity_visual_intent() -> None:
+    """Fail-Fast Check: Asserts Python VisualIntent equals Dart VisualIntent Enums."""
+    dart_code = read_file(DART_ENUM_PATH)
+    py_enums_code = read_file(PYTHON_ENUMS_PATH)
+
+    dart_values = extract_dart_enum_json_values(dart_code, "VisualIntent")
+    py_values = get_python_enum_values(py_enums_code, "VisualIntent")
+
+    missing_in_dart = py_values - dart_values
+    missing_in_python = dart_values - py_values
+
+    assert not missing_in_dart, (
+        f"CROSS-LANGUAGE PARITY FAILURE: The backend throws new VisualIntent {missing_in_dart}"
+        " but Dart cannot parse it! Update enums.dart!"
+    )
+    assert not missing_in_python, (
+        f"CROSS-LANGUAGE PARITY FAILURE: Dart listens to VisualIntent {missing_in_python}"
+        " but the backend doesn't know it! Update enums.py!"
+    )

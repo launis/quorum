@@ -3,7 +3,6 @@
 import re
 from typing import Any
 
-from backend_v2.llm.linguistic import LANGUAGE_MANDATE
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock
 
@@ -84,12 +83,13 @@ class PromptCompilerAdapter:
         # 3. Task instruction
         dynamic_parts.append(f"<task>{task_instruction}</task>")
 
-        # 4. Execution parameters (strictness + language)
+        from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
+
         strictness_instruction = self.calibrate_strictness(strictness_level)
         dynamic_parts.append(
             f"<execution_parameters>\n"
+            f"{GLOBAL_MANDATES_XML}\n"
             f"<STRICTNESS_CALIBRATION>\n{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n"
-            f"{LANGUAGE_MANDATE}\n"
             f"</execution_parameters>"
         )
 

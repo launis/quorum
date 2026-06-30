@@ -140,15 +140,15 @@ async def test_client_delegates_to_caching_service(mock_prepare: AsyncMock, mock
     mock_provider.generate = AsyncMock()
     mock_create_provider.return_value = mock_provider
 
-    mock_response = MagicMock()
-    mock_response.content = '{"step_4_final_score": 3}'
-    mock_response.token_usage = {
+    mock_cache_response = MagicMock()
+    mock_cache_response.content = '{"step_4_final_score": 3}'
+    mock_cache_response.token_usage = {
         "prompt_tokens": 10,
         "completion_tokens": 5,
         "total_tokens": 15,
         "cost_usd": 0.0,
     }
-    mock_provider.generate.return_value = mock_response
+    mock_provider.generate.return_value = mock_cache_response
 
     mock_prepare.return_value = ([{"role": "system", "content": "mocked"}], {"caching_injected": True})
 

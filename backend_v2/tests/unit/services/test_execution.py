@@ -463,6 +463,7 @@ async def test_override_atom_success() -> None:
     from unittest.mock import patch
 
     from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+    from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import (
         ExecutionStepState,
         HumanOverrideRequest,
@@ -509,6 +510,8 @@ async def test_override_atom_success() -> None:
         semantic_reasoning="",
         contextual_override=False,
         structural_location="N/A",
+        chart_display_label="N/A",
+        visual_intent=VisualIntent.NEUTRAL,
     )
 
     step_state = ExecutionStepState(

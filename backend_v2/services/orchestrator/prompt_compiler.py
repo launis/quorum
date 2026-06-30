@@ -17,7 +17,6 @@ from pydantic import BaseModel
 
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.llm.directives import SCHEMA_PURITY_MANDATE, VERBATIM_EXTRACTION_MANDATE
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 from backend_v2.services.orchestrator.schema_factory import (
@@ -431,7 +430,6 @@ class PromptCompiler:
                 "Your previous response was structurally valid JSON, but failed domain-specific logical validation:\n"
                 f"Error: {error_msg}\n\n"
                 "You MUST adhere strictly to the cognitive directives and logical constraints. "
-                f"{VERBATIM_EXTRACTION_MANDATE}\n"
                 "If no such verbatim string exists, you MUST return null or an empty string.\n"
                 "IF these sources do not actually contain your claim, RETURN AN EMPTY LIST []. Do not invent sources.\n"
                 "Regenerate your response ensuring all logical validations pass."
@@ -441,7 +439,6 @@ class PromptCompiler:
             "[SYSTEM: STRICT JSON SCHEMA VALIDATION FAILED]\n"
             "Your previous response contained invalid JSON or failed Pydantic schema validation.\n"
             f"Error details: {error_msg}\n\n"
-            f"{SCHEMA_PURITY_MANDATE}\n"
             "ADDITIONAL RECOVERY INSTRUCTIONS:\n"
             "1. If the error says 'Field required' (e.g., missing 'atom_id'), you MUST provide it. Every evaluation MUST have a valid 'atom_id' from your <BLIND_ATOMS_TO_EVALUATE> list.\n"
             "2. If you evaluated a concept that was NOT explicitly listed in your instructions, REMOVE that evaluation block entirely. Do not hallucinate items.\n"

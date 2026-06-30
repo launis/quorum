@@ -22,9 +22,17 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto TAI yksittäinen tiedosto.
 2. Lue tiukasti kyseisen kohteen `.dart`-tiedostot (tai vain se yksittäinen annettu tiedosto) huomioiden sivuutettavat kansiot/tiedostot. Määrittele auditointitaulukko koskemaan Vain valittua laajuutta.
-3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Sinun on kirjoitettava tähän taulukkoon rivi *jokaiselle* `00-antigravity-core.md` ja `02_flutter_desktop.md` -tiedostoissa mainitulle säännölle (esim. `the_zero_compromise_pledge`, `the_no_legacy_mandate`, `riverpod_code_gen_mandate`, `opaque_stripe_id_mandate`, `frontend_zero_leaks`, `strongly_typed_routing`, `dropdown_database_alignment` jne). **Erityishuomio 1:** Varmista ettet päästä "the_zero_compromise_pledge"-tarkistuksesta läpi yhtäkään Dartin null-coalescing (`?? 'default'`) oikotietä tai `.maybeWhen` fallbackia, jotka piilottavat rakenteellisia virheitä. Vanhoja asioita ei saa tukea! Tämä koskee KAIKKIA fallback-asioita (ei "or" ketjuja, ei `.maybeWhen` tai oletusarvojen ruokkimista puuttuvalla datalla). Legacy koodia ja purkkapaikkauksia ei suvaita. **Erityishuomio 2:** `frontend_zero_db_hardcoding_mandate` vaatii tarkistamaan, ettei mikään UI-komponentti tai kontrolleri oleta koodissa tiettyjen tietokantataulujen ID-tunnisteita, nimiä tai indeksijärjestyksiä. **Erityishuomio 3:** `dropdown_database_alignment` vaatii varmistamaan, että kaikki pudotusvalikoiden (Dropdowns) kategoria- ja suodatusehdot ovat täysin synkronissa tietokannan ja `enums.dart`-määritelmien kanssa (käyttäen `PromptBlockCategoryGroups`-ryhmiä) ilman purkkaratkaisuja tai UI-tason ohituksia. **(Nämä vaatimukset on auditoitava erillisinä Pass/Fail -riveinä taulukossa!)**
-   - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.
+3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Sinun on **PAKKO** jäsentää `c:\src\quorum\.agents\rules\00-antigravity-core.md` ja `c:\src\quorum\.agents\rules\02_flutter_desktop.md` -tiedostojen sisältö mielessäsi ja luotava matriisiin oma rivi **jokaista tiedostoissa esiintyvää `<rule_block>` -kohtaa kohden**.
+   **Erityishuomio 1:** Varmista ettet päästä "the_zero_compromise_pledge"-tarkistuksesta läpi yhtäkään Dartin null-coalescing (`?? 'default'`) oikotietä tai `.maybeWhen` fallbackia, jotka piilottavat rakenteellisia virheitä. Vanhoja asioita ei saa tukea! Tämä koskee KAIKKIA fallback-asioita (ei "or" ketjuja, ei `.maybeWhen` tai oletusarvojen ruokkimista puuttuvalla datalla). Legacy koodia ja purkkapaikkauksia ei suvaita. **Erityishuomio 2:** `frontend_zero_db_hardcoding_mandate` vaatii tarkistamaan, ettei mikään UI-komponentti tai kontrolleri oleta koodissa tiettyjen tietokantataulujen ID-tunnisteita, nimiä tai indeksijärjestyksiä. **Erityishuomio 3:** `dropdown_database_alignment` vaatii varmistamaan, että kaikki pudotusvalikoiden (Dropdowns) kategoria- ja suodatusehdot ovat täysin synkronissa tietokannan ja `enums.dart`-määritelmien kanssa (käyttäen `PromptBlockCategoryGroups`-ryhmiä) ilman purkkaratkaisuja tai UI-tason ohituksia.
+   - Käytä sarakkeita: `| Nro | Sääntö ID | Tila (Pass / Fail) | Löydökset & Perustelu |`.
    - Varmista, että todella käyt läpi koodista säännösten <banned_pattern> ja <mandatory_pattern> asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.
+
+    <critical_anti_laziness_mandate>
+      KIELTO: Audit Matrixin tiivistäminen, rivien yhdistäminen tai sääntöjen pois jättäminen on ANKARASTI KIELLETTY (Anti-Laziness Mandate). 
+      Sinun on PAKKO tulostaa taulukkoon rivi JOKAISElle `02_flutter_desktop.md` (ja ytimen) tiedostossa olevalle `<rule_block>`:lle, vaikka se olisi "Pass" tai "NA". 
+      Jos jokin sääntö uupuu taulukosta, rikot suoraan järjestelmän pääarkkitehtuurin sääntöjä. Jokainen Phase 9 -sääntö on käytävä läpi eksplisiittisesti, jotta pakotat oman huomiomekanismisi (attention mechanism) tarkistamaan koodin tuon säännön osalta.
+    </critical_anti_laziness_mandate>
+
 4. Pysähdy taulukon tulostamisen jälkeen. Odotan sen näkemistä. Jää odottamaan komentoa "FIX" (jos asioita on korjattavana / Fail) tai komentoa "NEXT" (jos kaikki säännöt olivat puhtaasti Pass).
 5. **STATE PERSISTENCE (TALLENNUS):** Kun kansio on valmis (eli sait komennon korjata ja korjasit, TAI se oli heti puhdas), päivitä VÄLITTÖMÄSTI `c:\src\quorum\tmp\hardening_state.json` ja merkkaa tämä alihakemisto tilaan "DONE". Pidä lukua tässä sessiossa auditoimiesi tiedostojen yhteismäärästä.
 6. **SESSION LIMIT**: Jos olet käsitellyt (auditoinut) yhteensä 10 tiedostoa TÄSSÄ sessiossa, LOPETA välittömästi kansion valmistuttua. Älä siirry seuraavaan. Tulosta käyttäjälle: *"Sessioraja (10 tiedostoa) saavutettu. Avaa uusi chat-ikkuna ja anna komento `/tier2-hardening-frontend --resume` jatkaaksesi laatuporttia turvallisesti."* 
@@ -32,16 +40,17 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
     <critical_remediation_protocol name="STEP 3 - FIX (Korjausvaihe)">
 Tämä on kriittinen suoritusprotokolla. Kun annan komennon **"FIX"**, sinun on välittömästi korjattava listaamasi kansion virheet 2026-mandaatin tiukkojen sääntöjen mukaisesti. Sinun on noudatettava alla olevia rajoitteita poikkeuksetta:
 
-### 1. KIELTO: OMATOIMINEN KOMENTOJEN AJO (OS-SANDBOX RAJOITE)
-**ÄLÄ KOSKAAN** yritä ajaa komentoja itse `run_command`-työkalulla tai muilla vastaavilla työkaluilla. (Syy: sandbox on rajattu, lokaalit flutter-ajot epäonnistuvat).
+### 1. KIELTO: OMATOIMINEN KOMENTOJEN AJO (POIKKEUKSET)
+**ÄLÄ KOSKAAN** yritä ajaa satunnaisia komentoja itse `run_command`-työkalulla. Sandbox on rajattu (esim. `flutter gen-l10n` tai `flutter pub run` epäonnistuvat/ovat kiellettyjä). 
+**EHDOTON POIKKEUS:** Sinun on **PAKKO** suorittaa laadunvarmistustestaus suoraan itse ajamalla: `uv run python scripts/flutter_audit_loop.py client_app_v2/[polku]`.
 
 ### 2. KOODIN TOIMITUSTAPA (SUORA LEVYKIRJOITUS)
 * Käytä AINA suoraan omia rakenteellisia muokkaustyökalujasi (kuten `replace_file_content` tai `multi_replace_file_content`) koodin korjaamiseen asynkronisen prosessin nopeuttamiseksi.
 * Älä tulosta ratkaisuja pelkkänä koodiblokkina chattiin ja odota käyttäjän kopiointia. Minulla on agentti, joka osaa kirjoittaa tiedostoihin sisäisillä työkaluillaan.
-* Kun olet tallentanut muutokset levylle, vahvista tämä chatissa selkeästi ja anna vasta sen jälkeen käyttäjälle valmiit lint-komennot kopioitavaksi lokaalia testausta varten.
+* Kun olet tallentanut muutokset levylle, **AJA AUDIT LOOP** varmistaaksesi muutokset.
 
 ### 3. TARKKA KOODIBLOKKI (EI VILLEJÄ KORTTEJA)
-Anna minulle kopioitavaksi TARKKA koodibloki testikomentoja varten. Villien korttien (kuten `*.dart`) käyttö on ankarasti kielletty. Kirjoita jokainen tiedostopolku eksplisiittisesti ja täydellisesti. *(Käytä `--build` lippua vain, jos `@riverpod` tai `@freezed` malleja muutettiin).*
+Anna minulle kopioitavaksi TARKKA koodibloki testikomentoja varten, EHKÄ mikäli oma testisi kaatuu. Villien korttien (kuten `*.dart`) käyttö on ankarasti kielletty. Kirjoita jokainen tiedostopolku eksplisiittisesti ja täydellisesti. *(Käytä `--build` lippua vain, jos `@riverpod` tai `@freezed` malleja muutettiin).*
 
 **Vaadittu formaatti:**
 ```bash

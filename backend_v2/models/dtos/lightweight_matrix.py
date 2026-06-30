@@ -4,7 +4,7 @@ from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_v
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import LaxXaiExtensionType, SystemConcurrency, get_lexical_fuzz_threshold
+from backend_v2.models.enums import LaxVisualIntent, LaxXaiExtensionType, SystemConcurrency, get_lexical_fuzz_threshold
 
 
 class OutputProfileConfig(V2CoreBase):
@@ -306,6 +306,12 @@ class AtomEvaluationItemDTO(V2CoreBase):
     status: Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None = Field(
         default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."
     )
+    chart_display_label: str = Field(
+        max_length=25, description="Short display label for UI charts, truncated to max 3 words and 25 characters."
+    )
+    visual_intent: LaxVisualIntent = Field(
+        description="Visual intent for SDUI rendering. Must not have a default fallback."
+    )
     counter_quote: str | None = Field(
         default=None,
         description=(
@@ -343,6 +349,27 @@ class AtomEvaluationItemDTO(V2CoreBase):
             if len(v) > max_len:
                 return v[:max_len]
         return v
+
+    @field_validator("chart_display_label", mode="before")
+    @classmethod
+    def _truncate_chart_label(cls, v: Any) -> Any:
+        if not isinstance(v, str):
+            return v
+        words = v.split()
+        truncated = False
+        if len(words) > 3:
+            words = words[:3]
+            truncated = True
+
+        res = " ".join(words)
+        if len(res) > 25:
+            res = res[:22] + "..."
+        elif truncated and not res.endswith("..."):
+            if len(res) > 22:
+                res = res[:22] + "..."
+            else:
+                res += "..."
+        return res
 
     @property
     def evidence_found(self) -> bool:

@@ -30,18 +30,6 @@ def test_prompt_compiler_strict_atom_schema_descriptions() -> None:
     assert "MUST exactly match" in atom_id_prop["description"]
 
 
-def test_prompt_compiler_anti_id_mandate_clarification() -> None:
-    """Tier 4 RCA Test: Ensures the anti_id_mandate clarifies that the restriction
-    only applies to textual fields, not the structured JSON keys themselves.
-    """
-    compiler = PromptCompiler()
-
-    xml = compiler.compile_xml_rubrics(criteria=[], target_locale="fi")
-
-    assert "HOWEVER, the JSON key `atom_id` MUST ALWAYS be populated" in xml
-    assert "Never omit the `atom_id` from the JSON object." in xml
-
-
 def test_prompt_compiler_no_confusing_id_examples() -> None:
     """Tier 4 RCA Test: Ensures that we do not use confusing 'sr_...' examples
     in the schema descriptions or anti-id mandates which causes Gemini 2.5 to

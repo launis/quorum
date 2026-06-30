@@ -188,6 +188,8 @@ abstract class ScorecardAtomDto with _$ScorecardAtomDto {
     @JsonKey(name: 'contextual_override') required bool contextualOverride,
     @JsonKey(name: 'structural_location') required String structuralLocation,
     @JsonKey(name: 'human_override') HumanOverrideDto? humanOverride,
+    @JsonKey(name: 'chart_display_label') required String chartDisplayLabel,
+    @JsonKey(name: 'visual_intent') required VisualIntent visualIntent,
   }) = _ScorecardAtomDto;
 
   factory ScorecardAtomDto.fromJson(Map<String, dynamic> json) =>

@@ -5,6 +5,7 @@ import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/features/execution/views/widgets/atom_matrix_table_widget.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/core/models/enums.dart';
 
 void main() {
   testWidgets('AtomMatrixTableWidget renders table correctly with matrix data', (
@@ -180,6 +181,8 @@ void main() {
               level: 1,
               levelName: 'T1',
               claimLabel: 'Claim test',
+              chartDisplayLabel: 'Claim test',
+              visualIntent: VisualIntent.info,
               extractedFacts: {},
               exactQuotes: [
                 QuoteEvidenceDto(

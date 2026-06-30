@@ -233,3 +233,19 @@ enum SduiBlockType {
   @JsonValue('markdown')
   markdown,
 }
+
+/// UI intent mapping for SDUI visual rendering.
+/// STRICT PARITY MANDATE: Must precisely match backend VisualIntent.
+@JsonEnum()
+enum VisualIntent {
+  @JsonValue('success')
+  success,
+  @JsonValue('warning')
+  warning,
+  @JsonValue('critical_override')
+  criticalOverride,
+  @JsonValue('info')
+  info,
+  @JsonValue('NEUTRAL')
+  neutral,
+}

@@ -34,7 +34,7 @@ async def test_caching_schema_scrub_bug() -> None:
     # We can mock LLMFactory.create_provider to capture the final_messages passed to it.
 
     mock_provider = AsyncMock()
-    # Mock return so it doesn't crash on token_usage
+    # The LLM returns a schema violation (e.g. invalid block type)
     mock_response = MagicMock()
     mock_response.content = '{"blk_123": "value"}'
     mock_response.token_usage = {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20}

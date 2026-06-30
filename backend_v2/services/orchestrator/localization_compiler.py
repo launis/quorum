@@ -11,14 +11,6 @@ import logging
 from typing import Any
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend_v2.llm.directives import (
-    ANTI_ID_MANDATE,
-    ANTI_SCORE_MANDATE,
-    EPISTEMIC_GLOSSARY_MANDATE,
-    EXTENSION_ANCHORING_MANDATE,
-    SCHEMA_PURITY_MANDATE,
-    SEMANTIC_BLEED_MANDATE,
-)
 from backend_v2.models.enums import EvaluationMandate
 from backend_v2.models.v2_core import PromptBlock
 
@@ -195,34 +187,6 @@ class LocalizationCompiler:
 
             xml_blocks.append("  </MATRIX>")
         xml_blocks.append("</EVALUATION_RUBRICS>")
-
-        # Epic 29 Phase 2: Anti-Sycophancy XAI Header
-        anti_sycophancy_mandate = (
-            "<ANTI_SYCOPHANCY_MANDATE>\n"
-            "ANTI-SYCOPHANCY MANDATE: All extension fields MUST follow the same strict, "
-            "coldly analytical tone as the main score. "
-            "If the user's score is low, coaching and missing_context must NOT be encouraging. "
-            "You must precisely point out the missing data, flawed metric, or shaky causal relationship. "
-            "Speak like a strict professional auditor.\n"
-            "</ANTI_SYCOPHANCY_MANDATE>"
-        )
-        xml_blocks.append(anti_sycophancy_mandate)
-
-        # Extension Anchoring Mandate: Prevent generic consulting jargon in dynamic extensions
-        xml_blocks.append(EXTENSION_ANCHORING_MANDATE)
-
-        # Anti-ID Mandate to prevent raw UUID/System-ID hallucination
-        xml_blocks.append(ANTI_ID_MANDATE)
-
-        # Anti-Score Mandate to enforce Zero-Trust Auditor architecture
-        xml_blocks.append(ANTI_SCORE_MANDATE)
-
-        # Schema Purity Mandate to prevent JSON schema hallucinations
-        xml_blocks.append(SCHEMA_PURITY_MANDATE)
-
-        # Phase 1, Step 3: Append prompt safety and evaluation glossary mandates
-        xml_blocks.append(SEMANTIC_BLEED_MANDATE)
-        xml_blocks.append(EPISTEMIC_GLOSSARY_MANDATE)
 
         return "\n".join(xml_blocks)
 

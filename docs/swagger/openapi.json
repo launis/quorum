@@ -3249,6 +3249,255 @@
         }
       }
     },
+    "/api/v2/studio/profiles": {
+      "get": {
+        "tags": [
+          "Studio - Output Profiles"
+        ],
+        "summary": "List Output Profiles",
+        "description": "List all OutputProfiles.",
+        "operationId": "list_output_profiles_api_v2_studio_profiles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfileListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/studio/profiles/draft": {
+      "post": {
+        "tags": [
+          "Studio - Output Profiles"
+        ],
+        "summary": "Create Output Profile Draft",
+        "description": "Create a new OutputProfile draft.",
+        "operationId": "create_output_profile_draft_api_v2_studio_profiles_draft_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfile-Output"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/studio/profiles/{profile_id}": {
+      "get": {
+        "tags": [
+          "Studio - Output Profiles"
+        ],
+        "summary": "Get Output Profile",
+        "description": "Get a specific OutputProfile.",
+        "operationId": "get_output_profile_api_v2_studio_profiles__profile_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^prof_[a-fA-F0-9]{16,32}$",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfile-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Studio - Output Profiles"
+        ],
+        "summary": "Save Output Profile",
+        "description": "Update a specific OutputProfile.",
+        "operationId": "save_output_profile_api_v2_studio_profiles__profile_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^prof_[a-fA-F0-9]{16,32}$",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputProfile-Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfile-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Studio - Output Profiles"
+        ],
+        "summary": "Delete Output Profile",
+        "description": "Delete a specific OutputProfile.",
+        "operationId": "delete_output_profile_api_v2_studio_profiles__profile_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^prof_[a-fA-F0-9]{16,32}$",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/profiles/{profile_id}/clone": {
+      "post": {
+        "tags": [
+          "Studio - Output Profiles"
+        ],
+        "summary": "Clone Output Profile",
+        "description": "Clone an existing OutputProfile.",
+        "operationId": "clone_output_profile_api_v2_studio_profiles__profile_id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^prof_[a-fA-F0-9]{16,32}$",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfile-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/output-profiles/": {
       "get": {
         "tags": [
@@ -3764,6 +4013,26 @@
             ],
             "description": "Rich text preface shown at the very beginning of the report."
           },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Target output language."
+          },
+          "formatting_directives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Formatting Directives",
+            "description": "List of LLM formatting mandates."
+          },
           "tone_instruction": {
             "anyOf": [
               {
@@ -3909,6 +4178,26 @@
               }
             ],
             "description": "Rich text preface shown at the very beginning of the report."
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Target output language."
+          },
+          "formatting_directives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Formatting Directives",
+            "description": "List of LLM formatting mandates."
           },
           "tone_instruction": {
             "anyOf": [
@@ -5843,6 +6132,398 @@
         "title": "OutputLayoutBlock",
         "description": "A single sequential rendering block for a report profile."
       },
+      "OutputProfile-Input": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "title": "Id",
+            "description": "Unique Profile ID"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_\\-]+$",
+            "title": "Slug",
+            "description": "Fallback slug identifier"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id",
+            "description": "ID of the associated Workflow"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Tenant organization ID."
+          },
+          "name": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Detailed profile context"
+          },
+          "custom_preface": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Rich text preface shown at the very beginning of the report."
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Target output language."
+          },
+          "formatting_directives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Formatting Directives",
+            "description": "List of LLM formatting mandates."
+          },
+          "tone_instruction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dynamic tone instruction for synthesis."
+          },
+          "visible_metadata": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Visible Metadata",
+            "description": "List of metadata fields visible on the UI and PDF cover header."
+          },
+          "visible_block_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Block Extensions",
+            "description": "Block-level XAI extensions (per-matrix, LLM-produced)."
+          },
+          "visible_workflow_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Workflow Extensions",
+            "description": "Workflow-level global extensions (mathematical engines)."
+          },
+          "max_extension_items": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Extension Items",
+            "description": "Max number of items to show per grouped XAI extension.",
+            "default": 3
+          },
+          "display_scale": {
+            "type": "string",
+            "enum": [
+              "original",
+              "custom",
+              "normalized_100"
+            ],
+            "title": "Display Scale",
+            "description": "Selects the source scaling for the scores printed by Blueprint.",
+            "default": "original"
+          },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nested definition for synthesis configurations."
+          },
+          "include_diagnostic_scorecard": {
+            "type": "boolean",
+            "title": "Include Diagnostic Scorecard",
+            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "default": false
+          },
+          "strictness_level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  85,
+                  100
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strictness Level",
+            "description": "Profile-level strictness override."
+          },
+          "scoring_strategy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoringStrategy"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Profile-level strategy override."
+          },
+          "layouts": {
+            "items": {
+              "$ref": "#/components/schemas/OutputLayoutBlock-Input"
+            },
+            "type": "array",
+            "title": "Layouts",
+            "description": "Ordered sequence of layout blocks."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "workflow_id",
+          "name"
+        ],
+        "title": "OutputProfile",
+        "description": "A distinct report variant containing a sequence of layout blocks."
+      },
+      "OutputProfile-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "title": "Id",
+            "description": "Unique Profile ID"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_\\-]+$",
+            "title": "Slug",
+            "description": "Fallback slug identifier"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id",
+            "description": "ID of the associated Workflow"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Tenant organization ID."
+          },
+          "name": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Detailed profile context"
+          },
+          "custom_preface": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Rich text preface shown at the very beginning of the report."
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Target output language."
+          },
+          "formatting_directives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Formatting Directives",
+            "description": "List of LLM formatting mandates."
+          },
+          "tone_instruction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dynamic tone instruction for synthesis."
+          },
+          "visible_metadata": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Visible Metadata",
+            "description": "List of metadata fields visible on the UI and PDF cover header."
+          },
+          "visible_block_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Block Extensions",
+            "description": "Block-level XAI extensions (per-matrix, LLM-produced)."
+          },
+          "visible_workflow_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Workflow Extensions",
+            "description": "Workflow-level global extensions (mathematical engines)."
+          },
+          "max_extension_items": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Extension Items",
+            "description": "Max number of items to show per grouped XAI extension.",
+            "default": 3
+          },
+          "display_scale": {
+            "type": "string",
+            "enum": [
+              "original",
+              "custom",
+              "normalized_100"
+            ],
+            "title": "Display Scale",
+            "description": "Selects the source scaling for the scores printed by Blueprint.",
+            "default": "original"
+          },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nested definition for synthesis configurations."
+          },
+          "include_diagnostic_scorecard": {
+            "type": "boolean",
+            "title": "Include Diagnostic Scorecard",
+            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "default": false
+          },
+          "strictness_level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  85,
+                  100
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strictness Level",
+            "description": "Profile-level strictness override."
+          },
+          "scoring_strategy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoringStrategy"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Profile-level strategy override."
+          },
+          "layouts": {
+            "items": {
+              "$ref": "#/components/schemas/OutputLayoutBlock-Output"
+            },
+            "type": "array",
+            "title": "Layouts",
+            "description": "Ordered sequence of layout blocks."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "workflow_id",
+          "name"
+        ],
+        "title": "OutputProfile",
+        "description": "A distinct report variant containing a sequence of layout blocks."
+      },
       "OutputProfileCreateDTO": {
         "properties": {
           "id": {
@@ -5909,6 +6590,26 @@
               }
             ],
             "description": "Dynamic tone instruction for synthesis."
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Target output language."
+          },
+          "formatting_directives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Formatting Directives",
+            "description": "List of LLM formatting mandates."
           },
           "visible_metadata": {
             "items": {
@@ -6022,6 +6723,24 @@
         "title": "OutputProfileCreateDTO",
         "description": "DTO for creating a new Output Profile.\n\nAttributes:\n    id: Unique string ID for the profile. Must follow Stripe Pattern.\n    slug: Human-readable routing identifier.\n    workflow_id: References the execution DAG to scope Target Matrices.\n    organization_id: Tenant organization scope.\n    name: Localized name of the profile.\n    description: Localized description of the profile.\n    custom_preface: Rich text preface shown on outputs.\n    visible_metadata: List of metadata fields visible on the UI and PDF cover header.\n    visible_block_extensions: Block-level XAI extensions (per-matrix, LLM-produced).\n    visible_workflow_extensions: Workflow-level global extensions (mathematical engines).\n    max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.\n    display_scale: UI rendering scale instruction (e.g., 'normalized_100').\n    synthesis: Nested definition for synthesis configurations.\n    include_diagnostic_scorecard: Epic 24 feature indicating whether to append independent scorecards.\n    strictness_level: Profile-level strictness override setting.\n    scoring_strategy: Profile-level strategy calculation override.\n    layouts: Sequence of layout rendering blocks."
       },
+      "OutputProfileListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OutputProfile-Output"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "OutputProfileListResponse",
+        "description": "Response model for a list of OutputProfiles."
+      },
       "OutputProfileResponseDTO": {
         "properties": {
           "id": {
@@ -6069,6 +6788,24 @@
               }
             ]
           },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "formatting_directives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Formatting Directives"
+          },
           "visible_metadata": {
             "items": {
               "type": "string"
@@ -6112,7 +6849,14 @@
             "default": "original"
           },
           "synthesis": {
-            "$ref": "#/components/schemas/SynthesisConfigDTO"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "include_diagnostic_scorecard": {
             "type": "boolean",

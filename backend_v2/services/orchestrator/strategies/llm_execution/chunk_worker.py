@@ -8,7 +8,6 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationError, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
-from backend_v2.llm.linguistic import build_linguistic_context
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.report import PromptContextDTO
@@ -606,26 +605,16 @@ class ChunkWorker:
         )
 
         is_lightweight = False
-        source_language = "Unknown/Original"
         source_docs = []
         if step_metadata:
             if step_metadata.get("is_lightweight_extraction"):
                 is_lightweight = True
-            doc_lang = step_metadata.get("document_language", "Unknown/Original")
-            source_language = step_metadata.get("source_language", doc_lang)
             if "source_documents" in step_metadata:
                 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 
                 for doc_dict in step_metadata["source_documents"]:
                     if isinstance(doc_dict, dict):
                         source_docs.append(SourceDocumentContext.model_validate(doc_dict))
-
-        linguistic_context = build_linguistic_context(
-            target_locale=target_locale,
-            source_language=source_language,
-        )
-
-        base_system_prompt = f"{linguistic_context}\n\n{base_system_prompt}"
 
         allowed_atom_ids = set()
         if has_shuffled_atoms and chunk is not None:

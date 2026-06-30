@@ -1,4 +1,4 @@
-# ANTIGRAVITY AGENT CONFIGURATION & DIRECTIVES (V6.1)
+# ANTIGRAVITY AGENT CONFIGURATION & DIRECTIVES (V6.2)
 
 <system_context>
     <os>Windows 11 (PowerShell)</os>
@@ -8,20 +8,8 @@
 <catastrophic_system_bans>
     <rule_block id="win11_run_command_crash_exceptions">
         <banned_pattern>Calling the `run_command` tool natively for arbitrary Linux commands, `&&` chains, or heavy build tools (like `flutter gen-l10n`).</banned_pattern>
-        <mandatory_pattern>DELEGATE EXECUTION for arbitrary commands. EXCEPTION: You MUST use the `run_command` tool natively to run automated testing via `uv run python scripts/backend_audit_loop.py . --test` and `uv run python scripts/flutter_audit_loop.py client_app_v2` after every significant change.</mandatory_pattern>
-        <catastrophic_reason>While general sandboxing might fail on Windows 11, the automated Python audit loops MUST be run by the AI to guarantee Tier 2 constraints and Universal Quality Gates are met.</catastrophic_reason>
-    </rule_block>
-
-    <rule_block id="direct_database_mutation">
-        <banned_pattern>Modifying the live `data\db_v2.json` database directly on the fly.</banned_pattern>
-        <mandatory_pattern>If data must be altered, mutate `backend_v2\seed\seed_data.json` instead, verify locally, ask for USER CONFIRMATION, and use `backend_v2\seed\run_seed.py local`.</mandatory_pattern>
-        <catastrophic_reason>Editing the runtime database bypasses the Pydantic fail-fast pipeline and corrupts Opaque Stripe ID relations permanently.</catastrophic_reason>
-    </rule_block>
-
-    <rule_block id="deprecated_commands_ban">
-        <banned_pattern>Calling or proposing `flutter pub run`.</banned_pattern>
-        <mandatory_pattern>ALWAYS use `dart run` instead.</mandatory_pattern>
-        <catastrophic_reason>Deprecated tooling breaks the modern Flutter 3 pipeline and Quality Gate logic.</catastrophic_reason>
+        <mandatory_pattern>DELEGATE EXECUTION for arbitrary commands on Windows 11. EXCEPTION: You MUST use the `run_command` tool natively to run automated testing via the Universal Quality Gates (see below).</mandatory_pattern>
+        <catastrophic_reason>General sandboxing and bash scripts fail on Windows 11 natively.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="naked_python_execution_ban">
@@ -31,33 +19,41 @@
     </rule_block>
 </catastrophic_system_bans>
 
-<architectural_invariants>
-    <rule_block id="core_architecture_parity">
-         <banned_pattern>Implementing fallback logic, returning empty dicts `{}`, or hardcoding arbitrary UUIDs/UI strings.</banned_pattern>
-         <mandatory_pattern>Enforce Fail-Fast Pydantic V2 definitions, Serverless Event Sourcing, and the Opaque Stripe ID Pattern. JSON Parsing done exclusively via Dart `Isolate.run()`.</mandatory_pattern>
-    </rule_block>
-
+<agentic_control_center>
     <rule_block id="native_mcp_tooling">
          <banned_pattern>Instructing the user to run Python or shell scripts manually just to dump text or retrieve logs.</banned_pattern>
          <mandatory_pattern>ALWAYS use your built-in internal MCP tools (`view_file`, `grep_search`, `list_dir`, `replace_file_content`) to actively scan `backend_debug.log` and `client_debug.log` before proposing fixes.</mandatory_pattern>
     </rule_block>
-</architectural_invariants>
 
-<agentic_control_center>
-    <directive>Before writing backend or frontend code, you MUST dynamically read the relevant architecture laws from `c:\src\quorum\.agents\rules\` using your MCP tools.</directive>
-    <required_scanners>
-        <file id="06">c:\src\quorum\GEMINI.MD</file>
-        <file id="00">c:\src\quorum\.agents\rules\00-antigravity-core.md</file>
-        <file id="01">c:\src\quorum\.agents\rules\01-python-backend.md</file>
-        <file id="02">c:\src\quorum\.agents\rules\02_flutter_desktop.md</file>
-        <file id="03">c:\src\quorum\.agents\rules\03_seed_vault.md</file>
-        <file id="04">c:\src\quorum\.agents\rules\04_directory_reference.md</file>
-        <file id="05">c:\src\quorum\.agents\rules\05_llm_architecture.md</file>
-    </required_scanners>
+    <rule_block id="context_triggered_loading">
+        <banned_pattern>Writing domain-specific code (Python, Flutter, or Seed Data) without reading the strict architecture laws first.</banned_pattern>
+        <mandatory_pattern>BEFORE writing backend or frontend code, you MUST dynamically read the relevant architecture laws using the `view_file` tool:
+        1. If working on **Backend/Python**, you MUST read: `c:\src\quorum\.agents\rules\01-python-backend.md`
+        2. If working on **Frontend/Flutter**, you MUST read: `c:\src\quorum\.agents\rules\02_flutter_desktop.md`
+        3. If working on **Data/Seed/JSON**, you MUST read: `c:\src\quorum\.agents\rules\03_seed_vault.md`
+        </mandatory_pattern>
+        <catastrophic_reason>The Single Source of Truth architecture requires language-specific constraints to be loaded on-demand to preserve context and ensure extreme accuracy.</catastrophic_reason>
+    </rule_block>
 </agentic_control_center>
 
+<universal_quality_gates>
+    <instruction>You MUST strictly enforce automated audit testing via `run_command` after EVERY significant code mutation. Do NOT bypass these loops.</instruction>
+    
+    <gate id="backend_audit_loop">
+        <trigger>Any modification to `.py` files in `backend_v2/`.</trigger>
+        <command>uv run python scripts/backend_audit_loop.py <target_path> --test</command>
+        <description>Runs Ruff formatting, MyPy strict typing, and Pytest coverage recursively.</description>
+    </gate>
+    
+    <gate id="flutter_audit_loop">
+        <trigger>Any modification to `.dart` files in `client_app_v2/`.</trigger>
+        <command>uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> [--build]</command>
+        <description>Runs Dart formatter and analyzer. Add `--build` ONLY if Freezed models or JSON structures were modified to regenerate `.g.dart` files.</description>
+    </gate>
+</universal_quality_gates>
+
 <workflow_routing>
-    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `c:\src\quorum\.agents\workflows\`:</instruction>
+    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `c:\src\quorum\.agents\workflows\`. If a user uses a slash command, refer to the corresponding workflow file:</instruction>
     <execution_tiers>
         <tier id="1" path="/tier1-planner">Epic Planner for generating `implementation_plan.md`.</tier>
         <tier id="2" path="/tier2-execute">Systematic step-by-step implementation of an approved plan.</tier>

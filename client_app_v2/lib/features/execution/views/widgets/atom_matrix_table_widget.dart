@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/features/execution/views/widgets/human_override_dialog.dart';
+import 'package:client_app/theme/app_colors.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -522,15 +523,15 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          atom.claimLabel,
+                                          atom.chartDisplayLabel,
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: isPass
                                                 ? FontWeight.bold
                                                 : FontWeight.normal,
-                                            color: isPass
-                                                ? Colors.black87
-                                                : Colors.black54,
+                                            color: AppColors.fromIntent(
+                                              atom.visualIntent,
+                                            ),
                                           ),
                                         ),
                                       ),

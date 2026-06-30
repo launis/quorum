@@ -283,12 +283,45 @@ class LLMNodeStrategy(NodeStrategy):
 
         workflow_def_raw = await self.workflow_repo.get_workflow(context.workflow_id)
         workflow_def = cast(dict[str, Any], workflow_def_raw)
+
         output_profile = None
+        if target_profile:
+            profile_data = await self.comp_repo.get_output_profile_by_id(target_profile)
+            if not profile_data:
+                msg = f"OutputProfile '{target_profile}' not found in database."
+                logger.error("[LLMStrategy] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                )
+
+            from backend_v2.models.domain.output_profile import OutputProfile
+            from backend_v2.models.v2_core import EmbeddedOutputProfile
+
+            p = OutputProfile.model_validate(profile_data, strict=False)
+            output_profile = EmbeddedOutputProfile(
+                name=p.name,
+                description=p.description,
+                custom_preface=p.custom_preface,
+                language=p.language,
+                formatting_directives=list(p.formatting_directives),
+                tone_instruction=p.tone_instruction,
+                visible_metadata=list(p.visible_metadata),
+                visible_block_extensions=list(p.visible_block_extensions),
+                visible_workflow_extensions=list(p.visible_workflow_extensions),
+                max_extension_items=p.max_extension_items,
+                display_scale=p.display_scale,
+                synthesis=p.synthesis,
+                include_diagnostic_scorecard=p.include_diagnostic_scorecard,
+                strictness_level=p.strictness_level,
+                scoring_strategy=p.scoring_strategy,
+                layouts=list(p.layouts),
+            )
+
         schema_map: dict[str, str] = {}
         if workflow_def:
             workflow_obj = Workflow.model_validate(workflow_def)
-            if target_profile in workflow_obj.output_profiles:
-                output_profile = workflow_obj.output_profiles[target_profile]
 
             for s in workflow_obj.steps:
                 is_matrix = False
@@ -361,6 +394,28 @@ class LLMNodeStrategy(NodeStrategy):
         user_payload = prompt_payload.user_payload
         base_system_prompt = prompt_payload.base_system_prompt
         atom_to_block_ids = prompt_payload.atom_to_block_ids
+
+        if output_profile:
+            exec_params = ["\n<execution_parameters>"]
+            if output_profile.tone_instruction:
+                tone = output_profile.tone_instruction.get(target_locale, output_profile.tone_instruction.get("en", ""))
+                if tone:
+                    exec_params.append(f"  <tone_instruction>{tone}</tone_instruction>")
+            if output_profile.formatting_directives:
+                dirs = "\n".join(f"    <directive>{d}</directive>" for d in output_profile.formatting_directives)
+                exec_params.append(f"  <formatting_directives>\n{dirs}\n  </formatting_directives>")
+            if output_profile.layouts:
+                try:
+                    layouts_json = json.dumps(
+                        [layout.model_dump(mode="json") for layout in output_profile.layouts], ensure_ascii=False
+                    )
+                    exec_params.append(f"  <layouts>{layouts_json}</layouts>")
+                except Exception as e:
+                    logger.warning(f"Failed to serialize layouts for prompt injection: {e}")
+            exec_params.append("</execution_parameters>")
+
+            if len(exec_params) > 2:
+                base_system_prompt += "\n".join(exec_params)
 
         chunks_list: list[Any] = []
 

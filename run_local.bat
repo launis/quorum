@@ -36,13 +36,10 @@ echo [Logs Cleared]
 echo [1/3] Starting Infrastructure (Redis)...
 
 :: Check if Docker is running
-call scripts\get_docker_path.bat
-
-:: Check if Docker is running
 docker info >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo Docker is not running. Starting Docker Desktop...
-    start "" "%DOCKER_EXE%"
+    start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
     echo Waiting for Docker to initialize...
     :wait_docker
     timeout /t 5 /nobreak >nul

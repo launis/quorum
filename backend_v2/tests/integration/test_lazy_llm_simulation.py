@@ -24,6 +24,8 @@ def test_lazy_llm_unauthorized_override_failed() -> None:
     """
     # LLM attempts contextual override on a rule that does not allow it
     item = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id="test_atom_unauthorized",
         contextual_override=True,
         structural_location="page 3, paragraph 2",
@@ -58,6 +60,8 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
     # 1. Fails because semantic_reasoning is too short (< 50 characters)
     with pytest.raises(ValidationError) as exc:
         AtomEvaluationItemDTO(
+            chart_display_label="TestLabel",
+            visual_intent="info",
             atom_id="atom_short_reasoning",
             contextual_override=True,
             structural_location="page 12",
@@ -74,6 +78,8 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
     # 2. Fails because reasoning lacks a spatial reference/anchor (e.g. page, section, kappale)
     with pytest.raises(ValidationError) as exc:
         AtomEvaluationItemDTO(
+            chart_display_label="TestLabel",
+            visual_intent="info",
             atom_id="atom_no_anchor",
             contextual_override=True,
             structural_location="N/A",
@@ -150,6 +156,8 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
     # 4. Process negative state evaluation
     # Since 'engine failure' is sliced out, the LLM will report evidence_found = False
     evaluation = AtomEvaluationItemDTO(
+        chart_display_label="TestLabel",
+        visual_intent="info",
         atom_id=assertion.tda_id,
         contextual_override=False,
         structural_location="N/A",
@@ -196,6 +204,8 @@ def test_zero_variance_shannon_entropy_and_kappa_benchmark() -> None:
 
         # Build and validate the DTO
         item = AtomEvaluationItemDTO(
+            chart_display_label="TestLabel",
+            visual_intent="info",
             atom_id="stress_test_atom",
             contextual_override=True,
             structural_location=page_num,

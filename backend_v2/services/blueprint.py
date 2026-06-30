@@ -17,7 +17,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.report import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
-from backend_v2.models.enums import SystemConfigID, SystemLocale, VirtualSystemStepID
+from backend_v2.models.enums import SystemConfigID, SystemLocale, VirtualSystemStepID, VisualIntent
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
@@ -446,8 +446,15 @@ class BlueprintTransformer:
             used_evidence_ids_set = set()
 
             if "quotes" in matrix_visible_cols:
-                from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+                from pydantic import BaseModel, ConfigDict
+
+                from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO, ReasoningStepDTO
                 from backend_v2.models.v2_core import ScorecardAtomDTO
+
+                class MatrixTraceItemDTO(BaseModel):
+                    model_config = ConfigDict(extra="ignore")
+                    atom_id: str
+                    semantic_reasoning: str = ""
 
                 step_evals_map = {}
                 for r_dto in results:
@@ -468,76 +475,100 @@ class BlueprintTransformer:
                                 ev_data = step_evals_map.get(atom_id)
 
                                 if ev_data:
-                                    raw_logic = ev_data.get("internal_logic_en", {})
-                                    if isinstance(raw_logic, dict):
-                                        r_step = ReasoningStepDTO(
-                                            step_1_identify_premise=raw_logic.get("step_1_identify_premise", ""),
-                                            step_2_scan_source=raw_logic.get("step_2_scan_source", ""),
-                                            step_3_evaluate_anti_patterns=raw_logic.get(
-                                                "step_3_evaluate_anti_patterns", ""
-                                            ),
-                                            step_4_final_conclusion=raw_logic.get("step_4_final_conclusion", ""),
-                                        )
-                                    else:
-                                        r_step = ReasoningStepDTO(
-                                            step_1_identify_premise="",
-                                            step_2_scan_source="",
-                                            step_3_evaluate_anti_patterns="",
-                                            step_4_final_conclusion="",
-                                        )
-
-                                    raw_quotes = ev_data.get("exact_quotes", [])
+                                    is_matrix = pb_meta.category_id == "matrix"
                                     parsed_quotes = []
-                                    if raw_quotes:
-                                        s_manifest = source_identity_manifest or {}
-                                        for qt in raw_quotes:
-                                            if isinstance(qt, dict):
-                                                source_id = qt.get("source_id") or "unknown"
-                                                text = qt.get("text", "")
-                                            else:
-                                                source_id = "unknown"
-                                                text = str(qt)
+                                    s_manifest = source_identity_manifest or {}
 
-                                            display_name = s_manifest.get(source_id, "Tuntematon lähde")
-                                            parsed_quotes.append(
-                                                QuoteEvidenceDTO(
-                                                    quote_text=text, source_id=source_id, display_name=display_name
-                                                )
+                                    try:
+                                        if is_matrix:
+                                            # Strict validation for Matrix Output
+                                            val_data = MatrixTraceItemDTO.model_validate(ev_data)
+
+                                            r_step = ReasoningStepDTO(
+                                                step_1_identify_premise="",
+                                                step_2_scan_source="",
+                                                step_3_evaluate_anti_patterns="",
+                                                step_4_final_conclusion="",
                                             )
 
-                                    evidence_found = (
-                                        ev_data.get("decision", False)
-                                        or ev_data.get("status") == "PASS"
-                                        or ev_data.get("evidence_found", False)
-                                    )
-                                    is_dlq = evidence_found is True and not parsed_quotes
-                                    calc_status = "PASS" if (evidence_found and not is_dlq) else "FAIL"
+                                            s_atom = ScorecardAtomDTO(
+                                                atom_id=atom_id,
+                                                level=l_val,
+                                                level_name=l_name,
+                                                claim_label=claim_label,
+                                                extracted_facts={},
+                                                exact_quotes=[],
+                                                internal_logic_en=r_step,
+                                                status="FAIL",
+                                                semantic_reasoning=re.sub(
+                                                    r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]",
+                                                    "",
+                                                    val_data.semantic_reasoning,
+                                                ).strip(),
+                                                contextual_override=False,
+                                                structural_location="N/A",
+                                                chart_display_label="N/A",
+                                                visual_intent=VisualIntent.NEUTRAL,
+                                            )
+                                        else:
+                                            # Strict validation for Cognitive Output
+                                            val_data_cog = AtomEvaluationItemDTO.model_validate(ev_data)
 
-                                    s_atom = ScorecardAtomDTO(
-                                        atom_id=atom_id,
-                                        level=l_val,
-                                        level_name=l_name,
-                                        claim_label=claim_label,
-                                        extracted_facts=ev_data.get("extracted_facts", {}),
-                                        exact_quotes=parsed_quotes,
-                                        internal_logic_en=r_step,
-                                        status=calc_status,
-                                        # Sanitize forensic traces at Display Tier boundary
-                                        semantic_reasoning=re.sub(
-                                            r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]",
-                                            "",
-                                            ev_data.get("semantic_reasoning", ""),
-                                        ).strip(),
-                                        contextual_override=ev_data.get("contextual_override", False),
-                                        structural_location=ev_data.get("structural_location", "N/A"),
-                                    )
+                                            for qt in val_data_cog.exact_quotes:
+                                                source_id = qt.source_id or "unknown"
+                                                display_name = s_manifest.get(source_id, "Tuntematon lähde")
+                                                parsed_quotes.append(
+                                                    QuoteEvidenceDTO(
+                                                        quote_text=qt.text,
+                                                        source_id=source_id,
+                                                        display_name=display_name,
+                                                    )
+                                                )
+
+                                            evidence_found = (
+                                                val_data_cog.status == "PASS" or val_data_cog.evidence_found
+                                            )
+                                            is_dlq = evidence_found is True and not parsed_quotes
+                                            calc_status = "PASS" if (evidence_found and not is_dlq) else "FAIL"
+
+                                            s_atom = ScorecardAtomDTO(
+                                                atom_id=atom_id,
+                                                level=l_val,
+                                                level_name=l_name,
+                                                claim_label=claim_label,
+                                                extracted_facts=val_data_cog.extracted_facts,
+                                                exact_quotes=parsed_quotes,
+                                                internal_logic_en=val_data_cog.internal_logic_en,
+                                                status=calc_status,
+                                                semantic_reasoning=re.sub(
+                                                    r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]",
+                                                    "",
+                                                    val_data_cog.semantic_reasoning,
+                                                ).strip(),
+                                                contextual_override=val_data_cog.contextual_override,
+                                                structural_location=val_data_cog.structural_location,
+                                                chart_display_label=val_data_cog.chart_display_label,
+                                                visual_intent=val_data_cog.visual_intent,
+                                            )
+
+                                            for u_id in val_data_cog.used_evidence_ids:
+                                                used_evidence_ids_set.add(u_id)
+
+                                    except Exception as e:
+                                        # Fail-Fast requirement: Crash loudly if the model does not validate
+                                        logger.error(
+                                            "LLM output violated strictly typed schema during Display parsing for atom %s",
+                                            atom_id,
+                                            exc_info=True,
+                                        )
+                                        raise AppException(
+                                            message=f"Strict type validation failed for atom {atom_id}",
+                                            status_code=500,
+                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                        ) from e
+
                                     evaluated_atoms_list.append(s_atom)
                                     step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
-
-                                    u_ids = ev_data.get("used_evidence_ids", [])
-                                    if isinstance(u_ids, list):
-                                        for u_id in u_ids:
-                                            used_evidence_ids_set.add(u_id)
                                 else:
                                     dummy_reasoning = ReasoningStepDTO(
                                         step_1_identify_premise="",
@@ -557,6 +588,8 @@ class BlueprintTransformer:
                                         semantic_reasoning="",
                                         contextual_override=False,
                                         structural_location="N/A",
+                                        chart_display_label="N/A",
+                                        visual_intent=VisualIntent.NEUTRAL,
                                     )
                                     evaluated_atoms_list.append(s_atom)
                                     step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom

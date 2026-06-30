@@ -15,11 +15,11 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
     <rule>You MUST adhere to the architectural mandates defined in `c:\src\quorum\scripts\hardening.xml`.</rule>
   </context_rules>
   <execution_protocol level="3">
-    <step id="1">PLAN: Read related files. Create a quick execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files.</step>
+    <step id="1">PLAN: Read related files. Create a quick execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files. DESTRUCTIVE OPERATION INVENTORY: If refactoring involves DELETING or REPLACING any source file, you MUST line-by-line inventory every exported symbol and map its new location. BIDIRECTIONAL INTEGRATION CHECK: For any new parser or data consumer, you MUST explicitly document the corresponding PRODUCER.</step>
     <step id="2">FAIL-FAST: State where `AppException` will be raised if data is missing. Do not use fallbacks.</step>
     <step id="3">PRO-TOOL UI/UX: Output localized keys only via the API. Do not hardcode frontend strings. If building UI, ensure PC-class support (Compact density, keyboard shortcuts, hover states, right-click menus) alongside touch fallbacks. Do not build mobile-only layouts for the Admin Studio.</step>
-    <step id="4">EXECUTE & PAUSE: Present the root cause or execution plan, get confirmation ("PERMISSION GRANTED"), and write the code adhering strictly to the rules in `c:\src\quorum\.agents\rules\`.</step>
-    <step id="5">TDD MANDATE & QUALITY GATE: Every new feature or refactor must include the creation/update of a Unit Test (pytest/flutter test). You must present The Universal Quality Gate commands to the user (as mandated by the `<universal_quality_gate>` block in `00-antigravity-core.md`) for final test verification.</step>
+    <step id="4">EXECUTE & PAUSE: Present the root cause or execution plan, get confirmation ("PERMISSION GRANTED"), and write the code adhering strictly to the rules in `c:\src\quorum\.agents\rules\`. PRE-DELETE AUDIT: Before executing ANY file deletion listed in your plan, you MUST read the file and grep for all its exported symbols to guarantee they exist in their new locations.</step>
+    <step id="5">TDD MANDATE & QUALITY GATE: Every new feature or refactor must include the creation/update of a Unit Test. You must present The Universal Quality Gate commands to the user (as mandated by the `<universal_quality_gate>` block in `00-antigravity-core.md`, e.g., `uv run python scripts/backend_audit_loop.py [target_path] --test` or `flutter_audit_loop.py`) for final test verification. Naked execution of `pytest` or `flutter test` is strictly forbidden. END-TO-END SMOKE TEST: You MUST verify the change works in the actual runtime context, not just in unit tests, before marking the refactoring complete.</step>
   </execution_protocol>
 </system_prompt>
 ```

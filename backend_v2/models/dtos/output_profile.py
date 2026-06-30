@@ -52,6 +52,8 @@ class OutputProfileCreateDTO(V2CoreBase):
     description: I18nText | None = Field(default=None, description="Localized description.")
     custom_preface: I18nText | None = Field(default=None, description="Rich text preface.")
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+    language: str | None = Field(default=None, description="Target output language.")
+    formatting_directives: list[str] = Field(default_factory=list, description="List of LLM formatting mandates.")
 
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
@@ -112,6 +114,8 @@ class OutputProfileUpdateDTO(V2CoreBase):
     description: I18nText | None = Field(default=None, description="Localized description.")
     custom_preface: I18nText | None = Field(default=None, description="Rich text preface.")
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+    language: str | None = Field(default=None, description="Target output language.")
+    formatting_directives: list[str] | None = Field(default=None, description="List of LLM formatting mandates.")
 
     organization_id: str | None = Field(default=None, description="Tenant organization scope.")
     visible_metadata: list[str] | None = Field(
@@ -174,6 +178,8 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     description: I18nText | None = None
     custom_preface: I18nText | None = None
     tone_instruction: I18nText | None = None
+    language: str | None = None
+    formatting_directives: list[str] = Field(default_factory=list)
 
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"]
@@ -182,7 +188,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     visible_workflow_extensions: list[LaxXaiExtensionType] = Field(default_factory=list)
     max_extension_items: int | None = None
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
-    synthesis: SynthesisConfigDTO = Field(default_factory=SynthesisConfigDTO)
+    synthesis: SynthesisConfigDTO | None = None
     include_diagnostic_scorecard: bool = Field(
         default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )

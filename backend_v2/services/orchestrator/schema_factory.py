@@ -38,7 +38,7 @@ class StrippedBaseMatrixXAI(BaseModel):
 
     semantic_reasoning: str = Field(
         default="",
-        description="Max 1 short sentence focusing purely on structural evidence.",
+        description="Write an extensive analytical reasoning trace explaining your decision-making process. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis.",
     )
 
 
@@ -56,7 +56,7 @@ class StrippedBaseTDAExtraction(BaseModel):
         description=DESC_CONTEXTUAL_OVERRIDE,
     )
     semantic_reasoning: str = Field(
-        description="Max 1 short sentence focusing purely on structural evidence.",
+        description="Write an extensive analytical reasoning trace explaining your decision-making process. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis.",
     )
 
 
@@ -193,7 +193,7 @@ class SchemaFactory:
                 str,
                 Field(
                     ...,
-                    description="Max 1 short sentence focusing purely on structural evidence.",
+                    description="Write an extensive analytical reasoning trace explaining your decision-making process. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis.",
                 ),
             ),
             "evaluation_notes": (

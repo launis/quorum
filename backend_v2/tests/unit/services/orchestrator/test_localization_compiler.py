@@ -62,9 +62,7 @@ def test_compile_xml_rubrics_basic() -> None:
 
     result = compiler.compile_xml_rubrics([PromptBlock.model_validate(c) for c in mock_criteria], target_locale="en")
 
-    assert "<ANTI_SYCOPHANCY_MANDATE>" in result
-    assert "ANTI-SYCOPHANCY MANDATE:" in result
-    assert "Speak like a strict professional auditor." in result
+    assert "<EVALUATION_RUBRICS>" in result
     assert "[CONTEXTUAL OVERRIDE ALLOWED]" in result
     assert "This is an inverse rule (Vice)." not in result
 

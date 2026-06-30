@@ -12,6 +12,15 @@ def mock_repo() -> MagicMock:
     repo = MagicMock()
     repo.get_step_by_id = AsyncMock()
     repo.get_all_prompt_blocks = AsyncMock(return_value=[])
+    repo.get_output_profile_by_id = AsyncMock(
+        return_value={
+            "id": "prof_0123456789abcdef0123456789abcdef",
+            "slug": "test",
+            "name": {"default_locale": "en", "translations": {"en": "Test"}},
+            "workflow_id": "wf_123",
+            "organization_id": "root",
+        }
+    )
     repo.get_workflow = AsyncMock(
         return_value={
             "id": "wf_123",

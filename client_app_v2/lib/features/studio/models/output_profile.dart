@@ -85,6 +85,10 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
+    String? language,
+    @JsonKey(name: 'formatting_directives')
+    @Default([])
+    List<String> formattingDirectives,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _OutputProfile;
 
@@ -112,6 +116,10 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
+    String? language,
+    @JsonKey(name: 'formatting_directives')
+    @Default([])
+    List<String> formattingDirectives,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _EmbeddedOutputProfile;
 

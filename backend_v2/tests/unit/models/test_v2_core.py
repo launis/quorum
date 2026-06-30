@@ -16,6 +16,7 @@ def test_report_data_dto_strictness_level_validation() -> None:
 
 
 def test_scorecard_atom_dto_firewall() -> None:
+    from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import ScorecardAtomDTO
 
     larger_payload = {
@@ -35,6 +36,8 @@ def test_scorecard_atom_dto_firewall() -> None:
         "semantic_reasoning": "Reason",
         "contextual_override": False,
         "structural_location": "N/A",
+        "chart_display_label": "N/A",
+        "visual_intent": VisualIntent.NEUTRAL,
         "db_secret_key": "should_be_stripped",
         "internal_ai_score": 0.99,
     }

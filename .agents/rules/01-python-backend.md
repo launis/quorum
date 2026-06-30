@@ -34,6 +34,11 @@
         <mandatory_pattern>Log ONLY the mathematical/logical reason for the error and the Opaque System ID (e.g., req_abc123). All external API keys MUST be strictly read via pydantic-settings from environment variables, never hardcoded.</mandatory_pattern>
         <catastrophic_reason>Logging PII or secrets violates security compliance and exposes the system to catastrophic credential leaks. Furthermore, leaked secrets poison the LLM context if an agent reads `backend_debug.log` to troubleshoot.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="de_generator_mandate_no_xml">
+         <banned_pattern>Using XML tags like `<system_directive>`, `<role>`, or `<objective>` inside `seed_data.json` prompt fields (`ai_description`, `system_prompt`).</banned_pattern>
+         <mandatory_pattern>Enforce the "De-Generator" mandate: write pure business logic using Markdown headings (e.g. `ROLE:`, `OBJECTIVE:`). The backend `prompt_factory.py` automatically handles all necessary XML wrappers for the LLM.</mandatory_pattern>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -195,6 +200,185 @@
         <banned_pattern>Placing UI-formatting logic (e.g., "Output exactly ONE punchy sentence", 0-100 scales) in `PromptBlocks` or placing execution-tier directives (e.g., `ROLE: ANTAGONISTIC PROSECUTOR`, boolean hypothesis testing) in `OutputProfiles`.</banned_pattern>
         <mandatory_pattern>Strictly separate the Execution Phase from the Reporting Phase. `PromptBlocks` are EXCLUSIVELY for raw data evaluation (native scales like 1-5, ZERO-TRUST AUDITOR directives, atomic extraction) and MUST NOT contain UI formatting logic. `OutputProfiles` are EXCLUSIVELY for presentation and UI formatting (0-100 scales, brevity constraints, tone) and MUST NOT contain execution directives like hypothesis testing.</mandatory_pattern>
         <catastrophic_reason>Mixing these concerns causes LLM hallucinations, slows down generation, breaks the Single Source of Truth, and pollutes the execution trace with presentation details.</catastrophic_reason>
+    <rule_block id="fail_fast_hydration_mandate">
+        <banned_pattern>Fishing for dictionary values via `dict.get()`.</banned_pattern>
+        <mandatory_pattern>All uncertain data flowing as dictionaries MUST be hydrated via `.model_validate()` IMMEDIATELY before processing.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="annotated_hydration_mandate">
+        <mandatory_pattern>External data enum conversions MUST be mapped exclusively using `Annotated[CustomEnum, Field(strict=False)]` aliases defined in `enums.py`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="vertex_serving_grammar_fix">
+        <banned_pattern>Float type field constraints (e.g., ge, le) at the `Field()` level.</banned_pattern>
+        <mandatory_pattern>Float constraints MUST NOT be applied at the `Field()` level to avoid Vertex AI 400 errors. Move them to local `@field_validator` methods.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="blind_extraction_null_hypothesis">
+        <mandatory_pattern>TDA extraction models MUST force the null hypothesis via `@model_validator`: If `contextual_override == True`, the `exact_quote` field MUST be forced to `None`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="zero_defaults_mandate">
+        <banned_pattern>Using mutable types (e.g., list, dict) as default arguments (B006) or defaulting critical data.</banned_pattern>
+        <mandatory_pattern>DTO models MUST NOT use default values if the missing data is critical. Always use `None` and initialize the mutable object inside the function block.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="duck_typing_token_shield_exception">
+        <banned_pattern>The `extra="ignore"` configuration in Pydantic.</banned_pattern>
+        <mandatory_pattern>STRICTLY PROHIBITED at all times, with the absolute exception of `SynthesisStepDataDTO`, Token Shield classes, and internal Data Projection Models.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="python_314_root_model_ban">
+        <banned_pattern>Using `RootModel` to enforce dynamic TypeAdapter patterns.</banned_pattern>
+        <mandatory_pattern>Always wrap standard types dynamically using the `TypeAdapter` pattern instead. Example: `TypeAdapter(list[UserDTO]).validate_python(data)`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="append_only_state_mutation">
+        <banned_pattern>In-place mutation of `execution_trace` or `step_states`.</banned_pattern>
+        <mandatory_pattern>Historical payload data MUST NEVER be overwritten via in-place mutation. Dynamic projections MUST be executed on-the-fly into newly instantiated DTO models.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="base64_amnesia_protocol">
+        <banned_pattern>Persisting raw base64 data or binaries within Pydantic states.</banned_pattern>
+        <mandatory_pattern>They must be extracted into text representations via the Eager Extraction pattern at the boundary layer.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="dlq_arq_fallback_routing">
+        <banned_pattern>A Worker crashing the entire execution tree with a direct unhandled exception.</banned_pattern>
+        <mandatory_pattern>TaskGroup or ChunkWorker errors MUST be routed to the Dead Letter Queue by yielding `{"_dlq_status": "FAILED/DLQ"}`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="the_self_healing_ban">
+        <banned_pattern>Attempting to dynamically patch AI-generated quotes or JSON formatting errors on-the-fly using Regex.</banned_pattern>
+        <mandatory_pattern>Data validation belongs 100% to Pydantic.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="md5_hashery_ban">
+        <banned_pattern>`hashlib.md5` and `hashlib.sha1` for dynamic ID generation.</banned_pattern>
+        <mandatory_pattern>Utilize `uuid.uuid4().hex[:8]`. For cryptographic operations, the standard `random` module is forbidden; always enforce `secrets`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="high_fidelity_prompting">
+        <banned_pattern>Using f-strings for foundational core rules.</banned_pattern>
+        <mandatory_pattern>Prompt core instructions MUST remain static. Dynamic execution variables MUST be isolated within an `<execution_parameters>` tag. Input data must be rigidly wrapped in `<source_data>`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="single_source_of_truth_mandate">
+        <banned_pattern>V1 and V2 models coexisting.</banned_pattern>
+        <mandatory_pattern>Ruthlessly purge deprecated V1-era fallback hacks, `.get()` coalescing chains, and `@model_validator` retrofits handling legacy data payloads.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="native_english_generation">
+        <banned_pattern>Prompting the Language Model to translate cognitive reasoning logic on-the-fly.</banned_pattern>
+        <mandatory_pattern>Cognitive reasoning is formulated natively in English; UI localization is handled strictly in a downstream translation phase.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="hybrid_prompting_mandate">
+        <mandatory_pattern>System prompts MUST use a hybrid of XML for structural control and Markdown for nested content formatting.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="role_segregation_and_fencing">
+        <mandatory_pattern>Always fence untrusted user payloads with clear XML tags (specifically `<user_payload>...</user_payload>`) as a firewall against prompt injection attacks.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="infinite_retry_loops">
+        <banned_pattern>Infinite retry loops on failed schema validations.</banned_pattern>
+        <mandatory_pattern>Enforce an absolute max retry limit of 2 using `SystemConcurrency.LLM_MAX_RETRIES`; if it fails, trigger Fail-Fast.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="system_concurrency_ssot">
+        <mandatory_pattern>Parallel async LLM steps must use `asyncio.TaskGroup` constrained by `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS)`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="strict_physical_anchoring_mandate">
+        <banned_pattern>Fuzzy string matching for evidence extraction.</banned_pattern>
+        <mandatory_pattern>All evidence extractions must be validated using deterministic O(N) physical anchoring via `str.find` on normalized strings. If not found, raise `SemanticEvidenceError` immediately.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="ensemble_parallel_evaluation_mandate">
+        <mandatory_pattern>Execute high-entropy or negative validation steps using a single-pass 'Best-of-3' voting ensemble across parallel LLM calls wrapped in `asyncio.TaskGroup`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="pep257_google_style_docstrings">
+        <mandatory_pattern>Every module, class, and function MUST possess a PEP 257 compliant Google-style docstring starting with a concise Summary line terminating with a period.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="google_style_functions_args_returns">
+        <mandatory_pattern>Function docstrings MUST EXPLICITLY specify `Args:`, `Returns:`, and/or `Yields:` blocks as applicable, immediately following the summary description.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="google_style_classes_separation">
+        <mandatory_pattern>Class-level docstrings contain ONLY the overarching description and public `Attributes:`. The `__init__` method MUST encapsulate `Args:` and `Raises:`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="docstring_raises_fail_fast">
+        <mandatory_pattern>The `Raises:` section MUST EXPLICITLY enumerate the precise Quorum `AppException` error codes that the execution block is capable of triggering.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="dry_typing_in_docstrings">
+        <banned_pattern>Redundantly declaring data types within the docstring `Args:`, `Returns:`, or `Attributes:` sections.</banned_pattern>
+        <mandatory_pattern>Rely on code-level type hints (DRY Typing).</mandatory_pattern>
+    </rule_block>
+    <rule_block id="free_threading_concurrency">
+        <banned_pattern>Utilizing the `multiprocessing` module.</banned_pattern>
+        <mandatory_pattern>All routines MUST be demonstrably thread-safe (Free-threading architecture). Employ lightweight threads or `asyncio`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="modern_type_aliases_pep695">
+        <mandatory_pattern>Implement the PEP 695 `type` keyword for type aliases (e.g., `type Point = tuple[float, float]`).</mandatory_pattern>
+    </rule_block>
+    <rule_block id="taskgroup_exceptiongroup_mandate">
+        <banned_pattern>`asyncio.gather`.</banned_pattern>
+        <mandatory_pattern>Background routines MUST ALWAYS be orchestrated utilizing the `asyncio.TaskGroup` context. When trapping parallel exceptions, use the `ExceptionGroup` class and native `except*` syntax.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="idiomatic_pattern_matching">
+        <banned_pattern>Verbose `if-elif` cascades used for data destructuring or type validation.</banned_pattern>
+        <mandatory_pattern>Utilize native `match` and `case` structures.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="pathlib_over_ospath">
+        <banned_pattern>Invoking the legacy `os.path` module.</banned_pattern>
+        <mandatory_pattern>Exclusively leverage the object-oriented `pathlib.Path` standard library module.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="pep750_t_strings_only">
+        <banned_pattern>Standard f-strings within critical data ingestion pathways.</banned_pattern>
+        <mandatory_pattern>Construct dynamic LLM prompts and SQL statements exclusively utilizing Python 3.14 t-strings (Template Strings - PEP 750).</mandatory_pattern>
+    </rule_block>
+    <rule_block id="pep734_subinterpreters_for_cpu">
+        <mandatory_pattern>Heavyweight CPU-bound background processes MUST be dispatched via the standard library `interpreters` module (subinterpreters) instead of `multiprocessing`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="pep742_typeis_over_typeguard">
+        <banned_pattern>Legacy `typing.TypeGuard` for Type Narrowing operations.</banned_pattern>
+        <mandatory_pattern>Always enforce `typing.TypeIs` (PEP 742).</mandatory_pattern>
+    </rule_block>
+    <rule_block id="anti_hallucination_guardrail">
+        <banned_pattern>Hallucinating or inventing new Pydantic models.</banned_pattern>
+        <mandatory_pattern>NEVER delete existing classes or enums assuming they are unused, as they are likely imported by other files. DO NOT invent import paths.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="polymorphic_parsing_mandate">
+        <mandatory_pattern>All Data Access Layer (Repository) methods MUST return raw `dict[str, Any]` to embrace NoSQL polymorphism. DO NOT enforce strict Pydantic DTOs at the database boundary.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="zero_truncation_pledge">
+        <banned_pattern>Truncating existing methods, classes, or complex implementations into `pass` stubs.</banned_pattern>
+        <mandatory_pattern>Code output MUST be a fully functional, complete drop-in replacement that perfectly preserves the original logic.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="strict_attribute_integrity">
+        <banned_pattern>Converting strict dot-notation attribute access into dynamic `getattr(model, "model", "")` fallbacks.</banned_pattern>
+        <mandatory_pattern>Embracing the Fail-Fast protocol requires relying on Pydantic's static structure. EXCEPTIONS: Safe checks using `in` operator.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="api_service_separation_mandate">
+        <banned_pattern>ID generation for new or cloned entities at the API Router boundary.</banned_pattern>
+        <mandatory_pattern>MUST occur exclusively within the Service layer (e.g., `StudioService`).</mandatory_pattern>
+    </rule_block>
+    <rule_block id="setdefault_hydration_mandate">
+        <banned_pattern>Complex conditional logic for hydration (e.g., `if "key" not in kwargs: kwargs["key"] = value`).</banned_pattern>
+        <mandatory_pattern>When safely injecting fallback or configuration values, you MUST utilize Python's native `dict.setdefault("key", value)` method.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="pydantic_configuration_warning_mandate">
+        <banned_pattern>Autonomously tightening `model_config = ConfigDict(extra="allow")` to `extra="forbid"` on existing models.</banned_pattern>
+        <mandatory_pattern>Leave it unchanged and log a Warning.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="pydantic_v2_computed_field_order">
+        <banned_pattern>`@property` over `@computed_field`.</banned_pattern>
+        <mandatory_pattern>The `@computed_field` decorator MUST strictly be placed ABOVE the `@property` decorator, appending `# type: ignore[prop-decorator]`.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="srp_god_method_mandate">
+        <mandatory_pattern>Break down massive God Methods into isolated private helper methods to uphold the Single Responsibility Principle.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="fail_fast_payload_length_mandate">
+        <mandatory_pattern>Always enforce a strict minimum character length on extracted user text payloads BEFORE passing them to an LLM context window.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="async_io_lock_isolation_mandate">
+        <banned_pattern>Executing slow asynchronous I/O operations (like database commits) inside an `asyncio.Lock()` block.</banned_pattern>
+        <mandatory_pattern>Implement a Two-Lock Strategy: release the memory lock instantly, trigger event completion, and use a separate commit lock for eventual DB consistency.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="pydantic_mutation_optimization_mandate">
+        <banned_pattern>Mutating existing Pydantic objects by triggering a full serialization cycle (`model_dump()`) followed by full re-instantiation.</banned_pattern>
+        <mandatory_pattern>ALWAYS use `.model_copy(update={...})` for shallow C-level updates.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="primitive_obsession_evidence_quotes">
+        <banned_pattern>Packing complex data structures (like text + source reference) into a single string using pipe characters (|||).</banned_pattern>
+        <mandatory_pattern>Use structured Pydantic models directly from the LLM output boundary.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="immutable_history_snapshot">
+        <banned_pattern>Live queries to the database for display names during render time.</banned_pattern>
+        <mandatory_pattern>The backend presentation layer (BFF / blueprint) MUST produce UI strings from runtime frozen metadata (inputs-snapshot).</mandatory_pattern>
+    </rule_block>
+    <rule_block id="graceful_degradation_over_fail_fast">
+        <mandatory_pattern>While the core system follows Fail-Fast, hallucinated individual fields from stochastic LLMs (e.g., a broken alias) should be defensively scrubbed (None or drop the quote) so the entire expensive run doesn't crash unnecessarily.</mandatory_pattern>
     </rule_block>
 </architectural_invariants>
 
@@ -226,7 +410,8 @@
 
 <testing_and_verification_mandate>
     <instruction>Executing Python tooling ALWAYS requires this explicit unified format calling the audit loop script:</instruction>
-    <command>`uv run python scripts/backend_audit_loop.py backend_v2/[TARGET_FILES] --openapi`</command>
+    <command>`uv run python scripts/backend_audit_loop.py backend_v2/[TARGET_FILES] --test` (Testaus ja tyyppitarkastus)</command>
+    <command>`uv run python scripts/backend_audit_loop.py backend_v2/[TARGET_FILES] --openapi` (OpenAPI skeemojen generointi)</command>
     
     <rule_block id="zero_deprecation">
         <banned_pattern>Calling code "Complete" while legacy APIs throw `DeprecationWarning` or typing reports an error.</banned_pattern>
