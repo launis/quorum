@@ -1,4 +1,4 @@
-# 11: Empiirinen Raportti: Kognitiivinen Pisteytys ja XAI-Synkronisaatio (Sitra Case 2026)
+# 10: Empiirinen Raportti: Kognitiivinen Pisteytys ja XAI-Synkronisaatio (Sitra Case 2026)
 
 ## 1. Johdanto ja Arkkitehtoninen Tavoite
 

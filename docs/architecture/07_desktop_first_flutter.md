@@ -107,7 +107,3 @@ Ohjain hakee datan reitillä `StudioClient.getSystemConfig('model_registry')` ta
 ### 7.2 Toiminnalliset vaaratilanteet ja korjaustoimenpiteet
 *   **RSOD-tyyppikaatumiset (String as Map):** Mikäli jotkin rekisterin tarjoajat sisältävät roolimäppäyksiä (esim. `"AnalystAgent": "fast"`) koko strategiakuvan rinnalla, käyttöliittymä suorittaa tyyppitarkistuksen `if (value is String)` estääkseen tyyppimuunnoskaatumiset ja piirtää ne yksinkertaisina `ListTile`-elementteinä.
 *   **TDA-kriteerien kalibrointi ja kontrastiviset esimerkit (Phase 5):** Testi-indikaattoreiden (TDA) muokkaimeen ([scale_editor_modal.dart](file:///c:/src/quorum/client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart)) on lisätty `contrastive_example`-tekstikenttä. Tämä antaa ylläpitäjille mahdollisuuden asettaa kontrastivisia esimerkkejä (ACCEPTABLE vs UNACCEPTABLE) suoraan käyttöliittymästä negatiivisten rajojen kalibroimiseksi. Valittu arvo tallennetaan DTO-mallin `contrastive_example`-kenttään.
-
-<br><hr>
-
-➡️ **Seuraavaksi:** Flutterin arkkitehtuurin ymmärtämisen jälkeen, lue [08_dynamic_rendering_sdui.md](./08_dynamic_rendering_sdui.md) nähdäksesi, kuinka palvelin ohjaa käyttöliittymän asetteluita dynaamisesti (Server-Driven UI) ilman, että käyttöliittymää tarvitsee päivittää.

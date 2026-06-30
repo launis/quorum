@@ -213,7 +213,3 @@ Epic 57 toteuttaa työnkulkujen ohjaukseen innovatiivisen **Y-Funnel-tietovuon**
 * **Mekaanisten syötteiden valmistelu:** Kun DAG käynnistyy, `DAGExecutor` alustaa mekaaniset esikoukut (kuten `metrics.py` ja `linguistics.py`). Nämä ajetaan heti ja niiden tulokset kirjoitetaan `HookState`-kontekstiin.
 * **Context Compiler & Grounding:** Kun execution-vaihe etenee `sr_` (specialist reasoning) -solmuihin, `LLMNodeStrategy` pyytää `PromptCompiler`-komponenttia luomaan promptit ja syötteet. `PromptCompiler` poimii `HookState`-kontekstista mekaaniset metriikat ja injektoi ne XML-pohjaisina ankkureina (`<mechanical_anchors>`) `Causal Analyst` ja `Performativity Detector` -agenttien system-ohjeisiin lennosta.
 * **Päättelyn ankkurointi:** Tämä grounding-malli estää LLM-agentteja rationalisoimasta tai tekemästä virheellisiä arvioita, sillä niillä on system-promptissa kiistaton tieto tekstin sanamääristä, performatiivisista täytesanoista ja automaatioharha-suhteista.
-
-<br><hr>
-
-➡️ **Seuraavaksi:** Kun tiedät, miten DAG-verkko etenee solmusta toiseen, lue [05_llm_and_hooks.md](./05_llm_and_hooks.md). Se sukeltaa yksittäisen solmun sisään ja selittää, miten Hookit ohjaavat sokeaa tekoälyä.

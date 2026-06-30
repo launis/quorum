@@ -243,7 +243,3 @@ Epic 57:n myötä dynaamisen tulostusmoottorin keskeiseksi suunnittelufilosofiak
 * **Deterministinen A4-raporttimalli (`report_template.jinja2`):** Raporttimalliin on toteutettu täydellinen, visuaalinen 1:1 -pariteetti Flutter-sovelluksen `VarianceGaugeWidget` -mittarin kanssa. HTML/CSS:ssä käytetään samaa suhteellista segmentoituprogressiopalkkia (Aligned 25 %, Mild 25 %, Severe 50 %) ja tyylitellään se kevyillä taustaväreillä (`#E8F5E9`, `#FFF3E0`, `#FFEBEE`).
 * **Spatiaalinen sijoittelu ja mittariindikaattori:** PDF:ssä osoittava marker-kolmio asemoidaan absoluuttisesti dynaamisen prosenttilaskennan (`calc(marker_percentage% - 6px)`) avulla progressiopalkin yläpuolelle. Pisteluku sijoitetaan palkin alapuolelle, estäen kaatumiset tai sivurajojen ylitykset.
 * **HTML-First Export Strategy:** Paikallisten WeasyPrint-moottorien Windows-kohtaisten kaatumisten välttämiseksi `/render` -reititin tukee formaattia `format=html` ja `format=pdf`. This HTML-First -strategia mahdollistaa raa'an, yhtenäisen HTML-tiedoston lataamisen, ja siirtää lopullisen tulostusvastuun (Print-to-PDF) suoraan selaimelle tai asiakasohjelmalle (URL-delegoinnin kautta), mikä takaa 100 % vakauden ja visualisointivarmuuden kaikissa ympäristöissä.
-
-<br><hr>
-
-➡️ **Seuraavaksi:** Frontend on nyt selvä. Seuraavaksi [09_data_persistence.md](./09_data_persistence.md) kertoo, miten koko tämä massiivinen tiedon määrä tallennetaan tietokantaan Append-Only -mallilla.

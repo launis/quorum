@@ -166,7 +166,3 @@ Epic 57 laajensi asynkronista synteesiprosessia tuomalla mekaaniset metriikat ja
 * **Lataus ja kytkentä:** Koukku purkaa askeleiden suoritushistoriasta `profiler_metrics` (mekaaniset metriikat) ja `linguistics_result` (mekaaniset täytesanat). Samalla se lukee Performativity Detector- ja Causal Analyst -kognitiiviset asiantuntijatulokset.
 * **Varianssilaskenta lennosta:** Koukku kutsuu `calculate_mechanical_cognitive_variance`-funktiota `variance_engine.py`-moduulista. Se laskee varianssipisteen ja alignment-päätöksen lennosta ja rakentaa niistä `VarianceValidationExtension`-laajennoksen.
 * **Polymorfinen injektio:** Lopullinen `VarianceValidationExtension` sijoitetaan `XAIOutputDTO`-mallin `output_extensions`-listaan, jolloin se on suoraan käyttöliittymän (Flutter) ja PDF-generaattorin hyödynnettävissä osana yhtenäistä, vikasietoista SDUI-tietovuota.
-
-<br><hr>
-
-➡️ **Seuraavaksi:** Kun tiedät missä Hookeissa asiat tapahtuvat, lue [06_evaluation_and_scoring.md](./06_evaluation_and_scoring.md), joka pureutuu siihen raskaaseen matematiikkaan ja rangaistuksiin, joita nämä Hookit laskevat LLM:n tuottamasta datasta.

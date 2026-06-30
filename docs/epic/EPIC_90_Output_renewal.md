@@ -1,12 +1,24 @@
-# ** EPIC: Prompt Centralization & Structured Outputs (SDUI)**
+# ** EPIC: Prompt Centralization & Hybrid Output Protocol (SDUI)**
 
 ## ** Tavoite**
 
-Poistaa koodiin kovakoodatut LLM-kielisäännöt (directives.py, linguistic.py) ja siirtää LLM:n ohjaus täysin tietokantaan (OutputProfile). Pakottaa tekoäly tuottamaan Pydanticin (Structured Outputs) avulla tarkasti rajattua dataa, joka ohjaa suoraan Frontendin ja PDF:n grafiikoiden renderöintiä ilman välikerroksia.
+Poistaa koodiin kovakoodatut LLM-kielisäännöt (directives.py, linguistic.py) ja siirtää LLM:n ohjaus täysin tietokantaan (OutputProfile). Otetaan käyttöön **Hybrid Output -protokolla**, jossa ohjausdata (enumit, labelit) tuotetaan JSON/Structured Outputs -muodossa ja pitkät vapaamuotoiset tekstit/lainaukset XML-tageissa syntaktisen haurauden (esim. karkaamattomat lainausmerkit) välttämiseksi. Tämä takaa Graceful Degradation -periaatteen säilymisen yhdistettynä Pydanticin Zero-Compromise -validointiin.
 
 ## ** ARKKITEHTONINEN VIITEKEHYS JA LAATUPERIAATTEET (Hardening-viitekehys)**
 
 Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen ideologiaa. Kaikki tehtävät koodimuutokset suunnitellaan ja suoritetaan seuraavien periaatteiden mukaisesti:
+
+### **Arkkitehtoninen Periaate: Episteemiset Rajat (Epistemic Boundaries)**
+Järjestelmä on jaettu tiukasti kahteen osaan sen perusteella, mikä on todennäköisyyksiin perustuvaa (LLM) ja mikä on determinististä (koodi).
+* **System 1 (Probabilistic LLM Inference - The Fuzzy Boundary):** Tekoälyn vastuulla on semanttinen päättely, oikeiden viitteiden uuttaminen kontekstista ja sävyn (tone of voice) säätely. Näitä ei voi taata matemaattisesti. Tästä syystä tekoäly tuottaa raskaan tekstin sille luontaisessa Markdown-muodossa, välttäen jäykän JSON-syntaksin globaalin haurauden.
+* **System 2 (100% Deterministic Python Logic - The Hard Boundary):** Backendin "Ingestion Boundary" vastaa rakenteen pakottamisesta (Pydantic), viiteavaimien deterministisestä kääntämisestä (DOC-1 -> doc_xyz) tilakartan avulla ja virheiden hallitusta degradaatiosta. System 2 ei "arvaa" koskaan.
+
+### **Suunnittelumalli: Tolerant-Read / Strict-Write Airlock Pipeline (Universal Ingress)**
+Toteutamme Quorum V2:n datan vastaanoton, validoinnin ja vikasietoisuuden (Graceful Degradation) neljän ilmalukon (Airlock) mallilla:
+1. **Airlock 1: The Universal Ingress Pipeline (Tolerant-Read & Syntax Healing):** Keskitetty, yleiskäyttöinen putki (esim. `ingress_pipeline.py`). Ennen `model_validate()`-kutsua raaka LLM-output (JSON ja/tai Markdown) kulkee esipuhdistajan läpi. Tämä korjaa lokaalit syntaksivirheet (puuttuvat sulkeet) ja hydratoi Token Compressionin vuoksi käytetyt **Positional Array Ingress** -tuplet (`["DOC-1", "..."]`) automaattisesti takaisin sanakirjoiksi. Se ei ota kantaa liiketoimintalogiikkaan.
+2. **Airlock 2: Pydantic Shield & Semantic Paraphrase Prevention (Strict-Write):** Puhdistettu data hydratoidaan spesifiseen Pydantic-malliin (esim. `LLMExtractedQuote`). Tässä vaiheessa **Domain Sovereignty** säilyy: mallin omat `@model_validator`-metodit ajavat lainauksille `AnchorValidationService.calculate_fuzzy_score()` -tarkistuksen. Tämä estää tekoälyn semanttiset hallusinaatiot (kuten "shall" -> "must") ohittamasta tarkistuksia. Configin `extra='ignore'` leikkaa muun luvattoman datan.
+3. **Airlock 3: The Translation Firewall:** Aliaksien deterministinen käännös (esim. `AliasRegistry`) lukitun tilakartan avulla. Luvalliset aliakset (DOC-1) muuttuvat oikeiksi viitteiksi (Opaque Stripe ID), virheelliset nollataan hiljaisesti (Degradation Logistics).
+4. **Airlock 4: Human-in-the-Loop Shadowing:** Ihmisen tekemät muutokset (`HumanOverrideDTO`) on täysin eriytetty tekoälyn datasta (Forensic Sovereignty). Matematiikkamoottori on puhdas funktio, joka on irti kytketty (Event-Driven) raskaista UI-säikeistä.
 
 1. **Zero-Compromise Pydantic-validointi:** 
    * Uudet DTO- ja domain-mallit (kuten `OutputProfile`) määritellään tiukoilla tyypityksillä (`model_config = ConfigDict(strict=True, extra="forbid")` API-rajoilla).
@@ -37,12 +49,12 @@ Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen 
 **Vastuualue:** Backend (Models)  
 **Tavoite:** Luodaan rautaiset säännöt sille, mitä LLM saa palauttaa, ja leikataan liian pitkät tekstit kooditasolla, jotta UI-grafiikat (kuten tutkakartta) eivät koskaan hajoa.
 
-* **Task 1.1: Määrittele Enum ja päivitä DTO**  
+* **Task 1.1: Määrittele Enum ja päivitä DTO (Hybrid Schema)**  
   * **Tiedosto:** `backend_v2/models/v2_core.py` (tai tiedosto, jossa `AtomEvaluationItemDTO` asuu).  
   * Määrittele sallitut tilat: `VisualIntent = Literal["success", "warning", "critical_override", "info"]`.  
-  * Lisää kenttä: `chart_display_label: str`. Aseta Pydanticin `Field(description="...")` -parametriin tiukat ohjeet: *"CRITICAL: Strictly max 3 words for radar chart. Use descriptive nouns."*  
-  * Lisää kenttä: `visual_intent: VisualIntent`.  
-  * Lisää kenttä: `semantic_reasoning: str` (LLM-ohjeistuksella: *"Detailed explanation of the evaluation outcome."*).  
+  * Lisää kenttä: `chart_display_label: str`. Aseta Pydanticin `Field(description="...")` -parametriin tiukat ohjeet (JSON-schemaa varten).
+  * Lisää kenttä: `visual_intent: VisualIntent` (JSON-schemaa varten).
+  * Lisää kenttä: `semantic_reasoning: str`. (HUOM: Tätä ei pyydetä JSON:ssa syntaktisen haurauden vuoksi, vaan tämä parsitaan Markdown AST:n kautta tekstilohkoista).  
   * **Hardening-viitekehys (Säännöt 77 & 84 poikkeus, Sääntö 10):**  
     * *Clean Slate -lähestymistapa (Säännöt 77 & 84 poikkeus):* Koska tämä uudistus toteutetaan puhtaalta pöydältä ilman tarvetta tukea vanhoja tietokanta-ajoja tai ylläpitää taaksepäinyhteensopivuutta, voimme muokata olemassa olevien DTO-luokkien kenttiä vapaasti. Uudet kentät (`chart_display_label` ja `visual_intent`) määritellään **pakollisiksi** (ei oletusarvoja kuten `None` tai `""`). Tämä takaa, että tekoäly pakotetaan aina tuottamaan nämä arvot ilman mahdollisuutta tyhjiin tiloihin (Zero-Compromise).
     * *Sääntö 10 (Pydantic Pure Hydration Boundary):* API-rajan DTO-malleille varmistetaan tiukka tyyppiturvallisuus (`strict=True`).
@@ -69,7 +81,7 @@ Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen 
     * *Sääntö 2 (Strict Pydantic V2 Rust):* Uudelle luokalle määritellään `model_config = ConfigDict(strict=True, extra="forbid")`.  
     * *Sääntö 25 (Opaque Stripe ID Mandate):* Avainkenttä `profile_id` on luotava noudattamaan tiukkaa Opaque Stripe ID -standardia (etuliite `prf_` ja satunnainen heksatunnus, esim. `prf_x8f9a2b1`). Semanttiset tunnisteet (kuten "default_fi") ovat kiellettyjä.
 * **Task 2.2: Repository-tuki**  
-  * **Tiedostot:** `backend_v2/database/repositories/...`  
+  * **Tiedosto:** Luo uusi tiedosto `backend_v2/database/repositories/output_profile_repository.py`.  
   * Varmista, että tietokantakerroksessa on metodit profiilin hakemiseen (`get_profile`) ja tallentamiseen (`save_profile`).  
   * **Päätös & Hardening-viitekehys (Sääntö 74 poikkeus, Sääntö 10):**  
     * *Sääntö 74 poikkeus:* Koska `OutputProfile` ei ole polymorfinen rakenne (skeema on täysin staattinen kaikille profiileille), tehdään poikkeus sääntöön 74. `OutputProfileRepository`-metodit palauttavat raa'an sanakirjan sijaan suoraan tyypitetyn `OutputProfile`-mallin. Tämä parantaa tyyppiturvallisuutta ja poistaa turhaa validointi-boilerplatekoodia Service-kerroksesta.
@@ -112,10 +124,11 @@ Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen 
   * **Hardening-viitekehys (Säännöt 29, 51, 52):**  
     * *Sääntö 29 (High Fidelity Prompting) & Sääntö 52 (Ephemeral Caching Topology):* Systeemipromptit pidetään 100% staattisina prompt caching -suorituskyvyn maksimoimiseksi. Dynaamiset esitysmuotoiluun ja kieleen liittyvät parametrit syötetään promptin loppuun erillisen `<execution_parameters>`-XML-tagin sisällä. Älä käytä f-stringejä promptien ytimen kasaamiseen.  
     * *Sääntö 51 (Hybrid Prompting Mandate):* Rakenna tekoälyn ohjeistus hyödyntäen XML-rakenteita ja Markdownia.
-* **Task 4.2: Structured Outputs -injektio**  
-  * Varmista, että tekoäly palauttaa datan tiukasti Pydantic-mallin mukaisena.  
-  * **Hardening-viitekehys (Sääntö 28):**  
-    * *Sääntö 28 (LLM Structured Execution Mandate):* Suora `LLMClient`-kutsu on kielletty. Tekoälyajo on suoritettava `LLMTaskExecutor.execute_structured_task()` -metodilla, joka pakottaa Fail-Fast -validoinnin ja suorittaa parantavat toimenpiteet.
+* **Task 4.2: Fast-Track XML Parsing & Hydration (Hybrid Protocol)**  
+  * Ohjeista LLM palauttamaan data tiukan XML-rakenteen sisällä: pitkä teksti/päättely (esim. `semantic_reasoning` ja verbatim-lainaukset) menee `<reasoning>...[^DOC-1]</reasoning>` -tagien väliin luonnollisena Markdownina, ja koneellisesti luettava kontrollidata (esim. `visual_intent`, `chart_display_label`) menee `<json_payload>{...}</json_payload>` -tagien väliin.
+  * **Tiedosto:** Luo `backend_v2/services/llm/ingress_pipeline.py`. **Kielletty (CPU Bloat):** Älä käytä raskasta Markdown AST -jäsennintä (kuten `markdown-it-py`), koska täyden abstraktisyntaksipuun rakentaminen synkronisessa Ingestion Boundaryssa estää Event Loopin ja tuhoaa suorituskyvyn (GIL bottleneck). Käytä sen sijaan kevyttä, salamannopeaa $O(1)$ regex-uuttoa XML-tagien erottamiseen ennen Pydantic-hydraatiota. Uutetusta JSONista ja tekstilohkoista muodostetaan yhdistetty sanakirja, joka syötetään DTO:lle (`Model.model_validate(combined_dict)`).
+  * **Hardening-viitekehys (Sääntö 28 & Bifurcated Parsing):**  
+    * *Sääntö 28 (LLM Structured Execution Mandate):* Suora anemic `LLMClient`-kutsu on kielletty. Fast-Track XML Parsing takaa kaksivaiheisen hydraation ilman CPU-tukoksia. Käyttämällä Markdownia raskaalle tekstille `<reasoning>`-tagissa vältämme JSON-syntaksin globaalin haurauden, ja Pydantic varmistaa tuloksen tyyppiturvallisuuden (Zero-Compromise).
 * **Task 4.3: The Purge (Kovakoodauksen tuhoaminen)**  
   * **POISTA:** `backend_v2/llm/directives.py`  
   * **POISTA:** `backend_v2/llm/linguistic.py`  
@@ -141,7 +154,7 @@ Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen 
   * Päivitä tutkakarttaa piirtävä widget.  
   * Vaihda akselien nimiksi atomin `chartDisplayLabel`. Poista Flutterista kaikki vanhat tekstien lyhennys- tai rivityslogiikat (Backend hoitaa nyt lyhentämisen). Nyt tutkakartta mahtuu ruudulle täydellisesti.
 * **Task 5.3: Flutter Visuaalisen tilan (Intent) kytkentä**  
-  * Luo UI:hin apumetodi, joka mäppää `visualIntent`:n väreihin: esim. success -> Vihreä, critical_override -> Punainen/Huomio. Maalaa tuloskortit/rivien taustat tällä.
+  * Toteuta värikarttaus laajentamalla olemassa olevaa teemaluokkaa (esim. `AppColors`), älä luo irrallisia apumetodeja widgetteihin. Mäppää `visualIntent`:n arvot teeman väreihin: esim. success -> Vihreä, critical_override -> Punainen/Huomio. Maalaa tuloskortit/rivien taustat näillä teemaväreillä.
 * **Task 5.4: PDF Rendering Parity**  
   * **Tiedosto:** `backend_v2/templates/report_template.jinja2`  
   * Syötä PDF-kirjaston tutkakartta-komponentille täsmälleen samat `chart_display_label` -kentät.  

@@ -104,7 +104,3 @@ Epic 57 hyödyntää täysimääräisesti asynkronista taustaprosessointia raska
 * **`/executions/{id}/render` -reititin:** Kun asiakaspyyntö vaatii uuden `OutputProfile`-profiilin mukaista synteesiä (jota ei löydy välimuistista), rajapinta ei käynnistä synteesiä synkronisesti FastAPI-säikeessä (mikä aiheuttaisi HTTP Timeout -katkoja). Sen sijaan reititin palauttaa välittömästi HTTP `202 Accepted` ("pending") -vastauksen ja siirtää työn Arq-taustajonoon.
 * **Arq Worker (`render_profile_job`):** Taustaprosessi ottaa työn vastaan ja suorittaa `text_consolidation_hook`-synteesin. Tässä asynkronisessa worker-vaiheessa ajetaan myös deterministiset mekaaniset metriikat ja kutsutaan `calculate_mechanical_cognitive_variance`-moottoria ristiinvertailun suorittamiseksi. 
 * **Monivuokralaiseristys (Tenant Isolation):** Varianssilaskenta ja raportin generointi noudattavat tiukasti monivuokralaiseristystä. Kaikki tiedot haetaan ja tallennetaan organisaatiokohtaisesti (`org_id`), mikä estää tietovuodot (Cross-Tenant leaks) toisille organisaatioille asynkronisten taustaprosessien aikana.
-
-<br><hr>
-
-➡️ **Seuraavaksi:** Kun API-vastaanotto ja jonotus on ymmärretty, siirry lukemaan [04_workflow_and_dag.md](./04_workflow_and_dag.md), joka selittää, kuinka sisään tullut työ pilkotaan ja orkestroidaan jättimäiseksi rinnakkaiseksi verkoksi (DAG).

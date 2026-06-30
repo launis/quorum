@@ -1,17 +1,64 @@
-# 01: Moottoriarkkitehtuuri ja Schema-Driven -reititys (Engine)
+# 01: Executive Summary & Engine Philosophy
 
-## Arkkitehtuuridokumenttien Roolijako (Lukemisopas)
+> [!IMPORTANT]
+> **TIUKKA ARKKITEHTUURIMALLI (FAIL-FAST & STRICT SCHEMA)**
+> Tämä dokumentaatio kuvaa järjestelmän nykytilaa, joka perustuu Pydantic V2 Strict -tilaan ja Flutter Freezed -malleihin. Arkkitehtuurissa ei sallita virheiden nielentää (try-except pass), implisiittisiä oletusarvoja tai luksumattomia tiedonsiirtoja. Järjestelmä nojaa "Fail-Fast" periaatteeseen, tiukkaan Opaque ID -reititykseen sekä Pydantic V2:n Rust-ytimeen perustuvaan nopeaan validointiin.
+
+Cognitive Quorum on dynaaminen, Feature-First (Flutter) ja Strict Async Monolith (FastAPI) arkkitehtuuriin pohjautuva, sataprosenttisesti auditoitava tekoälyorkestraattori B2B SaaS -ympäristöön.
+
+## Ongelma ja Ratkaisu
+
+**Ongelma (Mittaamisen kriisi):** Generatiivisen tekoälyn myötä tietotyö kohtaa laadullisen mittaamisen haasteen. Pelkkään yhteen monoliittiseen tekoälymalliin nojaaminen johtaa *myötäilyvinoumaan* (Sycophancy) sekä hallusinaatioihin. Yksittäinen tekoälymalli ei kykene itsenäisesti falsifioimaan omaa suoritustaan tai tunnistamaan loogisia syy-seuraus -virheitään monimutkaisissa prosesseissa.
+
+**Ratkaisu (Moniagenttijärjestelmä - Quorum):** B2B SaaS -alusta, jonka avulla rakennetaan turvallisesti eristettyjä ja auditoitavia rinnakkaisia tekoälyketjuja (DAG - Directed Acyclic Graph). Järjestelmä hajauttaa tehtävät "Kognitiiviselle Kvoorumille" eri rooleihin (esim. Analyytikko, Falsifioija, Tuomari). Prosessi noudattaa systemaattista sokkoarviointia (Blind Audit), mikä takaa tulosten luotettavuuden (Reliability) asiantuntijuuden syvyydestä (Validity) tinkimättä.
+
+### Loppukäyttäjät
+Quorumin käyttäjäkunta jakautuu kahteen rooliin: asiantuntijat (Manager), jotka mallintavat joustavia tekoälyputkia graafisessa Workflow Studiossa täysin ilman koodia (No-Code), sekä tuotannon loppukäyttäjät (Member), jotka syöttävät järjestelmään aineistoa (esim. PDF-dokumentteja) ja saavat takaisin läpinäkyviä XAI-raportteja (Explainable AI).
+
+## Brändisanasto (Glossary)
+
+* **Quorum (Kognitiivinen Kvoorum):** Alustan metodologinen sydän. Koosteoppimisesta (Ensemble Learning) ja moniagenttidebatista syntyvä luotettavuus.
+* **Blueprint:** Järjestelmän dynaaminen ohjausmalli, joka sitoo yhteen käyttöliittymän renderöintisäännöt ja backendin tekoälytulokset.
+* **The Blind Audit (Kognitiivinen Riippumattomuus):** Agentit suoritetaan työnkuluissa sokkona. Ne eivät näe rinnakkaisten agenttien väliarvioita.
+* **Fail-Fast:** Palvelin ei koskaan paikkaa puuttuvaa dataa oletusarvoilla, vaan kaatuu ja palauttaa RFC 7807 -standardin mukaisen virheen välittömästi.
+
+```mermaid
+graph TD
+    UI[Client App V2 / Flutter 3 Desktop] -->|SWR / Read-Only Streams| DB[(Firestore / TinyDB)]
+    UI -->|Mutations HTTP/REST| API[FastAPI Backend V2]
+    API -->|Validation| PYD[Strict Pydantic V2 / Rust Core]
+    PYD -->|Fail-Fast 422 RFC 7807| UI
+    PYD -->|Pass| SERV[Domain Service Layer]
+    SERV -->|Heavy Tasks 202 Accepted| ARQ[Arq / Redis Worker]
+    SERV -->|Admin SDK Writes| DB
+    ARQ -->|LLM / MCP Tools| LLM[Vertex AI / OpenAI]
+```
+
+## Arkkitehtuurin Ydinfilosofiat
+
+1. **CQRS-malli (Read/Write Separation):** Flutter-käyttöliittymä on tietokannan suhteen täysin **Read-Only**. Kaikki mutaatiot (mukaan lukien asetuksien ja työnkulkujen muutokset) kulkevat keskitetysti Python FastAPI -backendin reitittimien kautta.
+2. **Fail-Fast -periaate:** Niellyt virheet ja vaimennetut ohitukset (esim. puuttuvan datan paikkaaminen oletusarvoilla) ovat koodikannassa ehdottomasti kiellettyjä. Puuttuva tai virheellinen data aiheuttaa välittömän 400/422 -virheen (RFC 7807 Problem Details), estäen arkkitehtuurillisen mätänemisen.
+3. **Strict Pydantic V2 & Flutter Freezed -pariteetti:** Backendin rajapinnat validoivat datan Pydanticin Ruoste-ytimeen perustuvalla `model_validate_json` -metodilla, torjuen tuntemattomat avaimet (`extra='forbid'`). Frontend purkaa saapuvan datan Riverpod Isolate -säikeissä yhtä tiukasti kiellettyjen avaimien säännöllä (`disallow_unrecognized_keys: true`).
+4. **Taustaprosessointi (Asynkroninen Arq Worker):** Raskaat tekoälyajot (DAG-ketjut) eristetään synkronisesta HTTP-käsittelystä. Reititin palauttaa asiakkaalle välittömästi `202 Accepted`, ja työnkulkua ajetaan asynkronisessa Arq/Redis-taustajonossa.
+5. **Kognitiivinen Riippumattomuus:** Tekoälyagentit eristetään (Blind Audit) toisistaan rinnakkaisissa työnkuluissa (Workflow ja HookStates), jotta vältetään ketjuuntuvat hallusinaatiot.
+6. **Opaque Stripe ID -reititys:** Järjestelmän tietokanta-avaimet, Pydantic-relaatiot ja GoRouter-reititykset perustuvat puhtaasti järjestelmässä generoituihin Stripe-tyyppisiin tunnisteisiin (esim. `org_abc123`). Ihmisluettavia slugeja (kuten `/users/risto`) ei käytetä järjestelmän sisäisessä verkkologiikassa eikä Pydantic-malleissa.
+
+---
+
+## Moottoriarkkitehtuuri ja Schema-Driven -reititys (Engine)
+
+### Arkkitehtuuridokumenttien Roolijako (Lukemisopas)
 
 Cognitive Quorum V2:n monimutkainen arviointi- ja pisteytysjärjestelmä on jaettu erillisiin dokumentteihin, joista jokainen vastaa tiettyyn kysymykseen:
 
-* **Miksi?** Tämä dokumentti (`01_engine_architecture.md`) on ylätason konsepti. Se selittää *miksi* moottori eristää matematiikan LLM:stä (Tripartite), miten System 1 ja System 2 erotetaan, ja miten kronomnesia torjutaan mekaanisesti.
+* **Miksi?** Tämä osio on ylätason konsepti. Se selittää *miksi* moottori eristää matematiikan LLM:stä (Tripartite), miten System 1 ja System 2 erotetaan, ja miten kronomnesia torjutaan mekaanisesti.
 * **Mitä?** Dokumentti `02_domain_models.md` on hermosto. Se kertoo *mitä* laatikkoja (Pydantic-rakenteet kuten `LightweightMatrixOutput`, `ExecutionRecord` ja uudet Epic 60 -mukaiset lohkot) tämä koko koneisto liikuttelee.
 * **Miten?** Dokumentti `06_evaluation_and_scoring.md` kuvaa DINA-mallin, CDM:n (Cognitive Diagnostic Model) ja Soft Scoring V3 -pisteytyksen. Se kertoo *miten* matematiikka ja rangaistukset lasketaan.
 * **Missä?** Dokumentti `05_llm_and_hooks.md` on toteutuskatalogi. Se kertoo *missä* tiedostoissa (esim. `scoring.py`, `integrity.py`) säännöt asuvat ja mitä ne tekevät.
 
 ---
 
-## Filosofia: Pelimoottori vs. Pelikenttä
+### Filosofia: Pelimoottori vs. Pelikenttä
 
 Cognitive Quorum V2:n backend ei ole perinteinen, kovakoodattuja polkuja suorittava monoliitti. Se on suunniteltu **Moottoriarkkitehtuurin (Engine Architecture / Rule Engine Pattern)** mukaisesti, jossa järjestelmä on jaettu kahteen täysin eristettyyn vastuualueeseen:
 
@@ -22,7 +69,7 @@ Tämän erottelun ansiosta järjestelmä kykenee toteuttamaan **Zero-Deploy jous
 
 ---
 
-## System 1 vs. System 2 ja Claim-Level Contextual Override
+### System 1 vs. System 2 ja Claim-Level Contextual Override
 
 Cognitive Quorum V2 erottaa toisistaan **System 1 (sokea semanttinen tiedonhaku)** ja **System 2 (deterministinen looginen päättely)** -tasot. 
 
@@ -44,7 +91,7 @@ Kun tekoälyagentti (System 1) arvioi lähdemateriaalia atomitasolla, se saattaa
 
 ---
 
-## Kronomnesian torjunta: Spatial Slicing (Spatiaalinen paloittelu)
+### Kronomnesian torjunta: Spatial Slicing (Spatiaalinen paloittelu)
 
 **Kronomnesia (aikahäiriö)** eli LLM-mallin taipumus ottaa huomioon ajallisesti väärässä kohdassa (esim. liian myöhään) tapahtuneet asiat, estetään fyysisellä **Spatial Slicing (spatiaalinen paloittelu)** -tekniikalla ennen tekstin syöttämistä kielimallille:
 
@@ -54,7 +101,7 @@ Kun tekoälyagentti (System 1) arvioi lähdemateriaalia atomitasolla, se saattaa
 
 ---
 
-## Epic 60: Modular Extraction Decoupling
+### Epic 60: Modular Extraction Decoupling
 
 Aiempi sotkuinen `promptBlocks`-listamalli korvattiin Epic 60 -uudistuksessa kompromissittomalla **Modular Extraction Decoupling** -arkkitehtuurilla. `Step`-mallissa lohkoviittaukset on eriytetty ja strukturoitu kolmeen selkeästi rajattuun ja tyypitettyyn kenttään:
 
@@ -66,7 +113,7 @@ Tämä erottelu poistaa kognitiivisen Attention Dilution -ilmiön kokonaan. Kiel
 
 ---
 
-## Arkkitehtuurikaavio
+### Arkkitehtuurikaavio
 
 Alla oleva Mermaid-kaavio havainnollistaa, miten dynaaminen tietokanta (vasemmalla) muuntuu LLM-moottorin kautta staattiseksi, tyyppiturvalliseksi Pydantic-malliksi (oikealla).
 
@@ -123,7 +170,9 @@ graph TD
 
 "Duct tape" -purkkaviritys olisi sitä, että koodissa jouduttaisiin avaamaan sanakirjoja ja yrittää onkia niistä lennosta muuttuvia kenttiä hiljaisin virhein. V2:n **Engine Architecture** tekee täsmälleen päinvastoin: se luo tiukan dynaamisen mallin askeleen kriteereistä lennosta (PromptCompiler), ja sen jälkeen Post-Hookit pakottavat (`TypeAdapter`) tulokset äärimmäisen kovaan ja rajalliseen joukkoon fyysisiä rakenteita (Domain Models). Tämä tarjoaa pelikentälle loputtoman variaation menettämättä pelimoottorin absoluuttista tyyppiturvallisuutta.
 
-## Epic 57: XAI Päättelyketjun Integraatio ja Varianssimoottori
+---
+
+### Epic 57: XAI Päättelyketjun Integraatio ja Varianssimoottori
 
 Cognitive Quorum V2:n päättelykykyä ja uskottavuutta vahvistettiin Epic 57 -uudistuksessa, jossa deterministiset mekaaniset esikoukut ja laadulliset semanttiset asiantuntija-agentit integroitiin yhdeksi Explainable AI (XAI) -päättelyketjuksi (`XAIOutputDTO`).
 
@@ -140,7 +189,3 @@ Uudistus ratkaisee **semanttisen tyhjiön** ongelman, jossa dynaamiset LLM-agent
 
 3. **PDF-First Pariteetti (Tripartite Boundary):**
    * Moottori ei koskaan kovakoodaa tai renderöi valmiita visualisointeja (kuten HTML-taulukoita) backend-malleihin. Se välittää ainoastaan tyypitettyä dataa, ja visualisoinnista vastaavat esityskerroksen toteutukset: Flutter-client renderöi dynaamisen segmented-gauge kortin tooltip-toiminnoin, ja Jinja2 PDF -generaattori piirtää pixel-perfect staattisen A4-asettelun peilaten samoja segmenttejä (25%, 25%, 50%) ja matemaattisia rajoja 100 % pariteetissa.
-
-<br><hr>
-
-➡️ **Seuraavaksi:** Kun moottorin filosofia on ymmärretty, siirry lukemaan [02_domain_models.md](./02_domain_models.md), joka listaa ne fyysiset Pydantic-laatikot, joita moottori liikuttelee.

@@ -63,10 +63,22 @@ Järjestelmä noudattaa Judea Pearlin kausaalisen päättelyn tikapuiden kolmatt
 
 Tämä rakenne pakottaa mallin suorittamaan arvioinnin kolmessa vaiheessa: 1) Etsi spatiaalinen ankkuri, 2) Rajaa konteksti, 3) Sovella sääntöä tähän rajattuun tilaan. Tämä on ehdoton vaatimus Pearl's Rung 3 -tason kausaalisen tarkkuuden saavuttamiseksi.
 
-**TDA-väitteiden kohdistus ja Agnostic Matrices (Käyttäjän arvioinnin periaate):**
-Cognitive Quorum -järjestelmän päätavoite on aina arvioida **käyttäjän suoritusta ja käyttäjän argumentointia** (eikä tekoälyä itseään). Aiemmin tämä ratkaistiin upottamalla kovat `BANNED SOURCES` -rajoitteet suoraan sääntöihin (TDA Assertions). Tämä kuitenkin sitoi matriisit tiukasti tiettyyn tietorakenteeseen. Nyt järjestelmässä on käytössä **Agnostic Matrices** -arkkitehtuuri:
+### TDA-väitteiden kohdistus ja Agnostic Matrices (Semantic Routing)
+
+Cognitive Quorum -järjestelmän päätavoite on aina arvioida **käyttäjän suoritusta ja argumentointia** (eikä tekoälyä itseään). Aiemmin tämä ratkaistiin upottamalla kovat `BANNED SOURCES` -rajoitteet suoraan sääntöihin (TDA Assertions). Tämä kuitenkin sitoi matriisit tiukasti tiettyyn tietorakenteeseen. Nyt järjestelmässä on käytössä **Agnostic Matrices** -arkkitehtuuri:
+
 1. **Matriisien Agnostisuus:** Kaikki kovat `target 'ai:' block` tai `BANNED SOURCES` -viittaukset on poistettu itse säännöistä. Matriisit ovat puhtaita, objektiivisia mittatikkuja ("mitä etsitään"), täysin riippumattomia siitä, *mistä* data tulee.
-2. **Semantic Routing (Input-tason ohjaus):** Kohdistuslogiikka hoidetaan nykyään yksinomaan dynaamisesti **Input Configuration Level** -tasolla (`ai_description`). Esimerkiksi Keskusteluhistoriaa (`chat_log`) arvioitaessa järjestelmä injektoi säännön: `EXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with "user:"`. Näin samaa puhdasta matriisia voidaan soveltaa sekä jäsennettyihin chat-logeihin että strukturoimattomiin PDF-dokumentteihin ilman arkkitehtonisia ristiriitoja.
+2. **Semantic Routing (Input-tason ohjaus):** Kohdistuslogiikka hoidetaan nykyään yksinomaan dynaamisesti **Input Configuration Level** -tasolla (`ai_description`). Esimerkiksi Keskusteluhistoriaa (`chat_log`) arvioitaessa järjestelmä injektoi säännön, joka ohjaa matriiseja arvioimaan vain ihmistä:
+
+```text
+--- AI INSTRUCTION FOR THIS SOURCE (chat_log) ---
+PROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.
+
+MANDATE_HUMAN_EVALUATION: You must evaluate ONLY the human user's cognitive level, steering skills, and domain expertise. 
+
+EXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with "user:". 
+```
+
 3. **Muut lähtösyötteet (Esim. `reflection_text`, `product_text` jne.):** Näille syötteille riittää normaali oletusohjeistus, sillä koko dokumentti katsotaan jo valmiiksi käyttäjän tuottamaksi. Näin vältetään aiemmat loogiset oikosulut, joissa säännössä lukenut `BANNED SOURCES: user inputs` kieltäisi vahingossa arvioimasta itse koko kohdedokumenttia. Tällä rakenteella admin-käyttöliittymä (Admin Studio) voi orkestroida monimutkaisiakin arviointeja erittäin puhtaasti.
 
 ### TDA-väitteiden Optimaalinen Lukumäärä (Matemaattinen Triangulaatio)
@@ -276,7 +288,3 @@ Varianssipiste $V$ sijoitetaan kolmiportaiseen luokitteluun:
 - **ALIGNED (0.00 – 0.50):** Tekoälyn kognitiivinen tuomio ja mekaaniset lingvistiset totuusankkurit ovat täydellisessä tasapainossa.
 - **MISALIGNED_SYCOPHANCY (varianssi $\ge 0.50$ ja $A > T_A$):** Tekoäly antaa perusteettoman korkean aitousarvon, vaikka mekaaniset koukut ovat löytäneet runsaasti performatiivisia täytesanoja. Paljastaa mielistelyä tai automaatioharhaa.
 - **MISALIGNED (varianssi $\ge 0.50$ ja $A \le T_A$):** Tekoäly antaa merkittävästi alhaisemman aitousarvon kuin mitä mekaaninen analyysi edellyttäisi.
-
-<br><hr>
-
-➡️ **Seuraavaksi:** Nyt kun tiedät missä Hookeissa asiat tapahtuvat, lue [07_desktop_first_flutter.md](./07_desktop_first_flutter.md). Se sukeltaa käyttöliittymäkerrokseen ja selittää, miten Zero-Math visualisoinnit renderöidään Desktop-First Flutter -sovelluksessa.

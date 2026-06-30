@@ -8,9 +8,15 @@ Poistaa kaikki nykyiset regex-pohjaiset ja merkkijonosplittauksiin (`|||` tai `<
 
 Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen ideologiaa:
 1. **Zero-Compromise Pydantic-validointi (Sääntö 10):** Kaikki LLM:n tuotokset ja UI-payloadit hydratoidaan ja validoidaan tiukasti Pydantic-malleilla.
-2. **Graceful Degradation (LLM Hallusinaatioiden Sietäminen, Sääntö 100):** LLM on stokastinen. Jos alias-resoluutio (esim. `DOC-99`) epäonnistuu, koko kallista matriisiajoa **EI** saa kaataa (mikä tuhoaisi käyttäjäkokemuksen). Sen sijaan viallisen lainauksen `source_id` pudotetaan (asetetaan `None`), mutta itse lainausteksti ja koko ajo pelastetaan.
+2. **Explicit Quarantine State (Transparency over Silent Degradation, Sääntö 100):** LLM on stokastinen. Jos alias-resoluutio (esim. `DOC-99`) epäonnistuu, koko kallista matriisiajoa **EI** saa kaataa, mutta hallusinaatiota **EI SAA** myöskään piilottaa asettamalla lähdettä hiljaisesti Noneksi (Silent Degradation). Viallisen lainauksen `source_id` asetetaan `None`, mutta alkuperäinen `DOC-99` tallennetaan uuteen `unresolved_alias` -kenttään forensista auditointia ja UI-varoituksia varten.
 3. **Opaque Stripe ID Mandate (Sääntö 25):** Tietokanta toimii SSOT:na, ja tallentaa relaatiot vain aitojen `doc_...` tyyppisten Opaque ID:iden avulla, ei koskaan ajokohtaisilla "Fake ID":illä.
 4. **Taaksepäinyhteensopivuuden Ehdoton Kielto (Zero-Compromise Pledge, Sääntö 52):** Tämän Epicin johdosta **mitään vanhoja ajoja ei tarvitse eikä saa tukea**. Vanhojen matriisiajon datarakenteiden (legacy string-parsing) tukeminen uudessa koodissa on ankarasti kielletty, koska se saastuttaisi uuden arkkitehtuurin. Vanha tietokanta tullaan tuhoamaan ja siementämään uudelleen puhtaalta pöydältä. Tavoitteena on 100% matemaattinen puhtaus uudelle datalle.
+5. **Semantic Paraphrase & Chimera Quote Prevention (Airlock 2 - Async Domain Validation):** Pydantic (`Airlock 1`) hoitaa vain rakenteen ja hydraation. Pydantic validoi vain tyypit ja skeeman muodon (onko `quote_fragments` lista jne.). **Fuzzy Matcheria EI SAA ajaa Pydanticin `@model_validator` -metodissa**, koska se on synkroninen ja aiheuttaa Event Loopin nälkiintymistä (GIL Starvation) Kahnin algoritmin evaluoinnin aikana (Epic 92). Sen sijaan luodaan erillinen, asynkroninen **`EvidenceAnchoringService`**, joka ottaa vastaan onnistuneesti hydratoidun `List[QuoteEvidenceDTO]` -listan ja ajaa raskaat Aho-Corasick / Fuzzy -haut eräajoina hyödyntäen `asyncio.to_thread()` -vektorisointia. Tämä estää kaksi hengenvaarallista hallusinaatiota:
+   * **Semantic Paraphrase:** LLM muuttaa sanoja (esim. *"shall"* -> *"must"*).
+   * **The Chimera Quote (Cross-Chunk Splicing):** LLM yhdistää kaksi erillistä lausetta eri dokumenteista yhdeksi lainaukseksi säästääkseen tokeneita (esim. kolmipisteen `...` avulla). 
+   * **Deterministic Python Mitigation (Max-Gap Constraint):** Fuzzy Matcherin algoritmin ja dynaamisen kynnysarvon (`get_lexical_fuzz_threshold()`) on pakotettava tiukka **Max-Gap threshold constraint**. Kun Python yrittää täsmätä `QuoteEvidenceDTO`:ta DOC-1:n raakatekstiin, sen on varmistettava yhtenäinen fyysinen olemassaolo (contiguous physical existence).
+   * **The Epistemological Escape Hatch (Multi-Quote Arrays):** Epic 92:n vaatima looginen päättely (Anaphora Resolution) vaatii usein todisteita, jotka ylittävät kappalerajat. Jotta järjestelmä ei taistelisi itseään vastaan (hylkäämällä laillisen, mutta sivutetun datan Chimera-leikkauksena), **LLM:n on sallittava palauttaa taulukko fragmenteista (esim. `["osa 1", "osa 2"]`) yhden merkkijonon sijaan**. Python ajaa Max-Gap -tarkistuksen jokaiselle fragmentille *itsenäisesti*. Näin säilytetään 100% fyysinen todistusketju ilman vääriä CONTESTED-tiloja.
+   * **CONTESTED-tilan Pakotus:** Vain jos yksittäisen *fragmentin* sisällä LLM on leikannut tekstejä yli rajojen (spliced texts across boundaries), yhtenäinen haku epäonnistuu. Python puuttuu tähän deterministisesti: se pakottaa `source_id = None`, asettaa lipun `unresolved_alias = "SPLICED_HALLUCINATION"`, ja pakottaa atomin tilaksi **CONTESTED**, mikä vaatii välitöntä ihmisen arviointia (Human Review).
 
 ## ** VAIHE 1: LLM Prompt & Pydantic-skeeman uudistus**
 
@@ -20,12 +26,12 @@ Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen 
 * **Task 1.1: LLM Prompt -uudelleenkirjoitus (`field_prompts.py`)**
   * **Tiedosto:** `backend_v2/models/prompts/field_prompts.py`
   * Nykyinen `DESC_EXACT_QUOTES` käskee LLM:ää sisällyttämään `<<QRM-SRC-...>>` -aliaksen suoraan merkkijonon sisään (esim. `<<QRM-SRC-INT-INPUTSPRODUCTTEXT>>: [exact quote]`). Tämä on Primitive Obsession -antipattern (Sääntö 97) ja koko ongelman juurisyy.
-  * **Uudelleenkirjoita prompt** ohjeistamaan LLM palauttamaan rakenteelliset objektit: `[{"source_alias": "DOC-1", "text": "..."}]`.
+  * **Uudelleenkirjoita prompt** ohjeistamaan LLM palauttamaan data **Positional Array Ingress** -muodossa Token Compressionin saavuttamiseksi (määritelty Epic 92:ssa): `[["DOC-1", "..."]]`.
 
 * **Task 1.2: Pydantic-mallien luonti (`LLMExtractedQuote` & `QuoteEvidenceDTO`)**
   * **Tiedostot:** Uudet mallit `backend_v2/models/` -hakemistoon.
-  * Luo malli **vain LLM:n käyttöön**: `LLMExtractedQuote` (kentät `source_alias: str` ja `text: str`).
-  * Luo malli **SSOT-tietokantaan ja UI-siirtoon**: `QuoteEvidenceDTO` (kentät `source_id: str | None`, `quote_text: str` ja `is_human_override: bool = False`). (HUOM: Jos `source_id` löytyy, sen on oltava tiukan standardin mukainen Opaque Stripe ID).
+  * Luo malli **vain LLM:n käyttöön**: `LLMExtractedQuote` (kentät `source_alias: str` ja `text: str | list[str]`). Tämä malli hyödyntää Epic 92:n Universal Ingress Pipelinea (`@model_validator(mode='before')`) tuplejen automaattiseen hydraatioon ja muuntaa yksittäiset stringit listoiksi.
+  * Luo malli **SSOT-tietokantaan ja UI-siirtoon**: `QuoteEvidenceDTO` (kentät `source_id: str | None`, `unresolved_alias: str | None`, `quote_fragments: list[str]`, `is_auto_healed: bool = False` ja `is_human_override: bool = False`). (HUOM: Jos `source_id` löytyy, sen on oltava tiukan standardin mukainen Opaque Stripe ID).
 
 * **Task 1.3: Kaikkien neljän LLM-skeeman migraatio**
   * `exact_quotes: list[str]` -> `exact_quotes: list[LLMExtractedQuote]` on muutettava **kaikissa neljässä** Pydantic-mallissa, jotka LLM tuottaa:
@@ -51,12 +57,14 @@ Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen 
     1. Kääntää `LLMExtractedQuote` -> `QuoteEvidenceDTO`.
     2. Kääntää `used_source_aliases` -> `used_evidence_ids` (SSOT tietokantamalleihin kuten `ScorecardAtomDTO`).
     3. Kääntää `source_document_aliases` -> `source_document_ids`.
-  * Jos alias on tuntematon (hallusinaatio), `AliasRegistry.resolve_graceful()` palauttaa `None`. Nämä poistetaan hiljaisesti listoista.
+  * **Deterministic Reverse-Anchoring (Auto-Healing):** Jos alias on tuntematon (hallusinaatio, esim. `DOC-99`), ennen hylkäämistä `EvidenceAnchoringService` suorittaa nopean merkkijonohaun (esim. Aho-Corasick tai BM25) jokaiselle `quote_fragments`-listan jäsenelle kaikista session aktiivisista lähdedokumenteista. Jos **täydellinen osuma** jokaiselle fragmentille löytyy samasta dokumentista (esim. `doc_456`), Python korjaa `source_id`:n automaattisesti ja asettaa `is_auto_healed = True`. Tämä korjaa LLM:n spatiaalisen hallusinaation turvallisesti.
+  * **Serialization Latency & CPU Offloading (`EvidenceAnchoringService`):** Tuhansien `LLMExtractedQuote` -objektien kääntäminen `QuoteEvidenceDTO`:ksi ja raskaiden Fuzzy/Aho-Corasick -merkkijonohakujen ajaminen synkronisessa silmukassa (`scoring.py`) tukkii Pythonin Event Loopin ja aiheuttaa API-latenssipiikkejä. Pydantic-hydraation jälkeen `EvidenceAnchoringService` ajaa prosessin asynkronisena eräajona (Batch Vectorization) hyödyntäen `asyncio.to_thread()` -mekanismia.
+  * **Quarantine Fallback:** Vain jos Auto-Healing ei löydä osumaa, `AliasRegistry.resolve()` palauttaa `None`. Tällöin `QuoteEvidenceDTO`:n `source_id` asetetaan `None`, ja alkuperäinen hallusinoitu alias tallennetaan `unresolved_alias` -kenttään (Silent Degradation on kielletty).
   * **HUOM: Resoluution ainoa paikka on `scoring.py`.** `blueprint.py` ei saa koskaan tehdä mitään alias-parsintaa, koska tietokannasta tulevat objektit ovat jo puhtaita Opaque ID -viitteitä.
 
-* **Task 1.6: `AliasRegistry.resolve()` Graceful Degradation**
-  * **Tiedosto:** `backend_v2/services/mcp/alias_registry.py`
-  * Nykyinen `resolve()` heittää `SemanticEvidenceError`:n tuntemattomalle aliakselle, mikä kaataa koko ajon. Tämä rikkoo Sääntöä 100 (Graceful Degradation yli Fail-Fastin).
+* **Task 1.6: Explicit Quarantine State (BFF & UI Tuki)**
+  * Flutterin käyttöliittymän (UI) on reagoitava `unresolved_alias` -kenttään. Jos se ei ole `null`, käyttöliittymään piirretään varoitusbadge: **"⚠️ Unverified Source ({unresolved_alias})"**.
+  * Tämä takaa auditoijille 100% läpinäkyvyyden siihen, että lainaus on tekoälyn hallusinoimasta lähteestä.
   * **Muutos:** Luo `resolve_graceful()` -metodi, joka palauttaa `None` tuntemattomalle aliakselle ja kirjaa `logger.warning`:n. Säilytä vanha `resolve()` muita käyttötarkoituksia varten.
 
 ---
@@ -69,11 +77,11 @@ Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen 
 * **Task 2.1: BFF:n Puhdistus (Immutability & O(1) Manifest)**
   * **Tiedosto:** `backend_v2/services/blueprint.py`
   * **Siivous:** Poista nykyiset `scoring.py` (L866-897) ja `blueprint.py` (L481-501) -tiedostojen väliaikaiset Regex-purkkaviritykset (`<<QRM-SRC...>>` -parsinta ja `|||`-generointi) kokonaan.
-  * **O(1) Snapshot -haku (`source_identity_manifest`):**
+  * **O(1) Snapshot -haku (Pointer-Based Manifest Normalization):**
     * Jotta `blueprint.py` pystyy palauttamaan Flutterille ihmisluettavan lähteen nimen (Display Name, esim. `Sopimus.pdf`) nopeasti O(1) aikavaativuudella, emme voi iteroida rekursiivisesti monimutkaista ja syvää `inputs`-JSON-puuta.
-    * **Uusi Kenttä:** Lisää `ExecutionRecord`-malliin (ja sen kantoihin) litteä sanakirja: `source_identity_manifest: dict[str, str] = Field(default_factory=dict)`.
-    * Ajon käynnistyessä (kun `inputs` injektoidaan), ydin kääntää kaikki ladatut Opaque ID:t (esim. `doc_123`) ja niiden display-nimet tähän litteään dictionaryyn: `{"doc_123": "Sopimus.pdf", "doc_456": "Liite 2"}`.
-    * Renderöintivaiheessa `blueprint.py` tekee yksinkertaisen O(1)-haun: `manifest.get(source_id, "Tuntematon lähde")`.
+    * **Bloat-esto (Payload Bloat Prevention):** ÄLÄ tallenna täyttä `source_identity_manifest` -sanakirjaa suoraan `ExecutionRecord`-objektiin (koska se paisuttaisi rivikokoa eksponentiaalisesti satojen dokumenttien ajoissa).
+    * **Normalisoitu Tallennus:** Tallenna manifesti normalisoituna joko erilliseen `ExecutionManifest`-tauluun (relational-tyyliin tietokannassa) tai Redis-hashmappiin, avaimena `execution_id`.
+    * Renderöintivaiheessa `blueprint.py` tekee yksinkertaisen joined-haun (`O(1)`) hakeakseen manifestin ajon ID:llä: `manifest.get(source_id, "Tuntematon lähde")`. Tämä pienentää tietokantadokumentin kokoa >90%.
   * **Muuttumaton historia (Immutability):** `blueprint.py` ei saa koskaan tehdä tietokantakyselyä live-lähdetauluun renderöintihetkellä. Jos alkuperäinen tiedosto on poistettu organisaatiosta tai nimetty uudelleen, vanhan matriisiajon raportin pitää yhä näyttää tiedoston alkuperäinen nimi, joka lukittiin `source_identity_manifest`:iin ajon hetkellä.
 
 * **Task 2.2: `synthesis.py` -yhteensopivuus**
@@ -120,12 +128,11 @@ Tämän Epicin toteutuksessa noudatetaan Quorum V2:n tiukkaa laadunvarmistuksen 
     3. **Todistusaineisto (Evidence):** Käyttäjän manuaalisesti tekstistä kopioima oikea lainaus.
   * **API-kutsu:** Kun dialogi tallennetaan, Flutter lähettää backendille ohitustapahtuman (josta muodostetaan `HumanOverrideDTO`).
 
-* **Task 3.4: Pakotettu Deterministinen Uudelleenlaskenta (Orpojen yliohjausten esto)**
-  * **Uusi arkkitehtoninen rajapinta (Extraction):** Tällä hetkellä matriisien pisteiden laskenta ("Hybrid Calculation") on tiukasti upotettu osaksi `scoring.py`:n massiivista LLM-suoritusputkea. Tämä matematiikkaosuus irrotetaan täysin omaksi, riippumattomaksi funktiokseen (esim. `scoring_engine.recalculate(execution_state)`).
-  * Uuden Override-API-reitin (esim. `PATCH /api/v2/executions/{id}/atoms/{atom_id}/override`) on päivitettävä atomin tila (lisäämällä `human_override` -objekti) ja sen jälkeen **pakotettava puhtaan matematiikan uudelleenlaskenta koko ajolle** kutsumalla tätä uutta irrotettua funktiota ennen tietokantatallennusta.
-  * Matematiikkamoottorin (aggregation logic) on luettava atomin tila uuden prioriteetin mukaan: `effective_status = atom.human_override.new_status if atom.human_override else atom.status`. (Myös normaali tekoälyajo kutsuu tätä samaa funktiota lopuksi).
-  * Tämä takaa, että yliohjaus ei ole vain kosmeettinen, vaan vaikuttaa raportin lopputulokseen (arvosanaan) reaaliajassa, säilyttäen samalla alkuperäisen AI-jäljen.
-  * **Uudelleentulostus (Re-render):** Koska tämä irrotettu matematiikkafunkto vain ja ainoastaan tallentaa uudelleenlasketun datan tietokantaan, varsinaisen Override-API:n (joka ottaa vastaan `PATCH`-kutsun) vastuulle jää pakotetun laskennan *jälkeen* muodostaa uusi tuloste (esim. JSON tai uusi PDF-ajo `enqueue_pdf_generation()`) aivan samalla tavalla kuin alkuperäisessä ajossa. Olemassa olevaa tulostusreittiä (kuten JSON / PDF) ohjataan vain lukemaan tämä juuri päivittynyt kanta.
+* **Task 3.4: Tapahtumapohjainen Uudelleenlaskenta (Event-Driven Overrides)**
+  * **Asynkroninen API-palvelin:** Uusi Override-API-reitti (esim. `PATCH /api/v2/executions/{id}/atoms/{atom_id}/override`) päivittää atomin tilan (lisäämällä `human_override` -objektin) tietokantaan ja palauttaa välittömästi **HTTP 202 Accepted**. Tämä vapauttaa Flutter-käyttöliittymän heti ilman UX-latenssia.
+  * **Taustatyö & Debouncing (Background Dispatch & Locking):** Jotta nopeat peräkkäiset yliohjaukset (esim. käyttäjä klikkaa 3 atomia putkeen) eivät aiheuta kilpatilannetta (Race Condition) tai korruptoi DAG-tilaa, HTTP-reititin ei käynnistä matematiikkamoottoria välittömästi. Se asettaa **Redis-debouncerin** (esim. 1,5 sekuntia). Vasta kun yliohjausten tulva loppuu, yksi ainoa taustatyö käynnistää irti kytketyn matematiikkamoottorin (`scoring_engine.recalculate()`).
+  * **Reaktiivinen UI-päivitys & Optimistic Versioning (SSE):** Kun matematiikka ja PDF-generointi on suoritettu taustalla, backend lähettää Flutterille Server-Sent Event (SSE) -viestin. **Kriittistä:** Jokaiseen SSE-viestiin on liitettävä `version` tai `updated_at` aikaleima. Flutterin käyttöliittymä vertaa viestin versiota lokaaliin tilaansa. Jos se saa vanhentuneen SSE-viestin (Stale State), se hylkää sen hiljaisesti. Tämä takaa korruptoitumattoman UI-synkronoinnin.
+  * *Miksi?* Synkroninen satojen atomien DAG-uudelleenlaskenta HTTP-säikeessä aiheuttaisi sietämätöntä viivettä ja API-aikakatkaisuja (Timeouts). Tapahtumapohjainen (Event-Driven) arkkitehtuuri on välttämätön Quorum V2:n skaalautuvuudelle.
 
 ---
 

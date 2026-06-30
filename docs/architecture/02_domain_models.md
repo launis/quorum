@@ -514,7 +514,3 @@ Osana "Unified Forensic Traceability" -laajennusta, järjestelmä kykenee tarkas
 3. **`RowForensicsDTO`**: Kokoaa dimensiotason (esim. yksittäisen arviointikriteerin) todisteet yhteen ja tarjoaa automaattisesti laskettavan ominaisuuden (`all_evidence_rejected`), joka laukeaa `True`, mikäli ihminen on käsin hylännyt KAIKKI rivin automaattiset poiminnat (mikä viestittää käyttöliittymälle ja myöhemmille työnkuluille vaatimuksen arvioida tämä kohta uudestaan puutteellisen evidenssin takia).
 
 Lisäksi ulkoisia hakuja (Tavily, yms) taltioiva **`MCPAuditTrace`** ja alkuperäinen poimintapyyntö **`CitationExtractionItemDTO`** on rikastettu kentillä `knowledge_gap` (mitä tietoa mallilta puuttui ennen hakua) ja `search_rationale` (miksi haku päätettiin tehdä juuri kyseisellä sanamuodolla). Tämä vahvistaa System 2 -tason ajattelua (CoT) ja antaa tilintarkastajille tarkan ymmärryksen tekoälyn "epävarmuudesta" ennen tiedonhakuprosessia.
-
-<br><hr>
-
-➡️ **Seuraavaksi:** Kun domain-laatikot on määritelty, siirry lukemaan [03_api_and_async_core.md](./03_api_and_async_core.md), joka näyttää, miten API-reitittimet ja Arq-taustajonot vastaanottavat nämä laatikot ja estävät järjestelmän ylikuormittumisen.

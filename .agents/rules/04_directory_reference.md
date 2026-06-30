@@ -125,19 +125,18 @@
         <directory path=".agents/workflows/">Autonomous procedural orchestration playbooks ensuring code alterations properly resolve across specific isolated AI logic paths.</directory>
         <directory path="data/">Paikallinen konfiguraatiodata, workflows -prototyyppimäärittelyt JSON-muodossa ja lokaali TinyDB tietokanta.</directory>
         <directory path="docs/architecture/">
-            <description>Puhtaasti arkkitehtuurin kuvaus- ja dokumentaatiokansio.</description>
+            <description>Puhtaasti arkkitehtuurin kuvaus- ja dokumentaatiokansio (konsolidoitu 10 tiedostoon).</description>
             <file_rules>
-                <file path="01_engine_architecture.md">Pääarkkitehtuuri ja järjestelmän ydin.</file>
+                <file path="01_executive_summary.md">Executive Summary, Moottoriarkkitehtuuri ja järjestelmän ydinfilosofia (System 1 vs System 2).</file>
                 <file path="02_domain_models.md">Pydantic Domain-mallit ja Opaque ID säännöt.</file>
                 <file path="03_api_and_async_core.md">API-kerros ja Asynkroninen tapahtumahallinta (Arq).</file>
                 <file path="04_workflow_and_dag.md">Työnkulkujen orkestrointi ja DAG-rakenteet.</file>
                 <file path="05_llm_and_hooks.md">Dynaamiset kognition muuttajat (Hooks) ja LLM-infrastruktuuri.</file>
-                <file path="06_evaluation_and_scoring.md">Kognitiivinen Arviointi, BARS, Deterministinen TDA-Seeding ja Pisteidenlaskenta.</file>
+                <file path="06_evaluation_and_scoring.md">Kognitiivinen Arviointi, Agnostic Matrices, BARS ja Pisteytys.</file>
                 <file path="07_desktop_first_flutter.md">Flutter Client V2 (Desktop-First, SDUI, Riverpod).</file>
                 <file path="08_dynamic_rendering_sdui.md">Raportoinnin Renderöintimoottori ja SDUI-näkymät.</file>
-                <file path="09_data_persistence.md">Tietokanta, Repositoriot ja Nollakonfiguraatio-seedaus.</file>
-                <file path="10_infrastructure_and_logs.md">Infrastruktuuri, Docker, ja Observabiliteetti (Logfire).</file>
-                <file path="11_empirical_scoring_report.md">Empiirinen laskentaraportti ja tulokset.</file>
+                <file path="09_data_persistence.md">Tietokanta, Repositoriot, Lokitus (Logfire) ja Infrastruktuuri.</file>
+                <file path="10_empirical_scoring_report.md">Empiirinen laskentaraportti ja testitulokset.</file>
             </file_rules>
         </directory>
         <directory path="docs/epic/">"Tehtävälista / Backlog". Täällä on puhtaasti toimintaohjeita siitä, mitä asioita pitää koodissa korjata tai rakentaa seuraavaksi. Kun Epic on koodattu, se on ikään kuin "tehty".</directory>
