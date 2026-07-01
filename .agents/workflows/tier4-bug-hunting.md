@@ -21,6 +21,7 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
     <step id="3">EXPLAIN: Explain the Root Cause of the bug briefly based on the failed test trace.</step>
     <step id="4">FIX (GREEN): Propose an atomic code fix that solves the bug and makes the test pass. Wait for "PERMISSION GRANTED" before modifying files.</step>
     <step id="5">VERIFY (REFACTOR): Instruct the user to run the specific test and The Universal Quality Gate commands (from the `<universal_quality_gate>` block in `00-antigravity-core.md`). END-TO-END SMOKE TEST: After tests pass, you MUST verify the bug is completely resolved in the actual runtime context (e.g., UI behavior or full pipeline execution) before marking the hunt complete.</step>
+    <step id="6">DOCUMENTATION AUDIT: If the bug resolution required structural changes, modified data flows, or shifted architectural boundaries, you MUST update the relevant `c:\src\quorum\docs\architecture\` documentation (following the Tier 7 'Describe Architecture' principles). Do NOT update architecture documentation for simple bug fixes, typos, or localized state changes.</step>
   </execution_protocol>
 </system_prompt>
 ```

@@ -10,7 +10,7 @@ Step failed because LLM returned 12 localized_anchors_found items
 (e.g., 'Koska', 'johtaneet', etc.), but Pydantic enforced max_length=10.
 """
 
-from backend_v2.models.enums import SystemConcurrency
+from backend_v2.settings import get_settings
 
 # The exact payload from the new production crash log
 SITRA_ANCHORS_12 = [
@@ -51,8 +51,8 @@ def test_localized_anchors_accepts_12_items() -> None:
 
 
 def test_schema_max_localized_anchors_is_at_least_15() -> None:
-    """Verify the SystemConcurrency constant allows sufficient anchors."""
-    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS >= 15, (
-        f"SCHEMA_MAX_LOCALIZED_ANCHORS={SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS} "
-        "should be >= 15 for the overflow test."
+    """Verify the settings constant allows sufficient anchors."""
+    settings = get_settings()
+    assert settings.schema_max_localized_anchors >= 15, (
+        f"SCHEMA_MAX_LOCALIZED_ANCHORS={settings.schema_max_localized_anchors} should be >= 15 for the overflow test."
     )

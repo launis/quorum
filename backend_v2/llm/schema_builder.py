@@ -7,6 +7,13 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from backend_v2.models.enums import BlockDataType, XaiExtensionType
+from backend_v2.models.prompts.field_prompts import (
+    XAI_DESC_CITATION,
+    XAI_DESC_COACHING,
+    XAI_DESC_CONFIDENCE,
+    XAI_DESC_FALSIFICATION,
+    XAI_DESC_JUSTIFICATION,
+)
 from backend_v2.models.v2_core import PromptBlock
 
 
@@ -21,7 +28,7 @@ class SchemaCompilerService:
             blocks_config: List of block configuration dictionaries.
 
         Returns:
-            str: SHA-256 hash string.
+            SHA-256 hash string.
         """
         # Ensure we sort the config so identical schemas get the same hash
         config_str = json.dumps(blocks_config, sort_keys=True)
@@ -38,7 +45,7 @@ class SchemaCompilerService:
             fields_tuple: Tuple of field definitions.
 
         Returns:
-            type[BaseModel]: The dynamically generated Pydantic model class.
+            The dynamically generated Pydantic model class.
         """
         fields: dict[str, Any] = {
             name: (type_hint, Field(..., description=desc, alias=alias))
@@ -58,27 +65,27 @@ class SchemaCompilerService:
             prompt_blocks: List of PromptBlock configuration blocks.
 
         Returns:
-            type[BaseModel]: Compiled Pydantic Model.
+            Compiled Pydantic Model.
         """
         # 1. Create a hashable representation of the schema requirements
         blocks_config = []
         for block in prompt_blocks:
             blocks_config.append(
                 {
-                    "slug": block.slug,
+                    "id": block.id,
                     "type": block.type.value if isinstance(block.type, Enum) else str(block.type),
                     "output_extensions": block.output_extensions,
                 }
             )
 
-        # Sort blocks_config by slug to ensure deterministic hashing regardless of input order
-        blocks_config.sort(key=lambda x: x["slug"])
+        # Sort blocks_config by id to ensure deterministic hashing regardless of input order
+        blocks_config.sort(key=lambda x: x["id"])
         schema_hash = cls._generate_hash(blocks_config)
 
         # 2. Build the fields tuple for Pydantic (must be hashable for lru_cache)
         fields_list: list[tuple[str, Any, str, str]] = []
         for index, cfg in enumerate(blocks_config):
-            slug = str(cfg["slug"])
+            block_id = str(cfg["id"])
             alias_name = f"eval_{index + 1}"
             b_type = cfg["type"]
 
@@ -86,71 +93,67 @@ class SchemaCompilerService:
             # Map BlockDataType to strict Python primitives
             if b_type == BlockDataType.FLOAT.value:
                 type_hint = float
-                desc = f"Float numerical value for {slug}"
+                desc = f"Float numerical value for {block_id}"
             elif b_type == BlockDataType.INT.value:
                 type_hint = int
-                desc = f"Integer numerical value for {slug}"
+                desc = f"Integer numerical value for {block_id}"
             else:
                 type_hint = str
-                desc = f"Extracted text content for {slug}"
+                desc = f"Extracted text content for {block_id}"
 
-            fields_list.append((slug, type_hint, desc, alias_name))
+            fields_list.append((block_id, type_hint, desc, alias_name))
 
             # Dynamically inject requested XAI output extensions into Pydantic schema
             extensions = cfg["output_extensions"]
             if XaiExtensionType.JUSTIFICATION.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.JUSTIFICATION.value}",
+                        f"{block_id}_{XaiExtensionType.JUSTIFICATION.value}",
                         str,
-                        f"Extensive analytical reasoning and justification for the {slug} output. "
-                        "STRICT MANDATE: DO NOT output any final mathematical scores, grades, "
-                        "or 'Arvosana' in this text. ONLY explain the qualitative reasoning.",
+                        XAI_DESC_JUSTIFICATION.format(block_id=block_id),
                         f"{alias_name}_{XaiExtensionType.JUSTIFICATION.value}",
                     )
                 )
             if XaiExtensionType.CITATION.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.CITATION.value}",
+                        f"{block_id}_{XaiExtensionType.CITATION.value}",
                         str,
-                        f"Direct exact quote from the source text strongly supporting the {slug} justification.",
+                        XAI_DESC_CITATION.format(block_id=block_id),
                         f"{alias_name}_{XaiExtensionType.CITATION.value}",
                     )
                 )
             if XaiExtensionType.COACHING.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.COACHING.value}",
+                        f"{block_id}_{XaiExtensionType.COACHING.value}",
                         str,
-                        "STRICT MANDATE: Provide one concrete, actionable step to patch the observed data "
-                        "or logic gap. DO NOT give general tips or encouraging advice.",
+                        XAI_DESC_COACHING,
                         f"{alias_name}_{XaiExtensionType.COACHING.value}",
                     )
                 )
             if XaiExtensionType.CONFIDENCE.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.CONFIDENCE.value}",
+                        f"{block_id}_{XaiExtensionType.CONFIDENCE.value}",
                         float,
-                        "Numerical confidence from 0.0 to 100.0 based strictly on source evidence.",
+                        XAI_DESC_CONFIDENCE,
                         f"{alias_name}_{XaiExtensionType.CONFIDENCE.value}",
                     )
                 )
             if XaiExtensionType.FALSIFICATION.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.FALSIFICATION.value}",
+                        f"{block_id}_{XaiExtensionType.FALSIFICATION.value}",
                         str,
-                        "STRICT MANDATE: List the exact business scenario where the user's model or "
-                        "claim crashes 100%. No mitigating words allowed.",
+                        XAI_DESC_FALSIFICATION.format(block_id=block_id),
                         f"{alias_name}_{XaiExtensionType.FALSIFICATION.value}",
                     )
                 )
             if XaiExtensionType.MISSING_CONTEXT.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.MISSING_CONTEXT.value}",
+                        f"{block_id}_{XaiExtensionType.MISSING_CONTEXT.value}",
                         str,
                         "Exact missing data from the provided text that would have altered the evaluation score. "
                         "No theoretical assumptions.",
@@ -160,7 +163,7 @@ class SchemaCompilerService:
             if XaiExtensionType.RISK_FLAG.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.RISK_FLAG.value}",
+                        f"{block_id}_{XaiExtensionType.RISK_FLAG.value}",
                         bool,
                         "True ONLY if there is a severe, documentable risk present; False otherwise.",
                         f"{alias_name}_{XaiExtensionType.RISK_FLAG.value}",
@@ -169,7 +172,7 @@ class SchemaCompilerService:
             if XaiExtensionType.REMEDIATION_STEPS.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.REMEDIATION_STEPS.value}",
+                        f"{block_id}_{XaiExtensionType.REMEDIATION_STEPS.value}",
                         list[str],
                         "Numbered actionable list of distinct textual remediation steps.",
                         f"{alias_name}_{XaiExtensionType.REMEDIATION_STEPS.value}",
@@ -178,7 +181,7 @@ class SchemaCompilerService:
             if XaiExtensionType.EMOTIONAL_SENTIMENT.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
+                        f"{block_id}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
                         str,
                         "Analysis of the user's emotional state or tone regarding this metric.",
                         f"{alias_name}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
@@ -187,7 +190,7 @@ class SchemaCompilerService:
             if XaiExtensionType.THEORY_LINK.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_{XaiExtensionType.THEORY_LINK.value}",
+                        f"{block_id}_{XaiExtensionType.THEORY_LINK.value}",
                         str,
                         "Direct logical connection of the observation back to the governing theory framework.",
                         f"{alias_name}_{XaiExtensionType.THEORY_LINK.value}",

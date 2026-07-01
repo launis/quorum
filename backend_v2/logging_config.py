@@ -170,9 +170,9 @@ def setup_logging(log_level: int = logging.INFO) -> None:
 
     # Create formatters
     formatter: logging.Formatter
-    # MODIFIED: Only force JSON if explicitly requested.
-    # This allows 'production' environment (now default) to still use readable logs locally.
-    if settings.use_json_logging:
+    # Uses 12-factor log_format setting.
+    # Defaults to JSON in production, and readable in development.
+    if settings.log_format == "json":
         formatter = JSONFormatter(
             "%(asctime)s | %(levelname)s | [%(context_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )

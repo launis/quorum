@@ -7,11 +7,6 @@ from typing import Annotated
 
 from pydantic import Field
 
-from backend_v2.settings import get_settings
-
-_is_dev = get_settings().environment == "development"
-_is_fast_dev = _is_dev and get_settings().fast_dev_mode
-
 
 class EvaluationMandate(str, Enum):
     """Architectural Nollahypoteesi mandate attached to all strict evaluations."""
@@ -265,80 +260,6 @@ class PromptCacheStatus(str, Enum):
     CREATING = "CREATING"
     CREATED = "CREATED"
     FAILED = "FAILED"
-
-
-class SystemConcurrency(int, Enum):
-    """Global concurrency limits for DAG Execution. Optimized for Context Caching (V3)."""
-
-    MAX_CONCURRENT_WORKFLOWS = 10
-    MAX_CONCURRENT_LLM_STEPS = 10
-    # V2 FastDev - Retries restored globally to protect against Rate Limits
-    LLM_MAX_RETRIES = 2
-    LLM_RETRY_MULTIPLIER = 2
-    # V2 Phase 9 - Default spacing between identical fallback attempts to prevent rapid burst failing
-    LLM_RETRY_MIN_SECONDS = 2
-    LLM_RETRY_MAX_SECONDS = 60
-    LLM_RETRY_JITTER_INITIAL_SECONDS = 2
-    LLM_RETRY_JITTER_EXP_BASE = 2
-    LLM_MAX_CHUNK_SIZE = 8
-    # V2 Matrix Execution (Limits atoms processed if _is_fast_dev is True)
-    MATRIX_SAMPLING_LIMIT = 2 if _is_fast_dev else 0
-    # Standard absolute timeout per chunk
-    LLM_DEFAULT_TIMEOUT_SECONDS = 1000
-    RATE_LIMIT_COOLDOWN_SECONDS = 10
-    SEMAPHORE_LOW_RPM_THRESHOLD = 20
-    SEMAPHORE_LOW_RPM_LIMIT = 2
-    SEMAPHORE_MAX_CONCURRENCY = 10
-    SEMAPHORE_RPM_DIVISOR = 10
-    MAX_SAFE_TOKENS = 1000000
-    # Phase 9.2: Strict limits for LLM token stability.
-    # Defines how many localized context blocks an LLM is allowed to request per execution chunk.
-    SCHEMA_MAX_LOCALIZED_ANCHORS = 2 if _is_fast_dev else 15
-    SCHEMA_MAX_EVALUATIONS = LLM_MAX_CHUNK_SIZE + 10
-    SCHEMA_MAX_CHUNK_RECORDS = LLM_MAX_CHUNK_SIZE + 5
-    CONTEXT_CACHE_LOCK_TTL_SECONDS = 300
-    CONTEXT_CACHE_PASSIVE_TTL_SECONDS = 3600
-    CONTEXT_CACHE_LOCK_POLL_INTERVAL_MS = 500
-    CONTEXT_CACHE_LOCK_WAIT_LIMIT_SECONDS = 20
-    # Note: 2048 is the absolute minimum for Gemini 2.0/2.5.
-    # IMPORTANT: Must be raised to 4096 when migrating to Gemini 3.0/3.1+.
-    CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT = 2048
-    # V2 FinOps Pacing - Delay injection (in seconds) between sequential LLM calls to prevent IAM saturation
-    PACING_DELAY_VERTEX_SECONDS = 12
-    PACING_DELAY_OPENAI_SECONDS = 1
-    PACING_DELAY_MOCK_SECONDS = 0
-    REDIS_CONNECTION_TIMEOUT_SECONDS = 10
-    # Epic 80: Content Cache feature flag. When enabled (1), the base_system_prompt
-    # is moved from 'system' role to 'user' role, allowing Vertex AI to cache ONLY
-    # the PDF document for 100% cache hit rate across matrices. HOWEVER, this causes
-    # ~29% evaluation quality degradation due to Role Degradation (the LLM treats
-    # user-role instructions less strictly than system-role). Default: DISABLED (0).
-    CONTENT_CACHE_ENABLED = 0
-    # Epic 85: Force strict output limits for JSON responses
-    SCHEMA_MAX_QUOTES_TARGET = 1 if _is_fast_dev else 5
-    SCHEMA_MAX_QUOTES = SCHEMA_MAX_QUOTES_TARGET + 5
-    # Strict limits for quote length across all schemas
-    SCHEMA_MAX_QUOTE_LENGTH = 50 if _is_fast_dev else 150
-
-
-class SystemOverrides(Enum):
-    """Generic system-level overrides applied at runtime.
-    In production, these are completely empty to ensure strict adherence to the Database.
-    """
-
-    # Neutraali kartta strategioiden uudelleenreititykseen
-    STRATEGY_ALIASES = (
-        {
-            "strict_strategy": "fast",
-            "evaluation_strategy": "fast",
-            "test_strategy": "fast",
-            "strict": "fast",
-            "deep": "fast",
-            "synthesis": "fast",
-        }
-        if _is_fast_dev
-        else {}
-    )
 
 
 class ValidationThresholdRatio(float, Enum):

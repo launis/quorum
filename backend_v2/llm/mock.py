@@ -20,7 +20,11 @@ class MockLLMService:
     """
 
     def __init__(self) -> None:
-        """Initializes the Mock Service."""
+        """Initializes the Mock Service.
+
+        Raises:
+            RuntimeError: If 'use_mock_llm' is False.
+        """
         if not get_settings().use_mock_llm:
             raise RuntimeError(
                 "STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. "
@@ -42,14 +46,16 @@ class MockLLMService:
         """Generates mocked content based on the input prompt and identity.
 
         Args:
-            prompt (str): The user prompt.
-            system_instruction (Optional[str]): The system instruction prompting the specific agent persona.
-            agent_identity (Optional[str]): Explicit agent identifier (e.g. 'AnalystAgent') to bypass heuristics.
-            response_schema (Optional[Type[BaseModel]]): The expected Pydantic schema class.
+            prompt: The user prompt.
+            system_instruction: The system instruction prompting the specific agent persona.
+            agent_identity: Explicit agent identifier (e.g. 'AnalystAgent') to bypass heuristics.
+            response_schema: The expected Pydantic schema class.
 
         Returns:
-            str: JSON string representing the mocked agent output.
+            JSON string representing the mocked agent output.
 
+        Raises:
+            AppException: If called without an explicit 'agent_identity' (ErrorCodes.VALIDATION_FAILED).
         """
         logger.info("[MockLLM] Intercepted call. Prompt length: %d", len(prompt))
 
@@ -97,13 +103,15 @@ class MockLLMService:
         Delegates precise data generation to `mock_data.py`.
 
         Args:
-            key (str): The mock key identifying the agent/type.
-            prompt (str): The original prompt, used for dynamic value extraction (e.g. Judge dimensions).
-            system_instruction (Optional[str]): System prompt, often containing schema/context.
+            key: The mock key identifying the agent/type.
+            prompt: The original prompt, used for dynamic value extraction (e.g. Judge dimensions).
+            system_instruction: System prompt, often containing schema/context.
 
         Returns:
-            str: JSON string of the fallback data.
+            JSON string of the fallback data.
 
+        Raises:
+            AppException: If dynamic Judge hydration fails (ErrorCodes.VALIDATION_FAILED).
         """
         data = get_fallback_data(key)
 

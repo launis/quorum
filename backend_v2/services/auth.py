@@ -308,16 +308,16 @@ class AuthService:
         # 2. Mock/Dev Mode check
         from backend_v2.settings import get_settings
 
-        is_dev = get_settings().environment == "development"
+        settings = get_settings()
         is_mock_token = token.startswith("mock-token:")
 
         # 1. Torjutaan mock-tokenit tuotannossa heti (Fail-Fast)
-        if is_mock_token and not is_dev:
+        if is_mock_token and not settings.allow_mock_tokens:
             raise AuthenticationError(
                 message="Mock tokens are strictly forbidden in production.", details={"error_code": "FORBIDDEN_TOKEN"}
             )
 
-        if not self.use_firebase or (is_mock_token and is_dev):
+        if not self.use_firebase or (is_mock_token and settings.allow_mock_tokens):
             # Expect format "mock-token:<id>"
             if token.startswith("mock-token:"):
                 id = token.split(":")[1]

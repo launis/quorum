@@ -23,7 +23,7 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 
 # --- Phase 9 Imports ---
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-from backend_v2.models.enums import StrictnessAnchor, SystemConcurrency
+from backend_v2.models.enums import StrictnessAnchor
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -360,10 +360,10 @@ async def execute_workflow_job(
                     "target_locale": getattr(workflow_def, "default_locale", "fi"),
                     "is_ensemble_run": getattr(workflow_def, "default_strictness_level", 1) >= 3,
                     "system_concurrency_snapshot": {
-                        "LLM_MAX_CHUNK_SIZE": SystemConcurrency.LLM_MAX_CHUNK_SIZE.value,
-                        "SCHEMA_MAX_EVALUATIONS": SystemConcurrency.SCHEMA_MAX_EVALUATIONS.value,
-                        "SCHEMA_MAX_CHUNK_RECORDS": SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS.value,
-                        "MATRIX_SAMPLING_LIMIT": SystemConcurrency.MATRIX_SAMPLING_LIMIT.value,
+                        "LLM_MAX_CHUNK_SIZE": get_settings().llm_max_chunk_size,
+                        "SCHEMA_MAX_EVALUATIONS": get_settings().schema_max_evaluations,
+                        "SCHEMA_MAX_CHUNK_RECORDS": get_settings().schema_max_chunk_records,
+                        "MATRIX_SAMPLING_LIMIT": get_settings().matrix_sampling_limit,
                     },
                     "models_used": models_used,
                     "cost_estimate": total_cost_usd,
@@ -1049,4 +1049,4 @@ class WorkerSettings:
         port=settings.redis_port,
     )
     job_timeout = settings.worker_job_timeout
-    max_jobs = SystemConcurrency.MAX_CONCURRENT_WORKFLOWS.value
+    max_jobs = get_settings().max_concurrent_workflows

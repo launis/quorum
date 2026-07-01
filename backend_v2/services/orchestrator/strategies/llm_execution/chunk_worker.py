@@ -11,13 +11,14 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.report import PromptContextDTO
-from backend_v2.models.enums import EvaluationRunCount, SystemConcurrency
+from backend_v2.models.enums import EvaluationRunCount
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -577,32 +578,9 @@ class ChunkWorker:
                         filtered_criteria.append(bm)
                 chunk_criteria = filtered_criteria
 
-            blind_items = []
-            for item in chunk.items:
-                aid = item.get("atom_id")
-                blind_items.append({"atom_id": aid, "rule_anchor": aid, "question": item.get("question", "")})
+        from backend_v2.services.orchestrator.strategies.llm_execution.alias_engine import AliasEngine
 
-            atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
-            chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\\n{atoms_json}\\n</BLIND_ATOMS_TO_EVALUATE>"
-
-        # Phase 3, Step 1: Dynamic source document ID extraction using regex
-        import re
-
-        source_text_to_scan = global_source_text or user_payload or ""
-        extracted_source_ids = list(set(re.findall(r'<matrix_input\s+source_id="([^"]+)"', source_text_to_scan)))
-        if not extracted_source_ids:
-            extracted_source_ids = ["N/A"]
-        source_document_ids = extracted_source_ids
-
-        local_dynamic_schema = compiler.build_dynamic_schema(
-            schema_name=f"Step_{step_id}_Response",
-            criteria=chunk_criteria,
-            has_search_result=has_search,
-            has_shuffled_atoms=has_shuffled_atoms,
-            target_locale=target_locale,
-            strictness_level=strictness_level,
-            source_document_ids=source_document_ids,
-        )
+        base_alias_engine = AliasEngine()
 
         is_lightweight = False
         source_docs = []
@@ -616,9 +594,30 @@ class ChunkWorker:
                     if isinstance(doc_dict, dict):
                         source_docs.append(SourceDocumentContext.model_validate(doc_dict))
 
+        global_source_text = base_alias_engine.alias_source_documents(
+            source_docs=source_docs, global_source_text=global_source_text or ""
+        )
+
+        source_document_ids = base_alias_engine.get_source_document_literals()
+
+        local_dynamic_schema = compiler.build_dynamic_schema(
+            schema_name=f"Step_{step_id}_Response",
+            criteria=chunk_criteria,
+            has_search_result=has_search,
+            has_shuffled_atoms=has_shuffled_atoms,
+            target_locale=target_locale,
+            strictness_level=strictness_level,
+            source_document_ids=source_document_ids,
+        )
+
+        chunk_atoms_xml = None
         allowed_atom_ids = set()
         if has_shuffled_atoms and chunk is not None:
-            for item in chunk.items:
+            blind_items = base_alias_engine.alias_atoms(chunk.items)
+            atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
+            chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
+
+            for item in blind_items:
                 aid = item.get("atom_id")
                 if aid:
                     allowed_atom_ids.add(aid)
@@ -668,16 +667,10 @@ class ChunkWorker:
                     import random
 
                     rng = random.Random(index)  # Deterministic seed per ensemble index
-                    shuffled_items = list(chunk.items)
-                    rng.shuffle(shuffled_items)
-                    chunk_shuffled = chunk.model_copy(update={"items": shuffled_items})
+                    shuffled_blind_items = list(blind_items)
+                    rng.shuffle(shuffled_blind_items)
 
-                    blind_items = []
-                    for item in chunk_shuffled.items:
-                        aid = item.get("atom_id")
-                        blind_items.append({"atom_id": aid, "rule_anchor": aid, "question": item.get("question", "")})
-
-                    atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
+                    atoms_json = json.dumps(shuffled_blind_items, ensure_ascii=False, indent=2)
                     local_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
 
                     local_prompt = compiler.compile_chunk_prompt(
@@ -724,7 +717,7 @@ class ChunkWorker:
                                     if step_metadata
                                     else 0,
                                     "source_documents": source_docs,
-                                    "alias_map": step_metadata.get("alias_map", {}) if step_metadata else {},
+                                    "alias_map": base_alias_engine.alias_map,
                                 },
                                 source_context=global_source_text,
                             )
@@ -743,8 +736,8 @@ class ChunkWorker:
                                 messages=local_prompt,
                                 response_model=model_schema,
                                 mock_identity=step_id,
-                                max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                                max_logical_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                                max_schema_retries=get_settings().llm_max_retries,
+                                max_logical_retries=get_settings().llm_max_retries,
                                 validation_context={
                                     "strictness_level": strictness_level,
                                     "source_text": global_source_text,
@@ -755,7 +748,7 @@ class ChunkWorker:
                                     else 0,
                                     "has_mcp_tools": bool(effective_mcp_tools),
                                     "source_documents": source_docs,
-                                    "alias_map": step_metadata.get("alias_map", {}) if step_metadata else {},
+                                    "alias_map": base_alias_engine.alias_map,
                                 },
                             )
                             llm_time_ms = (time.time() - llm_start) * 1000
@@ -817,6 +810,13 @@ class ChunkWorker:
         target_schema = local_dynamic_schema
 
         res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
+
+        # Epic 92: Hydrate short aliases (a0, a1) back to raw TDA IDs before they enter the resolution phase
+        if has_shuffled_atoms:
+            for res_dict in res_list:
+                evaluations = res_dict.get("evaluations", [])
+                base_alias_engine.hydrate_atoms(evaluations)
+
         chunk_final = resolve_majority_vote(
             res_list, has_shuffled_atoms, chunk_criteria, user_payload, global_source_text, strictness_level
         )
@@ -923,5 +923,12 @@ class ChunkWorker:
                     if not isinstance(sr, str):
                         sr = ""
                     block_dict["semantic_reasoning"] = f"{sr}\\n\\n[5. VALIDATION DECISION: {status}]"
+
+        # Flatten global_matrices into the root of chunk_final for backward-compatible downstream parsing.
+        if "global_matrices" in chunk_final:
+            gm = chunk_final.pop("global_matrices")
+            if isinstance(gm, dict):
+                for matrix_id, matrix_eval in gm.items():
+                    chunk_final[matrix_id] = matrix_eval
 
         return chunk_final, chunk_usage, chunk_traces, prompt_context

@@ -26,9 +26,9 @@ from backend_v2.exceptions import (
     SecurityViolationError,
     ServiceUnavailableError,
 )
+from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
 from backend_v2.llm.mock import MockLLMService
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.llm import LLMProviderConfig, LLMResponse
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
@@ -43,7 +43,17 @@ load_dotenv(dotenv_path=_env_path)
 
 
 def resolve_env_variables(params: dict[str, Any]) -> dict[str, Any]:
-    """Korvaa parametrien ${ENV_VAR} -viitteet todellisilla ympäristömuuttujilla."""
+    """Korvaa parametrien ${ENV_VAR} -viitteet todellisilla ympäristömuuttujilla.
+
+    Args:
+        params: Sanakirja, joka sisältää konfiguraatioparametreja.
+
+    Returns:
+        Uusi sanakirja, jossa muuttujat on korvattu.
+
+    Raises:
+        ConfigurationError: Jos vaadittua ympäristömuuttujaa ei löydy (ErrorCodes.CONFIGURATION_ERROR).
+    """
     resolved = {}
     for k, v in params.items():
         if isinstance(v, str) and v.startswith("${") and v.endswith("}"):
@@ -60,7 +70,16 @@ def resolve_env_variables(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> None:
-    """Synchronous file writing for diagnostic dumps to prevent blocking the async event loop."""
+    """Synchronous file writing for diagnostic dumps to prevent blocking the async event loop.
+
+    Args:
+        dump_file: Absolute or relative path to the dump file.
+        model_name: The name of the model being called.
+        payload_str: The payload string to dump.
+
+    Returns:
+        None
+    """
     try:
         with open(dump_file, "a", encoding="utf-8") as f:
             f.write(f"\n\n--- {model_name} ---\n")
@@ -71,7 +90,14 @@ def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> 
 
 
 def _is_transient_llm_error(e: BaseException) -> bool:
-    """Check if the LiteLLM/asyncio exception is a transient rate limit or timeout."""
+    """Check if the LiteLLM/asyncio exception is a transient rate limit or timeout.
+
+    Args:
+        e: The caught exception.
+
+    Returns:
+        True if the error is a transient rate limit or timeout, False otherwise.
+    """
     import litellm
 
     return (
@@ -82,40 +108,6 @@ def _is_transient_llm_error(e: BaseException) -> bool:
         or isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))
         or isinstance(e, getattr(litellm, "APIConnectionError", type(None)))
     )
-
-
-def sanitize_messages_for_vertex(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Sanitize message array to prevent LiteLLM Vertex transformation crashes.
-
-    Vertex AI transformation in LiteLLM requires every `role: tool` message to be
-    preceded by a `role: assistant` message containing matching `tool_calls`.
-    If an orphaned `role: tool` message exists (e.g., due to self-healing retries
-    stripping the original context), LiteLLM throws APIConnectionError.
-
-    This function removes any `role: tool` message that lacks a valid pairing.
-    """
-    valid_tool_call_ids = set()
-    sanitized = []
-
-    for msg in messages:
-        if msg.get("role") == "assistant" and "tool_calls" in msg:
-            # Collect all valid tool_call_ids from assistant message
-            for tc in msg["tool_calls"]:
-                if "id" in tc:
-                    valid_tool_call_ids.add(tc["id"])
-            sanitized.append(msg)
-        elif msg.get("role") == "tool":
-            tool_call_id = msg.get("tool_call_id")
-            if tool_call_id in valid_tool_call_ids:
-                sanitized.append(msg)
-            else:
-                logger.warning(
-                    "[LiteLLMProvider] Stripping orphaned tool message (id: %s) to prevent Vertex crash.", tool_call_id
-                )
-        else:
-            sanitized.append(msg)
-
-    return sanitized
 
 
 class LLMProvider(ABC):
@@ -176,6 +168,7 @@ class LiteLLMProvider(LLMProvider):
     # Class-level cache to prevent litellm callbacks memory leak during bulk executions
     _router_cache: dict[str, Any] = {}
     _semaphores: dict[str, asyncio.Semaphore] = {}
+    _httpx_clients: dict[str, Any] = {}
 
     def __init__(
         self,
@@ -278,12 +271,12 @@ class LiteLLMProvider(LLMProvider):
 
         # Initialize and store Semaphore dynamically to throttle HTTP-level requests
         if cache_key not in self.__class__._semaphores:
-            if rpm <= SystemConcurrency.SEMAPHORE_LOW_RPM_THRESHOLD.value:
-                concurrency_limit = SystemConcurrency.SEMAPHORE_LOW_RPM_LIMIT.value
+            if rpm <= get_settings().semaphore_low_rpm_threshold:
+                concurrency_limit = get_settings().semaphore_low_rpm_limit
             else:
                 concurrency_limit = min(
-                    SystemConcurrency.SEMAPHORE_MAX_CONCURRENCY.value,
-                    max(1, rpm // SystemConcurrency.SEMAPHORE_RPM_DIVISOR.value),
+                    get_settings().semaphore_max_concurrency,
+                    max(1, rpm // get_settings().semaphore_rpm_divisor),
                 )
 
             logger.info(
@@ -309,7 +302,28 @@ class LiteLLMProvider(LLMProvider):
     ) -> LLMResponse:
         """Generates content using LiteLLM.
 
-        Returns unified LLMResponse with content and reasoning state.
+        Args:
+            prompt: The user prompt.
+            system_instruction: System prompt/context.
+            messages: Fallback context or chat history.
+            response_schema: Pydantic model or JSON Schema.
+            temperature: Sampling temperature.
+            max_tokens: Max tokens to generate.
+            top_p: Nucleus sampling mass.
+            top_k: Top-K sampling count.
+            pass_reasoning_token: Encrypted state blob from previous turn.
+            validation_context: Optional context for validation.
+            **kwargs: Additional provider-specific arguments.
+
+        Returns:
+            Unified LLMResponse with content and reasoning state.
+
+        Raises:
+            AgentExecutionError: On context bounds exceeded.
+            AppException: On internal generation errors.
+            ConfigurationError: On malformed config.
+            SecurityViolationError: On blocked content.
+            ServiceUnavailableError: On provider network failure.
         """
         import litellm
 
@@ -322,9 +336,16 @@ class LiteLLMProvider(LLMProvider):
             if prompt:
                 final_messages.append({"role": "user", "content": prompt})
 
-        # Tier 4 Fix: Sanitize messages to prevent LiteLLM Vertex transformation crash
-        # caused by orphaned `role: tool` messages (e.g., from retry loops).
-        final_messages = sanitize_messages_for_vertex(final_messages)
+        # Tier 4 Fix: Sanitize messages to prevent provider-specific API crashes
+        adapter = None
+        if self._config:
+            from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
+
+            try:
+                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
+                final_messages = adapter.sanitize_messages(final_messages)
+            except Exception as e:
+                logger.debug("[LiteLLMProvider] No adapter found (provider: %s): %s", self._config.provider, e)
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults.
         if temperature is None:
@@ -360,6 +381,8 @@ class LiteLLMProvider(LLMProvider):
                 schema_name = "dict"
                 if isinstance(response_schema, type):
                     schema_name = response_schema.__name__ if hasattr(response_schema, "__name__") else "dict"
+                elif isinstance(response_schema, dict) and "json_schema" in response_schema:
+                    schema_name = response_schema["json_schema"].get("name", "dict")
 
                 logger.info("[LiteLLM] Enabling Structured Output for schema: %s", schema_name)
                 response_format = response_schema
@@ -370,17 +393,7 @@ class LiteLLMProvider(LLMProvider):
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 ) from schema_err
 
-        # Epic 65: Resolve active location with strict priority logic
-        config_location = self._config.vertex_location if self._config else None
-        settings_location = self.settings.vertex_location if self.settings else None
-        env_location = os.getenv("HARDENING_VERTEX_LOCATION")
-        active_location = (
-            kwargs.get("vertex_location") or config_location or settings_location or env_location or "europe-north1"
-        )
-
-        # Ensisijaisesti käyttöliittymästä/konfiguraatiosta valittu alue
-        os.environ["VERTEX_LOCATION"] = active_location
-        os.environ["VERTEXAI_LOCATION"] = active_location
+        # Location resolution has been moved to adapter.prepare_kwargs
 
         try:
             # --- LOGGING ---
@@ -402,7 +415,7 @@ class LiteLLMProvider(LLMProvider):
             elif messages:
                 _truncate_for_debug(str(messages)[:100] + "...(truncated)", "MESSAGES ARRAY")
 
-            logger.info("[LiteLLM] Calling %s in region %s...", self.model_name, active_location)
+            logger.info("[LiteLLM] Calling %s...", self.model_name)
 
             # Prepare arguments
             call_kwargs = {
@@ -415,7 +428,6 @@ class LiteLLMProvider(LLMProvider):
                 "response_format": response_format,
                 "api_key": self.api_key,
                 "drop_params": True,
-                "vertex_location": active_location,
                 # STRICT NETWORK TIMEOUT: Fail fast instead of hanging forever.
                 "timeout": kwargs["timeout"] if "timeout" in kwargs else self.settings.llm_default_timeout,
             }
@@ -424,42 +436,9 @@ class LiteLLMProvider(LLMProvider):
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
             call_kwargs.update(kwargs)
 
-            # Milestone 5.2: Vertex AI Caching parameter mapping
-            if "cached_content" in kwargs:
-                # --- DYNAMIC BYPASS FOR TOOLS (Tier 4 Fix) ---
-                # Vertex API rejects (400 Bad Request) dynamic tools when using static cached_content.
-                # If tools are detected, we gracefully bypass caching for this single request.
-                if call_kwargs.get("tools"):
-                    logger.warning(
-                        "[LiteLLM] Dynamic tool payload detected alongside Vertex Caching. "
-                        "Bypassing caching dynamically to prevent 400 Bad Request."
-                    )
-                    call_kwargs.pop("cached_content", None)
-                else:
-                    cache_id = kwargs["cached_content"]
-                    if "extra_headers" not in call_kwargs or call_kwargs["extra_headers"] is None:
-                        call_kwargs["extra_headers"] = {}
-                    call_kwargs["extra_headers"]["cached_content"] = cache_id
-
-                    if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
-                        call_kwargs["extra_body"] = {}
-                    call_kwargs["extra_body"]["cachedContent"] = cache_id
-                    call_kwargs["extra_body"]["cached_content"] = cache_id
-
-                    # Direct keyword argument mapping for LiteLLM completion
-                    call_kwargs["cached_content"] = cache_id
-
-                    # V3 Cache Fix: Diagnostic guard replacing blind system scrubber
-                    if "messages" in call_kwargs:
-                        system_msgs = [m for m in call_kwargs["messages"] if m.get("role") == "system"]
-                        if system_msgs:
-                            logger.critical(
-                                "ARCHITECTURE VIOLATION: %d system message(s) detected in cached payload. "
-                                "Scrubbing defensively to prevent Google 400. "
-                                "This indicates a CompiledPrompt construction defect.",
-                                len(system_msgs),
-                            )
-                            call_kwargs["messages"] = [m for m in call_kwargs["messages"] if m.get("role") != "system"]
+            # Delegate provider-specific kwargs adjustments (e.g., Vertex caching, location)
+            if adapter:
+                call_kwargs = adapter.prepare_kwargs(call_kwargs, self._config, self.settings)
 
             # Inject dynamic extra params from config (additional_params) resolved via env vars
             if self._config and self._config.additional_params:
@@ -483,16 +462,42 @@ class LiteLLMProvider(LLMProvider):
             # Remove keys that shouldn't be passed directly
             call_kwargs["model"] = self.model_name
 
-            max_rate_limit_retries = SystemConcurrency.LLM_MAX_RETRIES.value
+            # Tier 4 Fix: HTTPX Configuration for Server Disconnected Issues
+            _timeout_val = float(call_kwargs.get("timeout", self.settings.llm_default_timeout))
+            _client_key = f"httpx_{_timeout_val}_{self._config.provider if self._config else 'default'}"
+
+            # Use dynamic client in tests to prevent cross-loop event loop hangs
+            if "PYTEST_CURRENT_TEST" in os.environ:
+                # Do not inject explicit custom client during tests to prevent pytest-asyncio event loop hangs
+                # litellm will fall back to its internal client which closes safely per test.
+                pass
+            else:
+                if _client_key not in self.__class__._httpx_clients:
+                    custom_client = adapter.build_http_client(_timeout_val) if adapter else None
+                    if custom_client:
+                        logger.info(
+                            "[LiteLLMProvider] Using provider-specific persistent HTTPX client for timeout %s s",
+                            _timeout_val,
+                        )
+                        self.__class__._httpx_clients[_client_key] = custom_client
+                    else:
+                        # Fallback to LiteLLM default client behavior
+                        self.__class__._httpx_clients[_client_key] = None
+
+                resolved_client = self.__class__._httpx_clients[_client_key]
+                if resolved_client:
+                    call_kwargs["client"] = resolved_client
+
+            max_rate_limit_retries = get_settings().llm_max_retries
             response = None
 
             # Phase 3, Step 4: Enforce Exponential Backoff with Random Jitter
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(max_rate_limit_retries + 1),
                 wait=wait_exponential_jitter(
-                    initial=SystemConcurrency.LLM_RETRY_JITTER_INITIAL_SECONDS.value,
-                    max=SystemConcurrency.LLM_RETRY_MAX_SECONDS.value,
-                    exp_base=SystemConcurrency.LLM_RETRY_JITTER_EXP_BASE.value,
+                    initial=get_settings().llm_retry_jitter_initial_seconds,
+                    max=get_settings().llm_retry_max_seconds,
+                    exp_base=get_settings().llm_retry_jitter_exp_base,
                     jitter=1,
                 ),
                 retry=retry_if_exception(_is_transient_llm_error),
@@ -514,8 +519,6 @@ class LiteLLMProvider(LLMProvider):
                         start_time = time.perf_counter()
 
                         # Phase 8: Apply Provider-Scoped Pacing Lock to prevent 429 exhaustion
-                        from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
-
                         provider_key = (
                             self._config.provider
                             if self._config

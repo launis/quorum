@@ -44,6 +44,7 @@ dependencies = [
     "bleach>=6.2.0",
     "rapidfuzz>=3.14.5",
     "ftfy>=6.3.1",
+    "json-repair>=0.61.1",
 ]
 
 [dependency-groups]

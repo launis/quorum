@@ -330,6 +330,17 @@ AGENT_CLASS_TO_MOCK_KEY = {
 
 
 def get_fallback_data(key: str) -> dict[str, Any]:
+    """Retrieves predefined mock data based on the provided key.
+
+    Args:
+        key: The mock key identifying the agent/type.
+
+    Returns:
+        A dictionary containing the mock data.
+
+    Raises:
+        ValueError: If mock data is not found for the given key.
+    """
     if key == "guard_agent":
         return MOCK_GUARD_OUTPUT.model_dump()
     elif key == "analyst_agent":

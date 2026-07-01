@@ -4,9 +4,9 @@ Strict Pydantic V2 definitions for the SSOT. Contains structured inputs and
 outputs of the reporting synthesis pipeline.
 """
 
-from typing import Annotated
+from typing import Annotated, Any
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.view.sdui import AnySduiBlock
@@ -22,8 +22,16 @@ class SynthesisSectionDTO(V2CoreBase):
 
     layout_id: Annotated[str, Field(description="The EXACT layout ID provided in the section instructions")]
     content_blocks: Annotated[
-        list[AnySduiBlock], Field(default_factory=list, description="Structured SDUI content blocks for this section")
+        list[AnySduiBlock], Field(..., description="Structured SDUI content blocks for this section")
     ]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sanitize_null_collections(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if data.get("content_blocks") is None:
+                data["content_blocks"] = []
+        return data
 
 
 class XaiHighlightItem(V2CoreBase):

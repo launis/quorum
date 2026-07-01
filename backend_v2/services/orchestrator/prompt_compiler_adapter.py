@@ -1,3 +1,5 @@
+from backend_v2.settings import get_settings
+
 """Adapter for PromptCompiler to natively support structured static/dynamic prompt segregation."""
 
 import re
@@ -43,22 +45,19 @@ class PromptCompilerAdapter:
         to allow Vertex AI to cache only the PDF. This trades evaluation quality
         (~29% degradation) for token cost savings.
         """
-        from backend_v2.models.enums import SystemConcurrency
-
-        content_cache_enabled = bool(SystemConcurrency.CONTENT_CACHE_ENABLED.value)
-
+        content_cache_enabled = bool(get_settings().content_cache_enabled)
         if content_cache_enabled:
             # Epic 80 Mode: Static tier = ONLY the source document (for max cache hit rate).
             # System prompt is demoted to user role in the dynamic tier.
             static_messages = [
-                {"role": "user", "content": f"<source_data>\n{base_payload}\n</source_data>"},
+                {"role": "user", "content": base_payload.strip()},
             ]
         else:
             # V3 Default: Static tier = system prompt (system role) + source document.
             # Preserves native system role authority for maximum LLM compliance.
             static_messages = [
                 {"role": "system", "content": base_system_prompt.strip()},
-                {"role": "user", "content": f"<source_data>\n{base_payload}\n</source_data>"},
+                {"role": "user", "content": base_payload.strip()},
             ]
 
         # Dynamic Tier: Everything that varies per chunk, retry, or matrix
@@ -83,12 +82,12 @@ class PromptCompilerAdapter:
         # 3. Task instruction
         dynamic_parts.append(f"<task>{task_instruction}</task>")
 
-        from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
+        from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_MD
 
         strictness_instruction = self.calibrate_strictness(strictness_level)
         dynamic_parts.append(
             f"<execution_parameters>\n"
-            f"{GLOBAL_MANDATES_XML}\n"
+            f"{GLOBAL_MANDATES_MD}\n"
             f"<STRICTNESS_CALIBRATION>\n{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n"
             f"</execution_parameters>"
         )

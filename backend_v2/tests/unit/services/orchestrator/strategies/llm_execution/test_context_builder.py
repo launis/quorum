@@ -5,6 +5,7 @@ import pytest
 from backend_v2.exceptions import AppException, TokenLimitExceededError
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
+from backend_v2.settings import get_settings
 
 
 def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -125,9 +126,7 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that TokenLimitExceededError is raised when mapping exceeds limit."""
-    from backend_v2.models.enums import SystemConcurrency
-
-    limit = SystemConcurrency.MAX_SAFE_TOKENS.value
+    limit = get_settings().max_safe_tokens
     monkeypatch.setattr(
         "litellm.token_counter",
         lambda model, text: limit + 1,

@@ -61,7 +61,7 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
     prompt = adapter.compile_chunk_prompt(
         base_system_prompt="Analyze this text.",
         chunk_criteria=[mock_block],
-        base_payload="Verbatim source doc.",
+        base_payload="<source_data>\nVerbatim source doc.\n</source_data>",
         strictness_level=85,
         target_locale="en",
         previous_errors=["Syntax Error 1"],
@@ -250,14 +250,14 @@ def test_content_cache_enabled_demotes_system_to_user() -> None:
     block = _make_test_block()
     system_prompt = "You are an adversarial auditor. Never compromise."
 
-    with patch("backend_v2.models.enums.SystemConcurrency") as mock_enum:
+    with patch("backend_v2.services.orchestrator.prompt_compiler_adapter.get_settings") as mock_settings:
         # Simulate CONTENT_CACHE_ENABLED = 1
-        mock_enum.CONTENT_CACHE_ENABLED.value = 1
+        mock_settings.return_value.content_cache_enabled = 1
 
         prompt = adapter.compile_chunk_prompt(
             base_system_prompt=system_prompt,
             chunk_criteria=[block],
-            base_payload="Source document for cache testing.",
+            base_payload="<source_data>\nSource document for cache testing.\n</source_data>",
             strictness_level=50,
             target_locale="fi",
         )
@@ -307,13 +307,13 @@ def test_content_cache_modes_are_structurally_incompatible() -> None:
     }
 
     # --- Mode 0: V3 Default (system role preserved) ---
-    with patch("backend_v2.models.enums.SystemConcurrency") as mock_enum:
-        mock_enum.CONTENT_CACHE_ENABLED.value = 0
+    with patch("backend_v2.services.orchestrator.prompt_compiler_adapter.get_settings") as mock_settings:
+        mock_settings.return_value.content_cache_enabled = 0
         prompt_v3 = adapter.compile_chunk_prompt(**compile_kwargs)
 
     # --- Mode 1: Epic 80 Content Cache (system role demoted) ---
-    with patch("backend_v2.models.enums.SystemConcurrency") as mock_enum:
-        mock_enum.CONTENT_CACHE_ENABLED.value = 1
+    with patch("backend_v2.services.orchestrator.prompt_compiler_adapter.get_settings") as mock_settings:
+        mock_settings.return_value.content_cache_enabled = 1
         prompt_epic80 = adapter.compile_chunk_prompt(**compile_kwargs)
 
     # Structural divergence: V3 has 2 static messages, Epic 80 has 1

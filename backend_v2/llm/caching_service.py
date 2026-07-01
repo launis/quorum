@@ -38,7 +38,7 @@ class LLMCachingService:
                 - A dictionary of extra keyword arguments to pass to the provider.
 
         Raises:
-            AppException: If there is an internal failure during payment compilation or purity scan.
+            AppException: If there is an internal failure during compilation or purity scan (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         await cls._run_purity_scanner(compiled_prompt.to_flat_messages())
 
@@ -78,7 +78,7 @@ class LLMCachingService:
             workflow_run_id: The active workflow run reference ID.
 
         Raises:
-            AppException: Wrap any operational failures in standardized RFC 7807 AppException.
+            AppException: Wrap any operational failures in standardized RFC 7807 AppException (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         try:
             adapter = LLMCacheAdapterFactory.get_adapter(provider_name)

@@ -1,6 +1,9 @@
-"""Tests for the centralized linguistic directive module."""
+"""Tests for the translation service."""
 
-from backend_v2.llm.linguistic import LANGUAGE_MANDATE, build_linguistic_context
+import pytest
+
+from backend_v2.models.prompts.global_mandates import LANGUAGE_MANDATE
+from backend_v2.services.translation_service import build_linguistic_context, translate_text
 
 
 def test_build_linguistic_context_default_source() -> None:
@@ -39,11 +42,6 @@ def test_build_linguistic_context_xml_structure() -> None:
     assert result.startswith("<linguistic_context>")
     assert "</linguistic_context>" in result
     assert LANGUAGE_MANDATE in result
-
-
-import pytest
-
-from backend_v2.llm.linguistic import translate_text
 
 
 @pytest.mark.anyio

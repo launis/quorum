@@ -5,8 +5,8 @@ import re
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
-from backend_v2.models.enums import SystemConcurrency
 from backend_v2.services.orchestrator.context_router import ContextRouter
+from backend_v2.settings import get_settings
 from backend_v2.utils.dict_utils import resolve_dot_notation
 
 logger = logging.getLogger(__name__)
@@ -335,7 +335,7 @@ class ContextBuilder:
                     import litellm
 
                     tokens = litellm.token_counter(model="gpt-4o", text=val_str)
-                    limit = SystemConcurrency.MAX_SAFE_TOKENS.value
+                    limit = get_settings().max_safe_tokens
                     if tokens > limit:
                         msg = f"Mapping '{_logical_name}' exceeded token limit ({tokens} > {limit})."
                         raise TokenLimitExceededError(message=msg)

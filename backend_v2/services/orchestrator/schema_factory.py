@@ -1,26 +1,40 @@
+from __future__ import annotations
+
 """Schema Factory for generating dynamic Pydantic schemas for LLM Structured Outputs.
 
 Extracts and centralizes all dynamic Pydantic model creation logic from the
 monolithic PromptCompiler, following SRP (Rule 88).
 """
 
-from __future__ import annotations
-
 import logging
 from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
 from backend_v2.models.v2_core import PromptBlock
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _coerce_bool(v: Any) -> Any:
+    """Coerces strings like 'true'/'false' into actual booleans for Vertex AI type safety."""
+    if isinstance(v, str):
+        v_lower = v.strip().lower()
+        if v_lower in {"true", "1", "yes"}:
+            return True
+        if v_lower in {"false", "0", "no"}:
+            return False
+    return v
+
+
+CoercedBool = Annotated[bool, BeforeValidator(_coerce_bool)]
 
 
 class EvidenceType(str, Enum):
@@ -172,18 +186,18 @@ class SchemaFactory:
             step_strict_class = create_model(
                 "StepDTOStrictDynamic",
                 __base__=StepDTOStrict,
-                source_document_ids=(
+                source_document_aliases=(
                     list[DocIdsLiteral],  # type: ignore
-                    Field(default_factory=list, description="Dynamic literals corresponding to available documents."),
+                    Field(..., description="Dynamic literals corresponding to available documents."),
                 ),
                 __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             )
             step_semantic_class = create_model(
                 "StepDTOSemanticDynamic",
                 __base__=StepDTOSemantic,
-                source_document_ids=(
+                source_document_aliases=(
                     list[DocIdsLiteral],  # type: ignore
-                    Field(default_factory=list, description="Dynamic literals corresponding to available documents."),
+                    Field(..., description="Dynamic literals corresponding to available documents."),
                 ),
                 __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             )
@@ -213,7 +227,7 @@ class SchemaFactory:
                 model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
                 atom_id: str = Field(
                     ...,
-                    description="The EXACT system identifier. MUST exactly match one of the items provided in <BLIND_ATOMS_TO_EVALUATE>.",
+                    description="The EXACT system identifier. MUST exactly match one of the short aliases provided in <BLIND_ATOMS_TO_EVALUATE> (e.g. 'a0', 'a1').",
                 )
 
             # Phase D & E: Proactive Routing
@@ -239,19 +253,96 @@ class SchemaFactory:
                 list[AtomResponse],
                 Field(
                     ...,
-                    max_length=SystemConcurrency.SCHEMA_MAX_EVALUATIONS,
+                    max_length=get_settings().schema_max_evaluations,
                     description="List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in <BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. Do NOT hallucinate, invent, or evaluate any unlisted concepts.",
                 ),
             )
 
-        # Epic 56 Phase 4 / Bugfix: We must include matrix blocks for XAI extensions,
-        # but we MUST filter out standard "criteria" blocks if has_shuffled_atoms is True.
-        # Otherwise, the LLM is forced to output them both in `evaluations` AND at the root level,
-        # which causes a "too many states for serving" Vertex AI Bad Request error.
+        # Global Matrices Refactor: Extract all matrix blocks to a native GlobalMatrices model
+        # to prevent them from mingling with eval_N aliases at the root schema layer.
+        def get_cat(c: PromptBlock) -> str:
+            return str(c.category_id.value) if isinstance(c.category_id, Enum) else str(c.category_id or "criteria")
+
+        matrix_blocks = [c for c in criteria if get_cat(c) == "matrix"]
+        if matrix_blocks:
+            global_matrices_fields: dict[str, Any] = {}
+            for matrix in matrix_blocks:
+                matrix_id = matrix.id
+                if not matrix_id:
+                    continue
+
+                label_str = self._resolve_i18n(matrix.label, target_locale) if matrix.label else ""
+                desc_val = f"Global matrix evaluation for '{matrix_id}' ({label_str})."
+                if matrix.ai_description:
+                    desc_val += f" Objective: {matrix.ai_description}"
+
+                # Matrix blocks also support output extensions
+                matrix_base_class = StrippedBaseMatrixXAI
+                final_type: Any = matrix_base_class
+                if matrix.output_extensions:
+                    matrix_dynamic_fields: dict[str, Any] = {}
+                    core_aliases = {"justification", "citation", "missing_context", "contextual_override"}
+                    numeric_extensions = {"confidence"}
+                    boolean_extensions = {"risk_flag"}
+
+                    for ext in matrix.output_extensions:
+                        if ext in core_aliases:
+                            continue
+
+                        if ext in numeric_extensions:
+                            matrix_dynamic_fields[ext] = (
+                                float,
+                                Field(
+                                    ...,
+                                    description=f"Numeric score (0.0 to 1.0) for '{ext}'. Must be a float, e.g., 0.85.",
+                                ),
+                            )
+                        elif ext in boolean_extensions:
+                            matrix_dynamic_fields[ext] = (
+                                CoercedBool,
+                                Field(
+                                    ...,
+                                    description=f"Boolean flag for '{ext}'. MUST be the native JSON boolean type (true/false) without quotes. Do NOT output a string.",
+                                ),
+                            )
+                        else:
+                            matrix_dynamic_fields[ext] = (
+                                str,
+                                Field(..., description=f"Detailed textual explanation or citation for '{ext}'."),
+                            )
+
+                    if matrix_dynamic_fields:
+                        final_type = create_model(
+                            f"MatrixExtraction_{matrix_id}",
+                            __base__=matrix_base_class,
+                            __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
+                            **matrix_dynamic_fields,
+                        )
+
+                global_matrices_fields[matrix_id] = (final_type, Field(..., description=desc_val))
+
+            if global_matrices_fields:
+                GlobalMatricesModel = create_model(
+                    "GlobalMatrices",
+                    __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
+                    **global_matrices_fields,
+                )
+                fields["global_matrices"] = (
+                    GlobalMatricesModel,
+                    Field(
+                        ...,
+                        description="Global matrix evaluations that apply to the entire response or document as a whole. You MUST evaluate all global matrices here.",
+                    ),
+                )
+
+        # Epic 56 Phase 4 / Bugfix: We MUST filter out standard "criteria" blocks if has_shuffled_atoms is True.
+        # Matrix blocks are ALWAYS excluded from this loop because they now live in global_matrices.
+        # Epic 92 Bugfix: If has_shuffled_atoms is True, we must completely empty schema_criteria
+        # so that NO eval_X fields are generated at the root level, otherwise Pydantic hits Max schema retries.
         if has_shuffled_atoms:
-            schema_criteria = [c for c in criteria if c.category_id != "criteria"]
+            schema_criteria = []
         else:
-            schema_criteria = criteria
+            schema_criteria = [c for c in criteria if get_cat(c) != "matrix"]
 
         for index, crit in enumerate(schema_criteria):
             crit_id = crit.id
@@ -262,11 +353,22 @@ class SchemaFactory:
             alias_name = f"eval_{index + 1}"
 
             if crit.category_id != "matrix" and crit.type == "instruction":
+                label_str = self._resolve_i18n(crit.label, target_locale) if crit.label else ""
+                cat_val = (
+                    crit.category_id.value
+                    if isinstance(crit.category_id, Enum)
+                    else (crit.category_id or "instruction")
+                )
+
+                desc_val = f"Instruction field for {cat_val} block '{crit_id}' ({label_str})."
+                if crit.ai_description:
+                    desc_val += f" Objective: {crit.ai_description}"
+
                 fields[crit_id] = (
                     str,
                     Field(
                         ...,
-                        description="Instruction-based response and verification synthesis.",
+                        description=desc_val,
                         alias=alias_name,
                     ),
                 )
@@ -331,10 +433,10 @@ class SchemaFactory:
                         )
                     elif ext in boolean_extensions:
                         dynamic_fields[ext] = (
-                            bool,
+                            CoercedBool,
                             Field(
                                 ...,
-                                description=f"Boolean flag for '{ext}'.",
+                                description=f"Boolean flag for '{ext}'. MUST be the native JSON boolean type (true/false) without quotes. Do NOT output a string.",
                             ),
                         )
                     else:
@@ -421,7 +523,7 @@ class SchemaFactory:
             list[Any],
             Field(
                 ...,
-                max_length=SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS,
+                max_length=get_settings().schema_max_chunk_records,
                 description="List of records contained in this execution chunk.",
             ),
         )

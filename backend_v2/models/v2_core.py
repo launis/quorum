@@ -36,10 +36,10 @@ from backend_v2.models.enums import (
     LaxXaiExtensionType,
     ScoringStrategy,
     StrictnessAnchor,
-    SystemConcurrency,
     VisualIntent,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -1331,7 +1331,7 @@ class ExecutionCreate(V2CoreBase):
         ),
     )
     matrix_sampling_strategy: int = Field(
-        default=SystemConcurrency.MATRIX_SAMPLING_LIMIT.value,
+        default_factory=lambda: get_settings().matrix_sampling_limit,
         description=(
             "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to "
             "10 locally to mitigate LLM JSON schema context limits."

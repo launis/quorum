@@ -185,9 +185,7 @@ class CitationExtractionResult(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    citations: list[CitationExtractionItemDTO] = Field(
-        default_factory=list, description="List of extracted claims to verify."
-    )
+    citations: list[CitationExtractionItemDTO] = Field(..., description="List of extracted claims to verify.")
 
 
 class CitationCorrectionResult(V2CoreBase):

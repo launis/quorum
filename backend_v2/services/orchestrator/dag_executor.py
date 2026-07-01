@@ -1,3 +1,5 @@
+from backend_v2.settings import get_settings
+
 """Asynchronous Directed Acyclic Graph (DAG) Executor for V3 Workflows.
 
 Strictly follows Event Sourcing, Fail-Fast principles (RFC 7807) and O(1) Concurrency.
@@ -18,7 +20,7 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
-from backend_v2.models.enums import ScoringStrategy, StrictnessAnchor, SystemConcurrency
+from backend_v2.models.enums import ScoringStrategy, StrictnessAnchor
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -443,7 +445,7 @@ class DAGExecutor:
                 new_states = {**exec_record.step_states, step_id: new_state}
                 exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-        semaphore = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
+        semaphore = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
         _update_lock = asyncio.Lock()
         _commit_lock = asyncio.Lock()
 

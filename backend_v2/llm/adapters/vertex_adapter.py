@@ -16,7 +16,7 @@ from pydantic import Field, field_validator
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import PromptCacheStatus, SystemConcurrency
+from backend_v2.models.enums import PromptCacheStatus
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
@@ -63,7 +63,7 @@ async def get_redis_client() -> Any:
             RedisSettings(
                 host=settings.redis_host,
                 port=settings.redis_port,
-                conn_timeout=int(SystemConcurrency.REDIS_CONNECTION_TIMEOUT_SECONDS.value),
+                conn_timeout=int(get_settings().redis_connection_timeout_seconds),
             )
         )
         _redis_loop = current_loop
@@ -133,12 +133,12 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
         if (
             get_settings().disable_vertex_cache
-            or estimated_token_count < SystemConcurrency.CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT.value
+            or estimated_token_count < get_settings().context_cache_minimum_token_limit
         ):
             logger.info(
                 "Vertex AI caching bypassed: Token Proxy Score %d is below threshold %d (or globally disabled)",
                 estimated_token_count,
-                SystemConcurrency.CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT.value,
+                get_settings().context_cache_minimum_token_limit,
             )
             return compiled_prompt.to_flat_messages(), {}
 
@@ -168,7 +168,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     "cached_content": cache_id,
                 }
 
-        lock_ttl_ms = int(SystemConcurrency.CONTEXT_CACHE_LOCK_TTL_SECONDS.value * 1000)
+        lock_ttl_ms = int(get_settings().context_cache_lock_ttl_seconds * 1000)
         lock_acquired = await redis_client.set(lock_key, "worker_1", nx=True, px=lock_ttl_ms)
 
         if lock_acquired:
@@ -187,7 +187,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 await redis_client.set(
                     redis_key,
                     PromptCacheStatus.CREATING.value,
-                    ex=SystemConcurrency.CONTEXT_CACHE_LOCK_TTL_SECONDS.value,
+                    ex=get_settings().context_cache_lock_ttl_seconds,
                 )
 
                 settings = get_settings()
@@ -234,7 +234,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     create_kwargs = {
                         "model_name": clean_model_name,
                         "contents": vertex_contents,
-                        "ttl": datetime.timedelta(seconds=SystemConcurrency.CONTEXT_CACHE_PASSIVE_TTL_SECONDS.value),
+                        "ttl": datetime.timedelta(seconds=get_settings().context_cache_passive_ttl_seconds),
                     }
 
                     if system_text:
@@ -251,7 +251,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     await redis_client.set(
                         redis_key,
                         cache_resource_id,
-                        ex=SystemConcurrency.CONTEXT_CACHE_PASSIVE_TTL_SECONDS.value,
+                        ex=get_settings().context_cache_passive_ttl_seconds,
                     )
                     logger.info(
                         "Vertex AI Context Cache successfully created: %s",
@@ -274,8 +274,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 await redis_client.delete(lock_key)
 
         else:
-            poll_interval_s = float(SystemConcurrency.CONTEXT_CACHE_LOCK_POLL_INTERVAL_MS.value / 1000.0)
-            max_wait_s = float(SystemConcurrency.CONTEXT_CACHE_LOCK_WAIT_LIMIT_SECONDS.value)
+            poll_interval_s = float(get_settings().context_cache_lock_poll_interval_ms / 1000.0)
+            max_wait_s = float(get_settings().context_cache_lock_wait_limit_seconds)
             elapsed_s = 0.0
 
             while elapsed_s < max_wait_s:
@@ -375,3 +375,134 @@ class VertexCacheAdapter(BaseLLMAdapter):
             Dictionary containing safety settings.
         """
         return {"safety_settings": _VERTEX_SAFETY_SETTINGS}
+
+    def sanitize_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Sanitize message array to prevent LiteLLM Vertex transformation crashes.
+
+        Vertex AI transformation in LiteLLM requires every `role: tool` message to be
+        preceded by a `role: assistant` message containing matching `tool_calls`.
+        If an orphaned `role: tool` message exists (e.g., due to self-healing retries
+        stripping the original context), LiteLLM throws APIConnectionError.
+
+        This function removes any `role: tool` message that lacks a valid pairing.
+
+        Args:
+            messages: A list of message dictionaries.
+
+        Returns:
+            A sanitized list of message dictionaries.
+        """
+        valid_tool_call_ids = set()
+        sanitized = []
+
+        for msg in messages:
+            if msg.get("role") == "assistant" and "tool_calls" in msg:
+                # Collect all valid tool_call_ids from assistant message
+                for tc in msg["tool_calls"]:
+                    if "id" in tc:
+                        valid_tool_call_ids.add(tc["id"])
+                sanitized.append(msg)
+            elif msg.get("role") == "tool":
+                tool_call_id = msg.get("tool_call_id")
+                if tool_call_id in valid_tool_call_ids:
+                    sanitized.append(msg)
+                else:
+                    logger.warning(
+                        "[VertexAdapter] Stripping orphaned tool message (id: %s) to prevent Vertex crash.",
+                        tool_call_id,
+                    )
+            else:
+                sanitized.append(msg)
+
+        return sanitized
+
+    def prepare_kwargs(
+        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+    ) -> dict[str, Any]:
+        """Prepare Vertex specific kwargs, handling caching mappings and location resolution.
+
+        Args:
+            call_kwargs: The dictionary of arguments to pass to litellm.
+            config: Optional config object for the provider.
+            settings: Optional app settings.
+
+        Returns:
+            The potentially modified call_kwargs dictionary.
+        """
+        # 1. Resolve Vertex Location
+        config_location = getattr(config, "vertex_location", None) if config else None
+        settings_location = getattr(settings, "vertex_location", None) if settings else None
+        env_location = os.getenv("HARDENING_VERTEX_LOCATION")
+        active_location = (
+            call_kwargs.get("vertex_location")
+            or config_location
+            or settings_location
+            or env_location
+            or "europe-north1"
+        )
+        os.environ["VERTEX_LOCATION"] = active_location
+        os.environ["VERTEXAI_LOCATION"] = active_location
+        call_kwargs["vertex_location"] = active_location
+
+        # 2. Caching parameter mapping
+        if "cached_content" in call_kwargs:
+            # Vertex API rejects (400 Bad Request) dynamic tools when using static cached_content.
+            # If tools are detected, we gracefully bypass caching for this single request.
+            if call_kwargs.get("tools"):
+                logger.warning(
+                    "[VertexAdapter] Dynamic tool payload detected alongside Vertex Caching. "
+                    "Bypassing caching dynamically to prevent 400 Bad Request."
+                )
+                call_kwargs.pop("cached_content", None)
+            else:
+                cache_id = call_kwargs["cached_content"]
+                if "extra_headers" not in call_kwargs or call_kwargs["extra_headers"] is None:
+                    call_kwargs["extra_headers"] = {}
+                call_kwargs["extra_headers"]["cached_content"] = cache_id
+
+                if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
+                    call_kwargs["extra_body"] = {}
+                call_kwargs["extra_body"]["cachedContent"] = cache_id
+                call_kwargs["extra_body"]["cached_content"] = cache_id
+
+                # V3 Cache Fix: Diagnostic guard replacing blind system scrubber
+                if "messages" in call_kwargs:
+                    system_msgs = [m for m in call_kwargs["messages"] if m.get("role") == "system"]
+                    if system_msgs:
+                        logger.critical(
+                            "ARCHITECTURE VIOLATION: %d system message(s) detected in cached payload. "
+                            "Scrubbing defensively to prevent Google 400. "
+                            "This indicates a CompiledPrompt construction defect.",
+                            len(system_msgs),
+                        )
+                        call_kwargs["messages"] = [m for m in call_kwargs["messages"] if m.get("role") != "system"]
+
+        return call_kwargs
+
+    def build_http_client(self, timeout: float) -> Any | None:
+        """Build a persistent HTTPX client with specific constraints for Vertex AI.
+
+        Vertex AI Load Balancers drop connections after 600s. We enforce HTTP/1.1
+        with massive keep-alive limits to reduce socket exhaustion on >100k token runs.
+        Also, wraps the client in AsyncHTTPHandler because LiteLLM drops custom
+        clients for Vertex if they are not wrapped.
+
+        Args:
+            timeout: The requested timeout in seconds.
+
+        Returns:
+            The wrapped httpx.AsyncClient or None.
+        """
+        import httpx
+        from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler
+
+        _raw_httpx = httpx.AsyncClient(
+            timeout=httpx.Timeout(timeout, connect=60.0),
+            http2=False,
+            limits=httpx.Limits(max_keepalive_connections=200, max_connections=400),
+            transport=httpx.AsyncHTTPTransport(retries=3),
+        )
+
+        _handler = AsyncHTTPHandler(timeout=timeout)
+        _handler.client = _raw_httpx
+        return _handler

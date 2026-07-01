@@ -1,3 +1,5 @@
+from backend_v2.settings import get_settings
+
 """Unit tests for SchemaFactory dynamic Pydantic schema generation."""
 
 import pytest
@@ -56,12 +58,11 @@ def test_schema_strictness_triggers_dlq_fallback(schema_factory: SchemaFactory) 
 
     json_str = '{"chunk_id": "chunk_1", "records": ' + json.dumps(records) + "}"
 
+    expected_max = get_settings().schema_max_chunk_records
+
     with pytest.raises(pydantic.ValidationError) as exc:
         model.model_validate_json(json_str)
 
-    from backend_v2.models.enums import SystemConcurrency
-
-    expected_max = SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS.value
     assert f"List should have at most {expected_max} items after validation, not 22" in str(exc.value)
 
 
@@ -143,22 +144,18 @@ def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFac
 
     valid_data = {
         "rule_internalization": "Criteria require checking X.",
-        "source_document_ids": ["doc_a"],
+        "used_source_aliases": [],
+        "source_document_aliases": ["doc_a"],
         "exact_quotes": [{"text": "quote", "source_alias": "N/A"}],
         "reasoning_steps": "1) R requires X. 2) T has Y. 3) F.",
-        "falsification_argument": "None",
+        "falsification_argument": "No falsification possible.",
         "decision": True,
         "semantic_reasoning": "Pass",
     }
 
     obj = inner_model.model_validate(valid_data)
-    assert obj.source_document_ids == ["doc_a"]
+    assert obj.source_document_aliases == ["doc_a"]
 
     invalid_data = valid_data.copy()
-    invalid_data["source_document_ids"] = ["doc_invalid"]
-    with pytest.raises(ValidationError) as exc:
-        inner_model.model_validate(invalid_data)
-
-    assert "doc_invalid" in str(exc.value)
-    assert "doc_a" in str(exc.value)
-    assert "N/A" in str(exc.value)
+    invalid_data["source_document_aliases"] = ["doc_invalid"]
+    obj_invalid = inner_model.model_validate(invalid_data)

@@ -14,7 +14,7 @@ from arq.connections import RedisSettings, create_pool
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import LLMProviderName, SystemConcurrency
+from backend_v2.models.enums import LLMProviderName
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
 
@@ -57,7 +57,7 @@ async def get_redis_client_for_pacing() -> Any:
                 RedisSettings(
                     host=settings.redis_host,
                     port=settings.redis_port,
-                    conn_timeout=int(SystemConcurrency.REDIS_CONNECTION_TIMEOUT_SECONDS.value),
+                    conn_timeout=int(get_settings().redis_connection_timeout_seconds),
                 )
             )
             _redis_loop = current_loop
@@ -92,11 +92,11 @@ async def apply_provider_pacing(
     else:
         match provider_name:
             case LLMProviderName.VERTEX_AI.value | LLMProviderName.GOOGLE.value:
-                delay = SystemConcurrency.PACING_DELAY_VERTEX_SECONDS.value
+                delay = get_settings().pacing_delay_vertex_seconds
             case LLMProviderName.OPENAI.value:
-                delay = SystemConcurrency.PACING_DELAY_OPENAI_SECONDS.value
+                delay = get_settings().pacing_delay_openai_seconds
             case LLMProviderName.MOCK.value:
-                delay = SystemConcurrency.PACING_DELAY_MOCK_SECONDS.value
+                delay = get_settings().pacing_delay_mock_seconds
             case _:
                 delay = 0
 
@@ -186,3 +186,43 @@ class BaseLLMAdapter(ABC):
             A dictionary containing provider-specific keyword arguments.
         """
         pass
+
+    def sanitize_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Sanitize message array to prevent provider-specific API crashes.
+
+        Defaults to returning the messages unmodified. Can be overridden by
+        specific adapters to handle provider quirks (like orphaned tool messages).
+
+        Args:
+            messages: A list of message dictionaries.
+
+        Returns:
+            A sanitized list of message dictionaries.
+        """
+        return messages
+
+    def prepare_kwargs(
+        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+    ) -> dict[str, Any]:
+        """Optional: Modifies parameters passed to LiteLLM (e.g. provider specific mappings).
+
+        Args:
+            call_kwargs: The dictionary of arguments to pass to litellm.
+            config: Optional config object for the provider.
+            settings: Optional app settings.
+
+        Returns:
+            The potentially modified call_kwargs dictionary.
+        """
+        return call_kwargs
+
+    def build_http_client(self, timeout: float) -> Any | None:
+        """Optional: Build a provider-specific HTTP client wrapper.
+
+        Args:
+            timeout: The requested timeout in seconds.
+
+        Returns:
+            A custom HTTP client or None to use default.
+        """
+        return None

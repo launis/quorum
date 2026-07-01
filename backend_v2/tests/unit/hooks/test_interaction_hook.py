@@ -20,10 +20,15 @@ def mock_repository() -> AsyncMock:
 
 
 def test_interaction_hook_system_instruction() -> None:
-    """Test that the system instruction contains the required Hybrid XML tags."""
-    assert "<system_directive>" in _SYSTEM_INSTRUCTION
-    assert "<rules>" in _SYSTEM_INSTRUCTION
-    assert "ROLE_ARCHITECT" in _SYSTEM_INSTRUCTION
+    """Test that the system instruction contains the required Markdown sections."""
+    # Check that objective is included
+    assert "## Objective" in _SYSTEM_INSTRUCTION
+    assert "Analyze the user's interaction behavior" in _SYSTEM_INSTRUCTION
+
+    # Check that rules are included with Markdown bullet points
+    assert "## Rules" in _SYSTEM_INSTRUCTION
+    assert "- ROLE_PASSENGER:" in _SYSTEM_INSTRUCTION
+    assert "- ROLE_ARCHITECT:" in _SYSTEM_INSTRUCTION
     assert "<execution_parameters>" in _SYSTEM_INSTRUCTION
 
 
@@ -45,9 +50,9 @@ async def test_analyze_interaction_role_empty_chat_log(mock_repository: AsyncMoc
         audit_repo=mock_repository,
         system_repo=mock_repository,
     )
-    res = await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
-    assert res.success is True
-    assert res.state_delta == {}
+    with pytest.raises(AppException) as exc:
+        await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
+    assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.asyncio

@@ -30,7 +30,7 @@ def test_schema_compiler_basic_compile() -> None:
 
     # Should validate correct data using the alias
     instance = DynamicModel.model_validate({"eval_1": 3.5})
-    assert instance.model_dump()["test_metric"] == 3.5
+    assert instance.model_dump()["blk_1234567890abcdef1234567890abcdef"] == 3.5
 
     # Should forbid extra fields due to strict=True, extra='forbid'
     with pytest.raises(ValidationError):

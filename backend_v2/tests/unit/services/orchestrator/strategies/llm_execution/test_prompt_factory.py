@@ -124,3 +124,23 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None
 
     assert exc_info.value.status_code == 500
     assert "missing mandatory 'tda_assertions'" in str(exc_info.value.message)
+
+
+def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock) -> None:
+    """Test that LANGUAGE_MANDATE is included in the user payload."""
+    payload = PromptFactory.build(
+        compiler=mock_compiler,
+        role_block=None,
+        protocol_block=None,
+        execution_persona_block=None,
+        criteria_blocks=[],
+        target_locale="fi",
+        effective_mcp_tools=None,
+        input_mappings={},
+        llm_context_data={},
+        expected_inputs=None,
+        has_shuffled_atoms=False,
+    )
+
+    # The LANGUAGE_MANDATE must be injected into the user_payload via linguistic_directives
+    assert "CRITICAL LANGUAGE MANDATE" in payload.user_payload

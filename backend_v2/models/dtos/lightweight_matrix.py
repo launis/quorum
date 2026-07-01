@@ -4,7 +4,13 @@ from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_v
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import LaxVisualIntent, LaxXaiExtensionType, SystemConcurrency, get_lexical_fuzz_threshold
+from backend_v2.models.enums import LaxVisualIntent, LaxXaiExtensionType, get_lexical_fuzz_threshold
+from backend_v2.settings import get_settings
+
+_settings = get_settings()
+_schema_max_quotes_target = _settings.schema_max_quotes_target
+_schema_max_quotes = _schema_max_quotes_target + 5
+_schema_max_quote_length = _settings.schema_max_quote_length
 
 
 class OutputProfileConfig(V2CoreBase):
@@ -161,10 +167,10 @@ class LightweightExtractionAtom(V2CoreBase):
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
     exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,
-        max_length=SystemConcurrency.SCHEMA_MAX_QUOTES.value,
+        max_length=_schema_max_quotes,
         description=(
             f"A list of physically contiguous, character-for-character verbatim substrings extracted "
-            f"directly from the source text. Maximum {SystemConcurrency.SCHEMA_MAX_QUOTES_TARGET.value} items. Each quote MUST be UNDER {SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value} characters. "
+            f"directly from the source text. Maximum {_schema_max_quotes_target} items. Each quote MUST be UNDER {_schema_max_quote_length} characters. "
             f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
             f"in the ORIGINAL language of the source document."
         ),
@@ -178,7 +184,7 @@ class LightweightExtractionAtom(V2CoreBase):
     @classmethod
     def _truncate_quotes(cls, v: Any) -> Any:
         if isinstance(v, list):
-            max_len = SystemConcurrency.SCHEMA_MAX_QUOTES.value
+            max_len = _schema_max_quotes
             if len(v) > max_len:
                 return v[:max_len]
         return v
@@ -292,10 +298,10 @@ class AtomEvaluationItemDTO(V2CoreBase):
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
     exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,
-        max_length=SystemConcurrency.SCHEMA_MAX_QUOTES.value,
+        max_length=_schema_max_quotes,
         description=(
             f"A list of physically contiguous, character-for-character verbatim substrings extracted "
-            f"directly from the source text. Maximum {SystemConcurrency.SCHEMA_MAX_QUOTES_TARGET.value} items. Each quote MUST be UNDER {SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value} characters. "
+            f"directly from the source text. Maximum {_schema_max_quotes_target} items. Each quote MUST be UNDER {_schema_max_quote_length} characters. "
             f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
             f"in the ORIGINAL language of the source document."
         ),
@@ -345,7 +351,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
     @classmethod
     def _truncate_quotes(cls, v: Any) -> Any:
         if isinstance(v, list):
-            max_len = SystemConcurrency.SCHEMA_MAX_QUOTES.value
+            max_len = _schema_max_quotes
             if len(v) > max_len:
                 return v[:max_len]
         return v
@@ -559,7 +565,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
                     norm_source, _ = AnchorValidationService.normalize_text_with_mapping(source_text)
                     locale = context.get("system_locale") if context else None
                     threshold = get_lexical_fuzz_threshold(locale)
-                    max_len = SystemConcurrency.SCHEMA_MAX_QUOTE_LENGTH.value
+                    max_len = _schema_max_quote_length
 
                     for quote in self.exact_quotes:
                         text_val = (

@@ -17,6 +17,7 @@ from backend_v2.utils.pydantic_utils import inflate
 
 try:
     import google.auth
+    import google.auth.transport.requests
 
     GOOGLE_DEPS_AVAILABLE = True
 except ImportError:
@@ -35,6 +36,13 @@ class LLMHandler:
         """Validates if a specific model_id (e.g., 'vertex_ai/gemini-1.5-pro') is available.
 
         Attempts to fetch its metadata in the target location using modern GenAI V2 Client.
+
+        Args:
+            model_id (str): The model identifier.
+            location (str): The target location for Vertex AI.
+
+        Returns:
+            bool: True if available, False otherwise.
         """
         try:
             from google import genai
@@ -59,48 +67,7 @@ class LLMHandler:
         self._cached_google_models: list[str] = []
         self._cached_openai_models: list[str] = []
 
-    def fetch_all_available_models(
-        self, providers: list[str] | None = None, location: str | None = None
-    ) -> dict[str, list[str] | str]:
-        """Queries External APIs (Vertex AI, OpenAI) for available models.
-
-        Respects 'use_mock_llm' setting by returning mock data if enabled.
-
-        Args:
-            providers (List[str]): List of providers to query ('google', 'openai', 'mock'). Defaults to all.
-            location (str | None): Optional target location to validate against. Defaults to settings value.
-
-        Logic for Google:
-        1. Fetch Master List from 'us-central1' (Model Garden root).
-        2. Iterate and Validate against Target Location (if different from us-central1).
-
-        """
-        settings = get_settings()
-        models: dict[str, list[str] | str] = {}
-
-        # Resolve Target Location from Settings (Robust .env loading)
-        target_location = location if location else settings.vertex_location
-        if not target_location:
-            raise ValueError(
-                "CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Model Discovery."
-            )
-
-        # Normalize providers list
-        if not providers:
-            # Zero-Fallback: We do not assume default providers.
-            # Use configured providers from settings.
-            providers = settings.enabled_providers
-            if not providers:
-                # If strictly nothing executed, we return empty.
-                return {}
-
-        providers = [p.lower() for p in providers]
-        # Strict checking: Only add mock if explicitly requested
-        if "mock" in providers or settings.use_mock_llm:
-            # Only then we consider mock logic
-            pass
-
-        # --- MOCK ---
+    def _fetch_mock_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
         if settings.use_mock_llm or "mock" in providers:
             if "google" in providers or "mock" in providers:
                 models["google"] = ["mock-model-a", "mock-model-b"]
@@ -109,12 +76,14 @@ class LLMHandler:
 
             # Return early logic
             if settings.use_mock_llm and "mock" not in providers:
-                return models  # Should matching mock logic, but simplifying
+                return
 
             if len(providers) == 1 and "mock" in providers:
-                return models
+                return
 
-        # --- GOOGLE (Vertex AI) ---
+    def _fetch_google_models(
+        self, providers: list[str], target_location: str, settings: Any, models: dict[str, list[str] | str]
+    ) -> None:
         if "google" in providers:
             try:
                 # 1. Discovery (Source of Truth: LiteLLM / "West" equivalent)
@@ -202,8 +171,6 @@ class LLMHandler:
                     else:
                         # Kolmansien osapuolien Model Garden -mallit
                         try:
-                            import google.auth.transport.requests
-
                             # Refresh token for REST API usage
                             auth_request = google.auth.transport.requests.Request()  # type: ignore[no-untyped-call] # google-auth has no type stubs
                             credentials.refresh(auth_request)
@@ -271,7 +238,7 @@ class LLMHandler:
                     details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
                 ) from e
 
-        # --- OPENAI ---
+    def _fetch_openai_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
         if "openai" in providers:
             try:
                 if self._cached_openai_models:
@@ -304,7 +271,7 @@ class LLMHandler:
                     details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
                 ) from e
 
-        # --- ANTHROPIC (Direct API) ---
+    def _fetch_anthropic_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
         if "anthropic" in providers:
             try:
                 anthropic_models = [
@@ -335,6 +302,64 @@ class LLMHandler:
                     details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
                 ) from e
 
+    def fetch_all_available_models(
+        self, providers: list[str] | None = None, location: str | None = None
+    ) -> dict[str, list[str] | str]:
+        """Queries External APIs (Vertex AI, OpenAI) for available models.
+
+        Respects 'use_mock_llm' setting by returning mock data if enabled.
+
+        Args:
+            providers (List[str]): List of providers to query ('google', 'openai', 'mock'). Defaults to all.
+            location (str | None): Optional target location to validate against. Defaults to settings value.
+
+        Logic for Google:
+        1. Fetch Master List from 'us-central1' (Model Garden root).
+        2. Iterate and Validate against Target Location (if different from us-central1).
+
+        """
+        settings = get_settings()
+        models: dict[str, list[str] | str] = {}
+
+        # Resolve Target Location from Settings (Robust .env loading)
+        target_location = location if location else settings.vertex_location
+        if not target_location:
+            raise ValueError(
+                "CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Model Discovery."
+            )
+
+        # Normalize providers list
+        if not providers:
+            # Zero-Fallback: We do not assume default providers.
+            # Use configured providers from settings.
+            providers = settings.enabled_providers
+            if not providers:
+                # If strictly nothing executed, we return empty.
+                return {}
+
+        providers = [p.lower() for p in providers]
+        # Strict checking: Only add mock if explicitly requested
+        if "mock" in providers or settings.use_mock_llm:
+            # Only then we consider mock logic
+            pass
+
+        # Delegate to helpers
+        if settings.use_mock_llm or "mock" in providers:
+            self._fetch_mock_models(providers, settings, models)
+            if settings.use_mock_llm and "mock" not in providers:
+                return models
+            if len(providers) == 1 and "mock" in providers:
+                return models
+
+        if "google" in providers:
+            self._fetch_google_models(providers, target_location, settings, models)
+
+        if "openai" in providers:
+            self._fetch_openai_models(providers, settings, models)
+
+        if "anthropic" in providers:
+            self._fetch_anthropic_models(providers, settings, models)
+
         return models
 
     async def get_active_model_registry(self) -> dict[str, Any]:
@@ -342,6 +367,9 @@ class LLMHandler:
 
         Returns:
             Dict[str, Any]: configuration mapping (flat map of ModelProfiles).
+
+        Raises:
+            ConfigurationError: If the registry is missing or fails to parse (ErrorCodes.CONFIGURATION_ERROR).
         """
         try:
             res = await self.repo.get_model_registry()
@@ -396,6 +424,9 @@ class LLMHandler:
         Returns:
             str: Generated text response.
 
+        Raises:
+            ConfigurationError: If strategy configuration is missing (ErrorCodes.CONFIGURATION_ERROR).
+            ServiceUnavailableError: If the model strategy is deactivated or execution fails (ErrorCodes.SERVICE_DISABLED, ErrorCodes.UNKNOWN_ERROR).
         """
         settings = get_settings()
         config = await self.get_model_config(provider, mode)

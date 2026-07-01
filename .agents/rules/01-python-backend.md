@@ -9,8 +9,30 @@
         <catastrophic_reason>Duct-tape fixes mask root causes, corrupt data flows, and violate the Zero-Compromise Pledge.</catastrophic_reason>
     </rule_block>
     
-    <rule_block id="silent_failures">
-    
+    <rule_block id="prompt_fragmentation_ban">
+        <banned_pattern>Scattering LLM prompt instructions, structural JSON mandates, or logic constraints directly inside business methods or client wrappers (e.g., `client.py`).</banned_pattern>
+        <mandatory_pattern>ALL global prompt instructions MUST be centralized in `directives.py` as explicit string constants. Treat `directives.py` as the absolute Single Source of Truth for LLM constraints.</mandatory_pattern>
+        <catastrophic_reason>Fragmented prompt logic causes undetectable context degradation, violates DRY architecture, and prevents systemic oversight of LLM behavior.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="docstring_fail_fast_ban">
+        <banned_pattern>Documenting `Raises: None` in method docstrings, OR duplicating Python type hints (e.g. `type[BaseModel]:`) inside `Args:` or `Returns:` text.</banned_pattern>
+        <mandatory_pattern>NEVER write `Raises: None`. You MUST explicitly list the exact `AppException` error codes the execution can trigger. Enforce strictly DRY typing (never repeat type hints in text).</mandatory_pattern>
+        <catastrophic_reason>Claiming a function raises nothing creates false confidence in the Fail-Fast architecture, leading to unhandled downstream exceptions. DRY typing violations break doc generators and clutter the context.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="inline_imports_ban">
+        <banned_pattern>Using inline imports inside methods/functions to avoid circular dependencies.</banned_pattern>
+        <mandatory_pattern>ALL standard imports MUST be declared globally at the top of the file. EXCEPTION: Heavy AI/ML libraries (e.g., `litellm`, `vertexai`, `spacy`) MUST be imported inside methods/functions (lazy loading) to prevent PyO3 failures and Zero Cold Starts.</mandatory_pattern>
+        <catastrophic_reason>Inline imports mask severe circular architectural dependencies and silently crash asynchronous unit tests (`pytest`) when mocking paths.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="slug_data_relation_ban">
+        <banned_pattern>Using `slug`, UI labels, or other informational fields as JSON schema keys, Pydantic field names, or for strict data relations.</banned_pattern>
+        <mandatory_pattern>ALWAYS use the object's `id` (e.g., the opaque Stripe-pattern ID `blk_123...`) for ALL data relations, schema generation, and dictionary key bindings.</mandatory_pattern>
+        <catastrophic_reason>Slugs are highly mutable strings meant for SEO/Display. Binding system architecture or LLM JSON outputs to mutable slugs permanently breaks data extraction and causes undetected key-collisions.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="anemic_routers">
         <banned_pattern>Putting business logic, database CRUD, or RBAC checks in API routers (`backend_v2/api/`).</banned_pattern>
         <mandatory_pattern>Routers MUST ONLY handle HTTP parsing, assign an explicit `response_model`, and delegate to the Service layer (`backend_v2/services/`).</mandatory_pattern>
@@ -154,11 +176,7 @@
         <catastrophic_reason>Local imports create fragmented mutable references that silently bypass `pytest` monkeypatching, causing unit tests to execute against uncontrollable production configs.</catastrophic_reason>
     </rule_block>
 
-    <rule_block id="no_inline_imports">
-        <banned_pattern>Using inline imports (importing modules inside a function, method, or router) to resolve circular dependencies or lazy load regular application modules.</banned_pattern>
-        <mandatory_pattern>ALWAYS declare all standard imports globally at the top of the file. EXCEPTION: All heavy AI/ML libraries (e.g., `litellm`, `google-genai`, `vertexai`, `tokenizers`, `spacy`) MUST be imported inside methods/functions (lazy loading). This prevents PyO3 failures, ensures Zero Cold Starts, and prevents `pytest-cov` coverage runs from crashing due to missing global ML environments.</mandatory_pattern>
-        <catastrophic_reason>Inline imports mask circular dependencies. However, global ML imports trigger catastrophic PyO3 segfaults during system boot, slow down cold start performance, and crash pytest-cov suites when executing in decoupled testing contexts.</catastrophic_reason>
-    </rule_block>
+    <!-- Rule elevated to CATASTROPHIC SYSTEM BANS (epic90_inline_imports_ban) -->
 
     <rule_block id="cross_language_enum_parity">
         <banned_pattern>Encoding UI rendering logic in Pydantic `Literal` or `Enum` variables without enforcing parity on the Flutter client, leading to silent 'Contains' parsing failures in Dart UI.</banned_pattern>
@@ -287,13 +305,7 @@
     <rule_block id="google_style_classes_separation">
         <mandatory_pattern>Class-level docstrings contain ONLY the overarching description and public `Attributes:`. The `__init__` method MUST encapsulate `Args:` and `Raises:`.</mandatory_pattern>
     </rule_block>
-    <rule_block id="docstring_raises_fail_fast">
-        <mandatory_pattern>The `Raises:` section MUST EXPLICITLY enumerate the precise Quorum `AppException` error codes that the execution block is capable of triggering.</mandatory_pattern>
-    </rule_block>
-    <rule_block id="dry_typing_in_docstrings">
-        <banned_pattern>Redundantly declaring data types within the docstring `Args:`, `Returns:`, or `Attributes:` sections.</banned_pattern>
-        <mandatory_pattern>Rely on code-level type hints (DRY Typing).</mandatory_pattern>
-    </rule_block>
+    <!-- Rules elevated to CATASTROPHIC SYSTEM BANS (epic90_docstring_fail_fast_ban) -->
     <rule_block id="free_threading_concurrency">
         <banned_pattern>Utilizing the `multiprocessing` module.</banned_pattern>
         <mandatory_pattern>All routines MUST be demonstrably thread-safe (Free-threading architecture). Employ lightweight threads or `asyncio`.</mandatory_pattern>

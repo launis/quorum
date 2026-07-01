@@ -31,6 +31,8 @@
         1. If working on **Backend/Python**, you MUST read: `c:\src\quorum\.agents\rules\01-python-backend.md`
         2. If working on **Frontend/Flutter**, you MUST read: `c:\src\quorum\.agents\rules\02_flutter_desktop.md`
         3. If working on **Data/Seed/JSON**, you MUST read: `c:\src\quorum\.agents\rules\03_seed_vault.md`
+        4. If working on **LLM or Prompts**, you MUST read: `c:\src\quorum\.agents\rules\05_llm_architecture.md`
+        5. If navigating or creating new files, you MUST read: `c:\src\quorum\.agents\rules\04_directory_reference.md`
         </mandatory_pattern>
         <catastrophic_reason>The Single Source of Truth architecture requires language-specific constraints to be loaded on-demand to preserve context and ensure extreme accuracy.</catastrophic_reason>
     </rule_block>

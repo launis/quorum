@@ -66,8 +66,8 @@ async def test_run_structured_task_self_healing_success(mock_repository: MagicMo
     client = LLMClient(config=config)
     executor = LLMTaskExecutor(PromptCompiler())
 
-    # 1. Invalid JSON missing quote
-    mock_fail_response = MockLLMResponse('{"id": 1, "name": "Broken}')
+    # 1. Invalid JSON that is completely unrepairable to trigger the LLM retry loop
+    mock_fail_response = MockLLMResponse("This is not a JSON object, it is just raw text.")
 
     # Second try succeeds
     mock_success_response = MockLLMResponse('{"id": 1, "name": "Fixed"}')

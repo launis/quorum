@@ -29,13 +29,13 @@ from backend_v2.models.enums import SourceSufficiencyThreshold
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
 
 # NOTE (Architecture): Hard cap to prevent infinite LLM↔Tool loops.
-# EPIC §3 "The Infinite Loop Limit".
-MAX_TOOL_CALLS_PER_STEP = 3
+# EPIC §3 "The Infinite Loop Limit". Controlled by SystemOverrides.
 
 _SELF_CORRECTION_SYSTEM_INSTRUCTION = build_system_directive(
     objective=(
@@ -172,7 +172,7 @@ async def _execute_tavily_search(
         response_summary = result.answer
 
         if target_language and target_language.lower() != "en" and response_summary and llm_client:
-            from backend_v2.llm.linguistic import translate_text
+            from backend_v2.services.translation_service import translate_text
 
             response_summary = await translate_text(
                 text=response_summary,
@@ -337,7 +337,8 @@ async def execute_tool_loop[T: BaseModel](
         )
 
     # Epic 13 M2: Restored to standard MAX_TOOL_CALLS_PER_STEP
-    effective_max_calls = MAX_TOOL_CALLS_PER_STEP
+    # Controlled by settings to support Dev-Mode limits
+    effective_max_calls = get_settings().max_tool_calls_per_step
 
     strictness_level = 100
     if validation_context:

@@ -17,4 +17,4 @@ class V2CoreBase(BaseModel):
         model_config (ConfigDict): Pydantic configuration dictionary.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid", str_strip_whitespace=True)

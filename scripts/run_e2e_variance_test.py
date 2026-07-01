@@ -101,8 +101,12 @@ def trigger_execution(raw_inputs: dict[str, Any]) -> str:
     print("Triggering E2E execution natively via Python requests...")
     import requests
 
+    from backend_v2.settings import get_settings
+
+    settings = get_settings()
+
     # 2. Setup requests session
-    headers = {"Authorization": "Bearer mock-token:usr_18a0d5f6151349a5"}
+    headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
     base_url = "http://127.0.0.1:8000/api/v2"
 
     # 3. Get Workflow ID
@@ -176,12 +180,12 @@ for i in range(2):
     # ---------------------------------------------------------
     # FastDev Bypass (Full Quality E2E)
     # Automatically disables the 5-word limits, Flash model downgrades,
-    # and zero-delay optimizations enforced by FAST_DEV_MODE.
+    # and zero-delay optimizations enforced by fast dev execution mode.
     # This ensures the e2e test uses actual production-grade models
     # and realistic timings while still allowing mock-tokens in dev mode.
     # ---------------------------------------------------------
     backend_env = os.environ.copy()
-    backend_env["FAST_DEV_MODE"] = "false"
+    backend_env["DEV_EXECUTION_MODE"] = "full"
     p = subprocess.Popen([r"c:\src\quorum\run_local.bat"], env=backend_env, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
     print("Waiting for backend to become responsive...")

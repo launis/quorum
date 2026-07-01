@@ -98,8 +98,8 @@
     </rule_block>
     
     <rule_block id="llm_structured_execution_mandate">
-        <banned_pattern>Asking LLM to "output valid JSON" in text and parsing it with Regex/json.loads, using LLMClient to handle validation retry loops directly, or using manual syntactic self-healing.</banned_pattern>
-        <mandatory_pattern>Rely ONLY on `LLMTaskExecutor.execute_structured_task()` to force execution via Native Structured Outputs API (e.g., passing Pydantic schema to `response_schema`). Syntactic self-healing loops MUST be completely removed from the codebase, as API-level constrained decoding guarantees 100% Pydantic-compatible JSON on the first try.</mandatory_pattern>
+        <banned_pattern>Asking LLM to "output valid JSON" in text and parsing it with Regex/json.loads, using LLMClient to handle validation retry loops directly, using manual syntactic self-healing, or using the fallback `"parsing_mode": "STRUCTURED_JSON"` in output profiles.</banned_pattern>
+        <mandatory_pattern>Rely ONLY on `LLMTaskExecutor.execute_structured_task()` to force execution via Native Structured Outputs API (e.g., passing Pydantic schema to `response_schema`). Syntactic self-healing loops MUST be completely removed from the codebase. The fallback mode `STRUCTURED_JSON` is BANNED because it degrades API-level constrained decoding into text-based schema instructions, allowing the model to hallucinate forbidden keys and break Pydantic's `extra="forbid"` rule.</mandatory_pattern>
         <code_example>
             <anti_pattern>data = json.loads(await client.run_chat(prompt))</anti_pattern>
             <pro_pattern>result, usage = await executor.execute_structured_task(client=client, messages=messages, response_model=UserDTO)</pro_pattern>
@@ -137,5 +137,26 @@
         <banned_pattern>Using multi-pass "negative rules" logic or chained sequential verifications for high-entropy / inverse-evidence PromptBlocks.</banned_pattern>
         <mandatory_pattern>Execute high-entropy and negative validation steps using a single-pass "Best-of-3" ensemble. You MUST run parallel LLM calls cleanly wrapped in `asyncio.TaskGroup` and resolve the final output via a strict majority vote where lexically invalid hallucinations are discarded before counting.</mandatory_pattern>
         <catastrophic_reason>Multi-pass negative logic forces the LLM into "double-negative" confusion, causing severe output oscillation. Parallel Best-of-3 polling mathematically smooths statistical anomalies without convoluting the system prompts.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="strict_markdown_prompt_formatting">
+        <banned_pattern>Using arbitrary ASCII separators (like `=== RULES ===`) or wrapping individual logic constraints in their own micro-XML tags (e.g., `<LANGUAGE_MANDATE>`) inside prompt models.</banned_pattern>
+        <mandatory_pattern>Within the XML boundaries created by the compiler (e.g., inside `<execution_parameters>`), all business logic, rules, and mandates MUST be written in strict, clean Markdown using standard headings (`##`, `###`) and bullet points (`-`).</mandatory_pattern>
+        <catastrophic_reason>Mixing ASCII art, nested micro-XML, and Markdown causes "Attention Dilution" and token waste. Clean Markdown is the mathematically optimal format for modern LLMs to process strict hierarchical logic.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="prompt_asset_ssot_mandate">
+        <banned_pattern>Hardcoding system instructions, language translation directives (like `<linguistic_context>`), or Pydantic JSON schema descriptions directly into service layer classes (e.g., `PromptFactory`, `translation_service.py`, or `schema_factory.py`).</banned_pattern>
+        <mandatory_pattern>Enforce strict Single Source of Truth (SSOT) for all Prompt Assets. The `backend_v2/models/prompts` directory is the ONLY allowed location for defining static prompt blocks, XML mandates, and schema descriptions. Prompt factories and orchestrators MUST ONLY import and inject these pre-defined assets. They must never construct structural XML rules dynamically in the service layer.</mandatory_pattern>
+        <catastrophic_reason>Dispersing prompt instructions across the codebase breaks the Separation of Concerns, makes the system prompt un-auditable, and leads to orphaned or duplicated mandates (like stray XML tags without their corresponding rules) which actively degrades the LLM's logic adherence.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="atom_aliasing_hydration_mandate">
+        <banned_pattern>Passing raw system UUIDs (like `tda_131ffcb70bbc4c29bef079047002bc91` or `blk_...`) directly to the LLM to use as keys or output values for structured evaluations (including Shuffled Atoms and Atom Graphs), OR using regex laastari for hydration.</banned_pattern>
+        <mandatory_pattern>Enforce **The Alias Engine & Hydration Mandate**. The LLM MUST ONLY be exposed to short, deterministic aliases (e.g., `a0`, `a1` for atoms, `src_0`, `src_1` for source documents) to act as "Attention Anchors". You MUST use the dedicated `AliasEngine` module (`alias_engine.py`) to handle both the obfuscation injection (translating long UUIDs to aliases before prompt injection) and the hydration phase (translating aliases back to true Opaque IDs during Pydantic validation via context). This guarantees token optimization, prevents hallucinatory typos on primary keys, and centralizes aliasing logic for Epic 92.</mandatory_pattern>
+        <catastrophic_reason>Forcing the LLM to juggle dozens of 32-character hashes destroys its ability to track relationships in complex dependency graphs (Epic 92), consumes massive token budgets unnecessarily, and risks database corruption via 1-character hallucination typos.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="provider_abstraction_mandate">
+        <banned_pattern>Hardcoding provider-specific hacks (like HTTPX custom wrappers, `cachedContent` body mappings, or `vertex_location` priority logic) directly into the `LiteLLMProvider` class (`provider.py`).</banned_pattern>
+        <mandatory_pattern>All model- and operator-specific anomalies, logic variations, and HTTP client customizations MUST be encapsulated in their respective `BaseLLMAdapter` implementations under `backend_v2/llm/adapters/`. The `LiteLLMProvider` MUST remain a clean, pristine orchestrator.</mandatory_pattern>
+        <catastrophic_reason>Allowing provider-specific logic to bleed into the global orchestrator creates a bloated God Class, making it impossible to add new models (Anthropic, OpenAI) without breaking existing, fragile conditional branches. It violates the Open/Closed Principle.</catastrophic_reason>
     </rule_block>
 </architectural_invariants>

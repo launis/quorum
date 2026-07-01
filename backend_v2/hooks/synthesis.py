@@ -22,6 +22,13 @@ from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisSt
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
 from backend_v2.models.enums import HistoricalContextMode
+from backend_v2.models.prompts.hook_prompts import (
+    SYNTHESIS_CITATION_RULES,
+    SYNTHESIS_LENGTH_CONSTRAINT,
+    SYNTHESIS_SDUI_MANDATES,
+    SYNTHESIS_SECTION_RULES_PREFIX,
+    SYNTHESIS_STATE_ISOLATION_MANDATE,
+)
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -661,58 +668,22 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     scoring_strategy = active_profile_dto.scoring_strategy.value
 
-    rules = [
-        "SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY the allowed SDUI `content_blocks`.",
-        "ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.",
-        "NO RECURSION: Nested blocks inside blocks are strictly banned.",
-        "NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.",
-        "CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.",
-        (
-            "XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. "
-            "Create up to <max_extension_items> MOST CRITICAL items for each individual category (meaning up to <max_extension_items> items of type 'justification', up to <max_extension_items> items of type 'coaching', etc.). "
-            "The total length of the `xai_highlights` array may be up to `max_extension_items * number_of_categories`. "
-            "Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. "
-            "Make each item's content an ultra-short, punchy bullet point (max 1 sentence)."
-        ),
-    ]
+    rules = list(SYNTHESIS_SDUI_MANDATES)
 
     if length_constraint:
-        rules.append(
-            "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
-            "specified in <global_length_constraint_chars>."
-        )
+        rules.append(SYNTHESIS_LENGTH_CONSTRAINT)
 
     if tone_text:
         rules.append(f"TONE INSTRUCTION: {tone_text}")
 
     if section_instructions:
-        section_rules = (
-            "=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
-            "CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.\n"
-            "You MUST ALSO provide targeted synthesized summaries for the following "
-            "distinct sections as an array in `section_syntheses`.\n\n"
-        )
+        section_rules = SYNTHESIS_SECTION_RULES_PREFIX
         section_rules += "\n\n".join(section_instructions)
         rules.append(section_rules)
 
-    rules.append(
-        "Omit internal system identifiers or raw JSON keys. "
-        "When referring to information, use inline numerical tags like [1], [2].\n"
-        "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond "
-        "to the items in the `cited_sources` list (1-indexed). "
-        "ONLY create a numerical citation tag AND add an entry to `cited_sources` if the source "
-        "is an actual literary reference, empirical citation, methodology framework, or external "
-        "document (e.g., 'Toulmin 2003', 'Sitra Report'). "
-        "DO NOT use citation tags for general analysis sections, step titles, or internal data "
-        "dumps. If you mention internal findings, state them directly without using it."
-    )
+    rules.append(SYNTHESIS_CITATION_RULES)
 
-    rules.append(
-        "STATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand "
-        "the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, summarize, "
-        "or report on the substantive topics, subjects, or domains discussed in the historical context. "
-        "Your output must be STRICTLY based on the current <source_data>."
-    )
+    rules.append(SYNTHESIS_STATE_ISOLATION_MANDATE)
 
     exec_params = [
         f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>",

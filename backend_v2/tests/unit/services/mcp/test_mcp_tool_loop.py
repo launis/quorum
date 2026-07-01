@@ -113,7 +113,12 @@ async def test_execute_tool_loop_deterministic_search() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["valid claim 1", "valid claim 2"])
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
+    mock_settings = MagicMock()
+    mock_settings.max_tool_calls_per_step = 3
+    with (
+        patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search,
+        patch("backend_v2.services.mcp.mcp_tool_loop.get_settings", return_value=mock_settings),
+    ):
         from datetime import datetime, timezone
 
         from backend_v2.models.v2_core import MCPAuditTrace

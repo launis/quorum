@@ -118,12 +118,13 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     assert issubclass(DynamicSchema, BaseModel)
 
     # Get the field description which contains the compiled BARS matrix
-    field_info = DynamicSchema.model_fields["blk_1234567890abcdef"]
+    matrix_model = DynamicSchema.model_fields["global_matrices"].annotation
+    field_info = matrix_model.model_fields["blk_1234567890abcdef"]  # type: ignore[union-attr]
     compiled_desc = field_info.description
 
     # Target Snapshot format
     expected_snapshot = (
-        "Evaluation field for matrix block 'blk_1234567890abcdef' (Critical Distance Score). "
+        "Global matrix evaluation for 'blk_1234567890abcdef' (Critical Distance Score). "
         "Objective: ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort..."
     )
 
@@ -182,15 +183,17 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     llm_payload = {
         "reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
-        "blk_2234567890abcdef": {
-            "semantic_reasoning": "None",
-            "remediation_steps": "Do better",
-            "confidence": 0.95,
+        "global_matrices": {
+            "blk_2234567890abcdef": {
+                "semantic_reasoning": "Valid reasoning",
+                "remediation_steps": "Do better",
+                "confidence": 0.95,
+            }
         },
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_2234567890abcdef.semantic_reasoning == "None"  # type: ignore[attr-defined]
+    assert parsed.global_matrices.blk_2234567890abcdef.semantic_reasoning == "Valid reasoning"  # type: ignore[attr-defined]
     assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
 
 
@@ -256,25 +259,25 @@ def test_dynamic_schema_descriptions_are_present() -> None:
     )  # noqa: E501
 
     # 3. Assert max_length constraints exist to limit LLM schema serving states
-    from backend_v2.models.enums import SystemConcurrency
     from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
 
     tda_schema = StrippedBaseTDAExtraction.model_json_schema()
     assert "localized_anchors_found" not in tda_schema["properties"]
+    from backend_v2.settings import get_settings
 
     chunk_json_schema = ChunkSchema.model_json_schema()
-    assert chunk_json_schema["properties"]["records"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS
+    assert chunk_json_schema["properties"]["records"]["maxItems"] == get_settings().schema_max_chunk_records
 
 
 def test_fsm_serving_state_safety_limits() -> None:
     """Varmistaa, että FSM-tilojen räjähdyksen estävät rajoitukset ovat riittävän tiukat."""
-    from backend_v2.models.enums import SystemConcurrency
+    from backend_v2.settings import get_settings
 
     # Vertex AI FSM -kääntäjä ei hyväksy liian suuria sisäkkäisiä taulukkorajoja.
     # Varmistetaan matemaattinen yläraja tilojen määrälle.
-    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS <= 30
-    assert SystemConcurrency.SCHEMA_MAX_EVALUATIONS <= 30
-    assert SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS <= 30
+    assert get_settings().schema_max_localized_anchors <= 30
+    assert get_settings().schema_max_evaluations <= 30
+    assert get_settings().schema_max_chunk_records <= 30
 
 
 def test_tda_extraction_schema_has_semantic_descriptions() -> None:
@@ -337,7 +340,8 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
         schema_name="ExtremeSchema", criteria=[PromptBlock.model_validate(mock_block)], strictness_level=50
     )
 
-    field_info = DynamicSchema.model_fields["blk_1234567890abcdef"]
+    matrix_model = DynamicSchema.model_fields["global_matrices"].annotation
+    field_info = matrix_model.model_fields["blk_1234567890abcdef"]  # type: ignore[union-attr]
     compiled_desc = field_info.description
     assert compiled_desc is not None
 

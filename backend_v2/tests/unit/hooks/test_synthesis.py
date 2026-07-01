@@ -1123,7 +1123,7 @@ async def test_synthesis_hook_dynamic_tone_and_xai_curation(
     assert '<extension type="falsification">Refutation point 2</extension>' in user_msg.get("content", "")
 
     # Check tone instruction rule injection
-    assert "<rule>TONE INSTRUCTION: Antagonistic Tone</rule>" in sys_msg.get("content", "")
+    assert "- TONE INSTRUCTION: Antagonistic Tone" in sys_msg.get("content", "")
     # Check max extensions items param
     assert "<max_extension_items>3</max_extension_items>" in sys_msg.get("content", "")
     # Check static rule injection for curation

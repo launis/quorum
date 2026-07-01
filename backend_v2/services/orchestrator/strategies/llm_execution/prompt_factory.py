@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
 from backend_v2.models.v2_core import PromptBlock
 
 logger = logging.getLogger(__name__)
@@ -236,10 +237,13 @@ class PromptFactory:
         if mcp_instruction:
             base_system_prompt += f"\n\n{mcp_instruction}"
 
-        exec_params = f"<execution_parameters>\n<target_locale>{target_locale}</target_locale>\n"
+        linguistic_ctx = build_linguistic_context(target_locale=target_locale, include_mandate=True)
+
+        exec_params = f"<execution_context>\n<target_locale>{target_locale}</target_locale>\n"
+        exec_params += f"{linguistic_ctx}\n"
         if execution_time:
             exec_params += f"<document_date>{execution_time}</document_date>\n"
-        exec_params += "</execution_parameters>\n"
+        exec_params += "</execution_context>\n"
 
         xml_ctx = compiler.build_xml_context(
             input_mappings=input_mappings,

@@ -120,7 +120,7 @@ class LoginScreen extends HookConsumerWidget {
                   ),
 
                   // Debug Feature: Mock Login (Ignored per user constraint rule)
-                  if (Env.environment == 'development') ...[
+                  if (Env.allowMockTokens) ...[
                     const SizedBox(height: 24),
                     const MockLoginPanel(),
                   ],
@@ -202,7 +202,7 @@ class MockLoginPanel extends HookConsumerWidget {
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
-                  'usr_a3fd6b3d77c748f4', // ROOT
+                  Env.mockRootUserId, // ROOT
                 ),
           child: const Text('Mock Login (Root Master)'),
         ),
@@ -211,7 +211,7 @@ class MockLoginPanel extends HookConsumerWidget {
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
-                  'usr_18a0d5f6151349a5', // ADMIN
+                  Env.mockAdminUserId, // ADMIN
                 ),
           child: const Text('Mock Login (Admin)'),
         ),
@@ -220,9 +220,9 @@ class MockLoginPanel extends HookConsumerWidget {
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
-                  'usr_936983a7a6c643ab', // MANAGER
+                  Env.mockAnalystUserId, // ANALYST
                 ),
-          child: const Text('Mock Login (Manager)'),
+          child: const Text('Mock Login (Analyst)'),
         ),
         TextButton(
           style: TextButton.styleFrom(foregroundColor: Colors.blue),

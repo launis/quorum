@@ -50,10 +50,11 @@ async def test_chunk_worker_pop_reasoning_steps_bug():
     class DummyAtomResponse(BaseModel):
         atom_id: str = tda_id
         rule_internalization: str = "Test internalization"
-        source_document_ids: list[str] = ["N/A"]
+        used_source_aliases: list[str] = []
+        source_document_aliases: list[str] = ["N/A"]
         exact_quotes: list[str] = []
         reasoning_steps: str = "I reasoned this carefully."
-        falsification_argument: str = "N/A"
+        falsification_argument: str = "No falsification possible."
         decision: bool = True
         semantic_reasoning: str = "It is true."
         contextual_override: bool = False

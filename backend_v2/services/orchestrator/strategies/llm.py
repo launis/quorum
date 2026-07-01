@@ -1,3 +1,5 @@
+from backend_v2.settings import get_settings
+
 """LLM Node Strategy for DAG-based workflow execution.
 
 Orchestrates AI/LLM step execution including dynamic schema compilation,
@@ -15,7 +17,6 @@ from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import FrozenContext, MCPAuditTrace, PromptBlock, StepRule, Workflow
 from backend_v2.models.v2_core import Step as V2Step
@@ -434,7 +435,7 @@ class LLMNodeStrategy(NodeStrategy):
             req = ChunkingRequest[dict[str, Any]](
                 parent_id=context.workflow_id,
                 items=shuffled_atoms,
-                max_chunk_size=SystemConcurrency.LLM_MAX_CHUNK_SIZE.value,
+                max_chunk_size=get_settings().llm_max_chunk_size,
             )
             chunks_list = ChunkingService.chunk_payload(req)
         else:
@@ -467,12 +468,15 @@ class LLMNodeStrategy(NodeStrategy):
         except Exception:
             pass
 
-        if execution_record_raw and isinstance(execution_record_raw, dict):
+        if execution_record_raw:
             from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
             from backend_v2.models.v2_core import ExecutionRecord
 
             try:
-                exec_obj = ExecutionRecord.model_validate(execution_record_raw, strict=False)
+                if isinstance(execution_record_raw, ExecutionRecord):
+                    exec_obj = execution_record_raw
+                else:
+                    exec_obj = ExecutionRecord.model_validate(execution_record_raw, strict=False)
                 manifest = exec_obj.source_identity_manifest or {}
 
                 source_docs = []
@@ -519,7 +523,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         sem = semaphore
 
-        MAX_RETRIES = SystemConcurrency.LLM_MAX_RETRIES
+        MAX_RETRIES = get_settings().llm_max_retries
         retry_count = 0
         final_dict: dict[str, Any] = {}
         usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)

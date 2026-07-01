@@ -5,9 +5,9 @@ import os
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
-from pydantic import BeforeValidator, Field, computed_field
+from pydantic import AliasChoices, BeforeValidator, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -97,6 +97,41 @@ class Settings(BaseSettings):
     ] = True
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
 
+    # --- System Concurrency (Migrated from Enums) ---
+    max_concurrent_workflows: int = Field(default=10, description="Max parallel workflow chunks")
+    max_concurrent_llm_steps: int = Field(default=10, description="Max parallel LLM calls in dag_executor")
+    llm_retry_multiplier: int = 2
+    llm_retry_min_seconds: int = 2
+    llm_retry_max_seconds: int = 60
+    llm_retry_jitter_initial_seconds: int = 2
+    llm_retry_jitter_exp_base: int = 2
+    llm_max_chunk_size: int = 8
+    llm_default_timeout_seconds: int = 1000
+    rate_limit_cooldown_seconds: int = 10
+    semaphore_low_rpm_threshold: int = 20
+    semaphore_low_rpm_limit: int = 2
+    semaphore_max_concurrency: int = 10
+    semaphore_rpm_divisor: int = 10
+    max_safe_tokens: int = 1000000
+    schema_max_evaluations: int = 18  # 8 + 10
+    schema_max_chunk_records: int = 13  # 8 + 5
+    context_cache_lock_ttl_seconds: int = 300
+    context_cache_passive_ttl_seconds: int = 3600
+    context_cache_lock_poll_interval_ms: int = 500
+    context_cache_lock_wait_limit_seconds: int = 20
+    context_cache_minimum_token_limit: int = 2048
+    pacing_delay_vertex_seconds: int = 12
+    pacing_delay_openai_seconds: int = 1
+    pacing_delay_mock_seconds: int = 0
+    redis_connection_timeout_seconds: int = 10
+    content_cache_enabled: int = 0
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def llm_max_retries(self) -> int:
+        """Dynamic retries based on execution mode."""
+        return 0 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 2
+
     # --- Logging ---
     use_json_logging: Annotated[
         bool, BeforeValidator(strip_whitespace), Field(description="Force structured JSON logging in any environment")
@@ -116,7 +151,7 @@ class Settings(BaseSettings):
     default_model_strategy: Annotated[
         str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
     ] = None
-    llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
+    llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 600.0
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
 
     # --- Rate Limits (Strict Mode) ---
@@ -198,9 +233,9 @@ class Settings(BaseSettings):
         str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
     ] = None
     environment: Annotated[str, Field(description="development, staging, or production")] = "production"
-    fast_dev_mode: Annotated[
-        bool, BeforeValidator(strip_whitespace), Field(description="Enable FastDev performance overrides")
-    ] = True
+    dev_execution_mode: Annotated[
+        Literal["fast", "full", "none"], Field(description="Execution Mode: fast, full, or none")
+    ] = "none"
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 
     api_url: Annotated[str | None, Field(description="Public API Base URL")] = "http://localhost:8000"
@@ -431,6 +466,78 @@ class Settings(BaseSettings):
             providers.append("mock")
 
         return providers
+
+    # --- 12-Factor Development Overrides ---
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def log_format(self) -> str:
+        """Determines if logs should be JSON (production) or readable (development)."""
+        if self.use_json_logging:
+            return "json"
+        return "readable" if self.environment.lower() == "development" else "json"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def allow_mock_tokens(self) -> bool:
+        """Strictly disallow mock tokens in production."""
+        return self.environment.lower() == "development"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def max_tool_calls_per_step(self) -> int:
+        """Limits external searches (Tavily) in dev to save API quota."""
+        return 1 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 3
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def matrix_sampling_limit(self) -> int:
+        """Limits items processed in V2 Matrix Execution."""
+        return 2 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 0
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def schema_max_localized_anchors(self) -> int:
+        """Strict limits for LLM token stability (localized context blocks)."""
+        return 2 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 15
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def schema_max_quotes_target(self) -> int:
+        """Target limits for JSON response quote counts."""
+        return 1 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 5
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def schema_max_quote_length(self) -> int:
+        """Target limits for JSON response quote lengths."""
+        return 50 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 150
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def strategy_aliases(self) -> dict[str, str]:
+        """Neutral map for strategy rerouting in development."""
+        if self.environment.lower() == "development" and self.dev_execution_mode == "fast":
+            return {
+                "strict_strategy": "fast",
+                "evaluation_strategy": "fast",
+                "test_strategy": "fast",
+                "strict": "fast",
+                "deep": "fast",
+                "synthesis": "fast",
+            }
+        return {}
+
+    # Epic 13 M3: Centralized Mock Token IDs for testing
+    mock_admin_user_id: str = Field(
+        default="usr_18a0d5f6151349a5", validation_alias=AliasChoices("mock_admin_user_id", "MOCK_ADMIN_USER_ID")
+    )
+    mock_root_user_id: str = Field(
+        default="usr_a3fd6b3d77c748f4", validation_alias=AliasChoices("mock_root_user_id", "MOCK_ROOT_USER_ID")
+    )
+    mock_analyst_user_id: str = Field(
+        default="usr_8a9234f9a0c242a1", validation_alias=AliasChoices("mock_analyst_user_id", "MOCK_ANALYST_USER_ID")
+    )
 
 
 @lru_cache

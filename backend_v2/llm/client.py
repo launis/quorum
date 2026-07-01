@@ -14,14 +14,18 @@ from backend_v2.exceptions import (
     ErrorCodes,
     LLMSchemaValidationError,
 )
+from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.llm.caching_service import LLMCachingService
+from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import StrictnessAnchor, SystemConcurrency
+from backend_v2.models.enums import StrictnessAnchor
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.prompts.field_prompts import STRICT_JSON_STRUCTURE_MANDATE
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
@@ -46,6 +50,82 @@ class LLMClient:
         """Initialize the client."""
         pass
 
+    def _build_structured_schema(
+        self,
+        response_model: type[BaseModel],
+        final_messages: list[dict[str, Any]],
+        validation_context: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Build the structured JSON schema for the provider, applying caching and strictness constraints."""
+        adapter_schema: dict[str, Any] = {"type": "json_schema"}
+        if self._config and getattr(self._config, "parsing_mode", None) == "STRUCTURED_JSON":
+            adapter_schema = {"type": "json_object"}
+            schema_json = json.dumps(response_model.model_json_schema(), indent=2)
+            schema_instruction = STRICT_JSON_STRUCTURE_MANDATE.format(schema_json=schema_json)
+
+            user_msg_found = False
+            for msg in reversed(final_messages):
+                if msg.get("role") == "user":
+                    content = msg.get("content")
+                    if isinstance(content, str):
+                        msg["content"] = content + schema_instruction
+                        user_msg_found = True
+                        break
+                    elif isinstance(content, list):
+                        for part in content:
+                            if isinstance(part, dict) and part.get("type") == "text":
+                                part["text"] = (part.get("text") or "") + schema_instruction
+                                user_msg_found = True
+                                break
+                        if user_msg_found:
+                            break
+            if not user_msg_found:
+                final_messages.append({"role": "user", "content": schema_instruction.strip()})
+        else:
+            json_schema = response_model.model_json_schema()
+
+            def strip_unsupported_constraints(schema_dict: Any) -> None:
+                if isinstance(schema_dict, dict):
+                    schema_dict.pop("maxLength", None)
+                    schema_dict.pop("minLength", None)
+
+                    if "const" in schema_dict:
+                        schema_dict["enum"] = [schema_dict.pop("const")]
+
+                    # Context cache validation requires strictness and active user context
+                    strictness = (
+                        validation_context.get("strictness_level", StrictnessAnchor.STANDARD.value)
+                        if validation_context
+                        else StrictnessAnchor.STANDARD.value
+                    )
+                    if strictness >= 100:
+                        if "properties" in schema_dict:
+                            schema_dict["properties"].pop("contextual_override", None)
+                            schema_dict["properties"].pop("override_reason", None)
+                        if "required" in schema_dict and isinstance(schema_dict["required"], list):
+                            if "contextual_override" in schema_dict["required"]:
+                                schema_dict["required"].remove("contextual_override")
+                            if "override_reason" in schema_dict["required"]:
+                                schema_dict["required"].remove("override_reason")
+
+                    for v in list(schema_dict.values()):
+                        strip_unsupported_constraints(v)
+                elif isinstance(schema_dict, list):
+                    for item in schema_dict:
+                        strip_unsupported_constraints(item)
+
+            strip_unsupported_constraints(json_schema)
+            schema_name = response_model.__name__
+            adapter_schema = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": schema_name,
+                    "schema": json_schema,
+                    "strict": True,
+                },
+            }
+        return adapter_schema
+
     @classmethod
     async def from_strategy(cls, strategy_name: str, repository: Any = None) -> LLMClient:
         """Factory: Create an LLMClient strictly bound to a database-defined Strategy.
@@ -65,10 +145,9 @@ class LLMClient:
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_strategy.")
 
         # 0. Apply generic system strategy aliases (if any exist in config)
-        from backend_v2.models.enums import SystemOverrides
-
-        if strategy_name in SystemOverrides.STRATEGY_ALIASES.value:
-            strategy_name = SystemOverrides.STRATEGY_ALIASES.value[strategy_name]
+        aliases = get_settings().strategy_aliases
+        if strategy_name in aliases:
+            strategy_name = aliases[strategy_name]
 
         # 1. Fetch Raw Registry (Opaque ID Standard Supported)
         try:
@@ -230,8 +309,6 @@ class LLMClient:
 
         if self._config and self._config.provider:
             try:
-                from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
-
                 adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
                 extra_kwargs.update(adapter.prepare_provider_kwargs(str(target_model_name)))
             except Exception as e:
@@ -271,88 +348,22 @@ class LLMClient:
         )
 
         # STRICT TIMEOUT PROTOCOL: Apply global Enum constraint to structured tasks as well
-        strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
+        strict_timeout = get_settings().llm_default_timeout_seconds
 
         response = None
         try:
             # Epic 56 Phase 3: Dynamic Schema Stripping
             adapter_schema: type[T] | dict[str, Any] = response_model
             if isinstance(response_model, type) and issubclass(response_model, BaseModel):
-                if self._config and getattr(self._config, "parsing_mode", None) == "STRUCTURED_JSON":
-                    adapter_schema = {"type": "json_object"}
-                    schema_json = json.dumps(response_model.model_json_schema(), indent=2)
-                    schema_instruction = (
-                        "\n\n[SYSTEM: STRICT JSON STRUCTURE MANDATE]\n"
-                        "You MUST output a valid JSON object matching the following JSON Schema. "
-                        "All keys listed in the schema properties are absolutely required and case-sensitive. "
-                        "Do NOT omit any keys and do NOT add extra keys not listed in the schema.\n"
-                        f"Required JSON Schema:\n{schema_json}"
-                    )
-
-                    user_msg_found = False
-                    for msg in reversed(final_messages):
-                        if msg.get("role") == "user":
-                            content = msg.get("content")
-                            if isinstance(content, str):
-                                msg["content"] = content + schema_instruction
-                                user_msg_found = True
-                                break
-                            elif isinstance(content, list):
-                                for part in content:
-                                    if isinstance(part, dict) and part.get("type") == "text":
-                                        part["text"] = (part.get("text") or "") + schema_instruction
-                                        user_msg_found = True
-                                        break
-                                if user_msg_found:
-                                    break
-                    if not user_msg_found:
-                        final_messages.append({"role": "user", "content": schema_instruction.strip()})
-                else:
-                    json_schema = response_model.model_json_schema()
-
-                    def strip_unsupported_constraints(schema_dict: Any) -> None:
-                        if isinstance(schema_dict, dict):
-                            schema_dict.pop("maxLength", None)
-                            schema_dict.pop("minLength", None)
-
-                            if "const" in schema_dict:
-                                schema_dict["enum"] = [schema_dict.pop("const")]
-
-                            # Context cache validation requires strictness and active user context
-                            strictness = (
-                                validation_context.get("strictness_level", StrictnessAnchor.STANDARD.value)
-                                if validation_context
-                                else StrictnessAnchor.STANDARD.value
-                            )
-                            if strictness >= 100:
-                                if "properties" in schema_dict:
-                                    schema_dict["properties"].pop("contextual_override", None)
-                                    schema_dict["properties"].pop("override_reason", None)
-                                if "required" in schema_dict and isinstance(schema_dict["required"], list):
-                                    if "contextual_override" in schema_dict["required"]:
-                                        schema_dict["required"].remove("contextual_override")
-                                    if "override_reason" in schema_dict["required"]:
-                                        schema_dict["required"].remove("override_reason")
-
-                            for v in list(schema_dict.values()):
-                                strip_unsupported_constraints(v)
-                        elif isinstance(schema_dict, list):
-                            for item in schema_dict:
-                                strip_unsupported_constraints(item)
-
-                    strip_unsupported_constraints(json_schema)
-                    schema_name = response_model.__name__
-                    adapter_schema = {
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": schema_name,
-                            "schema": json_schema,
-                            "strict": True,
-                        },
-                    }
+                adapter_schema = self._build_structured_schema(
+                    response_model=response_model,
+                    final_messages=final_messages,
+                    validation_context=validation_context,
+                )
 
             try:
                 # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
+                token_usage = None
                 response = await provider.generate(
                     messages=final_messages,
                     response_schema=adapter_schema,
@@ -414,10 +425,9 @@ class LLMClient:
 
                 raw_content = str(raw_content).strip()
 
-                from backend_v2.llm.ingress_pipeline import UniversalIngress
-
                 parsed_dict = UniversalIngress.parse_llm_output(raw_content)
-                parsed_json = response_model.model_validate(parsed_dict, context=validation_context)
+                cleaned_dict = UniversalIngress.clean_dict_against_model(parsed_dict, response_model)
+                parsed_json = response_model.model_validate(cleaned_dict, context=validation_context)
 
                 validated_model = cast(T, parsed_json)  # type: ignore[redundant-cast]
 
@@ -523,7 +533,7 @@ class LLMClient:
             top_k = None
 
         # STRICT TIMEOUT PROTOCOL: Never overridden by caller, always uses global Enum constraint.
-        strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
+        strict_timeout = get_settings().llm_default_timeout_seconds
 
         compiled_prompt: CompiledPrompt | None = None
         if isinstance(messages, CompiledPrompt):

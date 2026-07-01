@@ -46,4 +46,12 @@ class Env {
     }
     return env;
   }
+
+  /// Whether mock tokens are allowed in the current environment
+  static bool get allowMockTokens => environment == 'development';
+
+  // Centralized Mock User IDs from .env
+  static String get mockAdminUserId => dotenv.env['MOCK_ADMIN_USER_ID'] ?? 'usr_18a0d5f6151349a5';
+  static String get mockRootUserId => dotenv.env['MOCK_ROOT_USER_ID'] ?? 'usr_a3fd6b3d77c748f4';
+  static String get mockAnalystUserId => dotenv.env['MOCK_ANALYST_USER_ID'] ?? 'usr_8a9234f9a0c242a1';
 }

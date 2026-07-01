@@ -1,7 +1,7 @@
-"""Prompt Builder module for standardized XML scaffolding.
+"""Prompt Builder module for standardized Markdown scaffolding.
 
-Ensures strict compliance with Rule 51 (Hybrid XML Prompting) by encapsulating
-XML generation logic, preventing malformed tags and string concatenation bugs.
+Ensures strict compliance with the De-Generator Markdown standard by encapsulating
+formatting logic, preventing token-heavy XML concatenation bugs.
 """
 
 
@@ -10,40 +10,38 @@ def build_system_directive(
     rules: list[str] | None = None,
     **kwargs: str | list[str],
 ) -> str:
-    """Builds a standardized XML system directive for LLMs.
+    """Builds a standardized Markdown system directive for LLMs.
 
     Args:
-        objective: The main objective text inside <objective>.
-        rules: A list of individual rules to be wrapped in <rules><rule>...</rule></rules>.
-        **kwargs: Any additional XML blocks (e.g. context="...", definitions=["..."])
-                  which will be formatted as <key>value</key>. Lists will be joined with newlines.
+        objective: The main objective text under `## Objective`.
+        rules: A list of individual rules to be formatted as bullet points under `## Rules`.
+        **kwargs: Any additional blocks (e.g. context="...", definitions=["..."])
+                  which will be formatted as `## Key`. Lists will be joined with newlines.
 
     Returns:
-        A perfectly formatted XML string.
-
-    Raises:
-        None: This function does not raise any exceptions and handles empty inputs
-            by returning an empty system directive tag.
+        A perfectly formatted Markdown string.
     """
     blocks = []
 
     if objective:
-        blocks.append(f"  <objective>\n{objective.strip()}\n  </objective>")
+        blocks.append(f"## Objective\n{objective.strip()}")
 
     # Add any extra blocks passed via kwargs (e.g. context="xyz")
     for key, value in kwargs.items():
         if value:
+            title = key.replace("_", " ").title()
             # Handle list arguments for kwargs by joining them with newlines
             if isinstance(value, list):
-                value = "\n".join(str(v).strip() for v in value)
-            blocks.append(f"  <{key}>\n{str(value).strip()}\n  </{key}>")
+                value_str = "\n".join(f"- {str(v).strip()}" for v in value)
+            else:
+                value_str = str(value).strip()
+            blocks.append(f"## {title}\n{value_str}")
 
     if rules:
-        rules_xml = "\n".join(f"    <rule>{r.strip()}</rule>" for r in rules)
-        blocks.append(f"  <rules>\n{rules_xml}\n  </rules>")
+        rules_md = "\n".join(f"- {r.strip()}" for r in rules)
+        blocks.append(f"## Rules\n{rules_md}")
 
     if not blocks:
-        return "<system_directive>\n</system_directive>"
+        return ""
 
-    blocks_str = "\n".join(blocks)
-    return f"<system_directive>\n{blocks_str}\n</system_directive>"
+    return "\n\n".join(blocks)
