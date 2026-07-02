@@ -106,7 +106,20 @@ SCHEMA_PURITY_MANDATE = (
     "- You are FORBIDDEN from creating, hallucinating, or injecting any extra fields or keys "
     "that are not explicitly defined in the schema.\n"
     "- Your output will be parsed with 'extra=forbid' strictness, and any unauthorized fields "
-    "will cause an immediate systemic crash."
+    "will cause an immediate systemic crash.\n"
+    '- CRITICAL JSON FORMATTING: If your extracted text or generated content contains double quotes (`"`), '
+    'you MUST properly escape them with a backslash (e.g., `\\"`) so that the final JSON remains valid. '
+    "Failing to escape quotes inside JSON strings will break the parser."
+)
+
+JSON_ESCAPING_MANDATE = (
+    "### JSON ESCAPING MANDATE\n"
+    '- CRITICAL FATAL ERROR AVOIDANCE: When generating your JSON response, you MUST correctly escape all double quotes (`"`) '
+    'inside your string values using a backslash (`\\"`).\n'
+    '- For example, if a source text says: The author stated "this is true", your JSON string MUST be: '
+    '`"The author stated \\"this is true\\""`.\n'
+    "- If you do not want to escape, you MUST replace inner double quotes with single quotes (`'`).\n"
+    "- Failure to escape double quotes will result in a fatal JSONDecodeError and your response will be rejected."
 )
 
 # Note: The wrapping <GLOBAL_MANDATES> is intentionally removed to comply with
@@ -131,4 +144,6 @@ GLOBAL_MANDATES_MD = f"""
 {TONE_MANDATE.strip()}
 
 {SCHEMA_PURITY_MANDATE.strip()}
+
+{JSON_ESCAPING_MANDATE.strip()}
 """

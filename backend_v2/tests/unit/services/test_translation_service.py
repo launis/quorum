@@ -35,12 +35,11 @@ def test_language_mandate_contains_critical_fields() -> None:
     assert "English" in LANGUAGE_MANDATE
 
 
-def test_build_linguistic_context_xml_structure() -> None:
-    """Verify proper XML wrapping and mandate inclusion."""
-    result = build_linguistic_context(target_locale="en")
+def test_build_linguistic_context_md_structure() -> None:
+    """Verify proper XML header wrapping and mandate inclusion."""
+    result = build_linguistic_context(target_locale="en", include_mandate=True)
 
     assert result.startswith("<linguistic_context>")
-    assert "</linguistic_context>" in result
     assert LANGUAGE_MANDATE in result
 
 

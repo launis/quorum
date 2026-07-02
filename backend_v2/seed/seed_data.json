@@ -7369,6 +7369,72 @@
           "fi": "Protokolla"
         }
       }
+    },
+    {
+      "id": "blk_eeea566da4ab45f9",
+      "slug": "blk_synthesis_global_rules",
+      "category_id": "system_rule",
+      "type": "instruction",
+      "label": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Synthesis Global Rules",
+          "fi": "Synteesi - Globaalit Säännöt"
+        }
+      },
+      "ai_description": "SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY the allowed SDUI `content_blocks`.\nALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.\nNO RECURSION: Nested blocks inside blocks are strictly banned.\nNO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.\nCITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.\nXAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. Create up to <max_extension_items> MOST CRITICAL items for each individual category (meaning up to <max_extension_items> items of type 'justification', up to <max_extension_items> items of type 'coaching', etc.). The total length of the `xai_highlights` array may be up to `max_extension_items * number_of_categories`. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. Make each item's content an ultra-short, punchy bullet point (max 1 sentence).\nOmit internal system identifiers or raw JSON keys. When referring to information, use inline numerical tags like [1], [2].\nCRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation tag AND add an entry to `cited_sources` if the source is an actual literary reference, empirical citation, methodology framework, or external document (e.g., 'Toulmin 2003', 'Sitra Report'). DO NOT use citation tags for general analysis sections, step titles, or internal data dumps. If you mention internal findings, state them directly without using it.\nSTATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, summarize, or report on the substantive topics, subjects, or domains discussed in the historical context. Your output must be STRICTLY based on the current <source_data>.",
+      "output_extensions": [],
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Global rules for synthesis output",
+          "fi": "Globaalit säännöt synteesille"
+        }
+      }
+    },
+    {
+      "id": "blk_34def5d628ba4ed4",
+      "slug": "blk_synthesis_section_rules",
+      "category_id": "system_rule",
+      "type": "instruction",
+      "label": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Synthesis Section Rules",
+          "fi": "Synteesi - Osiokohtaiset Säännöt"
+        }
+      },
+      "ai_description": "## Section-Level Synthesis\n- CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.\n- You MUST ALSO provide targeted synthesized summaries for the following distinct sections as an array in `section_syntheses`.\n",
+      "output_extensions": [],
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Section specific rules for synthesis",
+          "fi": "Osiokohtaiset säännöt synteesille"
+        }
+      }
+    },
+    {
+      "id": "blk_ad303690b26b413d",
+      "slug": "blk_row_explanation_rules",
+      "category_id": "system_rule",
+      "type": "instruction",
+      "label": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Row Explanation Rules",
+          "fi": "Rivisivun Selityssäännöt"
+        }
+      },
+      "ai_description": "Summarize justification into ONE short sentence + select up to <max_extension_items> MOST CONCRETE quotes verbatim.\nRule 1: Maximum length is 30 words.\nRule 2: Do NOT use markdown. Output plain text.\nRule 3: Ensure the tone aligns with the tone instruction.",
+      "output_extensions": [],
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Row explanation formatting rules",
+          "fi": "Rivisivun selityksen muotoilusäännöt"
+        }
+      }
     }
   ],
   "workflows": [
@@ -8654,6 +8720,110 @@
       "role_block_id": null,
       "extraction_protocol_block_id": null,
       "criteria_block_ids": []
+    },
+    {
+      "id": "sp_8ffee13639e64e34",
+      "slug": "sp_synthesis_distiller",
+      "type": "logic",
+      "hook": "synthesis_distiller_hook",
+      "name": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Synthesis Distiller",
+          "fi": "Synteesin Kokoaja"
+        }
+      },
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Distills metadata and loads historical context",
+          "fi": "Tiivistää metadatan ja lataa historian"
+        }
+      },
+      "allowed_mcp_tools": [],
+      "safety": "safe",
+      "pre_hooks": [],
+      "post_hooks": [],
+      "expected_inputs": [
+        "steps"
+      ],
+      "output_schema": null,
+      "organization_id": "SYSTEM",
+      "role_block_id": null,
+      "extraction_protocol_block_id": null,
+      "criteria_block_ids": []
+    },
+    {
+      "id": "sp_9c6a85edc29347b9",
+      "slug": "sp_synthesis_llm",
+      "type": "llm",
+      "model_strategy": "synthesis",
+      "name": {
+        "default_locale": "en",
+        "translations": {
+          "en": "LLM Synthesis",
+          "fi": "LLM Synteesi"
+        }
+      },
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Generates the final markdown and content blocks",
+          "fi": "Tuottaa lopullisen markdownin ja sisältölohkot"
+        }
+      },
+      "allowed_mcp_tools": [],
+      "safety": "safe",
+      "pre_hooks": [],
+      "post_hooks": [],
+      "expected_inputs": [
+        "distilled_inputs",
+        "historical_context",
+        "output_profile_id",
+        "language"
+      ],
+      "output_schema": null,
+      "organization_id": "SYSTEM",
+      "role_block_id": "blk_eeea566da4ab45f9",
+      "extraction_protocol_block_id": "blk_eeea566da4ab45f9",
+      "criteria_block_ids": [
+        "blk_34def5d628ba4ed4"
+      ]
+    },
+    {
+      "id": "sp_fb1b8e908bf24c1f",
+      "slug": "sp_row_explanations",
+      "type": "llm",
+      "model_strategy": "strict",
+      "name": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Row Explanations",
+          "fi": "Riviselitykset"
+        }
+      },
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Explains individual matrix rows",
+          "fi": "Selittää yksittäiset matriisirivit"
+        }
+      },
+      "allowed_mcp_tools": [],
+      "safety": "safe",
+      "pre_hooks": [],
+      "post_hooks": [],
+      "expected_inputs": [
+        "matrices_to_explain",
+        "language"
+      ],
+      "output_schema": null,
+      "organization_id": "SYSTEM",
+      "role_block_id": "blk_ad303690b26b413d",
+      "extraction_protocol_block_id": "blk_ad303690b26b413d",
+      "criteria_block_ids": [
+        "blk_ad303690b26b413d"
+      ]
     }
   ],
   "organizations": [

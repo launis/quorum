@@ -5,73 +5,6 @@ This module enforces DRY by moving large prompt strings out of the business logi
 """
 
 # ============================================================================
-# SYNTHESIS HOOK RULES (backend_v2/hooks/synthesis.py)
-# ============================================================================
-
-SYNTHESIS_SDUI_MANDATES = [
-    (
-        "SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY "
-        "the allowed SDUI `content_blocks`."
-    ),
-    (
-        "ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. "
-        "NO OTHER TYPES ARE ALLOWED."
-    ),
-    "NO RECURSION: Nested blocks inside blocks are strictly banned.",
-    (
-        "NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside "
-        "text fields. The UI will render text structurally."
-    ),
-    (
-        "CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of "
-        "integers in the `citations: list[int]` field for each block that uses sources."
-    ),
-    (
-        "XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine "
-        "all insights across all inputs for each extension category. Create up to "
-        "<max_extension_items> MOST CRITICAL items for each individual category (meaning up to "
-        "<max_extension_items> items of type 'justification', up to <max_extension_items> items "
-        "of type 'coaching', etc.). The total length of the `xai_highlights` array may be up to "
-        "`max_extension_items * number_of_categories`. Format them as objects in the "
-        "`xai_highlights` array, ensuring each has an `extension_type` and `content`. "
-        "Make each item's content an ultra-short, punchy bullet point (max 1 sentence)."
-    ),
-]
-
-SYNTHESIS_LENGTH_CONSTRAINT = (
-    "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
-    "specified in <global_length_constraint_chars>."
-)
-
-SYNTHESIS_SECTION_RULES_PREFIX = (
-    "## Section-Level Synthesis\n"
-    "- CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 "
-    "short sentences.\n"
-    "- You MUST ALSO provide targeted synthesized summaries for the following distinct "
-    "sections as an array in `section_syntheses`.\n\n"
-)
-
-SYNTHESIS_CITATION_RULES = (
-    "Omit internal system identifiers or raw JSON keys. When referring to information, use "
-    "inline numerical tags like [1], [2].\n"
-    "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond "
-    "to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation "
-    "tag AND add an entry to `cited_sources` if the source is an actual literary reference, "
-    "empirical citation, methodology framework, or external document (e.g., 'Toulmin 2003', "
-    "'Sitra Report'). DO NOT use citation tags for general analysis sections, step titles, "
-    "or internal data dumps. If you mention internal findings, state them directly without "
-    "using it."
-)
-
-SYNTHESIS_STATE_ISOLATION_MANDATE = (
-    "STATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand "
-    "the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, "
-    "summarize, or report on the substantive topics, subjects, or domains discussed in the "
-    "historical context. Your output must be STRICTLY based on the current <source_data>."
-)
-
-
-# ============================================================================
 # INTERACTION HOOK RULES (backend_v2/hooks/interaction_hook.py)
 # ============================================================================
 
@@ -105,3 +38,26 @@ INTERACTION_RULES = [
     ),
     ("Do NOT output Markdown. You MUST output ONLY the requested strict JSON schema matching InteractionAnalysisDTO."),
 ]
+
+# ============================================================================
+# SYNTHESIS HOOK RULES (backend_v2/hooks/synthesis.py)
+# ============================================================================
+
+SYNTHESIS_CITATION_RULES = (
+    "CITATION MANDATE: You must append [srcX] to the end of every sentence that relies on the provided <source_data>."
+)
+SYNTHESIS_LENGTH_CONSTRAINT = (
+    "LENGTH MANDATE: You must adhere strictly to the length constraint specified in <global_length_constraint_chars>."
+)
+SYNTHESIS_SDUI_MANDATES = [
+    "You are a master synthesizer formatting data for SDUI display.",
+    "Do NOT output unstructured markdown. Your output MUST strictly follow the JSON schema requested.",
+]
+SYNTHESIS_SECTION_RULES_PREFIX = (
+    "SECTION-LEVEL SYNTHESIS INSTRUCTIONS:\n"
+    "Follow these block-specific instructions when generating content for specific layout_id blocks."
+)
+SYNTHESIS_STATE_ISOLATION_MANDATE = (
+    "STATE ISOLATION MANDATE: You must synthesize only the data explicitly provided. Do not hallucinate."
+)
+SYNTHESIS_XAI_CURATION = "XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. Create up to <max_extension_items> MOST CRITICAL items for each individual category. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. Make each item's content an ultra-short, punchy bullet point (max 1 sentence)."

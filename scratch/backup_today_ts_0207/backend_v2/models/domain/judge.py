@@ -1,0 +1,266 @@
+"""Judge Agent Domain Models.
+
+This module contains the schemas for the Judge Agent,
+including scorecards and dimension results.
+"""
+
+import logging
+from typing import Any
+
+from pydantic import Field, field_validator, model_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.analyst import AnalystOutput
+from backend_v2.models.domain.archivist import ArchivistOutput
+from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+from backend_v2.models.domain.causal import CausalOutput
+from backend_v2.models.domain.falsifier import FalsifierOutput
+from backend_v2.models.domain.guard import GuardOutput
+from backend_v2.models.domain.logician import LogicianOutput
+from backend_v2.models.domain.overseer import OverseerOutput
+from backend_v2.models.domain.performativity import PerformativityOutput
+from backend_v2.models.domain.profiler import ProfilerOutput
+
+logger = logging.getLogger(__name__)
+
+
+class JudgeInput(V2CoreBase):
+    """Strict Input Schema for Judge Agent (Phase 8).
+
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
+
+    Attributes:
+        chat_log: The mandatory conversation history to evaluate.
+        step_analyst: Analyst or Logician outputs.
+        step_profiler: Profiler Output.
+        step_archivist: Archivist Output.
+        step_logician: Logician Output.
+        step_falsifier: Falsifier Output.
+        step_causal: Causal Output.
+        step_detector: Detector Output.
+        step_overseer: Overseer Output.
+        step_guard: Guard Output.
+        last_reasoning_trace: Previous reasoning trace.
+        dynamic_inputs: Structured dictionary for dynamic inputs.
+    """
+
+    # Context / inputs
+    chat_log: str = Field(
+        ...,
+        min_length=1,
+        description="The mandatory conversation history to evaluate.",
+        json_schema_extra={"x-ui-label": "Chatlog"},
+    )
+
+    # Preceding Agents (Critics) - Strictly Typed via Forward Refs
+    step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
+    step_profiler: ProfilerOutput | None = Field(None, description="Profiler Output.")
+    step_archivist: ArchivistOutput | None = Field(None, description="Archivist Output.")
+    step_logician: LogicianOutput | None = Field(None, description="Logician Output.")
+    step_falsifier: FalsifierOutput | None = Field(None, description="Falsifier Output.")
+    step_causal: CausalOutput | None = Field(None, description="Causal Output.")
+    step_detector: PerformativityOutput | None = Field(None, description="Detector Output.")
+    step_overseer: OverseerOutput | None = Field(None, description="Overseer Output.")
+
+    step_guard: GuardOutput | None = Field(None, description="Guard Output.")
+    last_reasoning_trace: str | None = Field(None, description="Previous reasoning trace.")
+
+    dynamic_inputs: dict[str, Any] = Field(
+        default_factory=dict, description="Structured dictionary for dynamic inputs."
+    )
+
+
+class DimensionResultItem(V2CoreBase):
+    """Result for a single dimension.
+
+    Attributes:
+        dimension_id: ID of the dimension (e.g., 'analysis').
+        dimension_label: Human-readable label.
+        score: Numerical score.
+        reasoning: Justification for the score.
+    """
+
+    dimension_id: str = Field(
+        ...,
+        min_length=1,
+        description="ID of the dimension (e.g., 'analysis').",
+        json_schema_extra={"x-ui-label": "Dimension ID"},
+    )
+    dimension_label: str = Field(
+        default="",
+        description="Human-readable label.",
+        json_schema_extra={"x-ui-label": "Dimension"},
+    )
+    score: int | float = Field(
+        ...,
+        description="Numerical score.",
+        json_schema_extra={"x-ui-label": "Score"},
+    )
+
+    @field_validator("score")
+    @classmethod
+    def validate_score(cls, v: int | float) -> int | float:
+        """Validate score >= 0.
+
+        Args:
+            v: The score to validate.
+
+        Returns:
+            The validated score.
+
+        Raises:
+            AppException: If score is less than 0 (VALIDATION_FAILED).
+        """
+        if v < 0:
+            msg = f"score must be >= 0, got {v}"
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v
+
+    reasoning: str = Field(
+        ...,
+        min_length=1,
+        description="Justification for the score.",
+        json_schema_extra={"x-ui-label": "Reasoning"},
+    )
+
+
+class JudgeScoreCard(V2CoreBase):
+    """Summary of a single judgment step.
+
+    Attributes:
+        agent_name: Name of the judge (e.g. 'Standard Judge').
+        total_score: Total score (0-5).
+        max_score: Max scale.
+        verdict: Short verdict or summary.
+        dimensions: Radar chart data.
+        scale_min: Minimum possible score.
+        scale_max: Maximum possible score.
+    """
+
+    agent_name: str = Field(
+        ...,
+        min_length=1,
+        description="Name of the judge (e.g. 'Standard Judge').",
+        json_schema_extra={"x-ui-label": "Judge"},
+    )
+    total_score: float = Field(
+        ...,
+        description="Total score (0-5).",
+        json_schema_extra={"x-ui-label": "Total Score"},
+    )
+    max_score: int = Field(
+        ...,
+        description="Max scale.",
+        json_schema_extra={"x-ui-label": "Max Score"},
+    )
+    verdict: str = Field(
+        ...,
+        min_length=1,
+        description="Short verdict or summary.",
+        json_schema_extra={"x-ui-label": "Verdict"},
+    )
+    dimensions: list[DimensionResultItem] = Field(
+        ...,
+        min_length=1,
+        description="Radar chart data.",
+        json_schema_extra={"x-ui-label": "Dimensions"},
+    )
+    scale_min: float = Field(
+        ...,
+        description="Minimum possible score.",
+        json_schema_extra={"x-ui-label": "Scale Min"},
+    )
+    scale_max: float = Field(
+        ...,
+        description="Maximum possible score.",
+        json_schema_extra={"x-ui-label": "Scale Max"},
+    )
+
+    @model_validator(mode="after")
+    def validate_scores(self) -> JudgeScoreCard:
+        """Validate the score bounds.
+
+        Returns:
+            The validated scorecard instance.
+
+        Raises:
+            AppException: If scale_min >= scale_max or total_score is out of bounds (VALIDATION_FAILED).
+        """
+        if self.scale_min >= self.scale_max:
+            msg = "scale_min must be less than scale_max."
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+        if not (self.scale_min <= self.total_score <= self.scale_max):
+            msg = f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}]."
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return self
+
+
+class JudgeDTO(ReasoningTraceDTO):
+    """Judge DTO (Content Only).
+
+    Attributes:
+        matrix_id: ID of the evaluation matrix used.
+        score_card: Final scorecard.
+        scale_min: Minimum possible score.
+        scale_max: Maximum possible score.
+        critical_findings: Critical issues identified.
+    """
+
+    matrix_id: str = Field(
+        ...,
+        description="ID of the evaluation matrix used.",
+        json_schema_extra={"x-ui-label": "Matrix ID"},
+    )
+    score_card: JudgeScoreCard = Field(
+        ...,
+        description="Final scorecard.",
+        json_schema_extra={"x-ui-label": "Scorecard"},
+    )
+    scale_min: float = Field(
+        ...,
+        description="Minimum possible score (usually 0 or 1).",
+        json_schema_extra={"x-ui-label": "Scale Min"},
+    )
+    scale_max: float = Field(
+        ...,
+        description="Maximum possible score (usually 5).",
+        json_schema_extra={"x-ui-label": "Scale Max"},
+    )
+    critical_findings: list[str] = Field(
+        default_factory=list,
+        description="Critical issues identified.",
+        json_schema_extra={"x-ui-label": "Critical Findings"},
+    )
+
+
+class JudgeOutput(JudgeDTO, ReasoningTrace):
+    """Output schema for the Judge Agent."""
+
+
+class ScoringResult(V2CoreBase):
+    """Result of the scoring logic (Hook).
+
+    Attributes:
+        total_score: Total aggregated score.
+        calculated_average: Calculated average.
+        score_summary: Summary text.
+        penalties_applied: List of penalties applied.
+    """
+
+    total_score: float = Field(
+        ..., description="Total aggregated score.", json_schema_extra={"x-ui-label": "Total Score"}
+    )
+    calculated_average: float = Field(
+        ..., description="Calculated average.", json_schema_extra={"x-ui-label": "Average Score"}
+    )
+    score_summary: str = Field(
+        ..., min_length=1, description="Summary text.", json_schema_extra={"x-ui-label": "Summary"}
+    )
+    penalties_applied: list[str] = Field(
+        default_factory=list, description="List of penalties applied.", json_schema_extra={"x-ui-label": "Penalties"}
+    )

@@ -1,0 +1,51 @@
+# YAML config for uvicorn to match our logging format
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  default:
+    format: "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+  access:
+    format: "%(asctime)s | %(levelname)s | uvicorn.access | %(client_addr)s - \"%(request_line)s\" %(status_code)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+handlers:
+  default:
+    class: logging.StreamHandler
+    formatter: default
+    stream: ext://sys.stdout
+  access:
+    class: logging.StreamHandler
+    formatter: access
+    stream: ext://sys.stdout
+  file_default:
+    class: logging.FileHandler
+    filename: backend_debug.log
+    formatter: default
+    mode: a
+  file_access:
+    class: logging.FileHandler
+    filename: backend_debug.log
+    formatter: access
+    mode: a
+
+loggers:
+  uvicorn:
+    level: WARNING
+    handlers:
+      - default
+      - file_default
+    propagate: false
+  uvicorn.error:
+    level: WARNING
+    handlers:
+      - default
+      - file_default
+    propagate: false
+  uvicorn.access:
+    level: WARNING
+    handlers:
+      - access
+      - file_access
+    propagate: false

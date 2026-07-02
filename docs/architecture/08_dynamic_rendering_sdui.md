@@ -137,6 +137,11 @@ Tulostusmoottorin vienti- ja raportointiarkkitehtuuri noudattaa "HTML First" ja 
 * Loppuraportti tuottaa visuaalisessa muodossa 1:1 asiakaskäyttöliittymän kanssa kaikki matriisien syvälaajennukset (kuten Valmennusvinkit, Sävy ja Korjaustoimenpiteet). Tieto virtaa rikkomattomasti `ReportDataDTO`:n kautta.
 * **Kattava Matriisikoontitaulukko (Summary Table):** Raportin loppuun renderöidään automaattisesti kattava taulukko-osio. Se kokoaa matriisien tasot, perustelut ja skaalatut prosenttiarvot tiiviiksi yhteenvedoksi.
 
+### 6.4 Pariteetti Analytiikkaviennissä (Phase 4 PDF & Flat Forensics)
+Jotta analytiikkavienti (CSV/JSON Flat Export) vastaa 100 % tarkkuudella visuaalista SDUI/PDF-tilaa, myös `flattener.py` kuluttaa Pydanticin `ReportDataDTO` -rungon (`MatrixScorecardRowDTO` -kerros) raa'an työnkulun (`execution_trace`) sijaan. Tämä varmistaa Zero-Math-tilan, jossa:
+1. Matriisin globaali tulos ja varoitukset flatataan yksi-yhteen raporttidatan perusteella.
+2. Atomi-tason (`MatrixScorecardRowDTO`) `status`, `semantic_reasoning`, `cited_text_quote` ja lähteet viedään taulukkoon suoraan Blueprintin tuottamasta turvallisesta DTO:sta ilman tuplalaskentaa tai vanhojen Markdown-lukkien avaamista.
+
 ### C. Multi-Profile Caching & On-Demand Reprocessing (FinOps)
 Koko järjestelmä tallentaa kalliin prosessin vain kerran `ExecutionRecord.execution_trace` taulukkoon Pydantic Event Sourcing -mallilla.
 Kun tietty Output Profile on prosessoitu, LLM:n palauttama DTO (`RenderedSynthesisCache`) välimuistitetaan ikuiseksi osaksi itse `ExecutionRecord` -tietuetta (`profile_syntheses["prof_executive"]`).

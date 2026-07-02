@@ -1,0 +1,206 @@
+"""Deterministic Matrix Flattening Hook for V2 Architecture.
+
+This hook extracts `category_id="matrix"` PromptBlocks for a specific DAG Step,
+flattens the 75-atom scale representation into a blind, unstructured list, and
+applies Stratified Random Sampling using `MatrixSamplingStrategy` to mitigate
+LLM context fatigue and JSON token explosion.
+"""
+
+import logging
+import random
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.v2_core import PromptBlock, Step
+
+logger = logging.getLogger(__name__)
+
+
+class FlattenedAtom(BaseModel):
+    """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule).
+
+    Attributes:
+        atom_id: Opaque hashed ID for the extracted atom.
+        question: The text content evaluated blindly.
+        extraction_rule: The specific validation rule.
+        anchor_target: Semantic bounding box target.
+        is_inverse: True if this is an inverse assertion.
+    """
+
+    atom_id: str = Field(description="Opaque hashed ID for the extracted atom.")
+    question: str = Field(description="The text content evaluated blindly.")
+    extraction_rule: str = Field(default="", description="The specific validation rule.")
+    anchor_target: str = Field(default="", description="Semantic bounding box target.")
+    is_inverse: bool = Field(default=False, description="True if this is an inverse assertion.")
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
+
+
+class FlatteningHookOutput(BaseModel):
+    """Strict Pydantic schema for the entire hook state delta payload.
+
+    Attributes:
+        shuffled_atoms: List of selected and randomized extraction items.
+    """
+
+    shuffled_atoms: list[FlattenedAtom]
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+
+@hook_registry.register(name="atom_flattening_hook")
+async def process_matrix_flattening(state: HookState, deps: HookDependencies) -> HookResult:
+    """HOOK: atom_flattening_hook.
+
+    Executes before the LLM context generation to transform complex `MatrixScale` structures
+    into a purely blind list `[{"atom_id": "...", "question": "..."}]` ensuring Zero-Trust
+    evaluations. Includes Stratified Random Sampling capabilities.
+
+    Args:
+        state: The frozen execution HookState context.
+        deps: Injected system service dependencies.
+
+    Returns:
+        HookResult: Successful execution wrapper with shuffled atoms in state_delta.
+
+    Raises:
+        AppException: If configuration is invalid or dependencies are missing.
+    """
+    logger.info("[AtomFlatteningHook] Triggered for step '%s' (Execution: %s)", state.step_id, state.execution_id)
+
+    if not state.task_blueprint:
+        logger.warning("[AtomFlatteningHook] No task_blueprint defined for step %s. Skpping.", state.step_id)
+        return HookResult(success=True, state_delta={})
+
+    repo = deps.workflow_repo
+    if not repo:
+        raise AppException(
+            message="HookDependencies missing repository.",
+            status_code=500,
+            details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND},
+        )
+
+    # 1. Fetch the overarching Step configuration safely
+    step_def = await repo.get_step_by_id(state.task_blueprint)
+    if not step_def:
+        logger.warning("[AtomFlatteningHook] Step blueprint '%s' not found.", state.task_blueprint)
+        return HookResult(success=True, state_delta={})
+
+    step = Step.model_validate(step_def)
+    prompt_block_ids = step.criteria_block_ids
+
+    if not prompt_block_ids:
+        return HookResult(success=True, state_delta={})
+
+    # 2. Extract Matrix Sampler Metadata limit
+    if "matrix_sampling_strategy" not in state.metadata:
+        raise AppException(
+            message="AtomFlatteningHook requires 'matrix_sampling_strategy' in execution metadata.",
+            status_code=400,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+
+    sampling_limit_val = state.metadata["matrix_sampling_strategy"]
+
+    if not isinstance(sampling_limit_val, int) or sampling_limit_val < 0:
+        raise AppException(
+            message=f"Invalid matrix_sampling_strategy '{sampling_limit_val}'. Exiting via Fail-Fast.",
+            status_code=400,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+
+    # 3. Retrieve and filter blocks
+    all_blocks = await deps.comp_repo.get_all_prompt_blocks()
+
+    unique_atoms: dict[str, tuple[str, str, str, bool]] = {}
+
+    for raw_block in all_blocks:
+        try:
+            block = PromptBlock.model_validate(raw_block)
+        except Exception as e:
+            msg = f"Strict Fail-Fast Enforced: Invalid legacy block format: {e}"
+            logger.error("[AtomFlatteningHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
+
+        if block.id in prompt_block_ids:
+            if block.category_id == "matrix":
+                assert block.scales is not None, "Matrix Block missing scales. Pydantic fail-fast bypassed."
+
+                logger.info(
+                    "[AtomFlatteningHook] Flattening Matrix: '%s'. Sampling limit: %s",
+                    block.id,
+                    sampling_limit_val,
+                )
+
+                matrix_collected_atoms: list[tuple[str, str, str, str, bool]] = []
+
+                for scale in block.scales:
+                    scale_atoms: list[tuple[str, str, str, str, bool]] = []
+
+                    for claim in scale.claims:
+                        tda_assertions = claim.tda_assertions
+                        if tda_assertions and len(tda_assertions) > 0:
+                            for tda in tda_assertions:
+                                aid = str(tda.tda_id)
+                                scale_atoms.append(
+                                    (
+                                        aid,
+                                        tda.concept_description.strip(),
+                                        tda.extraction_rule.strip() if tda.extraction_rule else "",
+                                        tda.anchor_target.strip() if tda.anchor_target else "",
+                                        bool(tda.inverse_evidence),
+                                    )
+                                )
+                        else:
+                            msg = (
+                                f"PromptBlock '{block.id}' claim is missing mandatory 'tda_assertions' during runtime."
+                            )
+                            logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            raise AppException(
+                                message=msg,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+
+                    # Apply constraint securely using deterministic execution ID locking
+                    if sampling_limit_val > 0 and len(scale_atoms) > sampling_limit_val:
+                        # Append the specific scale score to the random seed to avoid identical slicing across scales!
+                        secure_seed = f"{state.execution_id}_{block.id}_scale_{scale.score}"
+                        rng = random.Random(secure_seed)
+                        selected_atoms = rng.sample(scale_atoms, sampling_limit_val)
+                        logger.debug(
+                            "[AtomFlatteningHook] Scale %s: Sampled %d out of %d atoms.",
+                            scale.score,
+                            len(selected_atoms),
+                            len(scale_atoms),
+                        )
+                    else:
+                        selected_atoms = scale_atoms
+
+                    matrix_collected_atoms.extend(selected_atoms)
+
+                for atom_id, text, rule, anchor, is_inv in matrix_collected_atoms:
+                    if atom_id not in unique_atoms:
+                        unique_atoms[atom_id] = (text, rule, anchor, is_inv)
+
+    # 4. Global Deterministic Sort (Semantic Micro-Batching Requirement)
+    if unique_atoms:
+        model_list = [
+            FlattenedAtom(atom_id=key, question=val[0], extraction_rule=val[1], anchor_target=val[2], is_inverse=val[3])
+            for key, val in unique_atoms.items()
+        ]
+
+        # Deterministic sort based on atom_id hash to prevent LLM Context Fatigue and ensure reproducibility
+        model_list.sort(key=lambda x: x.atom_id)
+
+        logger.info("[AtomFlatteningHook] Flattened %d total atoms. Executing deterministic sort.", len(model_list))
+
+        # Enforce Rule 'No Naked Dicts': explicitly dump the structured model
+        output_payload = FlatteningHookOutput(shuffled_atoms=model_list)
+        return HookResult(success=True, state_delta=output_payload.model_dump(mode="json"))
+
+    return HookResult(success=True, state_delta={})

@@ -56,6 +56,9 @@ class SynthesisMetadataDTO(V2CoreBase):
     execution_summary: dict[str, Any] | None = Field(default=None)
     step_metrics: dict[str, Any] | None = Field(default=None)
 
+    # Injected by output quality scanner
+    has_slop_warning: bool | None = Field(default=None)
+
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):
     """Schema to safely extract required synthesis flags from generic step outputs.

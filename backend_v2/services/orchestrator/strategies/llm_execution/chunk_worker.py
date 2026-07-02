@@ -134,6 +134,7 @@ def resolve_majority_vote(
     user_payload: str,
     global_source_text: str,
     strictness_level: int,
+    val_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not results:
         return {}
@@ -163,7 +164,7 @@ def resolve_majority_vote(
 
             for v in votes:
                 try:
-                    payload = ConsensusVotePayload.model_validate(v)
+                    payload = ConsensusVotePayload.model_validate(v, context=val_context)
                     status = evaluate_extraction(payload, global_source_text, strictness_level)
                     if status == "PASS":
                         pass_votes += 1
@@ -230,7 +231,7 @@ def resolve_majority_vote(
 
             for v in block_votes:
                 try:
-                    payload = ConsensusVotePayload.model_validate(v)
+                    payload = ConsensusVotePayload.model_validate(v, context=val_context)
                     status = evaluate_extraction(payload, global_source_text, strictness_level)
                     if status == "PASS":
                         pass_votes += 1
@@ -817,8 +818,16 @@ class ChunkWorker:
                 evaluations = res_dict.get("evaluations", [])
                 base_alias_engine.hydrate_atoms(evaluations)
 
+        val_context = {"alias_map": base_alias_engine.alias_map}
+
         chunk_final = resolve_majority_vote(
-            res_list, has_shuffled_atoms, chunk_criteria, user_payload, global_source_text, strictness_level
+            res_list,
+            has_shuffled_atoms,
+            chunk_criteria,
+            user_payload,
+            global_source_text,
+            strictness_level,
+            val_context,
         )
 
         if has_shuffled_atoms and "evaluations" not in chunk_final:
@@ -848,7 +857,7 @@ class ChunkWorker:
                     "confidence": atom_dict.pop("confidence", None),
                 }
 
-            validated_response = local_dynamic_schema.model_validate(chunk_final)
+            validated_response = local_dynamic_schema.model_validate(chunk_final, context=val_context)
             chunk_final = validated_response.model_dump(mode="json")
 
             for idx, atom_model in enumerate(getattr(validated_response, "evaluations", [])):

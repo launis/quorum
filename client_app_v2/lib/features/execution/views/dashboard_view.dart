@@ -131,12 +131,26 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                         : {};
                     final totalTokens =
                         (metadata['total_tokens'] as num?)?.toInt() ?? 0;
+                    final promptTokens =
+                        (metadata['prompt_tokens'] as num?)?.toInt() ?? 0;
+                    final completionTokens =
+                        (metadata['completion_tokens'] as num?)?.toInt() ?? 0;
 
                     String metricsStr = '';
-                    if (totalTokens > 0 || costEstimate > 0) {
+                    if (totalTokens > 0 ||
+                        promptTokens > 0 ||
+                        completionTokens > 0 ||
+                        costEstimate > 0) {
                       final l10n = AppLocalizations.of(context)!;
+                      String tokensStr;
+                      if (promptTokens > 0 || completionTokens > 0) {
+                        tokensStr =
+                            '${l10n.reportPromptTokens(promptTokens.toString())} | ${l10n.reportCompletionTokens(completionTokens.toString())}';
+                      } else {
+                        tokensStr = l10n.tokensUsed(totalTokens);
+                      }
                       metricsStr =
-                          '\n${l10n.executionCostEstimate(costEstimate.toStringAsFixed(6))} | ${l10n.tokensUsed(totalTokens)}';
+                          '\n${l10n.executionCostEstimate(costEstimate.toStringAsFixed(6))} | $tokensStr';
                     }
 
                     // Resolve Workflow Name

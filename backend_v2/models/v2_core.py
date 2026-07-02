@@ -1513,3 +1513,8 @@ class BaseTDAExtraction(BaseModel):
                         logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                         raise ValueError(msg)
         return data
+
+
+from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+
+ExecutionRecord.model_rebuild()

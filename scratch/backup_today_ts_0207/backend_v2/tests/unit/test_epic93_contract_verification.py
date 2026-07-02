@@ -1,0 +1,474 @@
+"""System 2 Verification: Epic 93 Phase 1 + Phase 2 Contract Compliance Test.
+
+This test suite verifies that the promises made in:
+  1. docs/epic/EPIC_93_SDUI_Output_Rendering_Unification 2.md (master epic)
+  2. docs/epic/tasks_epic_93/phase1_dto_refactoring.md (Phase 1 plan)
+  3. docs/epic/tasks_epic_93/phase2_pipeline_unification.md (Phase 2 plan)
+
+have been fulfilled by the actual codebase.
+
+System 2 Methodology:
+  - Each test maps to a SPECIFIC promise from the documents.
+  - Each test includes a falsification attempt (trying to break the contract).
+  - Tests are grouped by contract source.
+"""
+
+import json
+from pathlib import Path
+from typing import Any
+
+# ============================================================================
+# CONTRACT GROUP 1: EPIC 93 Master Document (Sections 1-3)
+# Promise: "Putki B tuhotaan" (Pipe B is destroyed)
+# ============================================================================
+
+
+class TestPipeBDestruction:
+    """Verify EPIC 93 §2: 'Putki B (backend_v2/hooks/synthesis.py) lakkautetaan.'."""
+
+    def test_synthesis_py_file_does_not_exist(self) -> None:
+        """PROMISE: 'backend_v2/hooks/synthesis.py' must be deleted.
+
+        Falsification: Check if the file exists anywhere on disk.
+        """
+        synthesis_path = Path("backend_v2/hooks/synthesis.py")
+        assert not synthesis_path.exists(), (
+            f"BROKEN CONTRACT: synthesis.py still exists at {synthesis_path}. Epic 93 §2 mandates: 'Putki B tuhotaan.'"
+        )
+
+    def test_no_text_consolidation_hook_registered(self) -> None:
+        """PROMISE: TextConsolidationHook must be eliminated.
+
+        Falsification: Search the hook registry for any remnants.
+        """
+        from backend_v2.core.hook_registry import HookRegistry
+
+        registry = HookRegistry()
+        # Reset singleton to ensure fresh state for discovery
+        registered_hooks = list(registry._hooks.keys())
+        assert "text_consolidation_hook" not in registered_hooks, (
+            "BROKEN CONTRACT: text_consolidation_hook is still registered in HookRegistry. "
+            "Epic 93 §2 mandates complete elimination."
+        )
+
+    def test_synthesis_distiller_hook_is_registered(self) -> None:
+        """PROMISE: Synthesis responsibilities moved to DAG.
+
+        The replacement 'synthesis_distiller_hook' must be registered.
+        Note: The @hook_registry.register decorator triggers on module import,
+        so we must import the module first (just as hooks/__init__.py does at startup).
+        """
+        # Force module import to trigger @hook_registry.register decorator
+        import backend_v2.services.orchestrator.synthesis_distiller  # noqa: F401
+        from backend_v2.core.hook_registry import HookRegistry
+
+        registry = HookRegistry()
+        assert "synthesis_distiller_hook" in registry._hooks, (
+            "BROKEN CONTRACT: synthesis_distiller_hook is NOT registered. "
+            "Epic 93 Phase 2 mandates DAG-based synthesis distillation."
+        )
+
+    def test_no_synthesis_imports_in_hooks_init(self) -> None:
+        """PROMISE: No lingering synthesis module imports.
+
+        Falsification: Parse hooks/__init__.py for synthesis references.
+        """
+        init_path = Path("backend_v2/hooks/__init__.py")
+        if init_path.exists():
+            content = init_path.read_text(encoding="utf-8")
+            # Check there's no import of synthesis module
+            assert "synthesis" not in content.lower() or "synthesis_distiller" in content.lower(), (
+                "BROKEN CONTRACT: hooks/__init__.py still references 'synthesis'. "
+                "Only synthesis_distiller should remain."
+            )
+
+
+# ============================================================================
+# CONTRACT GROUP 2: EPIC 93 Phase 1 (DTO Refactoring)
+# Promise: "Headless, strongly-typed Pydantic models carrying only semantic data"
+# ============================================================================
+
+
+class TestPhase1DTORefactoring:
+    """Verify Phase 1 promises from phase1_dto_refactoring.md."""
+
+    def test_report_data_dto_exists_and_is_headless(self) -> None:
+        """PROMISE: 'ReportDataDto refaktoroidaan täysin irti esitystavasta.'.
+
+        The model must exist and contain semantic fields, not Markdown/HTML.
+        """
+        from backend_v2.models.dtos.report import ReportDataDto
+
+        # Verify the class exists
+        assert ReportDataDto is not None
+
+        # Verify it has the promised semantic fields
+        fields = ReportDataDto.model_fields
+        assert "executive_summary" in fields, "Missing promised field: executive_summary"
+        assert "evidence_quotes" in fields, "Missing promised field: evidence_quotes"
+        assert "urgency_level" in fields, "Missing promised field: urgency_level"
+
+        # Falsification: Verify NO Markdown/HTML contamination in field types
+        for field_name, field_info in fields.items():
+            field_type_str = str(field_info.annotation)
+            assert "markdown" not in field_type_str.lower(), (
+                f"BROKEN CONTRACT: ReportDataDto.{field_name} has Markdown type. "
+                "Phase 1 mandates headless semantic data only."
+            )
+
+    def test_execution_state_exists_and_is_headless(self) -> None:
+        """PROMISE: 'ExecutionState eivät enää sisällä Markdownia, HTML:ää tai UI-tageja.'."""
+        from backend_v2.models.state import ExecutionState
+
+        fields = ExecutionState.model_fields
+        assert "executive_summary" in fields, "Missing promised field: executive_summary"
+        assert "evidence_quotes" in fields, "Missing promised field: evidence_quotes"
+
+    def test_quote_evidence_dto_exists_with_correct_fields(self) -> None:
+        """PROMISE (Phase 1 §2): QuoteEvidenceDTO must have 'quote: str' and 'source_alias: List[str]'."""
+        from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+
+        fields = QuoteEvidenceDTO.model_fields
+        assert "quote" in fields, "Missing promised field: quote"
+        assert "source_alias" in fields, "Missing promised field: source_alias"
+
+    def test_quote_evidence_before_validator_regex_parsing(self) -> None:
+        """PROMISE (Phase 1 §2): 'mode=before @field_validator on source_alias to intercept
+        strings like "DOC-1, DOC-2" and normalize them into a list.'.
+
+        Falsification: Feed combined string, verify split.
+        """
+        from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+
+        dto = QuoteEvidenceDTO.model_validate(
+            {"quote": "Test.", "source_alias": "DOC-1, DOC-2"},
+            context={"alias_registry": {"DOC-1": "opq_1", "DOC-2": "opq_2"}},
+        )
+        # Verify the regex extracted both
+        assert len(dto.source_alias) == 2, (
+            f"BROKEN CONTRACT: Expected 2 aliases, got {len(dto.source_alias)}. "
+            "Phase 1 mandates regex re.findall(r'DOC-\\d+', v) parsing."
+        )
+
+    def test_quote_evidence_unverified_fallback(self) -> None:
+        """PROMISE (Phase 1 §2): 'If the alias is missing, map it strictly to
+        the literal string "OpaqueID.UNVERIFIED".'.
+
+        Falsification: Feed unknown alias, verify exact string.
+        """
+        from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+
+        dto = QuoteEvidenceDTO.model_validate(
+            {"quote": "Test.", "source_alias": "DOC-999"},
+            context={"alias_registry": {"DOC-1": "opq_1"}},
+        )
+        assert dto.source_alias == ["OpaqueID.UNVERIFIED"], (
+            f"BROKEN CONTRACT: Expected ['OpaqueID.UNVERIFIED'], got {dto.source_alias}. "
+            "Phase 1 mandates strict OpaqueID.UNVERIFIED mapping for unknown aliases."
+        )
+
+    def test_quote_evidence_context_injection_works(self) -> None:
+        """PROMISE (Phase 1 §2): '@field_validator that takes info: ValidationInfo.
+        It must access info.context.get("alias_registry", {}).'.
+
+        Falsification: Provide context with known mapping, verify resolution.
+        """
+        from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+
+        registry = {"DOC-1": "src_abc123", "DOC-2": "src_def456"}
+        dto = QuoteEvidenceDTO.model_validate(
+            {"quote": "Evidence.", "source_alias": ["DOC-1", "DOC-2"]},
+            context={"alias_registry": registry},
+        )
+        assert dto.source_alias == ["src_abc123", "src_def456"], (
+            f"BROKEN CONTRACT: Alias resolution failed. Got {dto.source_alias}. "
+            "Phase 1 mandates ValidationInfo context-based resolution."
+        )
+
+    def test_quote_evidence_no_logging_side_effects_in_validator(self) -> None:
+        """PROMISE (Phase 1 §2): 'No logging or side-effects inside the validator.'.
+
+        Falsification: Inspect the resolve_source_alias validator source for logger calls.
+        """
+        import inspect
+
+        from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+
+        source = inspect.getsource(QuoteEvidenceDTO.resolve_source_alias)
+        assert "logger" not in source, (
+            "BROKEN CONTRACT: resolve_source_alias contains logging. "
+            "Phase 1 mandates: 'No logging or side-effects inside the validator.'"
+        )
+
+
+# ============================================================================
+# CONTRACT GROUP 3: EPIC 93 Phase 2 (Pipeline Unification)
+# Promise: "Transfer synthesis responsibilities to declarative prompt_blocks"
+# ============================================================================
+
+
+class TestPhase2PipelineUnification:
+    """Verify Phase 2 promises from phase2_pipeline_unification.md."""
+
+    def test_synthesis_prompts_exist_in_seed_data(self) -> None:
+        """PROMISE (Phase 2 §3): 'Inject synthesis prompts natively into prompt_blocks SSOT.'.
+
+        Falsification: Parse seed_data.json and verify the blocks exist.
+        """
+        seed_path = Path("backend_v2/seed/seed_data.json")
+        assert seed_path.exists(), "seed_data.json not found"
+
+        with seed_path.open("r", encoding="utf-8") as f:
+            seed_data = json.load(f)
+
+        # Find prompt_blocks collection
+        prompt_blocks = seed_data.get("prompt_blocks", [])
+        slugs = [pb.get("slug", "") for pb in prompt_blocks]
+
+        assert "blk_synthesis_global_rules" in slugs, (
+            "BROKEN CONTRACT: blk_synthesis_global_rules not in seed_data.json prompt_blocks. "
+            "Phase 2 mandates prompt migration to SSOT."
+        )
+        assert "blk_synthesis_section_rules" in slugs, (
+            "BROKEN CONTRACT: blk_synthesis_section_rules not in seed_data.json prompt_blocks."
+        )
+        assert "blk_row_explanation_rules" in slugs, (
+            "BROKEN CONTRACT: blk_row_explanation_rules not in seed_data.json prompt_blocks."
+        )
+
+    def test_synthesis_dag_steps_exist_in_seed_data(self) -> None:
+        """PROMISE (Phase 2 §3): Synthesis wired via 'dependencies' array in 'workflows'.
+
+        Verify sp_synthesis_distiller, sp_synthesis_llm, sp_row_explanations exist as steps.
+        """
+        seed_path = Path("backend_v2/seed/seed_data.json")
+        with seed_path.open("r", encoding="utf-8") as f:
+            seed_data = json.load(f)
+
+        steps = seed_data.get("steps", [])
+        step_slugs = [s.get("slug", "") for s in steps]
+
+        assert "sp_synthesis_distiller" in step_slugs, (
+            "BROKEN CONTRACT: sp_synthesis_distiller step not in seed_data.json."
+        )
+        assert "sp_synthesis_llm" in step_slugs, "BROKEN CONTRACT: sp_synthesis_llm step not in seed_data.json."
+        assert "sp_row_explanations" in step_slugs, "BROKEN CONTRACT: sp_row_explanations step not in seed_data.json."
+
+    def test_synthesis_distiller_performs_token_shield(self) -> None:
+        """PROMISE (Phase 2 §1): 'Create matrix_reducer.py (or equivalent) that strips
+        heavy metadata from chunk evaluation JSONs.'.
+
+        The synthesis_distiller._compress_synthesis_payload serves this role.
+        Falsification: Feed heavy payload, verify stripping.
+        """
+        from backend_v2.services.orchestrator.synthesis_distiller import (
+            _compress_synthesis_payload,
+        )
+
+        heavy_payload: dict[str, Any] = {
+            "normalized_score": 75.0,
+            "shuffled_atoms": ["a1", "a2", "a3"],
+            "evaluations": [
+                {
+                    "atom_id": "a1",
+                    "exact_quotes": [{"quote_text": "Valid quote."}],
+                    "semantic_reasoning": "Good reasoning.",
+                    "internal_debug_trace": "MUST_BE_STRIPPED",
+                },
+            ],
+        }
+        result = _compress_synthesis_payload(heavy_payload)
+        assert "shuffled_atoms" not in result, "Token shield failed: shuffled_atoms not stripped"
+        assert "Valid quote." in result, "Token shield stripped too much: valid quote missing"
+
+    def test_compress_synthesis_caps_evaluations(self) -> None:
+        """PROMISE: Prevent LLM token explosion by capping evaluations.
+
+        Falsification: Feed 30 evaluations, verify max 20.
+        """
+        from backend_v2.services.orchestrator.synthesis_distiller import (
+            _compress_synthesis_payload,
+        )
+
+        evals = [
+            {
+                "atom_id": f"a{i}",
+                "exact_quotes": [{"quote_text": f"Quote {i}"}],
+                "semantic_reasoning": f"Reason {i}",
+            }
+            for i in range(30)
+        ]
+        result_str = _compress_synthesis_payload({"evaluations": evals})
+        parsed = json.loads(result_str)
+        assert len(parsed["evaluations"]) == 20, (
+            f"BROKEN CONTRACT: Evaluations not capped at 20. Got {len(parsed['evaluations'])}."
+        )
+
+    def test_matrices_to_explain_assembly(self) -> None:
+        """PROMISE: Cross-reference atom_quotes with normalized scores.
+
+        Falsification: Build scenario with matching and non-matching data.
+        """
+        from backend_v2.models.state import StepOutputDTO
+        from backend_v2.services.orchestrator.synthesis_distiller import (
+            _assemble_matrices_to_explain,
+        )
+
+        dtos = [
+            StepOutputDTO(
+                step_id="scoring",
+                block_id="atom_quotes",
+                data_type="unknown",
+                payload={"blk_m1": ["Q1"], "blk_m2": []},
+            ),
+            StepOutputDTO(
+                step_id="s1",
+                block_id="blk_m1",
+                data_type="matrix",
+                payload={"normalized_score": 80.0},
+            ),
+            StepOutputDTO(
+                step_id="s2",
+                block_id="blk_m2",
+                data_type="matrix",
+                payload={"normalized_score": 60.0},
+            ),
+        ]
+        result = _assemble_matrices_to_explain(dtos)
+        # blk_m1 has quotes, blk_m2 has empty quotes
+        assert len(result) == 1
+        assert result[0]["matrix_id"] == "blk_m1"
+
+    def test_hook_prompts_no_synthesis_constants(self) -> None:
+        """PROMISE (Phase 2): SYNTHESIS_* constants removed from hook_prompts.py.
+
+        Falsification: Import the module and check for SYNTHESIS_ prefixed constants.
+        """
+        import backend_v2.models.prompts.hook_prompts as hp
+
+        synthesis_attrs = [attr for attr in dir(hp) if attr.startswith("SYNTHESIS_")]
+        assert synthesis_attrs == [], (
+            f"BROKEN CONTRACT: hook_prompts.py still has SYNTHESIS_ constants: {synthesis_attrs}"
+        )
+
+
+# ============================================================================
+# CONTRACT GROUP 4: Integration Verification
+# Promise: Phase 1 + Phase 2 work together as a coherent pipeline
+# ============================================================================
+
+
+class TestPhase1Phase2Integration:
+    """Verify that Phase 1 DTOs and Phase 2 DAG pipeline integrate correctly."""
+
+    def test_report_data_dto_uses_quote_evidence_dto(self) -> None:
+        """INTEGRATION: ReportDataDto.evidence_quotes must use QuoteEvidenceDTO type."""
+        from backend_v2.models.dtos.report import ReportDataDto
+
+        field = ReportDataDto.model_fields["evidence_quotes"]
+        # The annotation should involve QuoteEvidenceDTO
+        annotation_str = str(field.annotation)
+        assert "QuoteEvidenceDTO" in annotation_str, (
+            f"INTEGRATION FAILURE: evidence_quotes type is {annotation_str}, expected list[QuoteEvidenceDTO]."
+        )
+
+    def test_execution_state_uses_quote_evidence_dto(self) -> None:
+        """INTEGRATION: ExecutionState.evidence_quotes must use QuoteEvidenceDTO type."""
+        from backend_v2.models.state import ExecutionState
+
+        field = ExecutionState.model_fields["evidence_quotes"]
+        annotation_str = str(field.annotation)
+        assert "QuoteEvidenceDTO" in annotation_str, (
+            f"INTEGRATION FAILURE: ExecutionState.evidence_quotes type is {annotation_str}."
+        )
+
+    def test_quote_evidence_dto_instantiation_e2e(self) -> None:
+        """INTEGRATION: Full E2E: raw LLM string -> QuoteEvidenceDTO -> ReportDataDto.
+
+        Simulates the complete data flow from LLM output to final DTO packaging.
+        """
+        from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+        from backend_v2.models.dtos.report import ReportDataDto
+
+        # Simulate LLM output with messy alias format
+        registry = {"DOC-1": "src_abc", "DOC-2": "src_def"}
+        quote_dto = QuoteEvidenceDTO.model_validate(
+            {"quote": "The analysis shows significant gaps.", "source_alias": "DOC-1 and DOC-2"},
+            context={"alias_registry": registry},
+        )
+
+        # Verify resolution
+        assert quote_dto.source_alias == ["src_abc", "src_def"]
+
+        # Package into ReportDataDto
+        report = ReportDataDto(
+            executive_summary="Test summary.",
+            evidence_quotes=[quote_dto],
+            urgency_level=3,
+        )
+        assert len(report.evidence_quotes) == 1
+        assert report.evidence_quotes[0].quote == "The analysis shows significant gaps."
+
+    def test_synthesis_distiller_output_is_serializable(self) -> None:
+        """INTEGRATION: Distiller output (state_delta) must be JSON-serializable
+        for DAG transport between nodes.
+        """
+        from backend_v2.services.orchestrator.synthesis_distiller import (
+            _compress_synthesis_payload,
+        )
+
+        payload: dict[str, Any] = {
+            "normalized_score": 85.0,
+            "evaluations": [
+                {
+                    "atom_id": "a1",
+                    "exact_quotes": [{"quote_text": "Key evidence."}],
+                    "semantic_reasoning": "Solid reasoning.",
+                }
+            ],
+        }
+        result = _compress_synthesis_payload(payload)
+        # Must be valid JSON
+        parsed = json.loads(result)
+        assert isinstance(parsed, dict), "Distiller output is not a valid JSON dict"
+
+    def test_no_orphaned_synthesis_test_files(self) -> None:
+        """INTEGRATION: Verify no orphaned test files for deleted synthesis.py.
+
+        Falsification: Scan tests/unit/hooks/ for any test_synthesis*.py files.
+        """
+        test_dir = Path("backend_v2/tests/unit/hooks")
+        if test_dir.exists():
+            synthesis_tests = list(test_dir.glob("test_synthesis*.py"))
+            # test_row_explanations is also legacy
+            row_exp_tests = list(test_dir.glob("test_row_explanations.py"))
+            orphans = synthesis_tests + row_exp_tests
+            assert orphans == [], (
+                f"ORPHANED TEST FILES: {[str(f) for f in orphans]}. These tests reference the deleted synthesis.py."
+            )
+
+    def test_worker_does_not_call_legacy_hook(self) -> None:
+        """INTEGRATION: worker.py must NOT call text_consolidation_hook.
+
+        Falsification: Parse worker.py source for the old hook name.
+        """
+        worker_path = Path("backend_v2/worker.py")
+        if worker_path.exists():
+            content = worker_path.read_text(encoding="utf-8")
+            assert "text_consolidation_hook" not in content, (
+                "BROKEN CONTRACT: worker.py still references text_consolidation_hook. "
+                "Phase 2 mandates DAG-based synthesis extraction from execution_trace."
+            )
+
+    def test_worker_extracts_synthesis_from_dag(self) -> None:
+        """INTEGRATION: worker.py must extract synthesis from execution_trace by step slug.
+
+        Falsification: Verify the worker references sp_synthesis_llm.
+        """
+        worker_path = Path("backend_v2/worker.py")
+        if worker_path.exists():
+            content = worker_path.read_text(encoding="utf-8")
+            assert "sp_synthesis_llm" in content, (
+                "BROKEN CONTRACT: worker.py does not reference sp_synthesis_llm. "
+                "Phase 2 mandates DAG output extraction by step slug."
+            )

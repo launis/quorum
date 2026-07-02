@@ -1117,6 +1117,102 @@
         }
       }
     },
+    "/api/v2/execution/executions/{execution_id}/report": {
+      "get": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Get Execution Report",
+        "description": "Get the clean, UI-agnostic ReportDataDto for machine integrations (B2B Headless).\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    The headless ReportDataDto.\n\nRaises:\n    AppException: If execution is not found or permission is denied.",
+        "operationId": "get_execution_report_api_v2_execution_executions__execution_id__report_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDataDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/{execution_id}/sdui": {
+      "get": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Get Execution Sdui",
+        "description": "Get the Server-Driven UI component tree for rendering.\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    The SDUI ReportView dictionary.\n\nRaises:\n    AppException: If execution is not found or permission is denied.",
+        "operationId": "get_execution_sdui_api_v2_execution_executions__execution_id__sdui_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/execution/executions/{execution_id}/render": {
       "get": {
         "tags": [
@@ -4438,8 +4534,7 @@
           "matrix_sampling_strategy": {
             "type": "integer",
             "title": "Matrix Sampling Strategy",
-            "description": "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to 10 locally to mitigate LLM JSON schema context limits.",
-            "default": 2
+            "description": "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to 10 locally to mitigate LLM JSON schema context limits."
           },
           "raw_inputs": {
             "$ref": "#/components/schemas/WorkflowInputsIngress",
@@ -7462,42 +7557,27 @@
       },
       "QuoteEvidenceDTO": {
         "properties": {
-          "quote_text": {
+          "quote": {
             "type": "string",
-            "title": "Quote Text"
+            "title": "Quote",
+            "description": "The exact text of the quote."
           },
-          "source_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^([a-z0-9_]{2,30}|[a-z]{2,5}_[a-fA-F0-9]{16,32})$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Id",
-            "description": "Resolved document Opaque ID or input key."
-          },
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name"
+          "source_alias": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Alias",
+            "description": "A list of resolved Opaque IDs representing the source documents."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "quote_text"
+          "quote"
         ],
         "title": "QuoteEvidenceDTO",
-        "description": "Evidence DTO linking a quote to its resolved database ID."
+        "description": "Headless DTO for storing quote evidence with strict deterministic alias resolution.\n\nAttributes:\n    quote: The exact text of the quote.\n    source_alias: A list of resolved Opaque IDs representing the source documents."
       },
       "ReasoningStepDTO": {
         "properties": {
@@ -7581,6 +7661,69 @@
         "title": "ReasoningTrace",
         "description": "Stores hidden Chain-of-Thought (preserves \"Thinking Tokens\")."
       },
+      "ReferenceIntent": {
+        "type": "string",
+        "enum": [
+          "SEARCH",
+          "GROUNDING",
+          "INTERNAL_KB"
+        ],
+        "title": "ReferenceIntent",
+        "description": "Enum representing the strategic intent of a contextual citation reference."
+      },
+      "ReferenceItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id",
+            "description": "Citation ID, e.g., H-1, F-1"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/ReferenceIntent",
+            "description": "Type of the reference source"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Title of the source"
+          },
+          "snippet": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Snippet",
+            "description": "Extracted content, relevance, or reasoning"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Link to the source if available"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "intent",
+          "snippet"
+        ],
+        "title": "ReferenceItem",
+        "description": "Strict View Model for a single Contextual Citation.\n\nAttributes:\n    id: Citation ID, e.g., H-1, F-1.\n    intent: Type of the reference source.\n    title: Title of the source.\n    snippet: Extracted content, relevance, or reasoning.\n    url: Link to the source if available."
+      },
       "RenderedSynthesisCache": {
         "properties": {
           "synthesized_markdown": {
@@ -7656,6 +7799,107 @@
         "title": "RenderedSynthesisCache",
         "description": "Cached synthesis results tied to a specific OutputProfile ID."
       },
+      "ReportDataDto": {
+        "properties": {
+          "executive_summary": {
+            "type": "string",
+            "title": "Executive Summary",
+            "description": "Concise overview of findings from execution run."
+          },
+          "evidence_quotes": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteEvidenceDTO"
+            },
+            "type": "array",
+            "title": "Evidence Quotes",
+            "description": "Selected quotes to support the findings."
+          },
+          "urgency_level": {
+            "type": "integer",
+            "title": "Urgency Level",
+            "description": "Urgency or severity level."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "executive_summary",
+          "urgency_level"
+        ],
+        "title": "ReportDataDto",
+        "description": "Headless, strongly-typed Pydantic model carrying only semantic data."
+      },
+      "ReportView": {
+        "properties": {
+          "view_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "View Id",
+            "description": "The Execution ID"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Title",
+            "description": "Page title",
+            "default": "Auditintiraportti"
+          },
+          "status_theme": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Status Theme",
+            "description": "Visual theme: 'success' | 'warning' | 'danger'",
+            "default": "success"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/UiSection"
+            },
+            "type": "array",
+            "title": "Sections",
+            "description": "Ordered list of UI sections"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics",
+            "description": "Global audit metrics (Word Count, etc.)"
+          },
+          "system_notification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemNotification"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Global notification/warning"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceItem"
+            },
+            "type": "array",
+            "title": "References",
+            "description": "Global bibliography and references"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "view_id"
+        ],
+        "title": "ReportView",
+        "description": "Top-level View Model for the Execution Report mapped strictly for client rendering.\n\nAttributes:\n    view_id: Session Execution unique identifier.\n    title: Localization title key reference.\n    status_theme: Status color theme indicator.\n    sections: Array of polymorphic UI rendering nodes.\n    metrics: Extra global key-value performance indicators.\n    system_notification: Global alerts if applicable.\n    references: Structured citations matrix."
+      },
       "ScorecardAtomDTO": {
         "properties": {
           "atom_id": {
@@ -7721,6 +7965,13 @@
             "type": "string",
             "title": "Structural Location"
           },
+          "chart_display_label": {
+            "type": "string",
+            "title": "Chart Display Label"
+          },
+          "visual_intent": {
+            "$ref": "#/components/schemas/VisualIntent"
+          },
           "human_override": {
             "anyOf": [
               {
@@ -7744,7 +7995,9 @@
           "status",
           "semantic_reasoning",
           "contextual_override",
-          "structural_location"
+          "structural_location",
+          "chart_display_label",
+          "visual_intent"
         ],
         "title": "ScorecardAtomDTO",
         "description": "Explicit DTO firewall for presentation logic of individual atom evaluations."
@@ -7760,6 +8013,33 @@
         ],
         "title": "ScoringStrategy",
         "description": "Selects the mathematical engine used to calculate final matrix scores."
+      },
+      "SectionType": {
+        "type": "string",
+        "enum": [
+          "SCORE_CARD",
+          "MARKDOWN_BLOCK",
+          "TIMELINE_FEED",
+          "HEADER",
+          "KEY_METRICS",
+          "EVIDENCE_LIST",
+          "KEY_VALUE_GRID",
+          "DATA_TABLE",
+          "ACCORDION",
+          "USAGE_STATS",
+          "HIGHLIGHT_BOXES",
+          "LOGIC_ANALYSIS",
+          "STRESS_TEST",
+          "CAUSAL_ANALYSIS",
+          "PERFORMATIVITY_CHECK",
+          "FACT_CHECK",
+          "PROFILER_ANALYSIS",
+          "ARCHIVIST_CHECK",
+          "DRIVER_PROFILE",
+          "SECURITY_CHECK"
+        ],
+        "title": "SectionType",
+        "description": "Enum representing the Server-Driven UI section layout types."
       },
       "Step": {
         "properties": {
@@ -8576,6 +8856,34 @@
         "title": "SystemConfigPerformativeLexicons",
         "description": "System configuration for multi-language performative lexicons."
       },
+      "SystemNotification": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "level": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Level",
+            "default": "info"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "message"
+        ],
+        "title": "SystemNotification",
+        "description": "Server-Driven Notification for the Report Header.\n\nAttributes:\n    title: Notification header context.\n    message: Underlying textual telemetry or notification message.\n    level: Severe level indicators."
+      },
       "TDAAssertion": {
         "properties": {
           "tda_id": {
@@ -8988,6 +9296,39 @@
         "title": "TraceEvent",
         "description": "Immutable event log item representing a distinct step or state change."
       },
+      "UiSection": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id",
+            "description": "Unique identifier for the section (e.g. 'verdict-card')"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SectionType",
+            "description": "Determines which UI component to render"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Title",
+            "description": "User-facing title of the section"
+          },
+          "data": {
+            "title": "Data",
+            "description": "Flexible payload specific to the section type (dict or Pydantic Model)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title"
+        ],
+        "title": "UiSection",
+        "description": "Abstract UI Section mapped via Server-Driven UI schemas.\n\nAttributes:\n    id: Section unique logical string.\n    type: Presentational render type of component.\n    title: Globalized human visible header key.\n    data: Highly flexible context payloads."
+      },
       "User": {
         "properties": {
           "email": {
@@ -9346,6 +9687,18 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VisualIntent": {
+        "type": "string",
+        "enum": [
+          "success",
+          "warning",
+          "critical_override",
+          "info",
+          "NEUTRAL"
+        ],
+        "title": "VisualIntent",
+        "description": "UI intent mapping for SDUI visual rendering."
       },
       "Workflow": {
         "properties": {

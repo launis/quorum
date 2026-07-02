@@ -685,6 +685,18 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     rules.append(SYNTHESIS_STATE_ISOLATION_MANDATE)
 
+    # Check static rule injection for curation
+    from backend_v2.models.prompts.hook_prompts import SYNTHESIS_XAI_CURATION
+
+    rules.append(SYNTHESIS_XAI_CURATION)
+
+    # Inject linguistic mandate
+    from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+    ling_ctx = build_linguistic_context(target_locale=language, include_mandate=True)
+    import time
+    ling_ctx += f"\n<!-- Cache Buster: {time.time()} -->"
+    rules.append(ling_ctx)
+
     exec_params = [
         f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>",
         f"  <max_extension_items>{max_items}</max_extension_items>",
@@ -746,6 +758,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                             safe_blocks.append({"block_type": "markdown", "text": l_preamble})
                         break
 
+                if s.synthesized_markdown:
+                    safe_blocks.append({"block_type": "markdown", "text": s.synthesized_markdown})
+
                 for b in s.content_blocks:
                     try:
                         safe_blocks.append(b.model_dump(mode="json"))
@@ -804,6 +819,10 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         for step_dto_obj in available_dtos:
             if step_dto_obj.block_id == "atom_quotes" and isinstance(step_dto_obj.payload, dict):
                 atom_quotes.update(step_dto_obj.payload)
+            elif isinstance(step_dto_obj.payload, dict) and "atom_quotes" in step_dto_obj.payload:
+                aq = step_dto_obj.payload["atom_quotes"]
+                if isinstance(aq, dict):
+                    atom_quotes.update(aq)
 
         matrices_to_explain_map: dict[str, dict[str, Any]] = {}
         for step_dto_obj in available_dtos:

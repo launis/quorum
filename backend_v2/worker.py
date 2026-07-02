@@ -12,7 +12,6 @@ from typing import Any
 import logfire
 from arq.connections import RedisSettings
 
-from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.core.registry import TaskRegistry
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
@@ -726,7 +725,7 @@ async def generate_profile_synthesis_and_pdf_task(
             if evt.event_type == "input":
                 continue
             projector.apply_delta(evt)
-        final_inputs = projector.snapshot
+        final_inputs = projector._build_dto_list()
 
         # 0b. Get explicit locale via Execution
         metadata = dict(execution.metadata) if execution.metadata is not None else {}
@@ -826,30 +825,111 @@ async def generate_profile_synthesis_and_pdf_task(
         # V2 Integrity Mandate: Inject step_results explicitly for SynthesisHook
         metadata["step_results"] = final_inputs
 
-        global_context_vars = {"steps": final_inputs}
-        state = HookState(
-            execution_id=execution_id,
-            workflow_id=execution.workflow_id,
+        # Execute Text Consolidation Hook (Restored from V2 architecture)
+        await _update_render_status("Luetaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
+
+        from backend_v2.core.hook_registry import HookDependencies, HookState
+        from backend_v2.hooks.synthesis import text_consolidation_hook
+        from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
+
+        h_state = HookState(
+            execution_id=execution.id,
+            workflow_id=workflow_def.id if workflow_def else execution.workflow_id,
             inputs={"steps": final_inputs},
+            global_context_vars={"user_id": execution.created_by, "organization_id": execution.organization_id},
             metadata=metadata,
-            global_context_vars=global_context_vars,
         )
-        deps = HookDependencies(
-            exec_repo=repo, workflow_repo=repo, comp_repo=repo, identity_repo=repo, audit_repo=repo, system_repo=repo
-        )  # noqa: E501
+        h_deps = HookDependencies(
+            exec_repo=repo, workflow_repo=repo, comp_repo=repo, system_repo=repo, identity_repo=repo, audit_repo=repo
+        )
 
-        # Execute Text Consolidation Hook
-        await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
-        hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
+        try:
+            # 1. Distill data
+            distill_res = await synthesis_distiller_hook(h_state, h_deps)  # type: ignore
 
-        if hook_res.success and hook_res.state_delta:
-            delta = dict(hook_res.state_delta)
-            # Remove V2 engine metrics that are not part of the Cache schema
-            step_metadata_updates = delta.pop("step_metadata_updates", None)
-            mcp_tool_audit = delta.pop("mcp_tool_audit", None)
+            # 2. Add distilled data to inputs
+            h_state.inputs.update(distill_res.state_delta)
+
+            # 3. Call LLM consolidation hook
+            consolidation_res = await text_consolidation_hook(h_state, h_deps)  # type: ignore
+
+            synthesis_payload = consolidation_res.state_delta
+            usage_synthesis: dict[str, int] = {}
+        except Exception as e:
+            logger.error(f"[Task] Failed to execute synthesis hooks: {e}", exc_info=True)
+            synthesis_payload = None
+            usage_synthesis = {}
+
+        # Fallback to get row_exp payload if needed
+        row_exp_step_id = None
+        if workflow_def:
+            for s in workflow_def.steps:
+                step_def = await repo.get_step_by_id(s.task_blueprint)
+                if step_def:
+                    if step_def.get("slug") == "sp_row_explanations":
+                        row_exp_step_id = s.id
+
+        row_exp_payload = None
+        usage_row = {}
+
+        for evt in execution.execution_trace:
+            if evt.event_type == "output":
+                if evt.step_name == row_exp_step_id:
+                    row_exp_payload = evt.content
+                    if evt.metadata and "token_usage" in evt.metadata:
+                        usage_row = evt.metadata["token_usage"]
+
+        if synthesis_payload:
+            delta = dict(synthesis_payload)
+            clean_delta = {}
+            clean_delta["section_syntheses"] = delta.get("section_syntheses", {})
+
+            for key, value in delta.items():
+                if key.startswith("blk_") and isinstance(value, str):
+                    try:
+                        import json
+
+                        parsed = json.loads(value)
+                        if "section_syntheses" in parsed:
+                            clean_delta["section_syntheses"][key] = parsed["section_syntheses"]
+                        elif isinstance(parsed, list):
+                            clean_delta["section_syntheses"][key] = parsed
+                    except Exception as e:
+                        logger.warning(f"Could not parse synthesis block {key}: {e}")
+                elif key.startswith("blk_") and isinstance(value, dict):
+                    if "section_syntheses" in value:
+                        clean_delta["section_syntheses"][key] = value["section_syntheses"]
+                elif key.startswith("blk_") and isinstance(value, list):
+                    clean_delta["section_syntheses"][key] = value
+                elif key in RenderedSynthesisCache.model_fields and key != "section_syntheses":
+                    clean_delta[key] = value
+
+            if row_exp_payload:
+                explanations_list = row_exp_payload.get("explanations", [])
+
+                row_explanations_dict = {}
+                row_curated_quotes_dict = {}
+
+                for item in explanations_list:
+                    if not isinstance(item, dict):
+                        continue
+                    m_id = item.get("matrix_id")
+                    r_exp = item.get("row_explanation")
+                    c_quotes = item.get("curated_quotes", [])
+
+                    if m_id and r_exp:
+                        row_explanations_dict[m_id] = r_exp
+                    if m_id and c_quotes:
+                        row_curated_quotes_dict[m_id] = c_quotes
+
+                clean_delta["row_explanations"] = row_explanations_dict
+                clean_delta["row_curated_quotes"] = row_curated_quotes_dict
+            else:
+                clean_delta["row_explanations"] = clean_delta.get("row_explanations", {})
+                clean_delta["row_curated_quotes"] = clean_delta.get("row_curated_quotes", {})
 
             # Enforce Fail-Fast Hydration (No Naked Dict Extraction)
-            cache = RenderedSynthesisCache.model_validate(delta)
+            cache = RenderedSynthesisCache.model_validate(clean_delta)
 
             # Add new synthesis to record
             current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
@@ -860,61 +940,25 @@ async def generate_profile_synthesis_and_pdf_task(
             update_payload["profile_syntheses"] = dict_syntheses
 
             # Epic 6/14: Safely append LLM token usage and pricing back into ExecutionRecord metadata
-            if step_metadata_updates and "token_usage" in step_metadata_updates:
-                usage = step_metadata_updates["token_usage"]
-                if usage:
-                    # Phase 2, Step 2.2: Remove old trace iteration loop and use pre-calculated DAG costs
-                    meta = dict(execution.metadata) if execution.metadata else {}
+            # We must be careful not to double-count if the DAG orchestrator already appended them,
+            # but we preserve the token accounting structure per plan requirements.
+            meta = dict(execution.metadata) if execution.metadata else {}
+            if usage_synthesis or usage_row:
+                # Note: The Orchestrator native LLM strategy usually rolls costs directly into dag_cost_usd
+                # We calculate synthesis specific cost for reporting
+                new_synth_cost = usage_synthesis.get("cost_usd", 0.0) + usage_row.get("cost_usd", 0.0)
+                meta["synthesis_cost_usd"] = meta.get("synthesis_cost_usd", 0.0) + new_synth_cost
 
-                    dag_cost = meta.get("dag_cost_usd", execution.cost_estimate or 0.0)
-                    new_synth_cost = usage.get("cost_usd", 0.0)
-                    cumulative_synth_cost = meta.get("synthesis_cost_usd", 0.0) + new_synth_cost
-                    total_cost = dag_cost + cumulative_synth_cost
-
-                    total_p_tokens = usage.get("prompt_tokens", 0)
-                    total_c_tokens = usage.get("completion_tokens", 0)
-                    total_t_tokens = usage.get("total_tokens", 0)
-
-                    exec_summary = meta.get("execution_summary", {})
-                    if "aggregated_usage" in exec_summary:
-                        agg = exec_summary["aggregated_usage"]
-                        total_p_tokens += agg.get("prompt_tokens", 0)
-                        total_c_tokens += agg.get("completion_tokens", 0)
-                        total_t_tokens += agg.get("prompt_tokens", 0) + agg.get("completion_tokens", 0)
-                    else:
-                        total_p_tokens += meta.get("prompt_tokens", 0)
-                        total_c_tokens += meta.get("completion_tokens", 0)
-                        total_t_tokens += meta.get("total_tokens", 0)
-
-                    # Isolate DAG cost vs Synthesis cost
-                    meta["synthesis_cost_usd"] = cumulative_synth_cost
-                    meta["dag_cost_usd"] = dag_cost
-
-                    meta["total_tokens"] = total_t_tokens
-                    meta["prompt_tokens"] = total_p_tokens
-                    meta["completion_tokens"] = total_c_tokens
-                    meta["cost_estimate"] = total_cost
-
-                    update_payload["metadata"] = meta
-                    update_payload["cost_estimate"] = total_cost
-
-                    if execution.models_used:
-                        update_payload["models_used"] = dict(execution.models_used)
+                # Assume dag_cost_usd already covers everything if total_cost is matching dag_cost_usd.
+                update_payload["metadata"] = meta
 
             # Save the updated trace with dynamically calculated matrix scores
             update_payload["execution_trace"] = [evt.model_dump(mode="json") for evt in execution.execution_trace]
 
             await repo.update_execution(execution_id, update_payload)
-
-            # Epic 6: Save MCP tool audits directly to the driver's subcollection to avoid overwriting blobs
-            if mcp_tool_audit and isinstance(mcp_tool_audit, list):
-                coll_path = f"executions/{execution_id}/audit_trails"
-                for item in mcp_tool_audit:
-                    item_id = item["id"] if "id" in item and item["id"] else str(uuid.uuid4())
-                    item["id"] = item_id
-                    await driver.upsert(coll_path, item, item_id)
-
             logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
+        else:
+            logger.warning(f"Synthesis payload not found for execution {execution_id}. DAG execution incomplete?")
 
         # Now trigger the statically cached PDF job based on our newly cached synthesis
         await _update_render_status("Koostetaan tulosteita valmiiksi...")

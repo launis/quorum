@@ -1,0 +1,207 @@
+"""Overseer Agent Domain Models.
+
+This module contains the schemas for the Overseer Agent,
+including fact checks and ethical observations.
+"""
+
+from __future__ import annotations
+
+import logging
+
+from pydantic import Field, computed_field, field_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.analyst import AnalystOutput
+from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+from backend_v2.models.domain.logician import LogicianOutput
+from backend_v2.models.enums import EthicalSeverity, LaxEthicalSeverity, LaxVerificationResult, VerificationResult
+
+logger = logging.getLogger(__name__)
+
+
+class OverseerInput(V2CoreBase):
+    """Strict input schema for FactualOverseerAgent.
+
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+
+    Attributes:
+        chat_log: The mandatory conversation history to analyze.
+        step_analyst: Analyst or Logician outputs.
+        last_reasoning_trace: Previous reasoning trace.
+    """
+
+    chat_log: str = Field(
+        ...,
+        min_length=1,
+        description="The mandatory conversation history to analyze.",
+        json_schema_extra={"x-ui-label": "Chatlog"},
+    )
+    step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+
+
+class FactCheckRFI(V2CoreBase):
+    """Request for Information (Fact Check).
+
+    Attributes:
+        claim: Claim to check.
+        verification_result: Result.
+        source_or_reasoning: Source or reasoning.
+    """
+
+    claim: str = Field(
+        ...,
+        description="Claim to check.",
+        json_schema_extra={"x-ui-label": "Claim"},
+    )
+    verification_result: LaxVerificationResult = Field(
+        ...,
+        description="Result.",
+        json_schema_extra={"x-ui-label": "Result"},
+    )
+    source_or_reasoning: str = Field(
+        ...,
+        description="Source or reasoning.",
+        json_schema_extra={"x-ui-label": "Source/Reasoning"},
+    )
+
+    @field_validator("claim", "source_or_reasoning")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        """Validate that the string is not empty or whitespace only.
+
+        Args:
+            v: The value to validate.
+
+        Returns:
+            The stripped string.
+
+        Raises:
+            AppException: If the string is empty or whitespace only.
+        """
+        if not v or not v.strip():
+            msg = "Field cannot be empty"
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v.strip()
+
+    @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
+    @property
+    def is_verified(self) -> bool:
+        """Boolean verification status."""
+        return self.verification_result == VerificationResult.VERIFIED
+
+
+class EthicalObservation(V2CoreBase):
+    """Ethical Observation.
+
+    Attributes:
+        issue_type: Type of ethical issue.
+        severity: Severity level.
+        description: Description.
+    """
+
+    issue_type: str = Field(
+        ...,
+        description="Type of ethical issue.",
+        json_schema_extra={"x-ui-label": "Issue Type"},
+    )
+    severity: LaxEthicalSeverity = Field(
+        ...,
+        description="Severity level.",
+        json_schema_extra={"x-ui-label": "Severity"},
+    )
+    description: str = Field(
+        ...,
+        description="Description.",
+        json_schema_extra={"x-ui-label": "Description"},
+    )
+
+    @field_validator("issue_type", "description")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        """Validate that the string is not empty or whitespace only.
+
+        Args:
+            v: The value to validate.
+
+        Returns:
+            The stripped string.
+
+        Raises:
+            AppException: If the string is empty or whitespace only.
+        """
+        if not v or not v.strip():
+            msg = "Field cannot be empty"
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v.strip()
+
+    @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
+    @property
+    def is_critical(self) -> bool:
+        """Is the issue critical?"""
+        return self.severity == EthicalSeverity.CRITICAL
+
+
+class OverseerData(V2CoreBase):
+    """Output from the Overseer component.
+
+    Attributes:
+        fact_checks: Fact check report.
+        ethical_issues: Ethical audit report.
+    """
+
+    fact_checks: list[FactCheckRFI] = Field(
+        default_factory=list,
+        description="Fact check report.",
+        json_schema_extra={"x-ui-label": "Fact Checks"},
+    )
+    ethical_issues: list[EthicalObservation] = Field(
+        ...,
+        description="Ethical audit report.",
+        json_schema_extra={"x-ui-label": "Ethical Issues"},
+    )
+
+    @field_validator("ethical_issues")
+    @classmethod
+    def validate_ethical_issues(cls, v: list[EthicalObservation]) -> list[EthicalObservation]:
+        """Validate that the ethical issues list is not empty.
+
+        Args:
+            v: The list of ethical issues.
+
+        Returns:
+            The validated list.
+
+        Raises:
+            AppException: If the list is empty.
+        """
+        if not v:
+            msg = "Ethical issues list cannot be empty"
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v
+
+
+class OverseerDTO(ReasoningTraceDTO):
+    """Overseer DTO (Content Only).
+
+    Attributes:
+        overseer_data: Ethics audit result.
+    """
+
+    overseer_data: OverseerData = Field(
+        ...,
+        description="Ethics audit result.",
+        json_schema_extra={"x-ui-label": "Ethics Audit"},
+    )
+
+
+class OverseerOutput(OverseerDTO, ReasoningTrace):
+    """Output schema for the Overseer Agent.
+
+    Attributes:
+        No additional attributes.
+    """

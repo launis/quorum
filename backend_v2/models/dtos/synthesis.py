@@ -46,7 +46,10 @@ class XaiHighlightItem(V2CoreBase):
         str,
         Field(description="Category of the insight matching explicit system XaiExtensionType options."),
     ]
-    content: Annotated[str, Field(description="The synthesized, deduplicated insight or tip. Max 2 sentences.")]
+    content: Annotated[
+        str,
+        Field(description="The synthesized, deduplicated insight or tip. Max 2 sentences. MUST BE IN TARGET LANGUAGE."),
+    ]
 
 
 class SynthesisRowExplanationDTO(V2CoreBase):
@@ -59,7 +62,9 @@ class SynthesisRowExplanationDTO(V2CoreBase):
     """
 
     matrix_id: Annotated[str, Field(description="The ID of the matrix")]
-    row_explanation: Annotated[str, Field(description="The ultra-short synthesized explanation")]
+    row_explanation: Annotated[
+        str, Field(description="The ultra-short synthesized explanation. MUST BE IN TARGET LANGUAGE.")
+    ]
     curated_quotes: Annotated[
         list[str],
         Field(default_factory=list, description="Curated verbatim quotes by the LLM"),
@@ -102,7 +107,7 @@ class SynthesisOutputDTO(V2CoreBase):
     ]
     section_syntheses: Annotated[
         list[SynthesisSectionDTO],
-        Field(default_factory=list, description="List of synthesized sections, mapped by their Layout ID."),
+        Field(default_factory=list, description="List of synthesized sections. You MUST generate one item here for EVERY <section_instruction> provided in the system prompt!"),
     ]
     xai_highlights: Annotated[
         list[XaiHighlightItem],

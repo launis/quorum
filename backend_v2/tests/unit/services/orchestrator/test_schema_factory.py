@@ -113,8 +113,6 @@ def test_normal_typo_still_rejected_by_extra_forbid() -> None:
 
 def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFactory) -> None:
     """Verify that build_dynamic_schema enforces dynamic Literal validation on source_document_ids."""
-    from pydantic import ValidationError
-
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
     from backend_v2.models.v2_core import I18nText, PromptBlock
 
@@ -159,3 +157,4 @@ def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFac
     invalid_data = valid_data.copy()
     invalid_data["source_document_aliases"] = ["doc_invalid"]
     obj_invalid = inner_model.model_validate(invalid_data)
+    assert obj_invalid.source_document_aliases == ["N/A"]

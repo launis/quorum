@@ -51,7 +51,6 @@ class StrippedBaseMatrixXAI(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     semantic_reasoning: str = Field(
-        default="",
         description="Write an extensive analytical reasoning trace explaining your decision-making process. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis.",
     )
 
@@ -253,6 +252,7 @@ class SchemaFactory:
                 list[AtomResponse],
                 Field(
                     ...,
+                    min_length=1,
                     max_length=get_settings().schema_max_evaluations,
                     description="List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in <BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. Do NOT hallucinate, invent, or evaluate any unlisted concepts.",
                 ),

@@ -33,6 +33,7 @@ def build_linguistic_context(
         f"  <source_data_language>{source_language}</source_data_language>\n"
         f"  <required_output_language>{target_locale}</required_output_language>\n"
         "  <required_reasoning_language>English</required_reasoning_language>\n"
+        "  <critical_warning>Even if the system prompt and internal thoughts are in English, ALL user-facing JSON fields (e.g. semantic_reasoning, row_explanation) MUST be generated in the Required Output Language.</critical_warning>\n"
         "</linguistic_context>"
     )
     if include_mandate:

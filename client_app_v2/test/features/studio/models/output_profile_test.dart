@@ -54,7 +54,7 @@ void main() {
     test('Should parse strict Stripe ID for system workflows', () {
       final jsonPayload = {
         'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_0000000000000000',
+        'workflow_id': 'wf_9d68c573802341db',
         'name': {
           'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
@@ -62,7 +62,7 @@ void main() {
       };
 
       final profile = OutputProfile.fromJson(jsonPayload);
-      expect(profile.workflowId, 'wf_0000000000000000');
+      expect(profile.workflowId, 'wf_9d68c573802341db');
     });
   });
 }

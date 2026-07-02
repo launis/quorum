@@ -66,18 +66,18 @@ Kaikki hookit noudattavat **Explicit Routing** ja **Zero Silent Data Loss** -per
    * **Kontekstin Injektointi (English-Only Mandate):** Syötteille määritellyt globaalit tekoälyohjeistukset injektoidaan automaattisesti puretun tekstin yläpuolelle.
    * **Forensinen Tallennus:** Lopullinen prosessoitu teksti tallennetaan levylle väliaikaisena `.md` tiedostona **Forensic Observability** -mandaatin mukaisesti.
 
-4. **Raportointi ja Synteesi (`reporting.py` & `synthesis.py`):**
+4. **Raportointi ja Synteesi (`reporting.py` & `synthesis_distiller.py`):**
 
-   #### `synthesis.py` — `text_consolidation_hook`
-   Synteesikoukku on koko tulostusputken ydin: se muuntaa kaikkien DAG-steppien raakadatan yhdeksi tai useaksi LLM-syntetisoituksi markdown-tekstiksi per `OutputProfile`.
+   #### `synthesis_distiller.py` — `synthesis_distiller_hook`
+   Tämä hook valmistelee datan LLM:ää varten (Phase 2), mutta varsinainen syntetisointi on siirretty Workflow DAG:n vastuulle standardi `sp_synthesis_llm` askeleena. Hook kompressoi dataa tokenien säästämiseksi.
 
-   **Vaiheen 2 Arkkitehtuurin Invariantit (Fail-Fast & Integrity):**
    * **Strict Schema Validation:** `SynthesisMetadataDTO` pakottaa, että suorituksen metadatassa on aina `step_results`-sanakirja. Jos taustaprosessi ei ole tallentanut tuloksiaan, rajapinta ei "arvaa" tai salli tyhjää tulostetta, vaan vaatii eksaktin tietorakenteen.
-   * **Zero Orphaned Data (Data Funnel):** Järjestelmä yhdistää alkuperäiset syötteet ja askeleiden lopputulemat deterministisesti yhteiseen `combined_source_data`-objektiin.
-   * **Fail-Fast -pysäytys:** Jos `step_results` puuttuu tai on tyhjä, `text_consolidation_hook` kaatuu välittömästi (HTTP 400) ennen LLM:n käynnistämistä, taaten ettei synteesiä generoida puutteellisella matemaattisella todisteketjulla.
 
-   **Token Shield — `_compress_synthesis_payload()`:**
-   Ennen LLM-kutsuhetkeä poistetaan raskaat kentät, jotta Chief Editor -LLM saa vain perustelut ja pisteet — ei atomitason lokeja.
+   **Token Shield — `distill_for_synthesis()`:**
+   Ennen kuin laajat kysymysmatriisit ja vastausotteet lähetetään mallille, suoritetaan karsinta:
+   * Null-arvoiset matriisit ja tyhjät `atom_quotes` -taulukot poistetaan kokonaan.
+   * `anchor_content` -kentistä riisutaan kaikki tarpeeton muotoilu.
+   Tämä optimointi voi pienentää synteesin context window'ta jopa 40 %, mikä on elintärkeää järjestelmän Token Cost -hallinnalle (Epic 6 & 14 linjaukset).
 
 5. **Laiskuuden esto ja Contextual Override Validointi:**
    * Kun `contextual_override = True` palautetaan kielimallilta, validointihook ajaa tiukan **Anti-Laziness Mandate** -validoinnin. Perustelujen (`semantic_reasoning`) on oltava vähintään 50 merkkiä pitkiä, ja niiden on sisällettävä spatiaalinen ankkuri (sivu, kappale, rivi, jne.).

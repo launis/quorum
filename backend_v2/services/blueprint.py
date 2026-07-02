@@ -438,9 +438,6 @@ class BlueprintTransformer:
                 # Curation of Matrix Extensions, Step 2: Fall back to empty string instead of justification
                 final_explanation = ""
 
-            if final_explanation and len(final_explanation) > 300:
-                final_explanation = final_explanation[:297] + "..."
-
             evaluated_atoms_list = []
             clustered_row_sources = []
             used_evidence_ids_set = set()
@@ -477,7 +474,6 @@ class BlueprintTransformer:
                                 if ev_data:
                                     is_matrix = pb_meta.category_id == "matrix"
                                     parsed_quotes = []
-                                    s_manifest = source_identity_manifest or {}
 
                                     try:
                                         if is_matrix:
@@ -516,12 +512,10 @@ class BlueprintTransformer:
 
                                             for qt in val_data_cog.exact_quotes:
                                                 source_id = qt.source_id or "unknown"
-                                                display_name = s_manifest.get(source_id, "Tuntematon lähde")
                                                 parsed_quotes.append(
                                                     QuoteEvidenceDTO(
-                                                        quote_text=qt.text,
-                                                        source_id=source_id,
-                                                        display_name=display_name,
+                                                        quote=qt.text,
+                                                        source_alias=[source_id],
                                                     )
                                                 )
 
