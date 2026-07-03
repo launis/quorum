@@ -11,6 +11,7 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing and 
     <rule>Raportoi AINA suomeksi. Pidä päivitykset tiiviinä, mutta nosta esiin kaikki virheet ja tärkeimmät virstanpylväät.</rule>
     <rule>Pidä muistissasi lista havaituista virheistä ja onnistumisista lopullista raporttia varten.</rule>
     <rule>Luo ajon alkaessa suorituskohtainen seurantatiedosto (esim. `c:\src\quorum\data\files\executions\[ajo_id]\monitor_state.json`), johon tallennat kumulatiivisen tilan. **Lue lokeja AINOASTAAN natiivilla `view_file` tai `grep_search` -työkalulla**, jotta et laukaise käyttäjälle turvallisuusvaroituksia. Älä KOSKAAN käytä päätteessä ajettavia shell-komentoja (kuten PowerShellin `Get-Content` tai työkalua `run_command`) lokien lukemiseen tausta-ajon aikana.</rule>
+    <rule>ÄLÄ KOSKAAN kysy käyttäjältä lupaa monitoroinnin aloittamiseen tai ohjelmien ajamiseen, äläkä tee toimenpiteitä jotka vaativat käyttäjältä UI-vahvistuksia (kuten "Allow running this command"). Suorita tiedonhaku ja väliaikaistallennus täysin hiljaisesti natiivityökaluilla (esim. `write_to_file` scratch-kansioon).</rule>
   </context_rules>
   <execution_protocol level="6">
     <step id="1">INITIALIZE: Generoi ajolle automaattisesti yksilöllinen ajo-ID (esim. aikaleiman tai lokien ensimmäisen run_id:n perusteella). Älä kysy sitä enää käyttäjältä.

@@ -48,8 +48,8 @@ class SystemRepositoryImpl(BaseRepository):
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
         doc_id = res_list[0]["id"] if res_list else registry_data.get("id", "model_registry")
-        if doc_id != "model_registry" and "slug" not in registry_data:
-            registry_data["slug"] = "model_registry"
+        if doc_id != "model_registry" and "type" not in registry_data:
+            registry_data["type"] = "model_registry"
         await self.driver.upsert("system_config", registry_data, doc_id)
         return True
 
@@ -88,8 +88,8 @@ class SystemRepositoryImpl(BaseRepository):
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
         doc_id = res_list[0]["id"] if res_list else gateways_data.get("id", "cfg_mcpGateways01")
-        if doc_id != "cfg_mcpGateways01" and "slug" not in gateways_data:
-            gateways_data["slug"] = "mcp_gateways"
+        if doc_id != "cfg_mcpGateways01" and "type" not in gateways_data:
+            gateways_data["type"] = "mcp_gateways"
         await self.driver.upsert("system_config", gateways_data, doc_id)
         return True
 
@@ -128,8 +128,8 @@ class SystemRepositoryImpl(BaseRepository):
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "global_settings")], limit=1)
         doc_id = res_list[0]["id"] if res_list else updates.get("id", "global_settings")
-        if doc_id != "global_settings" and "slug" not in updates:
-            updates["slug"] = "global_settings"
+        if doc_id != "global_settings" and "type" not in updates:
+            updates["type"] = "global_settings"
         await self.driver.upsert("system_config", updates, doc_id)
         return True
 

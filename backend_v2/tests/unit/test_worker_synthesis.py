@@ -19,6 +19,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
     mock_execution = ExecutionRecord(
         id="exec_1234567812345678",
         workflow_id="wf_1234567812345678",
+        output_profile_id="default",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[
             TraceEvent(
@@ -45,7 +46,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
 
     async def mock_get_step_by_id(b_id: str):
         if b_id == "sp_1234567812345678":
-            return {"id": "sp_1234567812345678", "slug": "sp_synthesis_llm"}
+            return {"id": "sp_1234567812345678", "model_strategy": "synthesis"}
         return None
 
     mock_repo.get_step_by_id.side_effect = mock_get_step_by_id
@@ -59,6 +60,9 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "scoring_strategy": "AVERAGE",
         "layouts": [],
         "display_scale": "original",
+        "synthesis": {
+            "historical_context_mode": "DISABLED"
+        }
     }
 
     await generate_profile_synthesis_and_pdf_task(

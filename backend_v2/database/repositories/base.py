@@ -26,16 +26,16 @@ class AppendOnlyRepositoryBase(BaseRepository):
     """Base repository for entities that require append-only versioning."""
 
     def _increment_version(self, id_str: str) -> tuple[str, str, int]:
-        """Parses an ID into (slug, full_new_id, version)."""
+        """Parses an ID into (base_id, full_new_id, version)."""
         if "_v" in id_str:
-            slug, v_str = id_str.rsplit("_v", 1)
+            base_id, v_str = id_str.rsplit("_v", 1)
             try:
                 version = int(v_str) + 1
             except ValueError:
                 version = 2
         else:
-            slug = id_str
+            base_id = id_str
             version = 2
 
-        new_id = f"{slug}_v{version}"
-        return slug, new_id, version
+        new_id = f"{base_id}_v{version}"
+        return base_id, new_id, version

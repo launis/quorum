@@ -82,12 +82,12 @@ class PromptCompilerAdapter:
         # 3. Task instruction
         dynamic_parts.append(f"<task>{task_instruction}</task>")
 
-        from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_MD
+        from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 
         strictness_instruction = self.calibrate_strictness(strictness_level)
         dynamic_parts.append(
             f"<execution_parameters>\n"
-            f"{GLOBAL_MANDATES_MD}\n"
+            f"{GLOBAL_MANDATES_XML}\n"
             f"<STRICTNESS_CALIBRATION>\n{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n"
             f"</execution_parameters>"
         )

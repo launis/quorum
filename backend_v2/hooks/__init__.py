@@ -20,6 +20,7 @@ from backend_v2.hooks import (
     reporting,
     scoring,
     security,
+    synthesis,
     validation,
 )
 
@@ -39,8 +40,8 @@ __all__ = [
     "reporting",
     "scoring",
     "security",
+    "synthesis",
     "validation",
 ]
 
 # Register synthesis components tied to the HookRegistry (Epic 93)
-import backend_v2.services.orchestrator.synthesis_distiller  # noqa: F401

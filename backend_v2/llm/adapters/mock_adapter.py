@@ -6,7 +6,7 @@ This module implements network-free testing utilities matching the 2026 Enterpri
 import logging
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import TokenUsage
@@ -113,3 +113,23 @@ class MockCacheAdapter(BaseLLMAdapter):
             An empty dictionary as no special static arguments are needed.
         """
         return {}
+
+    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
+        """Return the pure Pydantic model for the Mock provider.
+
+        Args:
+            response_model: The Pydantic model defining the expected JSON structure.
+
+        Returns:
+            The original model or stripped schema.
+        """
+        json_schema = response_model.model_json_schema()
+        self._strip_unsupported_constraints(json_schema)
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": response_model.__name__,
+                "schema": json_schema,
+                "strict": True,
+            },
+        }

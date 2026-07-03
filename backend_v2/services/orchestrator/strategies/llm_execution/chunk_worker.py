@@ -449,13 +449,18 @@ class ChunkWorker:
                         return " | ".join(_unwrap_error(inner) for inner in exc.exceptions)
                     return str(exc)
 
-                reason_str = _unwrap_error(e)
-                logger.error(
-                    f"[ChunkWorker] Caught error: {reason_str}. Routing to DLQ.",
-                    extra={"error_code": "DLQ_ROUTING"},
-                    exc_info=True,
-                )
-
+                # If we have exhausted all retries without success, we are stuck.
+                reason_str = _unwrap_error(e) if e else "Unknown chunk failure"
+                if attempt > MAX_CHUNK_RETRIES:
+                    # Log the condition – DLQ routing is still the correct outcome.
+                    logger.error(
+                        "[ChunkWorker] Stuck in retry loop after max attempts. Routing to DLQ.",
+                        extra={"error_code": "CHUNK_LOOP_STUCK"},
+                        exc_info=True,
+                    )
+                    # Use a dedicated reason string for the fallback handling below.
+                    reason_str = "Chunk processing stuck after maximum retries"
+                # Existing fallback handling continues
                 fallback_reason = f"Chunk Processing Failed: {reason_str}"
                 chunk_final = {
                     "_dlq_status": "FAILED/DLQ",
@@ -579,27 +584,25 @@ class ChunkWorker:
                         filtered_criteria.append(bm)
                 chunk_criteria = filtered_criteria
 
-        from backend_v2.services.orchestrator.strategies.llm_execution.alias_engine import AliasEngine
+        from backend_v2.utils.alias_engine import AliasEngine
 
         base_alias_engine = AliasEngine()
 
         is_lightweight = False
+        source_document_ids = ["N/A"]
         source_docs = []
+
         if step_metadata:
             if step_metadata.get("is_lightweight_extraction"):
                 is_lightweight = True
+            if "source_document_ids" in step_metadata:
+                source_document_ids = step_metadata["source_document_ids"]
             if "source_documents" in step_metadata:
                 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 
                 for doc_dict in step_metadata["source_documents"]:
                     if isinstance(doc_dict, dict):
                         source_docs.append(SourceDocumentContext.model_validate(doc_dict))
-
-        global_source_text = base_alias_engine.alias_source_documents(
-            source_docs=source_docs, global_source_text=global_source_text or ""
-        )
-
-        source_document_ids = base_alias_engine.get_source_document_literals()
 
         local_dynamic_schema = compiler.build_dynamic_schema(
             schema_name=f"Step_{step_id}_Response",
@@ -614,7 +617,11 @@ class ChunkWorker:
         chunk_atoms_xml = None
         allowed_atom_ids = set()
         if has_shuffled_atoms and chunk is not None:
-            blind_items = base_alias_engine.alias_atoms(chunk.items)
+            blind_items = []
+            for i, item in enumerate(chunk.items):
+                aid = item.get("atom_id")
+                alias = base_alias_engine.generate_alias(aid, "a", i) if aid else f"a{i}"
+                blind_items.append({"atom_id": alias, "rule_anchor": alias, "question": item.get("question", "")})
             atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
             chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
 
@@ -816,7 +823,9 @@ class ChunkWorker:
         if has_shuffled_atoms:
             for res_dict in res_list:
                 evaluations = res_dict.get("evaluations", [])
-                base_alias_engine.hydrate_atoms(evaluations)
+                hydrated_count = base_alias_engine.hydrate_dict_list(evaluations, field_name="atom_id")
+                if hydrated_count > 0:
+                    logger.info("[ChunkWorker] Hydrated %d atom_id aliases.", hydrated_count)
 
         val_context = {"alias_map": base_alias_engine.alias_map}
 

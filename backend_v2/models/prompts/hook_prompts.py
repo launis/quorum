@@ -13,51 +13,86 @@ INTERACTION_OBJECTIVE = (
     "the provided conversation history and hard mathematical heuristics."
 )
 
-INTERACTION_RULES = [
-    (
-        "You must classify the user into one of four roles: ROLE_PASSENGER, ROLE_NAVIGATOR, "
-        "ROLE_DRIVER, or ROLE_ARCHITECT."
-    ),
-    (
-        "ROLE_PASSENGER: The user provides minimal input, relying almost entirely on the AI "
-        "to lead, structure, and generate content."
-    ),
-    ("ROLE_NAVIGATOR: The user provides direction and goals but relies on the AI to execute the details."),
-    (
-        "ROLE_DRIVER: The user actively controls the execution, providing specific constraints, "
-        "structural requirements, and detailed data."
-    ),
-    (
-        "ROLE_ARCHITECT: The user defines the entire conceptual framework, methodology, and "
-        "strict rules, treating the AI purely as a compiler or executor of their complex design."
-    ),
-    (
-        "HYBRID TRUTH MANDATE: You MUST respect the hard mathematical metrics provided in the "
-        "<execution_parameters> tag. The mathematical `control_ratio` is the ultimate baseline. "
-        "If the user's control ratio is low, they CANNOT be an Architect, regardless of their tone."
-    ),
-    ("Do NOT output Markdown. You MUST output ONLY the requested strict JSON schema matching InteractionAnalysisDTO."),
-]
+INTERACTION_RULES = (
+    "<interaction_rules>\n"
+    "- You must classify the user into one of four roles: ROLE_PASSENGER, ROLE_NAVIGATOR, "
+    "ROLE_DRIVER, or ROLE_ARCHITECT.\n"
+    "- ROLE_PASSENGER: The user provides minimal input, relying almost entirely on the AI "
+    "to lead, structure, and generate content.\n"
+    "- ROLE_NAVIGATOR: The user provides direction and goals but relies on the AI to execute the details.\n"
+    "- ROLE_DRIVER: The user actively controls the execution, providing specific constraints, "
+    "structural requirements, and detailed data.\n"
+    "- ROLE_ARCHITECT: The user defines the entire conceptual framework, methodology, and "
+    "strict rules, treating the AI purely as a compiler or executor of their complex design.\n"
+    "- HYBRID TRUTH MANDATE: You MUST respect the hard mathematical metrics provided in the "
+    "<execution_parameters> tag. The mathematical `control_ratio` is the ultimate baseline. "
+    "If the user's control ratio is low, they CANNOT be an Architect, regardless of their tone.\n"
+    "- Do NOT output Markdown. You MUST output ONLY the requested strict JSON schema matching InteractionAnalysisDTO.\n"
+    "</interaction_rules>"
+)
 
 # ============================================================================
 # SYNTHESIS HOOK RULES (backend_v2/hooks/synthesis.py)
 # ============================================================================
 
-SYNTHESIS_CITATION_RULES = (
-    "CITATION MANDATE: You must append [srcX] to the end of every sentence that relies on the provided <source_data>."
+SYNTHESIS_SDUI_MANDATES = (
+    "<sdui_mandate>\n"
+    "- SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY "
+    "the allowed SDUI `content_blocks`.\n"
+    "- ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. "
+    "NO OTHER TYPES ARE ALLOWED.\n"
+    "- NO RECURSION: Nested blocks inside blocks are strictly banned.\n"
+    "- NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside "
+    "text fields. The UI will render text structurally.\n"
+    "- CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of "
+    "integers in the `citations: list[int]` field for each block that uses sources.\n"
+    "</sdui_mandate>"
 )
+
+SYNTHESIS_XAI_CURATION = (
+    "<xai_curation_mandate>\n"
+    "XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine "
+    "all insights across all inputs for each extension category. Create up to "
+    "<max_extension_items> MOST CRITICAL items for each individual category. Format them as objects in the "
+    "`xai_highlights` array, ensuring each has an `extension_type` and `content`. "
+    "Make each item's content an ultra-short, punchy bullet point (max 1 sentence).\n"
+    "</xai_curation_mandate>"
+)
+
 SYNTHESIS_LENGTH_CONSTRAINT = (
-    "LENGTH MANDATE: You must adhere strictly to the length constraint specified in <global_length_constraint_chars>."
+    "<length_constraint>\n"
+    "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
+    "specified in <global_length_constraint_chars>.\n"
+    "</length_constraint>"
 )
-SYNTHESIS_SDUI_MANDATES = [
-    "You are a master synthesizer formatting data for SDUI display.",
-    "Do NOT output unstructured markdown. Your output MUST strictly follow the JSON schema requested.",
-]
+
 SYNTHESIS_SECTION_RULES_PREFIX = (
-    "SECTION-LEVEL SYNTHESIS INSTRUCTIONS:\n"
-    "Follow these block-specific instructions when generating content for specific layout_id blocks."
+    "<section_rules>\n"
+    "## Section-Level Synthesis\n"
+    "- CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 "
+    "short sentences.\n"
+    "- You MUST ALSO provide targeted synthesized summaries for the following distinct "
+    "sections as an array in `section_syntheses`.\n\n"
 )
+
+SYNTHESIS_CITATION_RULES = (
+    "<citation_rules>\n"
+    "Omit internal system identifiers or raw JSON keys. When referring to information, use "
+    "inline numerical tags like [1], [2].\n"
+    "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond "
+    "to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation "
+    "tag AND add an entry to `cited_sources` if the source is an actual literary reference, "
+    "empirical citation, methodology framework, or external document. DO NOT use citation tags for general analysis sections, step titles, "
+    "or internal data dumps. If you mention internal findings, state them directly without "
+    "using it.\n"
+    "</citation_rules>"
+)
+
 SYNTHESIS_STATE_ISOLATION_MANDATE = (
-    "STATE ISOLATION MANDATE: You must synthesize only the data explicitly provided. Do not hallucinate."
+    "<state_isolation_mandate>\n"
+    "STATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand "
+    "the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, "
+    "summarize, or report on the substantive topics, subjects, or domains discussed in the "
+    "historical context. Your output must be STRICTLY based on the current <source_data>.\n"
+    "</state_isolation_mandate>"
 )
-SYNTHESIS_XAI_CURATION = "XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. Create up to <max_extension_items> MOST CRITICAL items for each individual category. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. Make each item's content an ultra-short, punchy bullet point (max 1 sentence)."

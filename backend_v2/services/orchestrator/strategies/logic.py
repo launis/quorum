@@ -156,7 +156,7 @@ class LogicNodeStrategy(NodeStrategy):
             hook_state=post_hook_state,
             hook_deps=hook_deps,
         )
-        final_outputs = dict(post_hook_state.inputs)
+        final_outputs = dict(main_res.state_delta) if main_res.state_delta else {}
 
         # 5. Emit Immutable Event
         return (

@@ -77,16 +77,17 @@
         <mandatory_pattern>Non-workflow Internal LLM Utilities MUST execute as follows: 1) Load client via `await LLMClient.from_strategy("fast", repository=repo)`. 2) Define instructions as a file-level `_SYSTEM_INSTRUCTION` constant. 3) Pass strictly segregated messages to `executor.execute_chat_task(client=...)` or `executor.execute_structured_task(client=...)`.</mandatory_pattern>
     </rule_block>
 
-    <rule_block id="de_generator_mandate_no_xml">
-        <banned_pattern>Writing system prompts with manual XML tags (e.g., `<system_directive>`, `<role>`, `<objective>`) in the backend or `seed_data.json`.</banned_pattern>
-        <mandatory_pattern>Enforce the "De-Generator" mandate: write pure business logic using Markdown headings (e.g. `ROLE:`, `OBJECTIVE:`). The backend `prompt_compiler_adapter.py` will automatically handle formatting and structure for the LLM.</mandatory_pattern>
+    <rule_block id="xml_structural_sovereignty_mandate">
+        <banned_pattern>Writing system prompts with soft Markdown headings (e.g., `### RULES`, `## OBJECTIVE`) when defining isolated architectural mandates in the backend or `seed_data.json`.</banned_pattern>
+        <mandatory_pattern>Enforce the "XML Structural Sovereignty" mandate: wrap all distinct business logic rules and mandates in highly rigid, named XML tags (e.g. `<language_mandate>...</language_mandate>`). This provides mathematically optimal semantic boundaries for modern LLMs to process strict hierarchical logic, eliminating "Attention Dilution" risks.</mandatory_pattern>
         <code_example>
             <pro_pattern>
-                _SYSTEM = """# SYSTEM DIRECTIVE
-                ## OBJECTIVE
-                Extract data
-                ## RULES
-                - Be exact."""
+                _SYSTEM = """<system_directive>
+                <objective>Extract data</objective>
+                <rules>
+                <rule>Be exact</rule>
+                </rules>
+                </system_directive>"""
             </pro_pattern>
         </code_example>
     </rule_block>
@@ -138,10 +139,10 @@
         <mandatory_pattern>Execute high-entropy and negative validation steps using a single-pass "Best-of-3" ensemble. You MUST run parallel LLM calls cleanly wrapped in `asyncio.TaskGroup` and resolve the final output via a strict majority vote where lexically invalid hallucinations are discarded before counting.</mandatory_pattern>
         <catastrophic_reason>Multi-pass negative logic forces the LLM into "double-negative" confusion, causing severe output oscillation. Parallel Best-of-3 polling mathematically smooths statistical anomalies without convoluting the system prompts.</catastrophic_reason>
     </rule_block>
-    <rule_block id="strict_markdown_prompt_formatting">
-        <banned_pattern>Using arbitrary ASCII separators (like `=== RULES ===`) or wrapping individual logic constraints in their own micro-XML tags (e.g., `<LANGUAGE_MANDATE>`) inside prompt models.</banned_pattern>
-        <mandatory_pattern>Within the XML boundaries created by the compiler (e.g., inside `<execution_parameters>`), all business logic, rules, and mandates MUST be written in strict, clean Markdown using standard headings (`##`, `###`) and bullet points (`-`).</mandatory_pattern>
-        <catastrophic_reason>Mixing ASCII art, nested micro-XML, and Markdown causes "Attention Dilution" and token waste. Clean Markdown is the mathematically optimal format for modern LLMs to process strict hierarchical logic.</catastrophic_reason>
+    <rule_block id="strict_xml_prompt_formatting">
+        <banned_pattern>Using arbitrary ASCII separators (like `=== RULES ===`) or soft Markdown headings for critical logic constraints inside prompt models.</banned_pattern>
+        <mandatory_pattern>All distinct business logic, rules, and mandates MUST be written using explicit XML boundaries (e.g., `<language_mandate>...</language_mandate>`). Markdown can still be used inside the XML block for readability, but the absolute outer boundary of a rule MUST be an XML tag.</mandatory_pattern>
+        <catastrophic_reason>Without XML tag boundaries, LLMs suffer from "Attention Dilution" and can accidentally bleed the context of one rule into another.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="prompt_asset_ssot_mandate">

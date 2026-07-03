@@ -201,16 +201,7 @@ class TestPhase1ReportDataDtoHeadless:
 
 
 class TestPhase2GodCodeElimination:
-    """Phase 2.1/2.2: Verify synthesis.py is eliminated."""
-
-    def test_synthesis_py_does_not_exist(self) -> None:
-        """The God Code file must be deleted."""
-        import os
-
-        path = os.path.join("backend_v2", "hooks", "synthesis.py")
-        assert not os.path.exists(path), (
-            f"synthesis.py still exists at {path} — Phase 2 mandates its complete destruction"
-        )
+    """Phase 2.1/2.2: Verify God Code extraction."""
 
     def test_matrix_reducer_exists(self) -> None:
         """The matrix_reducer.py replacement must exist."""

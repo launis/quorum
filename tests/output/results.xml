@@ -1,1 +1,273 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.326" timestamp="2026-07-02T19:02:28.804306+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.unit.models.prompts.test_global_mandates" name="test_global_mandates_constants" time="0.122" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="2.630" timestamp="2026-07-03T05:17:59.513475+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.unit.llm.test_client_schema" name="test_native_schema_delegates_to_adapter" time="0.204"><failure message="backend_v2.exceptions.ConfigurationError: LLM Adapter loading failed for provider mock: 'coroutine' object is not iterable">self = &lt;backend_v2.llm.client.LLMClient object at 0x000002B991EE63C0&gt;
+messages = [{'content': 'Hello', 'role': 'user'}]
+response_model = &lt;class 'backend_v2.tests.unit.llm.test_client_schema.MockSchema'&gt;
+model = 'test_model', temperature = None, max_tokens = None
+mock_identity = None, validation_context = None
+
+    async def run_structured_task[T: BaseModel](
+        self,
+        messages: list[dict[str, Any]] | CompiledPrompt,
+        response_model: type[T],
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        mock_identity: str | None = None,
+        validation_context: dict[str, Any] | None = None,
+    ) -&gt; tuple[T, TokenUsage]:
+        """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
+    
+        Args:
+            messages: List of chat messages or compiled prompt.
+            response_model: The Pydantic model class to validate output against.
+            model: Optional direct model override.
+            temperature: Sampling temperature override.
+            max_tokens: Max tokens override.
+            mock_identity: Identity key for mock provider routing.
+            validation_context: Optional context dictionary for strict Pydantic V2 parsing.
+    
+        Returns:
+            A tuple of the validated model and usage metrics.
+    
+        Raises:
+            AppException (ErrorCodes.CONFIGURATION_ERROR): If configuration is missing.
+            AgentExecutionError (ErrorCodes.AGENT_EXECUTION_CRITICAL): On API or execution failure.
+            LLMSchemaValidationError: On schema validation failure.
+        """
+        # ZERO-FALLBACK ENFORCEMENT
+        # Resolve Configuration (SSOT Priority)
+        # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
+        if model is None:
+            if not self._config:
+                raise AppException(
+                    message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+            # Use Strategy Config
+            target_model_name = self._config.model_name
+            target_provider_type = "litellm"  # Base Default
+    
+            # Apply Strategy defaults only if caller didn't override
+            if temperature is None:
+                temperature = self._config.temperature
+            if max_tokens is None:
+                max_tokens = self._config.default_max_tokens
+            top_p = self._config.top_p
+            top_k = self._config.top_k
+        else:
+            # Legacy pass-through
+            target_model_name = model
+            target_provider_type = "litellm"
+            top_p = None
+            top_k = None
+    
+        compiled_prompt: CompiledPrompt | None = None
+        if isinstance(messages, CompiledPrompt):
+            compiled_prompt = messages
+            final_messages = compiled_prompt.to_flat_messages()
+        else:
+            final_messages = []
+            for msg in messages:
+                # Create a deep copy to prevent mutating the original Orchestrator payload
+                final_messages.append(copy.deepcopy(msg))
+    
+        # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
+        # We process the raw messages array dynamically before handing it to the provider.
+        has_ephemeral_caching = False
+        caching_strategies = ("prompt_caching", "ephemeral", "anthropic_ephemeral", "gemini_native")
+        if self._config and self._config.caching_strategy in caching_strategies:
+            logger.info(
+                "[LLMClient] Enabling Universal Ephemeral Context Caching strategy: %s",
+                self._config.caching_strategy,
+            )
+            has_ephemeral_caching = True
+    
+        extra_kwargs: dict[str, Any] = {}
+    
+        if self._config and self._config.provider:
+            try:
+                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
+&gt;               extra_kwargs.update(adapter.prepare_provider_kwargs(str(target_model_name)))
+E               TypeError: 'coroutine' object is not iterable
+
+backend_v2\llm\client.py:261: TypeError
+
+The above exception was the direct cause of the following exception:
+
+    @pytest.mark.asyncio
+    async def test_native_schema_delegates_to_adapter() -&gt; None:
+        client = LLMClient()
+    
+        with (
+            patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory,
+            patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter_factory,
+        ):
+            mock_provider = AsyncMock()
+            mock_factory.return_value = mock_provider
+    
+            mock_adapter = AsyncMock()
+            mock_adapter_factory.return_value = mock_adapter
+            mock_adapter.prepare_provider_kwargs.return_value = {}
+            mock_adapter.prepare_structured_output.return_value = {
+                "type": "json_schema",
+                "json_schema": {"strict": True, "schema": {"properties": {"test": {}}}},
+            }
+    
+            # We need to bypass the _config validation, so we override _config
+            client._config = AsyncMock()
+            client._config.provider = "mock"
+            client._config.model_name = "test_model"
+            client._config.temperature = 0.0
+            client._config.default_max_tokens = 100
+            client._config.top_p = 1.0
+            client._config.top_k = 40
+            client._config.caching_strategy = "none"
+    
+            # Call the client
+&gt;           await client.run_structured_task(
+                messages=[{"role": "user", "content": "Hello"}], response_model=MockSchema, model="test_model"
+            )
+
+backend_v2\tests\unit\llm\test_client_schema.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend_v2.llm.client.LLMClient object at 0x000002B991EE63C0&gt;
+messages = [{'content': 'Hello', 'role': 'user'}]
+response_model = &lt;class 'backend_v2.tests.unit.llm.test_client_schema.MockSchema'&gt;
+model = 'test_model', temperature = None, max_tokens = None
+mock_identity = None, validation_context = None
+
+    async def run_structured_task[T: BaseModel](
+        self,
+        messages: list[dict[str, Any]] | CompiledPrompt,
+        response_model: type[T],
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        mock_identity: str | None = None,
+        validation_context: dict[str, Any] | None = None,
+    ) -&gt; tuple[T, TokenUsage]:
+        """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
+    
+        Args:
+            messages: List of chat messages or compiled prompt.
+            response_model: The Pydantic model class to validate output against.
+            model: Optional direct model override.
+            temperature: Sampling temperature override.
+            max_tokens: Max tokens override.
+            mock_identity: Identity key for mock provider routing.
+            validation_context: Optional context dictionary for strict Pydantic V2 parsing.
+    
+        Returns:
+            A tuple of the validated model and usage metrics.
+    
+        Raises:
+            AppException (ErrorCodes.CONFIGURATION_ERROR): If configuration is missing.
+            AgentExecutionError (ErrorCodes.AGENT_EXECUTION_CRITICAL): On API or execution failure.
+            LLMSchemaValidationError: On schema validation failure.
+        """
+        # ZERO-FALLBACK ENFORCEMENT
+        # Resolve Configuration (SSOT Priority)
+        # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
+        if model is None:
+            if not self._config:
+                raise AppException(
+                    message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+            # Use Strategy Config
+            target_model_name = self._config.model_name
+            target_provider_type = "litellm"  # Base Default
+    
+            # Apply Strategy defaults only if caller didn't override
+            if temperature is None:
+                temperature = self._config.temperature
+            if max_tokens is None:
+                max_tokens = self._config.default_max_tokens
+            top_p = self._config.top_p
+            top_k = self._config.top_k
+        else:
+            # Legacy pass-through
+            target_model_name = model
+            target_provider_type = "litellm"
+            top_p = None
+            top_k = None
+    
+        compiled_prompt: CompiledPrompt | None = None
+        if isinstance(messages, CompiledPrompt):
+            compiled_prompt = messages
+            final_messages = compiled_prompt.to_flat_messages()
+        else:
+            final_messages = []
+            for msg in messages:
+                # Create a deep copy to prevent mutating the original Orchestrator payload
+                final_messages.append(copy.deepcopy(msg))
+    
+        # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
+        # We process the raw messages array dynamically before handing it to the provider.
+        has_ephemeral_caching = False
+        caching_strategies = ("prompt_caching", "ephemeral", "anthropic_ephemeral", "gemini_native")
+        if self._config and self._config.caching_strategy in caching_strategies:
+            logger.info(
+                "[LLMClient] Enabling Universal Ephemeral Context Caching strategy: %s",
+                self._config.caching_strategy,
+            )
+            has_ephemeral_caching = True
+    
+        extra_kwargs: dict[str, Any] = {}
+    
+        if self._config and self._config.provider:
+            try:
+                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
+                extra_kwargs.update(adapter.prepare_provider_kwargs(str(target_model_name)))
+            except Exception as e:
+                logger.error("Could not fetch adapter for kwargs injection.", exc_info=True)
+&gt;               raise ConfigurationError(
+                    f"LLM Adapter loading failed for provider {self._config.provider}: {e}",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                ) from e
+E               backend_v2.exceptions.ConfigurationError: LLM Adapter loading failed for provider mock: 'coroutine' object is not iterable
+
+backend_v2\llm\client.py:264: ConfigurationError</failure></testcase><testcase classname="backend_v2.tests.unit.llm.test_client_schema" name="test_fallback_when_adapter_fails" time="0.012"><failure message="AssertionError: Expected 'generate' to have been called once. Called 0 times.">@pytest.mark.asyncio
+    async def test_fallback_when_adapter_fails() -&gt; None:
+        client = LLMClient()
+        with (
+            patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory,
+            patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter_factory,
+        ):
+            mock_provider = AsyncMock()
+            mock_factory.return_value = mock_provider
+    
+            mock_adapter_factory.side_effect = Exception("Adapter not found")
+    
+            client._config = AsyncMock()
+            client._config.provider = "unknown"
+            client._config.model_name = "test_model"
+    
+            try:
+                await client.run_structured_task(
+                    messages=[{"role": "user", "content": "Hello"}], response_model=MockSchema, model="test_model"
+                )
+            except Exception:
+                pass
+    
+&gt;           mock_provider.generate.assert_called_once()
+
+backend_v2\tests\unit\llm\test_client_schema.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;AsyncMock name='create_provider().generate' id='2996041209504'&gt;
+
+    def assert_called_once(self):
+        """assert that the mock was called only once.
+        """
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to have been called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+&gt;           raise AssertionError(msg)
+E           AssertionError: Expected 'generate' to have been called once. Called 0 times.
+
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\unittest\mock.py:964: AssertionError</failure></testcase></testsuite></testsuites>

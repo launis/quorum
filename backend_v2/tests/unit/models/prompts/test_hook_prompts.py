@@ -9,6 +9,5 @@ def test_hook_prompts_constants() -> None:
     assert isinstance(INTERACTION_OBJECTIVE, str)
     assert "Analyze the user" in INTERACTION_OBJECTIVE
 
-    assert isinstance(INTERACTION_RULES, list)
+    assert isinstance(INTERACTION_RULES, str)
     assert len(INTERACTION_RULES) > 0
-    assert all(isinstance(rule, str) for rule in INTERACTION_RULES)

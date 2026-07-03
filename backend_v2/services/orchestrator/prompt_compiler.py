@@ -169,6 +169,7 @@ class PromptCompiler:
         state_data: dict[str, Any],
         target_locale: str,
         expected_inputs: list[Any] | None = None,
+        alias_engine: Any = None,
     ) -> str:
         """Build XML semantic blocks from raw input mappings for LLM context.
 
@@ -177,6 +178,7 @@ class PromptCompiler:
             state_data: The current workflow execution state containing values.
             target_locale: The requested output locale string.
             expected_inputs: Optional list of ExpectedInput definitions to extract ai_description.
+            alias_engine: Optional alias engine for source document IDs.
 
         Returns:
             A single string containing XML-wrapped elements.
@@ -232,8 +234,15 @@ class PromptCompiler:
                         desc_text += f"    <ai_context_mandate>{meta['ai_desc']}</ai_context_mandate>\n"
                     desc_text += "  </document_metadata>\n"
 
+                source_id_to_use = logical_name
+                if alias_engine:
+                    idx = len(alias_engine.source_document_aliases)
+                    alias = alias_engine.generate_alias(logical_name, "src_", idx)
+                    alias_engine.source_document_aliases.append(alias)
+                    source_id_to_use = alias
+
                 xml_blocks.append(
-                    f'<matrix_input source_id="{logical_name}">\n{desc_text}{TemplateProcessor.encapsulate_payload(value)}\n</matrix_input>'
+                    f'<matrix_input source_id="{source_id_to_use}">\n{desc_text}{TemplateProcessor.encapsulate_payload(value)}\n</matrix_input>'
                 )
 
         compiled = "\n\n".join(xml_blocks)

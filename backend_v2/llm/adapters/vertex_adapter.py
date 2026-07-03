@@ -11,7 +11,7 @@ import os
 from typing import Any
 
 from arq.connections import RedisSettings, create_pool
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
@@ -506,3 +506,26 @@ class VertexCacheAdapter(BaseLLMAdapter):
         _handler = AsyncHTTPHandler(timeout=timeout)
         _handler.client = _raw_httpx
         return _handler
+
+    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
+        """Convert a Pydantic model into a Vertex AI specific structured output schema format.
+
+        Vertex natively supports Strict JSON Schema but fails on constraints like minLength/maxLength.
+
+        Args:
+            response_model: The Pydantic model defining the expected JSON structure.
+
+        Returns:
+            A dictionary matching LiteLLM's structured output format with stripped constraints.
+        """
+        json_schema = response_model.model_json_schema()
+        self._strip_unsupported_constraints(json_schema)
+
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": response_model.__name__,
+                "schema": json_schema,
+                "strict": True,
+            },
+        }

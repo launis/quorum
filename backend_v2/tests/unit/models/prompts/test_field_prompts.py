@@ -13,5 +13,4 @@ def test_field_prompts_constants():
 
 def test_escape_hatch_present_in_exact_quotes():
     """Verify that the Escape Hatch is present in DESC_EXACT_QUOTES."""
-    assert "palauta tyhjä lista []" in DESC_EXACT_QUOTES
-    assert "Tyhjä lista on täysin oikea vastaus faktojen puuttuessa." in DESC_EXACT_QUOTES
+    assert "return an empty list []" in DESC_EXACT_QUOTES

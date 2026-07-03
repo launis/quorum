@@ -5,8 +5,10 @@ with a 90% read/hit discount compared to normal input token pricing.
 """
 
 import logging
+from typing import Any
 
 from fastapi import status
+from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.openai_adapter import OpenAICacheAdapter, OpenAITokenUsage
@@ -21,6 +23,38 @@ class DeepSeekCacheAdapter(OpenAICacheAdapter):
     Attributes:
         None.
     """
+
+    def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
+        """Prepare provider specific arguments for LiteLLM.
+
+        Args:
+            model_name: The target model name.
+
+        Returns:
+            An empty dictionary as no special static arguments are needed.
+        """
+        return {}
+
+    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
+        """Convert a Pydantic model into DeepSeek specific strict structured output format.
+
+        Args:
+            response_model: The Pydantic model defining the expected JSON structure.
+
+        Returns:
+            A dictionary matching LiteLLM's structured output format.
+        """
+        json_schema = response_model.model_json_schema()
+        self._strip_unsupported_constraints(json_schema)
+
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": response_model.__name__,
+                "schema": json_schema,
+                "strict": True,
+            },
+        }
 
     def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, float | int]) -> OpenAITokenUsage:
         """Calculate the precise DeepSeek cost and savings.

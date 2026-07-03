@@ -122,22 +122,6 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         """
         return await self.driver.get("workflows", workflow_id)
 
-    async def get_workflow_by_slug(self, slug: str) -> dict[str, Any] | None:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
-        """
-        res = await self.driver.query("workflows", [Filter("slug", "==", slug)], limit=1)
-        return res[0] if res else None
-
     async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
         """Repository method implementation.
 
@@ -175,14 +159,14 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         await self.driver.update("workflows", workflow_id, {"is_latest": False})
 
-        slug, new_id, ver = self._increment_version(workflow_id)
+        base_id, new_id, ver = self._increment_version(workflow_id)
 
         new_doc = dict(old_doc)
         new_doc.update(updates)
         new_doc["id"] = new_id
         new_doc["is_latest"] = True
         new_doc["version"] = ver
-        new_doc["slug"] = slug
+        new_doc["slug"] = base_id
 
         await self.driver.upsert("workflows", new_doc, new_id)
         return new_id

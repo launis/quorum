@@ -580,8 +580,8 @@ class SystemConfigModelRegistry(V2CoreBase):
     """V2 Flattened Model Registry System Config."""
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
-    slug: str = Field(description="Slug identifier")
     type: str = Field(description="Type of config")
+    slug: str | None = Field(default=None, description="System Config identifier slug")
     models: dict[str, ModelProfile] = Field(
         description="Dictionary mapping generic role names to specific ModelProfiles"
     )
@@ -624,8 +624,8 @@ class SystemConfigMCPGateways(V2CoreBase):
     """System-level registry of available MCP tool gateways."""
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
-    slug: str = Field(description="Slug identifier.")
     type: str = Field(description="Config type discriminator.")
+    slug: str | None = Field(default=None, description="System Config identifier slug")
     tools: list[AllowedMCPTool] = Field(
         default_factory=list, description="Registry of all available MCP tools in the system."
     )
@@ -644,10 +644,12 @@ class SystemConfigPerformativeLexicons(V2CoreBase):
     """System configuration for multi-language performative lexicons."""
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
-    slug: str = Field(description="Slug identifier.")
     type: Literal["performative_lexicons"] = Field(
         default="performative_lexicons", description="Config type discriminator."
     )
+    slug: str | None = Field(default=None, description="System Config identifier slug")
+    lexicons: dict[str, Any] | None = Field(default=None, description="Legacy payload mapping")
+    lexicon: dict[str, Any] | None = Field(default=None, description="Legacy payload mapping")
     lexicon_configs: dict[str, LexiconConfigPayload] = Field(
         default_factory=dict, description="Map of language code to lexicon configuration."
     )

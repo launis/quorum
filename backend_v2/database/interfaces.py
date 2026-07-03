@@ -186,21 +186,6 @@ class IWorkflowRepository(Protocol):
         """
         ...
 
-    async def get_workflow_by_slug(self, slug: str) -> dict[str, Any] | None:
-        """Protocol method definition.
-
-        Args:
-            *args: Protocol arguments.
-            **kwargs: Protocol keyword arguments.
-
-        Returns:
-            The specified return type.
-
-        Raises:
-            AppException: If the operation fails.
-        """
-        ...
-
     async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
         """Protocol method definition.
 
@@ -613,21 +598,6 @@ class IComponentRepository(Protocol):
         """
         ...
 
-    async def get_component_by_slug(self, slug: str) -> dict[str, Any] | None:
-        """Protocol method definition.
-
-        Args:
-            *args: Protocol arguments.
-            **kwargs: Protocol keyword arguments.
-
-        Returns:
-            The specified return type.
-
-        Raises:
-            AppException: If the operation fails.
-        """
-        ...
-
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
         """Protocol method definition.
 
@@ -734,21 +704,6 @@ class IComponentRepository(Protocol):
         ...
 
     async def get_prompt_block(self, block_id: str) -> dict[str, Any] | None:
-        """Protocol method definition.
-
-        Args:
-            *args: Protocol arguments.
-            **kwargs: Protocol keyword arguments.
-
-        Returns:
-            The specified return type.
-
-        Raises:
-            AppException: If the operation fails.
-        """
-        ...
-
-    async def get_prompt_block_by_slug(self, slug: str) -> dict[str, Any] | None:
         """Protocol method definition.
 
         Args:

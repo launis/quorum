@@ -41,13 +41,21 @@ class GuidedReflectionInputDTO(V2CoreBase):
         Returns:
             The formatted markdown string content.
         """
-        parts: list[str] = [f"# {title}\n"]
+        parts: list[str] = [f'<questionnaire title="{title}">']
 
-        for k, v in sorted(self.metadata.items()):
-            parts.append(f"**{k}:** {v}\n")
+        if self.metadata:
+            parts.append("  <metadata>")
+            for k, v in sorted(self.metadata.items()):
+                # Clean keys to be valid XML tags (alphanumeric and underscore)
+                clean_k = "".join(c if c.isalnum() else "_" for c in k).strip("_")
+                parts.append(f"    <{clean_k}>{v}</{clean_k}>")
+            parts.append("  </metadata>")
 
         for pair in self.pairs:
-            parts.append(f"### Q: {pair.question}")
-            parts.append(f"> **A:** {pair.answer}\n")
+            parts.append("  <qa_pair>")
+            parts.append(f"    <question>{pair.question}</question>")
+            parts.append(f"    <answer>{pair.answer}</answer>")
+            parts.append("  </qa_pair>")
 
+        parts.append("</questionnaire>")
         return "\n".join(parts).strip()

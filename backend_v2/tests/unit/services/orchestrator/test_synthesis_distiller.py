@@ -122,7 +122,8 @@ def test_assemble_matrices_to_explain_basic() -> None:
     result = _assemble_matrices_to_explain(dtos)
 
     assert len(result) == 1
-    assert result[0]["matrix_id"] == "blk_matrix1"
+    assert result[0]["matrix_id"] == "MX-0"
+    assert result[0]["real_matrix_id"] == "blk_matrix1"
     assert result[0]["score"] == 78.5
     assert "Quote A from source." in result[0]["justification"]
     assert "Quote B from source." in result[0]["justification"]

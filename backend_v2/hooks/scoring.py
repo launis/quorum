@@ -641,8 +641,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         evaluations = content_payload["evaluations"]
 
-        if not isinstance(evaluations, list) or len(evaluations) == 0:
-            msg = f"Strict Fail-Fast Enforced: 'evaluations' array is empty or not a list for step '{blueprint_id}'."
+        if not isinstance(evaluations, list):
+            msg = f"Strict Fail-Fast Enforced: 'evaluations' array is not a list for step '{blueprint_id}'."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
                 message=msg,

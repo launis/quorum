@@ -56,6 +56,7 @@ class PromptFactory:
         expected_inputs: list[Any] | None,
         has_shuffled_atoms: bool = False,
         execution_id: str | None = None,
+        alias_engine: Any = None,
     ) -> PromptPayload:
         """Compiles criteria blocks and context variables into optimized static/dynamic prompts.
 
@@ -71,6 +72,7 @@ class PromptFactory:
             expected_inputs: Elements expected to present in context evaluation.
             has_shuffled_atoms: Whether evaluation assets were randomized to mitigate LLM bias.
             execution_id: Parent execution tracking ID.
+            alias_engine: Optional alias engine for source document IDs.
 
         Returns:
             An immutable PromptPayload containing structured prompt components.
@@ -250,6 +252,7 @@ class PromptFactory:
             state_data=llm_context_data,
             target_locale=target_locale,
             expected_inputs=expected_inputs,
+            alias_engine=alias_engine,
         )
 
         user_payload = f"{exec_params}\n<source_data>\n{xml_ctx}\n</source_data>"

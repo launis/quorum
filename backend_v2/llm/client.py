@@ -19,10 +19,8 @@ from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import StrictnessAnchor
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.prompts.field_prompts import STRICT_JSON_STRUCTURE_MANDATE
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.settings import get_settings
@@ -55,75 +53,25 @@ class LLMClient:
         response_model: type[BaseModel],
         final_messages: list[dict[str, Any]],
         validation_context: dict[str, Any] | None,
-    ) -> dict[str, Any]:
+    ) -> Any:
         """Build the structured JSON schema for the provider, applying caching and strictness constraints."""
-        adapter_schema: dict[str, Any] = {"type": "json_schema"}
-        if self._config and getattr(self._config, "parsing_mode", None) == "STRUCTURED_JSON":
-            adapter_schema = {"type": "json_object"}
-            schema_json = json.dumps(response_model.model_json_schema(), indent=2)
-            schema_instruction = STRICT_JSON_STRUCTURE_MANDATE.format(schema_json=schema_json)
+        adapter_schema: Any = {"type": "json_schema"}
+        if self._config and self._config.provider:
+            from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 
-            user_msg_found = False
-            for msg in reversed(final_messages):
-                if msg.get("role") == "user":
-                    content = msg.get("content")
-                    if isinstance(content, str):
-                        msg["content"] = content + schema_instruction
-                        user_msg_found = True
-                        break
-                    elif isinstance(content, list):
-                        for part in content:
-                            if isinstance(part, dict) and part.get("type") == "text":
-                                part["text"] = (part.get("text") or "") + schema_instruction
-                                user_msg_found = True
-                                break
-                        if user_msg_found:
-                            break
-            if not user_msg_found:
-                final_messages.append({"role": "user", "content": schema_instruction.strip()})
+            try:
+                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
+                adapter_schema = adapter.prepare_structured_output(response_model)
+            except Exception as e:
+                logger.error(
+                    "[LLMClient] Could not fetch adapter for structured output. Fallback to basic JSON mode. Error: %s",
+                    e,
+                )
+                adapter_schema = {"type": "json_object"}
         else:
-            json_schema = response_model.model_json_schema()
+            # Fallback for unconfigured clients
+            adapter_schema = {"type": "json_object"}
 
-            def strip_unsupported_constraints(schema_dict: Any) -> None:
-                if isinstance(schema_dict, dict):
-                    schema_dict.pop("maxLength", None)
-                    schema_dict.pop("minLength", None)
-
-                    if "const" in schema_dict:
-                        schema_dict["enum"] = [schema_dict.pop("const")]
-
-                    # Context cache validation requires strictness and active user context
-                    strictness = (
-                        validation_context.get("strictness_level", StrictnessAnchor.STANDARD.value)
-                        if validation_context
-                        else StrictnessAnchor.STANDARD.value
-                    )
-                    if strictness >= 100:
-                        if "properties" in schema_dict:
-                            schema_dict["properties"].pop("contextual_override", None)
-                            schema_dict["properties"].pop("override_reason", None)
-                        if "required" in schema_dict and isinstance(schema_dict["required"], list):
-                            if "contextual_override" in schema_dict["required"]:
-                                schema_dict["required"].remove("contextual_override")
-                            if "override_reason" in schema_dict["required"]:
-                                schema_dict["required"].remove("override_reason")
-
-                    for v in list(schema_dict.values()):
-                        strip_unsupported_constraints(v)
-                elif isinstance(schema_dict, list):
-                    for item in schema_dict:
-                        strip_unsupported_constraints(item)
-
-            strip_unsupported_constraints(json_schema)
-            schema_name = response_model.__name__
-            adapter_schema = {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": schema_name,
-                    "schema": json_schema,
-                    "strict": True,
-                },
-            }
         return adapter_schema
 
     @classmethod
@@ -353,7 +301,7 @@ class LLMClient:
         response = None
         try:
             # Epic 56 Phase 3: Dynamic Schema Stripping
-            adapter_schema: type[T] | dict[str, Any] = response_model
+            adapter_schema: Any = response_model
             if isinstance(response_model, type) and issubclass(response_model, BaseModel):
                 adapter_schema = self._build_structured_schema(
                     response_model=response_model,

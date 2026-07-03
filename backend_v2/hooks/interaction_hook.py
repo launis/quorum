@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 _SYSTEM_INSTRUCTION: str = build_system_directive(
     objective=INTERACTION_OBJECTIVE,
     role="Interaction Analyst",
-    rules=INTERACTION_RULES,
+    rules=None,
+    interaction_rules=INTERACTION_RULES,
 )
 
 

@@ -72,22 +72,6 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         res = await self.driver.query("components", [Filter("name", "==", name)], limit=1)
         return res[0] if res else None
 
-    async def get_component_by_slug(self, slug: str) -> dict[str, Any] | None:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
-        """
-        res = await self.driver.query("components", [Filter("slug", "==", slug)], limit=1)
-        return res[0] if res else None
-
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
         """Repository method implementation.
 
@@ -234,22 +218,6 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         """
         return await self.get_prompt_block_by_id(block_id)
 
-    async def get_prompt_block_by_slug(self, slug: str) -> dict[str, Any] | None:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
-        """
-        res = await self.driver.query("prompt_blocks", [Filter("slug", "==", slug)], limit=1)
-        return res[0] if res else None
-
     async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
         """Repository method implementation.
 
@@ -328,14 +296,14 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         await self.driver.update("prompt_blocks", block_id, {"is_latest": False})
 
-        slug, new_id, ver = self._increment_version(block_id)
+        base_id, new_id, ver = self._increment_version(block_id)
 
         new_doc = dict(old_doc)
         new_doc.update(updates)
         new_doc["id"] = new_id
         new_doc["is_latest"] = True
         new_doc["version"] = ver
-        new_doc["slug"] = slug
+        new_doc["slug"] = base_id
 
         await self.driver.upsert("prompt_blocks", new_doc, new_id)
         return True
@@ -441,14 +409,14 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         await self.driver.update("agents", agent_id, {"is_latest": False})
 
-        slug, new_id, ver = self._increment_version(agent_id)
+        base_id, new_id, ver = self._increment_version(agent_id)
 
         new_doc = dict(old_doc)
         new_doc.update(updates)
         new_doc["id"] = new_id
         new_doc["is_latest"] = True
         new_doc["version"] = ver
-        new_doc["slug"] = slug
+        new_doc["slug"] = base_id
 
         await self.driver.upsert("agents", new_doc, new_id)
         return True
@@ -538,14 +506,14 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         await self.driver.update("task_blueprints", blueprint_id, {"is_latest": False})
 
-        slug, new_id, ver = self._increment_version(blueprint_id)
+        base_id, new_id, ver = self._increment_version(blueprint_id)
 
         new_doc = dict(old_doc)
         new_doc.update(updates)
         new_doc["id"] = new_id
         new_doc["is_latest"] = True
         new_doc["version"] = ver
-        new_doc["slug"] = slug
+        new_doc["slug"] = base_id
 
         await self.driver.upsert("task_blueprints", new_doc, new_id)
         return True

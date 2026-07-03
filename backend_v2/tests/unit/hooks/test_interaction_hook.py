@@ -26,7 +26,7 @@ def test_interaction_hook_system_instruction() -> None:
     assert "Analyze the user's interaction behavior" in _SYSTEM_INSTRUCTION
 
     # Check that rules are included with Markdown bullet points
-    assert "## Rules" in _SYSTEM_INSTRUCTION
+    assert "## Interaction Rules" in _SYSTEM_INSTRUCTION
     assert "- ROLE_PASSENGER:" in _SYSTEM_INSTRUCTION
     assert "- ROLE_ARCHITECT:" in _SYSTEM_INSTRUCTION
     assert "<execution_parameters>" in _SYSTEM_INSTRUCTION

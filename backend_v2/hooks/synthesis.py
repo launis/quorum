@@ -22,12 +22,14 @@ from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisSt
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
 from backend_v2.models.enums import HistoricalContextMode
+from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.prompts.hook_prompts import (
     SYNTHESIS_CITATION_RULES,
     SYNTHESIS_LENGTH_CONSTRAINT,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SECTION_RULES_PREFIX,
     SYNTHESIS_STATE_ISOLATION_MANDATE,
+    SYNTHESIS_XAI_CURATION,
 )
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
@@ -668,34 +670,34 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     scoring_strategy = active_profile_dto.scoring_strategy.value
 
-    rules = list(SYNTHESIS_SDUI_MANDATES)
+    xml_blocks = [
+        GLOBAL_MANDATES_XML,
+        SYNTHESIS_SDUI_MANDATES,
+        SYNTHESIS_CITATION_RULES,
+        SYNTHESIS_STATE_ISOLATION_MANDATE,
+        SYNTHESIS_XAI_CURATION,
+    ]
 
     if length_constraint:
-        rules.append(SYNTHESIS_LENGTH_CONSTRAINT)
+        xml_blocks.append(SYNTHESIS_LENGTH_CONSTRAINT)
 
     if tone_text:
-        rules.append(f"TONE INSTRUCTION: {tone_text}")
+        xml_blocks.append(f"<tone_instruction>\n{tone_text}\n</tone_instruction>")
 
     if section_instructions:
         section_rules = SYNTHESIS_SECTION_RULES_PREFIX
         section_rules += "\n\n".join(section_instructions)
-        rules.append(section_rules)
-
-    rules.append(SYNTHESIS_CITATION_RULES)
-
-    rules.append(SYNTHESIS_STATE_ISOLATION_MANDATE)
-
-    # Check static rule injection for curation
-    from backend_v2.models.prompts.hook_prompts import SYNTHESIS_XAI_CURATION
-
-    rules.append(SYNTHESIS_XAI_CURATION)
+        section_rules += "\n</section_rules>"
+        xml_blocks.append(section_rules)
 
     # Inject linguistic mandate
     from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+
     ling_ctx = build_linguistic_context(target_locale=language, include_mandate=True)
     import time
+
     ling_ctx += f"\n<!-- Cache Buster: {time.time()} -->"
-    rules.append(ling_ctx)
+    xml_blocks.append(ling_ctx)
 
     exec_params = [
         f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>",
@@ -706,8 +708,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     sys_prompt = build_system_directive(
         objective=str(custom_sys_prompt).strip(),
-        rules=rules,
+        rules=None,
         execution_parameters="\n".join(exec_params),
+        synthesis_mandates="\n\n".join(xml_blocks),
     )
 
     messages = [
@@ -757,9 +760,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                         if l_preamble:
                             safe_blocks.append({"block_type": "markdown", "text": l_preamble})
                         break
-
-                if s.synthesized_markdown:
-                    safe_blocks.append({"block_type": "markdown", "text": s.synthesized_markdown})
 
                 for b in s.content_blocks:
                     try:
@@ -813,6 +813,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 "2. 'curated_quotes': Review the provided quotes. Select up to <max_extension_items> MOST CONCRETE quotes verbatim from the user's original input."
             ),
             rules=row_rules,
+            synthesis_mandates=f"{GLOBAL_MANDATES_XML}\n\n{ling_ctx}",
         )
 
         atom_quotes: dict[str, list[str]] = {}
@@ -827,17 +828,32 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         matrices_to_explain_map: dict[str, dict[str, Any]] = {}
         for step_dto_obj in available_dtos:
             payload = step_dto_obj.payload
-            block_id = step_dto_obj.block_id
 
-            if isinstance(payload, dict) and "normalized_score" in payload and block_id in atom_quotes:
-                quotes_list = atom_quotes[block_id]
-                if quotes_list and block_id not in matrices_to_explain_map:
-                    justification_text = "\n".join([f"- {q}" for q in quotes_list])
-                    matrices_to_explain_map[block_id] = {
-                        "matrix_id": block_id,
-                        "score": payload["normalized_score"],
-                        "justification": justification_text,
-                    }
+            if isinstance(payload, dict):
+                # Handle direct payload (from tests)
+                if "normalized_score" in payload and step_dto_obj.block_id in atom_quotes:
+                    k = step_dto_obj.block_id
+                    v = payload
+                    quotes_list = atom_quotes[k]
+                    if quotes_list and k not in matrices_to_explain_map:
+                        justification_text = "\n".join([f"- {q}" for q in quotes_list])
+                        matrices_to_explain_map[k] = {
+                            "matrix_id": k,
+                            "score": v["normalized_score"],
+                            "justification": justification_text,
+                        }
+                # Handle real scoring hook payload where matrix ids are keys in the payload
+                else:
+                    for k, v in payload.items():
+                        if isinstance(v, dict) and "normalized_score" in v and k in atom_quotes:
+                            quotes_list = atom_quotes[k]
+                            if quotes_list and k not in matrices_to_explain_map:
+                                justification_text = "\n".join([f"- {q}" for q in quotes_list])
+                                matrices_to_explain_map[k] = {
+                                    "matrix_id": k,
+                                    "score": v["normalized_score"],
+                                    "justification": justification_text,
+                                }
 
         matrices_to_explain = list(matrices_to_explain_map.values())
 

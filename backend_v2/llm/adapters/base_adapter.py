@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from arq.connections import RedisSettings, create_pool
+from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
@@ -226,3 +227,44 @@ class BaseLLMAdapter(ABC):
             A custom HTTP client or None to use default.
         """
         return None
+
+    @abstractmethod
+    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
+        """Convert a Pydantic model into a provider-specific structured output schema format.
+
+        Args:
+            response_model: The Pydantic model defining the expected JSON structure.
+
+        Returns:
+            A dictionary matching the provider's native schema format, or the Pydantic type itself.
+        """
+        pass
+
+    def _strip_unsupported_constraints(self, schema_dict: Any) -> None:
+        """Strip unsupported JSON schema constraints (e.g. minLength, maxLength) for strict mode.
+
+        Args:
+            schema_dict: The JSON schema dictionary to mutate in place.
+        """
+        if isinstance(schema_dict, dict):
+            schema_dict.pop("maxLength", None)
+            schema_dict.pop("minLength", None)
+
+            if "const" in schema_dict:
+                schema_dict["enum"] = [schema_dict.pop("const")]
+
+            # Remove contextual constraints not supported by standard strict schemas
+            if "properties" in schema_dict:
+                schema_dict["properties"].pop("contextual_override", None)
+                schema_dict["properties"].pop("override_reason", None)
+            if "required" in schema_dict and isinstance(schema_dict["required"], list):
+                if "contextual_override" in schema_dict["required"]:
+                    schema_dict["required"].remove("contextual_override")
+                if "override_reason" in schema_dict["required"]:
+                    schema_dict["required"].remove("override_reason")
+
+            for v in list(schema_dict.values()):
+                self._strip_unsupported_constraints(v)
+        elif isinstance(schema_dict, list):
+            for item in schema_dict:
+                self._strip_unsupported_constraints(item)

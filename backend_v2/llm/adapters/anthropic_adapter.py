@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
@@ -240,3 +240,27 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
             An empty dictionary as no special static arguments are needed.
         """
         return {}
+
+    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
+        """Convert a Pydantic model into Anthropic specific strict structured output format.
+
+        Anthropic utilizes tool-calling for JSON schemas. LiteLLM handles the conversion
+        but we pass the standard strict JSON schema definition.
+
+        Args:
+            response_model: The Pydantic model defining the expected JSON structure.
+
+        Returns:
+            A dictionary matching LiteLLM's structured output format.
+        """
+        json_schema = response_model.model_json_schema()
+        self._strip_unsupported_constraints(json_schema)
+
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": response_model.__name__,
+                "schema": json_schema,
+                "strict": True,
+            },
+        }

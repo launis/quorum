@@ -84,18 +84,20 @@ def test_guided_reflection_dto_invalid_empty() -> None:
 def test_guided_reflection_dto_to_markdown() -> None:
     """Test the deterministic Markdown serialization of the DTO."""
     dto = GuidedReflectionInputDTO(
-        pairs=[QuestionAnswerPair(question="Q1", answer="A1"), QuestionAnswerPair(question="Q2", answer="A2")],
+        pairs=[
+            QuestionAnswerPair(question="Q1", answer="A1"),
+            QuestionAnswerPair(question="Q2", answer="A2"),
+        ],
         metadata={"user_id": "usr_99"},
     )
+    md = dto.to_markdown(title="Test Questionnaire")
 
-    md = dto.to_markdown("Test Questionnaire")
-
-    assert "# Test Questionnaire" in md
-    assert "**user_id:** usr_99" in md
-    assert "### Q: Q1" in md
-    assert "> **A:** A1" in md
-    assert "### Q: Q2" in md
-    assert "> **A:** A2" in md
+    assert '<questionnaire title="Test Questionnaire">' in md
+    assert "<user_id>usr_99</user_id>" in md
+    assert "<question>Q1</question>" in md
+    assert "<answer>A1</answer>" in md
+    assert "<question>Q2</question>" in md
+    assert "<answer>A2</answer>" in md
 
 
 @pytest.mark.asyncio
@@ -156,9 +158,9 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
     questionnaire_text = processed["QUESTIONNAIRE"]
     assert "--- AI INSTRUCTION FOR THIS SOURCE (QUESTIONNAIRE) ---" not in questionnaire_text
     assert "Analyze this form." not in questionnaire_text
-    assert "# My Form" in questionnaire_text
-    assert "### Q: How are you?" in questionnaire_text
-    assert "> **A:** I am fine." in questionnaire_text
+    assert '<questionnaire title="My Form">' in questionnaire_text
+    assert "<question>How are you?</question>" in questionnaire_text
+    assert "<answer>I am fine.</answer>" in questionnaire_text
 
     doc_text = processed["DOCUMENT_TEXT"]
     assert "--- AI INSTRUCTION FOR THIS SOURCE (DOCUMENT_TEXT) ---" not in doc_text

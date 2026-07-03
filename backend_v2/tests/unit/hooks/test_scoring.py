@@ -961,3 +961,39 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
     # This should crash because QuoteEvidenceDTO is created without validation context
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_empty_evaluations() -> None:
+    from backend_v2.hooks.scoring import matrix_scoring_hook
+    from backend_v2.models.v2_core import PromptBlock
+
+    pb = _build_valid_pb_dict("blk_1111111111111111", [_build_valid_scale(1, ["atom_test"])])
+    state = HookState(
+        inputs={"evaluations": [], "extracted_facts": {}, "execution_metadata": {}},
+        step_id="sp_empty_evals",
+        execution_id="exe_1111111111111111",
+        workflow_id="wf_1",
+        task_blueprint="sp_1",
+        metadata={},
+        global_context_vars={
+            "matrix_blocks": [("blk_1111111111111111", PromptBlock(**pb))],
+            "scoring_profile": {"id": "prof_1", "scoring_strategy": "baseline", "strictness_level": "normal"},
+        },
+    )
+    from typing import cast
+
+    from backend_v2.tests.unit.hooks.test_scoring import MockRepoWaterfall
+
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    assert result is not None
+    assert result.success is True
+    assert result.state_delta["evaluations"] == []

@@ -377,6 +377,10 @@ class LLMNodeStrategy(NodeStrategy):
             if isinstance(shuffled_atoms, list) and len(shuffled_atoms) > 0:
                 has_shuffled_atoms = True
 
+        from backend_v2.utils.alias_engine import AliasEngine
+
+        alias_engine = AliasEngine()
+
         prompt_payload = PromptFactory.build(
             compiler=self.compiler,
             role_block=role_block,
@@ -390,6 +394,7 @@ class LLMNodeStrategy(NodeStrategy):
             expected_inputs=context.expected_inputs,
             has_shuffled_atoms=has_shuffled_atoms,
             execution_id=context.execution_id,
+            alias_engine=alias_engine,
         )
 
         user_payload = prompt_payload.user_payload
@@ -441,15 +446,8 @@ class LLMNodeStrategy(NodeStrategy):
         else:
             chunks_list = [None]
 
-        # Resolve source_document_ids from input_mappings and state_data
-        source_doc_ids = []
-        for logical_name, source_path in input_mappings.items():
-            try:
-                val = self.compiler._extract_value_from_state(source_path, llm_context_data)
-                if val:
-                    source_doc_ids.append(logical_name)
-            except Exception:
-                pass
+        # Use the generated aliases directly instead of resolving real IDs
+        source_doc_ids = alias_engine.source_document_aliases if alias_engine.source_document_aliases else ["N/A"]
 
         if hook_state.metadata is None:
             hook_state.metadata = {}

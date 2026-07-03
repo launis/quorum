@@ -6,7 +6,7 @@ replacing legacy f-strings and loosely typed dictionaries.
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BasePromptModel(BaseModel):
@@ -29,9 +29,12 @@ class TdaValidationPrompt(BasePromptModel):
     against a specific TDA Protocol Rule.
     """
 
-    rule_id: str
-    rule_description: str
-    target_text: str
+    rule_alias: str = Field(
+        min_length=1,
+        description="The AliasEngine generated ID (e.g. r0) to save tokens and prevent hallucination",
+    )
+    rule_description: str = Field(min_length=10, description="The actual prompt instruction")
+    target_text: str = Field(min_length=1, description="The payload to evaluate")
     strictness_calibration: str | None = None
     theory_context: str | None = None
     linguistic_mandate: str | None = None

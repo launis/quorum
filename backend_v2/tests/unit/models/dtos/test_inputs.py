@@ -51,13 +51,20 @@ def test_guided_reflection_to_markdown() -> None:
     md_output = dto.to_markdown(title="My Form")
 
     expected = (
-        "# My Form\n\n"
-        "**a_key:** a_value\n\n"
-        "**b_key:** b_value\n\n"
-        "### Q: First Q\n"
-        "> **A:** First A\n\n"
-        "### Q: Second Q\n"
-        "> **A:** Second A"
+        '<questionnaire title="My Form">\n'
+        "  <metadata>\n"
+        "    <a_key>a_value</a_key>\n"
+        "    <b_key>b_value</b_key>\n"
+        "  </metadata>\n"
+        "  <qa_pair>\n"
+        "    <question>First Q</question>\n"
+        "    <answer>First A</answer>\n"
+        "  </qa_pair>\n"
+        "  <qa_pair>\n"
+        "    <question>Second Q</question>\n"
+        "    <answer>Second A</answer>\n"
+        "  </qa_pair>\n"
+        "</questionnaire>"
     )
 
     assert md_output == expected

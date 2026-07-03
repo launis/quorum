@@ -249,6 +249,10 @@ def _assemble_matrices_to_explain(available_dtos: list[StepOutputDTO]) -> list[d
 
     # Phase 2, Milestone 1.5: Cross-reference matrices with normalized_score
     matrices_to_explain_map: dict[str, dict[str, Any]] = {}
+    from backend_v2.utils.alias_engine import AliasEngine
+
+    alias_engine = AliasEngine()
+
     for step_dto_obj in available_dtos:
         payload = step_dto_obj.payload
         block_id = step_dto_obj.block_id
@@ -256,9 +260,12 @@ def _assemble_matrices_to_explain(available_dtos: list[StepOutputDTO]) -> list[d
         if isinstance(payload, dict) and "normalized_score" in payload and block_id in atom_quotes:
             quotes_list = atom_quotes[block_id]
             if quotes_list and block_id not in matrices_to_explain_map:
+                idx = len(matrices_to_explain_map)
+                matrix_alias = alias_engine.generate_alias(block_id, "MX-", idx)
                 justification_text = "\n".join([f"- {q}" for q in quotes_list])
                 matrices_to_explain_map[block_id] = {
-                    "matrix_id": block_id,
+                    "real_matrix_id": block_id,
+                    "matrix_id": matrix_alias,
                     "score": payload["normalized_score"],
                     "justification": justification_text,
                 }
@@ -382,17 +389,32 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     title_map = _build_title_map(workflow_data, all_steps, language)
 
     # Phase 2, Milestone 1.2: Compress/distill all step payloads
-    consolidated_distilled: dict[str, str] = {}
+    from backend_v2.utils.alias_engine import AliasEngine
+
+    alias_engine = AliasEngine()
+
+    uid_to_alias: dict[str, str] = {}
+    for idx, step_dto_obj in enumerate(available_dtos, start=1):
+        step_id = step_dto_obj.step_id
+        block_id = step_dto_obj.block_id
+        uid = f"{step_id}_{block_id}"
+        uid_to_alias[uid] = alias_engine.generate_alias(uid, "DOC-", idx)
+
+    consolidated_distilled_parts: list[str] = []
+
     for step_dto_obj in available_dtos:
         step_id = step_dto_obj.step_id
         block_id = step_dto_obj.block_id
         uid = f"{step_id}_{block_id}"
-        step_data = step_dto_obj.payload
+
+        short_alias = uid_to_alias.get(uid, uid)
 
         k_str = uid.lower()
         step_title = title_map[k_str] if k_str in title_map else str(uid)
-        v_str = _compress_synthesis_payload(step_data)
-        consolidated_distilled[uid] = f"### Source: {step_title} (ID: {uid})\n{v_str}"
+        v_str = _compress_synthesis_payload(step_dto_obj.payload)
+
+        # Inject the SHORT ALIAS instead of the long UID
+        consolidated_distilled_parts.append(f'<source id="{short_alias}" title="{step_title}">\n{v_str}\n</source>')
 
     # Phase 2, Milestone 1.5: Assemble matrices_to_explain
     matrices_to_explain = _assemble_matrices_to_explain(available_dtos)
@@ -400,11 +422,13 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     return HookResult(
         success=True,
         state_delta={
-            "distilled_inputs": consolidated_distilled,
+            "distilled_inputs": "\n\n".join(consolidated_distilled_parts),
             "historical_context": historical_context_text,
             "title_map": title_map,
             "matrices_to_explain": matrices_to_explain,
+            "source_alias_map": alias_engine.alias_map,
             "output_profile_id": output_profile_id,
             "language": language,
+            "alias_registry": alias_engine.alias_map,
         },
     )

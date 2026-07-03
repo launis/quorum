@@ -16,7 +16,12 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
+from backend_v2.models.prompts.field_prompts import (
+    DESC_CONTEXTUAL_OVERRIDE,
+    DESC_EVALUATION_NOTES,
+    DESC_EXACT_QUOTES,
+    DESC_REASONING_TRACE,
+)
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.settings import get_settings
 
@@ -201,22 +206,7 @@ class SchemaFactory:
                 __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             )
 
-        fields: dict[str, Any] = {
-            "reasoning_trace": (
-                str,
-                Field(
-                    ...,
-                    description="Write an extensive analytical reasoning trace explaining your decision-making process. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis.",
-                ),
-            ),
-            "evaluation_notes": (
-                str,
-                Field(
-                    ...,
-                    description="General qualitative evaluation notes and analytical synthesis.",
-                ),
-            ),
-        }
+        fields: dict[str, Any] = {}
 
         if has_shuffled_atoms:
 
@@ -252,7 +242,6 @@ class SchemaFactory:
                 list[AtomResponse],
                 Field(
                     ...,
-                    min_length=1,
                     max_length=get_settings().schema_max_evaluations,
                     description="List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in <BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. Do NOT hallucinate, invent, or evaluate any unlisted concepts.",
                 ),
@@ -461,6 +450,26 @@ class SchemaFactory:
                     fields[crit_id] = (base_class, Field(..., description=desc_val, alias=alias_name))
             else:
                 fields[crit_id] = (base_class, Field(..., description=desc_val, alias=alias_name))
+
+        # Epic 27 / Bugfix: Push global reasoning and evaluation fields to the end of the schema.
+        # This prevents the LLM from burning through max_tokens before it can generate
+        # the required PromptBlock fields. If reasoning_trace gets truncated, UniversalIngress
+        # will self-heal the JSON syntax, and Pydantic will succeed because all other required
+        # fields were already parsed at the top of the JSON payload.
+        fields["evaluation_notes"] = (
+            str,
+            Field(
+                default="",
+                description=DESC_EVALUATION_NOTES,
+            ),
+        )
+        fields["reasoning_trace"] = (
+            str,
+            Field(
+                default="",
+                description=DESC_REASONING_TRACE.format(target_locale=target_locale.upper()),
+            ),
+        )
 
         if not fields:
             fields["acknowledged_instruction"] = (

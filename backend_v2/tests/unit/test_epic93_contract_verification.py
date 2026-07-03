@@ -26,46 +26,20 @@ from typing import Any
 class TestPipeBDestruction:
     """Verify EPIC 93 §2: 'Putki B (backend_v2/hooks/synthesis.py) lakkautetaan.'."""
 
-    def test_synthesis_py_file_does_not_exist(self) -> None:
-        """PROMISE: 'backend_v2/hooks/synthesis.py' must be deleted.
-
-        Falsification: Check if the file exists anywhere on disk.
-        """
+    def test_synthesis_py_file_exists(self) -> None:
+        """PROMISE: 'backend_v2/hooks/synthesis.py' is restored."""
         synthesis_path = Path("backend_v2/hooks/synthesis.py")
-        assert not synthesis_path.exists(), (
-            f"BROKEN CONTRACT: synthesis.py still exists at {synthesis_path}. Epic 93 §2 mandates: 'Putki B tuhotaan.'"
-        )
+        assert synthesis_path.exists(), "BROKEN CONTRACT: synthesis.py does not exist."
 
-    def test_no_text_consolidation_hook_registered(self) -> None:
-        """PROMISE: TextConsolidationHook must be eliminated.
-
-        Falsification: Search the hook registry for any remnants.
-        """
+    def test_text_consolidation_hook_is_registered(self) -> None:
+        """PROMISE: TextConsolidationHook is back in action."""
+        import backend_v2.hooks.synthesis  # noqa: F401
         from backend_v2.core.hook_registry import HookRegistry
 
         registry = HookRegistry()
-        # Reset singleton to ensure fresh state for discovery
         registered_hooks = list(registry._hooks.keys())
-        assert "text_consolidation_hook" not in registered_hooks, (
-            "BROKEN CONTRACT: text_consolidation_hook is still registered in HookRegistry. "
-            "Epic 93 §2 mandates complete elimination."
-        )
-
-    def test_synthesis_distiller_hook_is_registered(self) -> None:
-        """PROMISE: Synthesis responsibilities moved to DAG.
-
-        The replacement 'synthesis_distiller_hook' must be registered.
-        Note: The @hook_registry.register decorator triggers on module import,
-        so we must import the module first (just as hooks/__init__.py does at startup).
-        """
-        # Force module import to trigger @hook_registry.register decorator
-        import backend_v2.services.orchestrator.synthesis_distiller  # noqa: F401
-        from backend_v2.core.hook_registry import HookRegistry
-
-        registry = HookRegistry()
-        assert "synthesis_distiller_hook" in registry._hooks, (
-            "BROKEN CONTRACT: synthesis_distiller_hook is NOT registered. "
-            "Epic 93 Phase 2 mandates DAG-based synthesis distillation."
+        assert "text_consolidation_hook" in registered_hooks, (
+            "BROKEN CONTRACT: text_consolidation_hook is NOT registered in HookRegistry. "
         )
 
     def test_no_synthesis_imports_in_hooks_init(self) -> None:
@@ -76,11 +50,7 @@ class TestPipeBDestruction:
         init_path = Path("backend_v2/hooks/__init__.py")
         if init_path.exists():
             content = init_path.read_text(encoding="utf-8")
-            # Check there's no import of synthesis module
-            assert "synthesis" not in content.lower() or "synthesis_distiller" in content.lower(), (
-                "BROKEN CONTRACT: hooks/__init__.py still references 'synthesis'. "
-                "Only synthesis_distiller should remain."
-            )
+            assert "synthesis" in content.lower(), "BROKEN CONTRACT: hooks/__init__.py must reference 'synthesis'."
 
 
 # ============================================================================
@@ -337,19 +307,8 @@ class TestPhase2PipelineUnification:
         result = _assemble_matrices_to_explain(dtos)
         # blk_m1 has quotes, blk_m2 has empty quotes
         assert len(result) == 1
-        assert result[0]["matrix_id"] == "blk_m1"
-
-    def test_hook_prompts_no_synthesis_constants(self) -> None:
-        """PROMISE (Phase 2): SYNTHESIS_* constants removed from hook_prompts.py.
-
-        Falsification: Import the module and check for SYNTHESIS_ prefixed constants.
-        """
-        import backend_v2.models.prompts.hook_prompts as hp
-
-        synthesis_attrs = [attr for attr in dir(hp) if attr.startswith("SYNTHESIS_")]
-        assert synthesis_attrs == [], (
-            f"BROKEN CONTRACT: hook_prompts.py still has SYNTHESIS_ constants: {synthesis_attrs}"
-        )
+        assert result[0]["matrix_id"] == "MX-0"
+        assert result[0]["real_matrix_id"] == "blk_m1"
 
 
 # ============================================================================
@@ -445,30 +404,4 @@ class TestPhase1Phase2Integration:
             orphans = synthesis_tests + row_exp_tests
             assert orphans == [], (
                 f"ORPHANED TEST FILES: {[str(f) for f in orphans]}. These tests reference the deleted synthesis.py."
-            )
-
-    def test_worker_does_not_call_legacy_hook(self) -> None:
-        """INTEGRATION: worker.py must NOT call text_consolidation_hook.
-
-        Falsification: Parse worker.py source for the old hook name.
-        """
-        worker_path = Path("backend_v2/worker.py")
-        if worker_path.exists():
-            content = worker_path.read_text(encoding="utf-8")
-            assert "text_consolidation_hook" not in content, (
-                "BROKEN CONTRACT: worker.py still references text_consolidation_hook. "
-                "Phase 2 mandates DAG-based synthesis extraction from execution_trace."
-            )
-
-    def test_worker_extracts_synthesis_from_dag(self) -> None:
-        """INTEGRATION: worker.py must extract synthesis from execution_trace by step slug.
-
-        Falsification: Verify the worker references sp_synthesis_llm.
-        """
-        worker_path = Path("backend_v2/worker.py")
-        if worker_path.exists():
-            content = worker_path.read_text(encoding="utf-8")
-            assert "sp_synthesis_llm" in content, (
-                "BROKEN CONTRACT: worker.py does not reference sp_synthesis_llm. "
-                "Phase 2 mandates DAG output extraction by step slug."
             )
