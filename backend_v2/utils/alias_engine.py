@@ -7,7 +7,7 @@ long system UUIDs (like tda_12345 or doc_abcde) into short semantic aliases
 
 import logging
 from collections import defaultdict
-from typing import Annotated, Any, Literal, get_args
+from typing import Annotated, Any, Literal, get_args, get_origin
 
 from pydantic import Field
 
@@ -65,8 +65,6 @@ class AliasEngine:
     @staticmethod
     def extract_literal_values(annotation: Any) -> list[str]:
         """Extract valid choices from a Literal type annotation."""
-        from typing import get_origin
-
         # Unpack Annotated if present
         if get_origin(annotation) is Annotated:
             annotation = get_args(annotation)[0]
