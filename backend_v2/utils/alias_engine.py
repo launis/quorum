@@ -40,12 +40,13 @@ class AliasEngine:
 
     # V2_2: Universaali regex, joka sallii N/A, inputs, ja mitkä tahansa "sana+numero" yhdistelmät
     ALIAS_REGEX_PATTERN = r"^(N/A|inputs|[a-zA-Z_-]+\d+)$"
+    DEFAULT_LITERAL_CHOICES = frozenset({"N/A", "inputs"})
 
     @staticmethod
     def build_doc_ids_literal(source_document_ids: list[str] | None) -> Any:
         """Builds an Annotated Literal type for source documents with regex pattern injection."""
         choices = set(source_document_ids or [])
-        choices.update({"N/A", "inputs"})
+        choices.update(AliasEngine.DEFAULT_LITERAL_CHOICES)
 
         DocIdsLiteral = Literal[tuple(sorted(list(choices)))]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2 schema regex pattern injection
         return Annotated[DocIdsLiteral, Field(json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN})]
@@ -54,7 +55,7 @@ class AliasEngine:
     def build_quote_ids_literal(source_document_ids: list[str] | None, allowed_atom_ids: list[str] | None) -> Any:
         """Builds an Annotated Literal type for extracted quotes with regex pattern injection."""
         choices = set(source_document_ids or []) | set(allowed_atom_ids or [])
-        choices.update({"N/A", "inputs"})
+        choices.update(AliasEngine.DEFAULT_LITERAL_CHOICES)
 
         quote_choices = sorted(list(choices))
 
