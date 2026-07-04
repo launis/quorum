@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Annotated, Any, Literal
 
-from pydantic import Field, StringConstraints
+from pydantic import AliasChoices, Field, StringConstraints
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -466,37 +466,41 @@ class SduiBlockBase(V2CoreBase):
 class HeroInsightBlock(SduiBlockBase):
     """Specific block for Hero Insights."""
 
-    block_type: Literal["hero_insight"]
+    block_type: Literal["hero_insight"] = "hero_insight"
+    exact_quotes: list[str] = Field(default_factory=list)
 
 
 class ParagraphBlock(SduiBlockBase):
     """A standard text paragraph with optional citations."""
 
-    block_type: Literal["paragraph"]
-    text: str
+    block_type: Literal["paragraph"] = "paragraph"
+    text: str = Field(validation_alias=AliasChoices("text", "content"))
+    exact_quotes: list[str] = Field(default_factory=list)
     citations: list[int] = Field(default_factory=list)
 
 
 class BulletListItem(V2CoreBase):
     """Helper model for a single item within a bullet list."""
 
-    text: str
+    text: str = Field(validation_alias=AliasChoices("text", "content"))
+    exact_quotes: list[str] = Field(default_factory=list)
     citations: list[int] = Field(default_factory=list)
 
 
 class BulletListBlock(SduiBlockBase):
     """A bullet list containing multiple items."""
 
-    block_type: Literal["bullet_list"]
+    block_type: Literal["bullet_list"] = "bullet_list"
     items: list[BulletListItem]
 
 
 class AlertBlock(SduiBlockBase):
     """An alert box for highlighting important information."""
 
-    block_type: Literal["alert_box"]
+    block_type: Literal["alert_box"] = "alert_box"
     severity: Literal["info", "warning"]
-    text: str
+    text: str = Field(validation_alias=AliasChoices("text", "content"))
+    exact_quotes: list[str] = Field(default_factory=list)
     citations: list[int] = Field(default_factory=list)
 
 
@@ -508,7 +512,9 @@ class MarkdownBlock(SduiBlockBase):
     """
 
     block_type: Literal["markdown"] = "markdown"
-    text: StrictStr = Field(..., description="The exact markdown string to be rendered.")
+    text: StrictStr = Field(
+        ..., validation_alias=AliasChoices("text", "content"), description="The exact markdown string to be rendered."
+    )
 
 
 class SduiQuoteCard(SduiBlockBase):

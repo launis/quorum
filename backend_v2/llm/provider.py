@@ -1168,7 +1168,7 @@ class LLMFactory:
         # STRICT CONFIGURATION:
         # If not in global mock mode, we DO NOT allow 'mock' to be implicitly selected
         # unless explicitly requested. If 'vertex_ai' is requested, we get Vertex (or fail).
-        if provider_type == "mock":
+        if provider_type in ("mock", "mock_llm_99"):
             return MockProvider(
                 model_name=model_name or "mock",
                 usage_service=usage_service,

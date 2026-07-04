@@ -194,9 +194,12 @@ class TestAliasManifestEdgeCases:
         assert manifest.alias_map == {}
         assert manifest.source_document_aliases == []
 
-    def test_build_quote_ids_literal_includes_inputs(self) -> None:
-        """Verify that 'inputs' is included in the generated Literal type."""
-        literal_type = AliasEngine.build_quote_ids_literal(None, None)
+    def test_build_quote_ids_literal_includes_dynamic_keys(self) -> None:
+        """Verify that dynamic keys are included in the generated Literal type."""
+        literal_type = AliasEngine.build_quote_ids_literal(
+            None, None, allowed_dynamic_keys=["prior_analysis", "inputs"]
+        )
         valid_choices = AliasEngine.extract_literal_values(literal_type)
-        
+
         assert "inputs" in valid_choices, "'inputs' missing from QuoteIdsLiteral choices!"
+        assert "prior_analysis" in valid_choices, "'prior_analysis' missing from QuoteIdsLiteral choices!"

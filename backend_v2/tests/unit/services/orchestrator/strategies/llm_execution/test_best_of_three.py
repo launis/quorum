@@ -116,6 +116,12 @@ async def test_llm_count_is_standard_when_lightweight() -> None:
         # Mock executor to return a valid result to avoid "All LLM calls failed" error
         mock_executor_instance.execute_structured_task = AsyncMock(return_value=(MagicMock(), None))
 
+        mock_compiled_prompt = MagicMock()
+        mock_compiled_prompt.static_messages = []
+        mock_compiled_prompt.dynamic_messages = []
+        mock_compiled_prompt.metadata = {}
+        mock_compiler.compile_chunk_prompt.return_value = mock_compiled_prompt
+
         sem = asyncio.Semaphore(1)
         step_metadata = {"is_lightweight_extraction": True}
 
@@ -126,28 +132,25 @@ async def test_llm_count_is_standard_when_lightweight() -> None:
 
         # Simpler approach: we will patch the run_llm_calls inside process_chunk if we could,
         # but since it's nested, we will patch the executor and verify it was called 3 times.
-        try:
-            await ChunkWorker.process_chunk(
-                chunk=None,
-                sem=sem,
-                compiler=mock_compiler,
-                criteria_blocks=[],
-                user_payload="<payload>",
-                global_source_text="<payload>",
-                base_system_prompt="Base prompt",
-                has_search=False,
-                has_shuffled_atoms=False,
-                atom_to_block_ids={},
-                effective_mcp_tools=[],
-                bound_client=mock_client,
-                step_id="step1",
-                target_locale="en",
-                synthesis_instructions=None,
-                output_profile=None,
-                step_metadata=step_metadata,
-            )
-        except Exception:
-            pass  # We don't care about full execution flow errors, just want to check count
+        await ChunkWorker.process_chunk(
+            chunk=None,
+            sem=sem,
+            compiler=mock_compiler,
+            criteria_blocks=[],
+            user_payload="<payload>",
+            global_source_text="<payload>",
+            base_system_prompt="Base prompt",
+            has_search=False,
+            has_shuffled_atoms=False,
+            atom_to_block_ids={},
+            effective_mcp_tools=[],
+            bound_client=mock_client,
+            step_id="step1",
+            target_locale="en",
+            synthesis_instructions=None,
+            output_profile=None,
+            step_metadata=step_metadata,
+        )
 
         assert mock_executor_instance.execute_structured_task.call_count == 1
 
@@ -163,6 +166,12 @@ async def test_llm_count_is_ensemble_when_not_lightweight() -> None:
     ) as MockExecutor:
         mock_executor_instance = MockExecutor.return_value
         mock_executor_instance.execute_structured_task = AsyncMock(return_value=(MagicMock(), None))
+
+        mock_compiled_prompt = MagicMock()
+        mock_compiled_prompt.static_messages = []
+        mock_compiled_prompt.dynamic_messages = []
+        mock_compiled_prompt.metadata = {}
+        mock_compiler.compile_chunk_prompt.return_value = mock_compiled_prompt
 
         sem = asyncio.Semaphore(1)
         step_metadata = {"is_lightweight_extraction": False}

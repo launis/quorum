@@ -1,5 +1,8 @@
 """Unit tests for static_charts.py."""
 
+import pytest
+
+from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO
 from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
 
@@ -10,9 +13,12 @@ def get_i18n(text: str) -> I18nText:
 
 
 def test_generate_scatter_chart_empty() -> None:
-    """Test scatter chart with less than 2 axes returns empty string."""
-    assert generate_scatter_chart([]) == ""
-    assert (
+    """Test scatter chart with less than 2 axes raises AppException."""
+    with pytest.raises(AppException) as exc:
+        generate_scatter_chart([])
+    assert "at least 2 axes" in str(exc.value)
+
+    with pytest.raises(AppException):
         generate_scatter_chart(
             [
                 MatrixScorecardRowDTO(
@@ -27,8 +33,6 @@ def test_generate_scatter_chart_empty() -> None:
                 )
             ]
         )
-        == ""
-    )
 
 
 def test_generate_scatter_chart_success() -> None:
@@ -60,8 +64,11 @@ def test_generate_scatter_chart_success() -> None:
 
 
 def test_generate_radar_chart_empty() -> None:
-    """Test radar chart with less than 3 axes returns empty string."""
-    assert generate_radar_chart([]) == ""
+    """Test radar chart with less than 3 axes raises AppException."""
+    with pytest.raises(AppException) as exc:
+        generate_radar_chart([])
+    assert "at least 3 axes" in str(exc.value)
+
     axes = [
         MatrixScorecardRowDTO(
             name="Axis 1",
@@ -84,7 +91,8 @@ def test_generate_radar_chart_empty() -> None:
             is_evaluative=True,
         ),
     ]
-    assert generate_radar_chart(axes) == ""
+    with pytest.raises(AppException):
+        generate_radar_chart(axes)
 
 
 def test_generate_radar_chart_success() -> None:

@@ -5,8 +5,10 @@ prioritizing strict validation and Fail Fast principles.
 """
 
 import logging
+import math
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
@@ -24,9 +26,23 @@ class StrictnessConfig(BaseModel):
     """
 
     model_config = ConfigDict(frozen=True)
-    base_forgiveness: float = Field(ge=0.0, le=1.0)
-    sigmoid_midpoint: float = Field(ge=0.0, le=1.0)
-    dynamic_exponent: float = Field(ge=0.2, le=3.0)
+    base_forgiveness: Annotated[float, Field()]
+    sigmoid_midpoint: Annotated[float, Field()]
+    dynamic_exponent: Annotated[float, Field()]
+
+    @field_validator("base_forgiveness", "sigmoid_midpoint")
+    @classmethod
+    def validate_zero_to_one(cls, v: float) -> float:
+        if not (0.0 <= v <= 1.0):
+            raise ValueError("Must be between 0.0 and 1.0")
+        return v
+
+    @field_validator("dynamic_exponent")
+    @classmethod
+    def validate_exponent(cls, v: float) -> float:
+        if not (0.2 <= v <= 3.0):
+            raise ValueError("Must be between 0.2 and 3.0")
+        return v
 
 
 STRICTNESS_ANCHOR_CONFIGS = {
@@ -250,8 +266,10 @@ def calculate_soft_waterfall_score(
     sorted_levels = sorted(level_stats.keys())
     for level in sorted_levels:
         stats = level_stats[level]
-        total = stats.get("total", 0) - stats.get("dlqs", 0)
-        hits = stats.get("hits", 0)
+        raw_total = stats["total"] if "total" in stats else 0
+        dlqs = stats["dlqs"] if "dlqs" in stats else 0
+        total = raw_total - dlqs
+        hits = stats["hits"] if "hits" in stats else 0
 
         hit_rate = (hits / total) if total > 0 else 0.0
         step_value = level - prev_level
@@ -365,8 +383,6 @@ def calculate_sigmoid_weighted_score(
 
     steepness = strictness_config.dynamic_exponent * 10.0
     midpoint = strictness_config.sigmoid_midpoint
-
-    import math
 
     def sigmoid(x: float) -> float:
         try:

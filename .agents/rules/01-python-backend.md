@@ -131,8 +131,8 @@
     </rule_block>
 
     <rule_block id="python_314_modern_syntax">
-        <banned_pattern>Using legacy wrapper typings (`TypeVar`, `Generic[T]`, `Optional[X]`) or `asyncio.gather()`.</banned_pattern>
-        <mandatory_pattern>Mandate PEP 695 generics (e.g. pakota syntaksi `class Repository[T]:` vanhan `TypeVar('T')` ja `Generic[T]`-luokkien sijaan), the `@override` decorator, modern bitwise unions (`X | None`), and deterministically scoped threads (`async with asyncio.TaskGroup() as tg:`).</mandatory_pattern>
+        <banned_pattern>Using legacy wrapper typings (`TypeVar`, `Generic[T]`, `Optional[X]`), forward references with strings for class returns (e.g. `-> "MyClass"`), or `asyncio.gather()`.</banned_pattern>
+        <mandatory_pattern>Mandate PEP 695 generics (e.g. `class Repository[T]:`), the `@override` decorator, modern bitwise unions (`X | None`), and deterministically scoped threads (`async with asyncio.TaskGroup() as tg:`). For classmethods returning the class itself, ALWAYS use PEP 673 `-> Self` (via `from typing import Self`) to ensure correct inheritance typing.</mandatory_pattern>
     </rule_block>
 
     <rule_block id="no_string_l10n">

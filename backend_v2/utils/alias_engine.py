@@ -12,6 +12,7 @@ from typing import Annotated, Any, Literal, get_args, get_origin
 from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.enums import DEFAULT_ALIAS_LITERALS
 
 logger = logging.getLogger(__name__)
 
@@ -39,28 +40,53 @@ class AliasEngine:
     """
 
     # V2_2: Universaali regex, joka sallii N/A, inputs, ja mitkä tahansa "sana+numero" yhdistelmät
+    # V2_3: Dynaaminen regex lukee sallitut termit tietokannasta ja enumista
     ALIAS_REGEX_PATTERN = r"^(N/A|inputs|[a-zA-Z_-]+\d+)$"
-    DEFAULT_LITERAL_CHOICES = frozenset({"N/A", "inputs"})
 
     @staticmethod
-    def build_doc_ids_literal(source_document_ids: list[str] | None) -> Any:
+    def _build_dynamic_regex(allowed_dynamic_keys: list[str] | None) -> str:
+        """Builds a dynamic regex pattern combining enum literals and dynamic DB keys."""
+        import re
+
+        literals = set(DEFAULT_ALIAS_LITERALS)
+        if allowed_dynamic_keys:
+            literals.update(allowed_dynamic_keys)
+
+        safe_literals = [re.escape(x) for x in sorted(list(literals))]
+        literals_str = "|".join(safe_literals)
+        return rf"^({literals_str}|[a-zA-Z_-]+\d+)$"
+
+    @staticmethod
+    def build_doc_ids_literal(
+        source_document_ids: list[str] | None, allowed_dynamic_keys: list[str] | None = None
+    ) -> Any:
         """Builds an Annotated Literal type for source documents with regex pattern injection."""
         choices = set(source_document_ids or [])
-        choices.update(AliasEngine.DEFAULT_LITERAL_CHOICES)
+        choices.update(DEFAULT_ALIAS_LITERALS)
+        if allowed_dynamic_keys:
+            choices.update(allowed_dynamic_keys)
 
+        pattern = AliasEngine._build_dynamic_regex(allowed_dynamic_keys)
         DocIdsLiteral = Literal[tuple(sorted(list(choices)))]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2 schema regex pattern injection
-        return Annotated[DocIdsLiteral, Field(json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN})]
+        return Annotated[DocIdsLiteral, Field(json_schema_extra={"pattern": pattern})]
 
     @staticmethod
-    def build_quote_ids_literal(source_document_ids: list[str] | None, allowed_atom_ids: list[str] | None) -> Any:
+    def build_quote_ids_literal(
+        source_document_ids: list[str] | None,
+        allowed_atom_ids: list[str] | None,
+        allowed_dynamic_keys: list[str] | None = None,
+    ) -> Any:
         """Builds an Annotated Literal type for extracted quotes with regex pattern injection."""
         choices = set(source_document_ids or []) | set(allowed_atom_ids or [])
-        choices.update(AliasEngine.DEFAULT_LITERAL_CHOICES)
+        choices.update(DEFAULT_ALIAS_LITERALS)
+        if allowed_dynamic_keys:
+            choices.update(allowed_dynamic_keys)
 
         quote_choices = sorted(list(choices))
+        pattern = AliasEngine._build_dynamic_regex(allowed_dynamic_keys)
 
         QuoteIdsLiteral = Literal[tuple(quote_choices)]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2 schema regex pattern injection
-        return Annotated[QuoteIdsLiteral, Field(json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN})]
+        return Annotated[QuoteIdsLiteral, Field(json_schema_extra={"pattern": pattern})]
 
     @staticmethod
     def extract_literal_values(annotation: Any) -> list[str]:

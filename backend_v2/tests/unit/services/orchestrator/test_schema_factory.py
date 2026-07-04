@@ -139,22 +139,23 @@ def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFac
 
     assert "blk_1234567890abcdef1234567890abcdef" in DynamicModel.model_fields
     inner_model = DynamicModel.model_fields["blk_1234567890abcdef1234567890abcdef"].annotation
+    assert inner_model is not None
 
     valid_data = {
         "rule_internalization": "Criteria require checking X.",
         "used_source_aliases": [],
         "source_document_aliases": ["doc_a"],
-        "exact_quotes": [{"text": "quote", "source_alias": "N/A"}],
+        "exact_quotes": [{"text": "quote", "source_id": "N/A"}],
         "reasoning_steps": "1) R requires X. 2) T has Y. 3) F.",
         "falsification_argument": "No falsification possible.",
         "decision": True,
         "semantic_reasoning": "Pass",
     }
 
-    obj = inner_model.model_validate(valid_data)
+    obj = inner_model.model_validate(valid_data, context={"alias_map": {"doc_a": "opa_1", "doc_b": "opa_2"}})
     assert obj.source_document_aliases == ["doc_a"]
 
     invalid_data = valid_data.copy()
     invalid_data["source_document_aliases"] = ["doc_invalid"]
-    obj_invalid = inner_model.model_validate(invalid_data)
+    obj_invalid = inner_model.model_validate(invalid_data, context={"alias_map": {"doc_a": "opa_1", "doc_b": "opa_2"}})
     assert obj_invalid.source_document_aliases == ["N/A"]

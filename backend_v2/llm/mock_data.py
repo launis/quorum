@@ -41,6 +41,7 @@ from backend_v2.models.domain import (
     WaltonStressTest,
     XAIOutput,
 )
+from backend_v2.models.dtos.synthesis import SynthesisOutputDTO
 from backend_v2.models.enums import (
     AbductiveConclusion,
     AuthenticityLevel,
@@ -276,6 +277,13 @@ MOCK_XAI_OUTPUT = XAIOutput(
     ],
 )
 
+MOCK_SYNTHESIS_OUTPUT = SynthesisOutputDTO(
+    content_blocks=[],
+    cited_sources=[],
+    section_syntheses=[],
+    xai_highlights=[],
+)
+
 MOCK_GUARD_OUTPUT = GuardOutput(
     thought_process="Mock Guard Trace: Checked security.",
     conclusion="Safe to proceed.",
@@ -310,6 +318,7 @@ MOCK_REGISTRY: dict[type[Any], Any] = {
     CausalOutput: MOCK_CAUSAL_OUTPUT,
     PerformativityOutput: MOCK_PERFORMATIVITY_OUTPUT,
     OverseerOutput: MOCK_OVERSEER_OUTPUT,
+    SynthesisOutputDTO: MOCK_SYNTHESIS_OUTPUT,
 }
 
 AGENT_CLASS_TO_MOCK_KEY = {
@@ -326,6 +335,7 @@ AGENT_CLASS_TO_MOCK_KEY = {
     "JudgeAgent": "judge_agent",
     "CoachAgent": "coach_agent",
     "XAIReporterAgent": "xai_agent",
+    "SynthesisHook": "text_consolidation_hook",
 }
 
 
@@ -365,6 +375,8 @@ def get_fallback_data(key: str) -> dict[str, Any]:
         return MOCK_JUDGE_OUTPUT.model_dump()
     elif key == "xai_agent":
         return MOCK_XAI_OUTPUT.model_dump()
+    elif key == "text_consolidation_hook":
+        return MOCK_SYNTHESIS_OUTPUT.model_dump()
     elif key == "atomize_mock":
         assertions = [
             {

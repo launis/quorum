@@ -166,13 +166,13 @@ return markdown(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<int> citations)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations)?  alertBox,TResult Function( String text)?  heroInsight,TResult Function( String text)?  markdown,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<int> citations,  List<String> exactQuotes)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)?  alertBox,TResult Function( String text,  List<String> exactQuotes)?  heroInsight,TResult Function( String text)?  markdown,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
-return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
+return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
-return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that.text);case SduiMarkdownBlock() when markdown != null:
+return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock() when heroInsight != null:
+return heroInsight(_that.text,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
 return markdown(_that.text);case _:
   return orElse();
 
@@ -191,13 +191,13 @@ return markdown(_that.text);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<int> citations)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations)  alertBox,required TResult Function( String text)  heroInsight,required TResult Function( String text)  markdown,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<int> citations,  List<String> exactQuotes)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)  alertBox,required TResult Function( String text,  List<String> exactQuotes)  heroInsight,required TResult Function( String text)  markdown,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
-return paragraph(_that.text,_that.citations);case SduiBulletListBlock():
+return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock():
 return bulletList(_that.items);case SduiAlertBoxBlock():
-return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock():
-return heroInsight(_that.text);case SduiMarkdownBlock():
+return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock():
+return heroInsight(_that.text,_that.exactQuotes);case SduiMarkdownBlock():
 return markdown(_that.text);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -212,13 +212,13 @@ return markdown(_that.text);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<int> citations)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations)?  alertBox,TResult? Function( String text)?  heroInsight,TResult? Function( String text)?  markdown,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<int> citations,  List<String> exactQuotes)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)?  alertBox,TResult? Function( String text,  List<String> exactQuotes)?  heroInsight,TResult? Function( String text)?  markdown,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
-return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
+return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
-return alertBox(_that.text,_that.severity,_that.citations);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that.text);case SduiMarkdownBlock() when markdown != null:
+return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock() when heroInsight != null:
+return heroInsight(_that.text,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
 return markdown(_that.text);case _:
   return null;
 
@@ -231,7 +231,7 @@ return markdown(_that.text);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiParagraphBlock extends SduiBlockDTO {
-  const SduiParagraphBlock({required this.text, final  List<int> citations = const [], final  String? $type}): _citations = citations,$type = $type ?? 'paragraph',super._();
+  const SduiParagraphBlock({required this.text, final  List<int> citations = const [], final  List<String> exactQuotes = const [], final  String? $type}): _citations = citations,_exactQuotes = exactQuotes,$type = $type ?? 'paragraph',super._();
   factory SduiParagraphBlock.fromJson(Map<String, dynamic> json) => _$SduiParagraphBlockFromJson(json);
 
  final  String text;
@@ -240,6 +240,13 @@ class SduiParagraphBlock extends SduiBlockDTO {
   if (_citations is EqualUnmodifiableListView) return _citations;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_citations);
+}
+
+ final  List<String> _exactQuotes;
+@JsonKey() List<String> get exactQuotes {
+  if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_exactQuotes);
 }
 
 
@@ -260,16 +267,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiParagraphBlock&&(identical(other.text, text) || other.text == text)&&const DeepCollectionEquality().equals(other._citations, _citations));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiParagraphBlock&&(identical(other.text, text) || other.text == text)&&const DeepCollectionEquality().equals(other._citations, _citations)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,text,const DeepCollectionEquality().hash(_citations));
+int get hashCode => Object.hash(runtimeType,text,const DeepCollectionEquality().hash(_citations),const DeepCollectionEquality().hash(_exactQuotes));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.paragraph(text: $text, citations: $citations)';
+  return 'SduiBlockDTO.paragraph(text: $text, citations: $citations, exactQuotes: $exactQuotes)';
 }
 
 
@@ -280,7 +287,7 @@ abstract mixin class $SduiParagraphBlockCopyWith<$Res> implements $SduiBlockDTOC
   factory $SduiParagraphBlockCopyWith(SduiParagraphBlock value, $Res Function(SduiParagraphBlock) _then) = _$SduiParagraphBlockCopyWithImpl;
 @useResult
 $Res call({
- String text, List<int> citations
+ String text, List<int> citations, List<String> exactQuotes
 });
 
 
@@ -297,11 +304,12 @@ class _$SduiParagraphBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,Object? exactQuotes = null,}) {
   return _then(SduiParagraphBlock(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,
+as List<int>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -391,7 +399,7 @@ as List<SduiBulletListItemDTO>,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiAlertBoxBlock extends SduiBlockDTO {
-  const SduiAlertBoxBlock({required this.text, required this.severity, final  List<int> citations = const [], final  String? $type}): _citations = citations,$type = $type ?? 'alert_box',super._();
+  const SduiAlertBoxBlock({required this.text, required this.severity, final  List<int> citations = const [], final  List<String> exactQuotes = const [], final  String? $type}): _citations = citations,_exactQuotes = exactQuotes,$type = $type ?? 'alert_box',super._();
   factory SduiAlertBoxBlock.fromJson(Map<String, dynamic> json) => _$SduiAlertBoxBlockFromJson(json);
 
  final  String text;
@@ -401,6 +409,13 @@ class SduiAlertBoxBlock extends SduiBlockDTO {
   if (_citations is EqualUnmodifiableListView) return _citations;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_citations);
+}
+
+ final  List<String> _exactQuotes;
+@JsonKey() List<String> get exactQuotes {
+  if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_exactQuotes);
 }
 
 
@@ -421,16 +436,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiAlertBoxBlock&&(identical(other.text, text) || other.text == text)&&(identical(other.severity, severity) || other.severity == severity)&&const DeepCollectionEquality().equals(other._citations, _citations));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiAlertBoxBlock&&(identical(other.text, text) || other.text == text)&&(identical(other.severity, severity) || other.severity == severity)&&const DeepCollectionEquality().equals(other._citations, _citations)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,text,severity,const DeepCollectionEquality().hash(_citations));
+int get hashCode => Object.hash(runtimeType,text,severity,const DeepCollectionEquality().hash(_citations),const DeepCollectionEquality().hash(_exactQuotes));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.alertBox(text: $text, severity: $severity, citations: $citations)';
+  return 'SduiBlockDTO.alertBox(text: $text, severity: $severity, citations: $citations, exactQuotes: $exactQuotes)';
 }
 
 
@@ -441,7 +456,7 @@ abstract mixin class $SduiAlertBoxBlockCopyWith<$Res> implements $SduiBlockDTOCo
   factory $SduiAlertBoxBlockCopyWith(SduiAlertBoxBlock value, $Res Function(SduiAlertBoxBlock) _then) = _$SduiAlertBoxBlockCopyWithImpl;
 @useResult
 $Res call({
- String text, String severity, List<int> citations
+ String text, String severity, List<int> citations, List<String> exactQuotes
 });
 
 
@@ -458,12 +473,13 @@ class _$SduiAlertBoxBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? severity = null,Object? citations = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? severity = null,Object? citations = null,Object? exactQuotes = null,}) {
   return _then(SduiAlertBoxBlock(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,severity: null == severity ? _self.severity : severity // ignore: cast_nullable_to_non_nullable
 as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,
+as List<int>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -474,10 +490,17 @@ as List<int>,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiHeroInsightBlock extends SduiBlockDTO {
-  const SduiHeroInsightBlock({required this.text, final  String? $type}): $type = $type ?? 'hero_insight',super._();
+  const SduiHeroInsightBlock({required this.text, final  List<String> exactQuotes = const [], final  String? $type}): _exactQuotes = exactQuotes,$type = $type ?? 'hero_insight',super._();
   factory SduiHeroInsightBlock.fromJson(Map<String, dynamic> json) => _$SduiHeroInsightBlockFromJson(json);
 
  final  String text;
+ final  List<String> _exactQuotes;
+@JsonKey() List<String> get exactQuotes {
+  if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_exactQuotes);
+}
+
 
 @JsonKey(name: 'block_type')
 final String $type;
@@ -496,16 +519,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiHeroInsightBlock&&(identical(other.text, text) || other.text == text));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiHeroInsightBlock&&(identical(other.text, text) || other.text == text)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,text);
+int get hashCode => Object.hash(runtimeType,text,const DeepCollectionEquality().hash(_exactQuotes));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.heroInsight(text: $text)';
+  return 'SduiBlockDTO.heroInsight(text: $text, exactQuotes: $exactQuotes)';
 }
 
 
@@ -516,7 +539,7 @@ abstract mixin class $SduiHeroInsightBlockCopyWith<$Res> implements $SduiBlockDT
   factory $SduiHeroInsightBlockCopyWith(SduiHeroInsightBlock value, $Res Function(SduiHeroInsightBlock) _then) = _$SduiHeroInsightBlockCopyWithImpl;
 @useResult
 $Res call({
- String text
+ String text, List<String> exactQuotes
 });
 
 
@@ -533,10 +556,11 @@ class _$SduiHeroInsightBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? exactQuotes = null,}) {
   return _then(SduiHeroInsightBlock(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,
+as String,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -620,7 +644,7 @@ as String,
 /// @nodoc
 mixin _$SduiBulletListItemDTO {
 
- String get text; List<int> get citations;
+ String get text; List<int> get citations; List<String> get exactQuotes;
 /// Create a copy of SduiBulletListItemDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -635,7 +659,7 @@ $SduiBulletListItemDTOCopyWith<SduiBulletListItemDTO> get copyWith => _$SduiBull
 
 @override
 String toString() {
-  return 'SduiBulletListItemDTO(text: $text, citations: $citations)';
+  return 'SduiBulletListItemDTO(text: $text, citations: $citations, exactQuotes: $exactQuotes)';
 }
 
 
@@ -646,7 +670,7 @@ abstract mixin class $SduiBulletListItemDTOCopyWith<$Res>  {
   factory $SduiBulletListItemDTOCopyWith(SduiBulletListItemDTO value, $Res Function(SduiBulletListItemDTO) _then) = _$SduiBulletListItemDTOCopyWithImpl;
 @useResult
 $Res call({
- String text, List<int> citations
+ String text, List<int> citations, List<String> exactQuotes
 });
 
 
@@ -663,11 +687,12 @@ class _$SduiBulletListItemDTOCopyWithImpl<$Res>
 
 /// Create a copy of SduiBulletListItemDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? text = null,Object? citations = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? text = null,Object? citations = null,Object? exactQuotes = null,}) {
   return _then(_self.copyWith(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,citations: null == citations ? _self.citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,
+as List<int>,exactQuotes: null == exactQuotes ? _self.exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -752,10 +777,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String text,  List<int> citations)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String text,  List<int> citations,  List<String> exactQuotes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SduiBulletListItemDTO() when $default != null:
-return $default(_that.text,_that.citations);case _:
+return $default(_that.text,_that.citations,_that.exactQuotes);case _:
   return orElse();
 
 }
@@ -773,10 +798,10 @@ return $default(_that.text,_that.citations);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String text,  List<int> citations)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String text,  List<int> citations,  List<String> exactQuotes)  $default,) {final _that = this;
 switch (_that) {
 case _SduiBulletListItemDTO():
-return $default(_that.text,_that.citations);case _:
+return $default(_that.text,_that.citations,_that.exactQuotes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -793,10 +818,10 @@ return $default(_that.text,_that.citations);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String text,  List<int> citations)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String text,  List<int> citations,  List<String> exactQuotes)?  $default,) {final _that = this;
 switch (_that) {
 case _SduiBulletListItemDTO() when $default != null:
-return $default(_that.text,_that.citations);case _:
+return $default(_that.text,_that.citations,_that.exactQuotes);case _:
   return null;
 
 }
@@ -808,7 +833,7 @@ return $default(_that.text,_that.citations);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _SduiBulletListItemDTO implements SduiBulletListItemDTO {
-  const _SduiBulletListItemDTO({required this.text, final  List<int> citations = const []}): _citations = citations;
+  const _SduiBulletListItemDTO({required this.text, final  List<int> citations = const [], final  List<String> exactQuotes = const []}): _citations = citations,_exactQuotes = exactQuotes;
   factory _SduiBulletListItemDTO.fromJson(Map<String, dynamic> json) => _$SduiBulletListItemDTOFromJson(json);
 
 @override final  String text;
@@ -817,6 +842,13 @@ class _SduiBulletListItemDTO implements SduiBulletListItemDTO {
   if (_citations is EqualUnmodifiableListView) return _citations;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_citations);
+}
+
+ final  List<String> _exactQuotes;
+@override@JsonKey() List<String> get exactQuotes {
+  if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_exactQuotes);
 }
 
 
@@ -835,7 +867,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'SduiBulletListItemDTO(text: $text, citations: $citations)';
+  return 'SduiBulletListItemDTO(text: $text, citations: $citations, exactQuotes: $exactQuotes)';
 }
 
 
@@ -846,7 +878,7 @@ abstract mixin class _$SduiBulletListItemDTOCopyWith<$Res> implements $SduiBulle
   factory _$SduiBulletListItemDTOCopyWith(_SduiBulletListItemDTO value, $Res Function(_SduiBulletListItemDTO) _then) = __$SduiBulletListItemDTOCopyWithImpl;
 @override @useResult
 $Res call({
- String text, List<int> citations
+ String text, List<int> citations, List<String> exactQuotes
 });
 
 
@@ -863,11 +895,12 @@ class __$SduiBulletListItemDTOCopyWithImpl<$Res>
 
 /// Create a copy of SduiBulletListItemDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,Object? exactQuotes = null,}) {
   return _then(_SduiBulletListItemDTO(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,
+as List<int>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

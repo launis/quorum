@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -27,11 +28,12 @@ async def test_seed_tinydb_empty() -> None:
 
     with (
         patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
-        patch("backend_v2.seed.run_seed.os.makedirs"),
-        patch("backend_v2.seed.run_seed.os.path.exists", return_value=False),
-        patch("backend_v2.seed.run_seed.os.path.getsize", return_value=123),
+        patch("pathlib.Path.mkdir"),
+        patch("pathlib.Path.exists", return_value=False),
+        patch("pathlib.Path.stat") as mock_stat,
     ):
-        await run_seed._seed_tinydb("fake_db.json", {}, "local")
+        mock_stat.return_value.st_size = 123
+        await run_seed._seed_tinydb(Path("fake_db.json"), {}, "local")
 
         mock_db.drop_tables.assert_called_once()
         mock_db.close.assert_called_once()
@@ -41,7 +43,7 @@ async def test_seed_tinydb_empty() -> None:
 async def test_seed_database_local_branch() -> None:
     """Test the main seed_database orchestrator for 'local' target."""
     with (
-        patch("backend_v2.seed.run_seed.os.path.exists", return_value=True),
+        patch("pathlib.Path.exists", return_value=True),
         patch("backend_v2.seed.run_seed.open"),
         patch("backend_v2.seed.run_seed.json.load", return_value={}),
         patch("backend_v2.seed.run_seed._seed_tinydb", new_callable=AsyncMock) as mock_seed,

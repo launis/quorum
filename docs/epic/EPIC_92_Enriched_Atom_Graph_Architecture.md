@@ -68,6 +68,14 @@ Estääksemme järjestelmätason hallusinaatiot, meidän on armottomasti valvott
 * **Implicit Anaphora:** Abstraktien tai toimialakohtaisten pronominien ("Yllä mainittu viitekehys") purkaminen, missä deterministinen perinteinen NLP kaatuu.
 * **Speculative Matrix Pre-computation (Condition Evaluation):** Kielellisen varianssin vuoksi ehtojen täyttymistä ei voida arvioida regexillä. Jotta vältämme Kahnin algoritmin pysähtymisen sekventiaalisten upotuskutsujen takia (GIL / I/O -pullonkaula), suoritamme **Speculative Matrix Pre-computation** -operaation. Lähdedokumentti upotetaan yhtenäiseksi tensorimatriisiksi (`T_corpus`) jo ingestion-vaiheessa. Ennen DAG-ajon alkua, keräämme kaikki `condition_text` -merkkijonot kaikilta topologisilta syvyyksiltä ja upotamme ne yhdellä API-eräajolla (`T_conditions`). Tämän jälkeen laskemme kaikki kosinietäisyydet yhdellä salamannopealla matriisikertolaskulla ($O(1)$ ajassa, `T_conditions @ T_corpus.T`). Tämä luo reaaliaikaisen, muistinvaraisen totuustaulun (Cosine Similarity > 0.85) kaikista ehdoista, sallien Kahnin algoritmin reitittää graafia puhtaasti muistissa ilman minkäänlaista blokkautumista.
 
+### 2.2 Dynamic AliasEngine & Topology Resolution (DAG Edges)
+Jotta kielimalli (LLM) kykenee generoimaan rakenteellisesti ehjiä graafireunoja (DAG edges) ilman hallusinaatioita tai viittauksia vääriin indekseihin (esim. ankkuroimaan, että väite B vaatii ehdon A täyttymisen), järjestelmä käyttää täysin dynaamista **AliasEngine**-komponenttia.
+
+* **Dynaamiset Etuliitteet:** `AliasEngine` luo jokaiselle arvioitavalle komponentille ja ehdolle lennosta lyhyen, semanttisen aliaksen (esim. `a0`, `a1`, `cond0`). Kutsujan (tai Pydantic-mallin) ei tarvitse tietää etuliitteistä mitään, vaan moottori päättelee ne alkuperäisestä tietokanta-ID:stä tai käyttää annettua yliajoa.
+* **Graafireunojen Luonti (Attention Anchors):** Kun LLM purkaa riippuvuuksia tai ehtoja, se viittaa toisiin elementteihin näillä lyhyillä aliaksilla (esim. `depends_on: ["a0"]`). Tämä toimii tekoälylle äärimmäisen vahvana "Attention-ankkurina" ja pitää Anaphora Resolutionin tarkkana.
+* **Automaattinen Hydratointi:** Ennen determinististä Kahnin algoritmin ajoa Python-puolella, `AliasEngine.hydrate_dict_list()` kääntää kaikki graafin reunoissa olevat LLM:n tuottamat aliakset (`a0`) takaisin oikeiksi Opaque UUID -tunnisteiksi (`tda_...`).
+* **Vikasietoisuus:** Laajennetun `ALIAS_REGEX_PATTERN` -säännön (esim. `r"^(N/A|inputs|[a-zA-Z_-]+\d+)$"`) ansiosta Epic 92 voi esitellä täysin uusia konseptityyppejä (kuten ehtoja, matriiseja) ilman, että validaatiosääntöihin tai `AliasEngine`n lähdekoodiin tarvitsee koskea.
+
 ## 3. Pydantic-tason Mallit ja Suunnittelu (Proposed Schema Parity)
 
 Lisätään / päivitetään uudet datamallit backendissä. Rakenne noudattaa V2 ydinmallien logiikkaa:

@@ -1,3 +1,5 @@
+"""Base scoring engine definitions for Phase 9."""
+
 from abc import ABC, abstractmethod
 
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto

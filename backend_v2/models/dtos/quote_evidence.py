@@ -4,6 +4,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.enums import DEFAULT_ALIAS_LITERALS
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class LLMExtractedQuote(BaseSourceId):
             return data
 
         source_id = data.get("source_id")
-        if not source_id or source_id in AliasEngine.DEFAULT_LITERAL_CHOICES:
+        if not source_id or source_id in DEFAULT_ALIAS_LITERALS:
             return data
 
         if info.context is None:

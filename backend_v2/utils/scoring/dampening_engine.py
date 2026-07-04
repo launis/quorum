@@ -1,3 +1,5 @@
+"""Cognitive Diagnostic Model (CDM) dampening engine."""
+
 import logging
 
 from fastapi import status
@@ -25,6 +27,25 @@ class DampeningScoringEngine(ScoringEngineBase):
         math_max: float,
         strictness_level: int = StrictnessAnchor.STRICT.value,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
+        """Calculates progressive dampened score via Cognitive Diagnostic Modeling.
+
+        Instead of linear ratio, this applies a square-root penalty curve per level.
+
+        Args:
+            stats: Dictionary mapping scale_level to hits, total, and dlqs.
+            math_min: Minimum mathematical boundary for score.
+            math_max: Maximum mathematical boundary for score.
+            strictness_level: Forgiveness curve anchoring config.
+
+        Returns:
+            A tuple containing:
+                - The float final computed score.
+                - The XAILogDto filled with diagnostics.
+                - The level breakdown dict.
+
+        Raises:
+            AppException: If extreme mathematical errors occur (CALCULATION_FAILED).
+        """
         config = get_strictness_config(strictness_level)
         dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max, config)
 
@@ -38,7 +59,7 @@ class DampeningScoringEngine(ScoringEngineBase):
         for s_level in sorted_levels:
             level_data = stats[s_level]
             t_hits = level_data["hits"]
-            t_total = level_data["total"] - level_data.get("dlqs", 0)
+            t_total = level_data["total"] - level_data.setdefault("dlqs", 0)
 
             hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
             pct = int(hit_rate * 100)
@@ -92,7 +113,7 @@ class DampeningScoringEngine(ScoringEngineBase):
         log_lines.append(f"**Final CDM Score:** {dampening_score:.2f} (Progressively dampened)")
 
         level_breakdown = {
-            str(k): {"hits": v["hits"], "total": v["total"], "dlqs": v.get("dlqs", 0)} for k, v in stats.items()
+            str(k): {"hits": v["hits"], "total": v["total"], "dlqs": v.setdefault("dlqs", 0)} for k, v in stats.items()
         }
 
         final_score = clamp_score(dampening_score, math_min, math_max)

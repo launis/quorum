@@ -124,6 +124,9 @@ class PromptCompiler:
         *,
         strictness_level: int,
         source_document_ids: list[str] | None = None,
+        allowed_atom_ids: list[str] | None = None,
+        allowed_dynamic_keys: list[str] | None = None,
+        max_evaluations: int | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -135,6 +138,9 @@ class PromptCompiler:
             target_locale: Target language code for label resolution.
             strictness_level: Strictness level to control field leniency.
             source_document_ids: Dynamic literals corresponding to available documents.
+            allowed_atom_ids: Dynamic literals corresponding to available atom items.
+            allowed_dynamic_keys: Dynamic keys loaded from step input mappings.
+            max_evaluations: Dynamic upper limit for evaluations array.
 
         Returns:
             A dynamically generated Pydantic model class.
@@ -147,6 +153,9 @@ class PromptCompiler:
             target_locale,
             strictness_level=strictness_level,
             source_document_ids=source_document_ids,
+            allowed_atom_ids=allowed_atom_ids,
+            allowed_dynamic_keys=allowed_dynamic_keys,
+            max_evaluations=max_evaluations,
         )
 
     def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:
@@ -221,11 +230,17 @@ class PromptCompiler:
         for logical_name, source_path in input_mappings.items():
             value = self._extract_value_from_state(source_path, state_data)
             if value:
+                source_id_to_use = logical_name
+                if alias_engine:
+                    alias = alias_engine.register(logical_name, prefix="doc")
+                    alias_engine.source_document_aliases.append(alias)
+                    source_id_to_use = alias
+
                 meta = input_meta_map.get(source_path)
                 desc_text = ""
                 if meta:
                     desc_text += "  <document_metadata>\n"
-                    desc_text += f"    <document_id>{logical_name}</document_id>\n"
+                    desc_text += f"    <document_id>{source_id_to_use}</document_id>\n"
                     if meta["label"]:
                         desc_text += f"    <document_name>{meta['label']}</document_name>\n"
                     if meta["desc"]:
@@ -233,13 +248,6 @@ class PromptCompiler:
                     if meta["ai_desc"]:
                         desc_text += f"    <ai_context_mandate>{meta['ai_desc']}</ai_context_mandate>\n"
                     desc_text += "  </document_metadata>\n"
-
-                source_id_to_use = logical_name
-                if alias_engine:
-                    idx = len(alias_engine.source_document_aliases)
-                    alias = alias_engine.generate_alias(logical_name, "src_", idx)
-                    alias_engine.source_document_aliases.append(alias)
-                    source_id_to_use = alias
 
                 xml_blocks.append(
                     f'<matrix_input source_id="{source_id_to_use}">\n{desc_text}{TemplateProcessor.encapsulate_payload(value)}\n</matrix_input>'

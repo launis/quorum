@@ -1,5 +1,8 @@
 """Scoring engine factory and strategy implementations."""
 
+import logging
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import ScoringStrategy
 from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
@@ -15,7 +18,7 @@ def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
         strategy: The scoring strategy to use, either as an enum or string.
 
     Returns:
-        ScoringEngineBase: The instantiated scoring engine.
+        The instantiated scoring engine.
 
     Raises:
         AppException: If the provided strategy is invalid (VALIDATION_FAILED).
@@ -25,10 +28,6 @@ def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
         try:
             strategy = ScoringStrategy(strategy)
         except ValueError as e:
-            import logging
-
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             logger = logging.getLogger(__name__)
             msg = f"Invalid scoring strategy string: {strategy}"
             logger.error("[ScoringEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -38,16 +37,17 @@ def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
-    if strategy == ScoringStrategy.WATERFALL:
-        return WaterfallScoringEngine()
-    elif strategy == ScoringStrategy.DAMPENING:
-        return DampeningScoringEngine()
-    elif strategy == ScoringStrategy.AVERAGE:
-        return PureAverageScoringEngine()
-    elif strategy == ScoringStrategy.WEIGHTED_AVERAGE:
-        return WeightedAverageScoringEngine()
-    elif strategy == ScoringStrategy.PURE_MATH:
-        return PureMathScoringEngine()
-
-    # Absolute fallback
-    return WaterfallScoringEngine()
+    match strategy:
+        case ScoringStrategy.WATERFALL:
+            return WaterfallScoringEngine()
+        case ScoringStrategy.DAMPENING:
+            return DampeningScoringEngine()
+        case ScoringStrategy.AVERAGE:
+            return PureAverageScoringEngine()
+        case ScoringStrategy.WEIGHTED_AVERAGE:
+            return WeightedAverageScoringEngine()
+        case ScoringStrategy.PURE_MATH:
+            return PureMathScoringEngine()
+        case _:
+            # Absolute fallback
+            return WaterfallScoringEngine()

@@ -28,6 +28,9 @@ async def test_chunk_worker_usage_name_error() -> None:
     mock_schema = MagicMock()
     mock_schema.model_validate.return_value.model_dump.return_value = {"evaluations": []}
     compiler.build_dynamic_schema.return_value = mock_schema
+    compiler.compile_chunk_prompt.return_value.metadata = {}
+    compiler.compile_chunk_prompt.return_value.static_messages = []
+    compiler.compile_chunk_prompt.return_value.dynamic_messages = []
 
     # Mock executor & run_structured_task via bound_client
     mock_client = AsyncMock()

@@ -26,7 +26,7 @@ def deep_merge_dicts(base: dict[str, Any], update: dict[str, Any]) -> dict[str, 
     merged = copy.deepcopy(base)
     for key, value in update.items():
         if isinstance(value, dict) and key in merged and isinstance(merged[key], dict):
-            if value.get("__replace__") is True:
+            if "__replace__" in value and value["__replace__"] is True:
                 value_copy = copy.deepcopy(value)
                 value_copy.pop("__replace__", None)
                 merged[key] = value_copy

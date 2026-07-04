@@ -1287,9 +1287,7 @@ class BlueprintTransformer:
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
 
             # Run dynamic performative AI jargon (slop) scanning if enabled
-            should_scan_slop = any(
-                inp.scan_for_performative_patterns for inp in getattr(workflow_obj, "expected_inputs", None) or []
-            )
+            should_scan_slop = any(inp.scan_for_performative_patterns for inp in (workflow_obj.expected_inputs or []))
 
             if should_scan_slop:
                 lang = locale or "en"
@@ -1353,10 +1351,11 @@ class BlueprintTransformer:
                 )
 
                 from backend_v2.hooks.linguistics import scan_report_for_slop
+                from backend_v2.settings import get_settings
 
                 slop_phrases = scan_report_for_slop(temp_dto, lexicon, fuzz_threshold)
 
-                if len(slop_phrases) >= 3:
+                if len(slop_phrases) >= get_settings().slop_phrase_warning_threshold:
                     logger.warning(
                         "[BlueprintTransformer] OutputQualityScanner detected slop for %s: %s",
                         execution.id,

@@ -5,6 +5,7 @@ to detect sycophancy or automated automation bias, enforcing strict mathematical
 """
 
 import logging
+import math
 
 from fastapi import status
 
@@ -54,8 +55,6 @@ def calculate_mechanical_cognitive_variance(
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
-
-    import math
 
     if math.isnan(llm_authenticity_score) or math.isinf(llm_authenticity_score):
         logger.error(

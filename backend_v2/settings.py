@@ -98,33 +98,35 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
 
     # --- System Concurrency (Migrated from Enums) ---
-    max_concurrent_workflows: int = Field(default=10, description="Max parallel workflow chunks")
-    max_concurrent_llm_steps: int = Field(default=10, description="Max parallel LLM calls in dag_executor")
-    llm_retry_multiplier: int = 2
-    llm_retry_min_seconds: int = 2
-    llm_retry_max_seconds: int = 60
-    llm_retry_jitter_initial_seconds: int = 2
-    llm_retry_jitter_exp_base: int = 2
-    llm_max_chunk_size: int = 8
-    llm_default_timeout_seconds: int = 1000
-    rate_limit_cooldown_seconds: int = 10
-    semaphore_low_rpm_threshold: int = 20
-    semaphore_low_rpm_limit: int = 2
-    semaphore_max_concurrency: int = 10
-    semaphore_rpm_divisor: int = 10
-    max_safe_tokens: int = 1000000
-    schema_max_evaluations: int = 18  # 8 + 10
-    schema_max_chunk_records: int = 13  # 8 + 5
-    context_cache_lock_ttl_seconds: int = 300
-    context_cache_passive_ttl_seconds: int = 3600
-    context_cache_lock_poll_interval_ms: int = 500
-    context_cache_lock_wait_limit_seconds: int = 20
-    context_cache_minimum_token_limit: int = 2048
-    pacing_delay_vertex_seconds: int = 12
-    pacing_delay_openai_seconds: int = 1
-    pacing_delay_mock_seconds: int = 0
-    redis_connection_timeout_seconds: int = 10
-    content_cache_enabled: int = 0
+    max_concurrent_workflows: Annotated[int, Field(description="Max parallel workflow chunks")] = 10
+    max_concurrent_llm_steps: Annotated[int, Field(description="Max parallel LLM calls in dag_executor")] = 10
+    llm_max_schema_retries: Annotated[int, Field(description="Max retries for schema validation failures")] = 2
+    llm_max_logical_retries: Annotated[int, Field(description="Max retries for logical validation failures")] = 2
+    llm_retry_multiplier: Annotated[int, Field(description="Exponential backoff multiplier")] = 2
+    llm_retry_min_seconds: Annotated[int, Field(description="Minimum backoff delay in seconds")] = 2
+    llm_retry_max_seconds: Annotated[int, Field(description="Maximum backoff delay in seconds")] = 60
+    llm_retry_jitter_initial_seconds: Annotated[int, Field(description="Initial jitter delay in seconds")] = 2
+    llm_retry_jitter_exp_base: Annotated[int, Field(description="Exponential base for jitter")] = 2
+    llm_max_chunk_size: Annotated[int, Field(description="Max documents per schema extraction chunk")] = 8
+    llm_min_payload_length: Annotated[int, Field(description="Minimum chars for LLM payload before fail-fast")] = 10
+    llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 120
+    rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
+    semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
+    semaphore_low_rpm_limit: Annotated[int, Field(description="Concurrency limit for low RPM environments")] = 2
+    semaphore_max_concurrency: Annotated[int, Field(description="Max simultaneous active LLM connections")] = 10
+    semaphore_rpm_divisor: Annotated[int, Field(description="Divisor applied to requested RPM constraint")] = 10
+    max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 1000000
+    schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
+    context_cache_lock_ttl_seconds: Annotated[int, Field(description="Time-to-live for Vertex caching lock")] = 300
+    context_cache_passive_ttl_seconds: Annotated[int, Field(description="Lifespan of Vertex context cache")] = 3600
+    context_cache_lock_poll_interval_ms: Annotated[int, Field(description="Polling interval for lock acquire")] = 500
+    context_cache_lock_wait_limit_seconds: Annotated[int, Field(description="Max wait time for caching lock")] = 20
+    context_cache_minimum_token_limit: Annotated[int, Field(description="Minimum tokens to trigger caching")] = 2048
+    pacing_delay_vertex_seconds: Annotated[int, Field(description="Forced delay between Vertex AI requests")] = 12
+    pacing_delay_openai_seconds: Annotated[int, Field(description="Forced delay between OpenAI requests")] = 1
+    pacing_delay_mock_seconds: Annotated[int, Field(description="Forced delay between Mock responses")] = 0
+    redis_connection_timeout_seconds: Annotated[int, Field(description="Timeout for Redis connection in seconds")] = 10
+    content_cache_enabled: Annotated[int, Field(description="Toggle for internal system response caching")] = 0
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -151,7 +153,7 @@ class Settings(BaseSettings):
     default_model_strategy: Annotated[
         str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
     ] = None
-    llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 600.0
+    llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
 
     # --- Rate Limits (Strict Mode) ---
@@ -188,6 +190,9 @@ class Settings(BaseSettings):
     metrics_reflection_min_length: Annotated[
         int, Field(description="Min chars in reflection to enable Say-Do analysis")
     ] = 50
+    slop_phrase_warning_threshold: Annotated[
+        int, Field(description="Minimum performative slop phrases to trigger a warning flag")
+    ] = 3
     metrics_mechanical_ratio: Annotated[float, Field(description="Ratio of mechanical words to trigger Say-Do Gap")] = (
         0.5
     )
@@ -491,6 +496,12 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
+    def schema_max_chunk_records(self) -> int:
+        """Maximum number of records (main + context) the LLM is expected to parse in a single chunk."""
+        return self.llm_max_chunk_size + 5
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def matrix_sampling_limit(self) -> int:
         """Limits items processed in V2 Matrix Execution."""
         return 2 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 0
@@ -500,6 +511,12 @@ class Settings(BaseSettings):
     def schema_max_localized_anchors(self) -> int:
         """Strict limits for LLM token stability (localized context blocks)."""
         return 2 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 15
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def schema_max_source_aliases(self) -> int:
+        """Target limits for source document array (logically bound to quote limit, capped by chunk size)."""
+        return min(self.schema_max_quotes_target, self.schema_max_chunk_records)
 
     @computed_field  # type: ignore[prop-decorator]
     @property

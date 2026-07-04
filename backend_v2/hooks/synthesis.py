@@ -732,6 +732,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             allowed_tools=allowed_tools,
             step_name="text_consolidation_hook",
             target_language=language,
+            mock_identity="text_consolidation_hook",
         )
         result = SynthesisOutputDTO.model_validate(tool_res.result_data)
         raw_highlights = [h.model_dump(mode="json") for h in result.xai_highlights] if result.xai_highlights else []

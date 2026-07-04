@@ -69,7 +69,7 @@ def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
     """
-    exact_quotes_raw = getattr(extraction, "exact_quotes", [])
+    exact_quotes_raw = extraction.exact_quotes if hasattr(extraction, "exact_quotes") else []
     if not isinstance(exact_quotes_raw, list):
         exact_quotes_raw = []
 
@@ -77,17 +77,18 @@ def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int
     for q in exact_quotes_raw:
         if isinstance(q, str):
             exact_quotes.append(q)
-        elif hasattr(q, "text") and isinstance(getattr(q, "text", None), str):
+        elif hasattr(q, "text"):
             exact_quotes.append(q.text)
-        elif isinstance(q, dict) and "text" in q and isinstance(q["text"], str):
-            exact_quotes.append(q["text"])
-    contextual_override = getattr(extraction, "contextual_override", False)
+
+    contextual_override = extraction.contextual_override if hasattr(extraction, "contextual_override") else False
     if not isinstance(contextual_override, bool):
         contextual_override = False
-    override_reason = getattr(extraction, "override_reason", None)
+
+    override_reason = extraction.override_reason if hasattr(extraction, "override_reason") else None
     if not isinstance(override_reason, str) or override_reason == "":
         override_reason = None
-    reasoning_steps = getattr(extraction, "reasoning_steps", None)
+
+    reasoning_steps = extraction.reasoning_steps if hasattr(extraction, "reasoning_steps") else None
     if not isinstance(reasoning_steps, str):
         reasoning_steps = None
 
@@ -112,7 +113,10 @@ def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int
         else:
             status = "FAIL"
 
-    semantic_reasoning = getattr(extraction, "semantic_reasoning", "") or ""
+    semantic_reasoning = extraction.semantic_reasoning if hasattr(extraction, "semantic_reasoning") else ""
+    if not isinstance(semantic_reasoning, str):
+        semantic_reasoning = ""
+
     # Conservative Safety Principle: We allow the LLM to override a PASS to a FAIL
     # based on semantic reasoning, but never a FAIL to a PASS.
     if "[5. VALIDATION DECISION: FAIL]" in str(semantic_reasoning) or "[5. VALIDATION DECISION: FAIL]" in str(
@@ -120,7 +124,7 @@ def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int
     ):
         status = "FAIL"
 
-    counter_quote = getattr(extraction, "counter_quote", None)
+    counter_quote = extraction.counter_quote if hasattr(extraction, "counter_quote") else None
     if counter_quote and isinstance(counter_quote, str) and counter_quote.strip() and status == "PASS":
         status = "CONTESTED"
 
@@ -453,13 +457,20 @@ class ChunkWorker:
                 reason_str = _unwrap_error(e) if e else "Unknown chunk failure"
                 if attempt > MAX_CHUNK_RETRIES:
                     # Log the condition – DLQ routing is still the correct outcome.
+                    atom_ids = []
+                    if chunk is not None and hasattr(chunk, "items"):
+                        atom_ids = [
+                            item.get("atom_id") for item in chunk.items if isinstance(item, dict) and "atom_id" in item
+                        ]
                     logger.error(
-                        "[ChunkWorker] Stuck in retry loop after max attempts. Routing to DLQ.",
-                        extra={"error_code": "CHUNK_LOOP_STUCK"},
+                        f"[ChunkWorker] Stuck in retry loop after max attempts. Routing to DLQ. Failing Atoms: {atom_ids}",
+                        extra={"error_code": "CHUNK_LOOP_STUCK", "atom_ids": atom_ids},
                         exc_info=True,
                     )
                     # Use a dedicated reason string for the fallback handling below.
-                    reason_str = "Chunk processing stuck after maximum retries"
+                    reason_str = (
+                        f"Chunk processing stuck after maximum retries. Atoms: {atom_ids} | Error: {reason_str}"
+                    )
                 # Existing fallback handling continues
                 fallback_reason = f"Chunk Processing Failed: {reason_str}"
                 chunk_final = {
@@ -471,7 +482,7 @@ class ChunkWorker:
 
                 if has_shuffled_atoms and chunk is not None:
                     chunk_final["evaluations"] = []
-                    for item in getattr(chunk, "items", []):
+                    for item in chunk.items if hasattr(chunk, "items") else []:
                         aid = item.get("atom_id") if isinstance(item, dict) else None
                         if aid:
                             chunk_final["evaluations"].append(
@@ -584,9 +595,14 @@ class ChunkWorker:
                         filtered_criteria.append(bm)
                 chunk_criteria = filtered_criteria
 
-        from backend_v2.utils.alias_engine import AliasEngine
+        from backend_v2.utils.alias_engine import AliasEngine, AliasManifest
 
-        base_alias_engine = AliasEngine()
+        # Phase 3: Reconstruct engine from upstream manifest (source doc aliases)
+        if step_metadata and "alias_manifest" in step_metadata:
+            upstream_manifest = AliasManifest.model_validate(step_metadata["alias_manifest"])
+            base_alias_engine = AliasEngine.from_manifest(upstream_manifest)
+        else:
+            base_alias_engine = AliasEngine()
 
         is_lightweight = False
         source_document_ids = ["N/A"]
@@ -604,23 +620,17 @@ class ChunkWorker:
                     if isinstance(doc_dict, dict):
                         source_docs.append(SourceDocumentContext.model_validate(doc_dict))
 
-        local_dynamic_schema = compiler.build_dynamic_schema(
-            schema_name=f"Step_{step_id}_Response",
-            criteria=chunk_criteria,
-            has_search_result=has_search,
-            has_shuffled_atoms=has_shuffled_atoms,
-            target_locale=target_locale,
-            strictness_level=strictness_level,
-            source_document_ids=source_document_ids,
-        )
-
         chunk_atoms_xml = None
         allowed_atom_ids = set()
         if has_shuffled_atoms and chunk is not None:
             blind_items = []
             for i, item in enumerate(chunk.items):
                 aid = item.get("atom_id")
-                alias = base_alias_engine.generate_alias(aid, "a", i) if aid else f"a{i}"
+                alias = (
+                    base_alias_engine.register(aid, prefix="a")
+                    if aid
+                    else base_alias_engine.register(f"unnamed_atom_{i}", prefix="a")
+                )
                 blind_items.append({"atom_id": alias, "rule_anchor": alias, "question": item.get("question", "")})
             atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
             chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
@@ -629,6 +639,23 @@ class ChunkWorker:
                 aid = item.get("atom_id")
                 if aid:
                     allowed_atom_ids.add(aid)
+
+        allowed_dynamic_keys = []
+        if step_metadata and "allowed_dynamic_keys" in step_metadata:
+            allowed_dynamic_keys = step_metadata["allowed_dynamic_keys"]
+
+        local_dynamic_schema = compiler.build_dynamic_schema(
+            schema_name=f"Step_{step_id}_Response",
+            criteria=chunk_criteria,
+            has_search_result=has_search,
+            has_shuffled_atoms=has_shuffled_atoms,
+            target_locale=target_locale,
+            strictness_level=strictness_level,
+            source_document_ids=source_document_ids,
+            allowed_atom_ids=list(allowed_atom_ids) if allowed_atom_ids else None,
+            allowed_dynamic_keys=allowed_dynamic_keys,
+            max_evaluations=len(chunk.items) if chunk and hasattr(chunk, "items") else None,
+        )
 
         compiled_prompt = compiler.compile_chunk_prompt(
             base_system_prompt=base_system_prompt,
@@ -643,7 +670,7 @@ class ChunkWorker:
         prompt_context = PromptContextDTO(
             static_messages=list(compiled_prompt.static_messages),
             dynamic_messages=list(compiled_prompt.dynamic_messages),
-            metadata=dict(compiled_prompt.metadata),
+            metadata=compiled_prompt.metadata.copy(),
         )
 
         chunk_final: dict[str, Any] = {}
@@ -785,7 +812,7 @@ class ChunkWorker:
                         if isinstance(res, BaseModel):
                             results_list.append(res.model_dump(mode="json"))
                         else:
-                            results_list.append(dict(res))
+                            results_list.append(res.copy() if hasattr(res, "copy") else res)
                     if usg:
                         total_usage = total_usage + usg
                     if trc:
@@ -798,7 +825,7 @@ class ChunkWorker:
                     if isinstance(res, BaseModel):
                         results_list.append(res.model_dump(mode="json"))
                     else:
-                        results_list.append(dict(res))
+                        results_list.append(res.copy() if hasattr(res, "copy") else res)
                 if usg:
                     total_usage = total_usage + usg
                 if trc:
@@ -847,7 +874,9 @@ class ChunkWorker:
                 chunk_final["evaluations"].append(
                     {
                         "atom_id": pf_atom_id,
-                        "exact_quotes": [pf_res.exact_quote] if getattr(pf_res, "exact_quote", None) else [],
+                        "exact_quotes": [pf_res.exact_quote]
+                        if (hasattr(pf_res, "exact_quote") and pf_res.exact_quote)
+                        else [],
                         "contextual_override": False,
                         "override_reason": None,
                         "reasoning_steps": "[EXTRACTIVE_SENSOR_PRE_FLIGHT] Fast match.",
@@ -869,7 +898,9 @@ class ChunkWorker:
             validated_response = local_dynamic_schema.model_validate(chunk_final, context=val_context)
             chunk_final = validated_response.model_dump(mode="json")
 
-            for idx, atom_model in enumerate(getattr(validated_response, "evaluations", [])):
+            for idx, atom_model in enumerate(
+                validated_response.evaluations if hasattr(validated_response, "evaluations") else []
+            ):
                 atom_dict = chunk_final["evaluations"][idx]
 
                 c_status = atom_consensus_data.get(idx, {}).get("status")
@@ -886,8 +917,10 @@ class ChunkWorker:
                 if confidence is not None:
                     atom_dict["confidence"] = confidence
 
-                contextual_override = getattr(atom_model, "contextual_override", False)
-                semantic_reasoning = getattr(atom_model, "semantic_reasoning", "")
+                contextual_override = (
+                    atom_model.contextual_override if hasattr(atom_model, "contextual_override") else False
+                )
+                semantic_reasoning = atom_model.semantic_reasoning if hasattr(atom_model, "semantic_reasoning") else ""
 
                 if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
                     atom_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
@@ -931,8 +964,12 @@ class ChunkWorker:
                     if confidence is not None:
                         block_dict["confidence"] = confidence
 
-                    contextual_override = getattr(block_model, "contextual_override", False)
-                    semantic_reasoning = getattr(block_model, "semantic_reasoning", "")
+                    contextual_override = (
+                        block_model.contextual_override if hasattr(block_model, "contextual_override") else False
+                    )
+                    semantic_reasoning = (
+                        block_model.semantic_reasoning if hasattr(block_model, "semantic_reasoning") else ""
+                    )
 
                     if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
                         block_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"

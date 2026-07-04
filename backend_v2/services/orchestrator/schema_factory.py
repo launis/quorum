@@ -9,7 +9,7 @@ monolithic PromptCompiler, following SRP (Rule 88).
 import logging
 from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
 
@@ -24,6 +24,7 @@ from backend_v2.models.prompts.field_prompts import (
 )
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.settings import get_settings
+from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ class StrippedBaseTDAExtraction(BaseModel):
 
     exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,
-        max_length=3,
+        max_length=get_settings().schema_max_quotes_target,
         description=DESC_EXACT_QUOTES,
     )
     contextual_override: bool = Field(
@@ -107,6 +108,9 @@ class SchemaFactory:
         *,
         strictness_level: int,
         source_document_ids: list[str] | None = None,
+        allowed_atom_ids: list[str] | None = None,
+        allowed_dynamic_keys: list[str] | None = None,
+        max_evaluations: int | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -127,7 +131,9 @@ class SchemaFactory:
         # Epic 43: Serialize strictly typed PromptBlocks back to json for the cache key.
         criteria_ids = "_".join(sorted(str(c.id) for c in criteria if c.id))
         doc_ids_str = "_".join(sorted(source_document_ids)) if source_document_ids else ""
-        cache_key = f"{schema_name}_{criteria_ids}_{has_search_result}_{has_shuffled_atoms}_{target_locale}_{strictness_level}_{doc_ids_str}"
+        atom_ids_str = "_".join(sorted(allowed_atom_ids)) if allowed_atom_ids else ""
+        dynamic_keys_str = "_".join(sorted(allowed_dynamic_keys)) if allowed_dynamic_keys else ""
+        cache_key = f"{schema_name}_{criteria_ids}_{has_search_result}_{has_shuffled_atoms}_{target_locale}_{strictness_level}_{doc_ids_str}_{atom_ids_str}_{dynamic_keys_str}"
 
         if cache_key in self._schema_cache:
             return self._schema_cache[cache_key]
@@ -141,6 +147,9 @@ class SchemaFactory:
             criteria,
             cache_key,
             source_document_ids=source_document_ids,
+            allowed_atom_ids=allowed_atom_ids,
+            allowed_dynamic_keys=allowed_dynamic_keys,
+            max_evaluations=max_evaluations,
         )
 
     def _build_dynamic_schema_internal(
@@ -154,6 +163,9 @@ class SchemaFactory:
         cache_key: str,
         *,
         source_document_ids: list[str] | None = None,
+        allowed_atom_ids: list[str] | None = None,
+        allowed_dynamic_keys: list[str] | None = None,
+        max_evaluations: int | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -178,21 +190,46 @@ class SchemaFactory:
         step_strict_class = StepDTOStrict
         step_semantic_class = StepDTOSemantic
 
-        if source_document_ids is not None:
-            choices = list(set(source_document_ids))
-            if not choices:
-                choices = ["N/A"]
-            elif "N/A" not in choices:
-                choices.append("N/A")
-            choices.sort()
-            DocIdsLiteral = Literal[tuple(choices)]  # type: ignore
+        if source_document_ids is not None or allowed_atom_ids is not None or allowed_dynamic_keys is not None:
+            DocIdsLiteralType = AliasEngine.build_doc_ids_literal(source_document_ids, allowed_dynamic_keys)
+            QuoteIdsLiteralType = AliasEngine.build_quote_ids_literal(
+                source_document_ids, allowed_atom_ids, allowed_dynamic_keys
+            )
+
+            # V3 Fix: Explicitly define fields in exact order to protect Vertex AI Token Trie.
+            # `source_id` MUST be first, before the massive unconstrained `text` string,
+            # preventing logit buffer exhaustion and "inputs" hallucinations.
+            DynamicLLMExtractedQuote = create_model(
+                "DynamicLLMExtractedQuote",
+                source_id=(
+                    QuoteIdsLiteralType,
+                    Field(
+                        ...,
+                        description="Auto-resolved document ID (e.g. doc0, a1)",
+                    ),
+                ),
+                text=(str, Field(..., description="Tarkka lainaus tekstistä")),
+                __config__=ConfigDict(extra="ignore"),
+            )
 
             step_strict_class = create_model(
                 "StepDTOStrictDynamic",
                 __base__=StepDTOStrict,
                 source_document_aliases=(
-                    list[DocIdsLiteral],  # type: ignore
-                    Field(..., description="Dynamic literals corresponding to available documents."),
+                    list[DocIdsLiteralType],  # type: ignore
+                    Field(
+                        ...,
+                        max_length=get_settings().schema_max_source_aliases,
+                        description="Dynamic literals corresponding to available documents.",
+                    ),
+                ),
+                exact_quotes=(
+                    list[DynamicLLMExtractedQuote],  # type: ignore
+                    Field(
+                        default_factory=list,
+                        max_length=get_settings().schema_max_quotes_target,
+                        description=DESC_EXACT_QUOTES,
+                    ),
                 ),
                 __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             )
@@ -200,8 +237,20 @@ class SchemaFactory:
                 "StepDTOSemanticDynamic",
                 __base__=StepDTOSemantic,
                 source_document_aliases=(
-                    list[DocIdsLiteral],  # type: ignore
-                    Field(..., description="Dynamic literals corresponding to available documents."),
+                    list[DocIdsLiteralType],  # type: ignore
+                    Field(
+                        ...,
+                        max_length=get_settings().schema_max_source_aliases,
+                        description="Dynamic literals corresponding to available documents.",
+                    ),
+                ),
+                exact_quotes=(
+                    list[DynamicLLMExtractedQuote],  # type: ignore
+                    Field(
+                        default_factory=list,
+                        max_length=get_settings().schema_max_quotes_target,
+                        description=DESC_EXACT_QUOTES,
+                    ),
                 ),
                 __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             )
@@ -217,6 +266,7 @@ class SchemaFactory:
                 atom_id: str = Field(
                     ...,
                     description="The EXACT system identifier. MUST exactly match one of the short aliases provided in <BLIND_ATOMS_TO_EVALUATE> (e.g. 'a0', 'a1').",
+                    json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN},
                 )
 
             # Phase D & E: Proactive Routing
@@ -238,11 +288,14 @@ class SchemaFactory:
 
                 AtomResponse = AtomResponseSemantic
 
+            effective_max_evaluations = (
+                max_evaluations if max_evaluations is not None else get_settings().schema_max_evaluations
+            )
             fields["evaluations"] = (
                 list[AtomResponse],
                 Field(
                     ...,
-                    max_length=get_settings().schema_max_evaluations,
+                    max_length=effective_max_evaluations,
                     description="List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in <BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. Do NOT hallucinate, invent, or evaluate any unlisted concepts.",
                 ),
             )

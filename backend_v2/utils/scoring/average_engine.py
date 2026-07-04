@@ -5,7 +5,7 @@ and weighted sigmoid average scoring engines.
 """
 
 import statistics
-from typing import Any
+from typing import Any, cast
 
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto
 from backend_v2.models.enums import StrictnessAnchor
@@ -48,7 +48,7 @@ class PureAverageScoringEngine(ScoringEngineBase):
 
         hit_rates: list[float] = []
         for v in stats.values():
-            eff_total = v["total"] - v.get("dlqs", 0)
+            eff_total = v["total"] - v.setdefault("dlqs", 0)
             if eff_total > 0:
                 hit_rates.append(v["hits"] / eff_total)
             else:
@@ -70,7 +70,7 @@ class PureAverageScoringEngine(ScoringEngineBase):
         flattened_total = 0.0
 
         for level, v in stats.items():
-            eff_total = v["total"] - v.get("dlqs", 0)
+            eff_total = v["total"] - v.setdefault("dlqs", 0)
             hr = (v["hits"] / eff_total) if eff_total > 0 else 0.0
 
             if hr < outlier_threshold and hr < 0.30:
@@ -104,7 +104,7 @@ class PureAverageScoringEngine(ScoringEngineBase):
         )
 
         level_breakdown = {
-            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.get("dlqs", 0))}
+            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.setdefault("dlqs", 0))}
             for k, v in stats.items()
         }
 
@@ -153,8 +153,6 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
                 - An XAILogDto filled with diagnostic trace timelines.
                 - A dictionary breakdown of the scores per level stringified.
         """
-        from typing import cast
-
         base_forgiveness = convert_strictness_to_forgiveness(strictness_level)
         exponent = 1.0 + (1.0 - base_forgiveness)
         stats_casted = cast(dict[float, dict[str, float | int]], stats)
@@ -169,7 +167,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
         for s_level in sorted_levels:
             level_data = stats[s_level]
             t_hits = level_data["hits"]
-            eff_total = level_data["total"] - level_data.get("dlqs", 0)
+            eff_total = level_data["total"] - level_data.setdefault("dlqs", 0)
 
             achieved_weights += t_hits * s_level
             max_weights += eff_total * s_level
@@ -186,7 +184,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
         )
 
         level_breakdown = {
-            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.get("dlqs", 0))}
+            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.setdefault("dlqs", 0))}
             for k, v in stats.items()
         }
 

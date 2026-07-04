@@ -20,6 +20,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   const factory SduiBlockDTO.paragraph({
     required String text,
     @Default([]) List<int> citations,
+    @Default([]) List<String> exactQuotes,
   }) = SduiParagraphBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -34,12 +35,15 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     required String text,
     required String severity,
     @Default([]) List<int> citations,
+    @Default([]) List<String> exactQuotes,
   }) = SduiAlertBoxBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('hero_insight')
-  const factory SduiBlockDTO.heroInsight({required String text}) =
-      SduiHeroInsightBlock;
+  const factory SduiBlockDTO.heroInsight({
+    required String text,
+    @Default([]) List<String> exactQuotes,
+  }) = SduiHeroInsightBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('markdown')
@@ -57,6 +61,7 @@ abstract class SduiBulletListItemDTO with _$SduiBulletListItemDTO {
   const factory SduiBulletListItemDTO({
     required String text,
     @Default([]) List<int> citations,
+    @Default([]) List<String> exactQuotes,
   }) = _SduiBulletListItemDTO;
 
   factory SduiBulletListItemDTO.fromJson(Map<String, dynamic> json) =>

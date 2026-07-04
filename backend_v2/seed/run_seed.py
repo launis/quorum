@@ -1,14 +1,38 @@
 """V2 Seeder Script.
 
+**Mitä tämä skripti tekee:**
 Reads from backend_v2/seed/seed_data.json and populates the isolated V2 target database.
 Strictly restricted to V2 Pydantic models (SystemConfig, Role, Workflow, PromptBlock).
+
+**Ohjeet käyttöön:**
+Suorita skripti projektin juuressa eristettynä `uv run python` -komennolla:
+
+```bash
+uv run python backend_v2/seed/run_seed.py <kohde>
+```
+
+**Kopioitavia esimerkkejä:**
+
+1. Päivitä pelkästään paikallinen TinyDB-tietokanta (data/db_v2.json):
+```bash
+uv run python backend_v2/seed/run_seed.py local
+```
+
+2. Päivitä Cloud Firestore -tietokanta:
+```bash
+uv run python backend_v2/seed/run_seed.py firestore
+```
+
+3. Päivitä molemmat samalla kertaa:
+```bash
+uv run python backend_v2/seed/run_seed.py all
+```
 """
 
 import argparse
 import asyncio
 import json
 import logging
-import os
 import shutil
 import sys
 from datetime import datetime
@@ -35,8 +59,8 @@ from backend_v2.exceptions import ErrorCodes
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
-SEED_PATH = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "seed_data.json")
-LOCAL_DB_PATH = os.path.join(PROJECT_ROOT, "data", "db_v2.json")
+SEED_PATH = PROJECT_ROOT / "backend_v2" / "seed" / "seed_data.json"
+LOCAL_DB_PATH = PROJECT_ROOT / "data" / "db_v2.json"
 
 # Configure Logging
 logging.basicConfig(
@@ -52,6 +76,9 @@ def _fail_fast(msg: str, error: Exception) -> None:
     Args:
         msg: The failure message.
         error: The caught exception.
+
+    Returns:
+        None
     """
     logger.critical(
         "[Seeder] %s: [CRITICAL FAIL FAST] %s - %s",
@@ -64,24 +91,26 @@ def _fail_fast(msg: str, error: Exception) -> None:
     sys.exit(1)
 
 
-async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str) -> None:
+async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str) -> None:
     """Seeds the local TinyDB instance with parsed V2 registry data.
 
     Args:
         db_path: Absolute path to the local JSON database.
         seed_data: Raw JSON payload loaded from the seed file.
         target_env: Execution target environment string.
+
+    Returns:
+        None
     """
     try:
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 1. Automatic Backup before dropping the DB
-        if os.path.exists(db_path):
+        if db_path.exists():
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_dir = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "backups")
-            os.makedirs(backup_dir, exist_ok=True)
-            filename = os.path.basename(db_path)
-            backup_path = os.path.join(backup_dir, f"{filename}.{timestamp}.bak")
+            backup_dir = PROJECT_ROOT / "backend_v2" / "seed" / "backups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            backup_path = backup_dir / f"{db_path.name}.{timestamp}.bak"
             try:
                 shutil.copy2(db_path, backup_path)
                 print(f"[SUCCESS] Backup created: {backup_path}")
@@ -95,17 +124,17 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
                 print(f"[ERROR] Failed to create db backup: {e}")
                 sys.exit(1)
 
-        db = TinyDB(db_path, encoding="utf-8")
+        db = TinyDB(str(db_path), encoding="utf-8")
         db.drop_tables()  # CLEAN SLATE
         print(f"[Seeder V2] CLEARED persistence. Dropped all tables from {db_path}.")
 
         # 2. Cleanup orphaned execution files physically
-        if "db_v2.json" in db_path:
-            executions_dir = os.path.join(PROJECT_ROOT, "data", "files", "executions")
-            if os.path.exists(executions_dir):
+        if "db_v2.json" in db_path.name:
+            executions_dir = PROJECT_ROOT / "data" / "files" / "executions"
+            if executions_dir.exists():
                 shutil.rmtree(executions_dir, ignore_errors=True)
-                os.makedirs(executions_dir, exist_ok=True)
-                print(f"[Seeder V2] WIPED physical orphaned files from {executions_dir}.")
+            executions_dir.mkdir(parents=True, exist_ok=True)
+            print(f"[Seeder V2] WIPED physical orphaned files from {executions_dir}.")
 
     except Exception as e:
         _fail_fast("Error initializing TinyDB", e)
@@ -167,7 +196,7 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
         print(f"[Seeder V2] Upserted and verified {count} items to '{col_key}' registry.")
 
     db.close()
-    print(f"[Seeder V2] Closed DB. Final size: {os.path.getsize(db_path)} bytes.")
+    print(f"[Seeder V2] Closed DB. Final size: {db_path.stat().st_size} bytes.")
 
 
 async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
@@ -176,6 +205,9 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
     Args:
         seed_data: Raw JSON payload loaded from the seed file.
         target_env: Execution target environment string.
+
+    Returns:
+        None
     """
     if not FIREBASE_AVAILABLE:
         print("Firebase Admin not installed.")
@@ -241,6 +273,9 @@ def _delete_collection(coll_ref: Any, batch_size: int = 50) -> None:
     Args:
         coll_ref: Firestore collection reference object.
         batch_size: Number of documents to delete per batch.
+
+    Returns:
+        None
     """
     docs = list(coll_ref.limit(batch_size).stream())
     deleted = 0
@@ -256,10 +291,13 @@ async def seed_database(target: str) -> None:
 
     Args:
         target: Target database environment ('local', 'firestore', or 'all').
+
+    Returns:
+        None
     """
     print(f"--- V2 SEEDING TARGET: {target.upper()} ---")
 
-    if not os.path.exists(SEED_PATH):
+    if not SEED_PATH.exists():
         logger.critical("[Seeder] %s: Seed file not found at %s", ErrorCodes.FILE_NOT_FOUND.name, SEED_PATH)
         print(f"\033[91mCRITICAL: Seed file not found at {SEED_PATH}\033[0m")
         sys.exit(1)
@@ -278,7 +316,14 @@ async def seed_database(target: str) -> None:
 
 
 def main() -> None:
-    """Parses command line arguments and initializes the async seeding loop."""
+    """Parses command line arguments and initializes the async seeding loop.
+
+    Args:
+        None
+
+    Returns:
+        None
+    """
     parser = argparse.ArgumentParser(description="Unified V2 Database Seeder")
     parser.add_argument(
         "targets",

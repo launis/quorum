@@ -247,8 +247,23 @@ class BaseLLMAdapter(ABC):
             schema_dict: The JSON schema dictionary to mutate in place.
         """
         if isinstance(schema_dict, dict):
-            schema_dict.pop("maxLength", None)
-            schema_dict.pop("minLength", None)
+            # [2026-07-03] Targeted Schema Stripping:
+            # We MUST strip mechanical constraints that cause Vertex's Guided Decoding state machine to explode
+            # ("too many states for serving"). These include lengths, regexes, and bounds.
+            # We MUST NOT strip semantic fields ("title", "description", "enum") because the LLM relies on them to prevent hallucinations.
+            keys_to_strip: list[str] = [
+                "maxLength",
+                "minLength",
+                "pattern",
+                "format",
+                "maximum",
+                "minimum",
+                "exclusiveMaximum",
+                "exclusiveMinimum",
+                "multipleOf",
+            ]
+            for k in keys_to_strip:
+                schema_dict.pop(k, None)
 
             if "const" in schema_dict:
                 schema_dict["enum"] = [schema_dict.pop("const")]

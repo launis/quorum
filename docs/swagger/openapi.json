@@ -8714,15 +8714,22 @@
             "title": "Id",
             "description": "System config ID"
           },
-          "slug": {
-            "type": "string",
-            "title": "Slug",
-            "description": "Slug identifier."
-          },
           "type": {
             "type": "string",
             "title": "Type",
             "description": "Config type discriminator."
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "System Config identifier slug"
           },
           "tools": {
             "items": {
@@ -8737,7 +8744,6 @@
         "type": "object",
         "required": [
           "id",
-          "slug",
           "type"
         ],
         "title": "SystemConfigMCPGateways",
@@ -8751,15 +8757,22 @@
             "title": "Id",
             "description": "System config ID"
           },
-          "slug": {
-            "type": "string",
-            "title": "Slug",
-            "description": "Slug identifier."
-          },
           "type": {
             "type": "string",
             "title": "Type",
             "description": "Config type discriminator."
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "System Config identifier slug"
           },
           "tools": {
             "items": {
@@ -8774,7 +8787,6 @@
         "type": "object",
         "required": [
           "id",
-          "slug",
           "type"
         ],
         "title": "SystemConfigMCPGateways",
@@ -8788,15 +8800,22 @@
             "title": "Id",
             "description": "System config ID"
           },
-          "slug": {
-            "type": "string",
-            "title": "Slug",
-            "description": "Slug identifier"
-          },
           "type": {
             "type": "string",
             "title": "Type",
             "description": "Type of config"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "System Config identifier slug"
           },
           "models": {
             "additionalProperties": {
@@ -8811,7 +8830,6 @@
         "type": "object",
         "required": [
           "id",
-          "slug",
           "type",
           "models"
         ],
@@ -8826,17 +8844,50 @@
             "title": "Id",
             "description": "System config ID"
           },
-          "slug": {
-            "type": "string",
-            "title": "Slug",
-            "description": "Slug identifier."
-          },
           "type": {
             "type": "string",
             "const": "performative_lexicons",
             "title": "Type",
             "description": "Config type discriminator.",
             "default": "performative_lexicons"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "System Config identifier slug"
+          },
+          "lexicons": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lexicons",
+            "description": "Legacy payload mapping"
+          },
+          "lexicon": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lexicon",
+            "description": "Legacy payload mapping"
           },
           "lexicon_configs": {
             "additionalProperties": {
@@ -8850,8 +8901,7 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
-          "slug"
+          "id"
         ],
         "title": "SystemConfigPerformativeLexicons",
         "description": "System configuration for multi-language performative lexicons."
@@ -10203,7 +10253,7 @@
           "content": {
             "type": "string",
             "title": "Content",
-            "description": "The synthesized, deduplicated insight or tip. Max 2 sentences."
+            "description": "The synthesized, deduplicated insight or tip. Max 2 sentences. MUST BE TRANSLATED TO <required_output_language>!"
           }
         },
         "additionalProperties": false,

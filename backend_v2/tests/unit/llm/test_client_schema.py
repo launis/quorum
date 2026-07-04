@@ -20,8 +20,15 @@ async def test_native_schema_delegates_to_adapter() -> None:
         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter_factory,
     ):
         mock_provider = AsyncMock()
+        from backend_v2.models.domain.usage import TokenUsage
+        from backend_v2.models.llm import LLMResponse
+
+        mock_provider.generate.return_value = LLMResponse(
+            content='{"exact_quotes": ["foo"], "nested_list": ["bar"]}',
+            token_usage=TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20),
+        )
         mock_factory.return_value = mock_provider
-        
+
         mock_adapter = MagicMock()
         mock_adapter_factory.return_value = mock_adapter
         mock_adapter.prepare_provider_kwargs.return_value = {}

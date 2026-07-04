@@ -45,7 +45,7 @@ class PureMathScoringEngine(ScoringEngineBase):
         for s_level in sorted_levels:
             level_data = stats[s_level]
             t_hits = level_data["hits"]
-            eff_total = level_data["total"] - level_data.get("dlqs", 0)
+            eff_total = level_data["total"] - level_data.setdefault("dlqs", 0)
 
             achieved_weights += t_hits * s_level
             max_weights += eff_total * s_level
@@ -62,7 +62,7 @@ class PureMathScoringEngine(ScoringEngineBase):
         log_lines.append(f"Final Pure Math Score: {pure_score:.2f} (Mapped directly to scale {math_min}-{math_max})")
 
         level_breakdown = {
-            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.get("dlqs", 0))}
+            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.setdefault("dlqs", 0))}
             for k, v in stats.items()
         }
 

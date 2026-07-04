@@ -552,3 +552,13 @@ LaxRiskLevel = Annotated[RiskLevel, Field(strict=False)]
 LaxSimulationType = Annotated[SimulationType, Field(strict=False)]
 LaxRoleClassification = Annotated[RoleClassification, Field(strict=False)]
 LaxInteractionStrategy = Annotated[InteractionStrategy, Field(strict=False)]
+
+
+class SpecialAliasChoices(str, Enum):
+    """Globaalit sallitut poikkeusarvot AliasEnginelle ja Pydantic-validaatiolle."""
+
+    NA = "N/A"
+
+
+# Declared as a constant set for O(1) declarative logic lookups
+DEFAULT_ALIAS_LITERALS: frozenset[str] = frozenset(item.value for item in SpecialAliasChoices)

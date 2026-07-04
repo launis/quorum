@@ -20,6 +20,9 @@ def dict_to_obj(d: Any) -> Any:
         if "label" in d and "tda_assertions" not in d:
             d["tda_assertions"] = []
 
+        # Ensure mock workflows have expected_inputs
+        d.setdefault("expected_inputs", [])
+
         return SimpleNamespace(**{k: dict_to_obj(v) for k, v in d.items()})
     elif isinstance(d, list):
         return [dict_to_obj(v) for v in d]
@@ -350,7 +353,7 @@ def mock_repo_microcot() -> Any:
 
 
 @pytest.mark.asyncio
-async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any) -> None:
+async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any, mock_repo_transformer: Any) -> None:
     mock_repo_microcot.get_execution.return_value = ExecutionRecord(
         id="exe_abcdef1234567890",
         workflow_id="wf_1234567890abcdef",
@@ -1536,7 +1539,7 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
         profile_syntheses={},
     )
 
-    def dict_to_obj(d):
+    def dict_to_obj(d: Any) -> Any:
         from types import SimpleNamespace
 
         from backend_v2.models.v2_core import I18nText
@@ -1544,6 +1547,7 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
         if isinstance(d, dict):
             if "translations" in d and "default_locale" in d:
                 return I18nText(**d)
+            d.setdefault("expected_inputs", [])
             return SimpleNamespace(**{k: dict_to_obj(v) for k, v in d.items()})
         elif isinstance(d, list):
             return [dict_to_obj(v) for v in d]

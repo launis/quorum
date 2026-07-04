@@ -849,6 +849,7 @@ async def test_matrix_scoring_hook_dynamic_penalty() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
 
     # 5 atoms -> 100% hits. Unpenalized score is 5.0.
     # 1 CONTESTED atom -> relative penalty (1/5 * 15% = 3%) -> 5.0 * 0.97 = 4.85.
@@ -910,6 +911,7 @@ async def test_matrix_scoring_hook_cognitive_collapse() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
 
     # Should trigger cognitive collapse lock but assign the minimum mathematical score (1.0)
     raw_score = result.state_delta["pb_1234567890123456"].get("raw_score")
@@ -936,7 +938,7 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
             "semantic_reasoning": "Hyväksytty",
             "contextual_override": False,
             "structural_location": "",
-            "exact_quotes": [{"text": "This is a quote", "source_id": "DOC-1"}],
+            "exact_quotes": [{"text": "This is a quote", "source_id": "doc1"}],
         }
     ]
 
@@ -996,4 +998,5 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result is not None
     assert result.success is True
+    assert result.state_delta is not None
     assert result.state_delta["evaluations"] == []

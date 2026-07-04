@@ -1,9 +1,13 @@
 """Redis patching utilities."""
 
+import contextvars
 import logging
 from typing import Any
 
+import arq.connections
+import arq.worker
 from arq.connections import ArqRedis
+from fakeredis.aioredis import FakeRedis
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +37,101 @@ else
 end
 """
 
+_last_response_var = contextvars.ContextVar("fake_redis_last_response", default=None)
+
+
+class MockRetry:
+    """Mock retry handler for Arq compatibility."""
+
+    async def call_with_retry(self, func: Any, on_error: Any) -> Any:
+        """Executes the function directly without retries.
+
+        Args:
+            func: The asynchronous function to execute.
+            on_error: The error handler function (unused in mock).
+
+        Returns:
+            The result of the function execution.
+        """
+        return await func()
+
+
+def _patch_arq_connection_handling(fake_redis: Any) -> None:
+    """Patches connection lifecycle methods on FakeRedis for Arq.
+
+    Args:
+        fake_redis: The FakeRedis instance to patch.
+    """
+    if not hasattr(fake_redis, "get_connection"):
+
+        async def _get_conn() -> Any:
+            return fake_redis
+
+        fake_redis.get_connection = _get_conn
+
+    if not hasattr(fake_redis, "release"):
+
+        async def _release(conn: Any) -> None:
+            pass
+
+        fake_redis.release = _release
+
+    if not hasattr(fake_redis, "retry"):
+        fake_redis.retry = MockRetry()
+
+
+def _patch_arq_logging() -> None:
+    """Patches Arq logging to prevent crashes with FakeRedis."""
+
+    async def _no_op_log(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    arq.connections.log_redis_info = _no_op_log
+    arq.worker.log_redis_info = _no_op_log  # type: ignore[attr-defined]
+
+
+def _patch_arq_pipelining(fake_redis: Any) -> None:
+    """Patches pipeline and command packing methods on FakeRedis.
+
+    Args:
+        fake_redis: The FakeRedis instance to patch.
+    """
+    if not hasattr(fake_redis, "pack_commands"):
+
+        def _pack(cmds: Any) -> Any:
+            return cmds
+
+        fake_redis.pack_commands = _pack
+
+    if not hasattr(fake_redis, "send_packed_command"):
+
+        async def _send_packed(cmds: Any) -> None:
+            pass
+
+        fake_redis.send_packed_command = _send_packed
+
+
+def _patch_arq_command_execution(fake_redis: Any) -> None:
+    """Patches direct command execution for Arq compatibility.
+
+    Args:
+        fake_redis: The FakeRedis instance to patch.
+    """
+    if not hasattr(fake_redis, "send_command"):
+
+        async def _send_command(*args: Any, **kwargs: Any) -> Any:
+            res = await fake_redis.execute_command(*args, **kwargs)
+            _last_response_var.set(res)
+
+        fake_redis.send_command = _send_command
+
+    if not hasattr(fake_redis, "read_response"):
+
+        async def _read_response() -> Any:
+            return _last_response_var.get()
+
+        fake_redis.read_response = _read_response
+
 
 def get_patched_fakeredis_pool() -> ArqRedis:
     """Creates and patches a FakeRedis instance to be compatible with Arq.
@@ -44,113 +143,15 @@ def get_patched_fakeredis_pool() -> ArqRedis:
     Returns:
         ArqRedis: An Arq-compatible wrapper around a patched FakeRedis instance.
     """
-    try:
-        import arq.connections
-        import arq.worker
-        from fakeredis.aioredis import FakeRedis
-    except ImportError as e:
-        logger.warning("Failed to import 'fakeredis': %s. Creating a pure Python Mock pool instead.", e)
+    fake_redis = FakeRedis()
+    fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}  # type: ignore[attr-defined]
 
-        class MockArqPool:
-            async def enqueue_job(self, function: str, *args: Any, **kwargs: Any) -> Any:
-                logger.debug("[MockArqPool] Enqueued virtual job %s", function)
+    _patch_arq_connection_handling(fake_redis)
+    _patch_arq_logging()
+    _patch_arq_pipelining(fake_redis)
+    _patch_arq_command_execution(fake_redis)
 
-                class MockJob:
-                    job_id = "mock_job_123"
-
-                return MockJob()
-
-            def close(self) -> None:
-                pass
-
-            async def wait_closed(self) -> None:
-                pass
-
-        return MockArqPool()  # type: ignore
-
-    # Initialize FakeRedis
-    # Arq expects a pool-like object, FakeRedis works as one, but needs 'connection_kwargs' for Arq logging
-    fake_redis: Any = FakeRedis()
-    fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}  # Mock for Arq compatibility
-
-    # PATCH: Arq 0.26+ calls .get_connection() on the pool, which FakeRedis lacks
-    if not hasattr(fake_redis, "get_connection"):
-
-        async def _get_conn():  # type: ignore
-            return fake_redis
-
-        fake_redis.get_connection = _get_conn
-
-    # PATCH: Arq also calls .release(conn)
-    if not hasattr(fake_redis, "release"):
-
-        async def _release(conn):  # type: ignore
-            pass
-
-        fake_redis.release = _release
-
-    # PATCH: Arq calls .disconnect() on the pool? No, on connection.
-    # FakeRedis has close() but Arq might call something else.
-    # But the specific error is AttributeError: 'FakeRedis' object has no attribute 'retry'
-    # in await conn.retry.call_with_retry
-    # Wait, 'conn' IS 'fake_redis' because _get_conn returns self.
-    # So fake_redis needs a .retry attribute which has a .call_with_retry method.
-
-    class MockRetry:
-        async def call_with_retry(self, func, on_error):  # type: ignore
-            return await func()
-
-    if not hasattr(fake_redis, "retry"):
-        fake_redis.retry = MockRetry()
-
-    # PATCH: Arq tries to log Redis info on startup, which crashes on FakeRedis
-    # We patch the logging function itself to be a no-op
-    async def _no_op_log(*args, **kwargs):  # type: ignore
-        pass
-
-    arq.connections.log_redis_info = _no_op_log
-
-    # PATCH: We must also patch the reference in arq.worker, as it likely imported the function already
-    arq.worker.log_redis_info = _no_op_log  # type: ignore
-
-    # PATCH: Arq 0.26+ uses connection.pack_commands(cmds) for pipelining optimization
-    if not hasattr(fake_redis, "pack_commands"):
-
-        def _pack(cmds):  # type: ignore
-            return cmds  # Pass through for fake redis
-
-        fake_redis.pack_commands = _pack
-
-    if not hasattr(fake_redis, "send_packed_command"):
-
-        async def _send_packed(cmds):  # type: ignore
-            pass
-
-        fake_redis.send_packed_command = _send_packed
-
-    import contextvars
-
-    _last_response_var = contextvars.ContextVar("fake_redis_last_response", default=None)
-
-    # PATCH: Arq 0.26+ uses send_command(*args)
-    if not hasattr(fake_redis, "send_command"):
-
-        async def _send_command(*args: Any, **kwargs: Any) -> Any:
-            res = await fake_redis.execute_command(*args, **kwargs)
-            _last_response_var.set(res)
-
-        fake_redis.send_command = _send_command
-
-    # PATCH: Redis-py (via Arq) calls read_response() to await result
-    if not hasattr(fake_redis, "read_response"):
-
-        async def _read_response() -> Any:
-            return _last_response_var.get()
-
-        fake_redis.read_response = _read_response
-
-    # ArqRedis wrapper needed for Arq features
-    arq_redis = ArqRedis(fake_redis)
+    arq_redis = ArqRedis(fake_redis)  # type: ignore[arg-type]
     logger.info("In-Memory Redis pool (Patched) initialized.")
 
     return arq_redis

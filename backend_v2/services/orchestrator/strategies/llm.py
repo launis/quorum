@@ -161,7 +161,7 @@ class LLMNodeStrategy(NodeStrategy):
                 if isinstance(v, dict):
                     result[k] = _apply_alias_chunks_and_audit(v, prefix=f"{prefix}{k}_")
                 elif isinstance(v, str) and len(v) > 200:
-                    local_id = f"src_{src_counter[0]}"
+                    local_id = f"doc{src_counter[0]}"
                     src_counter[0] += 1
                     alias_map[local_id] = k
 
@@ -440,7 +440,7 @@ class LLMNodeStrategy(NodeStrategy):
             req = ChunkingRequest[dict[str, Any]](
                 parent_id=context.workflow_id,
                 items=shuffled_atoms,
-                max_chunk_size=get_settings().llm_max_chunk_size,
+                max_chunk_size=get_settings().schema_max_evaluations,
             )
             chunks_list = ChunkingService.chunk_payload(req)
         else:
@@ -452,6 +452,11 @@ class LLMNodeStrategy(NodeStrategy):
         if hook_state.metadata is None:
             hook_state.metadata = {}
         hook_state.metadata["source_document_ids"] = source_doc_ids
+        # Phase 2: Export full alias state for chunk_worker to reconstruct unified alias_map
+        hook_state.metadata["alias_manifest"] = alias_engine.to_manifest().model_dump(mode="json")
+        hook_state.metadata["allowed_dynamic_keys"] = (
+            list(step.input_mappings.keys()) if getattr(step, "input_mappings", None) else []
+        )
 
         # Fetch execution record to build SourceDocumentContext for validation context
         execution_record_raw = None
@@ -495,6 +500,7 @@ class LLMNodeStrategy(NodeStrategy):
         has_search = any("search_result" in v for v in state_data.values() if type(v) is dict)
 
         if frozen_ctx:
+            allowed_dynamic_keys = list(step.input_mappings.keys()) if getattr(step, "input_mappings", None) else []
             global_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
                 criteria=criteria_blocks,
@@ -503,6 +509,7 @@ class LLMNodeStrategy(NodeStrategy):
                 target_locale=target_locale,
                 strictness_level=context.strictness_level,
                 source_document_ids=source_doc_ids,
+                allowed_dynamic_keys=allowed_dynamic_keys,
             )
             frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()
 

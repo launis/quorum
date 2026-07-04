@@ -21,6 +21,7 @@ def mock_executor_class() -> Generator[Any]:
 async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> None:
     """Test successful execution of a chunk through structured LLM task."""
     mock_compiler = MagicMock()
+    mock_compiler.compile_chunk_prompt.return_value.metadata = {}
     mock_compiler.compile_xml_rubrics.return_value = "<xml>rubrics</xml>"
     mock_schema = MagicMock()
     mock_validated = MagicMock()
@@ -156,6 +157,7 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
 async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> None:
     """Test that execution failure correctly routes to DLQ."""
     mock_compiler = MagicMock()
+    mock_compiler.compile_chunk_prompt.return_value.metadata = {}
     mock_client = AsyncMock()
 
     mock_executor_instance = mock_executor_class.return_value
@@ -250,6 +252,7 @@ def test_deterministic_extraction_scoring_with_quote_objects() -> None:
 async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_class: Any) -> None:
     """Test standard block evaluation skips instruction blocks which are raw strings."""
     mock_compiler = MagicMock()
+    mock_compiler.compile_chunk_prompt.return_value.metadata = {}
     mock_compiler.compile_xml_rubrics.return_value = "<xml>rubrics</xml>"
     mock_schema = MagicMock()
 
@@ -349,6 +352,7 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
 async def test_chunk_worker_exception_group_dlq_masking(mock_executor_class: Any) -> None:
     """Test that ExceptionGroup correctly unwraps AppException for DLQ reason."""
     mock_compiler = MagicMock()
+    mock_compiler.compile_chunk_prompt.return_value.metadata = {}
     mock_client = AsyncMock()
 
     mock_executor_instance = mock_executor_class.return_value
@@ -405,6 +409,7 @@ async def test_chunk_worker_exception_group_dlq_masking(mock_executor_class: Any
 async def test_chunk_retry_on_transient_error(mock_executor_class: Any) -> None:
     """Test that a transient error causes a retry, and success is returned on the second attempt."""
     mock_compiler = MagicMock()
+    mock_compiler.compile_chunk_prompt.return_value.metadata = {}
     mock_schema = MagicMock()
     mock_validated = MagicMock()
 

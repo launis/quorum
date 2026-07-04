@@ -63,6 +63,37 @@ void main() {
       expect(dto.layouts.first.axes.first.score, 88.0);
     });
 
+    test(
+      'Parses SduiParagraphBlock with exact_quotes successfully (Tier 4 Repro)',
+      () {
+        final json = {
+          "workflow_id": "wf_123",
+          "profile_id": "prof_1",
+          "profile_name": {
+            "default_locale": "fi",
+            "translations": {"fi": "Profiili"},
+          },
+          "available_profiles": {
+            "prof_1": {
+              "default_locale": "fi",
+              "translations": {"fi": "Profiilit"},
+            },
+          },
+          "layouts": [],
+          "content_blocks": [
+            {
+              "block_type": "paragraph",
+              "text": "Kokonaisarvio...",
+              "exact_quotes": ["quote 1", "quote 2"],
+            },
+          ],
+        };
+
+        final dto = ReportDataDTO.fromJson(json);
+        expect(dto.contentBlocks.length, 1);
+      },
+    );
+
     test('Parses SduiBulletListBlock Maps successfully (Tier 4 Repro)', () {
       final json = {
         "workflow_id": "wf_123",

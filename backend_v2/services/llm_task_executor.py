@@ -18,6 +18,7 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,9 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
 
     total_user_text = "".join(user_texts)
     if total_user_text:
+        settings = get_settings()
         stripped_text = re.sub(r"<[^>]+>", "", total_user_text).strip()
-        if len(stripped_text) < 10:
+        if len(stripped_text) < settings.llm_min_payload_length:
             logger.error(
                 "Fail-Fast: Task payload is suspiciously empty or short. "
                 f"Aborting to prevent hallucinations. Text: {stripped_text}"
@@ -80,8 +82,8 @@ class LLMTaskExecutor:
         client: LLMClient,
         messages: list[dict[str, Any]] | CompiledPrompt,
         response_model: type[T],
-        max_schema_retries: int = 2,
-        max_logical_retries: int = 2,
+        max_schema_retries: int | None = None,
+        max_logical_retries: int | None = None,
         validator_hook: Callable[[T], Awaitable[None]] | None = None,
         mock_identity: str | None = None,
         validation_context: dict[str, Any] | None = None,
@@ -113,24 +115,29 @@ class LLMTaskExecutor:
         prompt_adapter = PromptCompilerAdapter()
 
         if isinstance(messages, CompiledPrompt):
-            compiled_prompt = CompiledPrompt(
-                static_messages=[dict(m) for m in messages.static_messages],
-                dynamic_messages=[dict(m) for m in messages.dynamic_messages],
-                metadata=dict(getattr(messages, "metadata", {})),
-            )
+            compiled_prompt = messages
         else:
             compiled_prompt = prompt_adapter.compile_prompt(messages)
-            if validation_context:
-                compiled_prompt = compiled_prompt.model_copy(update={"metadata": validation_context})
+
+        if validation_context:
+            compiled_prompt = compiled_prompt.model_copy(update={"metadata": validation_context})
 
         base_compiled_prompt = compiled_prompt.model_copy(deep=True)
 
         # --- EMPTY PAYLOAD FAIL-FAST ---
         _validate_non_empty_payload(base_compiled_prompt)
 
+        settings = get_settings()
+        actual_schema_retries = (
+            max_schema_retries if max_schema_retries is not None else settings.llm_max_schema_retries
+        )
+        actual_logical_retries = (
+            max_logical_retries if max_logical_retries is not None else settings.llm_max_logical_retries
+        )
+
         schema_attempts = 0
         logical_attempts = 0
-        max_total_attempts = max_schema_retries + max_logical_retries + 1
+        max_total_attempts = actual_schema_retries + actual_logical_retries + 1
         previous_error_msg = ""
         previous_raw_payload = ""
         validated_model: T | None = None
@@ -177,7 +184,7 @@ class LLMTaskExecutor:
                     if hasattr(e, "token_usage") and e.token_usage:
                         cumulative_usage = cumulative_usage + e.token_usage
 
-                    if schema_attempts >= max_schema_retries:
+                    if schema_attempts >= actual_schema_retries:
                         logger.error(
                             "Max schema retries exceeded.",
                             extra={
@@ -239,10 +246,10 @@ class LLMTaskExecutor:
                 except LogicalValidationError as e:
                     error_msg = e.validation_error_msg
 
-                    if logical_attempts >= max_logical_retries:
+                    if logical_attempts >= actual_logical_retries:
                         logger.error(
                             "Max self-healing retries (%s) exhausted for %s. Failing Fast.",
-                            max_logical_retries,
+                            actual_logical_retries,
                             response_model.__name__,
                             extra={
                                 "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name,

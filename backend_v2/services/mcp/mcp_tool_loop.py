@@ -561,7 +561,7 @@ async def execute_tool_loop[T: BaseModel](
         start_idx = len(validation_context["alias_map"]) + 1
 
         for i, audit in enumerate(audit_traces):
-            local_id = f"src_{start_idx + i}"
+            local_id = f"doc{start_idx + i}"
             text_payload = f"Query: {audit.query}\n"
             if audit.response_summary:
                 text_payload += f"Summary: {audit.response_summary}\n"

@@ -6,26 +6,41 @@ part of 'report_data_dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-SduiParagraphBlock _$SduiParagraphBlockFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('SduiParagraphBlock', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['text', 'citations', 'block_type']);
-      final val = SduiParagraphBlock(
-        text: $checkedConvert('text', (v) => v as String),
-        citations: $checkedConvert(
-          'citations',
-          (v) =>
-              (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
-              const [],
-        ),
-        $type: $checkedConvert('block_type', (v) => v as String?),
-      );
-      return val;
-    }, fieldKeyMap: const {r'$type': 'block_type'});
+SduiParagraphBlock _$SduiParagraphBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'SduiParagraphBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const ['text', 'citations', 'exact_quotes', 'block_type'],
+    );
+    final val = SduiParagraphBlock(
+      text: $checkedConvert('text', (v) => v as String),
+      citations: $checkedConvert(
+        'citations',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
+            const [],
+      ),
+      exactQuotes: $checkedConvert(
+        'exact_quotes',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {'exactQuotes': 'exact_quotes', r'$type': 'block_type'},
+);
 
 Map<String, dynamic> _$SduiParagraphBlockToJson(SduiParagraphBlock instance) =>
     <String, dynamic>{
       'text': instance.text,
       'citations': instance.citations,
+      'exact_quotes': instance.exactQuotes,
       'block_type': instance.$type,
     };
 
@@ -54,48 +69,80 @@ Map<String, dynamic> _$SduiBulletListBlockToJson(
   'block_type': instance.$type,
 };
 
-SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('SduiAlertBoxBlock', json, ($checkedConvert) {
-      $checkKeys(
-        json,
-        allowedKeys: const ['text', 'severity', 'citations', 'block_type'],
-      );
-      final val = SduiAlertBoxBlock(
-        text: $checkedConvert('text', (v) => v as String),
-        severity: $checkedConvert('severity', (v) => v as String),
-        citations: $checkedConvert(
-          'citations',
-          (v) =>
-              (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
-              const [],
-        ),
-        $type: $checkedConvert('block_type', (v) => v as String?),
-      );
-      return val;
-    }, fieldKeyMap: const {r'$type': 'block_type'});
+SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'SduiAlertBoxBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'text',
+        'severity',
+        'citations',
+        'exact_quotes',
+        'block_type',
+      ],
+    );
+    final val = SduiAlertBoxBlock(
+      text: $checkedConvert('text', (v) => v as String),
+      severity: $checkedConvert('severity', (v) => v as String),
+      citations: $checkedConvert(
+        'citations',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
+            const [],
+      ),
+      exactQuotes: $checkedConvert(
+        'exact_quotes',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {'exactQuotes': 'exact_quotes', r'$type': 'block_type'},
+);
 
 Map<String, dynamic> _$SduiAlertBoxBlockToJson(SduiAlertBoxBlock instance) =>
     <String, dynamic>{
       'text': instance.text,
       'severity': instance.severity,
       'citations': instance.citations,
+      'exact_quotes': instance.exactQuotes,
       'block_type': instance.$type,
     };
 
 SduiHeroInsightBlock _$SduiHeroInsightBlockFromJson(
   Map<String, dynamic> json,
-) => $checkedCreate('SduiHeroInsightBlock', json, ($checkedConvert) {
-  $checkKeys(json, allowedKeys: const ['text', 'block_type']);
-  final val = SduiHeroInsightBlock(
-    text: $checkedConvert('text', (v) => v as String),
-    $type: $checkedConvert('block_type', (v) => v as String?),
-  );
-  return val;
-}, fieldKeyMap: const {r'$type': 'block_type'});
+) => $checkedCreate(
+  'SduiHeroInsightBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(json, allowedKeys: const ['text', 'exact_quotes', 'block_type']);
+    final val = SduiHeroInsightBlock(
+      text: $checkedConvert('text', (v) => v as String),
+      exactQuotes: $checkedConvert(
+        'exact_quotes',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {'exactQuotes': 'exact_quotes', r'$type': 'block_type'},
+);
 
 Map<String, dynamic> _$SduiHeroInsightBlockToJson(
   SduiHeroInsightBlock instance,
-) => <String, dynamic>{'text': instance.text, 'block_type': instance.$type};
+) => <String, dynamic>{
+  'text': instance.text,
+  'exact_quotes': instance.exactQuotes,
+  'block_type': instance.$type,
+};
 
 SduiMarkdownBlock _$SduiMarkdownBlockFromJson(Map<String, dynamic> json) =>
     $checkedCreate('SduiMarkdownBlock', json, ($checkedConvert) {
@@ -113,7 +160,7 @@ Map<String, dynamic> _$SduiMarkdownBlockToJson(SduiMarkdownBlock instance) =>
 _SduiBulletListItemDTO _$SduiBulletListItemDTOFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate('_SduiBulletListItemDTO', json, ($checkedConvert) {
-  $checkKeys(json, allowedKeys: const ['text', 'citations']);
+  $checkKeys(json, allowedKeys: const ['text', 'citations', 'exact_quotes']);
   final val = _SduiBulletListItemDTO(
     text: $checkedConvert('text', (v) => v as String),
     citations: $checkedConvert(
@@ -122,13 +169,22 @@ _SduiBulletListItemDTO _$SduiBulletListItemDTOFromJson(
           (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
           const [],
     ),
+    exactQuotes: $checkedConvert(
+      'exact_quotes',
+      (v) =>
+          (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+    ),
   );
   return val;
-});
+}, fieldKeyMap: const {'exactQuotes': 'exact_quotes'});
 
 Map<String, dynamic> _$SduiBulletListItemDTOToJson(
   _SduiBulletListItemDTO instance,
-) => <String, dynamic>{'text': instance.text, 'citations': instance.citations};
+) => <String, dynamic>{
+  'text': instance.text,
+  'citations': instance.citations,
+  'exact_quotes': instance.exactQuotes,
+};
 
 _ReportLayoutDTO _$ReportLayoutDTOFromJson(
   Map<String, dynamic> json,

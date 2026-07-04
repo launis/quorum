@@ -24,6 +24,16 @@ def test_paragraph_block_success() -> None:
     assert block.citations == [1, 2]
 
 
+def test_paragraph_block_llm_hallucination_content_fallback() -> None:
+    """Test that ParagraphBlock gracefully accepts 'content' as an alias for 'text'."""
+    data = {
+        "block_type": "paragraph",
+        "content": "This is a hallucinated content field.",
+    }
+    block = ParagraphBlock.model_validate(data)
+    assert block.text == "This is a hallucinated content field."
+
+
 def test_paragraph_block_failure() -> None:
     """Test failure when required fields are missing."""
     data = {

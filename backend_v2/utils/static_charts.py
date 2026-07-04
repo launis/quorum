@@ -7,8 +7,12 @@ strings mapped natively from the validated Pydantic DTOs.
 import base64
 import io
 import logging
+import math
 from math import pi
 
+from fastapi import status
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
 
 logger = logging.getLogger(__name__)
@@ -26,18 +30,19 @@ def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
         A Base64 string literal of the generated PNG file.
 
     Raises:
-        AppException: If chart generation fails.
+        AppException: If chart generation fails or if insufficient axes are provided.
     """
     if len(axes) < 2:
-        return ""
+        raise AppException(
+            message="Scatter chart requires at least 2 axes.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
 
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from fastapi import status
-
-    from backend_v2.exceptions import AppException, ErrorCodes
 
     try:
         x_axis = axes[0]
@@ -69,7 +74,6 @@ def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
         ax.scatter([x_val], [y_val], s=area, c="#2196F3", alpha=0.7, edgecolors="#0D47A1", linewidths=2)
 
         x_range = x_max - x_min
-        import math
 
         x_margin = math.pow(10, math.floor(math.log10(max(1.0, x_range - 0.001))))
 
@@ -117,18 +121,19 @@ def generate_radar_chart(axes: list[MatrixScorecardRowDTO]) -> str:
         A Base64 string literal of the generated PNG radar polygon.
 
     Raises:
-        AppException: If chart generation fails.
+        AppException: If chart generation fails or if insufficient axes are provided.
     """
     if len(axes) < 3:
-        return ""
+        raise AppException(
+            message="Radar chart requires at least 3 axes.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
 
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from fastapi import status
-
-    from backend_v2.exceptions import AppException, ErrorCodes
 
     try:
         num_vars = len(axes)

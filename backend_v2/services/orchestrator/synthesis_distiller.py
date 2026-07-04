@@ -260,8 +260,7 @@ def _assemble_matrices_to_explain(available_dtos: list[StepOutputDTO]) -> list[d
         if isinstance(payload, dict) and "normalized_score" in payload and block_id in atom_quotes:
             quotes_list = atom_quotes[block_id]
             if quotes_list and block_id not in matrices_to_explain_map:
-                idx = len(matrices_to_explain_map)
-                matrix_alias = alias_engine.generate_alias(block_id, "MX-", idx)
+                matrix_alias = alias_engine.register(block_id, prefix="MX-")
                 justification_text = "\n".join([f"- {q}" for q in quotes_list])
                 matrices_to_explain_map[block_id] = {
                     "real_matrix_id": block_id,
@@ -394,11 +393,11 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     alias_engine = AliasEngine()
 
     uid_to_alias: dict[str, str] = {}
-    for idx, step_dto_obj in enumerate(available_dtos, start=1):
+    for step_dto_obj in available_dtos:
         step_id = step_dto_obj.step_id
         block_id = step_dto_obj.block_id
         uid = f"{step_id}_{block_id}"
-        uid_to_alias[uid] = alias_engine.generate_alias(uid, "DOC-", idx)
+        uid_to_alias[uid] = alias_engine.register(uid, prefix="DOC-")
 
     consolidated_distilled_parts: list[str] = []
 
