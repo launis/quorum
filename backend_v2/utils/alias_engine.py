@@ -44,35 +44,19 @@ class AliasEngine:
     @staticmethod
     def build_doc_ids_literal(source_document_ids: list[str] | None) -> Any:
         """Builds an Annotated Literal type for source documents with regex pattern injection."""
-        choices = list(set(source_document_ids)) if source_document_ids else []
-        if not choices:
-            choices = ["N/A", "inputs"]
-        else:
-            if "N/A" not in choices:
-                choices.append("N/A")
-            if "inputs" not in choices:
-                choices.append("inputs")
-        choices.sort()
+        choices = set(source_document_ids or [])
+        choices.update({"N/A", "inputs"})
 
-        DocIdsLiteral = Literal[tuple(choices)]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2 schema regex pattern injection
+        DocIdsLiteral = Literal[tuple(sorted(list(choices)))]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2 schema regex pattern injection
         return Annotated[DocIdsLiteral, Field(json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN})]
 
     @staticmethod
     def build_quote_ids_literal(source_document_ids: list[str] | None, allowed_atom_ids: list[str] | None) -> Any:
         """Builds an Annotated Literal type for extracted quotes with regex pattern injection."""
-        choices = list(set(source_document_ids)) if source_document_ids else []
-        if not choices:
-            choices = ["N/A"]
-        elif "N/A" not in choices:
-            choices.append("N/A")
+        choices = set(source_document_ids or []) | set(allowed_atom_ids or [])
+        choices.update({"N/A", "inputs"})
 
-        quote_choices = list(set(choices))
-        if allowed_atom_ids:
-            quote_choices.extend(allowed_atom_ids)
-        if "inputs" not in quote_choices:
-            quote_choices.append("inputs")
-        quote_choices = list(set(quote_choices))
-        quote_choices.sort()
+        quote_choices = sorted(list(choices))
 
         QuoteIdsLiteral = Literal[tuple(quote_choices)]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2 schema regex pattern injection
         return Annotated[QuoteIdsLiteral, Field(json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN})]

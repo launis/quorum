@@ -64,10 +64,22 @@
 </catastrophic_system_bans>
 
 <architectural_invariants>
+    <rule_block id="pydantic_annotated_fields_mandate">
+        <banned_pattern>Using bare type hints combined with a `Field(...)` assignment in Pydantic settings or models (e.g., `timeout: int = Field(...)`).</banned_pattern>
+        <mandatory_pattern>ALWAYS use PEP 593 `Annotated` syntax to separate pure Python types from Pydantic runtime metadata (e.g., `timeout: Annotated[int, Field(description="...")] = 10`).</mandatory_pattern>
+        <catastrophic_reason>Bare assignments violate strict type-checkers (like Mypy) because they assign a `FieldInfo` object to an `int` type. `Annotated` ensures 100% type purity and compatibility.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="opaque_stripe_id_mandate">
         <banned_pattern>Using auto-incrementing integers (e.g., `id=1`), raw UUIDs leaking database context, or semantic strings like `slug` as primary keys, database references, or API route identifiers.</banned_pattern>
         <mandatory_pattern>Enforce the "Opaque Stripe ID" pattern (e.g., `wor_a1b2c3d4`, `usr_x9y8z7`) for ALL database identifiers, cross-model relations, and navigation endpoints. Slugs are for SEO/Display purposes only, NEVER for strict data relationships.</mandatory_pattern>
         <catastrophic_reason>Intelligible primary keys (slugs) lead to permanently broken foreign relations when a user edits the display name. Auto-increment IDs allow horizontal enumeration attacks (IDOR). Opaque prefix mapping ensures immediate visual typability during debugging and inherently secures the API.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="alias_engine_llm_isolation_mandate">
+        <banned_pattern>Passing raw database UUIDs or Opaque Stripe IDs (e.g., `tda_a1b2c3d4`) directly into LLM prompts, JSON schemas, or expecting the LLM to output them back.</banned_pattern>
+        <mandatory_pattern>ALWAYS use the `AliasEngine` to generate short, semantic aliases (e.g., `a0`, `doc1`, `cond0`) before sending data to the LLM. When the LLM responds with these aliases (e.g., `depends_on: ["a0"]`), use `AliasEngine.hydrate_dict_list()` to deterministically map them back to the original Opaque UUIDs.</mandatory_pattern>
+        <catastrophic_reason>LLMs are textual reasoners that hallucinate and lose context when forced to copy 32-character hex strings. Semantic aliases act as explicit "Attention Anchors", drastically reducing hallucination rates, cutting token bloat, and ensuring deterministic Pydantic validation via `AliasEngine.ALIAS_REGEX_PATTERN`.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="strict_pydantic_v2_rust">
@@ -168,6 +180,12 @@
                 async def route(db: DatabaseSession): ...
             </pro_pattern>
         </code_example>
+    </rule_block>
+
+    <rule_block id="strict_configuration_segregation">
+        <banned_pattern>Mixing global constraints, taxonomy values, and runtime instantiation into single files, or using magic numbers instead of global configurations.</banned_pattern>
+        <mandatory_pattern>Enforce the Tripartite Configuration Architecture: 1) `enums.py` MUST contain ONLY finite string/int constants and taxonomy vocabulary (No logic, no environment variables). 2) `settings.py` MUST contain ALL global limits, bounds, and environment-dependent configuration. 3) DTOs (e.g., `models/llm.py`) MUST act as the blueprints that combine `enums.py` and `settings.py` during runtime execution. No "Magic Numbers" allowed in business logic.</mandatory_pattern>
+        <catastrophic_reason>Violating this separation creates untraceable hidden dependencies (e.g., hardcoded chunk boundaries failing when global limits change) and destroys the Single Responsibility Principle for system limits.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="global_settings_import">
@@ -392,6 +410,11 @@
     <rule_block id="graceful_degradation_over_fail_fast">
         <mandatory_pattern>While the core system follows Fail-Fast, hallucinated individual fields from stochastic LLMs (e.g., a broken alias) should be defensively scrubbed (None or drop the quote) so the entire expensive run doesn't crash unnecessarily.</mandatory_pattern>
     </rule_block>
+    <rule_block id="declarative_set_logic_mandate">
+        <banned_pattern>Using imperative `if x not in lst: lst.append(x)` loops or multiple `list(set(x))` conversions for uniqueness filtering and list aggregation.</banned_pattern>
+        <mandatory_pattern>ALWAYS use Python's declarative Set operations (e.g. `set(a) | set(b)` or `my_set.update({"x", "y"})`) for uniqueness and aggregation. Convert to a sorted list (`sorted(list(my_set))`) only at the final assignment.</mandatory_pattern>
+        <catastrophic_reason>Imperative list-checking is O(N) leading to O(N^2) loops, and scattered type-casting is memory inefficient and unreadable. Set mathematics guarantees O(1) uniqueness natively.</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>
 
 <agentic_safety_guardrails>
@@ -408,9 +431,9 @@
     </rule_block>
 
     <rule_block id="pydantic_validation_bypass_ban">
-        <banned_pattern>Using `dict(model)`, list comprehensions casting to raw dicts, or mutating objects via full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints.</banned_pattern>
-        <mandatory_pattern>ALWAYS use `model.model_copy(update={...})` for shallow, instant updates when altering isolated identifiers or keys.</mandatory_pattern>
-        <catastrophic_reason>Bypassing validation causes runtime AttributeErrors, while full serialization forces recursive O(N) validation cycles.</catastrophic_reason>
+        <banned_pattern>Using `dict(model)`, list comprehensions casting to raw dicts, manually reconstructing an existing model field-by-field (e.g. `Model(field=[dict(x) for x in old.field])`), or mutating objects via full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints.</banned_pattern>
+        <mandatory_pattern>ALWAYS use `model.model_copy(update={...})` or `model.model_copy(deep=True)` for shallow or deep instant updates when altering existing models.</mandatory_pattern>
+        <catastrophic_reason>Manual reconstruction is verbose, prone to omissions, and bypassing validation causes runtime AttributeErrors, while full serialization forces recursive O(N) validation cycles.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="data_and_file_preservation_mandate">
