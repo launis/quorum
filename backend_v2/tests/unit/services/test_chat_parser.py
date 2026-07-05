@@ -45,6 +45,13 @@ async def test_chat_parser_role_segregation_and_success(
         {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
     )
 
+    from unittest.mock import MagicMock
+
+    mock_config = MagicMock()
+    mock_config.caching_strategy = "none"
+    mock_config.model_copy.return_value = mock_config
+    mock_client._config = mock_config
+
     mock_from_strategy.return_value = mock_client
 
     # Execute
@@ -54,8 +61,7 @@ async def test_chat_parser_role_segregation_and_success(
     # Assert successful parse
     assert res == mock_dto
 
-    # Assert strictly that the roles were segregated correctly
-    mock_from_strategy.assert_called_once_with("fast", repository=mock_repository)
+    mock_from_strategy.assert_called_once_with("fast", repository=mock_repository, pipeline_name="chat_parser")
     mock_client.run_structured_task.assert_called_once()
 
     call_kwargs = mock_client.run_structured_task.call_args.kwargs

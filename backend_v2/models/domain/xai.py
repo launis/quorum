@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any, Literal
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -89,6 +89,7 @@ class XAIScoreItem(V2CoreBase):
 class CitationExtension(V2CoreBase):
     """Citation extension block metadata."""
 
+    model_config = ConfigDict(title="citation")
     extension_type: Literal[XaiExtensionType.CITATION] = XaiExtensionType.CITATION
     source_id: str = Field(..., description="Unique reference document source ID.")
     snippet: str = Field(..., description="The captured exact contextual snippet text.")
@@ -98,6 +99,7 @@ class CitationExtension(V2CoreBase):
 class JustificationExtension(V2CoreBase):
     """Reasoning justification extension metadata."""
 
+    model_config = ConfigDict(title="justification")
     extension_type: Literal[XaiExtensionType.JUSTIFICATION] = XaiExtensionType.JUSTIFICATION
     reasoning: str = Field(..., description="The explanatory text justification.")
 
@@ -105,6 +107,7 @@ class JustificationExtension(V2CoreBase):
 class FalsificationExtension(V2CoreBase):
     """Falsification extension metadata."""
 
+    model_config = ConfigDict(title="falsification")
     extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
     counter_argument: str = Field(..., description="The key falsification counter argument.")
     vulnerabilities: list[str] = Field(default_factory=list, description="Specific logical vulnerabilities detected.")
@@ -113,6 +116,7 @@ class FalsificationExtension(V2CoreBase):
 class TheoryLinkExtension(V2CoreBase):
     """Theory link extension metadata."""
 
+    model_config = ConfigDict(title="theory_link")
     extension_type: Literal[XaiExtensionType.THEORY_LINK] = XaiExtensionType.THEORY_LINK
     theory_name: str = Field(..., description="Name of referenced academic/logical framework.")
     relevance: str = Field(..., description="Direct relevance alignment explanation.")
@@ -121,6 +125,7 @@ class TheoryLinkExtension(V2CoreBase):
 class RiskFlagExtension(V2CoreBase):
     """Risk flag extension metadata."""
 
+    model_config = ConfigDict(title="risk_flag")
     extension_type: Literal[XaiExtensionType.RISK_FLAG] = XaiExtensionType.RISK_FLAG
     risk_level: str = Field(..., description="Assessed hazard status.")
     description: str = Field(..., description="Explaining context behind hazard determination.")
@@ -129,6 +134,7 @@ class RiskFlagExtension(V2CoreBase):
 class CoachingExtension(V2CoreBase):
     """Coaching guidance extensions metadata."""
 
+    model_config = ConfigDict(title="coaching")
     extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
     actionable_steps: list[str] = Field(default_factory=list, description="Structured actions for improvement.")
 
@@ -136,6 +142,7 @@ class CoachingExtension(V2CoreBase):
 class MissingContextExtension(V2CoreBase):
     """Missing context indicator metadata."""
 
+    model_config = ConfigDict(title="missing_context")
     extension_type: Literal[XaiExtensionType.MISSING_CONTEXT] = XaiExtensionType.MISSING_CONTEXT
     context_needed: str = Field(..., description="Explicit context points missing from execution pipeline.")
 
@@ -143,6 +150,7 @@ class MissingContextExtension(V2CoreBase):
 class RemediationStepsExtension(V2CoreBase):
     """Remediation steps suggestions metadata."""
 
+    model_config = ConfigDict(title="remediation_steps")
     extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
     steps: list[str] = Field(default_factory=list, description="Sequence of operations to apply to mitigate errors.")
 
@@ -150,6 +158,7 @@ class RemediationStepsExtension(V2CoreBase):
 class EmotionalSentimentExtension(V2CoreBase):
     """Linguistic emotion assessment extension metadata."""
 
+    model_config = ConfigDict(title="emotional_sentiment")
     extension_type: Literal[XaiExtensionType.EMOTIONAL_SENTIMENT] = XaiExtensionType.EMOTIONAL_SENTIMENT
     sentiment: str = Field(..., description="Detected subjective linguistic tone.")
     intensity: float = Field(..., description="Numeric magnitude of evaluated emotional tone.")
@@ -158,14 +167,16 @@ class EmotionalSentimentExtension(V2CoreBase):
 class ConfidenceExtension(V2CoreBase):
     """Mathematical confidence assessment extension metadata."""
 
+    model_config = ConfigDict(title="confidence")
     extension_type: Literal[XaiExtensionType.CONFIDENCE] = XaiExtensionType.CONFIDENCE
     confidence_score: float = Field(..., description="Numeric value between 0.0 and 1.0 indicating security factor.")
     rationale: str = Field(..., description="Systematic evaluation context behind computed confidence level.")
 
 
 class SourceIDExtension(V2CoreBase):
-    """Simple source indexing extension metadata."""
+    """Source referencing extension metadata."""
 
+    model_config = ConfigDict(title="source_id")
     extension_type: Literal[XaiExtensionType.SOURCE_ID] = XaiExtensionType.SOURCE_ID
     source_id: str = Field(..., description="The exact reference target key index identifier.")
 
@@ -173,6 +184,7 @@ class SourceIDExtension(V2CoreBase):
 class VarianceValidationExtension(V2CoreBase):
     """Variance validation extension metadata."""
 
+    model_config = ConfigDict(title="variance_validation")
     extension_type: Literal[XaiExtensionType.VARIANCE_VALIDATION] = XaiExtensionType.VARIANCE_VALIDATION
     mechanical_metric_ref: str = Field(..., description="Reference to the mechanical metric key used.")
     cognitive_metric_ref: str = Field(..., description="Reference to the cognitive agent score key used.")

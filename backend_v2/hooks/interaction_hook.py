@@ -83,7 +83,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
 
     try:
         # Internal Utility LLM Execution pattern
-        llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
+        llm_client = await LLMClient.from_strategy("fast", repository=system_repo, pipeline_name="interaction_hook")
         executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
     except ConfigurationError as e:
         logger.error("[InteractionRoleHook] %s: Failed to init LLM: %s", ErrorCodes.CONFIGURATION_ERROR.name, e)

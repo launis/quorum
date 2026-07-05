@@ -379,7 +379,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         from backend_v2.utils.alias_engine import AliasEngine
 
-        alias_engine = AliasEngine()
+        existing_alias_map = hook_state.metadata.get("alias_map", {}) if hook_state.metadata else {}
+        alias_engine = AliasEngine(
+            alias_map=dict(existing_alias_map), source_document_aliases=list(existing_alias_map.keys())
+        )
 
         prompt_payload = PromptFactory.build(
             compiler=self.compiler,
@@ -500,7 +503,11 @@ class LLMNodeStrategy(NodeStrategy):
         has_search = any("search_result" in v for v in state_data.values() if type(v) is dict)
 
         if frozen_ctx:
-            allowed_dynamic_keys = list(step.input_mappings.keys()) if getattr(step, "input_mappings", None) else []
+            allowed_dynamic_keys = [e.input_key for e in context.expected_inputs] if context.expected_inputs else []
+            if getattr(step, "input_mappings", None):
+                allowed_dynamic_keys.extend(step.input_mappings.keys())
+            allowed_dynamic_keys = list(set(allowed_dynamic_keys))
+
             global_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
                 criteria=criteria_blocks,
@@ -524,7 +531,7 @@ class LLMNodeStrategy(NodeStrategy):
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
-        bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo)
+        bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo, pipeline_name="chunk_worker")
 
         sem = semaphore
 

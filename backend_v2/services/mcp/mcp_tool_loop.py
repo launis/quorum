@@ -368,7 +368,7 @@ async def execute_tool_loop[T: BaseModel](
         fast_client = llm_client
         if repo:
             try:
-                fast_client = await LLMClient.from_strategy("fast", repository=repo)
+                fast_client = await LLMClient.from_strategy("fast", repository=repo, pipeline_name="mcp_tool_loop")
             except Exception as e:
                 logger.warning("Could not initialize 'fast' client for extraction, falling back to step client: %s", e)
 

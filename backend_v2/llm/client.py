@@ -19,6 +19,7 @@ from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.enums import ExecutionProfile
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import SystemConfigModelRegistry
@@ -75,12 +76,20 @@ class LLMClient:
         return adapter_schema
 
     @classmethod
-    async def from_strategy(cls, strategy_name: str, repository: Any = None) -> LLMClient:
+    async def from_strategy(
+        cls,
+        strategy_name: str,
+        repository: Any = None,
+        execution_profile: ExecutionProfile | None = None,
+        pipeline_name: str | None = None,
+    ) -> LLMClient:
         """Factory: Create an LLMClient strictly bound to a database-defined Strategy.
 
         Args:
             strategy_name: The name of the strategy (e.g. 'fast', 'SearchHook', 'cognitive-audit').
             repository: Optional DB repository instance.
+            execution_profile: Optional intent defining if the cache should be bypassed (e.g. ONE_SHOT).
+            pipeline_name: Optional explicit pipeline context to look up configuration for.
 
         Returns:
             A configured client instance ready for execution.
@@ -92,7 +101,23 @@ class LLMClient:
             # Fail Fast: Enforce strict dependency injection (Zero-Fallback)
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_strategy.")
 
-        # 0. Apply generic system strategy aliases (if any exist in config)
+        # 0. Load Execution Pipelines from static registry
+        try:
+            from backend_v2.models.enums import PIPELINE_REGISTRY, ExecutionProfile
+
+            if pipeline_name and pipeline_name in PIPELINE_REGISTRY:
+                pipeline = PIPELINE_REGISTRY[pipeline_name]
+                if execution_profile is None and pipeline.profile:
+                    execution_profile = ExecutionProfile(pipeline.profile.value.lower())
+                if pipeline.default_strategy:
+                    logger.info(
+                        "[LLMClient] Routed pipeline '%s' to strategy '%s'", pipeline_name, pipeline.default_strategy
+                    )
+                    strategy_name = pipeline.default_strategy
+        except Exception as e:
+            logger.warning("[LLMClient] Execution pipelines lookup failed: %s", e)
+
+        # 0.5 Apply generic system strategy aliases (if any exist in config)
         aliases = get_settings().strategy_aliases
         if strategy_name in aliases:
             strategy_name = aliases[strategy_name]
@@ -156,6 +181,18 @@ class LLMClient:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
+        # 4.5 Apply Execution Profile (Dynamic overrides)
+        final_caching_strategy = target_strategy.caching_strategy
+        if execution_profile:
+            from backend_v2.models.enums import ExecutionProfile
+
+            if execution_profile == ExecutionProfile.ONE_SHOT:
+                final_caching_strategy = "none"
+                logger.info(
+                    "[LLMClient] ExecutionProfile.ONE_SHOT activated: Context Caching explicitly disabled for %s.",
+                    strategy_name,
+                )
+
         provider_config = LLMProviderConfig(
             id=f"prv_{uuid.uuid4().hex}",
             provider=target_provider,
@@ -169,7 +206,7 @@ class LLMClient:
             default_max_tokens=target_strategy.max_tokens,
             supports_grounding=target_strategy.supports_grounding,
             parsing_mode=target_strategy.parsing_mode,
-            caching_strategy=target_strategy.caching_strategy,
+            caching_strategy=final_caching_strategy,
             additional_params=target_strategy.additional_params,
         )
 
@@ -281,12 +318,24 @@ class LLMClient:
 
             # V3 Cache Fix: Observability telemetry for caching diagnostics
             if "cached_content" in extra_kwargs:
+                num_msgs = len(final_messages)
                 logger.info(
                     "[LLMClient] Context Cache ACTIVE: %s | Dynamic payload: %d messages, ~%d chars",
                     extra_kwargs["cached_content"],
-                    len(final_messages),
+                    num_msgs,
                     sum(len(str(m.get("content", ""))) for m in final_messages),
                 )
+
+                if num_msgs == 0:
+                    error_msg = (
+                        "Fail-Fast: Context Caching FATAL ERROR. The dynamic payload is empty (0 messages). "
+                        "This usually means PromptCompilerAdapter failed to find an <execution_parameters> or "
+                        "similar tag to separate the static cache from the dynamic prompt. Vertex AI will reject this with a 400 Bad Request."
+                    )
+                    logger.error(error_msg)
+                    raise AppException(
+                        message=error_msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    )
 
         # 3. Create Provider via Factory
         provider = LLMFactory.create_provider(

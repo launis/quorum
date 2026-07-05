@@ -709,17 +709,20 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     sys_prompt = build_system_directive(
         objective=str(custom_sys_prompt).strip(),
         rules=None,
-        execution_parameters="\n".join(exec_params),
         synthesis_mandates="\n\n".join(xml_blocks),
     )
 
+    exec_params_xml = "<execution_parameters>\n" + "\n".join(exec_params) + "\n</execution_parameters>"
+    user_content = raw_input_text.strip() if raw_input_text.strip() else "Begin synthesis."
+    user_content += f"\n\n{exec_params_xml}"
+
     messages = [
         {"role": "system", "content": sys_prompt},
-        {"role": "user", "content": raw_input_text},
+        {"role": "user", "content": user_content},
     ]
 
     strategy_name = synthesis_cfg.model_strategy
-    client = await LLMClient.from_strategy(strategy_name, repository=deps.system_repo)
+    client = await LLMClient.from_strategy(strategy_name, repository=deps.system_repo, pipeline_name="synthesis")
     executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
     allowed_tools = synthesis_cfg.allowed_mcp_tools
 
@@ -872,7 +875,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 )
                 exp_messages = [{"role": "system", "content": row_exp_prompt}, {"role": "user", "content": user_msg}]
 
-                exp_client = await LLMClient.from_strategy("strict", repository=deps.system_repo)
+                exp_client = await LLMClient.from_strategy(
+                    "strict", repository=deps.system_repo, pipeline_name="synthesis_strict"
+                )
 
                 exp_res, exp_usage = await executor.execute_structured_task(
                     client=exp_client, messages=exp_messages, response_model=MatrixExplanationsResult

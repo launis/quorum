@@ -6,7 +6,7 @@ with Model Context Protocol (MCP) tool loops.
 
 from typing import Any
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.usage import TokenUsage
@@ -172,8 +172,19 @@ class CitationExtractionItemDTO(V2CoreBase):
     knowledge_gap: str = Field(default="", description="The specific knowledge gap needing resolution.")
     search_rationale: str = Field(default="", description="The rationale mapping the query to the knowledge gap.")
     reasoning: str = Field(
-        max_length=150, description="Max 1 short sentence. Briefly explain WHY you are verifying this claim."
+        max_length=400, description="Max 1-2 short sentences. Briefly explain WHY you are verifying this claim."
     )
+
+    @field_validator("reasoning", mode="before")
+    @classmethod
+    def truncate_reasoning(cls, v: Any) -> Any:
+        if isinstance(v, str) and len(v) > 400:
+            truncated = v[:397]
+            last_period = truncated.rfind(".")
+            if last_period > 50:  # Katkaistaan pisteeseen jos se on järkevässä kohdassa
+                return truncated[: last_period + 1]
+            return truncated + "..."
+        return v
 
 
 class CitationExtractionResult(V2CoreBase):

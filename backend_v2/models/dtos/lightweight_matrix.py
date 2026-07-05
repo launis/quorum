@@ -343,6 +343,15 @@ class AtomEvaluationItemDTO(V2CoreBase):
             "If contextual_override is True, you MUST provide the concrete location."
         ),
     )
+
+    @field_validator("chart_display_label", mode="before")
+    @classmethod
+    def truncate_chart_label(cls, v: Any) -> Any:
+        if isinstance(v, str) and len(v) > 25:
+            # Emme yritä katkaista pisteeseen, koska tämä on vain lyhyt otsikko
+            return v[:22] + "..."
+        return v
+
     dlq_status: bool | None = None
     is_mcp_verified: bool = False
     mcp_source_reference: str | None = None

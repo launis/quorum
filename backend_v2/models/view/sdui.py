@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Annotated, Any, Literal
 
-from pydantic import AliasChoices, Field, StringConstraints
+from pydantic import AliasChoices, ConfigDict, Field, StringConstraints
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -466,6 +466,7 @@ class SduiBlockBase(V2CoreBase):
 class HeroInsightBlock(SduiBlockBase):
     """Specific block for Hero Insights."""
 
+    model_config = ConfigDict(title="hero_insight")
     block_type: Literal["hero_insight"] = "hero_insight"
     exact_quotes: list[str] = Field(default_factory=list)
 
@@ -473,6 +474,7 @@ class HeroInsightBlock(SduiBlockBase):
 class ParagraphBlock(SduiBlockBase):
     """A standard text paragraph with optional citations."""
 
+    model_config = ConfigDict(title="paragraph")
     block_type: Literal["paragraph"] = "paragraph"
     text: str = Field(validation_alias=AliasChoices("text", "content"))
     exact_quotes: list[str] = Field(default_factory=list)
@@ -490,6 +492,7 @@ class BulletListItem(V2CoreBase):
 class BulletListBlock(SduiBlockBase):
     """A bullet list containing multiple items."""
 
+    model_config = ConfigDict(title="bullet_list")
     block_type: Literal["bullet_list"] = "bullet_list"
     items: list[BulletListItem]
 
@@ -497,6 +500,7 @@ class BulletListBlock(SduiBlockBase):
 class AlertBlock(SduiBlockBase):
     """An alert box for highlighting important information."""
 
+    model_config = ConfigDict(title="alert_box")
     block_type: Literal["alert_box"] = "alert_box"
     severity: Literal["info", "warning"]
     text: str = Field(validation_alias=AliasChoices("text", "content"))
@@ -511,6 +515,7 @@ class MarkdownBlock(SduiBlockBase):
     NOT for dynamic LLM content generation to preserve the UI structural mandate.
     """
 
+    model_config = ConfigDict(title="markdown")
     block_type: Literal["markdown"] = "markdown"
     text: StrictStr = Field(
         ..., validation_alias=AliasChoices("text", "content"), description="The exact markdown string to be rendered."
@@ -520,6 +525,7 @@ class MarkdownBlock(SduiBlockBase):
 class SduiQuoteCard(SduiBlockBase):
     """SDUI component representing a valid quote evidence."""
 
+    model_config = ConfigDict(title="quote_card")
     block_type: Literal["quote_card"] = "quote_card"
     quote: str = Field(..., description="The exact text of the quote.")
     source_aliases: list[str] = Field(default_factory=list, description="Resolved source aliases.")
@@ -528,6 +534,7 @@ class SduiQuoteCard(SduiBlockBase):
 class SduiWarningCard(SduiBlockBase):
     """SDUI component representing a warning message (e.g. hallucinated alias)."""
 
+    model_config = ConfigDict(title="warning_card")
     block_type: Literal["warning_card"] = "warning_card"
     message: str = Field(..., description="Warning message for the user.")
     quote_text: str | None = Field(default=None, description="The original quote text that triggered the warning.")

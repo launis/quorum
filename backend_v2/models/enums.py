@@ -2,6 +2,7 @@
 Strict definition of allowed types to enforce the No-String Mandate.
 """
 
+from dataclasses import dataclass
 from enum import Enum, IntEnum
 from typing import Annotated
 
@@ -14,6 +15,22 @@ class EvaluationMandate(str, Enum):
     FAIL_FAST_NO_EVIDENCE = (
         " ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided."
     )
+
+
+class ExecutionProfile(str, Enum):
+    """Defines the execution intent for an LLM client, overriding static configuration rules.
+
+    Attributes:
+        ONE_SHOT: A single execution (e.g. Hooks, ChatParser). Explicitly bypasses Context Caching
+                  because cache creation costs outweigh single-run benefits.
+        ITERATIVE: A looped or heavily re-executed process (e.g. ChunkWorker, Synthesis Regenerate).
+                   Strictly enforces Context Caching to minimize token costs over multiple identical runs.
+        CONVERSATIONAL: Standard interactive multi-turn chat behavior.
+    """
+
+    ONE_SHOT = "one_shot"
+    ITERATIVE = "iterative"
+    CONVERSATIONAL = "chat"
 
 
 class EvaluationRunCount(int, Enum):
@@ -528,6 +545,7 @@ class ScoringStrategy(str, Enum):
 
 
 # --- Lax Type Aliases (Pydantic V2) ---
+LaxExecutionProfile = Annotated[ExecutionProfile, Field(strict=False)]
 LaxLLMCachingStrategy = Annotated[LLMCachingStrategy, Field(strict=False)]
 LaxLLMProviderName = Annotated[LLMProviderName, Field(strict=False)]
 LaxXaiExtensionType = Annotated[XaiExtensionType, Field(strict=False)]
@@ -562,3 +580,24 @@ class SpecialAliasChoices(str, Enum):
 
 # Declared as a constant set for O(1) declarative logic lookups
 DEFAULT_ALIAS_LITERALS: frozenset[str] = frozenset(item.value for item in SpecialAliasChoices)
+
+
+@dataclass
+class PipelineConfig:
+    """Static configuration for internal execution pipelines."""
+
+    profile: ExecutionProfile
+    default_strategy: str | None = None
+
+
+# Static registry for execution pipelines.
+# This prevents putting backend physical logic into the mutable database.
+PIPELINE_REGISTRY: dict[str, PipelineConfig] = {
+    "chat_parser": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy="fast"),
+    "mcp_tool_loop": PipelineConfig(profile=ExecutionProfile.ITERATIVE),
+    "chunk_worker": PipelineConfig(profile=ExecutionProfile.ITERATIVE),
+    "studio_generation": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy="fast"),
+    "interaction_hook": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy="fast"),
+    "synthesis": PipelineConfig(profile=ExecutionProfile.ITERATIVE),
+    "synthesis_strict": PipelineConfig(profile=ExecutionProfile.ONE_SHOT),
+}

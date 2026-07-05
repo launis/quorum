@@ -1693,7 +1693,7 @@ class StudioService:
         from backend_v2.models.v2_core import LexiconSuggestionListDTO
         from backend_v2.services.llm_task_executor import LLMTaskExecutor
 
-        client = await LLMClient.from_strategy("fast", repository=self.system_repo)
+        client = await LLMClient.from_strategy("fast", repository=self.system_repo, pipeline_name="studio_generation")
         from backend_v2.llm.prompt_builder import build_system_directive
         from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
@@ -1741,7 +1741,7 @@ class StudioService:
         target_lexicon = config.lexicon_configs.get(target_lang)
         existing_words = target_lexicon.words if target_lexicon else []
 
-        client = await LLMClient.from_strategy("fast", repository=self.system_repo)
+        client = await LLMClient.from_strategy("fast", repository=self.system_repo, pipeline_name="studio_generation")
         from backend_v2.llm.prompt_builder import build_system_directive
         from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 

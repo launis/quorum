@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ModelConfig {
 
-@StrictOpaqueIdConverter() String get id; String get slug; String get type; Map<String, LlmModelConfig> get models;
+@StrictOpaqueIdConverter() String get id; String? get slug; String get type; Map<String, LlmModelConfig> get models;
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $ModelConfigCopyWith<$Res>  {
   factory $ModelConfigCopyWith(ModelConfig value, $Res Function(ModelConfig) _then) = _$ModelConfigCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String type, Map<String, LlmModelConfig> models
+@StrictOpaqueIdConverter() String id, String? slug, String type, Map<String, LlmModelConfig> models
 });
 
 
@@ -65,11 +65,11 @@ class _$ModelConfigCopyWithImpl<$Res>
 
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? type = null,Object? models = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? models = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
-as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,models: null == models ? _self.models : models // ignore: cast_nullable_to_non_nullable
 as Map<String, LlmModelConfig>,
   ));
@@ -156,7 +156,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String type,  Map<String, LlmModelConfig> models)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type,  Map<String, LlmModelConfig> models)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ModelConfig() when $default != null:
 return $default(_that.id,_that.slug,_that.type,_that.models);case _:
@@ -177,7 +177,7 @@ return $default(_that.id,_that.slug,_that.type,_that.models);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String type,  Map<String, LlmModelConfig> models)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type,  Map<String, LlmModelConfig> models)  $default,) {final _that = this;
 switch (_that) {
 case _ModelConfig():
 return $default(_that.id,_that.slug,_that.type,_that.models);case _:
@@ -197,7 +197,7 @@ return $default(_that.id,_that.slug,_that.type,_that.models);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String type,  Map<String, LlmModelConfig> models)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type,  Map<String, LlmModelConfig> models)?  $default,) {final _that = this;
 switch (_that) {
 case _ModelConfig() when $default != null:
 return $default(_that.id,_that.slug,_that.type,_that.models);case _:
@@ -212,11 +212,11 @@ return $default(_that.id,_that.slug,_that.type,_that.models);case _:
 @JsonSerializable()
 
 class _ModelConfig implements ModelConfig {
-  const _ModelConfig({@StrictOpaqueIdConverter() required this.id, required this.slug, this.type = 'model_registry', final  Map<String, LlmModelConfig> models = const {}}): _models = models;
+  const _ModelConfig({@StrictOpaqueIdConverter() required this.id, this.slug, this.type = 'model_registry', final  Map<String, LlmModelConfig> models = const {}}): _models = models;
   factory _ModelConfig.fromJson(Map<String, dynamic> json) => _$ModelConfigFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
-@override final  String slug;
+@override final  String? slug;
 @override@JsonKey() final  String type;
  final  Map<String, LlmModelConfig> _models;
 @override@JsonKey() Map<String, LlmModelConfig> get models {
@@ -259,7 +259,7 @@ abstract mixin class _$ModelConfigCopyWith<$Res> implements $ModelConfigCopyWith
   factory _$ModelConfigCopyWith(_ModelConfig value, $Res Function(_ModelConfig) _then) = __$ModelConfigCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String type, Map<String, LlmModelConfig> models
+@StrictOpaqueIdConverter() String id, String? slug, String type, Map<String, LlmModelConfig> models
 });
 
 
@@ -276,11 +276,11 @@ class __$ModelConfigCopyWithImpl<$Res>
 
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? type = null,Object? models = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? models = null,}) {
   return _then(_ModelConfig(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
-as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,models: null == models ? _self._models : models // ignore: cast_nullable_to_non_nullable
 as Map<String, LlmModelConfig>,
   ));

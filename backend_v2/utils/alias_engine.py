@@ -6,6 +6,7 @@ long system UUIDs (like tda_12345 or doc_abcde) into short semantic aliases
 """
 
 import logging
+import re
 from collections import defaultdict
 from typing import Annotated, Any, Literal, get_args, get_origin
 
@@ -39,15 +40,13 @@ class AliasEngine:
     'Attention Anchors' (e.g., 'a0', 'doc1') to prevent hallucination and token bloat.
     """
 
-    # V2_2: Universaali regex, joka sallii N/A, inputs, ja mitkä tahansa "sana+numero" yhdistelmät
-    # V2_3: Dynaaminen regex lukee sallitut termit tietokannasta ja enumista
-    ALIAS_REGEX_PATTERN = r"^(N/A|inputs|[a-zA-Z_-]+\d+)$"
+    # V2_2: Universaali regex, joka sallii aakkosnumeeriset tunnisteet.
+    # Varsinainen tiukka tarkistus tapahtuu dynaamisesti _build_dynamic_regex -funktiossa.
+    ALIAS_REGEX_PATTERN = r"^[a-zA-Z0-9_/-]+$"
 
     @staticmethod
     def _build_dynamic_regex(allowed_dynamic_keys: list[str] | None) -> str:
         """Builds a dynamic regex pattern combining enum literals and dynamic DB keys."""
-        import re
-
         literals = set(DEFAULT_ALIAS_LITERALS)
         if allowed_dynamic_keys:
             literals.update(allowed_dynamic_keys)

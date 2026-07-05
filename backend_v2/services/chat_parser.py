@@ -82,7 +82,8 @@ class ChatParserService:
         # Initialize LLM Client via Strategy Pattern
         try:
             # Strategy must exist in the system model_registry
-            llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
+            llm_client = await LLMClient.from_strategy("fast", repository=system_repo, pipeline_name="chat_parser")
+
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except ConfigurationError as e:
             error_code = ErrorCodes.CONFIGURATION_ERROR

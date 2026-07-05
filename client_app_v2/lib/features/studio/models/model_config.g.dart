@@ -14,7 +14,7 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) =>
           'id',
           (v) => const StrictOpaqueIdConverter().fromJson(v as String),
         ),
-        slug: $checkedConvert('slug', (v) => v as String),
+        slug: $checkedConvert('slug', (v) => v as String?),
         type: $checkedConvert('type', (v) => v as String? ?? 'model_registry'),
         models: $checkedConvert(
           'models',

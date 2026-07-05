@@ -12,41 +12,29 @@ sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append("c:\\src\\quorum")
 from backend_v2.utils.alias_engine import AliasEngine
 
-engine = AliasEngine()
-doc0_alias = engine.generate_alias("real_uuid_12345", "doc", 0)
 
-# 2. Schemas
-QuoteIdsLiteral = Literal["N/A", "doc0", "a0"]
-PATTERN = r"^(N/A|doc\d+|a\d+)$"
+
+QuoteIdsLiteral = AliasEngine.build_quote_ids_literal([], [], allowed_dynamic_keys=["prior_analysis", "inputs"])
 
 class LLMExtractedQuote(BaseModel):
     quote: str = Field(..., description="The quote text")
 
 class BaseSourceId(BaseModel):
-    source_id: QuoteIdsLiteral = Field(..., description="Auto-resolved document ID (e.g. doc0, a1)", json_schema_extra={"pattern": PATTERN})
+    source_id: QuoteIdsLiteral = Field(
+        ..., 
+        description="Auto-resolved document ID (e.g. doc0, a1, prior_analysis)", 
+        json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN}
+    )
 
 class DynamicLLMExtractedQuote(LLMExtractedQuote, BaseSourceId):
     model_config = ConfigDict(extra="ignore")
 
-# CORRUPTED SCHEMA: pattern applied to the array itself
-step_strict_corrupted = create_model(
-    "StepStrictCorrupted",
-    exact_quotes=(
-        list[DynamicLLMExtractedQuote],
-        Field(default_factory=list, max_length=5, json_schema_extra={"pattern": PATTERN}), # INCORRECT
-    ),
-)
-
-# FIXED SCHEMA: pattern applied to items using lambda
+# FIXED SCHEMA: Oikein generoitu dynaaminen skeema
 step_strict_fixed = create_model(
     "StepStrictFixed",
     exact_quotes=(
         list[DynamicLLMExtractedQuote],
-        Field(
-            default_factory=list, 
-            max_length=5, 
-            json_schema_extra=lambda s: s.get("items", {}).update({"pattern": PATTERN}) if "items" in s else None
-        ),
+        Field(default_factory=list, max_length=5),
     ),
 )
 
@@ -55,8 +43,8 @@ async def test_schema(name, model_class, pdf_text):
     
     prompt = (
         "Extract exactly 3 quotes from the following text.\n"
-        "CRITICAL INSTRUCTION: You MUST use 'inputs' as the source_id for ALL quotes.\n"
-        "Do not use doc0 or a0. Use 'inputs'.\n"
+        "CRITICAL INSTRUCTION: You MUST use 'prior_analysis' as the source_id for ALL quotes.\n"
+        "Do not use doc0 or a0. Use 'prior_analysis'.\n"
         "Here is the document context (alias: doc0):\n\n"
         f"{pdf_text[:15000]}" # take first 15k chars to keep it fast but heavy enough
     )
@@ -75,24 +63,22 @@ async def test_schema(name, model_class, pdf_text):
         
         hallucinated = False
         for q in quotes:
-            if q.get("source_id") == "inputs":
-                hallucinated = True
+            hallucinated = any(q.get("source_id") != "prior_analysis" for q in quotes)
                 
         if hallucinated:
-            print(f"❌ FAILED: Model successfully hallucinated 'inputs'!")
+            print(f"❌ FAILED: Model did not use 'prior_analysis'! It used {quotes[0].get('source_id') if quotes else 'empty'}.")
         else:
-            print(f"✅ PASSED: Model output {quotes[0].get('source_id') if quotes else 'empty'} instead of 'inputs'.")
+            print(f"✅ PASSED: Model correctly output 'prior_analysis'!")
             
     except Exception as e:
-        print(f"✅ PASSED (with error): Model failed to output 'inputs' due to error: {e}")
+        print(f"❌ FAILED (with error): Model crashed due to schema validation error: {e}")
 
 async def main():
     print("Extracting PDF text...")
     md_text = pymupdf4llm.to_markdown("c:\\src\\quorum\\docs\\jwdatat\\keskusteluhistoria.pdf")
     print(f"PDF extracted: {len(md_text)} characters.")
     
-    await test_schema("Corrupted Array Schema (Pattern on Array)", step_strict_corrupted, md_text)
-    await test_schema("Fixed Array Schema (Pattern on Items)", step_strict_fixed, md_text)
+    await test_schema("Dynamic Regex Schema (prior_analysis, inputs)", step_strict_fixed, md_text)
 
 if __name__ == "__main__":
     asyncio.run(main())

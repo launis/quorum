@@ -52,6 +52,8 @@ class LLMExtractedQuote(BaseSourceId):
 
         if source_id in alias_map:
             data["source_id"] = alias_map[source_id]
+        elif source_id in alias_map.values():
+            pass  # It's already the fully resolved valid ID
         else:
             msg = f"Hallucinated source_id '{source_id}'. Must be one of valid keys: {list(alias_map.keys())}"
             logger.warning(f"Pydantic Validation Error: {msg}")

@@ -11,7 +11,7 @@ part 'model_config.g.dart';
 abstract class ModelConfig with _$ModelConfig {
   const factory ModelConfig({
     @StrictOpaqueIdConverter() required String id,
-    required String slug,
+    String? slug,
     @Default('model_registry') String type,
     @Default({}) Map<String, LlmModelConfig> models,
   }) = _ModelConfig;
