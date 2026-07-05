@@ -458,6 +458,27 @@ class AtomEvaluationItemDTO(V2CoreBase):
     @classmethod
     def _enforce_null_hypothesis_before(cls, data: Any, info: ValidationInfo) -> Any:
         if isinstance(data, dict):
+            context = info.context if info else None
+            alias_map = context.get("alias_map", {}) if context else {}
+            if alias_map:
+                from backend_v2.utils.alias_engine import AliasEngine
+
+                engine = AliasEngine(alias_map=alias_map)
+
+                if "semantic_reasoning" in data and isinstance(data["semantic_reasoning"], str):
+                    data["semantic_reasoning"] = engine.hydrate_reasoning_text(data["semantic_reasoning"])
+
+                if "internal_logic_en" in data and isinstance(data["internal_logic_en"], dict):
+                    logic = data["internal_logic_en"]
+                    for k in [
+                        "step_1_identify_premise",
+                        "step_2_scan_source",
+                        "step_3_evaluate_anti_patterns",
+                        "step_4_final_conclusion",
+                    ]:
+                        if k in logic and isinstance(logic[k], str):
+                            logic[k] = engine.hydrate_reasoning_text(logic[k])
+
             if data.get("contextual_override"):
                 data["exact_quotes"] = []
                 data["used_evidence_ids"] = []
@@ -468,9 +489,13 @@ class AtomEvaluationItemDTO(V2CoreBase):
                 context = info.context if info else None
                 source_documents = context.get("source_documents") if context else None
                 mcp_source_texts = context.get("mcp_source_texts") if context else None
-                alias_map = context.get("alias_map") if context else None
+                alias_map = context.get("alias_map", {}) if context else {}
                 locale = context.get("locale") if context else None
                 strictness_level = context.get("strictness_level", 50) if context else 50
+
+                from backend_v2.utils.alias_engine import AliasEngine
+
+                alias_engine = AliasEngine(alias_map=alias_map)
 
                 from backend_v2.models.enums import get_lexical_fuzz_threshold
                 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
@@ -522,10 +547,10 @@ class AtomEvaluationItemDTO(V2CoreBase):
                                         matched = True
                                         break
                             # 2. Match against dynamic MCP source texts
-                            if not matched and mcp_source_texts and alias_map:
+                            if not matched and mcp_source_texts:
                                 for alias, mcp_text in mcp_source_texts.items():
                                     if _is_match(mcp_text, q_text):
-                                        real_id = alias_map.get(alias)
+                                        real_id = alias_engine.resolve_alias(alias)
                                         if real_id:
                                             q["source_id"] = real_id
                                             resolved_ids.add(real_id)

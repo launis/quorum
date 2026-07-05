@@ -71,9 +71,24 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
 
     inputs_dict = payload.root
 
+    # V2 Architecture: Flatten nested structures to validate actual text content
+    fields_to_validate: dict[str, Any] = {}
+
+    # 1. Unpack raw_inputs dynamically
+    if "raw_inputs" in inputs_dict and isinstance(inputs_dict["raw_inputs"], dict):
+        fields_to_validate.update(inputs_dict["raw_inputs"])
+
+    # 2. Unpack inputs dynamically
+    if "inputs" in inputs_dict and isinstance(inputs_dict["inputs"], dict):
+        fields_to_validate.update(inputs_dict["inputs"])
+
+    # Fallback to the root if it's a flat legacy payload, excluding known container keys
+    if not fields_to_validate and not ("steps" in inputs_dict or "raw_inputs" in inputs_dict):
+        fields_to_validate = inputs_dict
+
     # Validate length for all payload texts, ignoring pure metadata and core identifiers
     valid_content_keys = 0
-    for key, val in inputs_dict.items():
+    for key, val in fields_to_validate.items():
         key_lower = key.lower()
         if (
             key_lower in ignored_keys

@@ -91,3 +91,32 @@ class SduiEntityBlock(SduiBaseBlock):
 ```
 
 **Johtopäätös:** Siirtyminen erillisistä datariveistä polymorfiseen "Block Streamiin" ja tiedostopohjaiseen tallenteeseen eliminoi renderöintipään Jumalkoodin. Kun backend pakkaa `row_explanations`, `section_syntheses` ja `xai_highlights` samaan listaan lohkoina, UI-päivitykset (kuten uusien osioiden lisäys) tapahtuvat ilman koodimuutoksia frontendissä tai PDF-generaattorissa.
+
+---
+
+# **OSA 3: LLM-Irrotus ja Deterministinen BFF-Arkkitehtuuri**
+
+*Lisätty heinäkuun 2026 Tier 4 Bug Hunting -istunnon perusteella.*
+
+SDUI:n polymorfinen rakenne (esim. `AnySduiBlock`) on todettu erittäin vaaralliseksi, jos sitä pyydetään suoraan kielimallilta (LLM). 
+
+### **1. Miksi LLM ja SDUI pitää erottaa? (Pydantic extra="forbid" -kaatumiset)**
+Quorumin V2CoreBase käyttää tiukkaa `extra="forbid"` -sääntöä. Kun LLM yritti tuottaa SDUI-komponentteja suoraan:
+* Se unohti pakollisia kenttiä (esim. `AlertBlock`in `severity`).
+* Se keksi loogisilta tuntuvia mutta kiellettyjä kenttiä (esim. yritti laittaa `text`-kentän `HeroInsightBlock`:iin, josta se puuttui, tai käytti `citations`-kenttää `QuoteCardissa` ohjeiden ohjaamana).
+* Tuloksena oli välitön Pydantic-validointivirhe, joka kaatoi koko ajon. Vaikka ohituskaistoja ja fallback-kenttiä lisättiin "laastareina" (Heinakuu 2026), arkkitehtuurinen juurisyy on se, että **LLM pakotetaan tekemään UI-esityslogiikan päätöksiä**.
+
+### **2. Ratkaisu: Semantic Data Contracts (LLM) -> SduiMapperService (BFF)**
+Lopullinen ja 100 % deterministinen ratkaisu SDUI-hallusinaatioihin on ottaa SDUI-mallit kokonaan pois LLM:n näkyviltä.
+
+1. **LLM tuottaa vain semanttista "tyhmää" dataa:**
+   Orchestratorin Pydantic-schemat (kuten `SynthesisSectionDTO`) refaktoroidaan litteiksi. LLM ei palauta SDUI-lohkoja, vaan esimerkiksi:
+   ```python
+   class LLMSectionData(BaseModel):
+       summary_text: str
+       bullet_points: list[str]
+       quotes: list[QuoteEvidenceDTO]
+   ```
+2. **Backend-For-Frontend (BFF) hoitaa renderöinnin:**
+   Quorumin sisäinen Python-palvelu (`SduiMapperService`) ottaa LLM:n puhtaan datan vastaan ja kääntää sen deterministisellä koodilla polymorfisiksi `AnySduiBlock`-lohkoiksi (esim. pakkaa stringit turvallisesti `BulletListItem`-objekteiksi). 
+   *Näin koodi ei ikinä unohda `severity`-kenttää tai laita vääriä attribuutteja, ja Pydantic-kaatumiset katoavat kokonaan.*

@@ -844,56 +844,41 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 else:
                                                     final_state = "TRUE" if is_satisfied else "FALSE"
 
-                                                has_evidence = (
-                                                    (ev_dto.status in ("PASS", "CONTESTED"))
-                                                    if getattr(ev_dto, "status", None)
-                                                    else (
-                                                        ev_dto.evidence_found
-                                                        or (
-                                                            getattr(ev_dto, "contextual_override", False)
-                                                            and effective_override
+                                                if ev_dto.exact_quotes:
+                                                    for qt in ev_dto.exact_quotes:
+                                                        quote_text = ""
+                                                        opaque_id = None
+                                                        if isinstance(qt, dict):
+                                                            quote_text = qt.get("text", "")
+                                                            opaque_id = qt.get("source_id")
+                                                        else:
+                                                            quote_text = getattr(qt, "text", "")
+                                                            opaque_id = getattr(qt, "source_id", None)
+
+                                                        eq_dto = QuoteEvidenceDTO.model_validate(
+                                                            {
+                                                                "quote": quote_text,
+                                                                "source_alias": [opaque_id] if opaque_id else [],
+                                                            },
+                                                            context=val_context,
+                                                        ).model_dump(mode="json")
+
+                                                        atom_quotes_by_block[pb_id].append(
+                                                            {
+                                                                "level": s_val,
+                                                                "level_name": s_name,
+                                                                "quote": eq_dto,
+                                                            }
                                                         )
-                                                    )
-                                                )
-                                                if has_evidence:
-                                                    if ev_dto.exact_quotes:
-                                                        for qt in ev_dto.exact_quotes:
-                                                            quote_text = ""
-                                                            opaque_id = None
-                                                            if isinstance(qt, dict):
-                                                                quote_text = qt.get("text", "")
-                                                                opaque_id = qt.get("source_id")
-                                                            else:
-                                                                quote_text = getattr(qt, "text", "")
-                                                                opaque_id = getattr(qt, "source_id", None)
 
-                                                            eq_dto = QuoteEvidenceDTO.model_validate(
-                                                                {
-                                                                    "quote": quote_text,
-                                                                    "source_alias": [opaque_id] if opaque_id else [],
-                                                                },
-                                                                context=val_context,
-                                                            ).model_dump(mode="json")
-
-                                                            atom_quotes_by_block[pb_id].append(
-                                                                {
-                                                                    "level": s_val,
-                                                                    "level_name": s_name,
-                                                                    "quote": eq_dto,
-                                                                }
-                                                            )
-
-                                                    elif (
-                                                        getattr(ev_dto, "contextual_override", False)
-                                                        and effective_override
-                                                    ):
-                                                        l_raw = getattr(ev_dto, "structural_location", None)
-                                                        loc = (
-                                                            l_raw if l_raw and l_raw != "N/A" else "Tuntematon sijainti"
-                                                        )
-                                                        r_raw = getattr(ev_dto, "semantic_reasoning", None)
-                                                        rsn = r_raw if r_raw else "Ei perustelua"
-                                                        atom_quotes_by_block[pb_id].append(f"📍 {loc}: {rsn}")
+                                                elif (
+                                                    getattr(ev_dto, "contextual_override", False) and effective_override
+                                                ):
+                                                    l_raw = getattr(ev_dto, "structural_location", None)
+                                                    loc = l_raw if l_raw and l_raw != "N/A" else "Tuntematon sijainti"
+                                                    r_raw = getattr(ev_dto, "semantic_reasoning", None)
+                                                    rsn = r_raw if r_raw else "Ei perustelua"
+                                                    atom_quotes_by_block[pb_id].append(f"📍 {loc}: {rsn}")
                                             break
 
                             # Record the logic outcomes

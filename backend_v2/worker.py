@@ -805,6 +805,10 @@ async def generate_profile_synthesis_and_pdf_task(
 
                             new_payload = lw_matrix.model_dump(exclude_none=True)
 
+                            # V2 Infrastructure Mandate: Preserve accumulators that bypass strict schemas
+                            if "atom_quotes" in data:
+                                new_payload["atom_quotes"] = data["atom_quotes"]
+
                             # V2 Frozen Model update
                             final_inputs[i] = step_dto.model_copy(update={"payload": new_payload})
 

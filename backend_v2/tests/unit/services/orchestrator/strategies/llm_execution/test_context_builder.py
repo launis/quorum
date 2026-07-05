@@ -117,9 +117,9 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "nested" in llm_context_data
     assert llm_context_data["nested"]["value"] == 123
 
-    assert "step1" in llm_context_data
-    assert "<matrix_data>" in llm_context_data["step1"]
-    assert '"pruned": true' in llm_context_data["step1"]
+    assert "trace_field" in llm_context_data
+    assert "<step_result" in llm_context_data["trace_field"]
+    assert '"pruned": true' in llm_context_data["trace_field"]
 
     assert new_input_mappings["text_field"] == "$document_text"
 

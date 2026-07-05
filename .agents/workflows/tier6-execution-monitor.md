@@ -7,7 +7,7 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing and 
   <objective>Seurata backend_debug.log -tiedostoa aktiivisen ajon aikana, tuottaa tilannepäivityksiä 1 minuutin välein ja koostaa lopuksi kattava raportti.</objective>
   <role>Lead Execution Monitor & Auditor</role>
   <context_rules>
-    <rule>Käytä työkalua `schedule` asettaaksesi toistuvan ajastimen (esim. `CronExpression="* * * * *"`, `Prompt="Lue backend_debug.log uusimmat rivit"`), joka herättää sinut minuutin välein seuraamaan lokia.</rule>
+    <rule>Käytä työkalua `schedule` asettaaksesi toistuvan ajastimen (esim. `CronExpression="* * * * *"`, `Prompt="Lue backend_debug.log ja uusimman ajon llm_debug_prompts.md uusimmat rivit"`), joka herättää sinut minuutin välein seuraamaan lokeja.</rule>
     <rule>Raportoi AINA suomeksi. Pidä päivitykset tiiviinä, mutta nosta esiin kaikki virheet ja tärkeimmät virstanpylväät.</rule>
     <rule>Pidä muistissasi lista havaituista virheistä ja onnistumisista lopullista raporttia varten.</rule>
     <rule>Luo ajon alkaessa suorituskohtainen seurantatiedosto (esim. `c:\src\quorum\data\files\executions\[ajo_id]\monitor_state.json`), johon tallennat kumulatiivisen tilan. **Lue lokeja AINOASTAAN natiivilla `view_file` tai `grep_search` -työkalulla**, jotta et laukaise käyttäjälle turvallisuusvaroituksia. Älä KOSKAAN käytä päätteessä ajettavia shell-komentoja (kuten PowerShellin `Get-Content` tai työkalua `run_command`) lokien lukemiseen tausta-ajon aikana.</rule>
@@ -17,10 +17,10 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing and 
     <step id="1">INITIALIZE: Generoi ajolle automaattisesti yksilöllinen ajo-ID (esim. aikaleiman tai lokien ensimmäisen run_id:n perusteella). Älä kysy sitä enää käyttäjältä.
       <substep>Jos käyttäjä antoi parametrina Epicin tai Implementointisuunnitelman nimen/polun (esim. `--target="docs/epic/epic_60_tracker.md"`), LUE tämä tiedosto heti aluksi työkalujesi avulla.</substep>
       <substep>Tunnista kyseisen asiakirjan perusteella kriittiset tavoitteet (mitä testataan, mitkä ovat onnistumisen kriteerit, mitkä komponentit ovat tarkkailun alla).</substep>
-      <substep>Tarkista `c:\src\quorum\backend_debug.log`-tiedoston pituus tai aikarunko, jotta osaat erottaa uudet lokit vanhoista. Ajon katsotaan alkavan joko tiedostojen synkronisesta purusta (`[DocumentExtractionService] Found binary PDF`) tai viimeistään tausta-ajon alkamisesta (`[Job] Executing workflow:`).</substep>
+      <substep>Tarkista `c:\src\quorum\backend_debug.log`-tiedoston pituus tai aikarunko, jotta osaat erottaa uudet lokit vanhoista. Etsi myös uusimman ajon `llm_debug_prompts.md` tiedosto (`data/files/executions/[ajo_id]/llm_debug_prompts.md`), jos se on jo olemassa. Ajon katsotaan alkavan joko tiedostojen synkronisesta purusta (`[DocumentExtractionService] Found binary PDF`) tai viimeistään tausta-ajon alkamisesta (`[Job] Executing workflow:`).</substep>
       <substep>Luo alkutila (tyhjä sanakirja) kumulatiiviselle seurantatiedostolle `monitor_state.json` ja varmista sen tallennushakemisto.</substep>
     </step>
-    <step id="2">MONITORING: Aktivoi `schedule`-työkalulla minuutin välein toistuva cron-tehtävä. Kun saat ilmoituksen (wakeup), lue uusimmat lokirivit ja analysoi ne.
+    <step id="2">MONITORING: Aktivoi `schedule`-työkalulla minuutin välein toistuva cron-tehtävä. Kun saat ilmoituksen (wakeup), lue uusimmat lokirivit `backend_debug.log`:sta JA `llm_debug_prompts.md` tiedostosta ja analysoi ne molemmat. Reagoi promptilogin tietoihin kuten debug-lokeihin.
       <substep>Lue olemassa oleva `monitor_state.json` -akkumulaattoritiedosto ennen uusien lokien analysointia.</substep>
       <substep>Laske uudet kumulatiiviset summat, keskiarvot ja listat lokien perusteella ja kirjoita päivitetty tila takaisin `monitor_state.json`-tiedostoon.</substep>
       <focus_areas>

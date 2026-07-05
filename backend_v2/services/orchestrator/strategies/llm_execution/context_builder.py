@@ -206,6 +206,7 @@ class ContextBuilder:
         output_profile: Any | None = None,
         schema_map: dict[str, str] | None = None,
         criteria_blocks: list[Any] | None = None,
+        blueprint_labels: dict[str, str] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Extracts values based on mappings, prunes traces, and enforces token limits.
 
@@ -250,13 +251,13 @@ class ContextBuilder:
                     resolved_value = ContextBuilder.apply_spatial_slicing(resolved_value, criteria_blocks)
 
                 def _prune_step_dtos(dtos_list: list[Any]) -> str:
-                    pruned_steps: dict[str, Any] = {}
                     steps_group: dict[str, list[Any]] = {}
                     for d in dtos_list:
                         s_id: str | None = getattr(d, "step_id", None)
                         if s_id:
                             steps_group.setdefault(s_id, []).append(d)
 
+                    xml_blocks: list[str] = []
                     for s_id, step_dtos in steps_group.items():
                         if s_id not in schema_map:
                             logger.error(
@@ -270,10 +271,17 @@ class ContextBuilder:
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
                             )
                         step_type = schema_map[s_id]
-                        pruned_steps[s_id] = ContextBuilder._process_trace_dtos(
+                        pruned_data = ContextBuilder._process_trace_dtos(
                             step_dtos, output_profile, step_type, schema_map
                         )
-                    return f"<matrix_data>\n{json.dumps(pruned_steps, ensure_ascii=False)}\n</matrix_data>"
+                        source_name = "System"
+                        if blueprint_labels and s_id in blueprint_labels:
+                            source_name = blueprint_labels[s_id]
+                        data_str = json.dumps(pruned_data, ensure_ascii=False)
+                        xml_blocks.append(
+                            f'<step_result source="{source_name}" step_id="{s_id}">\n{data_str}\n</step_result>'
+                        )
+                    return "\n".join(xml_blocks)
 
                 if clean_path == "steps":
                     dto_list = state_data.get("steps", [])
@@ -301,7 +309,13 @@ class ContextBuilder:
 
                     if len(parts) == 2:
                         pruned_dict = ContextBuilder._process_trace_dtos(dtos, output_profile, step_type, schema_map)
-                        resolved_value = f"<matrix_data>\n{json.dumps(pruned_dict, ensure_ascii=False)}\n</matrix_data>"
+                        source_name = "System"
+                        if blueprint_labels and step_key in blueprint_labels:
+                            source_name = blueprint_labels[step_key]
+                        data_str = json.dumps(pruned_dict, ensure_ascii=False)
+                        resolved_value = (
+                            f'<step_result source="{source_name}" step_id="{step_key}">\n{data_str}\n</step_result>'
+                        )
                     elif len(parts) == 3:
                         block_key = parts[2]
                         matched_dto = next((d for d in dtos if getattr(d, "block_id", None) == block_key), None)
@@ -350,18 +364,18 @@ class ContextBuilder:
                         details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
                     ) from e
 
-                parts = clean_path.split(".")
-                if clean_path.startswith("steps."):
-                    parts = clean_path[len("steps.") :].split(".")
-
-                curr = llm_context_data
-                for i, part in enumerate(parts):
-                    if i == len(parts) - 1:
-                        curr[part] = copy.deepcopy(resolved_value)
-                    else:
-                        curr = curr.setdefault(part, {})
-
-                new_input_mappings[_logical_name] = path
+                if clean_path == "steps" or clean_path.startswith("steps."):
+                    llm_context_data[_logical_name] = copy.deepcopy(resolved_value)
+                    new_input_mappings[_logical_name] = f"${_logical_name}"
+                else:
+                    parts = clean_path.split(".")
+                    curr = llm_context_data
+                    for i, part in enumerate(parts):
+                        if i == len(parts) - 1:
+                            curr[part] = copy.deepcopy(resolved_value)
+                        else:
+                            curr = curr.setdefault(part, {})
+                    new_input_mappings[_logical_name] = path
             except Exception as e:
                 if isinstance(e, TokenLimitExceededError) or isinstance(e, AppException):
                     raise

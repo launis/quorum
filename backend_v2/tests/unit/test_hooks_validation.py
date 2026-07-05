@@ -93,6 +93,36 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
 
     result = cast(HookResult, verify_output_language(state, deps))
 
-    # Assert
-    assert result.state_delta is not None
     assert "_system_warnings" not in result.state_delta
+
+
+def test_verify_structure_fails_fast_on_empty_raw_inputs() -> None:
+    import pytest
+
+    from backend_v2.exceptions import AppException
+    from backend_v2.hooks.validation import verify_structure
+
+    # Arrange
+    inputs = {"raw_inputs": {}, "steps": [], "metadata": {"target_locale": "fi"}}
+    state = HookState(
+        execution_id="exec-1",
+        workflow_id="wf-1",
+        metadata={},
+        global_context_vars={},
+        inputs=inputs,
+    )
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+
+    # Act & Assert
+    with pytest.raises(AppException) as exc:
+        verify_structure(state, deps)
+
+    assert "Structural Validation Failed" in str(exc.value)
+    assert "EMPTY_INPUT" in str(exc.value)

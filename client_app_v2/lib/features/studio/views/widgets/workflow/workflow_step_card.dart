@@ -206,155 +206,123 @@ class WorkflowStepCard extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             ...(() {
-              final activeBlueprint = blueprints.firstWhere(
-                (b) => b.id == stepDef.taskBlueprint,
-                orElse: () => const NodeStrategy.logic(
-                  id: '',
-                  slug: '',
-                  hook: '',
-                  name: I18nText(defaultLocale: 'en'),
-                ),
-              );
-              final expectedInputs = activeBlueprint.expectedInputs;
+              final List<Widget> checkboxes = [];
 
-              final availableSources = <DropdownMenuItem<String>>[
-                DropdownMenuItem(
-                  value: r'$inputs',
-                  child: Text(l10n.studioWorkflowAllInputsCombined),
-                ),
-                DropdownMenuItem(
-                  value: r'$steps',
-                  child: Text(l10n.studioWorkflowAllStepsCombined),
-                ),
-                ...globalWorkflowInputs.map((ei) {
-                  final key = r'$inputs.' + ei.inputKey;
-                  final label = ei.label.get(l10n.localeName);
-                  return DropdownMenuItem(
-                    value: key,
-                    child: Text('Syöte: $label ($key)'),
-                  );
-                }),
-              ];
+              // 1. Global Inputs
+              for (final ei in globalWorkflowInputs) {
+                final targetKey = ei.inputKey;
+                final sourceValue = r'$inputs.' + ei.inputKey;
+                final isSemanticMapped =
+                    mappings.containsValue(sourceValue) &&
+                    mappings[targetKey] != sourceValue;
+                final isSelected =
+                    mappings[targetKey] == sourceValue || isSemanticMapped;
+                final isReadOnly = isSemanticMapped;
+                final labelText = ei.label.get(l10n.localeName);
 
-              for (final prevId in dependsOn) {
-                final matchingNode = allSteps
-                    .where((s) => s.id == prevId)
-                    .firstOrNull;
-                String label = prevId;
-                if (matchingNode != null &&
-                    matchingNode.taskBlueprint.isNotEmpty) {
-                  label = getBlueprintLabel(matchingNode.taskBlueprint);
-                }
-                if (label.isEmpty) {
-                  label = prevId.length > 15
-                      ? '${prevId.substring(0, 15)}...'
-                      : prevId;
-                }
-                availableSources.add(
-                  DropdownMenuItem(
-                    value: '\$steps.$prevId',
-                    child: Text(label),
-                  ),
-                );
-              }
-
-              return [
-                ...mappings.entries.map((m) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButtonFormField<String>(
-                            decoration: InputDecoration(
-                              labelText: l10n.studioWorkflowTargetArgName,
-                              isDense: true,
-                            ),
-                            initialValue: expectedInputs.contains(m.key)
-                                ? m.key
-                                : null,
-                            items: expectedInputs.map((e) {
-                              return DropdownMenuItem(value: e, child: Text(e));
-                            }).toList(),
-                            onChanged: (newKey) {
-                              if (newKey != null) {
-                                final newMappings = Map<String, String>.from(
-                                  mappings,
-                                );
-                                final val = newMappings.remove(m.key);
-                                newMappings[newKey] = val ?? '';
-                                update(
-                                  stepDef.copyWith(inputMappings: newMappings),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Icon(Icons.arrow_forward),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: DropdownButtonFormField<String>(
-                            decoration: InputDecoration(
-                              labelText: l10n.studioWorkflowSourceToken,
-                              isDense: true,
-                            ),
-                            initialValue:
-                                availableSources.any(
-                                  (item) => item.value == m.value,
-                                )
-                                ? m.value
-                                : null,
-                            items: availableSources,
-                            onChanged: (newVal) {
-                              if (newVal != null) {
-                                final newMappings = Map<String, String>.from(
-                                  mappings,
-                                );
-                                newMappings[m.key] = newVal;
-                                update(
-                                  stepDef.copyWith(inputMappings: newMappings),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.remove_circle,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
-                          onPressed: () {
+                checkboxes.add(
+                  CheckboxListTile(
+                    title: Text('Syöte: $labelText'),
+                    subtitle: Text(sourceValue),
+                    value: isSelected,
+                    onChanged: isReadOnly
+                        ? null
+                        : (bool? checked) {
                             final newMappings = Map<String, String>.from(
                               mappings,
                             );
-                            newMappings.remove(m.key);
+                            if (checked == true) {
+                              newMappings[targetKey] = sourceValue;
+                            } else {
+                              newMappings.remove(targetKey);
+                            }
                             update(
                               stepDef.copyWith(inputMappings: newMappings),
                             );
                           },
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.add_link),
-                    label: Text(l10n.studioWorkflowAddMappingBtn),
-                    onPressed: () {
-                      final newMappings = Map<String, String>.from(mappings);
-                      newMappings['new_mapping_${newMappings.length}'] = '';
-                      update(stepDef.copyWith(inputMappings: newMappings));
-                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
                   ),
+                );
+              }
+
+              // 2. Depends On Steps
+              for (final prevId in dependsOn) {
+                final targetKey = prevId;
+                final sourceValue = r'$steps.' + prevId;
+                final isSemanticMapped =
+                    mappings.containsValue(sourceValue) &&
+                    mappings[targetKey] != sourceValue;
+                final isGlobalStepsMapped = mappings.containsValue(r'$steps');
+                final isSelected =
+                    mappings[targetKey] == sourceValue ||
+                    isSemanticMapped ||
+                    isGlobalStepsMapped;
+                final isReadOnly = isSemanticMapped || isGlobalStepsMapped;
+
+                final matchingNode = allSteps
+                    .where((s) => s.id == prevId)
+                    .firstOrNull;
+                String labelStr = prevId;
+                if (matchingNode != null &&
+                    matchingNode.taskBlueprint.isNotEmpty) {
+                  labelStr = getBlueprintLabel(matchingNode.taskBlueprint);
+                }
+                if (labelStr.isEmpty) {
+                  labelStr = prevId.length > 15
+                      ? '${prevId.substring(0, 15)}...'
+                      : prevId;
+                }
+
+                checkboxes.add(
+                  CheckboxListTile(
+                    title: Text('Askel: $labelStr'),
+                    subtitle: Text(sourceValue),
+                    value: isSelected,
+                    onChanged: isReadOnly
+                        ? null
+                        : (bool? checked) {
+                            final newMappings = Map<String, String>.from(
+                              mappings,
+                            );
+                            if (checked == true) {
+                              newMappings[targetKey] = sourceValue;
+                            } else {
+                              newMappings.remove(targetKey);
+                            }
+                            update(
+                              stepDef.copyWith(inputMappings: newMappings),
+                            );
+                          },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
+                  ),
+                );
+              }
+
+              if (checkboxes.isEmpty) {
+                return [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'Ei valittavia syötteitä tai riippuvuuksia.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ];
+              }
+
+              return [
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(children: checkboxes),
                 ),
               ];
             })(),

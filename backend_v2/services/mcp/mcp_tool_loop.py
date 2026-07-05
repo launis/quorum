@@ -30,6 +30,7 @@ from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.settings import get_settings
+from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -268,6 +269,7 @@ async def execute_tool_loop[T: BaseModel](
     synthesis_instructions: dict[str, Any] | None = None,
     validation_context: dict[str, Any] | None = None,
     source_context: str = "",
+    alias_engine: AliasEngine | None = None,
 ) -> MCPToolLoopResult:
     """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
 
@@ -554,14 +556,15 @@ async def execute_tool_loop[T: BaseModel](
             validation_context = {}
         if "mcp_source_texts" not in validation_context:
             validation_context["mcp_source_texts"] = {}
-        if "alias_map" not in validation_context:
-            validation_context["alias_map"] = {}
 
-        # Continue numbering from existing alias_map size
-        start_idx = len(validation_context["alias_map"]) + 1
+        # Tier 4 Fix: Use AliasEngine as the single source of truth for alias generation.
+        # Removed ad-hoc doc{N} counter and alias_map mutation that bypassed AliasEngine.
+        local_alias_engine = alias_engine if alias_engine else AliasEngine()
 
-        for i, audit in enumerate(audit_traces):
-            local_id = f"doc{start_idx + i}"
+        for audit in audit_traces:
+            real_id = audit.id if audit.id else f"mcp_trace_{audit.query[:20]}"
+            local_id = local_alias_engine.register(real_id, prefix="doc")
+            local_alias_engine.source_document_aliases.append(local_id)
             text_payload = f"Query: {audit.query}\n"
             if audit.response_summary:
                 text_payload += f"Summary: {audit.response_summary}\n"
@@ -569,11 +572,8 @@ async def execute_tool_loop[T: BaseModel](
                 text_payload += f"Sources: {', '.join(audit.source_urls)}\n"
 
             validation_context["mcp_source_texts"][local_id] = text_payload
-            validation_context["alias_map"][local_id] = audit.id
 
-            evidence_blocks.append(
-                f'<source ID="{local_id}" label="Web Search: {audit.query}">\n{text_payload}\n</source>'
-            )
+            evidence_blocks.append(f'<source ID="{local_id}">\n{text_payload}\n</source>')
 
         evidence_str = "\n".join(evidence_blocks)
         final_messages.append(

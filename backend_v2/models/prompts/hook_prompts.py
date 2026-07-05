@@ -39,9 +39,11 @@ SYNTHESIS_SDUI_MANDATES = (
     "<sdui_mandate>\n"
     "- SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY "
     "the allowed SDUI `content_blocks`.\n"
-    "- ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. "
+    "- ALLOWED SDUI BLOCKS: 'paragraph', 'bullet_list', 'alert_box', 'quote_card', 'hero_insight', 'warning_card', 'markdown'. "
     "NO OTHER TYPES ARE ALLOWED.\n"
+    '- BULLET LISTS MUST USE OBJECTS: For `bullet_list`, the `items` array MUST contain objects with a `text` field (e.g. `[{"text": "kohta 1"}]`), NOT raw strings!\n'
     "- NO RECURSION: Nested blocks inside blocks are strictly banned.\n"
+    "- MCP CITATIONS: When citing information retrieved via ANY external tool (e.g., Jira, Web Search), you MUST use the exact tool call ID or the tool's defined identifier as the `source_id`.\n"
     "- NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside "
     "text fields. The UI will render text structurally.\n"
     "- CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of "

@@ -26,6 +26,7 @@ from backend_v2.services.orchestrator.strategies.base import NodeStrategy, Strat
 from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
+from backend_v2.utils.llm_debug_logger import write_debug_prompt_log
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class LLMNodeStrategy(NodeStrategy):
         raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
 
         texts: list[str] = []
-        inputs_dict = inputs_payload.get("inputs", {})
+        inputs_dict = inputs_payload
         if isinstance(inputs_dict, dict):
             for v in inputs_dict.values():
                 if isinstance(v, str):
@@ -84,9 +85,12 @@ class LLMNodeStrategy(NodeStrategy):
             texts.append(inputs_dict)
 
         global_source_text = "\n\n".join(texts)
+        inputs_unwrapped = (
+            inputs_payload.get("inputs", inputs_payload) if isinstance(inputs_payload, dict) else inputs_payload
+        )
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,
-            "inputs": inputs_payload,
+            "inputs": inputs_unwrapped,
             "raw_inputs": raw_inputs_payload,
         }
 
@@ -148,49 +152,10 @@ class LLMNodeStrategy(NodeStrategy):
         hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
         state_data = hook_state.inputs.copy()
 
-        # PHASE 2: MCP Aliasing & Unified Source Pipeline
-        import uuid
-        from datetime import datetime, timezone
-
-        alias_map: dict[str, str] = {}
-        src_counter = [1]
-
-        def _apply_alias_chunks_and_audit(data: dict[str, Any], prefix: str = "") -> dict[str, Any]:
-            result: dict[str, Any] = {}
-            for k, v in data.items():
-                if isinstance(v, dict):
-                    result[k] = _apply_alias_chunks_and_audit(v, prefix=f"{prefix}{k}_")
-                elif isinstance(v, str) and len(v) > 200:
-                    local_id = f"doc{src_counter[0]}"
-                    src_counter[0] += 1
-                    alias_map[local_id] = k
-
-                    result[k] = f'<source ID="{local_id}" label="{k}">\n{v}\n</source>'
-
-                    if frozen_ctx is not None:
-                        trace_id = f"int_{uuid.uuid4().hex[:8]}"
-                        trace = MCPAuditTrace(
-                            id=trace_id,
-                            tool_id="internal_source",
-                            step_name=step.id,
-                            query=f"Internal Source: {k}",
-                            response_summary=f"source_id: {local_id}",
-                            source_urls=[f"source_id: {local_id}"],
-                            timestamp=datetime.now(timezone.utc),
-                            duration_ms=0,
-                        )
-                        existing_ids = {t.id for t in frozen_ctx.mcp_tool_audit if t.id}
-                        if trace_id not in existing_ids:
-                            frozen_ctx.mcp_tool_audit.append(trace)
-                else:
-                    result[k] = v
-            return result
-
-        state_data = _apply_alias_chunks_and_audit(state_data)
-        if hook_state.metadata is None:
-            hook_state.metadata = {}
-        hook_state.metadata["alias_map"] = alias_map
-        hook_state = hook_state.model_copy(update={"inputs": state_data})
+        # Tier 4 Fix: Removed rinnakkainen _apply_alias_chunks_and_audit() that created
+        # conflicting doc IDs (doc1..docN) and <source ID="..." label="..."> XML wrappers
+        # INSIDE the data. AliasEngine + prompt_compiler.build_xml_context() are the
+        # Single Source of Truth for all source aliasing (alias_engine_llm_isolation_mandate).
 
         all_prompt_blocks_raw = await self.comp_repo.get_all_prompt_blocks()
         all_prompt_blocks: list[PromptBlock] = []
@@ -321,6 +286,7 @@ class LLMNodeStrategy(NodeStrategy):
             )
 
         schema_map: dict[str, str] = {}
+        blueprint_labels: dict[str, str] = {}
         if workflow_def:
             workflow_obj = Workflow.model_validate(workflow_def)
 
@@ -329,6 +295,8 @@ class LLMNodeStrategy(NodeStrategy):
                 blueprint_def_raw = await self.workflow_repo.get_step(s.task_blueprint)
                 blueprint_def = cast(dict[str, Any], blueprint_def_raw)
                 if blueprint_def:
+                    if "name" in blueprint_def:
+                        blueprint_labels[s.id] = self.compiler.resolve_i18n(blueprint_def["name"], "en")
                     blueprint_obj = V2Step.model_validate(blueprint_def)
                     all_bp_blocks: list[str] = []
                     if blueprint_obj.role_block_id:
@@ -367,6 +335,7 @@ class LLMNodeStrategy(NodeStrategy):
             output_profile=output_profile,
             schema_map=schema_map,
             criteria_blocks=criteria_blocks,
+            blueprint_labels=blueprint_labels,
         )
         input_mappings = new_input_mappings
 
@@ -379,10 +348,9 @@ class LLMNodeStrategy(NodeStrategy):
 
         from backend_v2.utils.alias_engine import AliasEngine
 
-        existing_alias_map = hook_state.metadata.get("alias_map", {}) if hook_state.metadata else {}
-        alias_engine = AliasEngine(
-            alias_map=dict(existing_alias_map), source_document_aliases=list(existing_alias_map.keys())
-        )
+        # Tier 4 Fix: AliasEngine is initialized with clean state.
+        # prompt_compiler.build_xml_context() will register source doc aliases via .register().
+        alias_engine = AliasEngine()
 
         prompt_payload = PromptFactory.build(
             compiler=self.compiler,
@@ -403,6 +371,20 @@ class LLMNodeStrategy(NodeStrategy):
         user_payload = prompt_payload.user_payload
         base_system_prompt = prompt_payload.base_system_prompt
         atom_to_block_ids = prompt_payload.atom_to_block_ids
+
+        if get_settings().environment == "development":
+            try:
+                write_debug_prompt_log(
+                    execution_id=context.execution_id,
+                    step_id=step.id,
+                    role_block=role_block,
+                    protocol_block=protocol_block,
+                    criteria_blocks=criteria_blocks,
+                    base_system_prompt=base_system_prompt,
+                    user_payload=user_payload,
+                )
+            except Exception as e:
+                logger.warning(f"[LLMStrategy] Failed to write debug prompt log: {e}")
 
         if output_profile:
             exec_params = ["\n<execution_parameters>"]
@@ -500,13 +482,29 @@ class LLMNodeStrategy(NodeStrategy):
             except Exception:
                 pass
 
-        has_search = any("search_result" in v for v in state_data.values() if type(v) is dict)
+        has_search = any("search_result" in v for v in state_data.values() if type(v) is dict) or bool(
+            getattr(step, "mcp_tools", None)
+        )
 
         if frozen_ctx:
             allowed_dynamic_keys = [e.input_key for e in context.expected_inputs] if context.expected_inputs else []
             if getattr(step, "input_mappings", None):
                 allowed_dynamic_keys.extend(step.input_mappings.keys())
             allowed_dynamic_keys = list(set(allowed_dynamic_keys))
+            hook_state.metadata["allowed_dynamic_keys"] = allowed_dynamic_keys
+
+            # Extensibility for dynamic MCP providers
+            mcp_prefixes = ["call_", "mcp_", "search_"]
+            mcp_tools_list = getattr(step, "mcp_tools", None)
+            if mcp_tools_list:
+                for tool in mcp_tools_list:
+                    if isinstance(tool, dict):
+                        func = tool.get("function", {})
+                        if isinstance(func, dict) and func.get("name"):
+                            mcp_prefixes.append(f"{func['name']}_")
+                    elif hasattr(tool, "function") and hasattr(tool.function, "name"):
+                        mcp_prefixes.append(f"{tool.function.name}_")
+            hook_state.metadata["allowed_mcp_prefixes"] = list(set(mcp_prefixes))
 
             global_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",

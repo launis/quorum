@@ -7457,8 +7457,8 @@
           "label": {
             "default_locale": "fi",
             "translations": {
-              "fi": "Lopputuote (Analyysin Pääkohde)",
-              "en": "Product (Main Audit Target)"
+              "fi": "Lopputuote",
+              "en": "Product"
             }
           },
           "required": false,
@@ -7499,7 +7499,7 @@
               "en": "Attach chat log between human and AI."
             }
           },
-          "ai_description": "--- AI INSTRUCTION FOR THIS SOURCE (chat_log) ---\nPROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.\n\nMANDATE_HUMAN_EVALUATION: You must evaluate ONLY the human user's cognitive level, steering skills, and domain expertise. \n\nEXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with \"user:\". \n\nCONTEXT_RULE: Text starting with \"ai:\" is strictly background context. NEVER use the AI's output, intelligence, or reasoning as evidence of the human's competence.",
+          "ai_description": "--- AI INSTRUCTION FOR THIS SOURCE ---\nPROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.\n\nMANDATE_HUMAN_EVALUATION: You must evaluate ONLY the human user's cognitive level, steering skills, and domain expertise. \n\nEXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with \"user:\". \n\nCONTEXT_RULE: Text starting with \"ai:\" is strictly background context. NEVER use the AI's output, intelligence, or reasoning as evidence of the human's competence.",
           "questionnaire_definition": []
         },
         {
@@ -7556,7 +7556,9 @@
           "task_blueprint": "sp_db849f9790984585",
           "depends_on": [],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7566,7 +7568,9 @@
             "sr_f0a26d17cc9b48a7"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7577,7 +7581,9 @@
             "sr_0f7947ec7007498c"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7587,7 +7593,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7597,7 +7605,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7607,7 +7617,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7617,7 +7629,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7627,7 +7641,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7637,7 +7653,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7647,7 +7665,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7657,7 +7677,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7667,8 +7689,10 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs",
-            "prior_analysis": "$steps.sr_02b7cc1e7c2a4a62"
+            "prior_analysis": "$steps.sr_02b7cc1e7c2a4a62",
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7678,7 +7702,9 @@
             "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
-            "inputs": "$inputs"
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           }
         },
         {
@@ -7914,14 +7940,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Input Processing",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Input Processing"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Parses files and raw text into standard variables.",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Parses files and raw text into standard variables."
         }
       },
       "pre_hooks": [
@@ -7936,8 +7962,9 @@
       "type": "llm",
       "model_strategy": "fast",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -7954,14 +7981,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Analyst",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Analyst"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Imported from sequential_audit_chain"
         }
       },
       "pre_hooks": [
@@ -7981,8 +8008,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8013,14 +8042,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Archivist",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Archivist"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Best Practices Audit",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Best Practices Audit"
         }
       },
       "pre_hooks": [
@@ -8037,8 +8066,10 @@
       "type": "llm",
       "model_strategy": "fast",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8064,14 +8095,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Causal Analyst",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Causal Analyst"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Impact Verification",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Impact Verification"
         }
       },
       "pre_hooks": [
@@ -8087,8 +8118,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8117,14 +8150,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Coach",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Coach"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Imported from sequential_audit_chain"
         }
       },
       "pre_hooks": [
@@ -8140,8 +8173,10 @@
       "type": "llm",
       "model_strategy": "fast",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8183,14 +8218,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Performativity Detector",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Performativity Detector"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Illusion of Control Audit",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Illusion of Control Audit"
         }
       },
       "pre_hooks": [
@@ -8206,8 +8241,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8234,14 +8271,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Falsifier",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Falsifier"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Critical Loop Audit",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Critical Loop Audit"
         }
       },
       "pre_hooks": [
@@ -8260,8 +8297,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8290,14 +8329,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Guard",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Guard"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Imported from sequential_audit_chain"
         }
       },
       "pre_hooks": [
@@ -8315,8 +8354,10 @@
       "type": "llm",
       "model_strategy": "fast",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8345,14 +8386,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Judge",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Judge"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Imported from sequential_audit_chain"
         }
       },
       "pre_hooks": [
@@ -8370,8 +8411,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8401,14 +8444,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Logician",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Logician"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Imported from sequential_audit_chain"
         }
       },
       "pre_hooks": [
@@ -8424,8 +8467,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8454,14 +8499,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Overseer",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Overseer"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Imported from sequential_audit_chain"
         }
       },
       "pre_hooks": [
@@ -8477,8 +8522,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8521,14 +8568,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "Profiler",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Profiler"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Imported from sequential_audit_chain"
         }
       },
       "pre_hooks": [
@@ -8546,8 +8593,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8577,14 +8626,14 @@
         "default_locale": "fi",
         "translations": {
           "fi": "XAI Reporter",
-          "en": "Auto-filled English (Need to update)"
+          "en": "XAI Reporter"
         }
       },
       "description": {
         "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
-          "en": "Auto-filled English (Need to update)"
+          "en": "Imported from sequential_audit_chain"
         }
       },
       "pre_hooks": [
@@ -8650,8 +8699,10 @@
       "type": "llm",
       "model_strategy": "strict",
       "expected_inputs": [
-        "inputs",
-        "prior_analysis"
+        "prior_analysis",
+        "product_text",
+        "chat_log",
+        "reflection_text"
       ],
       "output_schema": null,
       "organization_id": "SYSTEM",
@@ -8935,7 +8986,7 @@
       ],
       "display_scale": "normalized_100",
       "strictness_level": 85,
-      "scoring_strategy": "DAMPENING",
+      "scoring_strategy": "AVERAGE",
       "synthesis": {
         "system_prompt": "ROLE: Senior Executive Coach\r\n\n  OBJECTIVE:\n\n    Produce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives (e.g., falsification, missing context, remediation steps).\r\n\n    Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings. For example, explain how the specifically flagged \"missing context\" directly impacts the structural flaws flagged in \"falsification\", and how the combined \"remediation steps\" will fix both.\r\n\n    You must balance sharp professional criticism with strong forward-looking encouragement. Conclude decisively by explaining what this overarching result means for their skill development.\r\n\n  RULES:\r\n    - STRUCTURAL RIGIDITY: You MUST adhere to this exact 4-paragraph coaching structure in every output:\r\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength based on the overarching data. What did the user practically do well?\r\n      PARAGRAPH 2 (The Interaction Role): You MUST start this paragraph by explicitly highlighting the user's assigned interaction role using the translated role value from the data (e.g., \"**Käyttäjän Rooli: Arkkitehti**\" or \"**User Role: Architect**\"). Do not invent a role; use the exact localized role name provided in the execution context. Following this, provide a concrete justification for why this specific role was assigned based on the control ratio and their cognitive initiative in the current execution. Show exactly which user sentence reflects this role.\r\n      PARAGRAPH 3 (The Cross-Examined Risk): Combine at least two distinct XAI findings (e.g., how the missing context relates to the falsification gap). Highlight the biggest logical blind spot truthfully and concretely.\r\n      PARAGRAPH 4 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps. Empower the user by framing the flaw as a stepping stone to mastery.\r\n\n    - CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws (e.g., \"Because you lacked X context, your foundational claim became vulnerable to Y\").\r\n    - CONSTRUCTIVE CRITICISM: Speak truthfully. Highlight logical gaps without sugarcoating, but do so as a mentor assessing a candidate.\r\n    - NO ACADEMIC JARGON: Translate complex theory and output configurations into punchy, plain business language.\r\n    - TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'. Act as a human coach reading a holistic profile.\r\n\n- EVIDENCE MANDATE (CRITICAL): You MUST NOT write abstract, generic theoretical summaries. You MUST anchor every major analytical claim in the Executive Summary to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion. Without direct quotes, your synthesis is invalid.",
         "length_constraint": 2000,

@@ -931,10 +931,11 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
     atom_hash = generate_atom_hash("atom_1", mandate)
 
     # Provide exact_quotes to trigger the QuoteEvidenceDTO instantiation
+    # Nyt status = FAIL (todistamaan uusi toiminnallisuus)
     evaluations = [
         {
             "atom_id": atom_hash,
-            "status": "PASS",
+            "status": "FAIL",
             "semantic_reasoning": "Hyväksytty",
             "contextual_override": False,
             "structural_location": "",

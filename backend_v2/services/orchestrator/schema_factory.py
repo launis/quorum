@@ -191,9 +191,11 @@ class SchemaFactory:
         step_semantic_class = StepDTOSemantic
 
         if source_document_ids is not None or allowed_atom_ids is not None or allowed_dynamic_keys is not None:
-            DocIdsLiteralType = AliasEngine.build_doc_ids_literal(source_document_ids, allowed_dynamic_keys)
+            DocIdsLiteralType = AliasEngine.build_doc_ids_literal(
+                source_document_ids, allowed_dynamic_keys, has_search_result
+            )
             QuoteIdsLiteralType = AliasEngine.build_quote_ids_literal(
-                source_document_ids, allowed_atom_ids, allowed_dynamic_keys
+                source_document_ids, allowed_atom_ids, allowed_dynamic_keys, has_search_result
             )
 
             # V3 Fix: Explicitly define fields in exact order to protect Vertex AI Token Trie.
@@ -323,7 +325,11 @@ class SchemaFactory:
                 final_type: Any = matrix_base_class
                 if matrix.output_extensions:
                     matrix_dynamic_fields: dict[str, Any] = {}
-                    core_aliases = {"justification", "citation", "missing_context", "contextual_override"}
+                    # Tier 4 Fix: 'source_id' is excluded from matrix extensions because
+                    # matrix-level source_id is semantically meaningless (matrices evaluate the
+                    # entire document, not individual sources) and adding it as a required str
+                    # field increases schema complexity, triggering LLM lazy generation.
+                    core_aliases = {"justification", "citation", "missing_context", "contextual_override", "source_id"}
                     numeric_extensions = {"confidence"}
                     boolean_extensions = {"risk_flag"}
 
@@ -352,6 +358,15 @@ class SchemaFactory:
                                 str,
                                 Field(..., description=f"Detailed textual explanation or citation for '{ext}'."),
                             )
+
+                    # Tier 4 Fix: Osa 3 - Tulevaisuusturva: varoitus liian suurista skeemoista
+                    if len(matrix_dynamic_fields) > 6:
+                        logger.warning(
+                            "[SchemaFactory] Matrix block '%s' has %d output_extensions. "
+                            "Risk of LLM lazy generation with Flash models.",
+                            matrix_id,
+                            len(matrix_dynamic_fields),
+                        )
 
                     if matrix_dynamic_fields:
                         final_type = create_model(
@@ -403,8 +418,6 @@ class SchemaFactory:
                 )
 
                 desc_val = f"Instruction field for {cat_val} block '{crit_id}' ({label_str})."
-                if crit.ai_description:
-                    desc_val += f" Objective: {crit.ai_description}"
 
                 fields[crit_id] = (
                     str,
@@ -447,14 +460,11 @@ class SchemaFactory:
             label_str = self._resolve_i18n(crit.label, target_locale) if crit.label else ""
             cat_val = crit.category_id.value if isinstance(crit.category_id, Enum) else (crit.category_id or "criteria")
             desc_val = f"Evaluation field for {cat_val} block '{crit_id}' ({label_str})."
-            # plan: Restore full ai_description without truncation since FSM
-            # serving limit is bypassed via strict=False.
-            if crit.ai_description:
-                desc_val += f" Objective: {crit.ai_description}"
 
             if crit.output_extensions:
                 dynamic_fields: dict[str, Any] = {}
-                core_aliases = {"justification", "citation", "missing_context", "contextual_override"}
+                # Tier 4 Fix: 'source_id' excluded — handled natively by AliasEngine
+                core_aliases = {"justification", "citation", "missing_context", "contextual_override", "source_id"}
 
                 # RCA Fix: Extensions that must be numeric or boolean for downstream
                 # blueprint.py _coerce_float / _coerce_bool to succeed.

@@ -400,7 +400,7 @@ def test_extract_value_from_state() -> None:
     state = {"a": "123", "b": {"c": "456"}, "steps": {"a": "789"}}
     assert compiler._extract_value_from_state("a", state) == "123"
     assert compiler._extract_value_from_state("b.c", state) == "456"
-    assert compiler._extract_value_from_state("steps.a", state) == "123"
+    assert compiler._extract_value_from_state("steps.a", state) == "789"
 
 
 def test_calibrate_strictness() -> None:

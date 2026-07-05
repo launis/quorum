@@ -468,7 +468,9 @@ class HeroInsightBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="hero_insight")
     block_type: Literal["hero_insight"] = "hero_insight"
+    text: str = Field(validation_alias=AliasChoices("text", "content"), default="")
     exact_quotes: list[str] = Field(default_factory=list)
+    citations: list[int] = Field(default_factory=list)
 
 
 class ParagraphBlock(SduiBlockBase):
@@ -502,7 +504,7 @@ class AlertBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="alert_box")
     block_type: Literal["alert_box"] = "alert_box"
-    severity: Literal["info", "warning"]
+    severity: Literal["info", "warning"] = Field(default="info")
     text: str = Field(validation_alias=AliasChoices("text", "content"))
     exact_quotes: list[str] = Field(default_factory=list)
     citations: list[int] = Field(default_factory=list)
@@ -527,8 +529,11 @@ class SduiQuoteCard(SduiBlockBase):
 
     model_config = ConfigDict(title="quote_card")
     block_type: Literal["quote_card"] = "quote_card"
-    quote: str = Field(..., description="The exact text of the quote.")
+    quote: str = Field(
+        ..., validation_alias=AliasChoices("quote", "text", "content"), description="The exact text of the quote."
+    )
     source_aliases: list[str] = Field(default_factory=list, description="Resolved source aliases.")
+    citations: list[Any] = Field(default_factory=list, description="Fallback for LLM hallucinated citations field.")
 
 
 class SduiWarningCard(SduiBlockBase):

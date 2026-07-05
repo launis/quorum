@@ -31,6 +31,12 @@ class SynthesisSectionDTO(V2CoreBase):
         if isinstance(data, dict):
             if data.get("content_blocks") is None:
                 data["content_blocks"] = []
+            blocks = data.get("content_blocks")
+            if isinstance(blocks, list):
+                for b in blocks:
+                    if isinstance(b, dict):
+                        if "type" in b and "block_type" not in b:
+                            b["block_type"] = b.pop("type")
         return data
 
 
@@ -122,3 +128,15 @@ class SynthesisOutputDTO(V2CoreBase):
             description="The deduplicated insight items per extension category, up to the requested maximum count.",
         ),
     ]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sanitize_sdui_blocks(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            blocks = data.get("content_blocks")
+            if isinstance(blocks, list):
+                for b in blocks:
+                    if isinstance(b, dict):
+                        if "type" in b and "block_type" not in b:
+                            b["block_type"] = b.pop("type")
+        return data

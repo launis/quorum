@@ -755,6 +755,7 @@ class ChunkWorker:
                                     "alias_map": base_alias_engine.alias_map,
                                 },
                                 source_context=global_source_text,
+                                alias_engine=base_alias_engine,
                             )
                             llm_time_ms = (time.time() - llm_start) * 1000
                             logger.info(
@@ -854,8 +855,11 @@ class ChunkWorker:
                 if hydrated_count > 0:
                     logger.info("[ChunkWorker] Hydrated %d atom_id aliases.", hydrated_count)
 
-        val_context = {"alias_map": base_alias_engine.alias_map}
-
+        val_context = {
+            "alias_map": base_alias_engine.alias_map,
+            "allowed_dynamic_keys": allowed_dynamic_keys,
+            "allowed_mcp_prefixes": step_metadata.get("allowed_mcp_prefixes", []) if step_metadata else [],
+        }
         chunk_final = resolve_majority_vote(
             res_list,
             has_shuffled_atoms,

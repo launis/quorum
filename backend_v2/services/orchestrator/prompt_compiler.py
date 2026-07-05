@@ -279,28 +279,20 @@ class PromptCompiler:
         if path.startswith("$"):
             path = path[1:]
 
-        # Support the standard V2 $steps namespace for explicit node targeting (e.g. $steps.sr_xyz.outputs)
-        if path.startswith("steps."):
-            path = path[len("steps.") :]
+        parts = path.split(".")
+        current = state_data
 
-        if path == "steps":
-            # Epic 27: Explicitly allow the global $steps namespace to dump the entire context
-            current: Any = state_data
-        else:
-            parts = path.split(".")
-            current = state_data
-
-            for part in parts:
-                if isinstance(current, dict) and part in current:
-                    current = current[part]
-                elif hasattr(current, part):
-                    current = getattr(current, part)
-                else:
-                    msg = f"Path resolution failed: '{path}'. Component '{part}' is missing from state context."
-                    logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    )
+        for part in parts:
+            if isinstance(current, dict) and part in current:
+                current = current[part]
+            elif hasattr(current, part):
+                current = getattr(current, part)
+            else:
+                msg = f"Path resolution failed: '{path}'. Component '{part}' is missing from state context."
+                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
 
         if isinstance(current, str):
             # Already a string, return directly
@@ -314,7 +306,8 @@ class PromptCompiler:
             # Epic 12: Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
             formatted = []
             for k, v in current.items():
-                formatted.append(f'<matrix_input source="{str(k).upper()}">')
+                clean_k = str(k).upper()
+                formatted.append(f"<{clean_k}>")
                 if isinstance(v, dict):
                     # Yritetään sukeltaa suoraan 'outputs' avaimeen jos se olemassa
                     target_dict = v.get("outputs", v) if "outputs" in v else v
@@ -348,7 +341,7 @@ class PromptCompiler:
                             )
                 else:
                     formatted.append(TemplateProcessor.encapsulate_payload(v))
-                formatted.append("</matrix_input>")
+                formatted.append(f"</{clean_k}>")
             return "\n".join(formatted).strip()
 
         return str(current)

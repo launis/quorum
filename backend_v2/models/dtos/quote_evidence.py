@@ -4,7 +4,6 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import DEFAULT_ALIAS_LITERALS
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
@@ -22,9 +21,7 @@ class SourceDocumentContext(BaseModel):
 class BaseSourceId(BaseModel):
     """Base class to force source_id to appear first in the JSON schema."""
 
-    source_id: str | None = Field(
-        default=None, pattern=AliasEngine.ALIAS_REGEX_PATTERN, description="Auto-resolved document ID (e.g. doc0, a1)"
-    )
+    source_id: str | None = Field(default=None, description="Auto-resolved document ID (e.g. doc0, a1)")
 
 
 class LLMExtractedQuote(BaseSourceId):
@@ -40,24 +37,29 @@ class LLMExtractedQuote(BaseSourceId):
             return data
 
         source_id = data.get("source_id")
-        if not source_id or source_id in DEFAULT_ALIAS_LITERALS:
+        if not source_id:
             return data
 
         if info.context is None:
             raise RuntimeError("ValidationInfo.context is missing. Cannot resolve source_id without context.")
 
         alias_map = info.context.get("alias_map", {})
-        if not alias_map:
+        allowed_dynamic_keys = info.context.get("allowed_dynamic_keys", [])
+        allowed_mcp_prefixes = info.context.get("allowed_mcp_prefixes", [])
+
+        if not alias_map and not allowed_dynamic_keys and not allowed_mcp_prefixes:
             return data
 
-        if source_id in alias_map:
-            data["source_id"] = alias_map[source_id]
-        elif source_id in alias_map.values():
-            pass  # It's already the fully resolved valid ID
-        else:
+        engine = AliasEngine(alias_map=alias_map)
+
+        if not engine.is_valid_source_id(source_id, allowed_dynamic_keys, allowed_mcp_prefixes):
             msg = f"Hallucinated source_id '{source_id}'. Must be one of valid keys: {list(alias_map.keys())}"
-            logger.warning(f"Pydantic Validation Error: {msg}")
+            logger.warning(f"[SYSTEM] | backend_v2.models.dtos.quote_evidence | Pydantic Validation Error: {msg}")
             raise ValueError(msg)
+
+        resolved = engine.resolve_alias(source_id)
+        if resolved:
+            data["source_id"] = resolved
 
         return data
 

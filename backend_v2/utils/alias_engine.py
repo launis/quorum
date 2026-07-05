@@ -42,7 +42,7 @@ class AliasEngine:
 
     # V2_2: Universaali regex, joka sallii aakkosnumeeriset tunnisteet.
     # Varsinainen tiukka tarkistus tapahtuu dynaamisesti _build_dynamic_regex -funktiossa.
-    ALIAS_REGEX_PATTERN = r"^[a-zA-Z0-9_/-]+$"
+    ALIAS_REGEX_PATTERN = r"^[a-zA-Z0-9_-]+$"
 
     @staticmethod
     def _build_dynamic_regex(allowed_dynamic_keys: list[str] | None) -> str:
@@ -53,11 +53,13 @@ class AliasEngine:
 
         safe_literals = [re.escape(x) for x in sorted(list(literals))]
         literals_str = "|".join(safe_literals)
-        return rf"^({literals_str}|[a-zA-Z_-]+\d+)$"
+        return rf"^({literals_str}|[a-zA-Z0-9_-]+)$"
 
     @staticmethod
     def build_doc_ids_literal(
-        source_document_ids: list[str] | None, allowed_dynamic_keys: list[str] | None = None
+        source_document_ids: list[str] | None,
+        allowed_dynamic_keys: list[str] | None = None,
+        has_search_result: bool = False,
     ) -> Any:
         """Builds an Annotated Literal type for source documents with regex pattern injection."""
         choices = set(source_document_ids or [])
@@ -66,6 +68,10 @@ class AliasEngine:
             choices.update(allowed_dynamic_keys)
 
         pattern = AliasEngine._build_dynamic_regex(allowed_dynamic_keys)
+
+        if has_search_result:
+            return Annotated[str, Field(pattern=pattern)]
+
         DocIdsLiteral = Literal[tuple(sorted(list(choices)))]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2 schema regex pattern injection
         return Annotated[DocIdsLiteral, Field(json_schema_extra={"pattern": pattern})]
 
@@ -74,6 +80,7 @@ class AliasEngine:
         source_document_ids: list[str] | None,
         allowed_atom_ids: list[str] | None,
         allowed_dynamic_keys: list[str] | None = None,
+        has_search_result: bool = False,
     ) -> Any:
         """Builds an Annotated Literal type for extracted quotes with regex pattern injection."""
         choices = set(source_document_ids or []) | set(allowed_atom_ids or [])
@@ -81,9 +88,12 @@ class AliasEngine:
         if allowed_dynamic_keys:
             choices.update(allowed_dynamic_keys)
 
-        quote_choices = sorted(list(choices))
         pattern = AliasEngine._build_dynamic_regex(allowed_dynamic_keys)
 
+        if has_search_result:
+            return Annotated[str, Field(pattern=pattern)]
+
+        quote_choices = sorted(list(choices))
         QuoteIdsLiteral = Literal[tuple(quote_choices)]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2 schema regex pattern injection
         return Annotated[QuoteIdsLiteral, Field(json_schema_extra={"pattern": pattern})]
 
@@ -106,6 +116,29 @@ class AliasEngine:
         self.alias_map: dict[str, str] = alias_map or {}
         self.source_document_aliases: list[str] = source_document_aliases or []
         self._counters: dict[str, int] = defaultdict(int)
+
+    def is_valid_source_id(
+        self, source_id: str, allowed_dynamic_keys: list[str], allowed_mcp_prefixes: list[str] | None = None
+    ) -> bool:
+        """Centralized validation for source_id to prevent hallucination while allowing valid dynamic keys and MCP results."""
+        if not source_id:
+            return False
+        if source_id in DEFAULT_ALIAS_LITERALS:
+            return True
+        if source_id in self.alias_map or source_id in self.alias_map.values():
+            return True
+        if source_id in allowed_dynamic_keys:
+            return True
+
+        if allowed_mcp_prefixes:
+            if any(source_id.startswith(p) for p in allowed_mcp_prefixes if p):
+                return True
+
+        # Fallback for hardcoded prefixes if completely dynamic isn't passed
+        if source_id.startswith("tavily_") or source_id.startswith("search_"):
+            return True
+
+        return False
 
     # --- SERIALIZATION BOUNDARY ---
 
@@ -141,6 +174,10 @@ class AliasEngine:
         Returns:
             The generated alias string (e.g., 'a0', 'doc1').
         """
+        # EPIC V2_5: Fail-Fast Reverse Lookup to prevent duplicate aliases for the same real_id
+        existing_alias = next((k for k, v in self.alias_map.items() if v == real_id), None)
+        if existing_alias:
+            return existing_alias
         if not prefix:
             if "_" in real_id:
                 prefix = real_id.split("_")[0]
@@ -189,6 +226,23 @@ class AliasEngine:
                     hydrated_count += 1
 
         return hydrated_count
+
+    def hydrate_reasoning_text(self, text: str) -> str:
+        """Replace internal aliases with their real IDs in text fields."""
+        if not text:
+            return text
+        for alias, real_id in self.alias_map.items():
+            if alias in text:
+                real_str = str(real_id)
+                # Replace exact matches with surrounding quotes or boundaries
+                text = text.replace(f"'{alias}'", f"'{real_str}'")
+                text = text.replace(f'"{alias}"', f'"{real_str}"')
+                text = text.replace(f"`{alias}`", f"`{real_str}`")
+                # Also replace raw alias if it stands alone, but safely by checking word boundaries
+                import re
+
+                text = re.sub(rf"\b{alias}\b", real_str, text)
+        return text
 
     def text_replace_alias(self, text: str, real_id: str, alias: str, template: str = '="{id}"') -> str:
         """Replace a specific template of a real_id in text with the alias.
