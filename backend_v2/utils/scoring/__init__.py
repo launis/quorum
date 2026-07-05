@@ -6,7 +6,6 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import ScoringStrategy
 from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
-from backend_v2.utils.scoring.dampening_engine import DampeningScoringEngine
 from backend_v2.utils.scoring.pure_math_engine import PureMathScoringEngine
 from backend_v2.utils.scoring.waterfall_engine import WaterfallScoringEngine
 
@@ -40,8 +39,6 @@ def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
     match strategy:
         case ScoringStrategy.WATERFALL:
             return WaterfallScoringEngine()
-        case ScoringStrategy.DAMPENING:
-            return DampeningScoringEngine()
         case ScoringStrategy.AVERAGE:
             return PureAverageScoringEngine()
         case ScoringStrategy.WEIGHTED_AVERAGE:

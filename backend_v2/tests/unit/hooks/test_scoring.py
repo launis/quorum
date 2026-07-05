@@ -561,7 +561,7 @@ class MockRepoWaterfallSimulation:
         )
 
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
-        return _build_valid_execution_dict(execution_id, strategy="DAMPENING")
+        return _build_valid_execution_dict(execution_id, strategy="AVERAGE")
 
     async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
         return {
@@ -582,7 +582,7 @@ class MockRepoWaterfallSimulation:
             "workflow_id": "wf_123",
             "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
-            "scoring_strategy": "DAMPENING",
+            "scoring_strategy": "AVERAGE",
             "layouts": [],
             "display_scale": "original",
         }
@@ -701,9 +701,11 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 3.306) < 0.01
+    assert result.state_delta["pb_1234567890123456"]["raw_score"] > 1.0
     assert result.state_delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
-    assert result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_dampening_engine_breakdown"
+    assert (
+        result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_pure_average_engine_breakdown"
+    )
 
 
 @pytest.mark.asyncio

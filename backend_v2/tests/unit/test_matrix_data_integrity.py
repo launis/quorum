@@ -122,8 +122,7 @@ def test_all_matrices_have_valid_mathematical_range(db: dict[str, Any]) -> None:
             scores = [float(str(s.get("score"))) for s in scales if isinstance(s, dict) and s.get("score") is not None]
 
             assert len(scores) >= 2, (
-                f"Matrix {block.get('id')} ({block.get('slug')}) must have at least 2 scales "
-                "for progressive dampening boundaries."
+                f"Matrix {block.get('id')} ({block.get('slug')}) must have at least 2 scales for scoring boundaries."
             )
 
             math_min = min(scores)

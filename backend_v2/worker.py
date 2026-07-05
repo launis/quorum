@@ -787,17 +787,17 @@ async def generate_profile_synthesis_and_pdf_task(
                         if b_meta:
                             math_min = b_meta["math_min"]
                             math_max = b_meta["math_max"]
-                            dampening_score, xai_log_dto, _ = engine.calculate(
+                            calculated_score, xai_log_dto, _ = engine.calculate(
                                 stats, math_min, math_max, strictness_level=strictness_level
                             )
                             norm_val = normalize_score_to_100(
-                                score=dampening_score,
+                                score=calculated_score,
                                 math_min=b_meta["math_min"],
                                 math_max=b_meta["math_max"],
                             )
                             lw_matrix = lw_matrix.model_copy(
                                 update={
-                                    "raw_score": float(dampening_score),
+                                    "raw_score": float(calculated_score),
                                     "normalized_score": float(norm_val),
                                     "xai_log": xai_log_dto,
                                 }

@@ -94,8 +94,6 @@ enum EvidenceType {
 enum ScoringStrategy {
   @JsonValue('WATERFALL')
   waterfall,
-  @JsonValue('DAMPENING')
-  dampening,
   @JsonValue('AVERAGE')
   average,
   @JsonValue('WEIGHTED_AVERAGE')

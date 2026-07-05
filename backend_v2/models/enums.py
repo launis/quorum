@@ -182,22 +182,6 @@ class WaterfallThreshold(float, Enum):
     LENIENT = 0.15  # Requires ~15% consensus (Salliva 15)
 
 
-class CognitiveFlowThreshold(float, Enum):
-    """Progressive Dampening thresholds for cognitive flow degradation."""
-
-    OPTIMAL = 1.00
-    ACCEPTABLE = 0.70
-    SIGNIFICANT_DROP_DIFF = 0.50
-
-
-class CognitiveFlowStatus(str, Enum):
-    """Logging texts for XAI justification of cognitive dampening."""
-
-    OPTIMAL = "Hits flowed completely through"
-    ACCEPTABLE = "Hits were dampened according to the flow"
-    WEAK = "Cognitive flow degrades significantly"
-
-
 class ScoringCalibrationThresholds(float, Enum):
     """Thresholds for Benefit of the Doubt leniency and Double Jeopardy caps."""
 
@@ -538,7 +522,6 @@ class ScoringStrategy(str, Enum):
     """Selects the mathematical engine used to calculate final matrix scores."""
 
     WATERFALL = "WATERFALL"
-    DAMPENING = "DAMPENING"
     AVERAGE = "AVERAGE"
     WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE"
     PURE_MATH = "PURE_MATH"

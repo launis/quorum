@@ -464,8 +464,6 @@ class OutputProfileCrudView extends HookConsumerWidget {
                           child: Text(switch (strategy) {
                             ScoringStrategy.waterfall =>
                               l10n.strategyKoearvostelu,
-                            ScoringStrategy.dampening =>
-                              l10n.strategySyvaarvostelu,
                             ScoringStrategy.average =>
                               l10n.strategyLineaarinenKeskiarvo,
                             ScoringStrategy.weightedAverage =>

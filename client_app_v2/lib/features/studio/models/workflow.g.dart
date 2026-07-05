@@ -638,7 +638,6 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
 
 const _$ScoringStrategyEnumMap = {
   ScoringStrategy.waterfall: 'WATERFALL',
-  ScoringStrategy.dampening: 'DAMPENING',
   ScoringStrategy.average: 'AVERAGE',
   ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
   ScoringStrategy.pureMath: 'PURE_MATH',
