@@ -1,7 +1,0 @@
-{
-  "role_passenger": "Passenger",
-  "role_navigator": "Navigator",
-  "role_driver": "Driver",
-  "role_architect": "Architect",
-  "missing_xai_extension_fallback": "Not available (Null Fallback)"
-}
