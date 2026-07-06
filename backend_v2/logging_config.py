@@ -117,16 +117,18 @@ def configure_logfire() -> None:
         logfire.configure(send_to_logfire=True)
         logfire.instrument_pydantic()
         logfire.instrument_httpx()
+        logfire.instrument_requests()
+        logfire.instrument_system_metrics()
         # logfire.instrument_redis() # Spams the console with Arq queue polling (ZRANGEBYSCORE/ZCARD) every 0.5s
 
-        # Lazy import: heavy AI/ML library (no_inline_imports mandate)
-        try:
-            import litellm as _litellm
+        # Instrument LiteLLM if available
+        import importlib.util
 
-            _litellm.success_callback = ["logfire"]  # Instrument LLM Calls
-            _litellm.failure_callback = ["logfire"]
-        except ImportError:
-            pass
+        if importlib.util.find_spec("litellm"):
+            try:
+                logfire.instrument_litellm()
+            except Exception as inst_err:
+                logging.getLogger(__name__).warning(f"Failed to instrument LiteLLM with Logfire: {inst_err}")
     except Exception as e:
         msg = f"[LoggingConfig] Logfire validation failed: {e}. Observability disabled."
         logging.getLogger(__name__).warning(

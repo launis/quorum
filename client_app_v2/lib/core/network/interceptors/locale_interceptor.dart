@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:ui';
 import 'package:dio/dio.dart';
 
 /// **Target Locale Interceptor**
@@ -11,10 +11,9 @@ class TargetLocaleInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // 1. Get system locale (e.g., 'en_US', 'fi_FI')
+    // 1. Get system locale from PlatformDispatcher (web-safe)
     // For V2 we only need the primary language code (e.g., 'en', 'fi')
-    final String localeName = Platform.localeName;
-    final String languageCode = localeName.split('_').first;
+    final String languageCode = PlatformDispatcher.instance.locale.languageCode;
 
     // 2. Attach to headers
     options.headers['Accept-Language'] = languageCode;

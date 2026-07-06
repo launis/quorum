@@ -1,5 +1,5 @@
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
-import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -27,7 +27,7 @@ class ModelRegistryController extends _$ModelRegistryController {
   Future<List<ModelConfig>> _fetchConfigs() async {
     final client = ref.read(studioClientProvider);
     final rawList = await client.getSystemConfigs();
-    return Isolate.run(
+    return safeIsolateRun(
       () => rawList
           .where((map) => map['type'] == 'model_registry')
           .map((e) => ModelConfig.fromJson(e))
@@ -72,7 +72,7 @@ class ModelRegistryController extends _$ModelRegistryController {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
       final rawResponse = await client.saveSystemConfig(id, payload.toJson());
-      final verifiedConfig = await Isolate.run(
+      final verifiedConfig = await safeIsolateRun(
         () => ModelConfig.fromJson(rawResponse),
       );
 
@@ -129,7 +129,7 @@ class ModelRegistryController extends _$ModelRegistryController {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
       final rawConfig = await client.cloneSystemConfig(id);
-      final clonedConfig = await Isolate.run(
+      final clonedConfig = await safeIsolateRun(
         () => ModelConfig.fromJson(rawConfig),
       );
 
@@ -158,7 +158,7 @@ class ModelRegistryController extends _$ModelRegistryController {
     try {
       final client = ref.read(studioClientProvider);
       final rawConfig = await client.createSystemConfigDraft();
-      final draftConfig = await Isolate.run(
+      final draftConfig = await safeIsolateRun(
         () => ModelConfig.fromJson(rawConfig),
       );
 
@@ -184,7 +184,7 @@ class ModelRegistryController extends _$ModelRegistryController {
 Future<ModelConfig> modelRegistryById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
   final rawData = await client.getSystemConfig(id);
-  return Isolate.run(() => ModelConfig.fromJson(rawData));
+  return safeIsolateRun(() => ModelConfig.fromJson(rawData));
 }
 
 /// Fetches the list of available models from the backend.

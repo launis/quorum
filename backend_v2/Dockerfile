@@ -1,4 +1,4 @@
-FROM python:3.13
+FROM python:3.14
 
 WORKDIR /app
 
@@ -18,16 +18,19 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --upgrade pip setuptools && pip install --no-cache-dir -r requirements.txt
+# Install uv directly into the image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Install Python dependencies using uv (much faster and respects cross-platform uv.lock)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code to root /app
-COPY . /app
+COPY backend_v2 /app/backend_v2
 
 # Set Python path so 'backend' package is resolvable
 ENV PYTHONPATH=/app
 
-# Start the application
+# Start the application using uv run
 # We are in /app, so 'backend' is a package.
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uv", "run", "uvicorn", "backend_v2.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

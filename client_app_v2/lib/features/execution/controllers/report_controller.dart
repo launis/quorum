@@ -1,4 +1,4 @@
-import 'dart:isolate';
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
@@ -55,7 +55,7 @@ class ReportController extends _$ReportController {
         continue;
       }
 
-      return await Isolate.run(() => ReportDataDTO.fromJson(rawData));
+      return await safeIsolateRun(() => ReportDataDTO.fromJson(rawData));
     }
   }
 }

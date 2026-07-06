@@ -122,7 +122,7 @@ class LLMHandler:
 
                 # Setup Auth (once)
                 try:
-                    credentials, project = google.auth.default(  # type: ignore[no-untyped-call]
+                    credentials, project = google.auth.default(
                         scopes=["https://www.googleapis.com/auth/cloud-platform"]
                     )
                 except Exception as auth_err:
@@ -172,8 +172,8 @@ class LLMHandler:
                         # Kolmansien osapuolien Model Garden -mallit
                         try:
                             # Refresh token for REST API usage
-                            auth_request = google.auth.transport.requests.Request()  # type: ignore[no-untyped-call] # google-auth has no type stubs
-                            credentials.refresh(auth_request)
+                            auth_request = google.auth.transport.requests.Request()
+                            credentials.refresh(auth_request)  # type: ignore[no-untyped-call]
                             headers = {"Authorization": f"Bearer {credentials.token}"}
 
                             # Varmistetaan olemassaolo dynaamisen julkaisija-osoitteen kautta

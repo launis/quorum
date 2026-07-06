@@ -25,7 +25,7 @@ dependencies = [
     "email-validator",
     "requests>=2.32.5",
     "beautifulsoup4>=4.14.3",
-    "logfire[fastapi,httpx]>=4.16.0",
+    "logfire[fastapi,httpx,litellm,requests,system-metrics]>=4.16.0",
     "arq>=0.26.3",
     "redis>=5.3.1",
     "watchfiles>=1.1.1",
@@ -45,6 +45,7 @@ dependencies = [
     "rapidfuzz>=3.14.5",
     "ftfy>=6.3.1",
     "json-repair>=0.61.1",
+    "openpyxl>=3.1.5",
 ]
 
 [dependency-groups]
@@ -104,6 +105,18 @@ convention = "google"
 "scripts/flutter_audit_loop.py" = ["E501", "D415"]
 "tests/unit/services/orchestrator/test_chunk_worker_validation.py" = ["E501"]
 "tools/check_trace_size.py" = ["E501"]
+"backend_v2/services/mcp/mcp_tool_loop.py" = ["E501"]
+"backend_v2/services/orchestrator/extractive_sensor_service.py" = ["E501"]
+"backend_v2/services/orchestrator/localization_compiler.py" = ["E501"]
+"backend_v2/services/orchestrator/prompt_compiler_adapter.py" = ["E501"]
+"backend_v2/services/orchestrator/strategies/llm.py" = ["E501"]
+"backend_v2/services/orchestrator/strategies/llm_execution/chunk_worker.py" = ["E501"]
+"backend_v2/services/source_verification_service.py" = ["E501"]
+"backend_v2/tests/unit/hooks/test_scoring.py" = ["E501"]
+"backend_v2/tests/unit/services/orchestrator/strategies/test_fail_fast_inputs_resolution.py" = ["E501"]
+"backend_v2/tests/unit/services/test_blueprint.py" = ["E501"]
+"backend_v2/tests/unit/test_tavily_search_client.py" = ["E501"]
+"backend_v2/utils/alias_engine.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.14"

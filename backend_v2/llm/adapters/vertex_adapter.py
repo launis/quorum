@@ -207,7 +207,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     try:
                         caching = importlib.import_module("vertexai.preview.caching")
                         cached_content_cls = caching.CachedContent
-                    except (ImportError, AttributeError):
+                    except ImportError, AttributeError:
                         generative_models = importlib.import_module("vertexai.preview.generative_models")
                         cached_content_cls = generative_models.cached_contents.CachedContent
 

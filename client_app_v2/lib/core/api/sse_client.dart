@@ -1,5 +1,5 @@
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
-import 'dart:isolate';
 import 'package:dio/dio.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -57,9 +57,9 @@ class SseClient {
         final dataStr = line.substring(6).trim();
         if (dataStr.isNotEmpty) {
           try {
-            // Mandate 5.3: Concurrency & Performance via Isolate.run
+            // Mandate 5.3: Concurrency & Performance via safeIsolateRun
             // V3: Refactor to Delta Signal exclusively. Only process lightweight changes.
-            final Map<String, dynamic> payload = await Isolate.run(() {
+            final Map<String, dynamic> payload = await safeIsolateRun(() {
               final raw = jsonDecode(dataStr) as Map<String, dynamic>;
               return {
                 'id': raw['id'],

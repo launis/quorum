@@ -7,7 +7,7 @@ organization management, and cryptographic token structures.
 import logging
 import uuid
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, EmailStr, Field, field_validator
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # --- Enums ---
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     """Enumeration of user permission roles within the system.
 
     Attributes:
@@ -39,7 +39,7 @@ class UserRole(str, Enum):
     VIEWER = "VIEWER"  # Read-Only Stakeholder
 
 
-class SubscriptionStatus(str, Enum):
+class SubscriptionStatus(StrEnum):
     """SaaS Subscription Status."""
 
     ACTIVE = "active"
@@ -48,7 +48,7 @@ class SubscriptionStatus(str, Enum):
     TRIAL = "trial"
 
 
-class SystemOrganizations(str, Enum):
+class SystemOrganizations(StrEnum):
     """Special predefined system organizations."""
 
     ROOT_SYSTEM = "org_system000000"

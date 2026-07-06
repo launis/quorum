@@ -27,7 +27,7 @@ echo       - Backend:  quorum-backend (8000)
 echo       - Frontend: quorum-frontend (8080) [Flutter Web]
 
 :: Force recreate to ensure fresh build and env vars
-docker-compose up -d --build
+docker compose up -d --build --pull always
 
 echo.
 echo ---------------------------------------------------

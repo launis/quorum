@@ -8,7 +8,7 @@ monolithic PromptCompiler, following SRP (Rule 88).
 
 import logging
 from collections.abc import Callable
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
@@ -43,7 +43,7 @@ def _coerce_bool(v: Any) -> Any:
 CoercedBool = Annotated[bool, BeforeValidator(_coerce_bool)]
 
 
-class EvidenceType(str, Enum):
+class EvidenceType(StrEnum):
     """Categorizes the type of evidence discovered during TDA extraction."""
 
     EXPLICIT_QUOTE = "EXPLICIT_QUOTE"
@@ -226,7 +226,7 @@ class SchemaFactory:
                     ),
                 ),
                 exact_quotes=(
-                    list[DynamicLLMExtractedQuote],  # type: ignore
+                    list[DynamicLLMExtractedQuote],
                     Field(
                         default_factory=list,
                         max_length=get_settings().schema_max_quotes_target,
@@ -247,7 +247,7 @@ class SchemaFactory:
                     ),
                 ),
                 exact_quotes=(
-                    list[DynamicLLMExtractedQuote],  # type: ignore
+                    list[DynamicLLMExtractedQuote],
                     Field(
                         default_factory=list,
                         max_length=get_settings().schema_max_quotes_target,
@@ -279,13 +279,13 @@ class SchemaFactory:
             AtomResponse: Any
             if strictness_level >= 100:
 
-                class AtomResponseStrict(step_strict_class, AtomResponseBase):  # type: ignore
+                class AtomResponseStrict(step_strict_class, AtomResponseBase):
                     pass
 
                 AtomResponse = AtomResponseStrict
             else:
 
-                class AtomResponseSemantic(step_semantic_class, AtomResponseBase):  # type: ignore
+                class AtomResponseSemantic(step_semantic_class, AtomResponseBase):
                     pass
 
                 AtomResponse = AtomResponseSemantic

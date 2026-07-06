@@ -19,6 +19,7 @@ def write_debug_prompt_log(
     base_system_prompt: str,
     user_payload: str,
     task_blueprint: str | None = None,
+    expected_schema_name: str | None = None,
 ) -> None:
     """Writes the generated LLM prompt and its origins to a debug log file.
 
@@ -34,6 +35,7 @@ def write_debug_prompt_log(
         base_system_prompt: The fully constructed system prompt.
         user_payload: The fully constructed XML payload for the user message.
         task_blueprint: The blueprint ID to explain how this command was triggered.
+        expected_schema_name: The Pydantic model name the LLM is expected to return.
 
     Returns:
         None.
@@ -69,15 +71,18 @@ def write_debug_prompt_log(
     for cb in criteria_blocks:
         lines.append(f"  - {cb.id} ('{cb.category_id}')")
 
-    lines.append("\\n## 2. Base System Prompt")
+    lines.append("\n## 2. Base System Prompt")
     lines.append("```text")
     lines.append(base_system_prompt)
-    lines.append("```\\n")
+    lines.append("```\n")
 
     lines.append("## 3. User Payload")
+    lines.append(f"- **Payload Size**: {len(user_payload)} characters")
+    if expected_schema_name:
+        lines.append(f"- **Expected Schema**: `{expected_schema_name}`")
     lines.append("```xml")
     lines.append(user_payload)
-    lines.append("```\\n")
+    lines.append("```\n")
 
     with open(debug_file, "a", encoding="utf-8") as df:
-        df.write("\\n".join(lines))
+        df.write("\n".join(lines))

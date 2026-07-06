@@ -1,6 +1,6 @@
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -185,7 +185,7 @@ class McpGatewayForm extends _$McpGatewayForm {
 
     // 2. ISOLATE MANDATE: Deep Copy / Parse in Isolate protecting Main Thread
     final str = jsonEncode(rawData);
-    return Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
+    return safeIsolateRun(() => jsonDecode(str) as Map<String, dynamic>);
   }
 
   /// Synchronous local state mutations for the form

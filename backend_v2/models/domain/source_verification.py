@@ -4,7 +4,7 @@ These models handle the representation of claims extracted from documents
 and their verification statuses via external search services.
 """
 
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import BeforeValidator, Field
@@ -12,7 +12,7 @@ from pydantic import BeforeValidator, Field
 from backend_v2.models.core_base import V2CoreBase
 
 
-class SourceVerificationStatus(str, Enum):
+class SourceVerificationStatus(StrEnum):
     """Enumeration of possible verification statuses for a source claim."""
 
     VERIFIED = "VERIFIED"

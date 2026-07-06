@@ -1,6 +1,6 @@
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -29,7 +29,7 @@ class OutputProfilesController extends _$OutputProfilesController {
   Future<List<OutputProfile>> _fetchProfiles() async {
     final client = ref.read(studioClientProvider);
     final rawList = await client.getOutputProfiles();
-    return Isolate.run(
+    return safeIsolateRun(
       () => rawList.map((e) => OutputProfile.fromJson(e)).toList(),
     );
   }
@@ -71,7 +71,7 @@ class OutputProfilesController extends _$OutputProfilesController {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
       final rawResponse = await client.saveOutputProfile(id, payload.toJson());
-      final verifiedProfile = await Isolate.run(
+      final verifiedProfile = await safeIsolateRun(
         () => OutputProfile.fromJson(rawResponse),
       );
 
@@ -128,7 +128,7 @@ class OutputProfilesController extends _$OutputProfilesController {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
       final rawProfile = await client.cloneOutputProfile(id);
-      final clonedProfile = await Isolate.run(
+      final clonedProfile = await safeIsolateRun(
         () => OutputProfile.fromJson(rawProfile),
       );
 
@@ -157,7 +157,7 @@ class OutputProfilesController extends _$OutputProfilesController {
     try {
       final client = ref.read(studioClientProvider);
       final rawProfile = await client.createOutputProfileDraft();
-      final draftProfile = await Isolate.run(
+      final draftProfile = await safeIsolateRun(
         () => OutputProfile.fromJson(rawProfile),
       );
 
@@ -183,7 +183,7 @@ class OutputProfilesController extends _$OutputProfilesController {
 Future<OutputProfile> outputProfileById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
   final rawData = await client.getOutputProfile(id);
-  return Isolate.run(() => OutputProfile.fromJson(rawData));
+  return safeIsolateRun(() => OutputProfile.fromJson(rawData));
 }
 
 // --- Gold Standard Form State (Flat MVC) ---
@@ -194,7 +194,7 @@ class OutputProfileForm extends _$OutputProfileForm {
   FutureOr<OutputProfile> build(String configId) async {
     final profile = await ref.watch(outputProfileByIdProvider(configId).future);
     final str = jsonEncode(profile.toJson());
-    return Isolate.run(() => OutputProfile.fromJson(jsonDecode(str)));
+    return safeIsolateRun(() => OutputProfile.fromJson(jsonDecode(str)));
   }
 
   void forceRebuild() {

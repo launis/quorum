@@ -1,6 +1,6 @@
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -39,7 +39,7 @@ Future<NodeStrategy> stepById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
   final rawData = await client.getStep(id);
   final str = jsonEncode(rawData);
-  return Isolate.run(
+  return safeIsolateRun(
     () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
   );
 }
@@ -300,7 +300,7 @@ class StepsController extends _$StepsController {
     final client = ref.read(studioClientProvider);
     final rawData = await client.getSteps();
     // Isolate Mandate: Zero-Latency
-    return Isolate.run(() {
+    return safeIsolateRun(() {
       return rawData.map((e) => NodeStrategy.fromJson(e)).toList();
     });
   }
@@ -356,7 +356,7 @@ class StepsController extends _$StepsController {
       final client = ref.read(studioClientProvider);
       final rawResponse = await client.saveStep(id, returnData.toJson());
       final str = jsonEncode(rawResponse);
-      final verifiedStep = await Isolate.run(
+      final verifiedStep = await safeIsolateRun(
         () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
       );
 
@@ -423,7 +423,7 @@ class StepsController extends _$StepsController {
       final client = ref.read(studioClientProvider);
       final rawResponse = await client.cloneStep(id);
       final str = jsonEncode(rawResponse);
-      final clonedStep = await Isolate.run(
+      final clonedStep = await safeIsolateRun(
         () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
       );
 
@@ -454,7 +454,7 @@ class StepsController extends _$StepsController {
       final rawResponse = await client.createStepDraft();
 
       // Isolate Mandate: Zero-Latency
-      final draftStep = await Isolate.run(() {
+      final draftStep = await safeIsolateRun(() {
         return NodeStrategy.fromJson(rawResponse);
       });
 

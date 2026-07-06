@@ -1,16 +1,18 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend_v2/Dockerfile
     container_name: quorum-backend
     ports:
       - "8000:8000"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      # Production Configuration (Vertex AI + Firestore)
+      # Development Configuration
       - USE_MOCK_LLM=false
-      - USE_MOCK_DB=false
-      - STORAGE_BACKEND=FIRESTORE
+      - USE_MOCK_DB=true
+      - STORAGE_BACKEND=LOCAL
       - STORAGE_BUCKET_NAME=cognitive-quorum.firebasestorage.app
       - USE_VERTEX_LLM=true
       - VERTEX_LOCATION=europe-north1
@@ -20,22 +22,24 @@ services:
     env_file:
       - .env
     volumes:
-      - ./backend:/app/backend
+      - ./backend_v2:/app/backend_v2
       - ./data:/app/data
       - ./service-account.json:/app/service-account.json
     networks:
       - quorum-net
 
   worker:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend_v2/Dockerfile
     container_name: quorum-worker
-    command: python -m backend.run_worker
+    command: python -m backend_v2.run_worker
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - USE_MOCK_LLM=false
-      - USE_MOCK_DB=false
-      - STORAGE_BACKEND=FIRESTORE
+      - USE_MOCK_DB=true
+      - STORAGE_BACKEND=LOCAL
       - STORAGE_BUCKET_NAME=cognitive-quorum.appspot.com
       - USE_VERTEX_LLM=true
       - VERTEX_LOCATION=europe-north1
@@ -43,7 +47,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./backend:/app/backend
+      - ./backend_v2:/app/backend_v2
       - ./data:/app/data
       - ./service-account.json:/app/service-account.json
     depends_on:
@@ -60,7 +64,7 @@ services:
       - quorum-net
 
   frontend:
-    build: ./client_app
+    build: ./client_app_v2
     container_name: quorum-frontend
     ports:
       - "8080:80"

@@ -160,4 +160,9 @@
         <mandatory_pattern>All model- and operator-specific anomalies, logic variations, and HTTP client customizations MUST be encapsulated in their respective `BaseLLMAdapter` implementations under `backend_v2/llm/adapters/`. The `LiteLLMProvider` MUST remain a clean, pristine orchestrator.</mandatory_pattern>
         <catastrophic_reason>Allowing provider-specific logic to bleed into the global orchestrator creates a bloated God Class, making it impossible to add new models (Anthropic, OpenAI) without breaking existing, fragile conditional branches. It violates the Open/Closed Principle.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="local_prompt_debugging_mandate">
+        <banned_pattern>Attempting to debug token explosions, JSON schema extraction failures, or model hallucinations solely by guessing or staring at Logfire cloud traces without reviewing the exact constructed XML payload.</banned_pattern>
+        <mandatory_pattern>In `development` environments, the backend automatically generates a comprehensive `llm_debug_prompts.md` for every execution step inside `data/files/executions/<execution_id>/`. When resolving LLM hallucination or latency (e.g. 50-second generation times) issues, you MUST proactively use `view_file` to read this markdown file. It contains the precise `Prompt Source Blocks` (e.g. `blk_...` IDs) and the exact `User Payload` (including payload size and expected Pydantic schema name) that caused the anomaly, allowing surgical database corrections rather than trial and error.</mandatory_pattern>
+    </rule_block>
 </architectural_invariants>

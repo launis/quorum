@@ -1,6 +1,6 @@
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:isolate';
 import 'package:dio/dio.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
@@ -69,7 +69,7 @@ class SseClient {
           if (jsonString.isEmpty) continue;
 
           try {
-            final decoded = await Isolate.run(() => jsonDecode(jsonString));
+            final decoded = await safeIsolateRun(() => jsonDecode(jsonString));
             if (decoded is Map<String, dynamic>) {
               yield decoded;
             } else {

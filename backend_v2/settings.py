@@ -2,7 +2,7 @@
 
 import logging
 import os
-from enum import Enum
+from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -32,7 +32,7 @@ def strip_whitespace(v: Any) -> Any:
 type MyBool = Annotated[bool, BeforeValidator(strip_whitespace)]
 
 
-class StorageBackend(str, Enum):
+class StorageBackend(StrEnum):
     """Enumeration for Storage Backends."""
 
     FIRESTORE = "FIRESTORE"

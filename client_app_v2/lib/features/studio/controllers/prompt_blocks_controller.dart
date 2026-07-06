@@ -68,7 +68,7 @@ class PromptBlocksController extends _$PromptBlocksController {
   Future<List<PromptBlock>> _fetchPromptBlocks() async {
     final client = ref.read(studioClientProvider);
     final rawData = await client.getPromptBlocks();
-    // Using Isolate.run per 2026 Mandate to prevent Main Thread Jank on 120Hz displays
+    // Using safeIsolateRun per 2026 Mandate to prevent Main Thread Jank on 120Hz displays
     return PromptBlock.parseListInBackground(rawData);
   }
 

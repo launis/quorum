@@ -3,13 +3,13 @@ Strict definition of allowed types to enforce the No-String Mandate.
 """
 
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, StrEnum
 from typing import Annotated
 
 from pydantic import Field
 
 
-class EvaluationMandate(str, Enum):
+class EvaluationMandate(StrEnum):
     """Architectural Nollahypoteesi mandate attached to all strict evaluations."""
 
     FAIL_FAST_NO_EVIDENCE = (
@@ -17,7 +17,7 @@ class EvaluationMandate(str, Enum):
     )
 
 
-class ExecutionProfile(str, Enum):
+class ExecutionProfile(StrEnum):
     """Defines the execution intent for an LLM client, overriding static configuration rules.
 
     Attributes:
@@ -58,7 +58,7 @@ class SourceSufficiencyThreshold(int, Enum):
     MIN_CHARS = 200
 
 
-class SystemConfigID(str, Enum):
+class SystemConfigID(StrEnum):
     """Hardcoded Opaque Stripe IDs for global System Configurations."""
 
     MODEL_REGISTRY = "sys_e26807f3bfa3454d"
@@ -66,7 +66,7 @@ class SystemConfigID(str, Enum):
     PERFORMATIVE_LEXICONS = "sys_e0b2a3c4d5e6f7a8"
 
 
-class BlockDataType(str, Enum):
+class BlockDataType(StrEnum):
     """Data types allowed for PromptBlock extracted values.
     Accepts core extraction types, plus valid legacy structural types.
     """
@@ -81,7 +81,7 @@ class BlockDataType(str, Enum):
     CRITERIA = "criteria"
 
 
-class PromptBlockCategory(str, Enum):
+class PromptBlockCategory(StrEnum):
     """Strictly defined categories for PromptBlocks to guarantee Fail-Fast parity with Frontend."""
 
     MATRIX = "matrix"
@@ -93,7 +93,7 @@ class PromptBlockCategory(str, Enum):
     EXECUTION_PERSONA = "execution_persona"
 
 
-class ComponentType(str, Enum):
+class ComponentType(StrEnum):
     """Component types allowed for SDUI Frontend Hint mapping."""
 
     SLIDER = "slider"
@@ -103,7 +103,7 @@ class ComponentType(str, Enum):
     HIDDEN = "hidden"
 
 
-class VisualIntent(str, Enum):
+class VisualIntent(StrEnum):
     """UI intent mapping for SDUI visual rendering."""
 
     SUCCESS = "success"
@@ -113,7 +113,7 @@ class VisualIntent(str, Enum):
     NEUTRAL = "NEUTRAL"
 
 
-class XaiExtensionType(str, Enum):
+class XaiExtensionType(StrEnum):
     """Supported XAI Output Extensions for global visibility."""
 
     CITATION = "citation"
@@ -132,7 +132,7 @@ class XaiExtensionType(str, Enum):
     AUTHENTICITY_EVALUATION = "authenticity_evaluation"
 
 
-class XaiExtensionScope(str, Enum):
+class XaiExtensionScope(StrEnum):
     """Scope classification for XAI Extensions.
 
     Attributes:
@@ -190,7 +190,7 @@ class ScoringCalibrationThresholds(float, Enum):
     BENEFIT_OF_DOUBT_BONUS = 0.15
 
 
-class EvaluationCategory(str, Enum):
+class EvaluationCategory(StrEnum):
     """Broad categorization for component classification."""
 
     MATHEMATICAL = "MATHEMATICAL"
@@ -201,7 +201,7 @@ class EvaluationCategory(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class ExecutionStatus(str, Enum):
+class ExecutionStatus(StrEnum):
     """Execution lifecycle status."""
 
     PENDING = "pending"
@@ -211,7 +211,7 @@ class ExecutionStatus(str, Enum):
     FAILED = "failed"
 
 
-class VirtualSystemStepID(str, Enum):
+class VirtualSystemStepID(StrEnum):
     """Reserved IDs for Virtual System Steps generated dynamically by the DAG Engine."""
 
     SCORING_RESULT = "scoring_result"
@@ -220,21 +220,21 @@ class VirtualSystemStepID(str, Enum):
     STEP_METADATA = "_step_metadata"
 
 
-class HistoricalContextMode(str, Enum):
+class HistoricalContextMode(StrEnum):
     """Modes for fetching historical execution data during synthesis."""
 
     DISABLED = "DISABLED"
     SLIDING_WINDOW_3 = "SLIDING_WINDOW_3"
 
 
-class SystemLocale(str, Enum):
+class SystemLocale(StrEnum):
     """Supported system locales."""
 
     EN = "en"
     FI = "fi"
 
 
-class LLMCachingStrategy(str, Enum):
+class LLMCachingStrategy(StrEnum):
     """Supported caching strategies."""
 
     PROMPT_CACHING = "prompt_caching"
@@ -244,7 +244,7 @@ class LLMCachingStrategy(str, Enum):
     NONE = "none"
 
 
-class LLMProviderName(str, Enum):
+class LLMProviderName(StrEnum):
     """Supported LLM provider names."""
 
     VERTEX_AI = "vertex_ai"
@@ -255,7 +255,7 @@ class LLMProviderName(str, Enum):
     MOCK = "mock_llm_99"
 
 
-class PromptCacheStatus(str, Enum):
+class PromptCacheStatus(StrEnum):
     """Status states for prompt caching in shared ledger."""
 
     CREATING = "CREATING"
@@ -315,7 +315,7 @@ class StrictnessAnchor(IntEnum):
     ABSOLUTE = 100
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     """Tri-level risk classification for security and compliance evaluations."""
 
     LOW = "RISK_LOW"
@@ -323,7 +323,7 @@ class RiskLevel(str, Enum):
     HIGH = "RISK_HIGH"
 
 
-class SimulationType(str, Enum):
+class SimulationType(StrEnum):
     """Classifies the type of adversarial simulation applied during security analysis."""
 
     PASSIVE = "SIM_PASSIVE"
@@ -331,7 +331,7 @@ class SimulationType(str, Enum):
     MALICIOUS = "SIM_MALICIOUS"
 
 
-class BloomLevel(str, Enum):
+class BloomLevel(StrEnum):
     """Bloom's Taxonomy cognitive complexity levels for learning objective classification."""
 
     REMEMBERING = "BLOOM_REMEMBERING"
@@ -342,7 +342,7 @@ class BloomLevel(str, Enum):
     CREATING = "BLOOM_CREATING"
 
 
-class StrategicDepth(str, Enum):
+class StrategicDepth(StrEnum):
     """Graduated scale for evaluating strategic thinking depth in user responses."""
 
     LOW = "STRAT_LOW"
@@ -351,7 +351,7 @@ class StrategicDepth(str, Enum):
     VISIONARY = "STRAT_VISIONARY"
 
 
-class FidelityLevel(str, Enum):
+class FidelityLevel(StrEnum):
     """Source fidelity classification for evidence quality assessment."""
 
     WEAK = "FIDELITY_WEAK"
@@ -359,7 +359,7 @@ class FidelityLevel(str, Enum):
     HIGH = "FIDELITY_HIGH"
 
 
-class PlausibilityLevel(str, Enum):
+class PlausibilityLevel(StrEnum):
     """Plausibility classification for abductive reasoning conclusions."""
 
     IMPOSSIBLE = "IMPOSSIBLE"
@@ -367,7 +367,7 @@ class PlausibilityLevel(str, Enum):
     HIGH = "HIGH"
 
 
-class AbductiveConclusion(str, Enum):
+class AbductiveConclusion(StrEnum):
     """Abductive inference outcome classification for causal reasoning evaluations."""
 
     POST_HOC = "POST_HOC"
@@ -375,7 +375,7 @@ class AbductiveConclusion(str, Enum):
     GENUINE = "GENUINE"
 
 
-class AuthenticityLevel(str, Enum):
+class AuthenticityLevel(StrEnum):
     """Authenticity classification for performativity detection in user discourse."""
 
     ORGANIC = "AUTH_ORGANIC"
@@ -383,7 +383,7 @@ class AuthenticityLevel(str, Enum):
     UNKNOWN = "AUTH_UNKNOWN"
 
 
-class RoleClassification(str, Enum):
+class RoleClassification(StrEnum):
     """User agency classification from passive observer to active architect."""
 
     PASSENGER = "ROLE_PASSENGER"
@@ -392,7 +392,7 @@ class RoleClassification(str, Enum):
     ARCHITECT = "ROLE_ARCHITECT"
 
 
-class InteractionStrategy(str, Enum):
+class InteractionStrategy(StrEnum):
     """Prompt engineering strategy classification for interaction quality assessment."""
 
     ZERO_SHOT = "STRATEGY_ZERO_SHOT"
@@ -400,14 +400,14 @@ class InteractionStrategy(str, Enum):
     CHAIN_OF_THOUGHT = "STRATEGY_CHAIN_OF_THOUGHT"
 
 
-class ScoringPenalty(str, Enum):
+class ScoringPenalty(StrEnum):
     """Penalty types applied during deterministic score calibration."""
 
     SECURITY_THREAT = "PENALTY_SECURITY_THREAT"
     POST_HOC = "PENALTY_POST_HOC"
 
 
-class VerificationResult(str, Enum):
+class VerificationResult(StrEnum):
     """Fact-check verification outcome for falsification agent evaluations."""
 
     VERIFIED = "RESULT_VERIFIED"
@@ -415,7 +415,7 @@ class VerificationResult(str, Enum):
     UNVERIFIED = "RESULT_UNVERIFIED"
 
 
-class EthicalSeverity(str, Enum):
+class EthicalSeverity(StrEnum):
     """Ethical concern severity levels for overseer agent flagging."""
 
     NONE = "SEVERITY_NONE"
@@ -423,7 +423,7 @@ class EthicalSeverity(str, Enum):
     CRITICAL = "SEVERITY_CRITICAL"
 
 
-class HelpTextKey(str, Enum):
+class HelpTextKey(StrEnum):
     BLOOM = "helpBloom"
     TOULMIN = "helpToulmin"
     STRATEGIC_DEPTH = "helpStrategicDepth"
@@ -439,7 +439,7 @@ class HelpTextKey(str, Enum):
     ARCHIVIST = "helpArchivist"
 
 
-class TitleKey(str, Enum):
+class TitleKey(StrEnum):
     SECURITY = "TITLE_SECURITY"
     USAGE = "TITLE_USAGE"
     PROFILER = "TITLE_PROFILER"
@@ -456,7 +456,7 @@ class TitleKey(str, Enum):
     HYPOTHESES = "Analyst Hypotheses"  # Key in l10n"
 
 
-class LabelKey(str, Enum):
+class LabelKey(StrEnum):
     """Strict L10N label keys for No-String Mandate compliance across UI boundaries."""
 
     # Agents
@@ -509,7 +509,7 @@ class LabelKey(str, Enum):
     UNCERTAIN_LABEL = "UNCERTAIN_LABEL"
 
 
-class ReferenceTitle(str, Enum):
+class ReferenceTitle(StrEnum):
     """Strict Enum for UI Reference Strings to prevent hardcoded L10N (No String Mandate)."""
 
     WEB_SEARCH = "REF_WEB_SEARCH"
@@ -518,7 +518,7 @@ class ReferenceTitle(str, Enum):
     PREVIOUS_REPORT = "REF_PREVIOUS_REPORT"
 
 
-class ScoringStrategy(str, Enum):
+class ScoringStrategy(StrEnum):
     """Selects the mathematical engine used to calculate final matrix scores."""
 
     WATERFALL = "WATERFALL"
@@ -555,7 +555,7 @@ LaxRoleClassification = Annotated[RoleClassification, Field(strict=False)]
 LaxInteractionStrategy = Annotated[InteractionStrategy, Field(strict=False)]
 
 
-class SpecialAliasChoices(str, Enum):
+class SpecialAliasChoices(StrEnum):
     """Globaalit sallitut poikkeusarvot AliasEnginelle ja Pydantic-validaatiolle."""
 
     NA = "N/A"

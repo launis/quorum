@@ -382,6 +382,7 @@ class LLMNodeStrategy(NodeStrategy):
                     criteria_blocks=criteria_blocks,
                     base_system_prompt=base_system_prompt,
                     user_payload=user_payload,
+                    expected_schema_name=f"Step_{step.id}_Response",
                 )
             except Exception as e:
                 logger.warning(f"[LLMStrategy] Failed to write debug prompt log: {e}")

@@ -11,7 +11,7 @@ from typing import Any
 try:
     google_cloud = importlib.import_module("google.cloud")
     storage = google_cloud.storage
-except (ImportError, AttributeError):
+except ImportError, AttributeError:
     storage = None
 
 from backend_v2.exceptions import AppException, ErrorCodes

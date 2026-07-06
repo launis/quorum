@@ -1,6 +1,6 @@
 // ignore_for_file: invalid_annotation_target
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
-import 'dart:isolate';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/core/models/enums.dart';
@@ -160,7 +160,7 @@ abstract class Workflow with _$Workflow {
 
   /// Isolate Mandate: Zero-Latency Illusion requires background parsing
   static Future<Workflow> parseInBackground(String rawJson) async {
-    return Isolate.run(() {
+    return safeIsolateRun(() {
       final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
       return Workflow.fromJson(decoded);
     });
@@ -169,7 +169,7 @@ abstract class Workflow with _$Workflow {
   static Future<List<Workflow>> parseListInBackground(
     List<dynamic> rawList,
   ) async {
-    return Isolate.run(() {
+    return safeIsolateRun(() {
       return rawList
           .map((e) => Workflow.fromJson(e as Map<String, dynamic>))
           .toList();

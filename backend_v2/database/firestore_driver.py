@@ -178,7 +178,7 @@ class FirestoreDriver(StorageDriver):
         Raises:
             AppException: If the query fails.
         """
-        query = self.db.collection(collection)
+        query: Any = self.db.collection(collection)
 
         if filters:
             for f in filters:
@@ -192,7 +192,7 @@ class FirestoreDriver(StorageDriver):
         if limit:
             query = query.limit(limit)
 
-        docs = await query.stream()
+        docs = query.stream()
         return [doc.to_dict() async for doc in docs]
 
     async def count(self, collection: str, filters: list[Filter] | None = None) -> int:
@@ -208,20 +208,20 @@ class FirestoreDriver(StorageDriver):
         Raises:
             AppException: If the count fails.
         """
-        query = self.db.collection(collection)
+        query: Any = self.db.collection(collection)
 
         if filters:
             for f in filters:
                 query = query.where(f.field, f.operator, f.value)
 
         try:
-            aggregate_query = query.count()
+            aggregate_query = query.count()  # type: ignore[no-untyped-call]
             snapshots = await aggregate_query.get()
             return int(snapshots[0][0].value)
         except Exception:
             logger.warning("Firestore count fallback triggered", exc_info=True)
             # Fallback for older SDKs or emulators?
-            docs = await query.stream()
+            docs = query.stream()
             # len() on async generator doesn't work, need to iterate
             count = 0
             async for _ in docs:
@@ -239,6 +239,6 @@ class FirestoreDriver(StorageDriver):
         """
         collection_ref = self.db.collection(collection)
         # Iterate and delete (No native truncate in Firestore)
-        docs = await collection_ref.stream()
+        docs = collection_ref.stream()
         async for doc in docs:
             await doc.reference.delete()

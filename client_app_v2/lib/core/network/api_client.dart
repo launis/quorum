@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:client_app/core/network/interceptors/auth_interceptor.dart';
 import 'package:client_app/core/network/interceptors/error_interceptor.dart';
 import 'package:client_app/core/network/interceptors/dio_logger_interceptor.dart';
@@ -34,6 +35,9 @@ dynamic _parseAndDecode(String response) {
 }
 
 Future<dynamic> _parseJson(String text) {
+  if (kIsWeb) {
+    return Future.value(_parseAndDecode(text));
+  }
   return Isolate.run(() => _parseAndDecode(text));
 }
 

@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from pydantic import AliasChoices, ConfigDict, Field, StringConstraints
@@ -8,7 +8,7 @@ from backend_v2.models.core_base import V2CoreBase
 StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
-class SectionType(str, Enum):
+class SectionType(StrEnum):
     """Enum representing the Server-Driven UI section layout types."""
 
     SCORE_CARD = "SCORE_CARD"
@@ -33,7 +33,7 @@ class SectionType(str, Enum):
     SECURITY_CHECK = "SECURITY_CHECK"
 
 
-class Authenticity(str, Enum):
+class Authenticity(StrEnum):
     """Enum representing driver authenticity levels."""
 
     ORGANIC = "AUTH_ORGANIC"
@@ -41,7 +41,7 @@ class Authenticity(str, Enum):
     UNKNOWN = "AUTH_UNKNOWN"
 
 
-class VerificationResult(str, Enum):
+class VerificationResult(StrEnum):
     """Enum representing claim verification states."""
 
     VERIFIED = "VER_VERIFIED"
@@ -49,7 +49,7 @@ class VerificationResult(str, Enum):
     UNCERTAIN = "VER_UNCERTAIN"
 
 
-class ReferenceIntent(str, Enum):
+class ReferenceIntent(StrEnum):
     """Enum representing the strategic intent of a contextual citation reference."""
 
     SEARCH = "SEARCH"

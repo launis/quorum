@@ -87,7 +87,7 @@ BANNED PATTERNS
 """
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from fastapi import status
@@ -96,7 +96,7 @@ from pydantic import ValidationError
 logger = logging.getLogger(__name__)
 
 
-class ErrorCodes(str, Enum):
+class ErrorCodes(StrEnum):
     """Standardized Error Codes for the application.
 
     These codes are used by the Frontend for localization lookup.

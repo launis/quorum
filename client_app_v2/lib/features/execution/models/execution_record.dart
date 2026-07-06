@@ -1,6 +1,6 @@
 // ignore_for_file: invalid_annotation_target
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
-import 'dart:isolate';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
@@ -39,7 +39,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
   /// Parses raw JSON string to ExecutionRecord in a background isolate
   /// to prevent Main Thread Jank when handling large payloads.
   static Future<ExecutionRecord> parseInBackground(String rawJson) async {
-    return Isolate.run(() {
+    return safeIsolateRun(() {
       final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
       return ExecutionRecord.fromJson(decoded);
     });
