@@ -1,0 +1,252 @@
+{
+  "keep": [
+    "B2B SaaS IAM-arkkitehtuuri 2026 vrs2 - Osa 1 (Valmistelu).md",
+    "B2B SaaS IAM-arkkitehtuuri 2026 vrs2 - Osa 2 (Integraatio).md",
+    "B2B SaaS IAM-arkkitehtuuri 2026 vrs2.md",
+    "B2B SaaS IAM-arkkitehtuuri 2026.md",
+    "EPIC_91_Quote_Evidence_Architecture.md",
+    "EPIC_91_Repository_model_hydration.md",
+    "epic_91_tracker.md",
+    "EPIC_92_Enriched_Atom_Graph_Architecture.md",
+    "EPIC_92_tracker.md",
+    "EPIC_93_SDUI_Output_Rendering_Unification 2.md",
+    "epic_93_tracker.md",
+    "EPIC_94_Module_Decomposition_Workflow.md",
+    "EPIC_94_SDUI_Output_Rendering_Unification.md",
+    "iam_2026_v2_tracker.md",
+    "v4_1_refactor_plan.md",
+    "v5_agnostic_hardening_plan.md"
+  ],
+  "delete": [
+    "bilingual_schema_refactor_tracker.md",
+    "chunk_worker_refactoring_epic.md",
+    "context_caching_theory.md",
+    "EPIC 52 Eradication of LLM Attention Drift & Order Bias.md",
+    "epic22_production_environment.md",
+    "epic42_evaluation_strictness.md",
+    "epic43_dual_engine_scoring.md",
+    "epic44_virtual_system_steps.md",
+    "epic45_smart_llm_logging.md",
+    "epic46_soft_scoring_engines.md",
+    "epic47_unified_execution_and_scoring.md",
+    "epic48_atomization_refactor_plan 2.md",
+    "epic50_output_profile_architecture_plan.md",
+    "epic51_matrix_tracker.md",
+    "epic52_tracker.md",
+    "epic53_matrix_tracker.md",
+    "epic53_phase6_lexical_enforcement.md",
+    "epic54_graceful_degradation.md",
+    "epic54_graceful_degradation_tracker.md",
+    "epic58_output_token_audit.md",
+    "EPIC_53_Cognitive_Hardening.md",
+    "EPIC_54_Frontend_Opaque_ID_Hardening.md",
+    "EPIC_55_Prompt_Directive_SSOT.md",
+    "EPIC_55_Prompt_Directive_SSOT_tracker.md",
+    "EPIC_56 vaihtoehtob.md",
+    "EPIC_56_TDA_Decoupling.md",
+    "EPIC_56_vaihtoehtob_tracker.md",
+    "EPIC_57_XAI_Reasoning_Trace_Consolidation.md",
+    "EPIC_57_XAI_Reasoning_Trace_Consolidation_tracker.md",
+    "EPIC_58_Human_Centric_Steering_Evaluation.md",
+    "EPIC_58_Human_Centric_Steering_Evaluation_tracker.md",
+    "EPIC_59_Claim_Level_Contextual_Override_Architecture.md",
+    "EPIC_59_Claim_Level_Contextual_Override_Architecture_tracker.md",
+    "EPIC_60_Modular_Extraction_Decoupling.md",
+    "EPIC_60_Modular_Extraction_Decoupling_tracker.md",
+    "epic_60_system2_reliability_audit.md",
+    "EPIC_60_tracker.md",
+    "EPIC_61_tracker.md",
+    "EPIC_62_LLM_Concurrency_Hardening_and_Universal_Provider_Decoupling.md",
+    "EPIC_62_tracker.md",
+    "EPIC_63_Execution_Model_Decoupling_and_Parity_Hardening.md",
+    "EPIC_63_tracker.md",
+    "EPIC_64_Dynamic_Model_Strategy_Balancing_and_Fail_Soft_Fallback.md",
+    "EPIC_65_Google_GenAI_V2_Migration_and_Global_Endpoint_Multiplexing.md",
+    "EPIC_66_Unified_Vertex_AI_Model_Garden_and_Multi_Provider_Integration.md",
+    "EPIC_67_Provider_Agnostic_Context_Caching_and_FinOps_Optimization.md",
+    "EPIC_67_tracker.md",
+    "EPIC_68_Extension_Scope_Separation.md",
+    "EPIC_68_Extension_Scope_Separation_tracker.md",
+    "EPIC_69_Night_Shift_Failed_Verification_Remediation.md",
+    "EPIC_72_PostgreSQL_Driver_and_Data_Layer_Migration.md",
+    "EPIC_73_CICD_Pipeline_and_Automated_Quality_Assurance.md",
+    "EPIC_74_Production_Deployment_GCP.md",
+    "EPIC_75_Refactoring_Contextual_Override_and_API_Transport_Coupling.md",
+    "EPIC_77_TDA_Best_Of_Three_Flash_Architecture.md",
+    "EPIC_78_Structural_Decoupling_Interaction_Role.md",
+    "EPIC_79_Multi_Region_Model_Discovery_SDUI.md",
+    "EPIC_80_Global_Document_Cache_Architecture.md",
+    "EPIC_81_Transient_Error_Resilience_and_DLQ_Classification.md",
+    "EPIC_81_Transient_Error_Resilience_and_DLQ_Classification_tracker.md",
+    "EPIC_83_LLM_Schema_Validation_Healing.md",
+    "EPIC_84_Hybrid_UI_Sanitization.md",
+    "EPIC_85_Analysis_Refinements_and_XAI_Fixes.md",
+    "EPIC_85_Analysis_Refinements_and_XAI_Fixes_tracker.md",
+    "EPIC_87_XAI_Tavily_Causal_Mapping.md",
+    "EPIC_88_FastDev_Environment.md",
+    "EPIC_90_Output_renewal.md",
+    "EPIC_90_Output_renewal_tracker.md",
+    "epic_bilingual_schema_refactor.md",
+    "epic_dynamic_workflow_extensions.md",
+    "epic_execution_consistency.md",
+    "epic_execution_consistency_tracker.md",
+    "epic_execution_observability_p6.md",
+    "epic_execution_optimization.md",
+    "epic_micro_few_shot_calibration.md",
+    "epic_sdui_synthesis.md",
+    "epic_sdui_synthesis_tracker.md",
+    "epic_structured_prompting.md",
+    "epic_system2_reliability_fixes.md",
+    "epic_system2_reliability_fixes_tracker.md",
+    "epic_tda_granular_schema_refactor.md",
+    "epic_tda_granular_schema_refactor_tracker.md",
+    "prompt_centralization_epic.md",
+    "scoring_refactoring_epic.md",
+    "structured_prompting_tracker.md",
+    "synthesis_refactoring_epic.md",
+    "system2_reliability_tracker.md",
+    "system2_variance_analysis_final_interventions.md",
+    "system2_variance_analysis_final_interventions_tracker.md",
+    "system2_variance_analysis_report.md",
+    "system2_variance_analysis_report_tracker.md",
+    "system2_variance_analysis_report_critical_audit.md",
+    "system2_variance_analysis_report_implementation_plan.md",
+    "worker_refactoring_epic.md"
+  ],
+  "backlog": {
+    "epic51_seed_data_tda_refactor NEW VERSION": {
+      "files": [
+        "epic51_seed_data_tda_refactor NEW VERSION.md"
+      ],
+      "tasks": [
+        "* [ ] **1. Teoriainjektio:** K\u00e4ytetty teoria ja sen injektiotapa.",
+        "* [ ] **2. K\u00e4\u00e4nteis- ja Lattialogiikka:** Miten s\u00e4\u00e4nn\u00f6t 1 ja 2 toteutettiin.",
+        "* [ ] **3. Boolean & Bounty Hunter:** Vahvistus yksinapaisuudesta.",
+        "* [ ] **4. CoT-perustelu:** Miten reasoning\\_trace pakotettiin.",
+        "* [ ] **5. Subjektiivisuuden kielto (S\u00e4\u00e4nn\u00f6t 6 & 6.1):** ACCEPT/REJECT -logiikan ja intentiotulkinnan tuhoaminen, vahvistus EXTRACT EXACT QUOTE -k\u00e4yt\u00f6st\u00e4.",
+        "* [ ] **6. Rooliautentikointi:** Roolien ankkurointi (user:/ai:).",
+        "* [ ] **7. Sanasto ja Laiskuus:** Indikaattorit, Anti-Proxies ja Bounding Boxit. Leksikaalisen ankkurin ehdoton pakotus (S\u00e4\u00e4nt\u00f6 10).",
+        "* [ ] **8. Opaque ID & Aggregaatio:** Satunnaiset heksat ja EXISTS-tila.",
+        "* [ ] **9. 100 % Kattavuus:** Vahvistus kaikkien pisteiden (1\u20135) k\u00e4sittelyst\u00e4.",
+        "* [ ] **10. ai\\_description eheys:** Vahvistus, ett\u00e4 claim-tason `ai_description` on s\u00e4ilytetty ja Pydantic V2 ei kaadu.",
+        "* [ ] **11. Auditointi-varmistus:** Vahvistus, ett\u00e4 scripts\\backend\\_audit\\_loop.py on ajettu generoidulle skriptille onnistuneesti."
+      ]
+    },
+    "epic51_seed_data_tda_refactor": {
+      "files": [
+        "epic51_seed_data_tda_refactor.md"
+      ],
+      "tasks": [
+        "- [ ] 1. **Teoriainjektio:** Mit\u00e4 teoriaa haettiin (search_web) ja miten se injektoitiin v\u00e4itteisiin.",
+        "- [ ] 2. **K\u00e4\u00e4nteis- ja Lattialogiikka:** Miten k\u00e4\u00e4nteislogiikka ja lattialogiikka toteutettiin (ei \"puutetta\" vaan aktiivinen komissio).",
+        "- [ ] 3. **Leksikaaliset indikaattorit & Poissulkulistat:** Mitk\u00e4 leksikaaliset indikaattorit pakotettiin ja **mitk\u00e4 yl\u00e4tason termit kiellettiin (Anti-Proxies)**.",
+        "- [ ] 4. **Bounty Hunter -paradigma:** Vahvistus, ett\u00e4 kaikki johdonmukaisuutta vaativat s\u00e4\u00e4nn\u00f6t on k\u00e4\u00e4nnetty `inverse_evidence: true` -tuhoamismoodiin.",
+        "- [ ] 5. **Boolean Integrity:** Vahvistus, ett\u00e4 s\u00e4\u00e4nn\u00f6ist\u00e4 on siivottu kaikki kaksoiskiellot ja monimutkaiset AND/OR -portit.",
+        "- [ ] 6. **CoT-perustelu:** Miten CoT-perustelu pakotettiin ennen `exact_quote`-poimintaa.",
+        "- [ ] 7. **100% kattavuus:** Vahvistus 100% kattavuudesta JSONin Python-skriptauksella.",
+        "- [ ] 8. **MECE-s\u00e4\u00e4nt\u00f6 (Rule of 3):** Etsittiin kaikki refaktoroidut 'claims' `verify_claims.py` -skriptill\u00e4 ja raportoitiin niiden lukum\u00e4\u00e4r\u00e4 vahvistuksena MECE-s\u00e4\u00e4nn\u00f6n (tasan 3 kpl/solu) toteutumisesta."
+      ]
+    },
+    "EPIC_61_Evaluation_Directives_Hardening_and_Vice_Rules_Operationalization": {
+      "files": [
+        "EPIC_61_Evaluation_Directives_Hardening_and_Vice_Rules_Operationalization.md",
+        "EPIC_61_Evaluation_Directives_Hardening_and_Vice_Rules_Operationalization_tracker.md"
+      ],
+      "tasks": [
+        "- [ ] docs/epic/EPIC_61_Evaluation_Directives_Hardening_and_Vice_Rules_Operationalization.md - Phase 1: Re-operationalize unstable TDA rules in seed_data.json",
+        "- [ ] docs/epic/EPIC_61_Evaluation_Directives_Hardening_and_Vice_Rules_Operationalization.md - Phase 2: Centralize Evaluation Protocols and add Strict Ambiguity constraints",
+        "- [ ] docs/epic/EPIC_61_Evaluation_Directives_Hardening_and_Vice_Rules_Operationalization.md - Phase 3: Run Stability loop verification via diff_executions.py"
+      ]
+    },
+    "EPIC_64": {
+      "files": [
+        "EPIC_64_tracker.md"
+      ],
+      "tasks": [
+        "- [ ] **Phase 1: Seed Optimization** - Update `seed_data.json` to change default `model_strategy` to `\"fast\"` on low-cognitive steps like `step_input_processing`, `Profiler`, and `Archivist`. Run re-seed.",
+        "- [ ] **Phase 2: Fallback Implementation** - Integrate dynamic fallback overrides inside `LiteLLMProvider.generate`'s `AsyncRetrying` loop on the final attempt.",
+        "- [ ] **Phase 3: Audit Trail & Tracing** - Log fallback events explicitly and append them to execution traces to preserve Forensic Sovereignty.",
+        "- [ ] **Phase 4: Automated Testing** - Write unit/integration tests simulating rate limits and verifying successful fail-soft fallback."
+      ]
+    },
+    "EPIC_70_Forensic_Evidence_Quotes_SDUI": {
+      "files": [
+        "EPIC_70_Forensic_Evidence_Quotes_SDUI.md"
+      ],
+      "tasks": [
+        "- [ ] Tuotantotietokanta ei rikkoudu uuden asetuksen my\u00f6t\u00e4.",
+        "- [ ] SDUI siet\u00e4\u00e4 jopa 10 osuman matriiseja katkaisulogiikan (150 char) ansiosta.",
+        "- [ ] Contextual Override -tilanteet eiv\u00e4t kaadu, vaan n\u00e4ytt\u00e4v\u00e4t siroja \ud83d\udccd -ankkureita.",
+        "- [ ] Arkkitehtuuri s\u00e4ilyy t\u00e4ydellisesti De-Generator / Fail-Fast -yhteensopivana."
+      ]
+    },
+    "EPIC_82_System_Audit_Trail_and_XAI_Transparency": {
+      "files": [
+        "EPIC_82_System_Audit_Trail_and_XAI_Transparency.md"
+      ],
+      "tasks": [
+        "* [ ] Suorituskansioon generoitava `raportti.md` ja siit\u00e4 k\u00e4\u00e4nnetty `report.pdf` sis\u00e4lt\u00e4v\u00e4t erillisen osion (System Audit), jossa avataan j\u00e4rjestelm\u00e4n tekem\u00e4t ulkoiset haut.",
+        "* [ ] XAI-ker\u00e4in (`context_router`) osaa paketoida `MCPAuditTrace` -tiedot suoraan synteesimallin sy\u00f6tteeseen ilman, ett\u00e4 konteksti-ikkuna rikkoutuu.",
+        "* [ ] K\u00e4ytt\u00e4j\u00e4lle syntyy v\u00e4lit\u00f6n ymm\u00e4rrys siit\u00e4, ett\u00e4 Quorumia ei voi huijata keksityill\u00e4 l\u00e4hteill\u00e4, ja Goodhartin laki on sel\u00e4tetty."
+      ]
+    },
+    "EPIC_86_Structured_BARS_Forensic_Evidence_Quotes": {
+      "files": [
+        "EPIC_86_Structured_BARS_Forensic_Evidence_Quotes.md"
+      ],
+      "tasks": [
+        "- [ ] Pydantic-validointi menee l\u00e4pi sek\u00e4 scoring- ett\u00e4 synthesis-vaiheissa.",
+        "- [ ] Flutter-sovellus k\u00e4\u00e4ntyy ja parsii JSON-datan virheett\u00f6m\u00e4sti ilman tyyppiristiriitoja.",
+        "- [ ] Taulukkon\u00e4kym\u00e4 ryhmittelee sitaatit selke\u00e4sti tasoittain, luoden suoran visuaalisen linkin *Tasojakauma*-sarakkeen ja *Lainaukset*-sarakkeen v\u00e4lille."
+      ]
+    },
+    "EPIC_88_Unified_Forensic_Traceability": {
+      "files": [
+        "EPIC_88_Unified_Forensic_Traceability.md",
+        "EPIC_88_Unified_Forensic_Traceability_tracker.md"
+      ],
+      "tasks": [
+        "- [ ] **Universaali Forensic Sovereignty:** Jokainen teko\u00e4lyn esitt\u00e4m\u00e4 v\u00e4ite koko j\u00e4rjestelm\u00e4ss\u00e4 tallentuu `EvidenceQuoteDTO`-muodossa. Sis\u00e4isill\u00e4 v\u00e4itteill\u00e4 on suora `source_reference`, ja ulkoisilla hauilla on katkeamaton j\u00e4lki: `Haku -> Tracen ID -> Evidence Quote -> Matriisin s\u00e4\u00e4nt\u00f6`. N\u00e4m\u00e4 voidaan my\u00f6hemmin parsia suoraan Archivist-tietokantaan RAG-hakuja varten.",
+        "- [ ] **Flat UI:** Flutter-koodissa ja Jinja2-templatessa ei ole lainkaan for-luuppeja, jotka yritt\u00e4isiv\u00e4t m\u00e4p\u00e4t\u00e4 hakuja matriiseihin. Ne vain tulostavat valmiit DTO-listat.",
+        "- [ ] **Fail-Fast & Didaktinen DLQ (Ei hiljaisia pudotuksia):** Jos LLM hallusinoi aliaksen, jota ei l\u00f6ydy Pythonin sanakirjasta, sit\u00e4 EI pudoteta hiljaa. Pydantic laukaisee virheen, joka l\u00e4hetet\u00e4\u00e4n DLQ/Retry-kiertoon (EPIC 81). Ikuisen DLQ-silmukan (Deadlock) ja \"pakotetun valehtelun\" est\u00e4miseksi virheilmoituksen on oltava dynaaminen ja sis\u00e4llett\u00e4v\u00e4 aina *Escape Hatch*: *\"Kausaalinen integriteettivirhe: Viittasit olemattomaan l\u00e4hteeseen <<QRM-SRC-99>>. K\u00e4ytett\u00e4viss\u00e4si olevat l\u00e4hteet ovat VAIN: [<<QRM-SRC-1>>]. JOS n\u00e4m\u00e4 l\u00e4hteet eiv\u00e4t oikeasti sis\u00e4ll\u00e4 v\u00e4itett\u00e4si, PALAUTA TYHJ\u00c4 LISTA []. \u00c4l\u00e4 keksi l\u00e4hteit\u00e4.\"* T\u00e4m\u00e4 katkaisee deadlockin v\u00e4litt\u00f6m\u00e4sti antamalla mallille luvan per\u00e4\u00e4nty\u00e4 sen sijaan, ett\u00e4 se yritt\u00e4isi pakottaa keksityn faktan johonkin sallituista l\u00e4hteist\u00e4.",
+        "- [ ] **Mekaaninen Totuus (Ei XAI-teatteria):** Pelkk\u00e4 validi alias ei riit\u00e4 todennukseen. Backend suorittaa sumean merkkijonohaun (Fuzzy Text Matching / RapidFuzz Levenshtein) LLM:n poimimalle sitaatille suhteessa l\u00e4hdedokumenttiin. Typografia sallitaan, parafraaseja ei. Vain mekaanisen (> 90%) osuman my\u00f6t\u00e4 `is_mcp_verified` voi muuttua todeksi.",
+        "- [ ] **Kausaalisen Orpouden Esto (Soft Delete Cascading):** Jos tason kaikki todisteet kumotaan asiantuntijan toimesta (`user_rejected == True`), itse matriisin arvosana tai taso on liputettava (UI/PDF) selke\u00e4ll\u00e4 varoituksella, ettei korkea arvosana j\u00e4\u00e4 dokumenttiin ilman kausaalisia perusteita."
+      ]
+    },
+    "EPIC_88_Zero_Middleware_Implementation_Plan": {
+      "files": [
+        "EPIC_88_Zero_Middleware_Implementation_Plan.md",
+        "EPIC_88_Zero_Middleware_Implementation_Plan_tracker.md"
+      ],
+      "tasks": [
+        "- [ ] [DELETE] Poistetaan `EvidenceQuoteDTO`, `LevelQuotesDTO`, `RowForensicsDTO`.",
+        "- [ ] [NEW] Luodaan uusi k\u00e4\u00e4re `ScorecardAtomDTO`. **Tietoturva ja Trace Bloat -falsifiointi huomioitu:** Emme upota koko tietokantaobjektia raakana sokeasti rajapintaan, vaan noudatamme Explicit Inclusion (DTO Firewall) -periaatetta. Kopioimme vain presentation-kerrokselle turvalliset kent\u00e4t:",
+        "- [ ] [MODIFY] `MatrixScorecardRowDTO`: Korvataan V1-kent\u00e4t suoralla listalla: `evaluated_atoms: list[ScorecardAtomDTO]`.",
+        "- [ ] [MODIFY] `_generate_v2_scorecard()`: Poistetaan KAIKKI legacy-koodi ja datan litteytys. Funktio vain poimii `evaluations`-lohkosta aidot `AtomEvaluationItemDTO`:t, paketoi ne `ScorecardAtomDTO`:hon.",
+        "- [ ] **Explicit Skipped States:** Jos arviointi on short-circuitattu (esim. Taso 0 ep\u00e4onnistui, jolloin Tasoja 1 ja 2 ei l\u00f6ydy tracesta), `blueprint.py` p\u00e4\u00e4ttelee matriisin skeemasta puuttuvat tasot ja palauttaa niille `ScorecardAtomDTO`:n, jossa `evaluation = None`. T\u00e4m\u00e4 poistaa kaiken arvailun render\u00f6intimoottoreilta!",
+        "- [ ] [DELETE] Poistetaan Dartin vastineet vanhoille DTO:ille.",
+        "- [ ] [NEW] Luodaan Dart-versio `AtomEvaluationItemDto` ja `ScorecardAtomDto`.",
+        "- [ ] [MODIFY] `MatrixScorecardRowDto` k\u00e4ytt\u00e4\u00e4 nyt uutta litte\u00e4\u00e4 listaa `evaluatedAtoms`.",
+        "- [ ] **Smart Getter:** Lis\u00e4t\u00e4\u00e4n DTO:hon apufunktio (esim. `Map<int, List<ScorecardAtomDto>> get atomsByLevel`), joka ryhmittelee litte\u00e4n siirtoprotokollalistan lennossa UI:n tarvitsemaan hierarkiaan.",
+        "- [ ] [MODIFY] P\u00e4ivitet\u00e4\u00e4n UI piirt\u00e4m\u00e4\u00e4n asiat suoraan uuden litte\u00e4n listan (tai sen smart getterin) pohjalta. Jos `evaluation == null`, piirret\u00e4\u00e4n \"Ei arvioitu / Skipped\" -tila.",
+        "- [ ] [MODIFY] \"PDF Parity and Hardening\" -s\u00e4\u00e4nn\u00f6n mukaisesti PDF-generaattorin on k\u00e4ytett\u00e4v\u00e4 100% samaa `ScorecardAtomDTO`-rakennetta kuin Flutterin.",
+        "- [ ] Se k\u00e4ytt\u00e4\u00e4 samaa litte\u00e4\u00e4 listaa ja ryhmittelee sen Python-p\u00e4\u00e4ss\u00e4 identtisell\u00e4 logiikalla kuin Flutterin smart getter.",
+        "- [ ] **Parity Guarantee:** Koska backend l\u00e4hett\u00e4\u00e4 ohitetuille tasoille eksplisiittisen `evaluation = None`, sek\u00e4 Flutter ett\u00e4 PDF piirt\u00e4v\u00e4t \"Skipped\"-tilat t\u00e4sm\u00e4lleen samalla tavalla ilman, ett\u00e4 kummankaan render\u00f6ij\u00e4n tarvitsee yritt\u00e4\u00e4 arvata dataa. T\u00e4m\u00e4 poistaa Flutter-PDF-ristiriidan t\u00e4ysin.",
+        "- [ ] [NEW/MODIFY] Ratkaisemme klusteroinnin nostamalla sen abstraktiotasossa ylemm\u00e4s! `MatrixScorecardRowDTO`:hon lis\u00e4t\u00e4\u00e4n uusi kentt\u00e4 `clustered_row_sources: list[MCPAuditTrace]`.",
+        "- [ ] Kun `blueprint.py` kokoaa rivi\u00e4, se iteroi rivin kaikkien atomien `used_evidence_ids`-viittaukset, hakee niit\u00e4 vastaavat auditoinnit, ja tallentaa niist\u00e4 **uniikit** haut t\u00e4h\u00e4n uuteen `clustered_row_sources`-listaan.",
+        "- [ ] N\u00e4in itse `AtomEvaluationItemDTO` pysyy 100 % pyh\u00e4n\u00e4 ja koskemattomana (t\u00e4ysin raakana tietokannasta), mutta Flutter/PDF-k\u00e4ytt\u00f6liittym\u00e4 saa siistin, valmiiksi klusteroidun listan asiantuntijahauista suoraan rivitasolla esitett\u00e4v\u00e4ksi!"
+      ]
+    },
+    "EPIC_89_Dynamic_Tool_Registry": {
+      "files": [
+        "EPIC_89_Dynamic_Tool_Registry.md"
+      ],
+      "tasks": [
+        "- [ ] **Ty\u00f6kalujen Eristys (SRP):** `mcp_tool_loop.py` ei sis\u00e4ll\u00e4 viittauksia Tavilyyn tai muihin yksitt\u00e4isiin ty\u00f6kaluihin. Se operoi vain `ToolDispatcherin` ja `BaseTool`-rajapinnan kautta.",
+        "- [ ] **Dynaaminen Rekisteri:** J\u00e4rjestelm\u00e4\u00e4n on mahdollista lis\u00e4t\u00e4 uusi ty\u00f6kalu (esim. Mock-ty\u00f6kalu testi\u00e4 varten) vain luomalla uusi `BaseTool`-toteutus ja rekister\u00f6im\u00e4ll\u00e4 se `ToolDispatcherille`.",
+        "- [ ] **Konfiguraatio-ohjaus:** Ty\u00f6kalut voidaan kytke\u00e4 p\u00e4\u00e4lle ja pois `SystemConfig` tai Workflow-parametrien kautta per ajo.",
+        "- [ ] **Forensinen Jatkuvuus:** Tavilyn siirto abstraktin ty\u00f6kalun taakse ei riko Epic 88:n raportointia. Tulokset linkittyv\u00e4t `EvidenceQuoteDTO`-rakenteisiin tismalleen kuten ennenkin."
+      ]
+    }
+  }
+}
