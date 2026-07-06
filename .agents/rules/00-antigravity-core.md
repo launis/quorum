@@ -1,5 +1,10 @@
 # 🚀 ANTIGRAVITY COMMAND CENTER
 
+<domain_boundary>
+    <role>GLOBAL SYSTEM & META-COGNITION</role>
+    <instruction>These rules govern the overarching IDE environment, interaction formatting, global artifacts, and Git protocols. They apply universally across all contexts, but do NOT override language-specific constraints (Python/Flutter) or Database Seed operations.</instruction>
+</domain_boundary>
+
 <ide_orchestration_protocol>
     <rule_block id="permission_granted_workflow">
         <banned_pattern>Auto-executing the next steps in a plan, generating multiple files simultaneously, or rushing tasks without waiting.</banned_pattern>
@@ -10,8 +15,9 @@
         <mandatory_pattern>You MUST NEVER write domain code to execute an implementation plan without the user explicitly providing a slash command like `/tier2-execute` or `/tier2-hardening-backend`. Force the user to invoke the required execution workflow tier to bind safety constraints before execution starts.</mandatory_pattern>
     </rule_block>
     <rule_block id="anti_apology">
-        <banned_pattern>Apologizing if you violate a rule.</banned_pattern>
-        <mandatory_pattern>Acknowledge the error briefly and output the fixed code immediately.</mandatory_pattern>
+        <banned_pattern>Outputting apologies, conversational filler, or subjective justifications after violating a rule (e.g., "I apologize for the oversight", "You are correct").</banned_pattern>
+        <mandatory_pattern>You MUST silently output the corrected code block immediately. Zero conversational filler.</mandatory_pattern>
+        <catastrophic_reason>Conversational filler consumes tokens, dilutes the architectural context window, and slows down automated workflows.</catastrophic_reason>
     </rule_block>
     <rule_block id="anti_hallucination_read">
         <banned_pattern>Guessing the contents of a file.</banned_pattern>
@@ -26,8 +32,9 @@
         <mandatory_pattern>Explicitly DELETE or OVERWRITE the old version when modifying a file.</mandatory_pattern>
     </rule_block>
     <rule_block id="atomic_checkpoint_mandate">
-        <banned_pattern>Proceeding to the next architectural milestone without ensuring a save state, proposing `git add .` which captures unwanted state, or writing git commit messages in a language other than English.</banned_pattern>
-        <mandatory_pattern>After a successful step, test, or `FIX` phase, you MUST explicitly instruct the user to perform an atomic `git commit` as a save point BEFORE asking for the `PROCEED` command. IMPORTANT: You MUST ALWAYS specify exact relative file paths starting from the workspace root (e.g., `git add client_app_v2/[tiedosto]`). NEVER output `git add .`. Git commit messages MUST ALWAYS be written in English (e.g., `git commit -m "feat: updated text payload"`).</mandatory_pattern>
+        <banned_pattern>Modifying multiple architectural domains (e.g., UI and Backend) concurrently without a save state, proposing `git add .`, or writing git commit messages in a language other than English.</banned_pattern>
+        <mandatory_pattern>After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST explicitly instruct the user to perform an atomic `git commit` BEFORE proceeding to the next file or logic block. You MUST ALWAYS specify exact relative file paths (e.g., `git add client_app_v2/[tiedosto]`). Git commit messages MUST ALWAYS be written in English.</mandatory_pattern>
+        <catastrophic_reason>Failure to enforce atomic commits per-file/per-domain results in massive, un-rollbackable Git histories and makes identifying regression bugs mathematically impossible.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">
         <banned_pattern>Silently persisting in the same chat session after executing multiple massive file reads (e.g., 3+ directories in Tier 2 Hardening) or complex refactors.</banned_pattern>
@@ -42,8 +49,9 @@
         <mandatory_pattern>You MUST be surgical. Truncation is an act of data destruction. Provide the ENTIRE compilable structural block or use precise search-and-replace tools.</mandatory_pattern>
     </rule_block>
     <rule_block id="temporary_workspace_sandbox">
-        <banned_pattern>Creating scratch scripts, temporary data dumps, or one-off debugging programs in the repository root or inside core architectural directories (`backend_v2`, `client_app_v2`).</banned_pattern>
-        <mandatory_pattern>All temporary files, debugging scripts, and ad-hoc execution programs MUST be written to and executed from `c:\src\quorum\tmp\`. Treat `tmp\` as your exclusive scratchpad.</mandatory_pattern>
+        <banned_pattern>Creating scratch scripts, temporary data dumps, or one-off debugging programs in the repository root, core architectural directories (`backend_v2`, `client_app_v2`), or the legacy `tmp\` folder.</banned_pattern>
+        <mandatory_pattern>All temporary files, debugging scripts, and ad-hoc execution programs MUST be written to and executed EXCLUSIVELY from the system-injected artifact scratch directory (`<appDataDir>\brain\<conversation-id>/scratch/`).</mandatory_pattern>
+        <catastrophic_reason>Using a hardcoded `tmp\` directory conflicts with the native IDE artifact system, causing lost execution traces and polluting the workspace state.</catastrophic_reason>
     </rule_block>
     <rule_block id="logfire_delegation_mandate">
         <banned_pattern>Attempting to debug LLM token anomalies, performance latency bottlenecks, or "hallucination" issues purely by guessing or asking the user to manually dump text logs.</banned_pattern>
@@ -58,9 +66,9 @@
         <catastrophic_reason>Agentic Drift. The AI risks prioritizing pure system stability over business value, silently amputating core platform capabilities under the guise of technical optimization.</catastrophic_reason>
     </rule_block>
     <rule_block id="the_zero_compromise_pledge">
-        <banned_pattern>Taaksepäinyhteensopivuus, fallback-ketjut ("jos A puuttuu, kokeile B"), oikotiet, ohjelmointikielen oletusarvot (esim. v.get('kenttä', '')) ja kovakoodatut paikkaajat ovat kaikki ankarasti kiellettyjä. ANY use of `hasattr()`, `isinstance(dict)`, or recursive dictionary loops to "guess" or "find" missing data.</banned_pattern>
-        <mandatory_pattern>You MUST enforce strict Pydantic V2 schemas. If an expected key or data point is missing in a strict architecture (like a Micro-CoT footprint or execution trace), you MUST raise an explicit `RuntimeError` or `AppException` and CRASH. Zero Tolerance for silent bypasses or guessing.</mandatory_pattern>
-        <catastrophic_reason>Masking data corruption or LLM hallucinations with chained fallbacks or language-level default values destroys the deterministic nature of the Quorum engine and completely invalidates the forensic audit trail.</catastrophic_reason>
+        <banned_pattern>Implementing backwards compatibility, fallback chains ("if A is missing, try B"), shortcuts, language-level defaults (e.g., `v.get('field', '')`), or hardcoded patches. ANY use of `hasattr()`, `isinstance(data, dict)`, or recursive dictionary loops to guess missing data.</banned_pattern>
+        <mandatory_pattern>You MUST enforce strict Pydantic V2/Freezed schemas. If an expected key is missing, you MUST raise an explicit `AppException` and CRASH. Zero Tolerance for silent bypasses.</mandatory_pattern>
+        <catastrophic_reason>Masking data corruption with fallbacks destroys the deterministic Quorum engine and invalidates the forensic audit trail. (Rule enforced natively in English to prevent LLM attention dilution).</catastrophic_reason>
     </rule_block>
     <rule_block id="the_duct_tape_ban">
         <banned_pattern>Writing "duct-tape" code (purkkakoodi), returning empty arrays `[]`, default dicts `{}`, or hiding UI elements `SizedBox.shrink()` when real data goes missing. Catching all errors with giant `try...except Exception:` blocks to prevent crashes.</banned_pattern>
@@ -73,8 +81,9 @@
         <catastrophic_reason>Injecting "magic defaults" deeply in the controller/service logic bypasses the Pydantic/Dart structural audits, leading to untraceable shadow-states when the database or LLM behaves anomalously.</catastrophic_reason>
     </rule_block>
     <rule_block id="the_no_legacy_mandate">
-        <banned_pattern>Writing code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases. ANY form of fallback logic (e.g., `new_field or old_field`, `.get('key', default)`, `.maybeWhen` in Flutter) designed to catch missing or old data structures.</banned_pattern>
-        <mandatory_pattern>Vanhoja asioita ei saa tukea. Tämä koskee KAIKKEA fallback-logiikkaa! Jos data puuttuu tai on väärän muotoista, järjestelmän tulee kaatua (Fail-Fast). Obsolete code, ALL fallback chains, and legacy test fixtures MUST be ruthlessly deleted.</mandatory_pattern>
+        <banned_pattern>Writing code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases. ANY form of fallback logic designed to catch missing or old data structures.</banned_pattern>
+        <mandatory_pattern>Legacy support is STRICTLY PROHIBITED. If data is missing or malformed, the system MUST Fail-Fast. Obsolete code, fallback chains, and legacy test fixtures MUST be ruthlessly deleted.</mandatory_pattern>
+        <catastrophic_reason>Preserving legacy fallbacks pollutes the V2 architecture with dead code pathways, bypasses strictness, and silently corrupts new data pipelines with deprecated logic.</catastrophic_reason>
     </rule_block>
     <rule_block id="database_schema_hallucination">
         <banned_pattern>Autonomously migrating relational SSOT arrays (like `output_profiles`) into embedded nested structures inside other objects (like `workflows`) within `seed_data.json` based on assumptions about Pydantic attributes.</banned_pattern>
@@ -93,8 +102,14 @@
         <mandatory_pattern>Respect and maintain the exact existing variable nomenclature across all boundaries unless an explicit schema refactoring is actively underway.</mandatory_pattern>
     </rule_block>
     <rule_block id="universal_fail_fast">
-        <banned_pattern>Allowing invalid data to pass silently through the system boundaries.</banned_pattern>
+        <banned_pattern>Allowing invalid data to pass silently through the system boundaries, or fixing corrupted JSON visually in the UI.</banned_pattern>
         <mandatory_pattern>Enforce "Fail-Fast" at every boundary. If data does not precisely match the Pydantic V2 or Dart 3 Freezed schema, the system MUST crash audibly and visibly (`AppException` or `AppErrorBoundary`).</mandatory_pattern>
+        <catastrophic_reason>If bad data is allowed to render, the user will eventually save it back to the database, permanently persisting the corrupted state into the SSOT.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="rfc7807_dual_reporting_mandate">
+        <banned_pattern>Crashing the system via `AppException` or `AppErrorBoundary` without simultaneously logging a deterministic, structured error trace.</banned_pattern>
+        <mandatory_pattern>You MUST implement the Dual-Reporting pattern (RFC 7807). Every `AppException` thrown MUST be preceded by a structured `logger.error` containing the exact mathematical/logical reason for the failure and contextual parameters.</mandatory_pattern>
+        <catastrophic_reason>Crashing without a structured trace creates opaque "black box" failures that cannot be audited in Logfire or forensic debugging sessions.</catastrophic_reason>
     </rule_block>
     <rule_block id="output_format_requirements">
         <banned_pattern>Writing prompt responses or code in language other than English, or explaining WHAT the code mechanically does in comments.</banned_pattern>
@@ -112,19 +127,11 @@
 </architectural_invariants>
 
 <universal_quality_gate>
-    <backend_verification>
-        <instruction>Backend verification MUST utilize the unified audit loop script for safety and consistency.</instruction>
-        <command>Execution: `uv run python scripts/backend_audit_loop.py backend_v2/[tiedostot]`</command>
-        <command>Execution (If Pydantic or Routers changed): `uv run python scripts/backend_audit_loop.py backend_v2/[tiedostot] --openapi`</command>
-        <test_mandate>Included directly: `uv run python scripts/backend_audit_loop.py backend_v2/[tiedostot] --test`</test_mandate>
-    </backend_verification>
-    
-    <frontend_verification>
-        <instruction>Flutter verification MUST follow a strict order of native tools natively mapped inside the core workspace. You must use the unified audit loop script for this process.</instruction>
-        <command>Execution: `uv run python scripts/flutter_audit_loop.py client_app_v2`</command>
-        <command>Execution (If @riverpod or @freezed changed): `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`</command>
-        <test_mandate>Included directly: `uv run python scripts/flutter_audit_loop.py client_app_v2`</test_mandate>
-    </frontend_verification>
+    <rule_block id="quality_gate_delegation">
+        <banned_pattern>Executing arbitrary test commands, running naked `pytest` or `flutter test`, or defining custom audit loops.</banned_pattern>
+        <mandatory_pattern>You MUST strictly execute the exact `backend_audit_loop.py` or `flutter_audit_loop.py` commands defined in the `<universal_quality_gates>` block of `AGENTS.md`. Do not bypass these native systemic loops.</mandatory_pattern>
+        <catastrophic_reason>Redefining quality gates locally creates fragmented test coverage and allows the AI to bypass strict linting, formatting, and MyPy checks.</catastrophic_reason>
+    </rule_block>
 
     <rule_block id="zero_deprecation_mandate">
         <banned_pattern>Declaring a step complete when syntax errors or deprecation warnings (e.g., `deprecated_member_use`) exist.</banned_pattern>

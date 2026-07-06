@@ -1,5 +1,10 @@
 # 🚀 ANTIGRAVITY LLM & OUTPUT ARCHITECTURE CONSTRAINTS
 
+<domain_boundary>
+    <role>LLM ORCHESTRATION & PROMPT COMPILATION</role>
+    <instruction>These rules govern the EXACT mechanics of how you instruct foundational models, parse structured JSON, and protect prompts against injection. These rules MUST be applied when working inside `backend_v2/llm/` or `services/` involving AI execution.</instruction>
+</domain_boundary>
+
 <system_context>
     <domain>Large Language Model (LLM) Integration, Prompt Engineering, and Output Management</domain>
 </system_context>
@@ -51,21 +56,25 @@
     <rule_block id="structured_sdui_outputs">
         <banned_pattern>Requesting unstructured Markdown formatting (e.g., `run_chat()`) and expecting the Flutter UI or PDF library to guess the visual layout.</banned_pattern>
         <mandatory_pattern>Mandate Zero-Math Templates via Pydantic. Use `run_structured_task()` to force the LLM to output strict Server-Driven UI (SDUI) visual block arrays (e.g., `HeroInsightBlock`, `DataGridBlock`).</mandatory_pattern>
+        <catastrophic_reason>Relying on raw Markdown extraction transfers the parsing burden to the client app, destroying Flutter's deterministic rendering and leading to silent parsing crashes.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="two_tier_prompting">
         <banned_pattern>Hardcoding stylistic tone inside the Python backend code, OR conversely, storing rigid JSON layout schemas in the database where an admin UI can mistakenly break them.</banned_pattern>
         <mandatory_pattern>Enforce Structural Sovereignty: The stylistic rules (`tone_instruction`, `audience`) MUST be dynamically loaded from the Database. The rigid JSON mapping and schema validations MUST be locked permanently in the `prompt_compiler.py` code.</mandatory_pattern>
+        <catastrophic_reason>Mixing structural JSON constraints with volatile UI database edits allows non-technical admins to accidentally delete JSON commas, permanently destroying the prompt's integrity.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="non_blocking_fastapi">
         <banned_pattern>Awaiting long `LLMClient` tasks, Text Consolidation Hooks, or PDF generation synchronously within a FastAPI router.</banned_pattern>
         <mandatory_pattern>LLM Workflows exceeding 500ms MUST be sent to the Arq background worker. Furthermore, you must include an "SSE-Heartbeat" pulse in the long-running worker to prevent Cloud Load Balancers from timing out the HTTP connection.</mandatory_pattern>
+        <catastrophic_reason>Synchronous awaits on LLMs (30s+ response times) instantly consume FastAPI worker threads, leading to global 502 Bad Gateway timeouts across the entire cluster.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="role_segregation_and_fencing">
         <banned_pattern>Passing unescaped user inputs directly into prompts.</banned_pattern>
         <mandatory_pattern>You MUST fence untrusted user payloads using clear markdown blocks or relying on the structured compiler injection as a firewall against Prompt Injection.</mandatory_pattern>
+        <catastrophic_reason>Direct concatenation allows Prompt Injection (Jailbreaking), giving user input the power to rewrite system constraints and exfiltrate raw system rules.</catastrophic_reason>
         <code_example>
             <anti_pattern>{"role": "user", "content": f"Parse this: {user_text}"}</anti_pattern>
             <pro_pattern>{"role": "user", "content": f"Data:\n```\n{user_text}\n```"}</pro_pattern>
@@ -75,6 +84,7 @@
     <rule_block id="internal_utility_llm_execution">
         <banned_pattern>Building ad-hoc LLM instances or placing core parsing instructions into dynamic variables / database fields for backend utilities like `chat_parser.py` or `translation_hook.py`.</banned_pattern>
         <mandatory_pattern>Non-workflow Internal LLM Utilities MUST execute as follows: 1) Load client via `await LLMClient.from_strategy("fast", repository=repo)`. 2) Define instructions as a file-level `_SYSTEM_INSTRUCTION` constant. 3) Pass strictly segregated messages to `executor.execute_chat_task(client=...)` or `executor.execute_structured_task(client=...)`.</mandatory_pattern>
+        <catastrophic_reason>Hardcoding custom LLM clients bypasses the Model Registry's telemetry, cost tracking, and automatic fallback mechanisms, creating orphaned API calls.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="xml_structural_sovereignty_mandate">
@@ -110,11 +120,13 @@
     <rule_block id="ai_bloatware_ban">
         <banned_pattern>Proposing frameworks like `langchain`, `llamaindex`, or `crewai`.</banned_pattern>
         <mandatory_pattern>AI logic MUST remain strictly in our native `LLMClient` wrapper. Complex orchestrations MUST use Python async patterns and Pydantic.</mandatory_pattern>
+        <catastrophic_reason>Heavy abstraction frameworks obscure exact token usage, hijack Pydantic strictness, and introduce uncontrollable Prompt Injection points under the hood.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="ephemeral_caching_topology">
         <banned_pattern>Injecting dynamic variables (timestamps, UUIDs) into `_SYSTEM_INSTRUCTION`.</banned_pattern>
         <mandatory_pattern>To maximize Context Caching (FinOps), the System Prompt MUST be 100% static. ALL dynamic data MUST be injected exclusively into the `user` message at the end.</mandatory_pattern>
+        <catastrophic_reason>Injecting a single timestamp into the system prompt invalidates the Google/Anthropic Context Cache, multiplying API costs by 10x for every subsequent request.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="native_english_generation_mandate">
@@ -139,12 +151,6 @@
         <mandatory_pattern>Execute high-entropy and negative validation steps using a single-pass "Best-of-3" ensemble. You MUST run parallel LLM calls cleanly wrapped in `asyncio.TaskGroup` and resolve the final output via a strict majority vote where lexically invalid hallucinations are discarded before counting.</mandatory_pattern>
         <catastrophic_reason>Multi-pass negative logic forces the LLM into "double-negative" confusion, causing severe output oscillation. Parallel Best-of-3 polling mathematically smooths statistical anomalies without convoluting the system prompts.</catastrophic_reason>
     </rule_block>
-    <rule_block id="strict_xml_prompt_formatting">
-        <banned_pattern>Using arbitrary ASCII separators (like `=== RULES ===`) or soft Markdown headings for critical logic constraints inside prompt models.</banned_pattern>
-        <mandatory_pattern>All distinct business logic, rules, and mandates MUST be written using explicit XML boundaries (e.g., `<language_mandate>...</language_mandate>`). Markdown can still be used inside the XML block for readability, but the absolute outer boundary of a rule MUST be an XML tag.</mandatory_pattern>
-        <catastrophic_reason>Without XML tag boundaries, LLMs suffer from "Attention Dilution" and can accidentally bleed the context of one rule into another.</catastrophic_reason>
-    </rule_block>
-
     <rule_block id="prompt_asset_ssot_mandate">
         <banned_pattern>Hardcoding system instructions, language translation directives (like `<linguistic_context>`), or Pydantic JSON schema descriptions directly into service layer classes (e.g., `PromptFactory`, `translation_service.py`, or `schema_factory.py`).</banned_pattern>
         <mandatory_pattern>Enforce strict Single Source of Truth (SSOT) for all Prompt Assets. The `backend_v2/models/prompts` directory is the ONLY allowed location for defining static prompt blocks, XML mandates, and schema descriptions. Prompt factories and orchestrators MUST ONLY import and inject these pre-defined assets. They must never construct structural XML rules dynamically in the service layer.</mandatory_pattern>
@@ -152,8 +158,8 @@
     </rule_block>
     <rule_block id="atom_aliasing_hydration_mandate">
         <banned_pattern>Passing raw system UUIDs (like `tda_131ffcb70bbc4c29bef079047002bc91` or `blk_...`) directly to the LLM to use as keys or output values for structured evaluations (including Shuffled Atoms and Atom Graphs), OR using regex laastari for hydration.</banned_pattern>
-        <mandatory_pattern>Enforce **The Alias Engine & Hydration Mandate**. The LLM MUST ONLY be exposed to short, deterministic aliases (e.g., `a0`, `a1` for atoms, `src_0`, `src_1` for source documents) to act as "Attention Anchors". You MUST use the dedicated `AliasEngine` module (`alias_engine.py`) to handle both the obfuscation injection (translating long UUIDs to aliases before prompt injection) and the hydration phase (translating aliases back to true Opaque IDs during Pydantic validation via context). This guarantees token optimization, prevents hallucinatory typos on primary keys, and centralizes aliasing logic for Epic 92.</mandatory_pattern>
-        <catastrophic_reason>Forcing the LLM to juggle dozens of 32-character hashes destroys its ability to track relationships in complex dependency graphs (Epic 92), consumes massive token budgets unnecessarily, and risks database corruption via 1-character hallucination typos.</catastrophic_reason>
+        <mandatory_pattern>Enforce **The Alias Engine & Hydration Mandate**. The LLM MUST ONLY be exposed to short, deterministic aliases (e.g., `a0`, `a1` for atoms, `src_0`, `src_1` for source documents) to act as "Attention Anchors". You MUST use the dedicated `AliasEngine` module (`alias_engine.py`) to handle both the obfuscation injection (translating long UUIDs to aliases before prompt injection) and the hydration phase (translating aliases back to true Opaque IDs during Pydantic validation via context). This guarantees token optimization, prevents hallucinatory typos on primary keys, and centralizes aliasing logic.</mandatory_pattern>
+        <catastrophic_reason>Forcing the LLM to juggle dozens of 32-character hashes destroys its ability to track relationships in complex dependency graphs, consumes massive token budgets unnecessarily, and risks database corruption via 1-character hallucination typos.</catastrophic_reason>
     </rule_block>
     <rule_block id="provider_abstraction_mandate">
         <banned_pattern>Hardcoding provider-specific hacks (like HTTPX custom wrappers, `cachedContent` body mappings, or `vertex_location` priority logic) directly into the `LiteLLMProvider` class (`provider.py`).</banned_pattern>
@@ -164,5 +170,6 @@
     <rule_block id="local_prompt_debugging_mandate">
         <banned_pattern>Attempting to debug token explosions, JSON schema extraction failures, or model hallucinations solely by guessing or staring at Logfire cloud traces without reviewing the exact constructed XML payload.</banned_pattern>
         <mandatory_pattern>In `development` environments, the backend automatically generates a comprehensive `llm_debug_prompts.md` for every execution step inside `data/files/executions/<execution_id>/`. When resolving LLM hallucination or latency (e.g. 50-second generation times) issues, you MUST proactively use `view_file` to read this markdown file. It contains the precise `Prompt Source Blocks` (e.g. `blk_...` IDs) and the exact `User Payload` (including payload size and expected Pydantic schema name) that caused the anomaly, allowing surgical database corrections rather than trial and error.</mandatory_pattern>
+        <catastrophic_reason>Guessing LLM prompt errors without inspecting the raw injected XML payload leads to wild goose chases in Python code when the actual bug lies in a malformed database string.</catastrophic_reason>
     </rule_block>
 </architectural_invariants>

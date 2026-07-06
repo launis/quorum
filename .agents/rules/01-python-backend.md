@@ -2,6 +2,11 @@
 
 *** UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS FOR PYTHON ***
 
+<domain_boundary>
+    <role>RUNTIME & LOGIC ONLY</role>
+    <instruction>These rules apply STRICTLY to Python (.py) execution logic, memory states, and Pydantic schemas. If you need to modify baseline JSON data or database configurations, you MUST halt and read `03_seed_vault.md` first.</instruction>
+</domain_boundary>
+
 <catastrophic_system_bans>
     <rule_block id="the_duct_tape_ban">
         <banned_pattern>"God Blocks" (`except Exception: pass`), returning empty dicts `{}` on failure, or using `.get("key", default)` to suppress missing data.</banned_pattern>
@@ -89,7 +94,7 @@
 
     <rule_block id="zero_legacy_fallback_hacks">
         <banned_pattern>Adding `@model_validator(mode="before")` or optional union types (`| None`) to Pydantic models purely to silently scrub or appease old V1 legacy payload fields (e.g., `task_key`) from crashing `extra='forbid'`.</banned_pattern>
-        <mandatory_pattern>NEVER bypass Pydantic `extra='forbid'` strictness to accommodate dirty databases. If historical data causes validation crashes, the root cause MUST be fixed at the source by instructing the user to wipe and re-seed the database (`run_seed.py`). Pydantic models must remain mathematically pure to the V2 spec.</mandatory_pattern>
+        <mandatory_pattern>NEVER bypass Pydantic `extra='forbid'` strictness to accommodate dirty databases. If historical data causes validation crashes, the root cause MUST be fixed at the source by wiping the seed data (via `uv run python backend_v2/seed/run_seed.py local`). Pydantic models must remain mathematically pure to the V2 spec.</mandatory_pattern>
         <catastrophic_reason>Writing fallback parsing logic pollutes the domain layer with historical technical debt, destroying the Fail-Fast architecture and silently allowing legacy structures to persist and mutate inside V2 pipelines.</catastrophic_reason>
     </rule_block>
 
@@ -156,8 +161,8 @@
         <catastrophic_reason>Backend coupling to dynamic UI nomenclature breaks workflow relations. Pushing unfiltered execution state into an LLM context invariably causes `Resource Exhausted` limit triggers due to heavy Eager Extraction blobs intentionally stored in the execution state.</catastrophic_reason>
     </rule_block>
     <rule_block id="strict_math_display_isolation">
-        <banned_pattern>Using database configuration keys `scale_min` and `scale_max` to calculate backend mathematical scores, or using them as fallback bounds for the internal execution engine.</banned_pattern>
-        <mandatory_pattern>The scoring math engine MUST derive internal mathematical boundaries exclusively from the strictly typed Pydantic `scales` array (`min(scales)` and `max(scales)` assigned to strictly named `math_min` and `math_max` variables). The Database config fields `scale_min` and `scale_max` MUST ONLY be used as UI projection boundary targets (`display_min` and `display_max`) for cosmetic school-grade scaling (e.g. 4-10) before sending to the frontend. If the Display bounds are missing in the DB, trigger a 500 Fail-Fast ConfigurationError rather than attempting to guess them.</mandatory_pattern>
+        <banned_pattern>Assuming that database config fields `scale_min` and `scale_max` dictate what scales are "in use" or using them to calculate backend mathematical scores. Using them as fallback bounds for the internal execution engine.</banned_pattern>
+        <mandatory_pattern>The scoring math engine MUST derive internal mathematical boundaries exclusively from the strictly typed Pydantic `scales` array (`min(scales)` and `max(scales)` assigned to strictly named `math_min` and `math_max` variables). The Database config fields `scale_min` and `scale_max` do NOT represent the scales in use; they are ONLY for scoring scaling/stretching (UI projection boundary targets, mapped to `display_min` and `display_max` in Python) for cosmetic school-grade scaling (e.g. 4-10) before sending to the frontend. If the Display bounds are missing in the DB, trigger a 500 Fail-Fast ConfigurationError rather than attempting to guess them.</mandatory_pattern>
         <catastrophic_reason>Conflating calculation bounds with UI display projections corrupts the empirical accuracy of the cognitive diagnostic model and fundamentally violates Single Source of Truth architecture. The LLM or the Backend must NEVER calculate "hunches" via cross-contamination.</catastrophic_reason>
     </rule_block>
 
@@ -239,48 +244,62 @@
     <rule_block id="fail_fast_hydration_mandate">
         <banned_pattern>Fishing for dictionary values via `dict.get()`.</banned_pattern>
         <mandatory_pattern>All uncertain data flowing as dictionaries MUST be hydrated via `.model_validate()` IMMEDIATELY before processing.</mandatory_pattern>
+        <catastrophic_reason>Delaying hydration allows invalid data structures to penetrate deep into execution logic, making root-cause stack traces impossible to decipher.</catastrophic_reason>
     </rule_block>
     <rule_block id="annotated_hydration_mandate">
+        <banned_pattern>Converting enums manually using `if/else` checks or external dictionaries.</banned_pattern>
         <mandatory_pattern>External data enum conversions MUST be mapped exclusively using `Annotated[CustomEnum, Field(strict=False)]` aliases defined in `enums.py`.</mandatory_pattern>
+        <catastrophic_reason>Manual enum parsing duplicates logic and bypasses Pydantic's Rust-based optimized C-core coercion.</catastrophic_reason>
     </rule_block>
     <rule_block id="vertex_serving_grammar_fix">
         <banned_pattern>Float type field constraints (e.g., ge, le) at the `Field()` level.</banned_pattern>
         <mandatory_pattern>Float constraints MUST NOT be applied at the `Field()` level to avoid Vertex AI 400 errors. Move them to local `@field_validator` methods.</mandatory_pattern>
+        <catastrophic_reason>Vertex AI SDK strict JSON schema parser crashes natively with HTTP 400 when encountering float constraints nested inside object parameter definitions.</catastrophic_reason>
     </rule_block>
     <rule_block id="blind_extraction_null_hypothesis">
+        <banned_pattern>Allowing the LLM to output both an `exact_quote` and flag `contextual_override == True` simultaneously.</banned_pattern>
         <mandatory_pattern>TDA extraction models MUST force the null hypothesis via `@model_validator`: If `contextual_override == True`, the `exact_quote` field MUST be forced to `None`.</mandatory_pattern>
+        <catastrophic_reason>Failing to force this nullification allows hallucinated quotes to bypass the override logic, polluting the empirical audit reports.</catastrophic_reason>
     </rule_block>
     <rule_block id="zero_defaults_mandate">
         <banned_pattern>Using mutable types (e.g., list, dict) as default arguments (B006) or defaulting critical data.</banned_pattern>
         <mandatory_pattern>DTO models MUST NOT use default values if the missing data is critical. Always use `None` and initialize the mutable object inside the function block.</mandatory_pattern>
+        <catastrophic_reason>Mutable defaults leak state across asynchronous requests, causing massive Cross-Tenant Data Leaks where User A sees User B's execution data.</catastrophic_reason>
     </rule_block>
     <rule_block id="duck_typing_token_shield_exception">
         <banned_pattern>The `extra="ignore"` configuration in Pydantic.</banned_pattern>
         <mandatory_pattern>STRICTLY PROHIBITED at all times, with the absolute exception of `SynthesisStepDataDTO`, Token Shield classes, and internal Data Projection Models.</mandatory_pattern>
+        <catastrophic_reason>Ignoring extra payload data masks Prompt Injection attempts and suppresses critical validation warnings on outdated schemas.</catastrophic_reason>
     </rule_block>
     <rule_block id="python_314_root_model_ban">
         <banned_pattern>Using `RootModel` to enforce dynamic TypeAdapter patterns.</banned_pattern>
         <mandatory_pattern>Always wrap standard types dynamically using the `TypeAdapter` pattern instead. Example: `TypeAdapter(list[UserDTO]).validate_python(data)`.</mandatory_pattern>
+        <catastrophic_reason>RootModel inherits heavy metaclasses which consume massive memory overhead during runtime array parsing in Python 3.14.</catastrophic_reason>
     </rule_block>
     <rule_block id="append_only_state_mutation">
         <banned_pattern>In-place mutation of `execution_trace` or `step_states`.</banned_pattern>
         <mandatory_pattern>Historical payload data MUST NEVER be overwritten via in-place mutation. Dynamic projections MUST be executed on-the-fly into newly instantiated DTO models.</mandatory_pattern>
+        <catastrophic_reason>In-place mutation destroys the linear Forensic Audit Trail, invalidating the legal compliance of the cognitive execution.</catastrophic_reason>
     </rule_block>
     <rule_block id="base64_amnesia_protocol">
         <banned_pattern>Persisting raw base64 data or binaries within Pydantic states.</banned_pattern>
         <mandatory_pattern>They must be extracted into text representations via the Eager Extraction pattern at the boundary layer.</mandatory_pattern>
+        <catastrophic_reason>Raw binaries bypass textual token tracking, inflate TinyDB filesizes beyond RAM capacity, and crash frontend JSON parsers instantly.</catastrophic_reason>
     </rule_block>
     <rule_block id="dlq_arq_fallback_routing">
         <banned_pattern>A Worker crashing the entire execution tree with a direct unhandled exception.</banned_pattern>
         <mandatory_pattern>TaskGroup or ChunkWorker errors MUST be routed to the Dead Letter Queue by yielding `{"_dlq_status": "FAILED/DLQ"}`.</mandatory_pattern>
+        <catastrophic_reason>An unhandled exception within a single worker will immediately cancel the entire asyncio.TaskGroup, destroying hours of valid parallel LLM processing.</catastrophic_reason>
     </rule_block>
     <rule_block id="the_self_healing_ban">
         <banned_pattern>Attempting to dynamically patch AI-generated quotes or JSON formatting errors on-the-fly using Regex.</banned_pattern>
         <mandatory_pattern>Data validation belongs 100% to Pydantic.</mandatory_pattern>
+        <catastrophic_reason>Regex patching creates recursive self-healing loops that mask severe Prompt Model degradation, ensuring the actual AI problem is never fixed.</catastrophic_reason>
     </rule_block>
     <rule_block id="md5_hashery_ban">
         <banned_pattern>`hashlib.md5` and `hashlib.sha1` for dynamic ID generation.</banned_pattern>
         <mandatory_pattern>Utilize `uuid.uuid4().hex[:8]`. For cryptographic operations, the standard `random` module is forbidden; always enforce `secrets`.</mandatory_pattern>
+        <catastrophic_reason>MD5 is cryptographically broken and creates high collision probability in high-throughput chunking, causing silent data overwrite.</catastrophic_reason>
     </rule_block>
     <rule_block id="high_fidelity_prompting">
         <banned_pattern>Using f-strings for foundational core rules.</banned_pattern>
@@ -289,16 +308,22 @@
     <rule_block id="single_source_of_truth_mandate">
         <banned_pattern>V1 and V2 models coexisting.</banned_pattern>
         <mandatory_pattern>Ruthlessly purge deprecated V1-era fallback hacks, `.get()` coalescing chains, and `@model_validator` retrofits handling legacy data payloads.</mandatory_pattern>
+        <catastrophic_reason>V1 data shapes cause infinite polymorphism crashes when the V2 parser attempts to resolve legacy nested loops.</catastrophic_reason>
     </rule_block>
     <rule_block id="native_english_generation">
         <banned_pattern>Prompting the Language Model to translate cognitive reasoning logic on-the-fly.</banned_pattern>
         <mandatory_pattern>Cognitive reasoning is formulated natively in English; UI localization is handled strictly in a downstream translation phase.</mandatory_pattern>
+        <catastrophic_reason>Forcing translation simultaneously with logical evaluation degrades the LLM's IQ, resulting in severe reasoning errors.</catastrophic_reason>
     </rule_block>
     <rule_block id="hybrid_prompting_mandate">
+        <banned_pattern>Constructing prompts using pure unstructured text.</banned_pattern>
         <mandatory_pattern>System prompts MUST use a hybrid of XML for structural control and Markdown for nested content formatting.</mandatory_pattern>
+        <catastrophic_reason>Without XML, modern LLMs suffer from 'Attention Dilution' and bleed constraints across instruction boundaries.</catastrophic_reason>
     </rule_block>
     <rule_block id="role_segregation_and_fencing">
+        <banned_pattern>Injecting raw user text directly into the system prompt.</banned_pattern>
         <mandatory_pattern>Always fence untrusted user payloads with clear XML tags (specifically `<user_payload>...</user_payload>`) as a firewall against prompt injection attacks.</mandatory_pattern>
+        <catastrophic_reason>Unfenced data allows malicious payloads to hijack the role execution, bypassing the entire security layer.</catastrophic_reason>
     </rule_block>
     <rule_block id="infinite_retry_loops">
         <banned_pattern>Infinite retry loops on failed schema validations.</banned_pattern>
@@ -334,10 +359,12 @@
     <rule_block id="taskgroup_exceptiongroup_mandate">
         <banned_pattern>`asyncio.gather`.</banned_pattern>
         <mandatory_pattern>Background routines MUST ALWAYS be orchestrated utilizing the `asyncio.TaskGroup` context. When trapping parallel exceptions, use the `ExceptionGroup` class and native `except*` syntax.</mandatory_pattern>
+        <catastrophic_reason>asyncio.gather silently orphans running tasks when one fails, causing zombie executions that leak memory and keep database locks open.</catastrophic_reason>
     </rule_block>
     <rule_block id="idiomatic_pattern_matching">
         <banned_pattern>Verbose `if-elif` cascades used for data destructuring or type validation.</banned_pattern>
         <mandatory_pattern>Utilize native `match` and `case` structures.</mandatory_pattern>
+        <catastrophic_reason>Cascades scale poorly in polymorphic routing, reducing readability and increasing the likelihood of unhandled edge cases.</catastrophic_reason>
     </rule_block>
     <rule_block id="pathlib_over_ospath">
         <banned_pattern>Invoking the legacy `os.path` module.</banned_pattern>
@@ -377,16 +404,20 @@
         <banned_pattern>Complex conditional logic for hydration (e.g., `if "key" not in kwargs: kwargs["key"] = value`).</banned_pattern>
         <mandatory_pattern>When safely injecting fallback or configuration values, you MUST utilize Python's native `dict.setdefault("key", value)` method.</mandatory_pattern>
     </rule_block>
-    <rule_block id="pydantic_configuration_warning_mandate">
-        <banned_pattern>Autonomously tightening `model_config = ConfigDict(extra="allow")` to `extra="forbid"` on existing models.</banned_pattern>
-        <mandatory_pattern>Leave it unchanged and log a Warning.</mandatory_pattern>
+    <rule_block id="pydantic_configuration_enforcement">
+        <banned_pattern>Tolerating loose `extra="allow"` or `extra="ignore"` configurations in primary domain models, or simply logging a warning when encountering them.</banned_pattern>
+        <mandatory_pattern>You MUST ruthlessly enforce `model_config = ConfigDict(extra="forbid", strict=True)` on ALL Domain DTOs unless explicitly defined as a Token Shield. Loose models must be fixed immediately.</mandatory_pattern>
+        <catastrophic_reason>Tolerating loose Pydantic configurations creates silent parsing vulnerabilities that bypass the Zero-Trust execution boundaries.</catastrophic_reason>
     </rule_block>
     <rule_block id="pydantic_v2_computed_field_order">
         <banned_pattern>`@property` over `@computed_field`.</banned_pattern>
         <mandatory_pattern>The `@computed_field` decorator MUST strictly be placed ABOVE the `@property` decorator, appending `# type: ignore[prop-decorator]`.</mandatory_pattern>
+        <catastrophic_reason>Inverting the decorators causes Pydantic Core schema generation to crash entirely, breaking the OpenAPI JSON spec.</catastrophic_reason>
     </rule_block>
     <rule_block id="srp_god_method_mandate">
-        <mandatory_pattern>Break down massive God Methods into isolated private helper methods to uphold the Single Responsibility Principle.</mandatory_pattern>
+        <banned_pattern>Writing monolithic controller or service methods exceeding 50 lines of core logic.</banned_pattern>
+        <mandatory_pattern>You MUST break down methods exceeding 50 lines into isolated, pure, private helper methods to uphold the Single Responsibility Principle.</mandatory_pattern>
+        <catastrophic_reason>God methods are untestable via isolated unit tests and cause cascading logical failures during refactoring.</catastrophic_reason>
     </rule_block>
     <rule_block id="fail_fast_payload_length_mandate">
         <mandatory_pattern>Always enforce a strict minimum character length on extracted user text payloads BEFORE passing them to an LLM context window.</mandatory_pattern>
@@ -408,7 +439,9 @@
         <mandatory_pattern>The backend presentation layer (BFF / blueprint) MUST produce UI strings from runtime frozen metadata (inputs-snapshot).</mandatory_pattern>
     </rule_block>
     <rule_block id="graceful_degradation_over_fail_fast">
-        <mandatory_pattern>While the core system follows Fail-Fast, hallucinated individual fields from stochastic LLMs (e.g., a broken alias) should be defensively scrubbed (None or drop the quote) so the entire expensive run doesn't crash unnecessarily.</mandatory_pattern>
+        <banned_pattern>Allowing the entire execution graph to crash because a single hallucinated string field (like an optional UI label) failed parsing.</banned_pattern>
+        <mandatory_pattern>While core logic follows Fail-Fast, hallucinated *peripheral* fields from stochastic LLMs MUST be defensively scrubbed (cast to `None`) inside `@model_validator` so the expensive run does not crash entirely.</mandatory_pattern>
+        <catastrophic_reason>Crashing a $0.05 LLM execution trace just because an optional metadata field contained a typo destroys system reliability and inflates API costs.</catastrophic_reason>
     </rule_block>
     <rule_block id="declarative_set_logic_mandate">
         <banned_pattern>Using imperative `if x not in lst: lst.append(x)` loops or multiple `list(set(x))` conversions for uniqueness filtering and list aggregation.</banned_pattern>
@@ -420,8 +453,9 @@
         <mandatory_pattern>ALWAYS explicitly set `model_config = ConfigDict(title="<discriminator_value>")` on every polymorphic child model. This guarantees that `model_json_schema()` uses the exact literal value as the title instead of the Python Class Name, preventing LLMs from hallucinating the Python class name in structured JSON generation.</mandatory_pattern>
     </rule_block>
     <rule_block id="graceful_text_truncation_validator">
-        <banned_pattern>Relying solely on `max_length=N` in `Field()` for text string generation (e.g. reasoning, UI labels) without providing a truncation mechanism.</banned_pattern>
-        <mandatory_pattern>When setting a strict `max_length` limit on a textual string field (NOT a list count constraint) that is generated by an LLM, ALWAYS implement a `@field_validator(..., mode="before")` to silently truncate the string (ideally rounding down to the nearest sentence `.`). This ensures Graceful Degradation and prevents 500 Internals / infinite AI self-correction loops over minor length overages.</mandatory_pattern>
+        <banned_pattern>Relying solely on `max_length=N` in `Field()` for text generation without providing a truncation mechanism.</banned_pattern>
+        <mandatory_pattern>When setting `max_length` on LLM-generated strings, ALWAYS implement a `@field_validator(..., mode="before")` to silently truncate the string. You MUST round down to the nearest sentence (`.`).</mandatory_pattern>
+        <catastrophic_reason>Without truncation validators, the system falls into infinite self-correction loops when the LLM generates a string that is 1 character too long.</catastrophic_reason>
     </rule_block>
 </architectural_invariants>
 
@@ -449,15 +483,10 @@
         <mandatory_pattern>Your mandate is strictly architectural (typing, docstrings, modern syntax), NOT algorithmic optimization. You MUST preserve functional I/O and parsing logic entirely.</mandatory_pattern>
         <catastrophic_reason>Deleting or altering working File I/O or parsing loops causes catastrophic Fail-Fast bypasses.</catastrophic_reason>
     </rule_block>
-</agentic_safety_guardrails>
 
-<testing_and_verification_mandate>
-    <instruction>Executing Python tooling ALWAYS requires this explicit unified format calling the audit loop script:</instruction>
-    <command>`uv run python scripts/backend_audit_loop.py backend_v2/[TARGET_FILES] --test` (Testaus ja tyyppitarkastus)</command>
-    <command>`uv run python scripts/backend_audit_loop.py backend_v2/[TARGET_FILES] --openapi` (OpenAPI skeemojen generointi)</command>
-    
-    <rule_block id="zero_deprecation">
-        <banned_pattern>Calling code "Complete" while legacy APIs throw `DeprecationWarning` or typing reports an error.</banned_pattern>
-        <mandatory_pattern>Proactively replace any deprecated members and clean all typing errors before signaling task finalization. Code MUST NOT be pushed if `Pytest` automated coverage is missing or failing.</mandatory_pattern>
+    <rule_block id="backend_quality_gate_delegation">
+        <banned_pattern>Running naked `pytest`, `mypy`, or `ruff` commands manually.</banned_pattern>
+        <mandatory_pattern>You MUST exclusively trigger the `<universal_quality_gates>` command mapped in `AGENTS.md` (e.g., `uv run python scripts/backend_audit_loop.py <target_path> --test`) to validate Python changes.</mandatory_pattern>
+        <catastrophic_reason>Bypassing the unified audit loop allows type regressions and unformatted code to bypass the quality gates.</catastrophic_reason>
     </rule_block>
-</testing_and_verification_mandate>
+</agentic_safety_guardrails>

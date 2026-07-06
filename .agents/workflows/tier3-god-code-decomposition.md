@@ -11,16 +11,35 @@ This workflow is designed for the systematic decomposition and refactoring of he
   <objective>[DEFINE TARGET HERE. Example: "Decompose backend_v2/services/execution.py"]</objective>
   <role>Senior Staff Engineer & Python Systems Architect</role>
   <context_rules>
-    <rule>This workflow is designated for the systematic extraction and decomposition of large "God Code" files into bounded contexts based on SRP and DDD.</rule>
-    <rule>You MUST STRICTLY FOLLOW the constraints in `c:\src\quorum\.agents\rules\01-python-backend.md`, particularly regarding strict Pydantic parsing, PEP 695 generics, free-threading safety, and the "Opaque Stripe ID" patterns.</rule>
-    <rule>Refactoring massive files in one go leads to context truncation and hallucination. You MUST perform decomposition incrementally using the Strangler Fig Pattern (extracting one cohesive slice at a time) rather than attempting a single massive facade rewrite.</rule>
+    <rule_block id="core_rules_routing">
+      <mandatory_pattern>ALWAYS read `c:\src\quorum\.agents\rules\00-antigravity-core.md`. Analyze your target: IF decomposing the Python backend, ADDITIONALLY read `01-python-backend.md`. IF decomposing Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. You MUST synchronize your understanding with the system's Knowledge Item (KI) guidelines to ensure extracted slices match established patterns.</mandatory_pattern>
+      <catastrophic_reason>Refactoring massive files without the core architecture and KIs causes the AI to hallucinate boundaries that violate Phase 9 system integration.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="strangler_fig_mandate">
+      <mandatory_pattern>You MUST perform decomposition incrementally using the Strangler Fig Pattern (extracting one cohesive slice at a time) rather than attempting a single massive rewrite. Do NOT create massive dummy "Facade" files, as they break static typing validation.</mandatory_pattern>
+      <catastrophic_reason>Refactoring massive files in one go leads to context truncation, severe LLM amnesia, and irreversible system corruption.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="test_coverage_prerequisite">
+      <mandatory_pattern>Before any extraction begins, the target God File MUST have at least 75% test coverage. If coverage is below 75%, you MUST STOP and write missing tests first.</mandatory_pattern>
+      <catastrophic_reason>Decomposing a massive, untested file is blind surgery. Without 75% coverage, business logic will be silently destroyed during extraction.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="3">
-    <step id="1">PHASE 1 (Pre-flight & Discovery): Read the target file entirely (`view_file`). Load the architectural rules from `c:\src\quorum\.agents\rules\01-python-backend.md` if not already loaded. Establish a baseline by running the Quality Gate: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`. If the baseline fails, pause and fix the pre-existing debt. Document the target DDD bounded contexts (e.g., Domain Models, Ports, Services) in `implementation_plan.md`.</step>
-    <step id="2">PHASE 2 (Incremental Extraction): Extract ONE bounded context at a time (e.g., purely functional utilities first, followed by DTOs, then business logic). Create the new specific `.py` files. Move the logic incrementally. Use explicit `__init__.py` re-exports if a public API boundary must remain stable temporarily to avoid breaking downstream consumers. Do NOT create massive dummy "Facade" files, as they break static typing and Pydantic validation.</step>
-    <step id="3">PHASE 3 (Concurrent Test Migration): Migrate and adapt the corresponding unit tests (e.g., `tests/unit/services/test_execution.py`) simultaneously with the extracted code slice. This ensures that the newly decoupled components remain testable in isolation. Run the Quality Gate after extracting each slice.</step>
-    <step id="4">PHASE 4 (Quality Gate Loop): For every slice extracted and test migrated, immediately run the Universal Quality Gate: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`. If Ruff, MyPy, or Pytest fails, fix the errors instantly before proceeding to extract the next slice.</step>
-    <step id="5">PHASE 5 (Consumption Updates & Cleanup): Once all slices are extracted and verified, systematically update all downstream consumer imports to point to the new modular structure. Once no dependencies remain on the original God Code file or its temporary `__init__.py` re-exports, delete the original file. Present a summary of the new architecture to the user in `walkthrough.md`.</step>
+    <step id="1">PHASE 1 (Pre-flight &amp; Baseline Validation): Read the target file entirely (`view_file`). You MUST run the tests to establish a baseline (e.g., `uv run python scripts/backend_audit_loop.py backend_v2/ --test` or `flutter_audit_loop.py`). If the baseline fails, STOP and fix the debt. You MUST verify that test coverage is over 75%. If it is not, STOP and write tests. Document the target DDD bounded contexts and create an Exhaustive Symbol Inventory (mapping every class/function to its future location) in `implementation_plan.md`.</step>
+    
+    <step id="2">PHASE 2 (Approval Gate): After creating the `implementation_plan.md`, you MUST STOP AND PAUSE. Wait for the user to reply with "PROCEED" or "PERMISSION GRANTED". Do NOT start code extraction until the plan is approved.</step>
+    
+    <step id="3">PHASE 3 (Incremental Extraction): Extract ONE bounded context at a time. Create the new specific files. Use explicit `__init__.py` (or Dart `export`) re-exports if a public API boundary must remain stable temporarily. Do not destroy the original file yet.</step>
+    
+    <step id="4">PHASE 4 (Red-Green-Refactor &amp; Migration): Migrate and adapt the corresponding unit tests simultaneously. You MUST run the tests YOURSELF via the `run_command` tool after EVERY extracted slice. If tests fail, fix them instantly before proceeding.</step>
+    
+    <step id="5">PHASE 5 (Cyclic Dependency &amp; Symbol Check): Before finalizing, perform static analysis checks. Ensure the new architecture does not introduce cyclic dependencies. Cross-reference the Exhaustive Symbol Inventory created in Phase 1 to guarantee 100% of the logic has been successfully transplanted.</step>
+    
+    <step id="6">PHASE 6 (PRE-DELETE AUDIT &amp; Cleanup): Once all slices are extracted and downstream consumers are updated, you must perform a strict Pre-Delete Audit. You MUST run a `grep_search` across the repository for all original exported symbols. If no orphaned dependencies remain, you may delete the original God File.</step>
+    
+    <step id="7">PHASE 7 (DOCUMENTATION AUDIT MANDATE): Because God Code decomposition radically changes the folder structure, you MUST physically modify the documents in `c:\src\quorum\docs\architecture\` AND `c:\src\quorum\.agents\rules\04_directory_reference.md` to reflect the new bounded contexts. Maintain existing table structures.</step>
+    
+    <step id="8">PHASE 8 (HANDOVER): Present a summary of the new architecture to the user in `walkthrough.md`. Suggest running the Tier 2 Hardening workflow on the newly created directories.</step>
   </execution_protocol>
 </system_prompt>
 ```

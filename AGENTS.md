@@ -1,15 +1,20 @@
-# ANTIGRAVITY AGENT CONFIGURATION & DIRECTIVES (V6.2)
+# ANTIGRAVITY AGENT CONFIGURATION & DIRECTIVES (V6.3)
 
 <system_context>
     <os>Windows 11 (PowerShell)</os>
     <architecture>Quorum (Python Backend V2 + Flutter Client V2)</architecture>
 </system_context>
 
+<domain_boundary>
+    <role>SUPREME SYSTEM ROOT</role>
+    <instruction>This is the root configuration. These rules possess supreme authority over all other files and workflows. You MUST obey these catastrophic bans before any other logic.</instruction>
+</domain_boundary>
+
 <catastrophic_system_bans>
-    <rule_block id="win11_run_command_crash_exceptions">
-        <banned_pattern>Calling the `run_command` tool natively for arbitrary Linux commands, `&&` chains, or heavy build tools (like `flutter gen-l10n`).</banned_pattern>
-        <mandatory_pattern>DELEGATE EXECUTION for arbitrary commands on Windows 11. EXCEPTION: You MUST use the `run_command` tool natively to run automated testing via the Universal Quality Gates (see below).</mandatory_pattern>
-        <catastrophic_reason>General sandboxing and bash scripts fail on Windows 11 natively.</catastrophic_reason>
+    <rule_block id="async_background_execution_mandate">
+        <banned_pattern>Refusing to run heavy build tools (like `flutter build` or `npm run`) out of fear of timeout, or waiting endlessly for a synchronous terminal response.</banned_pattern>
+        <mandatory_pattern>You MUST leverage Antigravity 2.1.1's background task management for heavy commands. Set `WaitMsBeforeAsync` appropriately in `run_command` and use `manage_task` to check statuses. Remember that the OS is purely Windows 11 PowerShell; bash commands are PROHIBITED.</mandatory_pattern>
+        <catastrophic_reason>Refusing to build or compile leaves the codebase unverified. Relying on bash (`&&`) or sync-blocking the LLM execution pipeline crashes the IDE workspace.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="naked_python_execution_ban">
@@ -17,41 +22,53 @@
         <mandatory_pattern>ALWAYS prefix python tooling with `uv run ` (e.g. `uv run pytest`, `uv run python scripts/...`).</mandatory_pattern>
         <catastrophic_reason>Naked python execution targets the global Windows environment, missing local `.venv` dependencies and causing cascade module errors.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="native_mcp_tooling">
+         <banned_pattern>Instructing the user to run scripts manually, or attempting to use terminal commands like `cat`, `grep`, or `sed` inside PowerShell.</banned_pattern>
+         <mandatory_pattern>ALWAYS prioritize native MCP tools. Use `view_file` to read, `grep_search` to find, and `multi_replace_file_content` to surgically edit files. NEVER use terminal text manipulation tools.</mandatory_pattern>
+         <catastrophic_reason>Using terminal utilities like `sed` or `cat` on Windows PowerShell corrupts file encodings (UTF-16 vs UTF-8) and destroys the architectural audit trails.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <agentic_control_center>
-    <rule_block id="native_mcp_tooling">
-         <banned_pattern>Instructing the user to run Python or shell scripts manually just to dump text or retrieve logs.</banned_pattern>
-         <mandatory_pattern>ALWAYS use your built-in internal MCP tools (`view_file`, `grep_search`, `list_dir`, `replace_file_content`) to actively scan `backend_debug.log` and `client_debug.log` before proposing fixes.</mandatory_pattern>
+    <rule_block id="knowledge_base_primacy">
+        <banned_pattern>Starting complex coding tasks or diagnosing architecture bugs without reading provided Knowledge Item (KI) summaries or checking previous conversation transcripts.</banned_pattern>
+        <mandatory_pattern>BEFORE proposing architectural shifts, you MUST cross-reference the system-injected KI summaries. If continuing a previous session, use `grep_search` on `.system_generated\logs\transcript.jsonl` to establish context.</mandatory_pattern>
+        <catastrophic_reason>Ignoring the Knowledge Base leads to "Amnesia Programming", where the LLM repeats fixed bugs, overrides established patterns, and destroys multi-session Epic continuity.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="context_triggered_loading">
         <banned_pattern>Writing domain-specific code (Python, Flutter, or Seed Data) without reading the strict architecture laws first.</banned_pattern>
-        <mandatory_pattern>BEFORE writing backend or frontend code, you MUST dynamically read the relevant architecture laws using the `view_file` tool:
-        1. If working on **Backend/Python**, you MUST read: `c:\src\quorum\.agents\rules\01-python-backend.md`
-        2. If working on **Frontend/Flutter**, you MUST read: `c:\src\quorum\.agents\rules\02_flutter_desktop.md`
-        3. If working on **Data/Seed/JSON**, you MUST read: `c:\src\quorum\.agents\rules\03_seed_vault.md`
-        4. If working on **LLM or Prompts**, you MUST read: `c:\src\quorum\.agents\rules\05_llm_architecture.md`
-        5. If navigating or creating new files, you MUST read: `c:\src\quorum\.agents\rules\04_directory_reference.md`
+        <mandatory_pattern>BEFORE writing any code or executing plans, you MUST dynamically read the relevant architecture laws using the `view_file` tool:
+        1. For **Global IDE & Orchestration**, you MUST read: `c:\src\quorum\.agents\rules\00-antigravity-core.md`
+        2. If working on **Backend/Python**, you MUST read: `c:\src\quorum\.agents\rules\01-python-backend.md`
+        3. If working on **Frontend/Flutter**, you MUST read: `c:\src\quorum\.agents\rules\02_flutter_desktop.md`
+        4. If working on **Data/Seed/JSON**, you MUST read: `c:\src\quorum\.agents\rules\03_seed_vault.md`
+        5. If working on **LLM or Prompts**, you MUST read: `c:\src\quorum\.agents\rules\05_llm_architecture.md`
+        6. If navigating or creating new files, you MUST read: `c:\src\quorum\.agents\rules\04_directory_reference.md`
         </mandatory_pattern>
         <catastrophic_reason>The Single Source of Truth architecture requires language-specific constraints to be loaded on-demand to preserve context and ensure extreme accuracy.</catastrophic_reason>
     </rule_block>
 </agentic_control_center>
 
 <universal_quality_gates>
-    <instruction>You MUST strictly enforce automated audit testing via `run_command` after EVERY significant code mutation. Do NOT bypass these loops.</instruction>
+    <rule_block id="zero_tolerance_audit_loop">
+        <banned_pattern>Skipping automated testing because a code change was "minor", "just a typo", or not "significant".</banned_pattern>
+        <mandatory_pattern>You MUST strictly enforce automated audit testing via `run_command` after EVERY SINGLE code mutation, no matter how small. Do NOT bypass these loops.</mandatory_pattern>
+        <catastrophic_reason>Assuming a change is "too small to test" is the leading cause of massive cascading system outages. Fail-Fast requires mathematical proof, not assumptions.</catastrophic_reason>
+    </rule_block>
     
-    <gate id="backend_audit_loop">
-        <trigger>Any modification to `.py` files in `backend_v2/`.</trigger>
-        <command>uv run python scripts/backend_audit_loop.py <target_path> --test</command>
-        <description>Runs Ruff formatting, MyPy strict typing, and Pytest coverage recursively.</description>
-    </gate>
+    <rule_block id="backend_audit_execution">
+        <banned_pattern>Running generic pytest without the global audit script.</banned_pattern>
+        <mandatory_pattern>If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test`</mandatory_pattern>
+        <catastrophic_reason>The audit loop enforces Ruff formatting and MyPy strict typing simultaneously with Pytest.</catastrophic_reason>
+    </rule_block>
     
-    <gate id="flutter_audit_loop">
-        <trigger>Any modification to `.dart` files in `client_app_v2/`.</trigger>
-        <command>uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> [--build]</command>
-        <description>Runs Dart formatter and analyzer. Add `--build` ONLY if Freezed models or JSON structures were modified to regenerate `.g.dart` files.</description>
-    </gate>
+    <rule_block id="flutter_audit_execution">
+        <banned_pattern>Running basic flutter test without the audit script.</banned_pattern>
+        <mandatory_pattern>If you modify `.dart` files, you MUST run: `uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> [--build]`</mandatory_pattern>
+        <catastrophic_reason>The flutter audit script handles the build runner for Freezed models automatically if `--build` is appended.</catastrophic_reason>
+    </rule_block>
 </universal_quality_gates>
 
 <workflow_routing>

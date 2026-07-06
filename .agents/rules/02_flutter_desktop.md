@@ -2,6 +2,11 @@
 
 *** UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS FOR FLUTTER ***
 
+<domain_boundary>
+    <role>FRONTEND FLUTTER & UI LOGIC ONLY</role>
+    <instruction>These rules apply STRICTLY to Flutter (Dart) UI layout, Riverpod state management, and desktop interaction logic. If you are modifying Python APIs or Database seed JSONs, you MUST halt and read their respective rule files instead.</instruction>
+</domain_boundary>
+
 <catastrophic_system_bans>
     <rule_block id="the_no_pass_rule">
         <banned_pattern>Using empty catch blocks (`try { ... } catch (e) {}`).</banned_pattern>
@@ -87,29 +92,33 @@
     </rule_block>
 
     <rule_block id="horizontal_overflow_prevention">
-        <banned_pattern>Placing unbounded horizontal text (`Text()`) or dropdowns (`DropdownButtonFormField`) inside `Row` or dynamic grid layouts without containment.</banned_pattern>
-        <mandatory_pattern>ALWAYS wrap text with long dynamic labels in `Expanded` (or similar flexible constraints) AND strictly set `overflow: TextOverflow.ellipsis`. For Dropdowns, you MUST ALWAYS set `isExpanded: true` to force Impeller to calculate the truncation boundaries before rendering.</mandatory_pattern>
+        <banned_pattern>Placing unbounded text (`Text()`) or dropdowns (`DropdownButtonFormField`) inside `Row` or dynamic grid layouts without containment.</banned_pattern>
+        <mandatory_pattern>ALWAYS wrap ALL dynamic UI text in `Expanded` or `Flexible` AND strictly set `overflow: TextOverflow.ellipsis`. For Dropdowns, you MUST ALWAYS set `isExpanded: true`.</mandatory_pattern>
         <catastrophic_reason>Unbounded text inside Flex layouts inevitably breaches maximum rendering dimensions, generating the fatal Yellow/Black Striped 'RenderFlex overflowed' crash, rendering the UI unusable.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="main_thread_jank_isolate">
-        <banned_pattern>Deserializing or parsing heavy JSON DTO structures directly in the Riverpod Future async loop.</banned_pattern>
-        <mandatory_pattern>ALWAYS dynamically wrap massive payload processing inside `await Isolate.run(() => jsonDecode(chunk))`.</mandatory_pattern>
+        <banned_pattern>Deserializing or parsing JSON DTO structures directly in the Riverpod Future async loop without Thread isolation.</banned_pattern>
+        <mandatory_pattern>ALWAYS dynamically wrap payload processing inside `await Isolate.run(() => jsonDecode(chunk))` if the JSON array exceeds 100 elements or the payload string exceeds 100KB.</mandatory_pattern>
+        <catastrophic_reason>Parsing JSON blocks the UI Dart Isolate continuously, causing the 60fps/120fps render loop to freeze ("Jank"), making the Desktop app feel completely unresponsive.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="mutation_optimistic_ui">
         <banned_pattern>Employing full-screen modal loading spinners or holding manual state flags like `bool _isLoading = true;`. Implementing optimistic updates without a failure rollback handling.</banned_pattern>
         <mandatory_pattern>Use Riverpod 3.0 `Mutation<T>` paradigms paired with Optimistic Updates to instantly render UI changes locally. You MUST ALWAYS implement a state-reversion (rollback) mechanism in the catch/onError block to safely restore the previous state (`ref.invalidate()`) and notify the user (e.g., Toast/Snackbar) if the backend mutation fails.</mandatory_pattern>
+        <catastrophic_reason>Without rollback handling on optimistic mutations, a silent network failure leaves the user staring at a false positive state, leading to critical workflow corruption.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="transient_input_state">
         <banned_pattern>Dispatching individual keystrokes immediately to Riverpod providers on every key press event.</banned_pattern>
         <mandatory_pattern>Utilize `flutter_hooks` (`useTextEditingController`) for real-time localized typing state manipulation. Only dispatch variables to Riverpod specifically to `submit()` the mutation.</mandatory_pattern>
+        <catastrophic_reason>Rebuilding the entire Riverpod provider tree on every single keystroke causes immediate 100% CPU lockup and severe typing latency on Desktop.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="no_magic_strings_l10n">
         <banned_pattern>Hardcoding literal UI text ("Hello", "Save"), pixel padding constants, or simulated local dictionary keys.</banned_pattern>
-        <mandatory_pattern>UI strings must be evaluated exclusively via `AppLocalizations` (`.arb` locale runtime logic). Dynamic UI elements map API Backend Enums directly. Utilize App Theme Tokens for layout padding.</mandatory_pattern>
+        <mandatory_pattern>UI strings MUST be evaluated exclusively via `AppLocalizations` (`.arb` locale runtime logic). Dynamic UI elements map API Backend Enums directly. Utilize App Theme Tokens for layout padding.</mandatory_pattern>
+        <catastrophic_reason>Hardcoded strings bypass the `.arb` compilation step entirely, instantly breaking Internationalization (i18n) and resulting in untranslatable ghost texts in production.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="strict_translation_fallback_mandate">
@@ -148,36 +157,46 @@
     <rule_block id="tenant_data_isolation">
         <banned_pattern>Leaving old cached Master Data arrays visually intact memory-resident when switching tenant organization context.</banned_pattern>
         <mandatory_pattern>Upon User/Organization modification, the prior context state MUST be deliberately and safely invalidated (`ref.invalidate()`) protecting cross-tenant privacy leaks instantly.</mandatory_pattern>
+        <catastrophic_reason>Failing to flush the Riverpod cache on tenant boundary switches causes catastrophic Cross-Tenant Data Leaks, where User A sees User B's highly confidential data rendered on the screen.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="desktop_memory_leak_prevention">
+        <banned_pattern>Declaring `@Riverpod(keepAlive: true)` for transient feature views or complex editors.</banned_pattern>
+        <mandatory_pattern>All UI-bound Providers MUST use standard `@riverpod` (which defaults to `autoDispose` in V3) or explicitly `@Riverpod(keepAlive: false)`. Only global Core Services (Auth, DB) may be kept alive permanently.</mandatory_pattern>
+        <catastrophic_reason>Desktop apps run for weeks. Keeping transient DOM trees or huge DTO arrays alive in memory after the user navigates away causes catastrophic RAM leaks.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="documentation_and_hygiene">
         <banned_pattern>Drafting comments depicting WHAT the internal code technically does, or utilizing variables named in Finnish.</banned_pattern>
         <mandatory_pattern>Internal Logic execution operates purely in English. External Chat/Explanations operate in Finnish. Only describe WHY a specific business exception was built inline.</mandatory_pattern>
+        <catastrophic_reason>Writing logic comments in Finnish forces non-Finnish engineering tools and subsequent English LLM models to hallucinate the meaning of complex Domain algorithms.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="graceful_network_degradation">
         <banned_pattern>Crashing the entire UI via AppErrorBoundary into a red error screen due to transient network latency, HTTP 500/503 errors, or SocketExceptions.</banned_pattern>
         <mandatory_pattern>Exception to Fail-Fast: While JSON parsing errors MUST crash visibly, pure network connectivity or timeout errors MUST be caught at the Repository or Notifier level. The UI must degrade gracefully into a 'Reconnecting...' or 'AI is processing...' state without destroying the user's active local workspace (e.g., canvas or input forms).</mandatory_pattern>
+        <catastrophic_reason>Transient socket errors happen constantly. Crashing the entire app and wiping the local DOM state for a 2-second WiFi drop destroys the Desktop User Experience.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="desktop_pro_tool_interaction">
         <banned_pattern>Raw `GestureDetector` without hover states, missing `FocusNode`, or lacking keyboard shortcuts.</banned_pattern>
         <mandatory_pattern>This is a Desktop-Class Pro Tool. ALL interactive elements MUST support mouse hover (`SystemMouseCursors.click`), keyboard traversal (`FocusNode`), and `Shortcuts` actions.</mandatory_pattern>
+        <catastrophic_reason>Desktop Pro Tools require pointer accuracy. Without hover states and focus nodes, users cannot navigate complex dense data grids efficiently, destroying productivity.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="design_token_absolute_rule">
         <banned_pattern>Hardcoding magic numbers (`EdgeInsets.all(16)`) or colors (`Colors.blue`).</banned_pattern>
-        <mandatory_pattern>Exclusively use global Design Tokens (e.g., `AppSpacing.p16`, `Theme.of(context).textTheme`).</mandatory_pattern>
+        <mandatory_pattern>Exclusively use global Design Tokens (e.g., `AppSpacing.p16`, `Theme.of(context).textTheme`). ANY use of hardcoded numeric doubles for heights, widths, or padding (e.g., `SizedBox(height: 15)`) is STRICTLY PROHIBITED.</mandatory_pattern>
+        <catastrophic_reason>Magic numbers destroy structural rhythm, making global resizing for different monitor densities impossible.</catastrophic_reason>
     </rule_block>
 </architectural_invariants>
 
 <universal_quality_gate>
-    <frontend_verification>
-        <instruction>Execute structural formatting, static layout typing, and test suites natively mapped inside the core `client_app_v2/` workspace routinely.</instruction>
-        <command>Execution: `uv run python scripts/flutter_audit_loop.py [tiedosto]`</command>
-        <command>Execution (Logic Gen): If Domain Data Models or Freezed structures changed: `uv run python scripts/flutter_audit_loop.py [tiedosto] --build`</command>
-        <command>Alternative manual run: `dart run custom_lint ; dart run build_runner build -d`</command>
-    </frontend_verification>
+    <rule_block id="frontend_quality_gate_delegation">
+        <banned_pattern>Running naked `flutter test`, `dart analyze`, or code generation manually without explicit mandate.</banned_pattern>
+        <mandatory_pattern>You MUST exclusively trigger the `<universal_quality_gates>` command mapped in `AGENTS.md` (e.g., `uv run python scripts/flutter_audit_loop.py <target_path> --build`) to validate Dart changes.</mandatory_pattern>
+        <catastrophic_reason>Bypassing the unified audit loop allows unformatted, un-analyzed code with stale `.g.dart` generated files to break the production build.</catastrophic_reason>
+    </rule_block>
     
     <rule_block id="ignore_generated">
         <banned_pattern>Modifying, examining, or referencing `.g.dart` or `.freezed.dart` serialization code files organically.</banned_pattern>
