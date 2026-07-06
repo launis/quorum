@@ -121,7 +121,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   }
 
   Future<void> _pickFile(String inputKey) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'txt', 'docx'],
       withData: true,

@@ -41,7 +41,7 @@ final class OutputProfilesControllerProvider
 }
 
 String _$outputProfilesControllerHash() =>
-    r'bc172f1d7e8785fca3296735f2bbdf1037a31472';
+    r'c83718e5d0dfaad86315bc2c8ef86822e9ad08ee';
 
 /// Controller managing Studio Output Profiles using Strict Freezed models.
 /// Implements Optimistic UI principles where possible.
@@ -126,7 +126,7 @@ final class OutputProfileByIdProvider
   }
 }
 
-String _$outputProfileByIdHash() => r'e2934f4d84ee5fa754cc79041bd2df52cc7407a1';
+String _$outputProfileByIdHash() => r'e63a5f666c1fab9916b391b15a7f97898763d97e';
 
 /// Fetches a single Output Profile natively by ID
 
@@ -191,7 +191,7 @@ final class OutputProfileFormProvider
   }
 }
 
-String _$outputProfileFormHash() => r'dcb5c3c2e41f140f7dd5ab4369b715f36a2d71c3';
+String _$outputProfileFormHash() => r'd8708d6a73627d077c8b939fb790496ef4d33bb0';
 
 final class OutputProfileFormFamily extends $Family
     with

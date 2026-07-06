@@ -40,7 +40,7 @@ final class ModelRegistryControllerProvider
 }
 
 String _$modelRegistryControllerHash() =>
-    r'9a03fcd442efc225f71a0f907dc8fa218492346a';
+    r'1014a3fde13a32bfc279f4686b9d54a57499b600';
 
 /// Controller managing the Model Registry strictly using strict representations.
 /// Implements Optimistic UI principles where possible.
@@ -125,7 +125,7 @@ final class ModelRegistryByIdProvider
   }
 }
 
-String _$modelRegistryByIdHash() => r'23949259bb430c6a321d5525725ad9d426cca931';
+String _$modelRegistryByIdHash() => r'067d118916579f82d8d390703c42ed6ad8bdd552';
 
 /// Fetches a single System Config natively by ID
 

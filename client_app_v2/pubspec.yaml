@@ -35,7 +35,7 @@ dependencies:
   google_fonts:
   shared_preferences:
   flutter_markdown_plus:
-  file_picker: ^10.3.10
+  file_picker: ^11.0.2
   collection:
   fl_chart:
   pdf:

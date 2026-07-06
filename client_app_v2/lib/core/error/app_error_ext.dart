@@ -65,6 +65,7 @@ extension AppExceptionX on AppException {
         DioExceptionType.receiveTimeout ||
         DioExceptionType.sendTimeout ||
         DioExceptionType.connectionError ||
+        DioExceptionType.transformTimeout ||
         DioExceptionType.badCertificate => l10n.errorNetwork,
         DioExceptionType.cancel => l10n.cancel,
         DioExceptionType.badResponse => l10n.errorServer,

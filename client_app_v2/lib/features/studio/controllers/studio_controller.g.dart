@@ -234,7 +234,7 @@ final class StepByIdProvider
   }
 }
 
-String _$stepByIdHash() => r'c5aec2866dc6c4f483b43c2fa0cf163453346e50';
+String _$stepByIdHash() => r'7dfc6f2dce88dc770f5b4c0064f57c8400af5d11';
 
 /// Fetches a single Step natively by ID
 
@@ -522,7 +522,7 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'da0d6865ae79fb55261e6a24d868926afe99d8f2';
+String _$stepsControllerHash() => r'8f7e5e7cc0348c83faf840024621881eb4ce479d';
 
 /// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.
