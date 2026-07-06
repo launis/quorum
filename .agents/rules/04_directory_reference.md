@@ -55,13 +55,13 @@
     </module>
 
     <module path="backend_v2/hooks/">
-        <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS</responsibility>
-        <key_domains>interaction_hook.py</key_domains>
+        <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1)</responsibility>
+        <key_domains>interaction_hook.py, synthesis.py</key_domains>
     </module>
 
     <module path="backend_v2/utils/">
-        <responsibility>MATHEMATICAL ENGINES & UTILITIES</responsibility>
-        <key_domains>math_utils.py, scoring/ (BARS, Dampening, Sigmoid)</key_domains>
+        <responsibility>MATHEMATICAL ENGINES & SYSTEM INVARIANTS (PILLAR 1)</responsibility>
+        <key_domains>alias_engine.py, math_utils.py, scoring/</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
@@ -81,7 +81,7 @@
 
     <module path="docs/architecture/">
         <responsibility>CONSOLIDATED ARCHITECTURE MANIFESTOS</responsibility>
-        <key_domains>10 markdown files covering System 1 vs 2, Evaluation, and Desktop-First patterns.</key_domains>
+        <key_domains>5 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience).</key_domains>
     </module>
     
     <module path="scratch/">

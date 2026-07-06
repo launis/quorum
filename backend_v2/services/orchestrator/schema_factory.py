@@ -187,8 +187,8 @@ class SchemaFactory:
             AppException (ErrorCodes.INTERNAL_SERVER_ERROR): If dynamic schema compilation fails critically.
         """
         # Resolve target base classes, overriding source_document_ids if requested
-        step_strict_class = StepDTOStrict
-        step_semantic_class = StepDTOSemantic
+        step_strict_class: Any = StepDTOStrict
+        step_semantic_class: Any = StepDTOSemantic
 
         if source_document_ids is not None or allowed_atom_ids is not None or allowed_dynamic_keys is not None:
             DocIdsLiteralType = AliasEngine.build_doc_ids_literal(
