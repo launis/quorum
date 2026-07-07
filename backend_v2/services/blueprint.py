@@ -10,6 +10,8 @@ from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
+    IOutputProfileRepository,
+    IPromptBlockRepository,
     ISystemRepository,
     IWorkflowRepository,
 )
@@ -43,6 +45,8 @@ class BlueprintTransformer:
         exec_repo: IExecutionRepository,
         workflow_repo: IWorkflowRepository,
         comp_repo: IComponentRepository,
+        prompt_block_repo: IPromptBlockRepository,
+        output_profile_repo: IOutputProfileRepository,
         identity_repo: IIdentityRepository,
         system_repo: ISystemRepository,
     ):
@@ -52,12 +56,16 @@ class BlueprintTransformer:
             exec_repo: Repository for execution data.
             workflow_repo: Repository for workflow definitions.
             comp_repo: Repository for component definitions.
+            prompt_block_repo: Repository for prompt block definitions.
+            output_profile_repo: Repository for output profile definitions.
             identity_repo: Repository for identity management.
             system_repo: Repository for system configurations.
         """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
+        self.prompt_block_repo = prompt_block_repo
+        self.output_profile_repo = output_profile_repo
         self.identity_repo = identity_repo
         self.system_repo = system_repo
 
@@ -378,7 +386,10 @@ class BlueprintTransformer:
 
             ui_plot_ratio = None
             if raw_score is not None:
-                ratio = (float(raw_score) - math_min) / (math_max - math_min)
+                if math_max == math_min:
+                    ratio = 0.0
+                else:
+                    ratio = (float(raw_score) - math_min) / (math_max - math_min)
                 ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
 
             original_axis_name = axis_name
@@ -794,7 +805,7 @@ class BlueprintTransformer:
         default_profile_ref = workflow_obj.default_profile_id
         resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
 
-        all_profiles = await self.comp_repo.get_all_output_profiles_models()
+        all_profiles = await self.output_profile_repo.get_all_output_profiles_models()
 
         profile = next((p for p in all_profiles if p.id == resolved_pid_request), None)
 
@@ -824,7 +835,7 @@ class BlueprintTransformer:
             ext: [] for ext in block_ext_values + workflow_ext_values if ext != "source_id"
         }
 
-        all_blocks_models = await self.comp_repo.get_all_prompt_blocks_models()
+        all_blocks_models = await self.prompt_block_repo.get_all_prompt_blocks_models()
         blocks_by_id: dict[str, PromptBlock] = {}
         for b in all_blocks_models:
             if b.id:

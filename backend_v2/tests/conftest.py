@@ -4,6 +4,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import json
+from unittest.mock import AsyncMock
+
 import pytest
 
 
@@ -100,3 +103,68 @@ def block_live_network_calls(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
     monkeypatch.setattr(socket, "getaddrinfo", guarded_getaddrinfo)
+
+
+@pytest.fixture(scope="session")
+def seed_data() -> dict[str, Any]:
+    """Loads the authentic SSOT seed_data.json into memory once for all tests."""
+    seed_path = Path(__file__).parent.parent / "seed" / "seed_data.json"
+    with open(seed_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def mock_seed_prompt_block_repo(seed_data: dict[str, Any]) -> AsyncMock:
+    """Provides an AsyncMock of IPromptBlockRepository returning raw DB dicts from seed data."""
+    from backend_v2.database.interfaces import IPromptBlockRepository
+    
+    mock_repo = AsyncMock(spec=IPromptBlockRepository)
+    # The database has 'prompt_blocks'. Return them exactly as raw dicts.
+    mock_repo.get_all_prompt_blocks.return_value = seed_data.get("prompt_blocks", [])
+    
+    # Mock get_prompt_block_by_id to return the dict if found
+    async def _get_by_id(block_id: str) -> dict[str, Any] | None:
+        for block in seed_data.get("prompt_blocks", []):
+            if block.get("id") == block_id:
+                return block
+        return None
+    mock_repo.get_prompt_block_by_id.side_effect = _get_by_id
+    
+    return mock_repo
+
+
+@pytest.fixture
+def mock_seed_output_profile_repo(seed_data: dict[str, Any]) -> AsyncMock:
+    """Provides an AsyncMock of IOutputProfileRepository returning raw DB dicts from seed data."""
+    from backend_v2.database.interfaces import IOutputProfileRepository
+    
+    mock_repo = AsyncMock(spec=IOutputProfileRepository)
+    mock_repo.get_all_output_profiles.return_value = seed_data.get("output_profiles", [])
+    
+    async def _get_by_id(profile_id: str) -> dict[str, Any] | None:
+        for profile in seed_data.get("output_profiles", []):
+            if profile.get("id") == profile_id:
+                return profile
+        return None
+    mock_repo.get_output_profile_by_id.side_effect = _get_by_id
+    
+    return mock_repo
+
+
+@pytest.fixture
+def mock_seed_component_repo(seed_data: dict[str, Any]) -> AsyncMock:
+    """Provides an AsyncMock of IComponentRepository returning raw DB dicts from seed data."""
+    from backend_v2.database.interfaces import IComponentRepository
+    
+    mock_repo = AsyncMock(spec=IComponentRepository)
+    # Return everything except prompt_blocks and output_profiles which moved.
+    # We can mock get_component_by_id similarly.
+    async def _get_by_id(comp_id: str) -> dict[str, Any] | None:
+        for comp in seed_data.get("components", []):
+            if comp.get("id") == comp_id:
+                return comp
+        return None
+    mock_repo.get_component_by_id.side_effect = _get_by_id
+    mock_repo.get_all_components.return_value = seed_data.get("components", [])
+    
+    return mock_repo

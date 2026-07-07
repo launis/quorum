@@ -389,7 +389,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    p_dict = await deps.comp_repo.get_output_profile_by_id(profile_to_use)
+    p_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_to_use)
     active_profile_dto: OutputProfileResponseDTO | None = None
     if p_dict:
         active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict)
@@ -430,7 +430,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     all_blocks = []
     all_steps = []
     if hasattr(deps.comp_repo, "get_all_prompt_blocks") and hasattr(deps.workflow_repo, "get_all_steps"):
-        raw_blocks = await deps.comp_repo.get_all_prompt_blocks()
+        raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
         all_blocks = [PromptBlock.model_validate(rb) for rb in raw_blocks]
 
         raw_steps = await deps.workflow_repo.get_all_steps()

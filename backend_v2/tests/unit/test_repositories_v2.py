@@ -84,10 +84,6 @@ async def test_component_repo(mock_driver: AsyncMock) -> None:
     # Will be false since get_component_by_id returns None from mock
     assert mock_driver.delete.call_count == 0
 
-    await repo.get_all_prompt_blocks()
-    await repo.get_all_agents()
-    await repo.get_all_task_blueprints()
-    await repo.get_all_output_profiles()
     await repo.create_component({"id": "comp2"})
 
 

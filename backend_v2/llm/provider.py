@@ -329,9 +329,12 @@ class LiteLLMProvider(LLMProvider):
 
         final_messages: list[dict[str, Any]] = []
         if messages:
-            final_messages.extend(messages)
+            if "cached_content" in kwargs:
+                final_messages.extend([m for m in messages if m.get("role") != "system"])
+            else:
+                final_messages.extend(messages)
         else:
-            if system_instruction:
+            if system_instruction and "cached_content" not in kwargs:
                 final_messages.append({"role": "system", "content": system_instruction})
             if prompt:
                 final_messages.append({"role": "user", "content": prompt})

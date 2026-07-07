@@ -16,6 +16,8 @@ def dummy_deps() -> HookDependencies:
         exec_repo=repo,  # type: ignore
         workflow_repo=repo,  # type: ignore
         comp_repo=repo,  # type: ignore
+        prompt_block_repo=repo,  # type: ignore
+        output_profile_repo=repo,  # type: ignore
         identity_repo=repo,  # type: ignore
         audit_repo=repo,  # type: ignore
         system_repo=repo,  # type: ignore

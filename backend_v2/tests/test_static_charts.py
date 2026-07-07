@@ -1,3 +1,5 @@
+import pytest
+
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
 from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
 
@@ -89,8 +91,9 @@ def test_empty_scatter() -> None:
             is_evaluative=True,
         )
     ]
-    b64 = generate_scatter_chart(axes)
-    assert b64 == ""
+    from backend_v2.exceptions import AppException
+    with pytest.raises(AppException):
+        b64 = generate_scatter_chart(axes)
 
 
 def test_empty_radar() -> None:
@@ -112,5 +115,6 @@ def test_empty_radar() -> None:
             is_evaluative=True,
         ),
     ]
-    b64 = generate_radar_chart(axes)
-    assert b64 == ""
+    from backend_v2.exceptions import AppException
+    with pytest.raises(AppException):
+        b64 = generate_radar_chart(axes)

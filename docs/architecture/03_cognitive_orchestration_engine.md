@@ -36,5 +36,5 @@ flowchart TD
 
 ## 4. Physical Implementation Map (Auto-Generated)
 > **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/services/orchestrator/prompt_compiler.py` (Static-First Assembly), `backend_v2/services/llm_task_executor.py` (Best-Of-Three Consensus), `backend_v2/llm/client.py` (Model Multiplexer).
+- **Backend Entrypoints:** `backend_v2/services/orchestrator/prompt_compiler.py` (Static-First Assembly), `backend_v2/services/llm_task_executor.py` (Best-Of-Three Consensus), `backend_v2/llm/client.py` (Model Multiplexer), `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py` (Dependency Injected Ontology Context).
 - **Frontend Consumers:** This capability is strictly backend-driven; the Frontend consumes synthesized results via `client_app_v2/lib/core/api/execution_client.dart`.

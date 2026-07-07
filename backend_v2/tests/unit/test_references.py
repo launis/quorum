@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -22,6 +22,8 @@ async def test_generate_bibliography_hook_success() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),

@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.hooks.validation import verify_output_language
@@ -14,6 +14,8 @@ def test_verify_output_language_detects_english_leakage() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),
@@ -50,6 +52,8 @@ def test_verify_output_language_ignores_finnish_text() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),
@@ -78,6 +82,8 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),
@@ -115,6 +121,8 @@ def test_verify_structure_fails_fast_on_empty_raw_inputs() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),

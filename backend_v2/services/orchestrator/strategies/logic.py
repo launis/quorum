@@ -104,6 +104,8 @@ class LogicNodeStrategy(NodeStrategy):
             exec_repo=self.exec_repo,
             workflow_repo=self.workflow_repo,
             comp_repo=self.comp_repo,
+            prompt_block_repo=self.prompt_block_repo,
+            output_profile_repo=self.output_profile_repo,
             identity_repo=self.identity_repo,
             audit_repo=self.audit_repo,
             system_repo=self.system_repo,

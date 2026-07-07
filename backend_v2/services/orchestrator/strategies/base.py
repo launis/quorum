@@ -11,6 +11,8 @@ from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
+    IOutputProfileRepository,
+    IPromptBlockRepository,
     ISystemRepository,
     IWorkflowRepository,
 )
@@ -62,6 +64,8 @@ class NodeStrategy(ABC):
         exec_repo: IExecutionRepository,
         workflow_repo: IWorkflowRepository,
         comp_repo: IComponentRepository,
+        prompt_block_repo: IPromptBlockRepository,
+        output_profile_repo: IOutputProfileRepository,
         identity_repo: IIdentityRepository,
         audit_repo: IAuditRepository,
         system_repo: ISystemRepository,
@@ -83,6 +87,8 @@ class NodeStrategy(ABC):
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
+        self.prompt_block_repo = prompt_block_repo
+        self.output_profile_repo = output_profile_repo
         self.identity_repo = identity_repo
         self.audit_repo = audit_repo
         self.system_repo = system_repo

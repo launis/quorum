@@ -688,6 +688,8 @@ class IComponentRepository(Protocol):
         """
         ...
 
+
+class IPromptBlockRepository(Protocol):
     async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
         """Protocol method definition.
 
@@ -793,6 +795,8 @@ class IComponentRepository(Protocol):
         """
         ...
 
+
+class IAgentRepository(Protocol):
     async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
         """Protocol method definition.
 
@@ -868,6 +872,8 @@ class IComponentRepository(Protocol):
         """
         ...
 
+
+class ITaskBlueprintRepository(Protocol):
     async def get_task_blueprint_by_id(self, blueprint_id: str) -> dict[str, Any] | None:
         """Protocol method definition.
 
@@ -943,6 +949,8 @@ class IComponentRepository(Protocol):
         """
         ...
 
+
+class IOutputProfileRepository(Protocol):
     async def get_all_output_profiles(self) -> list[dict[str, Any]]:
         """Protocol method definition.
 

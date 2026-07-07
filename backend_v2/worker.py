@@ -534,7 +534,7 @@ async def generate_pdf_task(
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
         transformer = BlueprintTransformer(
-            exec_repo=repo, workflow_repo=repo, comp_repo=repo, identity_repo=repo, system_repo=repo
+            exec_repo=repo, workflow_repo=repo, comp_repo=repo, prompt_block_repo=repo, output_profile_repo=repo, identity_repo=repo, system_repo=repo
         )  # noqa: E501
 
         # 0. Guard: Execution may have been deleted while PDF job was queued
@@ -839,7 +839,7 @@ async def generate_profile_synthesis_and_pdf_task(
             global_context_vars=global_context_vars,
         )
         deps = HookDependencies(
-            exec_repo=repo, workflow_repo=repo, comp_repo=repo, identity_repo=repo, audit_repo=repo, system_repo=repo
+            exec_repo=repo, workflow_repo=repo, comp_repo=repo, prompt_block_repo=repo, output_profile_repo=repo, identity_repo=repo, audit_repo=repo, system_repo=repo
         )  # noqa: E501
 
         # Execute Text Consolidation Hook
@@ -1008,6 +1008,8 @@ async def startup(ctx: Any) -> None:
         exec_repo=repository,
         workflow_repo=repository,
         comp_repo=repository,
+        prompt_block_repo=repository,
+        output_profile_repo=repository,
         identity_repo=repository,
         audit_repo=repository,
         system_repo=repository,

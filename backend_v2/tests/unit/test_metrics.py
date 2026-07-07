@@ -15,6 +15,8 @@ def mock_deps() -> HookDependencies:
         exec_repo=AsyncMock(),
         workflow_repo=AsyncMock(),
         comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=AsyncMock(),
         audit_repo=AsyncMock(),
         system_repo=AsyncMock(),  # noqa: E501

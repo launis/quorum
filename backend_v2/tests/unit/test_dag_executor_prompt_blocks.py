@@ -110,6 +110,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,

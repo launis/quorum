@@ -27,7 +27,18 @@ This workflow is designed for the systematic decomposition and refactoring of he
       <mandatory_pattern>Decomposition is a strict exercise in codebase-wide SSOT consolidation. During extraction, you MUST apply this 3-step heuristic:
       1. REPLACE: Actively search if the inline logic can be deleted entirely and replaced by existing global utilities.
       2. ELEVATE: Design the extracted core logic immediately as a reusable Single Source of Truth (SSOT) component, not an isolated helper.
-      3. UNIFY (CRITICAL): Actively scan the broader codebase for similar fragmented implementations. If found, you MUST unify them together into a single SSOT and refactor all occurrences across the repository to use the new shared component.</mandatory_pattern>
+      3. UNIFY (CRITICAL): Actively scan the broader codebase for similar fragmented implementations. If found, you MUST unify them together into a single SSOT and refactor all occurrences across the repository to use the new shared component.
+
+      ### Step 3: Implementation Execution
+      - Eristä vanha God Code ja ohjaa riippuvuudet väliaikaisiin uusiin rajapintoihin.
+      - Käytä `multi_replace_file_content` -työkalua turvallisiin ja tarkkoihin koodimuutoksiin.
+      - TARKISTUSLISTA:
+        - Oletko päivittänyt kaikki tuonnit (imports) uusien tiedostopolkujen mukaisiksi?
+        - Oletko varmistanut, ettei kiertäviä riippuvuuksia (circular dependencies) syntynyt?
+        - Oletko tarkistanut Dependency Injection (DI) ja rajapinta (Protocol) -vaikutukset?
+        - Oletko päivittänyt myös KAIKKI testimockit (esim. `AsyncMock()` korvaaminen aidoilla rakenteilla) vastaamaan uusia tiukkoja Pydantic-skeemoja?
+        - MOCKIEN RÄJÄHDYS (The Mock Blast Radius): Kun jaat yhden ison tiedoston (kuten repositorion) useaan osaan, vanhaan koodiin perustuvat sadat käsin kirjoitetut yksikkötestimockit hajoavat täysin. Ennen purkamista tai sen aikana, keskitä testidata dynaamisiin Seed-Driven tehdas-mockeihin (`conftest.py`), jotta et joudu refaktoroimaan kymmeniä testitiedostoja käsin.
+        - FASTAPI DI SHADOW: Kun ydinluokka jaetaan, kaikkien muiden sitä käyttävien luokkien parametrit muuttuvat. Varmistaudu AINA korjaamaan `backend_v2/api/dependencies.py`, tai koko FastAPI-reititys kaatuu 500-virheeseen.</mandatory_pattern>
       <catastrophic_reason>Refactoring in isolation creates "micro-monoliths". Failing to unify fragmented logic across the codebase preserves technical debt and destroys the Single Source of Truth principle.</catastrophic_reason>
     </rule_block>
   </context_rules>

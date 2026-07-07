@@ -18,6 +18,8 @@ from pydantic import Field
 from backend_v2.database.interfaces import (
     IAuditRepository,
     IComponentRepository,
+    IPromptBlockRepository,
+    IOutputProfileRepository,
     IExecutionRepository,
     IIdentityRepository,
     ISystemRepository,
@@ -42,6 +44,8 @@ class HookDependencies:
     exec_repo: IExecutionRepository
     workflow_repo: IWorkflowRepository
     comp_repo: IComponentRepository
+    prompt_block_repo: IPromptBlockRepository
+    output_profile_repo: IOutputProfileRepository
     identity_repo: IIdentityRepository
     audit_repo: IAuditRepository
     system_repo: ISystemRepository

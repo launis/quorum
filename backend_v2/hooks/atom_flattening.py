@@ -112,7 +112,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         )
 
     # 3. Retrieve and filter blocks
-    all_blocks = await deps.comp_repo.get_all_prompt_blocks()
+    all_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
 
     unique_atoms: dict[str, tuple[str, str, str, bool]] = {}
 

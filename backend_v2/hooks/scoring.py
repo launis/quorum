@@ -387,7 +387,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         # Resolve which prompt blocks are matrices (Schema-Driven Routing, strictly no duck typing)
         matrix_blocks_meta: dict[str, dict[str, float]] = {}
         for pb_id in prompt_block_ids:
-            pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
+            pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
             if pb_data:
                 pb_model = PromptBlock.model_validate(pb_data)
                 if pb_model.category_id == "matrix":
@@ -564,7 +564,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # Determine if this step actually contains matrix blocks
         matrix_blocks = []
         for pb_id in prompt_block_ids:
-            pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
+            pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
             if pb_data:
                 try:
                     pb_model = PromptBlock.model_validate(pb_data)
@@ -613,7 +613,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         profile_id = execution_data.output_profile_id
         if profile_id:
-            profile_dict = await deps.comp_repo.get_output_profile_by_id(profile_id)
+            profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
             if profile_dict:
                 profile_model = OutputProfileResponseDTO.model_validate(profile_dict, strict=False)
                 strictness_level = profile_model.strictness_level
@@ -1020,7 +1020,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             if pb_id not in new_payload:
                 continue
 
-            pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
+            pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
             if not pb_data:
                 msg = f"Strict Fail-Fast Enforced: Missing PromptBlock '{pb_id}' during score normalization."
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
@@ -1203,7 +1203,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
     strictness_level = None
     scoring_strategy = None
     if profile_id:
-        profile_dict = await deps.comp_repo.get_output_profile_by_id(profile_id)
+        profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
         if profile_dict:
             profile_model = OutputProfileResponseDTO.model_validate(profile_dict, strict=False)
             strictness_level = profile_model.strictness_level
@@ -1233,7 +1233,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
         mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_data)
         existing_matrix = LightweightMatrixOutput.model_validate(mapped_data)
 
-        pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
+        pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
         if not pb_data:
             continue
         pb_model = PromptBlock.model_validate(pb_data)

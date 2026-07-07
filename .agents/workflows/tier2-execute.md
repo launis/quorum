@@ -22,6 +22,10 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <mandatory_pattern>Before writing or modifying tests, you MUST explicitly read the corresponding `models.domain` or `models.dtos` schema definitions.</mandatory_pattern>
       <catastrophic_reason>Guessing the schema shapes causes strict Pydantic V2 validations to fail instantly in production runtime.</catastrophic_reason>
     </rule_block>
+    <rule_block id="strict_mock_data_mandate">
+      <mandatory_pattern>When updating tests or refactoring repositories, you MUST ensure that all mock data (e.g., dicts returned by AsyncMock) EXACTLY matches the strict Pydantic models. You are forbidden from passing naked, incomplete dictionaries if the underlying code uses `model_validate` with `ConfigDict(strict=True)`.</mandatory_pattern>
+      <catastrophic_reason>Incomplete mock data triggers violent `ValidationError` crashes, wasting excessive debug cycles and blocking deployment.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="2">
     <step id="1">ISOLATION: Execute the plan ATOMICALLY. Work on one single Milestone/Step at a time.</step>

@@ -350,7 +350,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         )
 
     # Phase 2, Milestone 1.6: Resolve output profile for historical context mode
-    p_dict = await deps.comp_repo.get_output_profile_by_id(output_profile_id)
+    p_dict = await deps.output_profile_repo.get_output_profile_by_id(output_profile_id)
     if not p_dict:
         msg = f"Resolved output profile '{output_profile_id}' not found in SSOT database."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)

@@ -7,7 +7,15 @@ import pytest
 from backend_v2.exceptions import AppException
 from backend_v2.models.enums import ExecutionStatus, ScoringStrategy, XaiExtensionType
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, I18nText, RenderedSynthesisCache, ReportDataDTO
+from backend_v2.models.v2_core import (
+    ExecutionRecord,
+    I18nText,
+    OutputLayoutBlock,
+    OutputProfile,
+    PromptBlock,
+    RenderedSynthesisCache,
+    ReportDataDTO,
+)
 from backend_v2.services.blueprint import BlueprintTransformer
 
 
@@ -100,7 +108,7 @@ def mock_repo_transformer() -> Any:
                 "is_evaluative": True,
                 "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
                 "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
-                "scales": [
+                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
                     {
                         "score": 0,
                         "name": {"default_locale": "en", "translations": {"fi": "Ei mitään", "en": "Zero"}},
@@ -133,6 +141,34 @@ def mock_repo_transformer() -> Any:
             }
         ]
     )
+
+    repo.get_all_output_profiles_models.return_value = [
+        OutputProfile(
+            id="prf_dddd1111dddd1111",
+            slug="default",
+            workflow_id="wf_1234abcd1234abcd",
+            name=I18nText(default_locale="en", translations={"en": "Default", "fi": "Default"}),
+            display_scale="original",
+            layouts=[OutputLayoutBlock(preset_view="1d_metrics", target_blocks=["blk_1234abcd1234abcd"])],
+        )
+    ]
+
+    from backend_v2.models.v2_core import PromptBlock
+    pb_dict = {
+        "id": "blk_1234abcd1234abcd",
+        "slug": "logic_matrix",
+        "category_id": "matrix",
+        "type": "float",
+        "is_evaluative": True,
+        "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
+        "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
+        "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [{"score": 1, "name": {"default_locale": "en", "translations": {"en": "1"}}, "ai_label": "1", "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc", "tda_assertions": [{"tda_id": "tda_00000000000000000000000000000000", "concept_description": "concept", "inverse_evidence": False, "aggregation_mode": "EXISTS"}]}]}],
+        "computed_min": 0,
+        "computed_max": 100,
+        "scale_min": 0,
+        "scale_max": 100,
+    }
+    repo.get_all_prompt_blocks_models.return_value = [PromptBlock.model_validate(pb_dict)]
     return repo
 
 
@@ -162,6 +198,8 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )  # noqa: E501
@@ -191,6 +229,8 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )  # noqa: E501
@@ -281,7 +321,7 @@ def mock_repo_microcot() -> Any:
                 "is_evaluative": True,
                 "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
                 "label": {"default_locale": "en", "translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
-                "scales": [
+                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
                     {
                         "score": 0,
                         "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
@@ -318,7 +358,7 @@ def mock_repo_microcot() -> Any:
                 "is_evaluative": True,
                 "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
                 "label": {"default_locale": "en", "translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
-                "scales": [
+                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
                     {
                         "score": 0,
                         "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
@@ -380,6 +420,8 @@ async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any,
         exec_repo=mock_repo_microcot,
         workflow_repo=mock_repo_microcot,
         comp_repo=mock_repo_microcot,
+        prompt_block_repo=mock_repo_microcot,
+        output_profile_repo=mock_repo_microcot,
         identity_repo=mock_repo_microcot,
         system_repo=mock_repo_transformer,
     )  # noqa: E501
@@ -453,7 +495,7 @@ def mock_repo_sdui() -> AsyncMock:
                 "computed_max": 5,
                 "scale_min": 0,
                 "scale_max": 5,
-                "scales": [
+                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
                     {
                         "score": 0,
                         "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
@@ -489,6 +531,8 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
         exec_repo=mock_repo_sdui,
         workflow_repo=mock_repo_sdui,
         comp_repo=mock_repo_sdui,
+        prompt_block_repo=mock_repo_sdui,
+        output_profile_repo=mock_repo_sdui,
         identity_repo=mock_repo_sdui,
         system_repo=mock_repo_sdui,
     )  # noqa: E501
@@ -543,6 +587,8 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
         exec_repo=mock_repo_sdui,
         workflow_repo=mock_repo_sdui,
         comp_repo=mock_repo_sdui,
+        prompt_block_repo=mock_repo_sdui,
+        output_profile_repo=mock_repo_sdui,
         identity_repo=mock_repo_sdui,
         system_repo=mock_repo_sdui,
     )  # noqa: E501
@@ -626,6 +672,8 @@ async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) 
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )  # noqa: E501
@@ -670,6 +718,8 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )  # noqa: E501
@@ -722,6 +772,8 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
         exec_repo=mock_repo_sdui,
         workflow_repo=mock_repo_sdui,
         comp_repo=mock_repo_sdui,
+        prompt_block_repo=mock_repo_sdui,
+        output_profile_repo=mock_repo_sdui,
         identity_repo=mock_repo_sdui,
         system_repo=mock_repo_sdui,
     )
@@ -778,6 +830,8 @@ async def test_blueprint_virtual_matrix_allows_missing_justification(mock_repo_t
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -823,6 +877,8 @@ async def test_blueprint_xai_extensions_type_coercion(mock_repo_transformer: Any
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -844,6 +900,8 @@ async def test_blueprint_2d_compare_graceful_degradation(mock_repo_sdui: AsyncMo
         exec_repo=mock_repo_sdui,
         workflow_repo=mock_repo_sdui,
         comp_repo=mock_repo_sdui,
+        prompt_block_repo=mock_repo_sdui,
+        output_profile_repo=mock_repo_sdui,
         identity_repo=mock_repo_sdui,
         system_repo=mock_repo_sdui,
     )
@@ -958,6 +1016,8 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -1019,6 +1079,8 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -1073,6 +1135,8 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -1145,7 +1209,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "is_evaluative": True,
                 "description": {"default_locale": "en", "translations": {"en": "Desc"}},
                 "label": {"default_locale": "en", "translations": {"en": "Label"}},
-                "scales": [
+                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
                     {
                         "score": 1,
                         "name": {"default_locale": "en", "translations": {"en": "Min"}},
@@ -1200,6 +1264,8 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -1264,6 +1330,8 @@ async def test_blueprint_skips_raw_extensions_when_curated_exists(mock_repo_tran
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -1365,6 +1433,8 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -1372,15 +1442,19 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
     # Mock visible extensions for this test and restore after
     profiles = mock_repo_transformer.get_all_output_profiles_models.return_value
     orig_exts = profiles[0].visible_block_extensions
-    profiles[0].visible_block_extensions = [
-        XaiExtensionType.JUSTIFICATION,
-        XaiExtensionType.COACHING,
-        XaiExtensionType.REMEDIATION_STEPS,
-    ]
+    profiles[0] = profiles[0].model_copy(
+        update={
+            "visible_block_extensions": [
+                XaiExtensionType.JUSTIFICATION,
+                XaiExtensionType.COACHING,
+                XaiExtensionType.REMEDIATION_STEPS,
+            ]
+        }
+    )
     try:
         dto = await transformer.build_report_dto("exe_0000000000000014", accept_language="en")
     finally:
-        profiles[0].visible_block_extensions = orig_exts
+        profiles[0] = profiles[0].model_copy(update={"visible_block_extensions": orig_exts})
 
     # Check that remediation_steps has only the curated item
     assert dto.grouped_extensions is not None
@@ -1502,6 +1576,8 @@ async def test_blueprint_slop_scanning_applied_successfully(mock_repo_transforme
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -1593,10 +1669,28 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
 
     mock_comp_repo.get_all_output_profiles_models.return_value = [profile]
 
+    pb_dict_slop = {
+        "id": "blk_1234abcd1234abcd",
+        "slug": "logic_matrix",
+        "category_id": "matrix",
+        "type": "float",
+        "is_evaluative": True,
+        "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
+        "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
+        "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [{"score": 1, "name": {"default_locale": "en", "translations": {"en": "1"}}, "ai_label": "1", "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc", "tda_assertions": [{"tda_id": "tda_00000000000000000000000000000000", "concept_description": "concept", "inverse_evidence": False, "aggregation_mode": "EXISTS"}]}]}],
+        "computed_min": 0,
+        "computed_max": 100,
+        "scale_min": 0,
+        "scale_max": 100,
+    }
+    mock_comp_repo.get_all_prompt_blocks_models.return_value = [PromptBlock.model_validate(pb_dict_slop)]
+
     transformer = BlueprintTransformer(
         exec_repo=mock_exec_repo,
         workflow_repo=mock_workflow_repo,
         comp_repo=mock_comp_repo,
+        prompt_block_repo=mock_comp_repo,
+        output_profile_repo=mock_comp_repo,
         identity_repo=AsyncMock(),
         system_repo=mock_system_repo,
     )
@@ -1662,6 +1756,8 @@ async def test_blueprint_causal_mapping_reverse_lookup(mock_repo_transformer: An
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
@@ -1730,6 +1826,8 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )

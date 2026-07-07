@@ -230,6 +230,10 @@ enum SduiBlockType {
   alertBox,
   @JsonValue('markdown')
   markdown,
+  @JsonValue('warning_card')
+  warningCard,
+  @JsonValue('quote_card')
+  quoteCard,
 }
 
 /// UI intent mapping for SDUI visual rendering.

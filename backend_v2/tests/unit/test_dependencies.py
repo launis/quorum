@@ -60,7 +60,7 @@ async def test_get_current_user_from_header_valid_token() -> None:
 async def test_get_studio_service(mock_repo: Any) -> None:
     """Test get_studio_service injection."""
     service = await get_studio_service(
-        workflow_repo=mock_repo, component_repo=mock_repo, knowledge_repo=mock_repo, system_repo=mock_repo
+        workflow_repo=mock_repo, component_repo=mock_repo, prompt_block_repo=AsyncMock(), output_profile_repo=AsyncMock(), knowledge_repo=mock_repo, system_repo=mock_repo
     )  # noqa: E501
     assert service is not None
     assert service.workflow_repo == mock_repo

@@ -127,6 +127,8 @@ class LLMNodeStrategy(NodeStrategy):
             exec_repo=self.exec_repo,
             workflow_repo=self.workflow_repo,
             comp_repo=self.comp_repo,
+            prompt_block_repo=self.prompt_block_repo,
+            output_profile_repo=self.output_profile_repo,
             identity_repo=self.identity_repo,
             audit_repo=self.audit_repo,
             system_repo=self.system_repo,
@@ -157,7 +159,7 @@ class LLMNodeStrategy(NodeStrategy):
         # INSIDE the data. AliasEngine + prompt_compiler.build_xml_context() are the
         # Single Source of Truth for all source aliasing (alias_engine_llm_isolation_mandate).
 
-        all_prompt_blocks_raw = await self.comp_repo.get_all_prompt_blocks()
+        all_prompt_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
         all_prompt_blocks: list[PromptBlock] = []
         for raw in all_prompt_blocks_raw:
             try:
@@ -252,7 +254,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         output_profile = None
         if target_profile:
-            profile_data = await self.comp_repo.get_output_profile_by_id(target_profile)
+            profile_data = await self.output_profile_repo.get_output_profile_by_id(target_profile)
             if not profile_data:
                 msg = f"OutputProfile '{target_profile}' not found in database."
                 logger.error("[LLMStrategy] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)

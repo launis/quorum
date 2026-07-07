@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -13,6 +13,8 @@ def test_inject_step_metadata_empty_state() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),
@@ -34,6 +36,8 @@ def test_inject_step_metadata_missing_ids_fails() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),
@@ -61,6 +65,8 @@ def test_inject_step_metadata_custom_values() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),
@@ -99,6 +105,8 @@ def test_inject_step_metadata_validation_failure() -> None:
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
         comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
         identity_repo=MagicMock(),
         audit_repo=MagicMock(),
         system_repo=MagicMock(),

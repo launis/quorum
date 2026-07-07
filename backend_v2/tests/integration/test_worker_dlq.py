@@ -28,6 +28,9 @@ async def test_pydantic_max_length_fail_fast_and_dlq_routing() -> None:
     compiler.compile_xml_rubrics.return_value = ""
     compiler.build_dynamic_schema.return_value = MockSchema
     compiler.calibrate_strictness.return_value = ""
+    compiler.compile_chunk_prompt.return_value.metadata = {}
+    compiler.compile_chunk_prompt.return_value.system_messages = []
+    compiler.compile_chunk_prompt.return_value.user_messages = []
 
     # Mock LLMTaskExecutor to raise LLMSchemaValidationError due to max_length
     with patch(
@@ -89,6 +92,9 @@ async def test_programmatic_errors_bubble_up_and_crash_fail_fast() -> None:
     compiler.compile_xml_rubrics.return_value = ""
     compiler.build_dynamic_schema.return_value = MockSchema
     compiler.calibrate_strictness.return_value = ""
+    compiler.compile_chunk_prompt.return_value.metadata = {}
+    compiler.compile_chunk_prompt.return_value.system_messages = []
+    compiler.compile_chunk_prompt.return_value.user_messages = []
 
     # Mock LLMTaskExecutor to raise standard TypeError
     with patch(

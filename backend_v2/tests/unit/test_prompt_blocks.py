@@ -43,7 +43,9 @@ async def test_studio_service_crashes_on_legacy_execution_persona() -> None:
 
     service = StudioService(
         workflow_repo=cast(Any, None),
-        component_repo=cast(Any, MockDB()),
+        component_repo=cast(Any, None),
+        prompt_block_repo=cast(Any, MockDB()),
+        output_profile_repo=cast(Any, None),
         knowledge_repo=cast(Any, None),
         system_repo=cast(Any, None),
     )

@@ -121,6 +121,8 @@ class ContextBuilder:
             return result
         elif isinstance(obj, list):
             return [ContextBuilder._project_compressed(item) for item in obj]
+        elif hasattr(obj, "model_dump"):
+            return ContextBuilder._project_compressed(obj.model_dump(mode="json"))
         else:
             return obj  # str/int/float/bool/None — immutable, share reference
 

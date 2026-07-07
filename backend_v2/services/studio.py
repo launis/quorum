@@ -12,6 +12,8 @@ from pydantic import ValidationError
 from backend_v2.database.interfaces import (
     IComponentRepository,
     IKnowledgeRepository,
+    IOutputProfileRepository,
+    IPromptBlockRepository,
     ISystemRepository,
     IWorkflowRepository,
 )
@@ -43,6 +45,8 @@ class StudioService:
         self,
         workflow_repo: IWorkflowRepository,
         component_repo: IComponentRepository,
+        prompt_block_repo: IPromptBlockRepository,
+        output_profile_repo: IOutputProfileRepository,
         knowledge_repo: IKnowledgeRepository,
         system_repo: ISystemRepository,
     ):
@@ -61,6 +65,8 @@ class StudioService:
         """
         self.workflow_repo = workflow_repo
         self.component_repo = component_repo
+        self.prompt_block_repo = prompt_block_repo
+        self.output_profile_repo = output_profile_repo
         self.knowledge_repo = knowledge_repo
         self.system_repo = system_repo
 
@@ -147,7 +153,7 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        all_profiles_data = await self.component_repo.get_all_output_profiles()
+        all_profiles_data = await self.output_profile_repo.get_all_output_profiles()
         all_profiles = [OutputProfile.model_validate(p) for p in all_profiles_data]
 
         for wf in workflows:
@@ -427,7 +433,7 @@ class StudioService:
             step["input_mappings"] = new_mappings
 
         # Deep clone standalone output profiles mapped to this old workflow
-        all_profiles = await self.component_repo.get_all_output_profiles()
+        all_profiles = await self.output_profile_repo.get_all_output_profiles()
         profile_mapping = {}
 
         for p in all_profiles:
@@ -446,7 +452,7 @@ class StudioService:
                     old_layout_steps = layout.get("steps", [])
                     layout["steps"] = [sr_mapping.get(s, s) for s in old_layout_steps]
 
-                await self.component_repo.create_output_profile(cloned_profile)
+                await self.output_profile_repo.create_output_profile(cloned_profile)
 
         # Update the default profile ID referencing the old profile
         if cloned_data.get("default_profile_id") in profile_mapping:
@@ -588,7 +594,7 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        all_blocks = await self.component_repo.get_all_prompt_blocks()
+        all_blocks = await self.prompt_block_repo.get_all_prompt_blocks()
         protocol_block_id = None
         for b in all_blocks:
             if b.get("category_id") == "protocol":
@@ -683,7 +689,7 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        all_data = await self.component_repo.get_all_prompt_blocks()
+        all_data = await self.prompt_block_repo.get_all_prompt_blocks()
 
         blocks = []
         for x in all_data:
@@ -723,7 +729,7 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        data = await self.component_repo.get_prompt_block_by_id(id)
+        data = await self.prompt_block_repo.get_prompt_block_by_id(id)
         if not data:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
@@ -765,9 +771,9 @@ class StudioService:
         dump = data.model_dump(mode="json")
         if "id" not in dump:
             dump["id"] = id
-        await self.component_repo.create_prompt_block(dump)
+        await self.prompt_block_repo.create_prompt_block(dump)
 
-        saved = await self.component_repo.get_prompt_block_by_id(id)
+        saved = await self.prompt_block_repo.get_prompt_block_by_id(id)
         if not saved:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
@@ -786,14 +792,14 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        data = await self.component_repo.get_prompt_block_by_id(id)
+        data = await self.prompt_block_repo.get_prompt_block_by_id(id)
         if not data:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
         block = PromptBlock.model_validate(data)
         self._enforce_modification_rights(initiator, block.organization_id)
-        await self.component_repo.delete_prompt_block(id, force_delete=force_delete)
+        await self.prompt_block_repo.delete_prompt_block(id, force_delete=force_delete)
 
     async def create_prompt_block_draft(self, initiator: TokenData) -> PromptBlock:
         """Create prompt block draft.
@@ -848,7 +854,7 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        data = await self.component_repo.get_prompt_block_by_id(id)
+        data = await self.prompt_block_repo.get_prompt_block_by_id(id)
         if not data:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
@@ -1246,7 +1252,7 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        all_data = await self.component_repo.get_all_output_profiles()
+        all_data = await self.output_profile_repo.get_all_output_profiles()
         if initiator.role == "ROOT":
             return [OutputProfile.model_validate(x) for x in all_data]
 
@@ -1269,7 +1275,7 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        data = await self.component_repo.get_output_profile_by_id(id)
+        data = await self.output_profile_repo.get_output_profile_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Output Profile %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
@@ -1334,9 +1340,9 @@ class StudioService:
         if "id" not in dump:
             dump["id"] = id
 
-        await self.component_repo.create_output_profile(dump)
+        await self.output_profile_repo.create_output_profile(dump)
 
-        saved = await self.component_repo.get_output_profile_by_id(id)
+        saved = await self.output_profile_repo.get_output_profile_by_id(id)
         if not saved:
             logger.error(
                 "[StudioService] %s: Output Profile %s not found after save.", ErrorCodes.RESOURCE_NOT_FOUND.name, id
@@ -1356,13 +1362,13 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        data = await self.component_repo.get_output_profile_by_id(id)
+        data = await self.output_profile_repo.get_output_profile_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Output Profile %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
         self._enforce_modification_rights(initiator, data.get("organization_id"))
-        await self.component_repo.delete_output_profile(id)
+        await self.output_profile_repo.delete_output_profile(id)
 
     async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:
         """Create output profile draft.
@@ -1411,7 +1417,7 @@ class StudioService:
             ResourceNotFoundError: If the resource is missing.
             AppException: On other core errors.
         """
-        data = await self.component_repo.get_output_profile_by_id(id)
+        data = await self.output_profile_repo.get_output_profile_by_id(id)
         if not data:
             logger.error("[StudioService] %s: OutputProfile %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
@@ -1436,9 +1442,9 @@ class StudioService:
         elif "name" in cloned_data and isinstance(cloned_data["name"], str):
             cloned_data["name"] = cloned_data["name"] + " (Copy)"
 
-        await self.component_repo.create_output_profile(cloned_data)
+        await self.output_profile_repo.create_output_profile(cloned_data)
 
-        saved = await self.component_repo.get_output_profile_by_id(new_id)
+        saved = await self.output_profile_repo.get_output_profile_by_id(new_id)
         if not saved:
             logger.error(
                 "[StudioService] %s: OutputProfile %s not found after clone.",

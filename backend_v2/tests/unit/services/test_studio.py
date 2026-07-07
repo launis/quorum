@@ -31,11 +31,18 @@ def mock_system_repo() -> Any:
 
 @pytest.fixture
 def studio_service(
-    mock_workflow_repo: Any, mock_component_repo: Any, mock_knowledge_repo: Any, mock_system_repo: Any
+    mock_workflow_repo: Any, 
+    mock_component_repo: Any, 
+    mock_knowledge_repo: Any, 
+    mock_system_repo: Any,
+    mock_seed_prompt_block_repo: Any,
+    mock_seed_output_profile_repo: Any
 ) -> Any:
     return StudioService(
         workflow_repo=mock_workflow_repo,
         component_repo=mock_component_repo,
+        prompt_block_repo=mock_seed_prompt_block_repo,
+        output_profile_repo=mock_seed_output_profile_repo,
         knowledge_repo=mock_knowledge_repo,
         system_repo=mock_system_repo,
     )
@@ -213,19 +220,19 @@ async def test_delete_step(studio_service: Any, admin_token: Any, mock_workflow_
     mock_workflow_repo.delete_step.assert_called_once()
 
 
-async def test_list_prompt_blocks_empty(studio_service: Any, root_token: Any, mock_component_repo: Any) -> None:
-    mock_component_repo.get_all_prompt_blocks.return_value = []
+async def test_list_prompt_blocks_empty(studio_service: Any, root_token: Any, mock_seed_prompt_block_repo: Any) -> None:
+    mock_seed_prompt_block_repo.get_all_prompt_blocks.return_value = []
     res = await studio_service.list_prompt_blocks(root_token)
     assert res == []
 
 
-async def test_get_prompt_block_not_found(studio_service: Any, root_token: Any, mock_component_repo: Any) -> None:
-    mock_component_repo.get_prompt_block_by_id.return_value = None
+async def test_get_prompt_block_not_found(studio_service: Any, root_token: Any, mock_seed_prompt_block_repo: Any) -> None:
+    mock_seed_prompt_block_repo.get_prompt_block_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await studio_service.get_prompt_block(root_token, "blk_missing")
 
 
-async def test_delete_prompt_block(studio_service: Any, admin_token: Any, mock_component_repo: Any) -> None:
+async def test_delete_prompt_block(studio_service: Any, admin_token: Any, mock_seed_prompt_block_repo: Any) -> None:
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
@@ -235,24 +242,25 @@ async def test_delete_prompt_block(studio_service: Any, admin_token: Any, mock_c
         "type": "string",
         "organization_id": "org_123",
     }
-    mock_component_repo.get_prompt_block_by_id.return_value = blk_data
+    mock_seed_prompt_block_repo.get_prompt_block_by_id.side_effect = None
+    mock_seed_prompt_block_repo.get_prompt_block_by_id.return_value = blk_data
     await studio_service.delete_prompt_block(admin_token, "blk_1234567890abcdef12")
-    mock_component_repo.delete_prompt_block.assert_called_once()
+    mock_seed_prompt_block_repo.delete_prompt_block.assert_called_once()
 
 
-async def test_list_output_profiles_empty(studio_service: Any, root_token: Any, mock_component_repo: Any) -> None:
-    mock_component_repo.get_all_output_profiles.return_value = []
+async def test_list_output_profiles_empty(studio_service: Any, root_token: Any, mock_seed_output_profile_repo: Any) -> None:
+    mock_seed_output_profile_repo.get_all_output_profiles.return_value = []
     res = await studio_service.list_output_profiles(root_token)
     assert res == []
 
 
-async def test_get_output_profile_not_found(studio_service: Any, root_token: Any, mock_component_repo: Any) -> None:
-    mock_component_repo.get_output_profile_by_id.return_value = None
+async def test_get_output_profile_not_found(studio_service: Any, root_token: Any, mock_seed_output_profile_repo: Any) -> None:
+    mock_seed_output_profile_repo.get_output_profile_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await studio_service.get_output_profile(root_token, "prof_missing")
 
 
-async def test_delete_output_profile(studio_service: Any, admin_token: Any, mock_component_repo: Any) -> None:
+async def test_delete_output_profile(studio_service: Any, admin_token: Any, mock_seed_output_profile_repo: Any) -> None:
     prof_data = {
         "id": "prof_1234567890abcdef12",
         "slug": "prof_1",
@@ -262,9 +270,10 @@ async def test_delete_output_profile(studio_service: Any, admin_token: Any, mock
         "organization_id": "org_123",
         "workflow_id": "wf_1234567890abcdef12",
     }
-    mock_component_repo.get_output_profile_by_id.return_value = prof_data
+    mock_seed_output_profile_repo.get_output_profile_by_id.side_effect = None
+    mock_seed_output_profile_repo.get_output_profile_by_id.return_value = prof_data
     await studio_service.delete_output_profile(admin_token, "prof_1234567890abcdef12")
-    mock_component_repo.delete_output_profile.assert_called_once()
+    mock_seed_output_profile_repo.delete_output_profile.assert_called_once()
 
 
 async def test_list_mcp_gateways_empty(studio_service: Any, root_token: Any, mock_system_repo: Any) -> None:
@@ -308,7 +317,7 @@ async def test_save_step(studio_service: Any, admin_token: Any, mock_workflow_re
     assert res.id == "step_1234567890abcdef12"
 
 
-async def test_save_prompt_block(studio_service: Any, admin_token: Any, mock_component_repo: Any) -> None:
+async def test_save_prompt_block(studio_service: Any, admin_token: Any, mock_seed_prompt_block_repo: Any) -> None:
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
@@ -318,7 +327,8 @@ async def test_save_prompt_block(studio_service: Any, admin_token: Any, mock_com
         "type": "string",
         "organization_id": "org_123",
     }
-    mock_component_repo.get_prompt_block_by_id.return_value = blk_data
+    mock_seed_prompt_block_repo.get_prompt_block_by_id.side_effect = None
+    mock_seed_prompt_block_repo.get_prompt_block_by_id.return_value = blk_data
     res = await studio_service.save_prompt_block(
         admin_token, "blk_1234567890abcdef12", PromptBlock.model_validate(blk_data)
     )

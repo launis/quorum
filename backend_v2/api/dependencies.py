@@ -19,20 +19,28 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.factory import get_driver
 from backend_v2.database.interfaces import (
+    IAgentRepository,
     IAuditRepository,
     IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
     IKnowledgeRepository,
+    IOutputProfileRepository,
+    IPromptBlockRepository,
     ISystemRepository,
+    ITaskBlueprintRepository,
     IWorkflowRepository,
 )
+from backend_v2.database.repositories.agent import AgentRepositoryImpl
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
 from backend_v2.database.repositories.component import ComponentRepositoryImpl
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
+from backend_v2.database.repositories.output_profile import OutputProfileRepositoryImpl
+from backend_v2.database.repositories.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
+from backend_v2.database.repositories.task_blueprint import TaskBlueprintRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 from backend_v2.exceptions import AuthenticationError, PermissionDeniedError
 from backend_v2.llm.handler import LLMHandler
@@ -123,6 +131,34 @@ async def get_component_repo(driver: DriverDep) -> IComponentRepository:
 
 
 ComponentRepoDep = Annotated[IComponentRepository, Depends(get_component_repo)]
+
+
+async def get_prompt_block_repo(driver: DriverDep) -> IPromptBlockRepository:
+    return PromptBlockRepositoryImpl(driver)
+
+
+PromptBlockRepoDep = Annotated[IPromptBlockRepository, Depends(get_prompt_block_repo)]
+
+
+async def get_agent_repo(driver: DriverDep) -> IAgentRepository:
+    return AgentRepositoryImpl(driver)
+
+
+AgentRepoDep = Annotated[IAgentRepository, Depends(get_agent_repo)]
+
+
+async def get_task_blueprint_repo(driver: DriverDep) -> ITaskBlueprintRepository:
+    return TaskBlueprintRepositoryImpl(driver)
+
+
+TaskBlueprintRepoDep = Annotated[ITaskBlueprintRepository, Depends(get_task_blueprint_repo)]
+
+
+async def get_output_profile_repo(driver: DriverDep) -> IOutputProfileRepository:
+    return OutputProfileRepositoryImpl(driver)
+
+
+OutputProfileRepoDep = Annotated[IOutputProfileRepository, Depends(get_output_profile_repo)]
 
 
 async def get_knowledge_repo(driver: DriverDep) -> IKnowledgeRepository:
@@ -302,6 +338,8 @@ async def get_dag_executor(
     audit_repo: AuditRepoDep,
     system_repo: SystemRepoDep,
     prompt_compiler: PromptCompilerDep,
+    prompt_block_repo: PromptBlockRepoDep,
+    output_profile_repo: OutputProfileRepoDep,
 ) -> DAGExecutor:
     """Instantiate the execution DAG orchestrator.
 
@@ -321,6 +359,8 @@ async def get_dag_executor(
         exec_repo=exec_repo,
         workflow_repo=workflow_repo,
         comp_repo=component_repo,
+        prompt_block_repo=prompt_block_repo,
+        output_profile_repo=output_profile_repo,
         identity_repo=identity_repo,
         audit_repo=audit_repo,
         system_repo=system_repo,
@@ -339,6 +379,8 @@ async def get_execution_service(
     system_repo: SystemRepoDep,
     usage_service: UsageServiceDep,
     executor: Annotated[DAGExecutor, Depends(get_dag_executor)],
+    prompt_block_repo: PromptBlockRepoDep,
+    output_profile_repo: OutputProfileRepoDep,
 ) -> ExecutionService:
     """Instantiate the high-level execution service.
 
@@ -358,6 +400,8 @@ async def get_execution_service(
         exec_repo=exec_repo,
         workflow_repo=workflow_repo,
         comp_repo=comp_repo,
+        prompt_block_repo=prompt_block_repo,
+        output_profile_repo=output_profile_repo,
         identity_repo=identity_repo,
         system_repo=system_repo,
         usage_service=usage_service,
@@ -373,6 +417,8 @@ async def get_studio_service(
     component_repo: ComponentRepoDep,
     knowledge_repo: KnowledgeRepoDep,
     system_repo: SystemRepoDep,
+    prompt_block_repo: PromptBlockRepoDep,
+    output_profile_repo: OutputProfileRepoDep,
 ) -> StudioService:
     """Instantiate the studio administration service.
 
@@ -388,6 +434,8 @@ async def get_studio_service(
     return StudioService(
         workflow_repo=workflow_repo,
         component_repo=component_repo,
+        prompt_block_repo=prompt_block_repo,
+        output_profile_repo=output_profile_repo,
         knowledge_repo=knowledge_repo,
         system_repo=system_repo,
     )
