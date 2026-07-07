@@ -9,7 +9,7 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing and 
   
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>ALWAYS read `c:\src\quorum\.agents\rules\00-antigravity-core.md`. You MUST synchronize your understanding with the system's Knowledge Item (KI) guidelines. This is critical for understanding whether a log trace is a catastrophic failure or an intentional fallback (e.g., Transient Error Resilience).</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md`. You MUST synchronize your understanding with the system's Knowledge Item (KI) guidelines. This is critical for understanding whether a log trace is a catastrophic failure or an intentional fallback (e.g., Transient Error Resilience).</mandatory_pattern>
       <catastrophic_reason>Monitoring logs without understanding the Phase 9 architecture causes the AI to panic over intentional fallback mechanisms or ignore silent logical failures.</catastrophic_reason>
     </rule_block>
     <rule_block id="silent_observation_mandate">

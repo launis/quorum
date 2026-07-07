@@ -12,7 +12,7 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
   
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>First, read the Antigravity ruleset `.agents/rules/01-python-backend.md` and `.agents/rules/00-antigravity-core.md`. These are the UNIVERSAL MANDATE (V5.2 - PHASE 9 HARDENING). Obey these instructions absolutely. Ensure code synchronization with the system's Knowledge Item (KI) guidelines (e.g. De-Generator, AliasEngine, Global Config Sovereignty). Read `04_directory_reference.md` if necessary.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. First, read the Antigravity ruleset `.agents/rules/01-python-backend.md` and `.agents/rules/00-antigravity-core.md`. These are the UNIVERSAL MANDATE (V5.2 - PHASE 9 HARDENING). Obey these instructions absolutely. Ensure code synchronization with the system's Knowledge Item (KI) guidelines (e.g. De-Generator, AliasEngine, Global Config Sovereignty). Read `04_directory_reference.md` if necessary.</mandatory_pattern>
       <catastrophic_reason>If architectural rules or KI guidelines are not loaded, the agent will accidentally refactor code back to the V1-legacy state, destroying the integrity of the entire system.</catastrophic_reason>
     </rule_block>
   </context_rules>
@@ -24,7 +24,7 @@ Your first task is to use tools (e.g. directory listing) to understand the depth
 * **SPECIAL RULE FOR SINGLE FILES:** If the user specifies an exact file or files in their command (e.g. `backend_v2/services/execution.py`), map a list **Only of these individual files**. Do not expand the audit to the entire directory.
 * **ABSOLUTE BAN (Ignored files):** Completely ignore `__pycache__` folders, virtual environments (`venv`, `.venv`), alembic migration version files (`alembic/versions`), and completely empty `__init__.py` files in your analysis. Do not read, audit, or attempt to modify them to save resources and context.
 * **RULE:** Build a virtual Markdown checklist (`task_backend.md`) to be printed in the chat from your findings. Subdivide the list so finely that **EVERY lowest-level subdirectory (leaf directory) OR in the case of specified individual files, EVERY single file is its own separate item on the list**. Directories must not be bundled together.
-* **STATE PERSISTENCE & CONTEXT RENEWAL:** If the user's command contains `--resume` or the file `c:\src\quorum\tmp\hardening_state.json` exists, read it. Omit from the list any directories that are marked as "DONE" there. Bring the list of only undone directories. At the same time, set a local goal: "I will process a maximum of 5 files in this session to prevent context degradation."
+* **STATE PERSISTENCE & CONTEXT RENEWAL:** If the user's command contains `--resume` or the file `tmp\hardening_state.json` exists, read it. Omit from the list any directories that are marked as "DONE" there. Bring the list of only undone directories. At the same time, set a local goal: "I will process a maximum of 5 files in this session to prevent context degradation."
 * **BAN:** DO NOT make code changes at this stage. Always end your response with the words: *"List ready. Awaiting PROCEED command."*
     </phase>
     
@@ -32,7 +32,7 @@ Your first task is to use tools (e.g. directory listing) to understand the depth
 When I give permission to proceed ("PROCEED"), we will begin unpacking the virtual list:
 1. Select the FIRST undone subdirectory OR single file from the list.
 2. Strictly read the `.py` files of that target (or just that specific file), keeping ignored folders in mind. Define the audit matrix to cover ONLY the selected scope.
-3. **MANDATED TRACEABILITY MATRIX**: You MUST report your findings by printing a precise Markdown table ("Audit Matrix") into the chat. You MUST parse the content of `c:\src\quorum\.agents\rules\01-python-backend.md` in your mind and create a row in the matrix **for every `<rule_block>` present in the file**.
+3. **MANDATED TRACEABILITY MATRIX**: You MUST report your findings by printing a precise Markdown table ("Audit Matrix") into the chat. You MUST parse the content of `.agents\rules\01-python-backend.md` in your mind and create a row in the matrix **for every `<rule_block>` present in the file**.
 4. Evaluate every rule you found (Pass/Fail/NA) relative to the selected file or folder.
 
    - Use columns: `| No. | Rule ID (or Name) | Status (Pass / Fail) | Findings & Justification |`.
@@ -46,9 +46,9 @@ When I give permission to proceed ("PROCEED"), we will begin unpacking the virtu
 
 4. Stop after printing the table. I expect to see it. Wait for the command "FIX" (if things need to be fixed) or the command "NEXT" (if all rules were purely Pass). If "FIX" requires destroying files or critical symbols (Destructive Operations), you MUST ask for separate permission from the user before deleting.
 5. **RED-GREEN-REFACTOR MANDATE:** If you received the command to fix code ("FIX"), you must FIRST update or create a test that fails with the current broken code. Only after the test fails do you make the code changes (Fail-Fast).
-6. **AUDIT LOOP MANDATE:** After code changes, you MUST run the command YOURSELF: `uv run python scripts/backend_audit_loop.py backend_v2/[path] --test`.
-7. **DOCUMENTATION AUDIT MANDATE:** If the refactoring caused significant architectural changes, file deletions, or the creation of new directories, you MUST physically modify the documents in the `c:\src\quorum\docs\architecture\` directory and the `c:\src\quorum\.agents\rules\04_directory_reference.md` file, strictly maintaining their existing table structures. Never just put a comment "Updated", physically modify the files.
-8. **STATE PERSISTENCE:** When the folder is complete and tests pass, update `c:\src\quorum\tmp\hardening_state.json` and mark the subdirectory as "DONE".
+6. **AUDIT LOOP MANDATE:** After code changes, you MUST run the Universal Quality Gate YOURSELF as defined in `AGENTS.md`.
+7. **DOCUMENTATION AUDIT MANDATE:** If the refactoring caused significant architectural changes, file deletions, or the creation of new directories, you MUST physically modify the documents in the `docs\architecture\` directory and the `.agents\rules\04_directory_reference.md` file, strictly maintaining their existing table structures. Never just put a comment "Updated", physically modify the files.
+8. **STATE PERSISTENCE:** When the folder is complete and tests pass, update `tmp\hardening_state.json` and mark the subdirectory as "DONE".
 9. **SESSION LIMIT & HANDOVER:** Keep a tally of the total number of files you have audited in this session. If you have processed 5 files, STOP immediately once the folder is complete. Do not move on to the next. Print to the user: "Session limit reached. Continue by issuing the command: /tier5-resume --target [epic_or_task_md]" and ensure the task file is updated.
     </phase>
   </phases>

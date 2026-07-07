@@ -8,15 +8,15 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
   
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>ALWAYS explicitly read `c:\src\quorum\.agents\rules\00-antigravity-core.md`. You MUST NEVER propose a Session Handover if the codebase is currently in a broken state or failing tests.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS explicitly read `.agents\rules\00-antigravity-core.md`. You MUST NEVER propose a Session Handover if the codebase is currently in a broken state or failing tests.</mandatory_pattern>
       <catastrophic_reason>Handing over broken code or failing tests destroys the integrity of the next session, leading to exponential hallucination as the next agent tries to fix the previous agent's invisible mistakes.</catastrophic_reason>
     </rule_block>
   </context_rules>
 
   <execution_protocol level="5">
-    <step id="1">PRE-HANDOVER QUALITY GATE (MANDATORY): Before generating any handover package, you MUST run the Universal Quality Gate YOURSELF using `run_command` (e.g., `uv run python scripts/backend_audit_loop.py [target] --test`). If tests fail, you MUST fix them before allowing the handover. NEVER propose a Git commit for broken code.</step>
+    <step id="1">PRE-HANDOVER QUALITY GATE (MANDATORY): Before generating any handover package, you MUST run the Universal Quality Gate YOURSELF using `run_command` as defined in `AGENTS.md`. If tests fail, you MUST fix them before allowing the handover. NEVER propose a Git commit for broken code.</step>
     
-    <step id="2">DOCUMENTATION &amp; TRACKER STATE PERSISTENCE: You MUST physically modify the current target `.md` plan/Epic file using your file editing tools. Mark completed tasks with `[x]` and leave incomplete tasks as `[ ]`. You MUST ALSO verify if `c:\src\quorum\docs\architecture\` or `04_directory_reference.md` require updates. Ensure these files reflect the absolute truth of the codebase.</step>
+    <step id="2">DOCUMENTATION &amp; TRACKER STATE PERSISTENCE: You MUST physically modify the current target `.md` plan/Epic file using your file editing tools. Mark completed tasks with `[x]` and leave incomplete tasks as `[ ]`. You MUST ALSO verify if `docs\architecture\` or `04_directory_reference.md` require updates. Ensure these files reflect the absolute truth of the codebase.</step>
     
     <step id="3">CONTEXT ANALYSIS &amp; KNOWLEDGE EXTRACTION: Scan the entire current session. You MUST formulate a detailed payload for the next agent:
       - `achieved`: Detail exactly what business logic and steps were completed.

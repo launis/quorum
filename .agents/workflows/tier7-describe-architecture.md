@@ -12,7 +12,7 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
   
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>ALWAYS read `c:\src\quorum\.agents\rules\00-antigravity-core.md` and the 5 pillar documents in `c:\src\quorum\docs\architecture\`. You MUST understand the Capability-Driven architecture before scanning the physical codebase.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md` and the 5 pillar documents in `docs\architecture\`. You MUST understand the Capability-Driven architecture before scanning the physical codebase.</mandatory_pattern>
       <catastrophic_reason>Scanning code without understanding the 5 core capabilities causes the AI to misinterpret files or falsely flag critical infrastructure as rogue code.</catastrophic_reason>
     </rule_block>
     <rule_block id="theory_immutability_mandate">
@@ -22,7 +22,7 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
   </context_rules>
 
   <execution_protocol level="7">
-    <step id="1">THEORETICAL INGESTION: Read the 5 architectural pillar documents in `c:\src\quorum\docs\architecture\`. Understand the 5 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience).</step>
+    <step id="1">THEORETICAL INGESTION: Read the 5 architectural pillar documents in `docs\architecture\`. Understand the 5 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience).</step>
     
     <step id="2">TOP-DOWN ANCHORING (Physical Mapping): Scan `backend_v2` and `client_app_v2` using your tools to find the physical files that implement these 5 capabilities. Use file editing tools to append these physical paths strictly to the "Physical Implementation Map" sections at the bottom of each pillar document.</step>
     
@@ -30,7 +30,7 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
     
     <step id="4">ORPHAN REPORTING: If you discover any files, folders, or modules that DO NOT logically fit into the 5 pillars, you MUST generate an "Orphan Report" artifact. Flag these as either "Rogue/Legacy Code to be deleted" or "Missing Architectural Capability" and wait for User guidance.</step>
     
-    <step id="5">DIRECTORY REFERENCE SYNC: Update `c:\src\quorum\.agents\rules\04_directory_reference.md` using your file editing tools to ensure the directory map precisely reflects the anchored component clusters.</step>
+    <step id="5">DIRECTORY REFERENCE SYNC: Update `.agents\rules\04_directory_reference.md` using your file editing tools to ensure the directory map precisely reflects the anchored component clusters.</step>
   </execution_protocol>
 </system_prompt>
 ```

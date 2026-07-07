@@ -12,7 +12,7 @@ This workflow is designed for the systematic decomposition and refactoring of he
   <role>Senior Staff Engineer & Python Systems Architect</role>
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>ALWAYS read `c:\src\quorum\.agents\rules\00-antigravity-core.md`. Analyze your target: IF decomposing the Python backend, ADDITIONALLY read `01-python-backend.md`. IF decomposing Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. You MUST synchronize your understanding with the system's Knowledge Item (KI) guidelines to ensure extracted slices match established patterns.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md`. Analyze your target: IF decomposing the Python backend, ADDITIONALLY read `01-python-backend.md`. IF decomposing Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. You MUST synchronize your understanding with the system's Knowledge Item (KI) guidelines to ensure extracted slices match established patterns.</mandatory_pattern>
       <catastrophic_reason>Refactoring massive files without the core architecture and KIs causes the AI to hallucinate boundaries that violate Phase 9 system integration.</catastrophic_reason>
     </rule_block>
     <rule_block id="strangler_fig_mandate">
@@ -32,7 +32,7 @@ This workflow is designed for the systematic decomposition and refactoring of he
     </rule_block>
   </context_rules>
   <execution_protocol level="3">
-    <step id="1">PHASE 1 (Pre-flight &amp; Baseline Validation): Read the target file entirely (`view_file`). You MUST run the tests to establish a baseline (e.g., `uv run python scripts/backend_audit_loop.py backend_v2/ --test` or `flutter_audit_loop.py`). If the baseline fails, STOP and fix the debt. You MUST verify that test coverage is over 75%. If it is not, STOP and write tests. Document the target DDD bounded contexts and create an Exhaustive Symbol Inventory (mapping every class/function to its future location) in `implementation_plan.md`.</step>
+    <step id="1">PHASE 1 (Pre-flight &amp; Baseline Validation): Read the target file entirely (`view_file`). You MUST run the tests to establish a baseline as defined in `AGENTS.md`. If the baseline fails, STOP and fix the debt. You MUST verify that test coverage is over 75%. If it is not, STOP and write tests. Document the target DDD bounded contexts and create an Exhaustive Symbol Inventory (mapping every class/function to its future location) in `implementation_plan.md`.</step>
     
     <step id="2">PHASE 2 (Approval Gate): After creating the `implementation_plan.md`, you MUST STOP AND PAUSE. Wait for the user to reply with "PROCEED" or "PERMISSION GRANTED". Do NOT start code extraction until the plan is approved.</step>
     
@@ -44,7 +44,7 @@ This workflow is designed for the systematic decomposition and refactoring of he
     
     <step id="6">PHASE 6 (PRE-DELETE AUDIT &amp; Cleanup): Once all slices are extracted and downstream consumers are updated, you must perform a strict Pre-Delete Audit. You MUST run a `grep_search` across the repository for all original exported symbols. If no orphaned dependencies remain, you may delete the original God File.</step>
     
-    <step id="7">PHASE 7 (DOCUMENTATION & KNOWLEDGE AUDIT MANDATE): Because God Code decomposition radically changes the folder structure and elevates logic to SSOTs, you MUST physically modify the documents in `c:\src\quorum\docs\architecture\` AND `c:\src\quorum\.agents\rules\04_directory_reference.md` to reflect the new bounded contexts. Furthermore, for every new SSOT component extracted and unified, you MUST instruct the execution agent to create or update a Knowledge Item (KI) in the IDE's Knowledge Base (`&lt;appDataDir&gt;\knowledge\`) so future agents automatically inherit the usage rules for the newly extracted SSOT.</step>
+    <step id="7">PHASE 7 (DOCUMENTATION & KNOWLEDGE AUDIT MANDATE): Because God Code decomposition radically changes the folder structure and elevates logic to SSOTs, you MUST physically modify the documents in `docs\architecture\` AND `.agents\rules\04_directory_reference.md` to reflect the new bounded contexts. Furthermore, for every new SSOT component extracted and unified, you MUST instruct the execution agent to create or update a Knowledge Item (KI) in the IDE's Knowledge Base (`&lt;appDataDir&gt;\knowledge\`) so future agents automatically inherit the usage rules for the newly extracted SSOT.</step>
     
     <step id="8">PHASE 8 (HANDOVER): Present a summary of the new architecture to the user in `walkthrough.md`. Suggest running the Tier 2 Hardening workflow on the newly created directories.</step>
   </execution_protocol>

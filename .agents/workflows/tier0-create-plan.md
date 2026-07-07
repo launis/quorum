@@ -11,7 +11,7 @@ description: Tier 0 (Create Plan) - Generates an architectural implementation pl
   <role>Principal Solutions Architect</role>
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Do not rely on legacy `.md` files.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Do not rely on legacy `.md` files.</mandatory_pattern>
       <catastrophic_reason>Failing to load the correct rule files leads to Context Amnesia and immediate deviation from the V2 architectural invariants.</catastrophic_reason>
     </rule_block>
     <rule_block id="knowledge_base_mandate">
@@ -40,7 +40,7 @@ description: Tier 0 (Create Plan) - Generates an architectural implementation pl
     </step>
 
     <step id="5">DOCUMENT CREATION &amp; PERSISTENCE:
-      - IF `epic`: Write the document in Markdown and SAVE it directly to the physical codebase directory at `c:\src\quorum\docs\epic\` using a clear, descriptive English filename (e.g., `EPIC_[number]_[topic].md`).
+      - IF `epic`: Write the document in Markdown and SAVE it directly to the physical codebase directory at `docs\epic\` using a clear, descriptive English filename (e.g., `EPIC_[number]_[topic].md`).
       - IF `plan` (default): Do NOT save the file to the physical codebase directories. Instead, create it as a standard system **Artifact** (`implementation_plan.md`). Use your tool to set the artifact metadata `request_feedback = true` so the plan opens directly in the user interface for review.
     </step>
 

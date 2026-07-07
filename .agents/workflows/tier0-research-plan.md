@@ -11,7 +11,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
   <role>Principal Solutions Architect & Red Team Auditor</role>
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Do not rely on legacy `.md` files.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Do not rely on legacy `.md` files.</mandatory_pattern>
       <catastrophic_reason>Failing to load the correct rule files leads to Context Amnesia and immediate deviation from the V2 architectural invariants.</catastrophic_reason>
     </rule_block>
     <rule_block id="knowledge_base_mandate">
