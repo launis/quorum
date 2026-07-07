@@ -23,6 +23,16 @@
         <banned_pattern>Guessing the contents of a file.</banned_pattern>
         <mandatory_pattern>Actively use tools to read the current context before proposing modifications.</mandatory_pattern>
     </rule_block>
+    <rule_block id="english_language_mandate">
+        <banned_pattern>Writing code comments, docstrings, variable names, or git commit messages in Finnish or any language other than English.</banned_pattern>
+        <mandatory_pattern>You MUST write ALL code-level artifacts (variables, functions, classes, docstrings, inline comments, and git commit messages) EXCLUSIVELY in English. Even if the user communicates in Finnish, the codebase MUST remain strictly English.</mandatory_pattern>
+        <catastrophic_reason>Mixing languages in the codebase destroys readability for international developers, violates standard conventions, and breaks automated code analysis tools.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="ssot_reuse_mandate">
+        <banned_pattern>Writing new components without analyzing reusability, building a new SSOT without migrating existing code, OR forcing "False Unifications" across decoupled domains.</banned_pattern>
+        <mandatory_pattern>1. INVESTIGATE: Identify code that can be abstracted into an SSOT. 2. MIGRATE: Refactor legacy code to use the new SSOT immediately. 3. MITIGATE BIG-BANG: Legacy migration must be strictly timeboxed to "wiring the pipes"; do NOT rewrite the legacy internal business rules during migration. 4. MITIGATE FALSE UNIFICATION: Ensure unified code actually shares the same business domain, not just coincidental structural similarity.</mandatory_pattern>
+        <catastrophic_reason>Failing to migrate old code creates parallel systems. Conversely, forcing "False Unifications" creates brittle dependencies, and uncontrolled "Big Bang" refactoring stalls business value delivery indefinitely.</catastrophic_reason>
+    </rule_block>
     <rule_block id="explicit_scope_write">
         <banned_pattern>Modifying CONTEXT files.</banned_pattern>
         <mandatory_pattern>Only modify TARGET files. Treat CONTEXT files as Read-Only.</mandatory_pattern>

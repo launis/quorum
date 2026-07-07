@@ -1,9 +1,9 @@
 # Epic 92: Enriched Atom Graph Architecture (Kontekstuaalisen Atomisaation Korjaus)
 
 > [!IMPORTANT]
-> **THE CONTEXT-LOSS PARADOX RESOLUTION MANDATE**: Atomien flattauksen aiheuttama referenttien menetys (Anaphora) ja ehdollisuuden hajoaminen (Conditional Logic Decoupling) on ratkaistava ilman flat-list -arkkitehtuurin hylkäämistä. Järjestelmän tulee suorittaa 2-vaiheinen "Enriched Atom Graph" -pipeline: 1. Probabilistinen LLM Resolution -passi (Anaphora + Condition -tunnistus) ja 2. Deterministinen Pydantic- ja Python-ohjattu ehdollinen arviointi.
+> **THE CONTEXT-LOSS PARADOX RESOLUTION MANDATE**: Atomien flattauksen aiheuttama referenttien menetys (Anaphora) ja ehdollisuuden hajoaminen (Conditional Logic Decoupling) on ratkaistava ilman flat-list -arkkitehtuurin hylkäämistä. Järjestelmän tulee suorittaa "Enriched Atom Graph" -pipeline: 1. Probabilistinen LLM Resolution -passi (Anaphora + Condition -tunnistus) ja 2. Deterministinen Pydantic- ja Python-ohjattu ehdollinen arviointi.
 
-### Strateginen Merkitys
+## Strateginen Merkitys
 
 Epic 92 muuttaa Quorumin **arviointityökalusta argumentaation analytiikka-alustaksi** — positio, jolla ei tällä hetkellä ole suoraa kilpailijaa. Tämä tapahtuu lisäämällä FActScoren ja SAFE:n (Google DeepMind) atomisen verifioinnin päälle kolme uniikkia kerrosta: **kausaalinen DAG-graafi**, **ehdollinen logiikka (N/A-tila)** ja **automaattiset korjausehdotukset**.
 
@@ -24,21 +24,20 @@ Epic 92 muuttaa Quorumin **arviointityökalusta argumentaation analytiikka-alust
 
 ---
 
-
 ## 1. Yhteenveto ja Tavoite (Objective)
 
-Tämän Epicin tavoitteena on ratkaista arkkitehtuurinen virhe, jossa tekstin purkaminen erillisiksi atomeiksi (Atom-Flattening) tuhoaa ihmiskielen semanttiset riippuvuudet ja aiheuttaa vääriä positiivisia ja negatiivisia tuloksia (False Positives / Negatives) Scoring Engine -vaiheessa.
+Tämän kehityskokonaisuuden (Epic) tavoitteena on ratkaista arkkitehtuurinen haaste, jossa tekstin purkaminen erillisiksi väitteiksi (litistäminen, "Atom-Flattening") kadottaa ihmiskielen semanttiset riippuvuudet. Tämä aiheuttaa vääriä positiivisia ja negatiivisia tuloksia arviointimoottorin (Scoring Engine) pisteytysvaiheessa.
 
 ### Nykytilan Ongelma:
-* **Anaphora Resolution Failure**: "It caused the database failure" menettää kontekstinsa flattauksessa.
-* **Conditional Logic Decoupling**: "If system compromised, data deleted" purkautuu kahdeksi erilliseksi absoluuttiseksi väitteeksi. Jos dataa ei ole poistettu (koska järjestelmä ei ollut vaarantunut), arviointimoottori antaa "Data deleted" -atomille suuren hallusinaatiorangaistuksen.
-* **Semantic Disjointedness**: Yksittäiset todet atomit voivat muodostaa kokonaisuuden, joka on alkuperäistä kontekstia vastoin.
+* **Viittaussuhteiden katkeaminen (Anaphora Resolution Failure)**: Lause "Se aiheutti tietokannan kaatumisen" menettää alkuperäisen kontekstinsa litteässä tietorakenteessa.
+* **Ehdollisen logiikan hajoaminen (Conditional Logic Decoupling)**: Ehtolause "Jos järjestelmä vaarantuu, data poistetaan" purkautuu kahdeksi erilliseksi absoluuttiseksi väitteeksi. Jos dataa ei ole poistettu (koska järjestelmä ei alun perinkään vaarantunut), arviointimoottori rankaisee järjestelmää virheellisesti "Data poistetaan" -väitteen täyttymättömyydestä.
+* **Semanttinen pirstaloituminen (Semantic Disjointedness)**: Yksittäiset irralliset faktat voivat erikseen olla tosia, mutta yhdistettyinä ne muodostavat alkuperäistä kontekstia vastoin olevan kokonaisuuden.
 
 ### Ratkaisu:
-Luodaan **Enriched Atom Graph**, joka upottaa semanttisen verkon flattaukseen metadatan avulla:
-1. **Resolution Pass (Ennen flattausta)**: LLM ohjeistetaan ratkaisemaan pronominit eksplisiittisesti ja tunnistamaan ehdollisuudet osana atomia.
-2. **Pydantic Schema Update**: Päivitetään Atom-rakenne tukemaan `conditions`, `resolved_claim` ja `depends_on_atom_ids` kenttiä.
-3. **Deterministic Evaluation Hook**: Scoring Engine (Python-puolella) ohitetaan/muokataan ehdollisten atomien kohdalla tarkistamaan ehto ennen varsinaista väitteen validointia.
+Luodaan rikastettu kausaaliverkko (Enriched Atom Graph), joka palauttaa semanttisen rakenteen litistettyyn luetteloon metatiedon avulla:
+1. **Kontekstin ratkaisuvaihe (Resolution Pass) ennen litistämistä**: Kielimalli (LLM) ohjeistetaan ratkaisemaan pronominit eksplisiittisesti alkuperäisiksi entiteeteiksi ja tunnistamaan ehdollisuudet osana yksittäistä väitettä.
+2. **Tietomallin päivitys (Pydantic Schema Update)**: Väiterakenne päivitetään tukemaan eksplisiittisiä ehtoja (`conditions`), puhdistettuja väitteitä (`resolved_claim`) ja riippuvuuksia (`depends_on_atom_ids`).
+3. **Deterministinen arviointikoukku (Deterministic Evaluation Hook)**: Python-pohjainen suoritusmoottori tarkistaa ehdollisten väitteiden kohdalla edellytysten täyttymisen ensin. Jos alkuperäinen ehto ei toteudu, itse väitteen arviointi ohitetaan (oikosulkukaskadi, short-circuit cascade) loogisesti.
 
 ---
 
@@ -48,384 +47,368 @@ Luodaan **Enriched Atom Graph**, joka upottaa semanttisen verkon flattaukseen me
 * **05_llm_architecture.md (LLM Structured Execution)**: Resolution Pass ei palauta vapaata tekstiä, vaan se pakotetaan käyttämään Native Structured Outputs API:a (`LLMTaskExecutor.execute_structured_task()`) EnrichedAtom-muotoon.
 * **00-antigravity-core.md (Zero-Compromise Pledge)**: Evaluation Hookit on kirjoitettava natiivisti Pythonilla. Järjestelmä ei saa luottaa LLM:n subjektiiviseen "ehdolliseen ymmärrykseen" arviointivaiheessa, vaan Python DAG päättelee ehtojen täyttymisen.
 * **Forensic Immutability Mandate**: `source_quote` -kenttä on MUUTTUMATON (immutable). Resolution Pass EI SAA koskaan ylikirjoittaa tai muokata alkuperäistä lainausta generoidessaan `resolved_claim`-kenttää. Molemmat kentät on säilytettävä rinnakkain, koska `source_quote` on forensinen todistusaineisto ja `resolved_claim` on järjestelmän tulkinta siitä. Ilman molempia järjestelmän debuggaus ja auditointi on mahdotonta.
-* **Reason-then-Format Mandate (Tam et al., EMNLP 2024)**: Skeeman kenttäjärjestys on kriittinen. LLM:n tulee tuottaa ensin vapaamuotoinen päättely (`resolved_claim`) ja vasta sitten strukturoitu metadata (`conditions`, `depends_on_local_indices`). Tämä estää "Format Tax" -ilmiön, jossa tiukka skeemarakenne heikentää LLM:n analyyttistä syvyyttä.
-* **Probabilistic Condition Evaluation Mandate (Language Variance)**: Aiempi oletus deterministisestä merkkijonohausta ehtojen täyttymisessä on kumottu. Kielen äärettömän varianssin vuoksi ("If system compromised" vs. "Upon network breach") tiukka string-matching tuottaa massiivisesti vääriä negatiivisia (False Negatives). Siksi ehdon toteutumisen arviointi (Condition Evaluation) on **Fundamentally Probabilistic** ja vaatii LLM-päättelyä. Se on ajettava ensemble-moodissa (`high_entropy = True`) luotettavuuden takaamiseksi.
-
-* **The Universal Ingress Pipeline Mandate:** Järjestelmä siirtyy hajautetuista LLM-jäsennysvirityksistä yhteen keskitettyyn Ingestion Boundary -moduuliin (esim. `backend_v2/services/llm/ingress_pipeline.py`). Sekä Epic 91 että Epic 92 hyödyntävät tätä yhteistä "Tolerant-Read / Strict-Write" -airlockia.
-* **Token Compression & Explicit Attention Anchors:** LLM:n palauttamat toistuvat datat pakotetaan käyttämään Positional Array -rakennetta (`Tuple[str, ...]` eli `[["...", "..."]]`) raskaiden JSON-avaimien sijaan, mikä leikkaa token-bloatia jopa 40 %. **Kriittinen rajoite graafeille:** Vaikka tupleja käytetään, atomien välisissä graafiriippuvuuksissa ei saa luottaa pelkkään implisiittiseen taulukkoindeksiin (koska LLM ei osaa laskea ja hallusinoi). Graafeissa on pakko käyttää eksplisiittisiä "Attention Ankkureita" tuplen sisällä (esim. `[["a0", "Väite 1", []], ["a1", "Väite 2", ["a0"]]]`), jotta LLM:n huomiomekanismi (Attention) pysyy kiinni todellisuudessa. Universal Ingress Pipeline hoitaa näiden tuplejen hydraation.
+* **Reason-then-Format Mandate (Tam et al., EMNLP 2024)**: Skeeman kenttäjärjestys on kriittinen. LLM:n tulee tuottaa ensin vapaamuotoinen päättely (`resolved_claim`) ja vasta sitten strukturoitu metadata (`conditions`, `depends_on_tda_ids`). Tämä estää "Format Tax" -ilmiön, jossa tiukka skeemarakenne heikentää LLM:n analyyttistä syvyyttä.
+* **Probabilistic Condition Evaluation Mandate (Language Variance)**: Aiempi oletus deterministisestä merkkijonohausta (regex) ehtojen täyttymisessä on kumottu kielen äärettömän varianssin vuoksi. Kuitenkin myös vektorihaku (Cosine Similarity) on ankarasti kielletty, koska se tuottaa vääriä positiivisia vastakkaisille väitteille (esim. "on" vs. "ei ole"). Ehdon arviointi suoritetaan deterministisen `ExtractiveSensorService`:n tai **dedikoidun Boolen LLM-kutsun** avulla (esim. Haiku).
 
 ### 2.1 Epistemic Boundaries (Tiedolliset Rajat)
-Estääksemme järjestelmätason hallusinaatiot, meidän on armottomasti valvottava rajaa sen välillä, mitä LLM saa arvata ja mitä Pythonin on pakko todistaa.
+Estääksemme järjestelmätason hallusinaatiot, meidän on armottomasti valvottava rajaa sen välillä, mitä LLM saa arvata ja mitä Pythonin on pakko todistaa (Separation of Concerns).
 
 **100% Deterministic (Vaatii tiukan Python/Pydantic-logiikan):**
 * **DAG Structural Integrity:** Syklin tunnistus (Cycle detection, O(V+E) DFS) ajetaan Pythonissa. LLM ei koskaan verifioi omaa graafitopologiaansa.
-* **Stateful Short-Circuiting (N/A Cascade):** Tilan `N/A - Condition Not Met` eteneminen. Jos Python vastaanottaa tiedon, että Ehto A on epätosi, Python **deterministisesti pysäyttää** Seurauksen B suorituksen (N/A). LLM:llä on nolla (0) reititysvaltaa suoritusaikana.
-* **Tainted State Propagation (The Epistemic Circuit Breaker):** Jos solmu A joutuu karanteeniin (Epic 91 asettaa `source_id = None`), sen tila on `CONTESTED`. Kahnin algoritmin on suoritettava **Epistemic Cascade** ennen Vector-hakuja: Jos yksikin riippuvuus on `CONTESTED` tai `BLOCKED_BY_TAINT`, solmu ei saa suorittaa vektorivertailua eikä pudota tilaan `N/A`. Se perii saastumisen ja palauttaa tilan `NodeState.BLOCKED_BY_TAINT`. UI (Epic 90) renderöi tämän varoituksena (`visual_intent = warning`): *"🔒 Pending Human Review of upstream condition."* Tämä ratkaisee 'Phantom Taint Deadlock' -haavoittuvuuden.
-* **ID Resolution:** Paikallisten taulukkoindeksien (`local_index`) kääntäminen muuttumattomiksi, globaaleiksi Stripe Opaque ID -tunnuksiksi (`tda_ids`).
+* **Stateful Short-Circuiting (N/A Cascade):** Tilan `N_A - Condition Not Met` eteneminen. Jos Python vastaanottaa tiedon, että Ehto A on epätosi, Python **deterministisesti pysäyttää** Seurauksen B suorituksen (`N_A` tai `BLOCKED`). LLM:llä on nolla (0) reititysvaltaa suoritusaikana.
 
-**Fundamentally Probabilistic (Vaatii LLM- tai Vektori-päättelyä):**
-* **Causal Edge Mapping:** Sen semanttisen suhteen päätteleminen tekstistä, joka määrittää että Väite B riippuu loogisesti Väitteestä A.
-* **Implicit Anaphora:** Abstraktien tai toimialakohtaisten pronominien ("Yllä mainittu viitekehys") purkaminen, missä deterministinen perinteinen NLP kaatuu.
-* **Speculative Matrix Pre-computation (Condition Evaluation):** Kielellisen varianssin vuoksi ehtojen täyttymistä ei voida arvioida regexillä. Jotta vältämme Kahnin algoritmin pysähtymisen sekventiaalisten upotuskutsujen takia (GIL / I/O -pullonkaula), suoritamme **Speculative Matrix Pre-computation** -operaation. Lähdedokumentti upotetaan yhtenäiseksi tensorimatriisiksi (`T_corpus`) jo ingestion-vaiheessa. Ennen DAG-ajon alkua, keräämme kaikki `condition_text` -merkkijonot kaikilta topologisilta syvyyksiltä ja upotamme ne yhdellä API-eräajolla (`T_conditions`). Tämän jälkeen laskemme kaikki kosinietäisyydet yhdellä salamannopealla matriisikertolaskulla ($O(1)$ ajassa, `T_conditions @ T_corpus.T`). Tämä luo reaaliaikaisen, muistinvaraisen totuustaulun (Cosine Similarity > 0.85) kaikista ehdoista, sallien Kahnin algoritmin reitittää graafia puhtaasti muistissa ilman minkäänlaista blokkautumista.
-
-### 2.2 Dynamic AliasEngine & Topology Resolution (DAG Edges)
-Jotta kielimalli (LLM) kykenee generoimaan rakenteellisesti ehjiä graafireunoja (DAG edges) ilman hallusinaatioita tai viittauksia vääriin indekseihin (esim. ankkuroimaan, että väite B vaatii ehdon A täyttymisen), järjestelmä käyttää täysin dynaamista **AliasEngine**-komponenttia.
-
-* **Dynaamiset Etuliitteet:** `AliasEngine` luo jokaiselle arvioitavalle komponentille ja ehdolle lennosta lyhyen, semanttisen aliaksen (esim. `a0`, `a1`, `cond0`). Kutsujan (tai Pydantic-mallin) ei tarvitse tietää etuliitteistä mitään, vaan moottori päättelee ne alkuperäisestä tietokanta-ID:stä tai käyttää annettua yliajoa.
-* **Graafireunojen Luonti (Attention Anchors):** Kun LLM purkaa riippuvuuksia tai ehtoja, se viittaa toisiin elementteihin näillä lyhyillä aliaksilla (esim. `depends_on: ["a0"]`). Tämä toimii tekoälylle äärimmäisen vahvana "Attention-ankkurina" ja pitää Anaphora Resolutionin tarkkana.
-* **Automaattinen Hydratointi:** Ennen determinististä Kahnin algoritmin ajoa Python-puolella, `AliasEngine.hydrate_dict_list()` kääntää kaikki graafin reunoissa olevat LLM:n tuottamat aliakset (`a0`) takaisin oikeiksi Opaque UUID -tunnisteiksi (`tda_...`).
-* **Vikasietoisuus:** Laajennetun `ALIAS_REGEX_PATTERN` -säännön (esim. `r"^(N/A|inputs|[a-zA-Z_-]+\d+)$"`) ansiosta Epic 92 voi esitellä täysin uusia konseptityyppejä (kuten ehtoja, matriiseja) ilman, että validaatiosääntöihin tai `AliasEngine`n lähdekoodiin tarvitsee koskea.
+**Fundamentally Probabilistic (Vaatii LLM-päättelyä):**
+* **Causal Edge Mapping (Two-Pass ID-Mapping):** Sen semanttisen suhteen päätteleminen tekstistä, joka määrittää että Väite B riippuu loogisesti Väitteestä A.
+* **Implicit Anaphora:** Abstraktien tai toimialakohtaisten pronominien purkaminen (anaforan ratkaisu, anaphora resolution), missä deterministinen perinteinen NLP kaatuu.
+* **Boolean Sensor (Väitteen arviointi):** LLM toimii yksinomaan sensorina, joka palauttaa vapaamuotoisesta väitelauseesta probabilistisen totuusarvon (Tosi/Epätosi). Python-kerros ottaa tämän Boolean-arvon vastaan ja hoitaa deterministisen reitityksen. LLM ei koskaan itse päätä ehdollisesta ohituksesta.
 
 ## 3. Pydantic-tason Mallit ja Suunnittelu (Proposed Schema Parity)
 
-Lisätään / päivitetään uudet datamallit backendissä. Rakenne noudattaa V2 ydinmallien logiikkaa:
+> [!IMPORTANT]
+> **KORJATTU:** Kausaalinen malli tukee odotettuja tiloja (Negative Conditions) deterministisen oikosulun varmistamiseksi. Syylliset vanhemmat tallennetaan listana audit-eheyden takia.
 
 ```python
 from pydantic import Field, BaseModel, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Literal
 
-class ClaimCondition(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-    condition_id: str = Field(pattern=r"^tda_[a-fA-F0-9]{16,32}$", description="TDAAssertion Opaque ID, johon tämä ehto perustuu")
-    condition_text: str = Field(description="Ehtolauseke, esim. 'Jos järjestelmä on vaarantunut'")
-    source_id: str | None = Field(description="Spatiaalinen ankkuri: Alkuperäisen tekstikappaleen/lähteen ID, josta ehto löytyi.")
-    is_hypothetical: bool = Field(description="Flag indicating if this is a hypothetical wrapper")
-    
-    # Turing-Complete Routing (XNOR Logic)
-    expected_boolean_state: bool = Field(
-        default=True,
-        description="TRUE: Ehto katsotaan täyttyneeksi kun vektoritesti on TOSI (If). FALSE: Ehto katsotaan täyttyneeksi kun vektoritesti on EPÄTOSI (Otherwise/Unless)."
+class CausalEdge(BaseModel):
+    model_config = ConfigDict(strict=True, frozen=True)
+    tda_id: str = Field(description="Vanhemman atomin Opaque ID")
+    expected_status: Literal['PASSED', 'FAILED'] = Field(
+        default='PASSED',
+        description="Vanhemman atomin tilan on vastattava tätä arvoa. Mahdollistaa negatiiviset ehdot (esim. Jos A on FAILED, laukaise B)."
+    )
+    edge_confidence: float = Field(
+        ge=0.0, le=1.0, 
+        description="Käytetään VAIN syklien deterministiseen murtamiseen. LLM coerce-ongelmien varalta vaatii BeforeValidatorin."
     )
 
-class EnrichedAtom(BaseModel):
+# 1. IMMUTABLE DOMAIN MODEL - VAIHE 1 (Staattinen louhintatulos)
+class ExtractedAtom(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-    
-    tda_id: str = Field(pattern=r"^tda_[a-fA-F0-9]{16,32}$", description="Opaque Stripe ID (TDAAssertion), joka vastaa tätä väitettä")
-    resolved_claim: str = Field(description="The absolute claim, with pronouns explicitly resolved by the LLM.")
-    source_quote: str = Field(description="Exact verbatim quote from the source text. IMMUTABLE.")
-    source_id: str | None = Field(description="Spatiaalinen ankkuri: Lähdedokumentin tai chunkin ID.")
-    conditions: Optional[List[ClaimCondition]] = Field(default=None, description="Any conditional wrappers guarding this claim")
-    
-    # DAG Riippuvuudet (Single-Pass AST lokaalit indeksit käännettyinä fyysisiksi ID:iksi)
-    depends_on_tda_ids: List[str] = Field(default_factory=list, description="Pointers to other tda_ids this claim logically depends on")
+    tda_id: str = Field(pattern=r"^tda_[a-fA-F0-9]{16,32}$")
+    resolved_claim: str = Field(description="Puhdistettu väite")
+    source_quote: str = Field(description="Sanatarkka lainaus alkuperäisestä tekstistä.")
+    source_id: str | None = Field(description="Spatiaalinen ankkuri (Chunk ID).")
+
+# 2. IMMUTABLE GRAPH WRAPPER - VAIHE 2 (Graafin topologia)
+class LinkedAtomGraph(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    atom: ExtractedAtom
+    depends_on: List[CausalEdge] = Field(
+        default_factory=list, 
+        description="Implisiittinen AND-lista. Atomi arvioidaan vain, jos kaikkien vanhempien tila täsmää expected_status -arvoihin."
+    )
+
+# 3. IMMUTABLE EXECUTION STATE MODEL (Arviointimoottorin lopullinen tuloste)
+class AtomExecutionState(BaseModel):
+    # Luodaan ajon lopuksi. State mutaatiota DAG-ajon aikana hallitaan väliaikaisilla sanakirjoilla, ei Pydantic-mutaatioilla.
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    tda_id: str
+    status: Literal['PENDING', 'PASSED', 'FAILED', 'N_A', 'SYSTEM_ERROR', 'BLOCKED'] = 'PENDING'
+    short_circuit_reason_tda_ids: List[str] = Field(
+        default_factory=list,
+        description="Lista tda_id -arvoista, jotka oikosulkivat atomin (Blame determinismi)."
+    )
+    evaluation_reasoning: str | None = Field(default=None)
 ```
 
-### 3.1 Single-Pass AST Pipeline (Kertavaikutteinen Hierarkkinen Louhinta)
+### 3.1 Two-Pass Hybrid-DAG Pipeline (Kustannus- ja Token-optimoitu Louhinta)
+
+Alkuperäinen yhden vaiheen (Single-Pass) hypoteesi hylättiin, koska raskaiden `EnrichedAtom` JSON-rakenteiden tuottaminen kerralla ylittää nopeasti kielimallin tulosteen maksimirajan (Output Token Limit). Tämä kaataa suorituksen ja pakottaa järjestelmän päättymättömiin uudelleenyrityssilmukoihin (retry loops). Välttääksemme tämän siirrymme kaksivaiheiseen tunnisteiden kohdistusarkkitehtuuriin (Two-Pass ID-Mapping).
+
+### 3.1.1 Phase 0: Map-Reduce Global Entity Ontology
+Liukuva ikkuna ja GCEL-sääntömuisti on sokea yksittäisille kaukaisille entiteeteille ja pronomineille (Cross-Chunk Amnesia). Ennen Vaiheen 1 louhintaa ajetaan O(N) nopea Phase 0:
+* **Toteutus:** Koko asiakirjasta uutetaan pelkät makrotason ehdot JA **ydinentiteetit** (erisnimet, organisaatiot, roolit) globaaliin `GlobalOntologyMap`-sanakirjaan.
+* **Injektio:** Tämä sanasto injektoidaan system-promptina kaikkiin Vaiheen 1 (Chunk Extraction) lokaaleihin kutsuihin. Näin LLM osaa korvata pronominit (esim. "Se kaatui") suoraan oikeilla ydinentiteeteillä jo lokaalissa purussa (purkaen anaphoran), ilman että Vaiheen 2 Sliding Window'n tarvitsee yrittää kuroa 15 lohkon (chunk) matkaa umpeen sokkona.
+
+#### Vaihe 1: Tekstin lohkominen ja paikallinen aliverkko (Chunked Extraction ja Local Sub-Graph)
+Pitkä asiakirja jaetaan lohkoihin (lohkominen (chunking)). Kielimalli louhii jokaisesta lohkosta väitteitä (`resolved_claim`) ja purkaa pronominit (anaforan ratkaisu, anaphora resolution). Koska käsittely tapahtuu pienissä osissa, tulosteen maksimiraja ei ylity. 
+
+**Paikallisen graafin rakennus (Lost-in-the-Middle -ratkaisu):** Koko verkon rakentamista ei jätetä Vaiheeseen 2, vaan kielimalli muodostaa jo Vaiheessa 1 lohkon sisäisen riippuvuusverkon (Local Sub-Graph). Tässä pienessä konteksti-ikkunassa LLM:n huomiokyky on huipussaan, jolloin lokaalit riippuvuudet saadaan talteen virheettömästi.
+
+### 3.1.2 Global Condition & Event Ledger (O(1) Cross-Chunk Memory)
+Pelkkä entiteettien louhinta (Map-Reduce Entity Resolution) ei kykene purkamaan abstrakteja makrotason ehtoja. Cross-Chunk Amnesia ratkaistaan hierarkkisella **Global Condition & Event Ledger (GCEL)** -putkella:
+
+1. **Globaalien ehtojen louhinta (Map-vaihe):** Lohkomisvaiheessa (lohkominen (chunking)) LLM poimii litteäksi listaksi erisnimien lisäksi dokumentin **globaalit ehdot, säännöt ja makrotapahtumat** (esim. `COND_01: "SLA-rangaistus astuu voimaan vain, jos..."`).
+2. **Kanonisointi:** Nämä tallennetaan ja deduplikoidaan `GlobalConditionMap`-hakemistoon.
+3. **Cross-Chunk Injektio:** Kun Sliding Window (Vaihe 2) rakentaa graafia, jokaiseen liukuvaan ikkunaan injektoidaan aina koko tiivistetty `GlobalConditionMap`. LLM pystyy piirtämään `CausalEdge`-viittauksen ikkunassa olevasta väitteestä suoraan globaaliin ehtoon, vaikka ne olisivat kaukana toisistaan. Ikkunan koko pysyy pienenä (O(1) skaalautuvuus).
+
+Python antaa jokaiselle puretulle väitteelle globaalin Opaque ID:n (UUID). **Huomio (AliasEngine Mandate):** Pitkiä UUID-tunnisteita EI SAA syöttää sellaisenaan LLM:lle, koska se aiheuttaa Token Bloatia. `AliasEngine` rekisteröi nämä ja muuttaa lyhyiksi ankkureiksi (`a0`).
+
+### 3.1.3 Deterministinen Graafin Eheytys (Cycle Breaker & Phantom Isolation)
+LLM:n hallusinoimaa topologiaa ei saa koskaan sokeasti hyväksyä tai antaa sen kaataa TaskGroupia poikkeuksiin.
+* **Haamuviittausten käsittely (Phantom Edge Handling, Strict-yhteensopiva):** Jos Vaihe 2 (liukuva ikkuna, sliding window) viittaa tunnisteeseen, jota ei ole olemassa (esim. `a99`), tietojen koostaminen (hydraus, hydration) ei saa sivuuttaa sitä hiljaisesti (The Silent Drop Loophole). Hiljainen sivuuttaminen tekisi ehtolauseesta virheellisesti absoluuttisen väitteen. Lapsiatomi eristetään välittömästi tilaan `SYSTEM_ERROR` (syynä `UNRESOLVED_DEPENDENCY`). Tämä ylläpitää nopean vikaantumisen (Fail-Fast) arkkitehtuuria.
+* **Deterministinen syklinkatkaisija (Deterministic Cycle Breaker):** Ennen topologista arviointia kausaaliverkko analysoidaan syvyyshaulla (DFS / `networkx.simple_cycles()`). Jos kehäpäätelmä (sykli, esim. A -> B -> A) havaitaan, järjestelmä katkaisee syklin deterministisesti spatiaalisen suunnan perusteella: se poistaa kaaren, joka viittaa alkuperäisessä asiakirjassa epäloogisesti taaksepäin (suuremmasta lohkoindeksistä, chunk index, pienempään). Kielimallin tuottamaa probabilistista `edge_confidence`-arvoa käytetään ainoastaan toissijaisena tasapelin ratkaisijana saman lohkon sisällä. Katkaisusta kirjataan tarkastuslokitapahtuma (`EDGE_PRUNED_CYCLIC`), ja suoritus jatkuu keskeytyksettä.
+
+#### Vaihe 2: Hierarkkinen Global Graph Linker (Sliding Window)
+Jos kaikki sadat atomit syötettäisiin kerralla Vaiheelle 2, malli kärsisi "Lost in the Middle" -ilmiöstä ja jättäisi huomiotta listan keskellä olevia riippuvuuksia. Koska Vaihe 1 on jo rakentanut lokaalit aligraafit, Vaiheen 2 tehtävä muuttuu **Hierarkkiseksi Linkittäjäksi**, joka käyttää **Sliding Window -algoritmia**:
+
+1. **Järjestys:** Aligraafit järjestetään alkuperäisen dokumentin spatiaalisen järjestyksen mukaan (`chunk_index`).
+2. **Ikkunakoko:** `W = settings.GRAPH_LINKER_WINDOW_SIZE` (oletus: 4 lohko (chunk)a). Overlap: `O = settings.GRAPH_LINKER_OVERLAP` (oletus: 2 lohko (chunk)a).
+3. **Iteraatio:** LLM saa kerrallaan W lohkon (chunk) aligraafit ja etsii cross-chunk -riippuvuuksia vain näiden välillä. Jokaiselle tunnistetulle kaarelle LLM palauttaa `CausalEdge`-rakenteen `edge_confidence`-arvoineen.
+   * *Prompt:* "Yhdistä nämä olemassa olevat aligraafit kausaalisesti toisiinsa alkuperäisen tekstin perusteella."
+   * *Output:* LLM palauttaa lyhyiden tunnisteiden tunnisteiden kohdistuksen (ID mapping): `{"a5": [{"tda_id": "a1", "expected_state": "PASSED", "edge_confidence": 0.92}]}`.
+4. **Merge:** Python yhdistää deterministisesti kaikkien ikkunoiden tuottamat inter-chunk -kaaret. Duplikaattikaaret (sama `tda_id`-pari) yhdistetään ottamalla **korkein `edge_confidence`**.
+5. **Transitiivisuustarkistus:** Lopullinen graafi ajetaan `GraphValidatorService`:n läpi syklien ja orpojen tunnistamiseksi.
+
+**Aikakompleksisuus:** O(N/W) LLM-kutsua, missä N on lohko (chunk)en määrä. Jokainen kutsu on kevyt, koska konteksti sisältää vain W lohkon (chunk) atomit (tyypillisesti < 40 atomia).
+
+Suorituksen jälkeen Python-kerros käyttää deterministisesti `AliasEngine.hydrate_dict_list()` -metodia kääntääkseen lyhyet ankkurit (`a0`, `a5`) takaisin aidoiksi järjestelmätason UUID:iksi.
+
+**Fallback (Graceful Degradation):** Jos yksikään sliding window -kutsu epäonnistuu, kyseisen ikkunan lohkot (chunks) merkitään `UNLINKED`-tilaan. DAG suoritetaan ilman näiden cross-chunk -kaaria. Tämä on hyväksyttävä graceful degradation, koska lokaalit aligraafit (Vaiheen 1) ovat edelleen ehjät.
+
+Tämä vaihe viimeistelee täydellisen DAG:in (Directed Acyclic Graph) ilman Output-kriisiä tai konteksti-ikkunan sokeita pisteitä. Se ratkaisee hajallaan olevien aligraafien riippuvuudet toisistaan, **edellyttäen, että Vaihe 1 kykeni limityksen avulla purkamaan pronominit oikein**.
+
+### 3.1.4 Context-Aware Linker (Amnesian ja Sokeuden torjunta)
+Context-Aware Linker (Amnesian ja Sokeuden torjunta)
+Vaiheen 2 DAG-rakentaja ei saa toimia "sokeana yhdistäjänä" (Blind Linker). Jos sille syötetään pelkät litteät väitelauseet ilman alkuperäistä kontekstia, se kadottaa kielelliset kausaliteettimerkit (esim. "koska", "siksi") ja alkaa hallusinoida linkkejä paniikissa. Vaihe 2:n LLM-kutsulle on **ehdottomasti** syötettävä alkuperäiset tekstikappaleet (`source_quote` tai koko asiateksti) sekä vaiheessa 1 poimitut litteät atomit samanaikaisesti. Tämä varmistaa, että kausaalisen verkon luominen perustuu aitoon kielelliseen rakenteeseen, ei irrallisten lauseiden spekulointiin.
+
+### 3.2 Karsittu Riippuvuuslogiikka (Implisiittinen AND)
+
+> [!NOTE]
+> **Karsinta 1 (Pareto 80/20):** Alkuperäinen suunnitelma Turing-täydellisestä DNF-logiikasta (OR/AND-portit) hylättiin ylisuunnitteluna (overengineering). LLM:n kyky poimia monimutkaisia Boolean-portteja vapaasta tekstistä johtaa hallusinaatioihin ("Format Tax"). 
+
+Ratkaisemme riippuvuudet **yksinkertaisella implisiittisellä AND-listalla** (`depends_on`). Oletamme, että jos atomilla on useita vanhempia, niiden kaikkien on täytyttävä (`PASSED`). Tämä kattaa 95 % tosimaailman vaatimuksista (esim. "Jos ehto A ja ehto B täyttyvät..."). Mahdolliset monimutkaisemmat skenaariot ratkaistaan suoraan LLM:n luonnollisen kielen ymmärryksellä atomin `resolved_claim` -tekstissä, ei monimutkaisilla Pydantic-porteilla.
+
+### 3.3 Event-Driven TaskGroup Execution (Ei-lukitseva Kaskadi)
 
 > [!IMPORTANT]
-> **Falsification of the Two-Pass Hypothesis:** Alkuperäinen oletus oli, että välimuistin säästämiseksi louhinta ja riippuvuuksien rakentaminen kannattaa jakaa kahteen LLM-vaiheeseen (Format Tax -optimointi). Tämä hypoteesi on kumottu "Cross-Chunk Amnesia" -haavoittuvuuden vuoksi: jos ehto on chunkissa A ja seuraus chunkissa B, toinen vaihe menettää spatiaalisen kontekstin ja joutuu hallusinoimaan riippuvuudet. 
-> Siksi Epic 92 siirtyy **Single-Pass AST (Abstract Syntax Tree)** -malliin.
+> **Hitaiden yksittäissuoritusten viiveen (Straggler) ratkaisu:** Koska Injektiossa 2 lisättiin deterministinen syklinkatkaisija (Cycle Breaker), tapahtumapohjainen (event-driven) asynkroninen suoritus on nyt täysin turvallinen (ei lukkiutumisriskiä, deadlock). Moottori hyödyntää natiivia Python 3.11+ `TaskGroup`-rinnakkaisajoa ja solmukohtaisia tapahtumalukkoja:
 
-Modernit mallit (GPT-4o) kykenevät natiivisti tuottamaan syviä Pydantic-hierarkioita yhdellä lukukerralla. Kun LLM purkaa tekstiä, se rakentaa samalla lennosta riippuvuusgraafin käyttämällä lokaaleja indeksejä, koska sillä on *koko alkuperäinen teksti aktiivisessa muistissaan*.
+1. **Globaali käynnistys (Global Spawning):** Jokaiselle graafin solmulle luodaan `asyncio.Event()` ja oma asynkroninen tehtävä (Task), jotka kaikki käynnistetään samaan `asyncio.TaskGroup`:iin samanaikaisesti. Rajapintakutsujen (API) rinnakkaisuutta säädellään semaforeilla (`asyncio.Semaphore`).
+2. **Solmukohtainen odotus (Node-Level Wait):** Tehtävän ensimmäinen toimenpide on asynkroninen odotus, joka purkautuu heti kun *vain sen omat* vanhemmat ovat valmiita: `await asyncio.gather(*[parent.finished_event.wait() for parent in parents])`. Tämä ratkaisee kerrosmallin aiheuttaman synkronointipullonkaulan.
+3. **Deterministinen kaskadi (Prioriteettimatriisi, Parent Priority Matrix):** Kun vanhempien tilat on selvitetty, ne tarkastetaan. Jos yksikin vanhempi on tilassa `SYSTEM_ERROR` tai `BLOCKED`, lapsi merkitään välittömästi kaskadina tilaan `BLOCKED`. Jos vanhemman tila on odotusten vastainen (esim. ehto on epätosi ja odotus oli `PASSED`), lapsi ohitetaan ja saa tilan `N_A` (oikosulku). Syyllisten solmujen tunnisteet tallennetaan `short_circuit_reason_tda_ids` -listaan.
+4. **Oikosulkureaktio (Short-Circuit Reaction):** Oikosulkutilanteissa tehtävä asettaa oman valmiussignaalinsa `finished_event.set()` millisekunneissa ilman uutta kielimallikutsua, mikä laukaisee ketjureaktion (kaskadin) alaspäin salamannopeasti.
 
-#### Suoritusmalli (Single-Pass):
-* LLM lukee tekstin ja palauttaa taulukon `EnrichedAtom` -olioita.
-* Pronominit ratkaistaan eksplisiittisesti (`resolved_claim`) heti samassa vaiheessa.
-* **Paikallinen viittaus (Local Indices):** Koska Python ei ole vielä ehtinyt luoda fyysisiä Opaque ID -tunnuksia atomeille, LLM käyttää sisäisiä indeksejä (esim. `local_index: 0`, `depends_on_local_indices: [0]`).
+### 3.4 Yksinkertaistettu Tilakone (6 Core States)
 
-#### Kustannus- ja Latenssianalyysi
-* **Poistettu Duct Tape:** Vältytään raskaalta `AliasResolutionService` -rakennelmalta, jossa pitkiä ID-tunnuksia muutettaisiin `[claim_1]` -aliaksiksi ja lähetettäisiin takaisin LLM:lle.
-* **Nopeus:** Yksi API-kutsu per chunk verrattuna kahteen.
-* **Laatu:** LLM:n ei tarvitse arvailla kontekstia jälkikäteen, mikä pudottaa hallusinaatioriskin lähelle nollaa.
+> [!NOTE]
+> **Karsinta 3 (Pareto 80/20):** Alkuperäiset monimutkaiset ajonaikaiset tilat on supistettu kuuteen (6) ydintilaan selkeyden, determinismin ja Pydantic-yhteensopivuuden takaamiseksi. Graafi- ja infrastruktuurivirheet niputetaan yhteen, kun taas loogiset estot periytyvät puussa alaspäin.
 
-### 3.2 Lokaalien indeksien kääntäminen Opaque ID:ksi (Python Resolving)
+1. **`PENDING`**: Odottaa suoritusta.
+2. **`PASSED`**: Väite tai ehto arvioitiin todeksi (Hyväksytty).
+3. **`FAILED`**: Väite tai ehto arvioitiin epätodeksi (Hylätty).
+4. **`N_A`**: Looginen ohitus (Oikosulku, Short-Circuit). Lapsisolmun arviointi ohitettiin deterministisesti, koska sen vanhemman asettama ehto ei täyttynyt.
+5. **`BLOCKED`**: Suoritus estynyt kaskadina. Lapsisolmun arviointi estettiin automaattisesti, koska ketjussa ylempänä oleva vanhempi kaatui järjestelmävirheeseen tai on ratkaisematon.
+6. **`SYSTEM_ERROR`**: Ristiriita, infrastruktuurin kaatuminen, API-virhe tai ratkaisematon syklinen viite. Tarkemmat virhesyyt, kuten mallien erimielisyys (Contested), tallennetaan metadatakenttään `evaluation_reasoning`.
 
-Miten alkuperäinen fyysinen ID-anto suhtautuu tähän uuteen malliin? Erinomaisesti, mutta järjestys muuttuu puhtaasti Python-vetoiseksi tapahtumaksi.
+**Adaptiivinen arviointistrategia (Adaptive 1-Then-3 Evaluator / Tiered Bo3):** Ehtoarviointi käyttää dynaamista eskalointia API-kutsuissa: Tehdään ensin 1 nopean mallin kutsu. Jos luottamus on korkea, tila lukitaan (`PASSED`/`FAILED`). Vain, jos luottamus on kynnysarvoa matalampi tai tulos epäselvä, laukaistaan lisäkutsut (paras kolmesta -konsensus, Best-of-Three). Tämä leikkaa API-kustannuksia säilyttäen argumentaation tarkkuuden.
 
-**JSON, jonka LLM palauttaa yhdellä passilla:**
-```json
-[
-  { "local_index": 0, "resolved_claim": "Järjestelmä on vaarantunut" },
-  { "local_index": 1, "resolved_claim": "Data poistetaan", "depends_on_local_indices": [0] }
-]
-```
+### 3.5 Kieliriippumattomuus (Cross-Lingual Resilience)
+* **LLM Semantic Parsing:** Koska Stage 1 luottaa kielimallin syvään semanttiseen ymmärrykseen, pronominien purkaminen on kieliriippumatonta. LLM ymmärtää pro-drop -kielten piilopronominit, agglutinatiiviset päätteet ja englannin eksplisiittiset pronominit yhtä lailla.
+* **Agnostinen Python-kerros:** Python-kerros ja Pydantic-mallit toimivat puhtaasti matemaattisilla graafeilla. Koodi ei etsi tekstistä sanaa "Jos", vaan ohjaa suoritusta täysin kieliriippumattomien Opaque Stripe ID -relaatioiden avulla.
 
-**Pythonin suorittama deterministinen konversio:**
-1. Python vastaanottaa JSON:in.
-2. Python generoi fyysiset, globaalit Opaque Stripe ID:t (esim. `tda_A` ja `tda_B`) taulukon riveille 0 ja 1.
-3. Python korvaa Pydantic-validaatiossa `depends_on_local_indices: [0]` muotoon `depends_on_tda_ids: ["tda_A"]`.
-4. Lopuksi `local_index` -kentät tuhotaan (ephemeral), ja lopputuloksena on täysin globaalisti validi ja muuttumaton DAG-graafi.
+### 3.6 Legacy Component Migration (SSOT Consolidation)
+Jotta arkkitehtuuri pysyy ehdottoman Single Source of Truth (SSOT) -säännön alaisena, Epic 92 määrittelee olemassa olevien legacy-komponenttien uudet roolit:
+* **`AliasEngine` (Opaque ID Hydration):** Ylennetään koko DAG-moottorin absoluuttiseksi muistinhallintayksiköksi. Vastuuta laajennetaan tukemaan graafin kausaalilinkkejä (Causal Edges). Tämä on ainoa auktorisoitu tapa kääntää raskaat UUID:t LLM-ystävällisiksi ankkureiksi (`a1`, `src_1`) koko backendissä.
+* **Nykyiset `Chunk`-ohjelmistot (esim. ChunkWorker):** Nykyisiltä tekstiä pilkkovilta ja arvioivilta palveluilta **riistetään täysin** oikeus asynkroniseen LLM-orkestrointiin, tapahtumaluuppeihin ja omatoimiseen virheidenkäsittelyyn. Ne alennetaan pelkiksi "Datan Tuottajiksi" (Producers). Niiden ainoa tehtävä on pilkkoa dokumentti ja syöttää raaka data uuteen `TopologicalEvaluator`-moottoriin. Tämä poistaa koodikannasta rinnakkaiset ja kilpailevat LLM-suoritusmoottorit.
 
-Tämä on arkkitehtuurisesti huomattavasti suoraviivaisempi (elegantimpi) ja vähentää riippuvuuksia "purkkaliimoista" (kuten kustomoiduista alias-parseroinneista).
-
-### 3.3 Disjunctive Condition Trap (XOR / Otherwise Branching)
-
-Yksi arkkitehtuurin vaarallisimmista reunaehdoista (Edge Case) on ns. "Otherwise"-haaroitus.
-**Skenaario:** *"Jos järjestelmä on vaarantunut, poista data. Muussa tapauksessa kirjaa normaali tila."*
-**Ongelma:** Jos molemmat väitteet sidotaan samaan ehtoon (järjestelmä on vaarantunut), ja järjestelmä *ei* ole vaarantunut, molemmat peruutettaisiin (N/A). Tällöin "kirjaa normaali tila" -protokolla jäisi kokonaan arvioimatta, mikä aiheuttaisi vakavan compliance-sokean pisteen.
-
-Tämän ratkaisemiseksi `ClaimCondition`-skeemaan lisättiin **Turing-Complete Routing (XNOR Logic)**:
-* "Poista data" -väitteen ehdolle annetaan `expected_boolean_state = True`.
-* "Kirjaa normaali tila" -väitteen ehdolle annetaan `expected_boolean_state = False`.
-
-Kahnin algoritmia ajava arviointimoottori vertaa vektoritarkistuksen fyysistä tulosta tähän odotusarvoon XNOR-logiikalla: `if vector_check_result == expected_boolean_state`. 
-Vain jos totuusarvot täsmäävät, atomi arvioidaan. Tämä mahdollistaa äärimmäisen monimutkaiset loogiset portit (esim. `A AND NOT B`) suoraan Python-kerroksessa sallimalla per-ehto polariteetin.
-
-**Pydantic-tason varoitus (Auditoinnin läpinäkyvyys):**
-Lisätään `EnrichedAtomBatch` (tai vastaavaan root-tason Pydantic-malliin) validaattori: Jos samaan `condition_id`:hen viittaavat atomit kaikki ovat `expected_boolean_state = True` (eli yhdelläkään ei ole `False`-haaraa), generoidaan `WARNING`-loki. Tämä ei estä suoritusta, mutta tekee auditoijalle välittömästi näkyväksi mahdollisen puutteen säännöstössä (eli "Muussa tapauksessa" -haara on saattanut unohtua).
-
-### 3.4 Forensic Spatial Binding (Alemman tason ID:iden hyödyntäminen)
-Ajoista saatavia alemman tason lähde-ID:itä (`source_id` / `used_evidence_ids`) hyödynnetään nyt kriittisenä spatiaalisena ankkurina:
-1. **Anaphora-resoluution rajaus:** Kun LLM päättelee, mihin sana "Se" viittaa `resolved_claim`-kentässä, arviointi sidotaan `source_id`:n avulla vain siihen spesifiin tekstikappaleeseen (chunk), mistä lainaus on peräisin. Tämä estää mallia hallusinoimasta subjekteja muista dokumenteista.
-2. **Ehtojen fyysinen eristys (Conditional Logic):** `ClaimCondition` sisältää oman `source_id`:n. Ehtoarviointi (deterministinen merkkijonohaku) suoritetaan vain tässä spesifissä lähde-ID:ssä. Tämä takaa, että ehto ("Jos järjestelmä on vaarantunut") arvioidaan juuri siinä kontekstissa missä se esitettiin, eikä se vuoda ristiin muiden dokumenttien ehtojen kanssa.
-
-
-### 3.4 Ratkaisu "Cross-Chunk Amnesialle" (Rajat Ylittävä Riippuvuus)
-
-Koska siirryimme Single-Pass AST -malliin (ei enää erillistä vaihetta, joka lukee kaikki atomit kerralla), meidän on ratkaistava tilanne, jossa Ehto A sijaitsee dokumentin alussa (Chunk 1) ja Seuraus B lopussa (Chunk 2). LLM ei Chunk 2:ta lukiessaan näe Chunk 1:n lokaaleja indeksejä. Tähän sovelletaan kahta arkkitehtuurista sääntöä, joiden valinta tapahtuu dynaamisesti token-määrän perusteella:
-
-#### 3.4.1 MACRO_CHUNK_TOKEN_LIMIT ja Automaattinen Reititys
-Jotta järjestelmä osaa valita oikean strategian ilman käyttäjän päätöksiä, lisäämme `backend_v2/models/enums.py` -tiedostoon uuden rajan:
-```python
-class SystemConcurrency(int, Enum):
-    # ...
-    # Kynnysarvo, jonka jälkeen siirrytään Macro-Chunkingista Rolling Contextiin
-    MACRO_CHUNK_TOKEN_LIMIT = 100000 
-```
-
-Ennen LLM-kutsun suorittamista, asynkroninen orkestraattori (`services/llm_task_executor.py` tai vast.) laskee lähdetekstin fyysisen token-määrän (esim. `tiktoken`). Tämän perusteella orkestraattori valitsee suorituspolun automaattisesti:
-
-#### 3.4.2 Suorituspolku A: Macro-Chunking (Ensisijainen sääntö)
-Jos `document_tokens < MACRO_CHUNK_TOKEN_LIMIT`:
-Modernien mallien (GPT-4o, Claude 3.5 Sonnet) laaja konteksti-ikkuna tarkoittaa, että keinotekoista pilkkomista (Micro-Batching) **ei käytetä** atomisaatiossa. Asiakirja syötetään yhtenä ainoana "Macro-Chunkina". Cross-Chunk Amnesia eliminoituu täydellisesti, ja Pydantic-mallin `depends_on_local_indices` riittää mihin tahansa viittaukseen (alku- ja loppupään välillä).
-
-#### 3.4.3 Suorituspolku B: Rolling Context Injection (Varajärjestelmä)
-Jos `document_tokens >= MACRO_CHUNK_TOKEN_LIMIT` (Massiivinen asiakirja):
-Dokumentti on **pakko** pilkkoa osiin. Käytämme vierivää kontekstia (Rolling Context) ilman, että rikomme Single-Pass mallia.
-* **Chunk 1:** LLM tuottaa atomit. Python antaa niille globaalit Opaque ID:t (esim. `tda_1`).
-* **Chunk 2:** Ennen kuin Chunk 2 lähetetään LLM:lle, orkestraattori injektoi promptin alkuun `<previous_claims>`-XML-blokin, joka sisältää Chunk 1:stä puretut ehdot ja niiden Opaque ID:t (esim. `tda_1: "Järjestelmä on vaarantunut"`).
-* **Pydantic-päivitys:** `EnrichedAtom` -skeema sallii riippuvuuksien asettamisen joko uusiin paikallisiin viitteisiin TAI suoraan edellisen chunkin globaaleihin Opaque ID -tunnuksiin:
-
-```python
-class EnrichedAtom(BaseModel):
-    # ...
-    depends_on_local_indices: List[int] = Field(default_factory=list, description="Dependencies within this same chunk")
-    depends_on_previous_tda_ids: List[str] = Field(default_factory=list, description="Dependencies on claims explicitly passed in the <previous_claims> context")
-```
-
-Tämä ratkaisee globaalin DAG-eheyden täydellisesti ilman rumaa Alias Mapping -jälkikäsittelyä tai hallusinaatioherkkiä Two-Pass -kierroksia.
-
-### 3.5 Topological Blocking ja Amdahlin Laki (Latenssin Hallinta)
-
-Tunnistettu riski: *Quorum tällä hetkellä arvioi litteitä atomilistoja täysin rinnakkain (asyncio.gather). DAG pakottaa peräkkäisen suorituksen. Jos ketju on syvä (A → B → C), latenssi kasvaa lineaarisesti muodostaen Amdahlin pullonkaulan.*
-
-Tämän ratkaisemiseksi arviointimoottori (Scoring Engine) siirtyy käyttämään matematiikkaan perustuvaa **Sub-Graph Parallelization (Kahn's Algorithm)** -reititystä:
-
-**Erillinen moduuli (Monoliitin torjunta):**
-Kahnin algoritmi ja DAG-evaluointi toteutetaan puhtaasti omaan tiedostoonsa (esim. `services/dag_evaluator.py`), jotta jo valmiiksi massiivinen `scoring.py` ei paisu. Tämä uusi moduuli ottaa vastaan atomilistan, laskee topologiset tasot ja palauttaa evaluointijärjestyksen. `scoring.py` kutsuu sitä vain ulkoisesti.
-
-1. **Topological Depth Grouping (Kahnin Algoritmi):**
-   * Ennen arvioinnin aloittamista Python laskee DAG:in Weakly Connected Components (WCC) ja ryhmittelee atomit topologisen syvyyden (Topological Depth) mukaan.
-   * Kaikki atomit, joilla ei ole riippuvuuksia (Depth 0), arvioidaan täysin rinnakkain (`asyncio.gather`).
-2. **Kaskadoitu Rinnakkaisuus:**
-   * Kun Depth 0 on valmis, moottori kerää tulokset ja käynnistää kaikki Depth 1 -atomit (joilla ehto on täyttynyt) samanaikaisesti.
-   * Tämä toistetaan kunnes koko graafi on käsitelty.
-3. **Hyödyt:** Tämä palauttaa järjestelmän lähes alkuperäiseen asynkroniseen suorituskykyyn kunnioittaen samalla kausaalisuutta matemaattisen täydellisesti. Se estää täysin Speculative Executionin "turhat" kustannukset (ei arvioida asioita turhaan) ja Strict Lazyn katastrofaalisen latenssin.
+### 3.7 Risk Mitigation (Critical Safeguards)
+Tämän arkkitehtuurin tekniset riskit on torjuttava jo suunnitteluvaiheessa:
+1. **TaskGroup Cascade of Death:** Koska `asyncio.TaskGroup` peruuttaa kaikki tehtävät yhden kaatuessa, jokaisen solmun sisällä **täytyy** olla tiukka `try-except` -Error Boundary. Tilapäiset virheet (esim. HTTP 503) on hoidettava solmun sisällä (Transient Error Resilience) tai merkittävä `SYSTEM_ERROR` -tilaksi, jotta koko graafiajo ei kaadu yhteen odottamattomaan poikkeukseen.
+2. **Event Loop -lukkiutuminen (NetworkX):** Raskaat synkroniset graafialgoritmit (kuten syklinetsintä) on ehdottomasti ajettava erillisessä säikeessä `await asyncio.to_thread()` avustuksella, jotta FastAPI:n asynkroninen Event Loop ei jäädy suurten graafien kohdalla.
+3. **AliasEngine -Muistivuodot:** Koska AliasEngine toimii keskusmuistina, sen elinkaari (Scope) on rajattava tarkasti Request- tai Job-kohtaiseksi. Globaalin, tyhjentämättömän tilan pitäminen muistissa on kielletty muistivuotojen estämiseksi.
 
 ---
 
-## 4. Toteutusvaiheet (Implementation Phases)
+## 4. MVP Vaiheistus (Phased Implementation Strategy)
 
-### Phase 1: Pydantic Schema ja Resolution Pass Promptien Päivitys
-* Implementoidaan `EnrichedAtom`, `ClaimCondition` and `EnrichedAtomBatch` -mallit backendiin.
-* **Kustannusoptimointi:** Ei lisätä uutta erillistä LLM-kutsua! Päivitetään Atomization-vaiheen olemassa olevat LLM-promptit (Admin Studiossa/Seed-kannassa) ohjeistamaan pronominien purkamista ja ehtojen tunnistamista suoraan `EnrichedAtom` -listausta luodessa.
+Arkkitehtuuri on jaettu suorituskykyä ja asiakasarvoa nopeasti tuottaviin MVP-vaiheisiin (Minimum Viable Product). Tämä estää "God Phase" -ongelman eristämällä tietomallien, LLM-promptauksen ja liiketoimintalogiikan testaamisen.
 
-### Phase 2: Evaluation Enginen Ehdollinen Logiikka (Kahn's Algorithm & Vector Pre-Check)
-* Muokataan Scoring Enginea rakentamaan DAG (Directed Acyclic Graph) `depends_on_tda_ids` -kenttien perusteella ja ryhmittelemään atomit Kahnin algoritmilla (Topological Depth Grouping).
-* **Vectorized Semantic Pre-Check:** *Tiedolliset Rajat (Epistemic Boundaries)* -linjauksen mukaisesti ehdon totuusarviointia **ei** suoriteta deterministisellä merkkijonohaulla (regex) eikä raskaalla LLM-kutsulla. Ehdon teksti ja lähdeteksti muutetaan upotusvektoreiksi (esim. `text-embedding-3-small`), ja ehto katsotaan todeksi, jos Cosine Similarity on yli asetetun raja-arvon (esim. 0.85).
-* Jos atomilla on ehtoja ja vektorivertailu toteaa, että ehto ei täyty, atomi merkitään välittömästi tilaan `N/A - Condition Not Met` välttäen False Positive -rangaistuksen. Vain jos ehto täyttyy (Cosine > 0.85), `resolved_claim` lähetetään varsinaiseen raskaaseen LLM-arviointiin.
+### Vaihe 1: Topological Engine & Deterministic Rules (SSOT Foundation)
+* **Mitä tehdään:** Rakennetaan graafin suoritusmoottori, syklinmurtaja (`networkx`) ja tilakone (6 tilaa). **SSOT-sääntö (Single Source of Truth):** Näitä komponentteja ei saa rakentaa siiloutuneina skripteinä vain tätä Epiciä varten. Ne on suunniteltava ja abstrahoitava siten, että ne palvelevat globaalina, uudelleenkäytettävänä standardina mille tahansa DAG-pohjaiselle arvioinnille koko järjestelmässä. Ei LLM-koodia, ei tietokantakoodia.
+* **Deliverables:**
+  * `LinkedAtomGraph` ja 6-tilaisen koneen globaalit Pydantic SSOT -mallit.
+  * Deterministinen kausaalimoottori (TaskGroup) ja syklinmurtaja, jotka on eriytetty itsenäisiksi palveluluokiksi (100% testikattavuus).
+  * **Legacy Migration First (UI-Validointi):** Ennen uuden Epic 92 -logiikan aktivointia, *nykyinen* olemassa oleva arviointilogiikka on refaktoroitava käyttämään tätä uutta SSOT-moottoria. Vaihe 1 katsotaan valmiiksi vasta, kun SSOT-komponentti on täysin eristetty ja vanhat ominaisuudet toimivat saumattomasti uuden moottorin läpi siten, että testiajot käyttöliittymän (UI) kautta ovat menneet todennetusti läpi. Vasta tämän jälkeen siirrytään seuraavaan vaiheeseen.
+  * **Knowledge Item (KI) Rekisteröinti:** Uuden `TopologicalEngine` SSOT-moottorin käyttöohjeet ja säännöt on kirjattava tekoälyn Knowledge Baseen (`<appDataDir>\knowledge\`), jotta tulevat agentit osaavat automaattisesti reitittää kaikki DAG-tarpeet tämän moottorin kautta luomatta uusia päällekkäisyyksiä.
+* **Hyödyt (Business Value):** Luodaan matemaattisesti virheetön, fail-fast -turvattu perusta, joka ratkaisee Epic 92:n tarpeiden lisäksi myös tulevien ominaisuuksien graafisuoritusvaatimukset ilman koodin duplikaatiota.
 
-### Phase 3: Executions.py ja DAG-läpinäkyvyys (Execution & Traceability)
-* Hyödynnetään Opaque Stripe ID:tä (`atom_id`) `executions.py`-reitittimessä ja `dag_executor.py`:ssä rakentamaan visuaalinen ja matemaattinen suorituspuu (Execution Graph).
-* Kun `executions.py` muodostaa lopputuloksen (esim. PDF-raportin tai JSON-palautuksen), `depends_on_atom_ids` -relaatioita käytetään esittämään looginen ketju: *"Koska ehto [atm_123] toteutui, väite [atm_456] arvioitiin"*. Tämä ratkaisee System 2 -tason selitettävyyden (XAI).
-* Kuten aiemmissa Epiceissä (esim. Epic 59 Contextual Override), ainutlaatuinen `atom_id` mahdollistaa yksittäisten atomien tilan (PASS/FAIL/N/A) täsmällisen päivittämisen ja auditoinnin suorituksen aikana.
+### Vaihe 2: Local Extraction & GECL (LLM Pipeline)
+* **Mitä tehdään:** Toteutetaan yksittäisen tekstipalan (Chunk) analyysi (Global Entity/Concept Logic). LLM tuottaa irrallisia Atomeja Opaque ID:illä.
+* **Deliverables:**
+  * Prompt-rakenteet Atomeiden tunnistamiseen ja puhdistamiseen (Anaforien purku).
+  * `AliasEngine` -integraatio, joka lukitsee Atomeille puhtaat `tda_` tunnisteet ilman token-bloatia.
+* **Hyödyt (Business Value):** Järjestelmä oppii lukemaan tekstiä kuin asiantuntija, palastelemaan sen pieniin itsenäisiin faktoihin ja varmentamaan sanatarkat lainaukset (Source Quotes).
 
-### Phase 4: Kieliriippumattomuus (Cross-Lingual Resilience)
-* **LLM Semantic Parsing:** Koska Resolution Pass (Stage 1) luottaa kielimallin (LLM) syvään semanttiseen ymmärrykseen, anaphoran purkaminen on kieliriippumatonta. LLM ymmärtää pro-drop -kielten (esim. suomi: "Meni kauppaan") piilopronominit, agglutinatiiviset päätteet ja englannin eksplisiittiset pronominit ("He went") yhtä lailla.
-* **Agnostinen Python-kerros:** Stage 2:n Python-kerros ja Pydantic-mallit (`depends_on_atom_ids`) toimivat puhtaasti matemaattisilla graafeilla. Koodi ei etsi tekstistä sanaa "Jos" tai "If", vaan ohjaa suoritusta täysin kieliriippumattomien Opaque Stripe ID -relaatioiden avulla.
+### Vaihe 3: Global Sliding Window (The Synthesizer)
+* **Mitä tehdään:** Kytketään Vaiheen 2 irralliset atomit toisiinsa liukuvalla ikkunalla.
+* **Deliverables:**
+  * Ikkunointialgoritmi, joka syöttää LLM:lle peräkkäisiä Chunk-tuloksia.
+  * LLM generoi `CausalEdge` -riippuvuudet (A -> B) yli tekstirajojen.
+* **Hyödyt (Business Value):** Poistaa "straggler" eli tiedonhukka-ongelman. Järjestelmä ymmärtää nyt laajoja syy-seuraus-suhteita sadan sivun dokumenteissa ilman, että kaikki teksti täytyy sulloa kerralla tekoälyn muistiin.
 
-### Phase 5: Telemetrian ja Raportoinnin Integrointi
-* Varmistetaan, että `N/A` tai ehdolliset atomit eivät riko nykyistä UI:ta.
-* Päivitetään mahdolliset raportointinäkymät esittämään "Ehto ei täyttynyt" eksplisiittisesti, jotta käyttäjä ymmärtää miksi väitettä ei penalisoitu.
-* **Explicit Short-Circuit Metadata**: Kun atomi merkitään `N/A`-tilaan, järjestelmä tallentaa aina seuraavan metadatan:
-  * `short_circuit_reason_atom_id`: Viittaus siihen ehto-atomiin (`atom_id`), joka ei täyttynyt ja laukaisi ohituksen.
-  * `short_circuit_evaluation`: Ehdon arvioinnin tulos (`FALSE` = ehto ei täyttynyt, `DLQ` = ehdon arviointi kaatui teknisesti).
-  * Ilman tätä metatietoa `N/A` olisi musta laatikko — auditoija näkisi ohituksen mutta ei koskaan tietäisi miksi.
+### Vaihe 4: The Graph Execution & Cascade (Full System Test)
+* **Mitä tehdään:** Yhdistetään Vaiheen 1 moottori ja Vaiheen 3 tuottama verkko. Järjestelmä simuloi sensoreita ja ajaa koko verkon läpi.
+* **Deliverables:**
+  * Pää-Orchestrator, joka käynnistää asynkronisen TaskGroup-kaskadin.
+  * `N_A` ja `BLOCKED` propagointi oikealla datalla.
+* **Hyödyt (Business Value):** Tuo logiikan eloon. Järjestelmä pystyy nyt päättelemään: *"Koska Sääntö A ei täyttynyt sivulla 5, pysäytän automaattisesti seuraukset B, C ja D sivuilla 10 ja 12."*
+
+### Vaihe 5: Schema Projection (The Output)
+* **Mitä tehdään:** Transformoidaan matemaattinen graafi ihmisen tai Excelin ymmärtämään muotoon.
+* **Deliverables:**
+  * SDUI (Server-Driven UI) -muuntimet Flutterille (värikoodatut nodet, virhekortit).
+  * Litteät raportti-DTO:t (CSV/Excel/PDF -valmius).
+* **Hyödyt (Business Value):** Antaa loppukäyttäjälle auditoitavan, visuaalisen ja ymmärrettävän raportin koko monimutkaisesta päätöksentekoprosessista ja antaa mahdollisuuden viedä se suoraan ulkoisiin järjestelmiin.
 
 ---
 
 ## 5. Definition of Done (DoD)
-1. **Schema Validation**: Atomien louhinta palauttaa `EnrichedAtom` -rakenteita. Pronominien resolving tapahtuu yhdessä ainoassa optimoidussa LLM-kutsussa.
-2. **Conditional Short-Circuit**: Ehdolliset atomit ohitetaan `calculate_rule_satisfied()` -metodissa, jos itse ehto ei ole toteutunut kohdedatassa.
-3. **Short-Circuit Traceability**: Jokainen `N/A`-tila sisältää `short_circuit_reason_atom_id` -kentän.
-4. **Pydantic V2 Parity & Cycle Detection**: Mallit estävät rikkinäiset linkit (Broken DAG links) ja ikuiset silmukat (Circular Dependencies) O(V+E) DFS-algoritmilla jo Pydantic-validaatiossa.
-5. **Audit Loop**: Kaikki uudet ja vanhat yksikkötestit menevät läpi `uv run python scripts/backend_audit_loop.py` -ajossa.
+1. **Schema Validation**: Mallit tukevat `EnrichedAtom` -rakenteita.
+2. **Two-Pass DAG Builder**: Riippuvuudet puretaan kevyellä Vaihe 2 -kutsulla Output Token -rajojen kiertämiseksi.
+3. **Conditional Short-Circuit**: Ehdolliset atomit ohitetaan, jos itse ehto arvioidaan Boolean Evaluatorilla epätodeksi. Lapsiatomeja ei lähetetä LLM:lle (Säästöt).
+4. **Short-Circuit Traceability**: Jokainen `N/A`-tila sisältää `short_circuit_reason_tda_id` -kentän.
+5. **Audit Loop**: Kaikki uudet ja vanhat yksikkötestit menevät läpi.
 
 ---
 
 ## 6. Käyttöliittymän ja Seed-Datan Muutokset (Admin Studio UI)
 
-Jotta "Enriched Atom Graph" voidaan konfiguroida ja tuloksia ymmärtää, Admin Studio -käyttöliittymä (Flutter) vaatii seuraavat päivitykset:
+**Kriittinen sääntö (ID Hydration & UI Rendering):** Kaikki käyttöliittymäkomponentit ja vientityökalut (Excel, PDF), jotka esittävät `tda_id` -viittauksia (erityisesti `depends_on_tda_ids` ja `short_circuit_reason_tda_id`), on ehdottomasti rikastettava. Järjestelmän tulee ohjelmallisesti hakea pelkän Opaque ID:n rinnalle tietokannasta (tai tulos-payloadin sanakirjasta) kyseisen solmun `resolved_claim` -teksti (esim. `tda_123 ("Järjestelmä on vaarantunut")`). Opaque ID:tä ei saa koskaan esittää loppukäyttäjälle pelkkänä koodina ilman sen semanttista selitettä.
 
-### 6.1 Prompt Editor (Seed Data & System Blocks)
-* **LLM Ohjeistuksen hallinta**: Admin Studioon lisätään/päivitetään erityinen `PromptBlock` (esim. *Resolution Pass Protocol*), jonka kautta ylläpitäjä voi hallinnoida tekstin purkuohjeita (pronominien ratkaisu ja ehtojen irrotus). Tämä tekee louhintalogiikasta läpinäkyvän ja dynaamisesti säädettävän ilman backendin koodimuutoksia.
-
-### 6.2 Matrix Editor (TDAAssertion Config)
-* **Käyttöliittymän yksinkertaisuus säilyy**: Varsinaisten arviointisääntöjen (Matrix) kirjoittaminen säilyy yhtä helppona kuin ennenkin. Ylläpitäjä määrittelee arvioitavan asian, ja järjestelmän uusi DAG-kerros hoitaa kontekstin automaattisesti.
-* **Uusi asetus (Ehdollinen Ohitus)**: Sääntöeditoriin lisätään kytkin: *"Salli ehdollinen keskeytys (Enable Conditional Short-Circuit)"*. Jos tämä on pois päältä, sääntö arvioidaan pakolla riippumatta siitä, täyttyikö tekstin sisäinen ennakkoehto. Tämä antaa ylläpitäjälle kontrollin säädellä, kuinka tiukasti tekstiä rangaistaan.
-
-### 6.3 Audit Trail / Suoritusraportti UI (Execution Viewer)
+### 6.1 Audit Trail / Suoritusraportti UI (Execution Viewer)
 Tämä on merkittävin visuaalinen muutos loppukäyttäjälle ja auditoijalle:
 * **Graafinen Puunäkymä (DAG Viewer)**: Matriisin tulosnäkymässä tulokset voidaan sisentää riippuvuuksien mukaan. Ehtolause näkyy ylätasona, ja sen alaisuudessa on ehdollinen väite.
 * **Uusi Status: `N/A` (Harmaa) + Short-Circuit Metadata**: Punaisen (`FAILED`) ja vihreän (`PASSED`) rinnalle tuodaan harmaa/neutraali tila. `N/A`-tilalla on aina näkyvissä syy: auditoija näkee suoraan, mikä ehtoatomi epäonnistui (esim. *"Ohitettu: Ehto [atm_abc123] 'Järjestelmä on vaarantunut' → FALSE"*). Klikkaus vie suoraan ehtoatomin yksityiskohtiin.
 * **Spatiaalinen Korostus (Ankkurointi)**: Jos käyttäjä klikkaa ehdollista väitettä, käyttöliittymän lähdetekstinäkymä (Source Text Viewer) korostaa tarkalleen sen ehtolauseen ("Jos järjestelmä on vaarantunut..."), joka laukaisi tai esti arvioinnin.
+* **Manual Override N/A-tiloille:** Koska koneellinen Boolean Evaluator voi tehdä virheitä (SPoF), Admin UI:hin on rakennettava kyvykkyys yliajaa ehtoarviointi. Jos ihminen huomaa, että ehto onkin täyttynyt, hänen on voitava klikata "Manual Override" N/A-tilassa olevalle atomille. Tämä laukaisee ohitetun alipuun arvioinnin takautuvasti.
+
+### 6.2 Data Contract / Suoritusraportin Rakenne (Result Payload)
+Kun yksittäinen ajo (Execution) valmistuu, sen tulokset on paketoitava rakenteeseen, joka tukee graafia mutta on helppo siirtää verkon yli (esim. käyttöliittymälle tai API-asiakkaalle). Koska DAG-verkossa yhdellä solmulla voi olla useita vanhempia, puhdas sisäkkäinen JSON-puu (Nested Tree) aiheuttaisi ristiinkytkentöjen monistumista. Siksi tulosraportti käyttää **Flat Adjacency List** -muotoa:
+
+#### 6.2.1 Tilojen UI-Niputus (Status Projection)
+Vaikka arviointimoottori (Backend) erottelee luonnolliset ohitukset (`N_A`) virheistä (`SYSTEM_ERROR`), käyttöliittymä pitää asiat vieläkin yksinkertaisempana. Payloadin generointivaiheessa (`ResultProjector`) moottorin viisi (5) tilaa vastaavat lähes sellaisenaan UI-esitystä:
+
+1. **HYVÄKSYTTY** (`PASSED`)
+2. **HYLÄTTY** (`FAILED`)
+3. **OHITETTU** (`N_A`): Looginen N/A oikosulku, syy löytyy `short_circuit_reason_tda_id` -kentästä. Näkyy harmaana.
+4. **JÄRJESTELMÄVIRHE** (`SYSTEM_ERROR`): Kriittinen infrastruktuuri, ristiriita tai topologiavirhe. Odottaa auditoijan manuaalista päätöstä. Näkyy varoitusvärillä.
+
+```json
+{
+  "execution_id": "exec_abc123",
+  "global_metrics": {
+    "total_atoms": 45,
+    "evaluated": 40,
+    "short_circuited_na": 5,
+    "unclear_contested": 0,
+    "final_score_percentage": 0.85,
+    "completeness_ratio": 1.00
+  },
+  "results": [
+    {
+      "tda_id": "tda_1",
+      "resolved_claim": "Järjestelmä on vaarantunut",
+      "status": "PASSED",
+      "depends_on_tda_ids": [],
+      "short_circuit_reason_tda_id": null
+    },
+    {
+      "tda_id": "tda_2",
+      "resolved_claim": "Poista data",
+      "status": "N/A",
+      "depends_on_tda_ids": ["tda_1"],
+      "short_circuit_reason_tda_id": "tda_1" 
+    }
+  ]
+}
+```
+**Hyödyt:** Tämä rakenne sallii UI:n (tai kenen tahansa asiakkaan) piirtää interaktiivisen visuaalisen graafin lukemalla `depends_on_tda_ids` -relaatiot, mutta pitää itse payloadin litteänä, nopeana ja helposti auditoitavana taulukkomuodossa.
+
+#### 6.2.2 Matemaattinen Pistelaskenta (Scoring Engine Math)
+Koska lopputuloksena pitää usein pystyä antamaan numeerinen arvosana (esim. 80% väitteistä on oikein), järjestelmä käyttää UI-tiloja seuraavan deterministisen säännön mukaisesti:
+
+* **Osoittaja (Numerator) ja Nimittäjä (Denominator):** Pisteet lasketaan kaavalla `Pisteet / Arvioidut Atomit`.
+* **HYVÄKSYTTY (PASSED):** Osoittaja +1, Nimittäjä +1.
+* **HYLÄTTY (FAILED):** Osoittaja +0, Nimittäjä +1. (Tästä rokotetaan, koska ehto oli tosi, mutta seuraus väärin).
+* **OHITETTU (N_A):** Osoittaja +0, Nimittäjä +0. **(Kriittinen oivallus!)** Koska ehto ei täyttynyt, väitettä ei pidä rankaista `FAILED`-tilalla, mutta sitä ei myöskään lasketa onnistumiseksi. Ohitetut atomit yksinkertaisesti **pudotetaan** kokonaispisteiden laskennasta.
+* **ESTYNYT / RISTIRIITAINEN / JÄRJESTELMÄVIRHE:** Pisteytys riippuu järjestelmän konfiguraatiosta (ks. 6.2.3). Jos järjestelmä on manuaalitilassa (`BLOCK`), matriisin lopputulokseksi asetetaan deterministisesti `NULL` (tai `NaN`), eikä arvausta tehdä. Jos järjestelmä on automaattiajossa, sovelletaan Auto-Resolution sääntöä.
+
+#### 6.2.3 Autonomous Auto-Resolution (Globaali Automaatiopolitiikka)
+Automaattisissa ajoissa (olipa kyseessä **yksittäinen** asynkroninen API-pyyntö tai 10 000 asiakirjan yöajo) järjestelmä ei voi pysähtyä odottamaan auditoijan "Manual Override" -toimintoa. Voidakseen laskea matriisille lopullisen prosenttiluvun ilman ihmistä, järjestelmä käyttää `settings.py`:ssä määriteltyä `AUTO_RESOLVE_POLICY` -konfiguraatiota ongelmatiloille (kaikki niputetaan nyt `SYSTEM_ERROR` -tilaan, tarkka syy löytyy metadatasta):
+
+1. **`BLOCK` (Interaktiivinen UI-tila):** Pisteet jäädytetään `NULL`-tilaan, kunnes ihminen tekee päätöksen. (Tarkoitettu vain, kun käyttäjä seuraa ajoa reaaliajassa).
+2. **`STRICT_FAIL` (Pessimistinen / Turvallinen):** Kaikki `SYSTEM_ERROR` -tilat lasketaan lopputuloksessa **hylätyiksi** (Osoittaja +0, Nimittäjä +1). Jos data on epäselvää (mallit erimielisiä) tai infra kaatuu, järjestelmä olettaa "Syyllinen kunnes toisin todistetaan" (Fail-Fast).
+3. **`IGNORE_NULL` (Optimistinen):** Kaikki `SYSTEM_ERROR` -tilat käyttäytyvät kuten `N/A`, eli ne **pudotetaan** laskennasta (Osoittaja +0, Nimittäjä +0). Loppupiste lasketaan vain onnistuneesti arvioitujen (`PASSED`/`FAILED`) atomien perusteella.
+
+Kaikki lapsiatomit, joiden suoritus estyi (tila `BLOCKED`) vanhemman `SYSTEM_ERROR` -virheen vuoksi, **perivät** saman automaattisen resoluution (FAIL tai IGNORE) kuin heidän vanhempansa.
+
+**Kriittinen Varmistus: Execution Completeness Ratio (Kattavuusindeksi)**
+Voidakseen luottaa **mihin tahansa automaattiajoon** (yksittäiseen asiakirjaan tai massaan), pelkkä onnistumisprosentti (`final_score_percentage`) on vaarallinen. Jos auto-pilot käyttää `IGNORE_NULL` -sääntöä, se saattaisi antaa "100%" tuloksen yksittäisellekin asiakirjalle, josta poistettiin suuri osa infrastruktuurivirheiden tai ristiriitojen vuoksi (False Positive). Tämän estämiseksi arviointimoottori laskee AINA rinnalle **Kattavuusindeksin (`completeness_ratio`)**:
+
+**Laskentakaava:**
+`Completeness Ratio = (Hyväksytyt puhtaat tilat) / Kaikki DAG:n atomit`
+* **Osoittaja (Hyväksytyt puhtaat tilat):** `PASSED + FAILED + N_A`
+  * *Miksi `N_A` on puhdas?* Koska ohitettu ehto on 100% varma ja deterministinen looginen päätelmä, ei virhe. Järjestelmä suoritti työnsä täydellisesti huomatessaan, ettei ehto täyty.
+* **Nimittäjä (Kaikki DAG:n atomit):** Graafin kaikkien solmujen kokonaismäärä.
+* **Mitä tästä seuraa (`BLOCKED`-tilan vaikutus):** Kaikki järjestelmävirheet (`SYSTEM_ERROR`) **sekä niiden laukaisemat kymmenet tai sadat `BLOCKED`-tilassa olevat lapsisolmut** jäävät nimittäjään, mutta puuttuvat osoittajasta. Kaskadina estyneet solmut laskevat kattavuusindeksiä voimakkaasti. Tämä on tarkoituksellinen arkkitehtuurinen turvaominaisuus (Zero-Compromise), joka romahduttaa indeksin ja estää automaattiajoja palauttamasta korkeaa luotettavuusarviota silloin, kun merkittävä osa riippuvuuspuusta on jäänyt arvioimatta ylätason virheen vuoksi.
+
+`settings.py`:ssä määritellään `MINIMUM_COMPLETENESS_THRESHOLD` (esim. `0.95`). Jos asiakirjan kattavuus laskee tämän alle, sen loppuraporttiin (PDF/UI) tulostetaan kriittinen varoitus ja status muuttuu "Manuaalista tarkastusta vaativaksi", vaikka arvosana (`final_score_percentage`) olisi 100%. Tämä on ainoa tapa taata automaation "Zero-Compromise" -luotettavuus myös yksittäisissä ajoissa.
+
+### 6.3 Asiakkaan Hyödyt ja Arvolupaus (End-User Value)
+Miksi tämä arkkitehtuuri on loppuasiakkaalle (esim. compliance-upseerille, juristille tai kouluttajalle) täysin mullistava, ja mitä hän konkreettisesti näkee suorituksen jälkeen UI:ssa?
+
+1. **Argumentaation Röntgenkuva ("Why", ei pelkkä "What"):** Asiakas ei näe enää pelkkää tylsää "80% oikein" -arvosanaa tai mustan laatikon tiivistelmää. Hän näkee visuaalisen puun (DAG), joka paljastaa tarkalleen *missä kohtaa* argumentin logiikka petti. "Väitteesi pohja (A) oli tosi, mutta siitä johdettu seuraus (B) oli keksitty." Quorum muuttuu dokumentinlukijasta logiikan analysaattoriksi.
+2. **Forensinen Todistettavuus ja XAI (Explainable AI):** Kun asioita ohitetaan (N/A-tila), asiakas näkee välittömästi syyn: *"Tätä kappaletta ei tutkittu, koska Ehto X (Järjestelmä on vaarantunut) ei täyttynyt."* Lisäksi jokainen solmu on klikattavissa, jolloin UI korostaa tarkalleen sen yhden lauseen alkuperäisestä 1000-sivuisesta PDF-dokumentista, johon solmu ja ehto perustuvat. Tämä täyttää EU AI Actin (Art. 13) ja CSRD:n tiukimmatkin läpinäkyvyysvaatimukset.
+3. **Interaktiivinen Skenaariotestaus (What-If):** Koska graafi on matemaattinen ja sisältää selkeät portit, UI voi tarjota asiakkaalle "Manual Override" -kytkimen. Asiakas voi leikkiä skenaarioilla: *"Mitä jos pakotankin tämän ehdon tilaan TRUE, vaikka kone sanoi FALSE?"* Järjestelmä laukaisee vain ohitetun alipuun arvioinnin uudelleen. Tämä muuttaa Quorumin staattisesta arviointityökalusta interaktiiviseksi simulaatioalustaksi, jolla ammattilaiset voivat koeponnistaa dokumenttiensa kestävyyttä.
+
+### 6.4 Excel-raportointi (UI / Vienti)
+
+Uuden DAG-arkkitehtuurin (Domain vs. Execution State) myötä Excel-tulosteen luonne muuttuu pelkästä listasta täysin auditoitavaksi **Tapahtumalokiksi (Execution Ledger)**. 
+
+**Kielellinen direktiivi (Linguistic Directives):** Kuten `linguistic_directives.py` määrittää, vaikka LLM:n sisäinen päättely (Chain-of-Thought) suoritetaan englanniksi (`required_reasoning_language = English`) maksimaalisen kognitiivisen syvyyden saavuttamiseksi, Excel-raporttiin ja loppukäyttäjän UI:hin kaikki tekstit ja perustelut käännetään automaattisesti kohdekielelle (esim. suomeksi). Englantia ei koskaan näytetä loppukäyttäjälle ilman erillistä pyyntöä.
+
+Tässä on ehdotus uudesta Excel-raportin rakenteesta. Se heijastaa suoraan erotettua arkkitehtuuria: `EnrichedAtom` (Sarakkeet 1-4) ja `AtomExecutionState` (Sarakkeet 5-8).
+
+| TDA ID | Puhdistettu Väite | Ehto / Portti | Riippuu (Depends On) | Tila (Status) | Varmuus | Moottorin Perustelu (Käännetty) | Ohituksen Syy (Kaskadi) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `tda_8f3a9b...` | Työtehtävä on kampussidonnainen. | Työntekijä on HR/Talous (FALSE) | | **HYVÄKSYTTY** | 0.99 | *Pekka on IT-lähituessa. Tehtävä ei ole HR/Talous, joten kampussidonnaisuuden ehto täyttyy muulla perusteella.* | |
+| `tda_4c7d2e...` | Työntekijän läsnäoloa vaaditaan opiskelijapalveluiden takaamiseksi. | Riippuu kampussidonnaisuudesta | `tda_8f3a9b...` ("Työtehtävä on kampussidonnainen.") | **HYVÄKSYTTY** | 0.95 | *IT-lähituen rooli vaatii fyysistä läsnäoloa opiskelijoiden laiteongelmien korjaamiseksi.* | |
+| `tda_9b6a1f...` | Työntekijälle korvataan läsnäolo laajennetulla työaikajoustolla. | Työ on kampussidonnaista (TRUE) | `tda_4c7d2e...` ("Työntekijän läsnäoloa vaaditaan...") | **HYVÄKSYTTY** | 0.98 | *Koska Pekan rooli vahvistettiin kampussidonnaiseksi, oikeus työaikajoustoon astuu voimaan.* | |
+| `tda_2e4a8d...` | Työntekijälle säilytetään oma tai jaettu fyysinen työhuone. | Käsittelee luottamuksellista tietoa (TRUE) | `tda_8f3a9b...` ("Työtehtävä on kampussidonnainen.") | **HYLÄTTY** | 0.99 | *Pekka on IT-tuki, ei HR tai Talous. Politiikka rajaa omat työhuoneet vain luottamuksellista dataa käsitteleville.* | |
+| `tda_5f1c4e...` | Työntekijää ei sijoiteta avokonttoriin. | Työhuone myönnettiin (TRUE) | `tda_2e4a8d...` ("Työntekijälle säilytetään oma...") | **OHITETTU** | - | - | `tda_2e4a8d...` ("Työntekijälle säilytetään oma...") |
+| `tda_1a9b8c...` | Etätyöhön soveltuvissa tehtävissä ollaan enintään 3 päivää etänä. | Tehtävä soveltuu etätyöhön (TRUE) | `tda_4c7d2e...` ("Työntekijän läsnäoloa vaaditaan...") | **RISTIRIITAINEN**| 0.70 | *Pekan tehtävä (IT-tuki) on kampussidonnainen, mutta hakemuksessa hän mainitsee tekevänsä pelkkää etähallintaa tiistaisin. Teksti on ristiriitainen pelkän etähallinnan osalta.* | |
+
+**Auditoijan hyödyt Excelissä:**
+1. **Syy-seuraussuhteet ja Luettavuus:** Sarakkeista "Riippuu" ja "Ohituksen Syy" näkee heti paitsi viitatun ID:n, myös haetun tekstin tietokannasta (esim. `tda_2e4... ("Työntekijälle säilytetään oma...")`). Auditoijan ei tarvitse hyppiä riveiltä toiselle ymmärtääkseen, miksi jokin rivi ohitettiin, sillä syy-yhteys lukee suoraan samalla rivillä. Tästä jää täydellinen todistusaineisto.
+2. **Kielimuurin ylitys:** `linguistic_directives.py`:n mukaisesti LLM käyttää englanninkielistä "Chain of Thought" -päättelyä verhon takana maksimoidakseen loogisen päättelykyvyn, mutta compliance-upseeri näkee Excelissä ja käyttöliittymässä ainoastaan laadukasta suomenkielistä tekstiä.
+3. **Turvallisuus (SPoF-suoja):** Kun luottamus laskee, LLM ei arvaa sokeasti ja pilaa dataa sokealla `HYLÄTTY/OHITETTU` -kaskadilla, vaan asettaa solmun `SYSTEM_ERROR` -tilaan keltaisella huomiovärillä ja kirjaa syyksi mallien erimielisyyden (Contested). Tällöin compliance-tiimin on helppo suodattaa Excelissä nämä rivit manuaalista tarkistusta varten.
 
 ---
 
-## 8. Vaikutusanalyysi: Mitä Epic 92 muuttaa käytännössä?
+## 7. Vaikutusanalyysi
 
-> [!NOTE]
-> Tämä osio selittää Epicin vaikutukset arkikielellä. Se on tarkoitettu sekä tekniselle tiimille että liiketoimintapäättäjille, jotka haluavat ymmärtää, miksi tämä muutos kannattaa tehdä.
-
-### 8.1 Mitä ajoissa muuttuu (Execution Impact)
-
-#### 8.1.1 Nykytilan ongelma konkreettisena esimerkkinä
-
-Kuvitellaan, että arvioitava teksti sisältää lauseen:
-
-> *"Jos järjestelmä on vaarantunut, kaikki käyttäjädata poistetaan välittömästi."*
-
-**Nykyinen järjestelmä (ennen Epic 92)** purkaa tämän lauseen kahdeksi erilliseksi "atomiksi":
-1. `tda_A`: "Järjestelmä on vaarantunut" → LLM arvioi: löytyykö tämä tekstistä? → **FAIL** (ei löydy, koska järjestelmä ei ole vaarantunut)
-2. `tda_B`: "Kaikki käyttäjädata poistetaan välittömästi" → LLM arvioi: löytyykö tämä tekstistä? → **FAIL** (dataa ei ole poistettu, koska ei ole syytä poistaa)
-
-Molemmat saavat FAIL-tuloksen, mikä on **teknisesti oikein mutta loogisesti väärin**. Alkuperäinen lause on ehdollinen: dataa poistetaan *vain jos* järjestelmä on vaarantunut. Koska järjestelmää ei ole vaarantunut, datan poistamatta jättäminen on oikeaa toimintaa — ei virhe. Silti järjestelmä rankaisee tästä. Tämä on **väärä negatiivinen** (False Negative).
-
-#### 8.1.2 Miten Epic 92 korjaa tämän
-
-**Epic 92:n jälkeen** sama lause käsitellään näin:
-
-1. **Pass 1 (Louhinta):** LLM lukee tekstin ja tunnistaa:
-   - Väite B ("data poistetaan") riippuu ehdosta A ("järjestelmä on vaarantunut")
-   - LLM merkitsee: `tda_B.conditions = [{ condition_text: "Jos järjestelmä on vaarantunut", condition_id: tda_A }]`
-
-2. **Pass 2 (Graafin rakennus):** LLM saa väitelistan alias-muodossa (`claim_1`, `claim_2`) ja vahvistaa riippuvuuden: `claim_2 depends_on claim_1`.
-
-3. **Python-arviointi (deterministinen):** Scoring Engine tarkistaa ensin ehdon:
-   - Onko `tda_A` ("järjestelmä on vaarantunut") totta? → Deterministinen merkkijonohaku lähdetekstistä → **EI löydy** → Ehto on FALSE.
-   - Koska ehto on FALSE, `tda_B`:tä **ei arvioida lainkaan**. Se saa tilan **`N/A - Condition Not Met`**.
-   - Tallennettava metadata: `short_circuit_reason_tda_id: tda_A`, `short_circuit_evaluation: FALSE`.
-
-**Lopputulos:** Väärä rangaistus eliminoitu. Auditoija näkee tarkalleen *miksi* väitettä ei arvioitu.
-
-#### 8.1.3 Pronominien purku (Anaphora Resolution) käytännössä
-
-Toinen yleinen ongelma nykytilassa: pronominit. Jos teksti sanoo:
-
-> *"Palvelin kaatui tiistaina. Se aiheutti vakavan häiriön tietokantajärjestelmässä."*
-
-**Nykytilassa** atomi "Se aiheutti vakavan häiriön" on merkityksetön, koska LLM ei tiedä, mihin "Se" viittaa. Se saattaa arvata väärin tai jättää arvioinnin epämääräiseksi.
-
-**Epic 92:n jälkeen** `resolved_claim` -kenttä sisältää puretun version:
-- `source_quote`: *"Se aiheutti vakavan häiriön tietokantajärjestelmässä."* (alkuperäinen, muuttumaton)
-- `resolved_claim`: *"Palvelinkaatuminen aiheutti vakavan häiriön tietokantajärjestelmässä."* (pronomini purettu)
-
-LLM arvioi nyt `resolved_claim`-kenttää, joka on yksiselitteinen. Alkuperäinen `source_quote` säilyy forensisena todisteena rinnalla (Immutability Mandate).
-
-#### 8.1.4 Kustannusvaikutus ajoihin
+### 7.1 Kustannus- ja Latenssivaikutus
 
 | Mittari | Vaikutus | Selitys |
 |---|---|---|
-| **LLM-kutsut** | +1 kevyt lisäkutsu (Pass 2) | Graafin rakennus on lyhyt JSON-linkitys, ei raskas analyysi |
-| **Oikosuljetut kutsut** | -N kutsua per ajo | Jos ehto A ei täyty, ehdosta A riippuvia sääntöjä ei lähetetä LLM:lle lainkaan |
-| **Retry-luupit** | Merkittävästi vähemmän | Kaksi yksinkertaista tehtävää tuottaa vähemmän Pydantic-validaatiovirheitä kuin yksi monimutkainen |
-| **Nettovaikutus** | Neutraali tai säästöä | Riippuu matriisin koosta: mitä enemmän ehdollisia sääntöjä, sitä enemmän säästöä |
+| **LLM-kutsut** | +1 kevyt lisäkutsu (Vaihe 2) | Graafin rakennus on lyhyt JSON-linkitys nopealla mallilla (Haiku), joka poistaa massiivisen Output Token -ongelman ja kaatumiset. |
+| **Oikosuljetut kutsut** | -N kutsua per ajo | Jos ehto A ei täyty, ehdosta A riippuvia lapsisääntöjä ei lähetetä kalliiseen LLM-arviointiin lainkaan. Tämä maksaa Vaihe 2:n kulut moninkertaisesti takaisin. |
+| **Retry-luupit** | Merkittävästi vähemmän | Pienempi Output Token -koko ja selkeä ID-mäppäys vähentää Pydantic-kaatumisia. |
 
-### 8.2 Mitä uutta voimme kertoa tulosteena (Reporting Impact)
-
-#### 8.2.1 Nykytilan raportointikyvykkyys
-
-Tällä hetkellä ajon tuloste on käytännössä **litteä lista** tuloksia. Esimerkki `tulokset.csv`:stä:
-
-```
-tda_728cd0dff738... → PASS  (confidence: 1.0)
-tda_64cce5cf564a... → FAIL  (confidence: 1.0)
-tda_82f0d074668...  → CONTESTED (confidence: 0.67)
-```
-
-Auditoija näkee **mitä** tapahtui (PASS/FAIL), mutta ei **miksi**. Hän ei tiedä, olivatko tulokset toisistaan riippuvaisia, eikä hän tiedä, olisiko FAIL pitänyt olla N/A ehdollisuuden takia.
-
-#### 8.2.2 Epic 92:n jälkeinen raportointikyvykkyys
-
-Epic 92 mahdollistaa viisi täysin uutta tiedon tasoa, joita voimme tarjota tulosteena:
-
-##### Taso 1: Kausaalinen selitysketju (XAI / Explainability)
-> *"Väite `claim_2` ('Talouden perusta rakoilee') sai tuloksen PASS, **koska** sen ennakkoehto `claim_1` ('Luonnon kantokyky murenee') toteutui lähdetekstissä. Syy-seuraussuhde löydettiin lähteestä `src_1`: 'Luonnon kantokyky murenee, mikä ajaa suoraan siihen, että Talouden perusta rakoilee.'"*
-
-Auditoija näkee nyt **miksi** jokin arvioitiin tietyllä tavalla. Tämä on merkittävä ero verrattuna pelkkään "PASS, confidence 1.0" -riviin. Käyttäjä voi kyseenalaistaa syy-seurausketjun, ja järjestelmä voi näyttää sen perustelut.
-
-##### Taso 2: Ehdollinen ohitus perusteluineen (N/A State)
-> *"Väite `claim_5` ('Käyttäjädata poistetaan') → **N/A** — Ehto ei täyttynyt.*
-> *Syy: Ennakkoehto `claim_3` ('Järjestelmä on vaarantunut') arvioitiin tilaan FALSE.*
-> *Lähde: Dokumentti `src_1`, kappale 4."*
-
-Tämä on täysin uusi tila, jota nykyinen järjestelmä ei tunne. `N/A` ei ole PASS eikä FAIL — se tarkoittaa, että väitteen arviointi **ei ollut relevantti** tässä kontekstissa. Ilman tätä tilaa sama väite saisi väärän FAIL-rangaistuksen.
-
-##### Taso 3: Forensinen jäljitettävyys (source_quote vs. resolved_claim)
-> *Alkuperäinen lainaus: "Se aiheutti vakavan häiriön järjestelmässä."*
-> *Ratkaistu väite: "Palvelinkaatuminen aiheutti vakavan häiriön tietokantajärjestelmässä."*
-> *Lähde: `src_2` (Raportti_Q3_2024.pdf)*
-
-Auditoija näkee rinnakkain **mitä teksti oikeasti sanoi** ja **miten järjestelmä tulkitsi sen**. Jos tulkinta on väärä (LLM purki "Se"-pronominin väärin), virhe on välittömästi havaittavissa ja korjattavissa. Ilman molempia kenttiä debuggaus olisi mahdotonta, koska kukaan ei tietäisi, oliko virhe alkuperäisessä tekstissä vai järjestelmän tulkinnassa.
-
-##### Taso 4: Riippuvuusgraafi (DAG-visualisointi)
-Raporttiin voidaan piirtää visuaalinen puu, jossa näkyy mitkä väitteet riippuivat toisistaan:
-```
-claim_1 (PASS) ─┬─ claim_2 (PASS)
-                └─ claim_3 (FAIL) ── claim_4 (N/A, ehto ei täyttynyt)
-```
-Tämä on **selitettävyyttä (XAI)**, jota yksikään tunnettu kilpaileva arviointijärjestelmä ei tarjoa. Useimmat FActScore-pohjaiset järjestelmät tuottavat vain litteitä listoja; Quorum tuottaa kausaalisen puun.
-
-##### Taso 5: Spatiaalinen ankkurointi (Source Binding)
-> *"Tämä väite löydettiin dokumentista `Raportti_Q3.pdf`, kappale 7.*
-> *Ehto löydettiin samasta dokumentista, kappale 3."*
-
-Kun järjestelmä arvioi useita dokumentteja samanaikaisesti (esim. raportti + chatlog + tuoteteksti), spatiaalinen ankkurointi varmistaa, ettei väitteitä sekoiteta ristiin eri dokumenttien välillä. Auditoija voi klikata suoraan oikeaan kohtaan lähdetekstissä.
-
-### 8.3 Vertailutaulukko: Ennen ja jälkeen
+### 7.2 Vertailutaulukko: Ennen ja jälkeen
 
 | Dimensio | Nykytila (ennen Epic 92) | Epic 92:n jälkeen |
 |---|---|---|
-| **Tulostilat** | PASS / FAIL / DLQ / CONTESTED | PASS / FAIL / DLQ / CONTESTED / **N/A** |
-| **Selitys tulokselle** | "Mikä" (pelkkä tulos) | "Mikä" + **"Miksi"** + **"Mistä"** |
+| **Moottorin tilat (Backend)** | 4 (PASS, FAIL, DLQ, CONTESTED) | 5 (PASS, FAIL, N_A, PENDING, ERROR) |
+| **Näkyvät tilat (UI/Excel)** | 4 | 4 (+ OHITETTU, JÄRJESTELMÄVIRHE) |
+| **Selitys tulokselle** | "Mikä" (pelkkä tulos) | "Mikä" + **"Miksi"** + **"Mistä"** (XAI) |
 | **Väärät negatiiviset** | Yleisiä ehdollisissa lauseissa | Eliminoitu N/A-tilalla ja ehtoarvioinnilla |
 | **Pronominit** | Ratkaisematta → hallusinaatioriski | Purettu eksplisiittisesti → `resolved_claim` |
 | **Riippuvuudet väitteiden välillä** | Ei tietoa (litteä lista) | Täysi DAG-graafi (`depends_on_tda_ids`) |
 | **Lähteen jäljitettävyys** | `source_quote` + `source_id` | `source_quote` + `resolved_claim` + `source_id` + ehdon lähde |
 | **Auditoitavuus** | Litteä tulosrivi | Kausaalinen puu perusteluineen |
-| **LLM:n kognitiivinen kuorma** | Kaikki yhdellä kutsulla | Jaettu kahteen kevyeen askeleeseen (Two-Pass) |
-| **Hallusinaatiosuoja ID:ille** | `src_N` -aliakset (vain dokumenteille) | Yleistetty `AliasResolutionService` (dokumentit + väitteet) |
-
-### 8.4 Miksi tämä kannattaa toteuttaa — Liiketoiminta-argumentit
-
-1. **Luotettavuus:** Ehdolliset väärät negatiiviset ovat vakava uskottavuusongelma. Jos järjestelmä rankaisee käyttäjää asiasta, joka on kontekstissaan täysin oikein, käyttäjä menettää luottamuksensa koko arviointiin. Epic 92 poistaa tämän systemaattisen vääristymän.
-
-2. **Selitettävyys (XAI):** Sääntelypaineet (esim. EU AI Act) vaativat yhä enemmän algoritmisten päätösten selitettävyyttä. Kausaalinen puu, jossa jokainen päätös on jäljitettävissä lähdetekstiin ja perusteltu, on suoraan tähän tarpeeseen vastaava ominaisuus.
-
-3. **Kustannustehokkuus:** Deterministinen oikosulku (N/A) tarkoittaa, että osa LLM-kutsuista voidaan ohittaa kokonaan. Mitä enemmän ehdollisia sääntöjä matriisissa on, sitä enemmän säästöä. Kaksivaiheinen malli vähentää myös kalliita Retry-luuppeja.
-
-4. **Kilpailuetu:** FActScore ja SAFE (Google DeepMind) ovat alan standardi, mutta ne tuottavat vain litteitä atomeja. Quorumin Enriched Atom Graph on niiden arkkitehtuurinen evoluutio — se säilyttää atomien itsenäisyyden mutta lisää semanttisen verkon päälle. Tämä on julkaisematon ominaisuus akateemisessa kirjallisuudessa.
-
-5. **Kieliriippumattomuus:** Koska pronominien purku (Anaphora Resolution) tapahtuu LLM:n semanttisella tasolla (ei regex-haulla), se toimii yhtä hyvin suomeksi, englanniksi, ruotsiksi tai millä tahansa kielellä. Python-kerros käsittelee vain ID-graafeja, ei koskaan tekstiä.
 
 ---
 
-## 9. Tieteelliset Viittaukset (Academic References)
+## 8. Tieteelliset Viittaukset (Academic References)
 
 Tämän Epicin arkkitehtuuri perustuu seuraaviin vertaisarvioituihin tutkimuksiin:
 
-* **FActScore** — Min et al. (EMNLP 2023): Atomaarinen propositioiden purkaminen ja itsenäinen verifiointi pitkien LLM-tuotosten hallusinaatioiden havaitsemiseksi.
-* **SAFE** (Search-Augmented Factuality Evaluator) — Wei et al. (Google DeepMind, 2024): Hakuavusteinen faktuaalisuuden arviointi atomeista, jossa jokainen väite tarkistetaan itsenäisesti ulkoisia lähteitä vasten.
-* **"Let Me Speak Freely?"** — Tam et al. (EMNLP 2024): Empiirinen todiste siitä, että tiukkojen JSON/XML-skeemojen pakottaminen heikentää LLM:n päättelykykyä ("Format Tax"). Perustelee Reason-then-Format -kenttäjärjestyksen.
-* **"LLMs Cannot Self-Correct Reasoning Yet"** — Huang et al. (ICLR 2024): Todiste siitä, että LLM ei pysty korjaamaan omia päättelyvirheitään ilman arkkitehtuurisesti erillistä palautetta. Perustelee deterministisen ehtoarvioinnin ja ensemble-äänestyksen.
-* **System 2 Attention** — Weston & Sukhbaatar (Meta AI, 2023): Kahnemaenin System 1/System 2 -dualismiin pohjautuva malli, jossa LLM:n autogressiivinen tuotanto (System 1) ohjataan deliberatiivisen validaatiokerroksen (System 2) läpi.
+* **FActScore** — Min et al. (EMNLP 2023): Atomaarinen propositioiden purkaminen ja itsenäinen verifiointi.
+* **SAFE** (Search-Augmented Factuality Evaluator) — Wei et al. (Google DeepMind, 2024): Hakuavusteinen faktuaalisuuden arviointi atomeista.
+* **"Let Me Speak Freely?"** — Tam et al. (EMNLP 2024): Empiirinen todiste siitä, että tiukkojen JSON-skeemojen pakottaminen heikentää LLM:n päättelykykyä.
+* **"LLMs Cannot Self-Correct Reasoning Yet"** — Huang et al. (ICLR 2024): Todiste siitä, että LLM ei pysty korjaamaan omia päättelyvirheitään ilman arkkitehtuurisesti erillistä palautetta. Perustelee deterministisen ehtoarvioinnin ja Kahnin algoritmin.
+* **System 2 Attention** — Weston & Sukhbaatar (Meta AI, 2023): Kahnemaenin System 1/System 2 -dualismiin pohjautuva malli.

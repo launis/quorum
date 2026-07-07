@@ -23,6 +23,13 @@ This workflow is designed for the systematic decomposition and refactoring of he
       <mandatory_pattern>Before any extraction begins, the target God File MUST have at least 75% test coverage. If coverage is below 75%, you MUST STOP and write missing tests first.</mandatory_pattern>
       <catastrophic_reason>Decomposing a massive, untested file is blind surgery. Without 75% coverage, business logic will be silently destroyed during extraction.</catastrophic_reason>
     </rule_block>
+    <rule_block id="ssot_decomposition_mandate">
+      <mandatory_pattern>Decomposition is a strict exercise in codebase-wide SSOT consolidation. During extraction, you MUST apply this 3-step heuristic:
+      1. REPLACE: Actively search if the inline logic can be deleted entirely and replaced by existing global utilities.
+      2. ELEVATE: Design the extracted core logic immediately as a reusable Single Source of Truth (SSOT) component, not an isolated helper.
+      3. UNIFY (CRITICAL): Actively scan the broader codebase for similar fragmented implementations. If found, you MUST unify them together into a single SSOT and refactor all occurrences across the repository to use the new shared component.</mandatory_pattern>
+      <catastrophic_reason>Refactoring in isolation creates "micro-monoliths". Failing to unify fragmented logic across the codebase preserves technical debt and destroys the Single Source of Truth principle.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="3">
     <step id="1">PHASE 1 (Pre-flight &amp; Baseline Validation): Read the target file entirely (`view_file`). You MUST run the tests to establish a baseline (e.g., `uv run python scripts/backend_audit_loop.py backend_v2/ --test` or `flutter_audit_loop.py`). If the baseline fails, STOP and fix the debt. You MUST verify that test coverage is over 75%. If it is not, STOP and write tests. Document the target DDD bounded contexts and create an Exhaustive Symbol Inventory (mapping every class/function to its future location) in `implementation_plan.md`.</step>
@@ -37,7 +44,7 @@ This workflow is designed for the systematic decomposition and refactoring of he
     
     <step id="6">PHASE 6 (PRE-DELETE AUDIT &amp; Cleanup): Once all slices are extracted and downstream consumers are updated, you must perform a strict Pre-Delete Audit. You MUST run a `grep_search` across the repository for all original exported symbols. If no orphaned dependencies remain, you may delete the original God File.</step>
     
-    <step id="7">PHASE 7 (DOCUMENTATION AUDIT MANDATE): Because God Code decomposition radically changes the folder structure, you MUST physically modify the documents in `c:\src\quorum\docs\architecture\` AND `c:\src\quorum\.agents\rules\04_directory_reference.md` to reflect the new bounded contexts. Maintain existing table structures.</step>
+    <step id="7">PHASE 7 (DOCUMENTATION & KNOWLEDGE AUDIT MANDATE): Because God Code decomposition radically changes the folder structure and elevates logic to SSOTs, you MUST physically modify the documents in `c:\src\quorum\docs\architecture\` AND `c:\src\quorum\.agents\rules\04_directory_reference.md` to reflect the new bounded contexts. Furthermore, for every new SSOT component extracted and unified, you MUST instruct the execution agent to create or update a Knowledge Item (KI) in the IDE's Knowledge Base (`&lt;appDataDir&gt;\knowledge\`) so future agents automatically inherit the usage rules for the newly extracted SSOT.</step>
     
     <step id="8">PHASE 8 (HANDOVER): Present a summary of the new architecture to the user in `walkthrough.md`. Suggest running the Tier 2 Hardening workflow on the newly created directories.</step>
   </execution_protocol>
