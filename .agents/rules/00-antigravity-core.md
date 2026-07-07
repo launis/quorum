@@ -14,6 +14,10 @@
         <banned_pattern>Starting to execute an approved `implementation_plan.md` automatically or without switching to an explicit execution workflow setup.</banned_pattern>
         <mandatory_pattern>You MUST NEVER write domain code to execute an implementation plan without the user explicitly providing a slash command like `/tier2-execute` or `/tier2-hardening-backend`. Force the user to invoke the required execution workflow tier to bind safety constraints before execution starts.</mandatory_pattern>
     </rule_block>
+    <rule_block id="slash_command_routing">
+        <banned_pattern>Guessing the behavior of a slash command or answering a slash command with conversational filler.</banned_pattern>
+        <mandatory_pattern>When a user inputs a slash command (e.g. `/tier2-execute`), your IMMEDIATE action must be to use the `view_file` tool on the corresponding workflow file in `.agents/workflows/` and strictly adopt its system prompt and execution protocol.</mandatory_pattern>
+    </rule_block>
     <rule_block id="anti_apology">
         <banned_pattern>Outputting apologies, conversational filler, or subjective justifications after violating a rule (e.g., "I apologize for the oversight", "You are correct").</banned_pattern>
         <mandatory_pattern>You MUST silently output the corrected code block immediately. Zero conversational filler.</mandatory_pattern>
@@ -48,7 +52,12 @@
     </rule_block>
     <rule_block id="context_amnesia_prevention">
         <banned_pattern>Silently persisting in the same chat session after executing multiple massive file reads (e.g., 3+ directories in Tier 2 Hardening) or complex refactors.</banned_pattern>
-        <mandatory_pattern>You MUST proactively suggest that the user starts a new context window to prevent 'Context Amnesia' and protect strict architectural rule adherence whenever the session gets uncomfortably heavy.</mandatory_pattern>
+        <mandatory_pattern>You MUST proactively suggest that the user executes the `/tier5-session-handover` workflow to start a new context window if the conversation exceeds 10 task iterations, or you have modified more than 5 complex files. This prevents 'Context Amnesia' and protects strict architectural rule adherence.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="read_before_think_lock">
+        <banned_pattern>Outputting a `<thinking_process>`, making assumptions, or generating code before reading the context-specific architecture rules.</banned_pattern>
+        <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file (e.g. `00-antigravity-core.md`). You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules.</mandatory_pattern>
+        <catastrophic_reason>AI models are prone to "lazy confidence". Guessing rules by their filename without reading the contents leads to hallucinated architecture constraints and code regression.</catastrophic_reason>
     </rule_block>
     <rule_block id="mandatory_chain_of_thought">
         <banned_pattern>Outputting code blocks or executing file-write tools immediately after receiving a user prompt.</banned_pattern>
@@ -56,7 +65,7 @@
     </rule_block>
     <rule_block id="surgical_precision_edits">
         <banned_pattern>Using lazy placeholders like `// ... rest of the file ...` when outputting code.</banned_pattern>
-        <mandatory_pattern>You MUST be surgical. Truncation is an act of data destruction. Provide the ENTIRE compilable structural block or use precise search-and-replace tools.</mandatory_pattern>
+        <mandatory_pattern>You MUST be surgical. Truncation is an act of data destruction. Provide the ENTIRE compilable structural block or use precise search-and-replace tools. If `multi_replace_file_content` fails due to matching errors, you MUST fallback to `view_file` to verify the exact structural state, OR use a full file overwrite (`write_to_file`) to break the retry loop.</mandatory_pattern>
     </rule_block>
     <rule_block id="temporary_workspace_sandbox">
         <banned_pattern>Creating scratch scripts, temporary data dumps, or one-off debugging programs in the repository root, core architectural directories (`backend_v2`, `client_app_v2`), or the legacy `tmp\` folder.</banned_pattern>
@@ -81,7 +90,7 @@
         <catastrophic_reason>Masking data corruption with fallbacks destroys the deterministic Quorum engine and invalidates the forensic audit trail. (Rule enforced natively in English to prevent LLM attention dilution).</catastrophic_reason>
     </rule_block>
     <rule_block id="the_duct_tape_ban">
-        <banned_pattern>Writing "duct-tape" code (purkkakoodi), returning empty arrays `[]`, default dicts `{}`, or hiding UI elements `SizedBox.shrink()` when real data goes missing. Catching all errors with giant `try...except Exception:` blocks to prevent crashes.</banned_pattern>
+        <banned_pattern>Writing "duct-tape" code/logic, returning empty arrays `[]`, default dicts `{}`, or hiding UI elements `SizedBox.shrink()` when real data goes missing. Catching all errors with giant `try...except Exception:` blocks to prevent crashes.</banned_pattern>
         <mandatory_pattern>Fix the root cause instead of patching symptoms. If data is malformed, let the system CRASH loudly. Extract deep mutation loops into pure, isolated, testable functions.</mandatory_pattern>
         <catastrophic_reason>Silent fallbacks mask deeper architectural failures and corrupt state management.</catastrophic_reason>
     </rule_block>
@@ -138,9 +147,7 @@
 
 <universal_quality_gate>
     <rule_block id="quality_gate_delegation">
-        <banned_pattern>Executing arbitrary test commands, running naked `pytest` or `flutter test`, or defining custom audit loops.</banned_pattern>
-        <mandatory_pattern>You MUST strictly execute the exact `backend_audit_loop.py` or `flutter_audit_loop.py` commands defined in the `<universal_quality_gates>` block of `AGENTS.md`. Do not bypass these native systemic loops.</mandatory_pattern>
-        <catastrophic_reason>Redefining quality gates locally creates fragmented test coverage and allows the AI to bypass strict linting, formatting, and MyPy checks.</catastrophic_reason>
+        <mandatory_pattern>Run the quality gate as defined in `AGENTS.md`.</mandatory_pattern>
     </rule_block>
 
     <rule_block id="zero_deprecation_mandate">

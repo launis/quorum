@@ -25,7 +25,7 @@
 
     <rule_block id="native_mcp_tooling">
          <banned_pattern>Instructing the user to run scripts manually, or attempting to use terminal commands like `cat`, `grep`, or `sed` inside PowerShell.</banned_pattern>
-         <mandatory_pattern>ALWAYS prioritize native MCP tools. Use `view_file` to read, `grep_search` to find, and `multi_replace_file_content` to surgically edit files. NEVER use terminal text manipulation tools.</mandatory_pattern>
+         <mandatory_pattern>ALWAYS prioritize native MCP tools. Use `view_file` to read, `grep_search` to find, and `multi_replace_file_content` to surgically edit files. NEVER use terminal text manipulation tools. If `multi_replace_file_content` fails due to matching errors, fallback to `view_file` to verify the exact code structure, OR use a full file overwrite (`write_to_file`) if necessary to avoid an infinite loop.</mandatory_pattern>
          <catastrophic_reason>Using terminal utilities like `sed` or `cat` on Windows PowerShell corrupts file encodings (UTF-16 vs UTF-8) and destroys the architectural audit trails.</catastrophic_reason>
     </rule_block>
 </catastrophic_system_bans>
@@ -39,13 +39,13 @@
 
     <rule_block id="context_triggered_loading">
         <banned_pattern>Writing domain-specific code (Python, Flutter, or Seed Data) without reading the strict architecture laws first.</banned_pattern>
-        <mandatory_pattern>BEFORE writing any code or executing plans, you MUST dynamically read the relevant architecture laws using the `view_file` tool:
-        1. For **Global IDE & Orchestration**, you MUST read: `c:\src\quorum\.agents\rules\00-antigravity-core.md`
-        2. If working on **Backend/Python**, you MUST read: `c:\src\quorum\.agents\rules\01-python-backend.md`
-        3. If working on **Frontend/Flutter**, you MUST read: `c:\src\quorum\.agents\rules\02_flutter_desktop.md`
-        4. If working on **Data/Seed/JSON**, you MUST read: `c:\src\quorum\.agents\rules\03_seed_vault.md`
-        5. If working on **LLM or Prompts**, you MUST read: `c:\src\quorum\.agents\rules\05_llm_architecture.md`
-        6. If navigating or creating new files, you MUST read: `c:\src\quorum\.agents\rules\04_directory_reference.md`
+        <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. BEFORE writing any code or executing plans, you MUST dynamically read the relevant architecture laws using the `view_file` tool:
+        1. For **Global IDE & Orchestration**, you MUST read: `.agents/rules/00-antigravity-core.md`
+        2. If working on **Backend/Python**, you MUST read: `.agents/rules/01-python-backend.md`
+        3. If working on **Frontend/Flutter**, you MUST read: `.agents/rules/02_flutter_desktop.md`
+        4. If working on **Data/Seed/JSON**, you MUST read: `.agents/rules/03_seed_vault.md`
+        5. If working on **LLM or Prompts**, you MUST read: `.agents/rules/05_llm_architecture.md`
+        6. If navigating or creating new files, you MUST read: `.agents/rules/04_directory_reference.md`
         </mandatory_pattern>
         <catastrophic_reason>The Single Source of Truth architecture requires language-specific constraints to be loaded on-demand to preserve context and ensure extreme accuracy.</catastrophic_reason>
     </rule_block>
@@ -72,7 +72,7 @@
 </universal_quality_gates>
 
 <workflow_routing>
-    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `c:\src\quorum\.agents\workflows\`. If a user uses a slash command, refer to the corresponding workflow file:</instruction>
+    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `.agents/workflows/`. When a user inputs a slash command, your IMMEDIATE action must be to use `view_file` on the corresponding workflow file in `.agents/workflows/` and strictly follow its instructions. Do not guess the workflow logic.</instruction>
     <execution_tiers>
         <tier id="1" path="/tier1-planner">Epic Planner for generating `implementation_plan.md`.</tier>
         <tier id="2" path="/tier2-execute">Systematic step-by-step implementation of an approved plan.</tier>

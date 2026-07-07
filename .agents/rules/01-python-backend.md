@@ -199,7 +199,7 @@
         <catastrophic_reason>Local imports create fragmented mutable references that silently bypass `pytest` monkeypatching, causing unit tests to execute against uncontrollable production configs.</catastrophic_reason>
     </rule_block>
 
-    <!-- Rule elevated to CATASTROPHIC SYSTEM BANS (epic90_inline_imports_ban) -->
+
 
     <rule_block id="cross_language_enum_parity">
         <banned_pattern>Encoding UI rendering logic in Pydantic `Literal` or `Enum` variables without enforcing parity on the Flutter client, leading to silent 'Contains' parsing failures in Dart UI.</banned_pattern>
@@ -348,7 +348,7 @@
     <rule_block id="google_style_classes_separation">
         <mandatory_pattern>Class-level docstrings contain ONLY the overarching description and public `Attributes:`. The `__init__` method MUST encapsulate `Args:` and `Raises:`.</mandatory_pattern>
     </rule_block>
-    <!-- Rules elevated to CATASTROPHIC SYSTEM BANS (epic90_docstring_fail_fast_ban) -->
+
     <rule_block id="free_threading_concurrency">
         <banned_pattern>Utilizing the `multiprocessing` module.</banned_pattern>
         <mandatory_pattern>All routines MUST be demonstrably thread-safe (Free-threading architecture). Employ lightweight threads or `asyncio`.</mandatory_pattern>
@@ -485,8 +485,6 @@
     </rule_block>
 
     <rule_block id="backend_quality_gate_delegation">
-        <banned_pattern>Running naked `pytest`, `mypy`, or `ruff` commands manually.</banned_pattern>
-        <mandatory_pattern>You MUST exclusively trigger the `<universal_quality_gates>` command mapped in `AGENTS.md` (e.g., `uv run python scripts/backend_audit_loop.py <target_path> --test`) to validate Python changes.</mandatory_pattern>
-        <catastrophic_reason>Bypassing the unified audit loop allows type regressions and unformatted code to bypass the quality gates.</catastrophic_reason>
+        <mandatory_pattern>Run the quality gate as defined in `AGENTS.md`.</mandatory_pattern>
     </rule_block>
 </agentic_safety_guardrails>

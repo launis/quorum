@@ -193,9 +193,7 @@
 
 <universal_quality_gate>
     <rule_block id="frontend_quality_gate_delegation">
-        <banned_pattern>Running naked `flutter test`, `dart analyze`, or code generation manually without explicit mandate.</banned_pattern>
-        <mandatory_pattern>You MUST exclusively trigger the `<universal_quality_gates>` command mapped in `AGENTS.md` (e.g., `uv run python scripts/flutter_audit_loop.py <target_path> --build`) to validate Dart changes.</mandatory_pattern>
-        <catastrophic_reason>Bypassing the unified audit loop allows unformatted, un-analyzed code with stale `.g.dart` generated files to break the production build.</catastrophic_reason>
+        <mandatory_pattern>Run the quality gate as defined in `AGENTS.md`.</mandatory_pattern>
     </rule_block>
     
     <rule_block id="ignore_generated">
