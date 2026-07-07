@@ -20,7 +20,7 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
     </rule_block>
   </context_rules>
   <execution_protocol level="3">
-    <step id="1">EXHAUSTIVE PLAN: Read related files. Create an exhaustive, detailed execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files. DESTRUCTIVE OPERATION INVENTORY: If refactoring involves DELETING or REPLACING any source file, you MUST line-by-line inventory every exported symbol and map its new location. BIDIRECTIONAL INTEGRATION CHECK: For any new parser or data consumer, you MUST explicitly document the corresponding PRODUCER.</step>
+    <step id="1">DYNAMIC CONTEXT ACQUISITION &amp; EXHAUSTIVE PLAN: Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely target related files. Create an exhaustive, detailed execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files. DESTRUCTIVE OPERATION INVENTORY: If refactoring involves DELETING or REPLACING any source file, you MUST line-by-line inventory every exported symbol and map its new location. BIDIRECTIONAL INTEGRATION CHECK: For any new parser or data consumer, you MUST explicitly document the corresponding PRODUCER.</step>
     
     <step id="2">FAIL-FAST DATA CONTRACTS: State exactly where `AppException` will be raised if data is missing. Do not use silent fallbacks.</step>
     

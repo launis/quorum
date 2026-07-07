@@ -20,7 +20,7 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
     </rule_block>
   </context_rules>
   <execution_protocol level="4">
-    <step id="1">IDENTIFY (Root Cause Analysis): Trace data flow to its origin using your `grep_search` and `view_file` tools. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.</step>
+    <step id="1">DYNAMIC CONTEXT ACQUISITION &amp; IDENTIFY (Root Cause Analysis): Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely trace data flow to its origin. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.</step>
     
     <step id="2">REGRESSION TEST MANDATE (RED): Before modifying ANY domain code, you MUST write a failing unit test that reliably reproduces the exact bug. This test MUST NOT be a temporary scratch script; it MUST be permanently saved into the appropriate test suite folder (e.g., `tests/unit/`) to permanently prevent future regressions. Naked execution of `pytest` or `flutter test` is CATASTROPHICALLY PROHIBITED.</step>
     

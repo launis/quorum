@@ -16,7 +16,7 @@ description: Tier 5 (Resume & Universal Bootstrapper) - The universal receiver t
   <execution_protocol level="5">
     <step id="1">INGEST &amp; MANDATORY READING: Parse the handover payload (`--target`, `--workflow`, `--achieved`, `--learned`, `--remaining`, `--rules`). You MUST actively read the rules specified in `--rules`. You MUST internalize the `--learned` context to avoid repeating the previous agent's mistakes.</step>
     
-    <step id="2">CONTEXTUAL VERIFICATION (ZERO-BLINDNESS MANDATE): Before making any decisions, you MUST use your tools (`list_dir`, `grep_search`, `view_file`) to actively scan the codebase and verify the current state of the target files mentioned in the payload. Never assume the state of the codebase based on the prompt alone; load the physical reality into your context window.</step>
+    <step id="2">DYNAMIC CONTEXT ACQUISITION (ZERO-BLINDNESS MANDATE): Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely target and verify the current state of the files mentioned in the payload. Never assume the state of the codebase based on the prompt alone; load the physical reality into your context window.</step>
     
     <step id="3">BOOTSTRAP &amp; INHERIT: Read the `--workflow` parameter. You MUST actively load the corresponding workflow file from `c:\src\quorum\.agents\workflows\` (e.g., read `tier2-execute.md` if `--workflow=/tier2-execute`). You MUST then fully adopt the role, context rules, and execution protocol of that target workflow.</step>
     
