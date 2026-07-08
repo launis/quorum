@@ -16,8 +16,8 @@ from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
-    IPromptBlockRepository,
     IOutputProfileRepository,
+    IPromptBlockRepository,
     ISystemRepository,
     IWorkflowRepository,
 )
@@ -914,8 +914,14 @@ class ExecutionService:
 
         if fmt == "flat":
             transformer = BlueprintTransformer(
-            self.exec_repo, self.workflow_repo, self.comp_repo, self.prompt_block_repo, self.output_profile_repo, self.identity_repo, self.system_repo
-        )
+                self.exec_repo,
+                self.workflow_repo,
+                self.comp_repo,
+                self.prompt_block_repo,
+                self.output_profile_repo,
+                self.identity_repo,
+                self.system_repo,
+            )
             report_dto = await transformer.build_report_dto(
                 execution_id, profile_id, accept_language, custom_preface_md, local_time_str
             )
@@ -976,8 +982,14 @@ class ExecutionService:
 
         if fmt == "json":
             transformer = BlueprintTransformer(
-            self.exec_repo, self.workflow_repo, self.comp_repo, self.prompt_block_repo, self.output_profile_repo, self.identity_repo, self.system_repo
-        )
+                self.exec_repo,
+                self.workflow_repo,
+                self.comp_repo,
+                self.prompt_block_repo,
+                self.output_profile_repo,
+                self.identity_repo,
+                self.system_repo,
+            )
             dto = await transformer.build_report_dto(
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
@@ -996,8 +1008,14 @@ class ExecutionService:
                 accept_language = str(execution.metadata["target_locale"])
 
             transformer = BlueprintTransformer(
-            self.exec_repo, self.workflow_repo, self.comp_repo, self.prompt_block_repo, self.output_profile_repo, self.identity_repo, self.system_repo
-        )
+                self.exec_repo,
+                self.workflow_repo,
+                self.comp_repo,
+                self.prompt_block_repo,
+                self.output_profile_repo,
+                self.identity_repo,
+                self.system_repo,
+            )
             dto = await transformer.build_report_dto(
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
@@ -1041,8 +1059,14 @@ class ExecutionService:
                 accept_language = str(execution.metadata["target_locale"])
 
             transformer = BlueprintTransformer(
-            self.exec_repo, self.workflow_repo, self.comp_repo, self.prompt_block_repo, self.output_profile_repo, self.identity_repo, self.system_repo
-        )
+                self.exec_repo,
+                self.workflow_repo,
+                self.comp_repo,
+                self.prompt_block_repo,
+                self.output_profile_repo,
+                self.identity_repo,
+                self.system_repo,
+            )
             dto = await transformer.build_report_dto(
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
@@ -1096,7 +1120,13 @@ class ExecutionService:
             accept_language = str(execution.metadata["target_locale"])
 
         transformer = BlueprintTransformer(
-            self.exec_repo, self.workflow_repo, self.comp_repo, self.prompt_block_repo, self.output_profile_repo, self.identity_repo, self.system_repo
+            self.exec_repo,
+            self.workflow_repo,
+            self.comp_repo,
+            self.prompt_block_repo,
+            self.output_profile_repo,
+            self.identity_repo,
+            self.system_repo,
         )
         full_dto = await transformer.build_report_dto(
             execution_id, profile_id=None, accept_language=accept_language, custom_preface_md=None, local_time_str=None

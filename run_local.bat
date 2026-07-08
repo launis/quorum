@@ -24,6 +24,7 @@ FOR /F "tokens=5" %%P IN ('netstat -a -n -o ^| findstr :8000 ^| findstr LISTENIN
 taskkill /F /T /FI "WINDOWTITLE eq CQ Backend V2*" >nul 2>&1
 taskkill /F /T /FI "WINDOWTITLE eq CQ Worker V2*" >nul 2>&1
 taskkill /F /T /FI "WINDOWTITLE eq CQ Client*" >nul 2>&1
+taskkill /F /IM client_app.exe >nul 2>&1
 :: Note: Not killing brute python.exe to avoid killing the user's IDE terminal environments.
 
 :: Clear old logs to ensure clean debug session

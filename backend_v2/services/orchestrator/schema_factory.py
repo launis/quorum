@@ -187,8 +187,8 @@ class SchemaFactory:
             AppException (ErrorCodes.INTERNAL_SERVER_ERROR): If dynamic schema compilation fails critically.
         """
         # Resolve target base classes, overriding source_document_ids if requested
-        step_strict_class: Any = StepDTOStrict
-        step_semantic_class: Any = StepDTOSemantic
+        step_strict_class: type[BaseModel] = StepDTOStrict
+        step_semantic_class: type[BaseModel] = StepDTOSemantic
 
         if source_document_ids is not None or allowed_atom_ids is not None or allowed_dynamic_keys is not None:
             DocIdsLiteralType = AliasEngine.build_doc_ids_literal(
@@ -276,25 +276,21 @@ class SchemaFactory:
             # V3 Fix: Pydantic multiple inheritance resolves right-to-left for fields.
             # By placing AtomResponseBase LAST in the inheritance chain, its fields (atom_id)
             # are collected FIRST by Pydantic's reverse-MRO iteration, ensuring the LLM emits it first.
-            AtomResponse: Any
             if strictness_level >= 100:
-
-                class AtomResponseStrict(step_strict_class, AtomResponseBase):
-                    pass
-
-                AtomResponse = AtomResponseStrict
+                AtomResponseClass = create_model(
+                    "AtomResponseStrict", __base__=cast(Any, (step_strict_class, AtomResponseBase))
+                )
             else:
-
-                class AtomResponseSemantic(step_semantic_class, AtomResponseBase):
-                    pass
-
-                AtomResponse = AtomResponseSemantic
+                AtomResponseClass = create_model(  # type: ignore[misc]
+                    "AtomResponseSemantic", __base__=cast(Any, (step_semantic_class, AtomResponseBase))
+                )
 
             effective_max_evaluations = (
                 max_evaluations if max_evaluations is not None else get_settings().schema_max_evaluations
             )
+            eval_type: Any = list[AtomResponseClass]
             fields["evaluations"] = (
-                list[AtomResponse],
+                eval_type,
                 Field(
                     ...,
                     max_length=effective_max_evaluations,

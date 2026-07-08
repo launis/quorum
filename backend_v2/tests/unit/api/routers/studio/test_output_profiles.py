@@ -9,13 +9,18 @@ from fastapi.testclient import TestClient
 from backend_v2.api.routers.studio.output_profiles import router as api_router
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.services.studio import StudioService
 
 app = FastAPI()
 app.include_router(api_router)
 client = TestClient(app)
 
-from backend_v2.api.dependencies import get_current_user_from_header, get_studio_service
+from backend_v2.api.dependencies import (
+    get_current_user_from_header,
+    get_studio_output_profile_service,
+    get_studio_prompt_block_service,
+    get_studio_simulation_service,
+    get_studio_workflow_service,
+)
 
 
 def mock_get_current_user():
@@ -31,8 +36,11 @@ def setup_overrides():
 
 @pytest.fixture
 def mock_studio_service():
-    mock_service = AsyncMock(spec=StudioService)
-    app.dependency_overrides[get_studio_service] = lambda: mock_service
+    mock_service = AsyncMock()
+    app.dependency_overrides[get_studio_simulation_service] = lambda: mock_service
+    app.dependency_overrides[get_studio_workflow_service] = lambda: mock_service
+    app.dependency_overrides[get_studio_prompt_block_service] = lambda: mock_service
+    app.dependency_overrides[get_studio_output_profile_service] = lambda: mock_service
     return mock_service
 
 

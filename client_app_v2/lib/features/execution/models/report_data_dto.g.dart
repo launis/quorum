@@ -121,9 +121,18 @@ SduiHeroInsightBlock _$SduiHeroInsightBlockFromJson(
   'SduiHeroInsightBlock',
   json,
   ($checkedConvert) {
-    $checkKeys(json, allowedKeys: const ['text', 'exact_quotes', 'block_type']);
+    $checkKeys(
+      json,
+      allowedKeys: const ['text', 'citations', 'exact_quotes', 'block_type'],
+    );
     final val = SduiHeroInsightBlock(
       text: $checkedConvert('text', (v) => v as String),
+      citations: $checkedConvert(
+        'citations',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
+            const [],
+      ),
       exactQuotes: $checkedConvert(
         'exact_quotes',
         (v) =>
@@ -140,6 +149,7 @@ Map<String, dynamic> _$SduiHeroInsightBlockToJson(
   SduiHeroInsightBlock instance,
 ) => <String, dynamic>{
   'text': instance.text,
+  'citations': instance.citations,
   'exact_quotes': instance.exactQuotes,
   'block_type': instance.$type,
 };

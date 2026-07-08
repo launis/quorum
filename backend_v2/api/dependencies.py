@@ -22,11 +22,15 @@ from backend_v2.database.interfaces import (
     IAgentRepository,
     IAuditRepository,
     IComponentRepository,
+    IExecutionPersonaRepository,
     IExecutionRepository,
+    IExtractionProtocolRepository,
     IIdentityRepository,
     IKnowledgeRepository,
+    IMatrixRepository,
     IOutputProfileRepository,
     IPromptBlockRepository,
+    IRoleRepository,
     ISystemRepository,
     ITaskBlueprintRepository,
     IWorkflowRepository,
@@ -51,7 +55,14 @@ from backend_v2.services.execution import ExecutionService
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-from backend_v2.services.studio import StudioService
+from backend_v2.services.studio import (
+    StudioLexiconService,
+    StudioOutputProfileService,
+    StudioPromptBlockService,
+    StudioSimulationService,
+    StudioSystemConfigService,
+    StudioWorkflowService,
+)
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import Settings, get_settings
 
@@ -130,7 +141,14 @@ async def get_component_repo(driver: DriverDep) -> IComponentRepository:
     return ComponentRepositoryImpl(driver)
 
 
-ComponentRepoDep = Annotated[IComponentRepository, Depends(get_component_repo)]
+ComponentRepoDep = Annotated[
+    IComponentRepository,
+    IMatrixRepository,
+    IRoleRepository,
+    IExecutionPersonaRepository,
+    IExtractionProtocolRepository,
+    Depends(get_component_repo),
+]
 
 
 async def get_prompt_block_repo(driver: DriverDep) -> IPromptBlockRepository:
@@ -412,36 +430,126 @@ async def get_execution_service(
 ExecutionServiceDep = Annotated[ExecutionService, Depends(get_execution_service)]
 
 
-async def get_studio_service(
+async def get_studio_workflow_service(
     workflow_repo: WorkflowRepoDep,
-    component_repo: ComponentRepoDep,
-    knowledge_repo: KnowledgeRepoDep,
-    system_repo: SystemRepoDep,
-    prompt_block_repo: PromptBlockRepoDep,
     output_profile_repo: OutputProfileRepoDep,
-) -> StudioService:
-    """Instantiate the studio administration service.
+    prompt_block_repo: PromptBlockRepoDep,
+) -> StudioWorkflowService:
+    """Instantiate the studio workflow service.
 
     Args:
         workflow_repo: Workflow repository.
-        component_repo: Component repository.
-        knowledge_repo: Knowledge repository.
+        output_profile_repo: Output profile repository.
+        prompt_block_repo: Prompt block repository.
+
+    Returns:
+        Studio workflow service instance.
+    """
+    return StudioWorkflowService(
+        workflow_repo=workflow_repo,
+        output_profile_repo=output_profile_repo,
+        prompt_block_repo=prompt_block_repo,
+    )
+
+
+StudioWorkflowServiceDep = Annotated[StudioWorkflowService, Depends(get_studio_workflow_service)]
+
+
+async def get_studio_prompt_block_service(
+    prompt_block_repo: PromptBlockRepoDep,
+    system_repo: SystemRepoDep,
+) -> StudioPromptBlockService:
+    """Instantiate the studio prompt block service.
+
+    Args:
+        prompt_block_repo: Prompt block repository.
         system_repo: System repository.
 
     Returns:
-        Studio service instance.
+        Studio prompt block service instance.
     """
-    return StudioService(
-        workflow_repo=workflow_repo,
-        component_repo=component_repo,
+    return StudioPromptBlockService(
         prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
-        knowledge_repo=knowledge_repo,
         system_repo=system_repo,
     )
 
 
-StudioServiceDep = Annotated[StudioService, Depends(get_studio_service)]
+StudioPromptBlockServiceDep = Annotated[StudioPromptBlockService, Depends(get_studio_prompt_block_service)]
+
+
+async def get_studio_output_profile_service(
+    output_profile_repo: OutputProfileRepoDep,
+    workflow_service: StudioWorkflowServiceDep,
+) -> StudioOutputProfileService:
+    """Instantiate the studio output profile service.
+
+    Args:
+        output_profile_repo: Output profile repository.
+        workflow_service: Studio workflow service.
+
+    Returns:
+        Studio output profile service instance.
+    """
+    return StudioOutputProfileService(
+        output_profile_repo=output_profile_repo,
+        workflow_service=workflow_service,
+    )
+
+
+StudioOutputProfileServiceDep = Annotated[StudioOutputProfileService, Depends(get_studio_output_profile_service)]
+
+
+async def get_studio_system_config_service(
+    system_repo: SystemRepoDep,
+) -> StudioSystemConfigService:
+    """Instantiate the studio system config service.
+
+    Args:
+        system_repo: System repository.
+
+    Returns:
+        Studio system config service instance.
+    """
+    return StudioSystemConfigService(system_repo=system_repo)
+
+
+StudioSystemConfigServiceDep = Annotated[StudioSystemConfigService, Depends(get_studio_system_config_service)]
+
+
+async def get_studio_lexicon_service(
+    system_repo: SystemRepoDep,
+) -> StudioLexiconService:
+    """Instantiate the studio lexicon service.
+
+    Args:
+        system_repo: System repository.
+
+    Returns:
+        Studio lexicon service instance.
+    """
+    return StudioLexiconService(system_repo=system_repo)
+
+
+StudioLexiconServiceDep = Annotated[StudioLexiconService, Depends(get_studio_lexicon_service)]
+
+
+async def get_studio_simulation_service(
+    prompt_block_service: StudioPromptBlockServiceDep,
+) -> StudioSimulationService:
+    """Instantiate the studio simulation service.
+
+    Args:
+        prompt_block_service: Studio prompt block service.
+
+    Returns:
+        Studio simulation service instance.
+    """
+    return StudioSimulationService(
+        prompt_block_service=prompt_block_service,
+    )
+
+
+StudioSimulationServiceDep = Annotated[StudioSimulationService, Depends(get_studio_simulation_service)]
 
 
 def get_llm_handler(repo: ComponentRepoDep) -> LLMHandler:

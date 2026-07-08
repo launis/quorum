@@ -4,10 +4,15 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from backend_v2.api.dependencies import get_current_user_from_header, get_studio_service
+from backend_v2.api.dependencies import (
+    get_current_user_from_header,
+    get_studio_output_profile_service,
+    get_studio_prompt_block_service,
+    get_studio_simulation_service,
+    get_studio_workflow_service,
+)
 from backend_v2.exceptions import PermissionDeniedError
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.services.studio import StudioService
 
 # Mock setup_logging to avoid litellm crash on Pydantic V2 during tests
 patch("backend_v2.main.setup_logging").start()
@@ -26,7 +31,7 @@ def mock_get_current_user_root() -> Any:
 
 @pytest.fixture
 def mock_studio_service_manager() -> Any:
-    service = AsyncMock(spec=StudioService)
+    service = AsyncMock()
     # Configure mock responses for failing non-root mutations
     service.save_workflow.side_effect = PermissionDeniedError("Only ADMIN or MANAGER can modify resources.")
     service.delete_workflow.side_effect = PermissionDeniedError("Only ADMIN or MANAGER can modify resources.")
@@ -36,7 +41,10 @@ def mock_studio_service_manager() -> Any:
 @pytest.fixture
 def client_member(mock_studio_service_manager: Any) -> Any:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_member
-    app.dependency_overrides[get_studio_service] = lambda: mock_studio_service_manager
+    app.dependency_overrides[get_studio_simulation_service] = lambda: mock_studio_service_manager
+    app.dependency_overrides[get_studio_workflow_service] = lambda: mock_studio_service_manager
+    app.dependency_overrides[get_studio_prompt_block_service] = lambda: mock_studio_service_manager
+    app.dependency_overrides[get_studio_output_profile_service] = lambda: mock_studio_service_manager
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

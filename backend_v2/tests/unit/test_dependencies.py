@@ -8,7 +8,7 @@ from backend_v2.api.dependencies import (
     get_auth_service,
     get_current_user_from_header,
     get_document_extraction_service,
-    get_studio_service,
+    get_studio_simulation_service,
 )
 from backend_v2.exceptions import AuthenticationError
 from backend_v2.models.auth import TokenData, UserRole
@@ -57,13 +57,13 @@ async def test_get_current_user_from_header_valid_token() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_studio_service(mock_repo: Any) -> None:
-    """Test get_studio_service injection."""
-    service = await get_studio_service(
-        workflow_repo=mock_repo, component_repo=mock_repo, prompt_block_repo=AsyncMock(), output_profile_repo=AsyncMock(), knowledge_repo=mock_repo, system_repo=mock_repo
+async def test_get_studio_simulation_service(mock_repo: Any) -> None:
+    """Test get_studio_simulation_service injection."""
+    service = await get_studio_simulation_service(
+        prompt_block_service=AsyncMock(),
     )  # noqa: E501
     assert service is not None
-    assert service.workflow_repo == mock_repo
+    assert service.prompt_block_service is not None
 
 
 def test_get_document_extraction_service() -> None:

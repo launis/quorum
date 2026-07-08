@@ -166,13 +166,13 @@ return markdown(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<int> citations,  List<String> exactQuotes)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)?  alertBox,TResult Function( String text,  List<String> exactQuotes)?  heroInsight,TResult Function( String text)?  markdown,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<int> citations,  List<String> exactQuotes)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)?  alertBox,TResult Function( String text,  List<int> citations,  List<String> exactQuotes)?  heroInsight,TResult Function( String text)?  markdown,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that.text,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
+return heroInsight(_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
 return markdown(_that.text);case _:
   return orElse();
 
@@ -191,13 +191,13 @@ return markdown(_that.text);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<int> citations,  List<String> exactQuotes)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)  alertBox,required TResult Function( String text,  List<String> exactQuotes)  heroInsight,required TResult Function( String text)  markdown,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<int> citations,  List<String> exactQuotes)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)  alertBox,required TResult Function( String text,  List<int> citations,  List<String> exactQuotes)  heroInsight,required TResult Function( String text)  markdown,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock():
 return bulletList(_that.items);case SduiAlertBoxBlock():
 return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock():
-return heroInsight(_that.text,_that.exactQuotes);case SduiMarkdownBlock():
+return heroInsight(_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock():
 return markdown(_that.text);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -212,13 +212,13 @@ return markdown(_that.text);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<int> citations,  List<String> exactQuotes)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)?  alertBox,TResult? Function( String text,  List<String> exactQuotes)?  heroInsight,TResult? Function( String text)?  markdown,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<int> citations,  List<String> exactQuotes)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)?  alertBox,TResult? Function( String text,  List<int> citations,  List<String> exactQuotes)?  heroInsight,TResult? Function( String text)?  markdown,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
 return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that.text,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
+return heroInsight(_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
 return markdown(_that.text);case _:
   return null;
 
@@ -490,10 +490,17 @@ as List<String>,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiHeroInsightBlock extends SduiBlockDTO {
-  const SduiHeroInsightBlock({required this.text, final  List<String> exactQuotes = const [], final  String? $type}): _exactQuotes = exactQuotes,$type = $type ?? 'hero_insight',super._();
+  const SduiHeroInsightBlock({required this.text, final  List<int> citations = const [], final  List<String> exactQuotes = const [], final  String? $type}): _citations = citations,_exactQuotes = exactQuotes,$type = $type ?? 'hero_insight',super._();
   factory SduiHeroInsightBlock.fromJson(Map<String, dynamic> json) => _$SduiHeroInsightBlockFromJson(json);
 
  final  String text;
+ final  List<int> _citations;
+@JsonKey() List<int> get citations {
+  if (_citations is EqualUnmodifiableListView) return _citations;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_citations);
+}
+
  final  List<String> _exactQuotes;
 @JsonKey() List<String> get exactQuotes {
   if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
@@ -519,16 +526,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiHeroInsightBlock&&(identical(other.text, text) || other.text == text)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiHeroInsightBlock&&(identical(other.text, text) || other.text == text)&&const DeepCollectionEquality().equals(other._citations, _citations)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,text,const DeepCollectionEquality().hash(_exactQuotes));
+int get hashCode => Object.hash(runtimeType,text,const DeepCollectionEquality().hash(_citations),const DeepCollectionEquality().hash(_exactQuotes));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.heroInsight(text: $text, exactQuotes: $exactQuotes)';
+  return 'SduiBlockDTO.heroInsight(text: $text, citations: $citations, exactQuotes: $exactQuotes)';
 }
 
 
@@ -539,7 +546,7 @@ abstract mixin class $SduiHeroInsightBlockCopyWith<$Res> implements $SduiBlockDT
   factory $SduiHeroInsightBlockCopyWith(SduiHeroInsightBlock value, $Res Function(SduiHeroInsightBlock) _then) = _$SduiHeroInsightBlockCopyWithImpl;
 @useResult
 $Res call({
- String text, List<String> exactQuotes
+ String text, List<int> citations, List<String> exactQuotes
 });
 
 
@@ -556,10 +563,11 @@ class _$SduiHeroInsightBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? exactQuotes = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,Object? exactQuotes = null,}) {
   return _then(SduiHeroInsightBlock(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
+as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
+as List<int>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }

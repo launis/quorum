@@ -4,7 +4,14 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from backend_v2.api.dependencies import get_current_user_from_header, get_studio_service
+from backend_v2.api.dependencies import (
+    get_current_user_from_header,
+    get_studio_output_profile_service,
+    get_studio_prompt_block_service,
+    get_studio_simulation_service,
+    get_studio_system_config_service,
+    get_studio_workflow_service,
+)
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -18,7 +25,6 @@ from backend_v2.models.v2_core import (
     SystemConfigModelRegistry,
     Workflow,
 )
-from backend_v2.services.studio import StudioService
 
 
 def mock_get_current_user_admin() -> TokenData:
@@ -41,7 +47,7 @@ def mock_get_current_user_root() -> TokenData:
 
 @pytest.fixture
 def mock_studio_service() -> AsyncMock:
-    service = AsyncMock(spec=StudioService)
+    service = AsyncMock()
     # Configure mock returns for cloning
     service.clone_workflow.return_value = Workflow(
         id="wf_3333333333333333",
@@ -99,7 +105,11 @@ def mock_studio_service() -> AsyncMock:
 @pytest.fixture
 def client_admin(mock_studio_service: AsyncMock) -> Any:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_admin
-    app.dependency_overrides[get_studio_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_simulation_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_workflow_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_prompt_block_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_output_profile_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_system_config_service] = lambda: mock_studio_service
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -108,7 +118,11 @@ def client_admin(mock_studio_service: AsyncMock) -> Any:
 @pytest.fixture
 def client_root(mock_studio_service: AsyncMock) -> Any:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_root
-    app.dependency_overrides[get_studio_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_simulation_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_workflow_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_prompt_block_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_output_profile_service] = lambda: mock_studio_service
+    app.dependency_overrides[get_studio_system_config_service] = lambda: mock_studio_service
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

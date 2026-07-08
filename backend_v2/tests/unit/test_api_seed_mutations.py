@@ -6,10 +6,15 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from backend_v2.api.dependencies import get_current_user_from_header, get_studio_service
+from backend_v2.api.dependencies import (
+    get_current_user_from_header,
+    get_studio_output_profile_service,
+    get_studio_prompt_block_service,
+    get_studio_simulation_service,
+    get_studio_workflow_service,
+)
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.services.studio import StudioService
 
 
 def mock_get_current_user_admin() -> Any:
@@ -18,7 +23,7 @@ def mock_get_current_user_admin() -> Any:
 
 @pytest.fixture
 def mock_studio_service_admin() -> Any:
-    service = AsyncMock(spec=StudioService)
+    service = AsyncMock()
     service.save_workflow.side_effect = lambda user, id, payload: payload
     service.save_prompt_block.side_effect = lambda user, id, payload: payload
     service.save_step.side_effect = lambda user, id, payload: payload
@@ -28,7 +33,10 @@ def mock_studio_service_admin() -> Any:
 @pytest.fixture
 def client_admin(mock_studio_service_admin: Any) -> Any:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_admin
-    app.dependency_overrides[get_studio_service] = lambda: mock_studio_service_admin
+    app.dependency_overrides[get_studio_simulation_service] = lambda: mock_studio_service_admin
+    app.dependency_overrides[get_studio_workflow_service] = lambda: mock_studio_service_admin
+    app.dependency_overrides[get_studio_prompt_block_service] = lambda: mock_studio_service_admin
+    app.dependency_overrides[get_studio_output_profile_service] = lambda: mock_studio_service_admin
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

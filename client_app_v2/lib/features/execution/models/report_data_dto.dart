@@ -42,6 +42,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @FreezedUnionValue('hero_insight')
   const factory SduiBlockDTO.heroInsight({
     required String text,
+    @Default([]) List<int> citations,
     @Default([]) List<String> exactQuotes,
   }) = SduiHeroInsightBlock;
 

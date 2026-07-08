@@ -205,11 +205,43 @@ class SDUIBlockRenderer extends StatelessWidget {
   Widget _buildHeroInsight(BuildContext context, SduiHeroInsightBlock block) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
-      child: Text(
-        block.text,
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).primaryColor,
+      child: RichText(
+        text: TextSpan(
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).primaryColor,
+          ),
+          children: [
+            TextSpan(text: block.text),
+            for (final citation in block.citations)
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context).primaryColor.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      citation.toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

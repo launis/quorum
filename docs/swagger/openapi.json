@@ -1673,7 +1673,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Get Workflows",
-        "description": "Retrieve all V2 dynamic workflow definition blocks securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of all workflow definitions.\n\nRaises:\n    AppException: If fetching workflows fails.",
+        "description": "Retrieve all V2 dynamic workflow definition blocks securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    A list of all workflow definitions.\n\nRaises:\n    AppException: If fetching workflows fails.",
         "operationId": "get_workflows_api_v2_studio_workflows__get",
         "responses": {
           "200": {
@@ -1702,7 +1702,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Create Workflow",
-        "description": "Create a new Workflow draft securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created workflow draft.\n\nRaises:\n    AppException: If creating the draft fails.",
+        "description": "Create a new Workflow draft securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    The newly created workflow draft.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_workflow_api_v2_studio_workflows__post",
         "responses": {
           "200": {
@@ -1729,7 +1729,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Get Workflow",
-        "description": "Retrieve a specific workflow definition by id securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The requested workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If fetching the workflow fails.",
+        "description": "Retrieve a specific workflow definition by id securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    The requested workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If fetching the workflow fails.",
         "operationId": "get_workflow_api_v2_studio_workflows__id__get",
         "security": [
           {
@@ -1775,7 +1775,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Save Workflow",
-        "description": "Append or update a workflow definition block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow.\n    data: The new configuration data for the workflow.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If updating the workflow fails.",
+        "description": "Append or update a workflow definition block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow.\n    data: The new configuration data for the workflow.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    The updated workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If updating the workflow fails.",
         "operationId": "save_workflow_api_v2_studio_workflows__id__put",
         "security": [
           {
@@ -1831,7 +1831,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Delete Workflow",
-        "description": "Delete a workflow definition block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A WorkflowDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If deleting the workflow fails.",
+        "description": "Delete a workflow definition block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow to delete.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    A WorkflowDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If deleting the workflow fails.",
         "operationId": "delete_workflow_api_v2_studio_workflows__id__delete",
         "security": [
           {
@@ -1879,7 +1879,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Simulate Workflow",
-        "description": "Dry-run and validate a workflow DAG topology before saving.\n\nArgs:\n    data: The workflow definition to simulate.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
+        "description": "Dry-run and validate a workflow DAG topology before saving.\n\nArgs:\n    data: The workflow definition to simulate.\n    current_user: The authenticated user making the request.\n    studio_simulation_service: The studio simulation service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
         "operationId": "simulate_workflow_api_v2_studio_workflows_simulate_post",
         "requestBody": {
           "content": {
@@ -1926,7 +1926,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Get Workflow Available Extensions",
-        "description": "Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG.\n\nArgs:\n    id: The unique identifier of the workflow.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A WorkflowAvailableExtensionsResponse with a list of available extensions.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If fetching the extensions fails.",
+        "description": "Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG.\n\nArgs:\n    id: The unique identifier of the workflow.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    A WorkflowAvailableExtensionsResponse with a list of available extensions.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If fetching the extensions fails.",
         "operationId": "get_workflow_available_extensions_api_v2_studio_workflows__id__available_extensions_get",
         "security": [
           {
@@ -1974,7 +1974,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Clone Workflow",
-        "description": "Deep clone a workflow block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow to clone.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly cloned workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the source workflow is not found.\n    AppException: If cloning the workflow fails.",
+        "description": "Deep clone a workflow block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow to clone.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    The newly cloned workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the source workflow is not found.\n    AppException: If cloning the workflow fails.",
         "operationId": "clone_workflow_api_v2_studio_workflows__id__clone_post",
         "security": [
           {
@@ -2022,7 +2022,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Simulate Prompt Block",
-        "description": "Dry-run and validate a PromptBlock template rendering.\n\nArgs:\n    data: The simulation request containing the prompt block and mock inputs.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
+        "description": "Dry-run and validate a PromptBlock template rendering.\n\nArgs:\n    data: The simulation request containing the prompt block and mock inputs.\n    current_user: The authenticated user making the request.\n    studio_simulation_service: The studio simulation service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
         "operationId": "simulate_prompt_block_api_v2_studio_prompt_blocks_simulate_post",
         "requestBody": {
           "content": {
@@ -2069,7 +2069,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Get Prompt Blocks",
-        "description": "Retrieve all PromptBlocks securely.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of all prompt blocks.\n\nRaises:\n    AppException: If fetching prompt blocks fails.",
+        "description": "Retrieve all PromptBlocks securely.\n\nArgs:\n    current_user: The authenticated user making the request.\n    prompt_block_service: The prompt block service dependency.\n\nReturns:\n    A list of all prompt blocks.\n\nRaises:\n    AppException: If fetching prompt blocks fails.",
         "operationId": "get_prompt_blocks_api_v2_studio_prompt_blocks__get",
         "responses": {
           "200": {
@@ -2098,7 +2098,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Create Prompt Block",
-        "description": "Create a new PromptBlock draft securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created prompt block draft.\n\nRaises:\n    AppException: If creating the draft fails.",
+        "description": "Create a new PromptBlock draft securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    prompt_block_service: The prompt block service dependency.\n\nReturns:\n    The newly created prompt block draft.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_prompt_block_api_v2_studio_prompt_blocks__post",
         "responses": {
           "200": {
@@ -2125,7 +2125,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Get Prompt Block",
-        "description": "Retrieve a specific prompt block by id securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The requested prompt block.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If fetching the prompt block fails.",
+        "description": "Retrieve a specific prompt block by id securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block.\n    current_user: The authenticated user making the request.\n    prompt_block_service: The prompt block service dependency.\n\nReturns:\n    The requested prompt block.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If fetching the prompt block fails.",
         "operationId": "get_prompt_block_api_v2_studio_prompt_blocks__id__get",
         "security": [
           {
@@ -2171,7 +2171,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Save Prompt Block",
-        "description": "Append or update a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block.\n    data: The new configuration data for the prompt block.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated prompt block.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If updating the prompt block fails.",
+        "description": "Append or update a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block.\n    data: The new configuration data for the prompt block.\n    current_user: The authenticated user making the request.\n    prompt_block_service: The prompt block service dependency.\n\nReturns:\n    The updated prompt block.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If updating the prompt block fails.",
         "operationId": "save_prompt_block_api_v2_studio_prompt_blocks__id__put",
         "security": [
           {
@@ -2227,7 +2227,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Delete Prompt Block",
-        "description": "Delete a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n    force_delete: Whether to force delete the prompt block.\n\nReturns:\n    A PromptBlockDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If deleting the prompt block fails.",
+        "description": "Delete a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block to delete.\n    current_user: The authenticated user making the request.\n    prompt_block_service: The prompt block service dependency.\n    force_delete: Whether to force delete the prompt block.\n\nReturns:\n    A PromptBlockDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If deleting the prompt block fails.",
         "operationId": "delete_prompt_block_api_v2_studio_prompt_blocks__id__delete",
         "security": [
           {
@@ -2285,7 +2285,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Clone Prompt Block",
-        "description": "Deep clone a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block to clone.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly cloned prompt block.\n\nRaises:\n    ResourceNotFoundError: If the source prompt block is not found.\n    AppException: If cloning the prompt block fails.",
+        "description": "Deep clone a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block to clone.\n    current_user: The authenticated user making the request.\n    prompt_block_service: The prompt block service dependency.\n\nReturns:\n    The newly cloned prompt block.\n\nRaises:\n    ResourceNotFoundError: If the source prompt block is not found.\n    AppException: If cloning the prompt block fails.",
         "operationId": "clone_prompt_block_api_v2_studio_prompt_blocks__id__clone_post",
         "security": [
           {
@@ -2333,7 +2333,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Simulate Step",
-        "description": "Dry-run and validate a Step (TaskBlueprint) by compiling its prompt blocks.\n\nArgs:\n    data: The simulation request containing the step and mock inputs.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
+        "description": "Dry-run and validate a Step (TaskBlueprint) by compiling its prompt blocks.\n\nArgs:\n    data: The simulation request containing the step and mock inputs.\n    current_user: The authenticated user making the request.\n    studio_simulation_service: The studio simulation service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
         "operationId": "simulate_step_api_v2_studio_steps_simulate_post",
         "requestBody": {
           "content": {
@@ -2380,7 +2380,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Get Steps",
-        "description": "Retrieve all V2 dynamic step execution block schemas securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of all steps.\n\nRaises:\n    AppException: If fetching steps fails.",
+        "description": "Retrieve all V2 dynamic step execution block schemas securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    A list of all steps.\n\nRaises:\n    AppException: If fetching steps fails.",
         "operationId": "get_steps_api_v2_studio_steps__get",
         "responses": {
           "200": {
@@ -2409,7 +2409,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Create Step",
-        "description": "Create a new Step draft securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created step draft.\n\nRaises:\n    AppException: If creating the draft fails.",
+        "description": "Create a new Step draft securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    The newly created step draft.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_step_api_v2_studio_steps__post",
         "responses": {
           "200": {
@@ -2436,7 +2436,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Get Step",
-        "description": "Retrieve a specific Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The requested step.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If fetching the step fails.",
+        "description": "Retrieve a specific Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    The requested step.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If fetching the step fails.",
         "operationId": "get_step_api_v2_studio_steps__id__get",
         "security": [
           {
@@ -2482,7 +2482,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Save Step",
-        "description": "Append or update a Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step.\n    data: The new configuration data for the step.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated step.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If updating the step fails.",
+        "description": "Append or update a Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step.\n    data: The new configuration data for the step.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    The updated step.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If updating the step fails.",
         "operationId": "save_step_api_v2_studio_steps__id__put",
         "security": [
           {
@@ -2538,7 +2538,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Delete Step",
-        "description": "Delete a Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n    force_delete: Whether to force delete the step.\n\nReturns:\n    A StepDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If deleting the step fails.",
+        "description": "Delete a Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step to delete.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n    force_delete: Whether to force delete the step.\n\nReturns:\n    A StepDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If deleting the step fails.",
         "operationId": "delete_step_api_v2_studio_steps__id__delete",
         "security": [
           {
@@ -2596,7 +2596,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Clone Step",
-        "description": "Deep clone a step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step to clone.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly cloned step.\n\nRaises:\n    ResourceNotFoundError: If the source step is not found.\n    AppException: If cloning the step fails.",
+        "description": "Deep clone a step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step to clone.\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    The newly cloned step.\n\nRaises:\n    ResourceNotFoundError: If the source step is not found.\n    AppException: If cloning the step fails.",
         "operationId": "clone_step_api_v2_studio_steps__id__clone_post",
         "security": [
           {
@@ -2938,7 +2938,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                    "$ref": "#/components/schemas/SystemConfigMCPGateways"
                   },
                   "type": "array",
                   "title": "Response Get All Mcp Gateways Api V2 Studio Mcp Gateways  Get"
@@ -2966,7 +2966,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways"
                 }
               }
             }
@@ -3009,7 +3009,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways"
                 }
               }
             }
@@ -3054,7 +3054,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SystemConfigMCPGateways-Input"
+                "$ref": "#/components/schemas/SystemConfigMCPGateways"
               }
             }
           }
@@ -3065,7 +3065,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways"
                 }
               }
             }
@@ -3159,7 +3159,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways"
                 }
               }
             }
@@ -3351,7 +3351,7 @@
           "Studio - Output Profiles"
         ],
         "summary": "List Output Profiles",
-        "description": "List all OutputProfiles.",
+        "description": "List all OutputProfiles.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of OutputProfiles.\n\nRaises:\n    AppException: If listing the output profiles fails.",
         "operationId": "list_output_profiles_api_v2_studio_profiles_get",
         "responses": {
           "200": {
@@ -3378,7 +3378,7 @@
           "Studio - Output Profiles"
         ],
         "summary": "Create Output Profile Draft",
-        "description": "Create a new OutputProfile draft.",
+        "description": "Create a new OutputProfile draft.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created OutputProfile draft.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_output_profile_draft_api_v2_studio_profiles_draft_post",
         "responses": {
           "201": {
@@ -3386,7 +3386,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutputProfile-Output"
+                  "$ref": "#/components/schemas/OutputProfile"
                 }
               }
             }
@@ -3405,7 +3405,7 @@
           "Studio - Output Profiles"
         ],
         "summary": "Get Output Profile",
-        "description": "Get a specific OutputProfile.",
+        "description": "Get a specific OutputProfile.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n    profile_id: The unique identifier of the output profile.\n\nReturns:\n    The requested OutputProfile.\n\nRaises:\n    ResourceNotFoundError: If the output profile is not found.\n    AppException: If fetching the output profile fails.",
         "operationId": "get_output_profile_api_v2_studio_profiles__profile_id__get",
         "security": [
           {
@@ -3430,7 +3430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutputProfile-Output"
+                  "$ref": "#/components/schemas/OutputProfile"
                 }
               }
             }
@@ -3452,7 +3452,7 @@
           "Studio - Output Profiles"
         ],
         "summary": "Save Output Profile",
-        "description": "Update a specific OutputProfile.",
+        "description": "Update a specific OutputProfile.\n\nArgs:\n    data: The new output profile data.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n    profile_id: The unique identifier of the output profile.\n\nReturns:\n    The updated OutputProfile.\n\nRaises:\n    ResourceNotFoundError: If the output profile is not found.\n    AppException: If updating the output profile fails.",
         "operationId": "save_output_profile_api_v2_studio_profiles__profile_id__put",
         "security": [
           {
@@ -3476,7 +3476,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OutputProfile-Input"
+                "$ref": "#/components/schemas/OutputProfile"
               }
             }
           }
@@ -3487,7 +3487,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutputProfile-Output"
+                  "$ref": "#/components/schemas/OutputProfile"
                 }
               }
             }
@@ -3509,7 +3509,7 @@
           "Studio - Output Profiles"
         ],
         "summary": "Delete Output Profile",
-        "description": "Delete a specific OutputProfile.",
+        "description": "Delete a specific OutputProfile.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n    profile_id: The unique identifier of the output profile.\n\nRaises:\n    ResourceNotFoundError: If the output profile is not found.\n    AppException: If deleting the output profile fails.",
         "operationId": "delete_output_profile_api_v2_studio_profiles__profile_id__delete",
         "security": [
           {
@@ -3551,7 +3551,7 @@
           "Studio - Output Profiles"
         ],
         "summary": "Clone Output Profile",
-        "description": "Clone an existing OutputProfile.",
+        "description": "Clone an existing OutputProfile.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n    profile_id: The unique identifier of the output profile to clone.\n\nReturns:\n    The cloned OutputProfile.\n\nRaises:\n    ResourceNotFoundError: If the source output profile is not found.\n    AppException: If cloning the output profile fails.",
         "operationId": "clone_output_profile_api_v2_studio_profiles__profile_id__clone_post",
         "security": [
           {
@@ -3576,7 +3576,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutputProfile-Output"
+                  "$ref": "#/components/schemas/OutputProfile"
                 }
               }
             }
@@ -4081,7 +4081,7 @@
         "title": "DataDictionaryField",
         "description": "UI Hints mapping for dynamic form generation (SDUI)."
       },
-      "EmbeddedOutputProfile-Input": {
+      "EmbeddedOutputProfile": {
         "properties": {
           "name": {
             "$ref": "#/components/schemas/I18nText",
@@ -4232,173 +4232,7 @@
           },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock-Input"
-            },
-            "type": "array",
-            "title": "Layouts",
-            "description": "Ordered sequence of layout blocks."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "EmbeddedOutputProfile",
-        "description": "Embedded configuration mapping for workflow output profiles."
-      },
-      "EmbeddedOutputProfile-Output": {
-        "properties": {
-          "name": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Localized name of the profile."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Detailed profile context"
-          },
-          "custom_preface": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Rich text preface shown at the very beginning of the report."
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Language",
-            "description": "Target output language."
-          },
-          "formatting_directives": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Formatting Directives",
-            "description": "List of LLM formatting mandates."
-          },
-          "tone_instruction": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Dynamic tone instruction for synthesis."
-          },
-          "visible_metadata": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Visible Metadata",
-            "description": "List of metadata fields visible on the UI and PDF cover header."
-          },
-          "visible_block_extensions": {
-            "items": {
-              "$ref": "#/components/schemas/XaiExtensionType"
-            },
-            "type": "array",
-            "title": "Visible Block Extensions",
-            "description": "Block-level XAI extensions (per-matrix, LLM-produced)."
-          },
-          "visible_workflow_extensions": {
-            "items": {
-              "$ref": "#/components/schemas/XaiExtensionType"
-            },
-            "type": "array",
-            "title": "Visible Workflow Extensions",
-            "description": "Workflow-level global extensions (mathematical engines)."
-          },
-          "max_extension_items": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Extension Items",
-            "description": "Max number of items to show per grouped XAI extension. Sorted by severity."
-          },
-          "display_scale": {
-            "type": "string",
-            "enum": [
-              "original",
-              "custom",
-              "normalized_100"
-            ],
-            "title": "Display Scale",
-            "description": "Selects the source scaling for the scores printed by Blueprint.",
-            "default": "original"
-          },
-          "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Nested definition for synthesis configurations."
-          },
-          "include_diagnostic_scorecard": {
-            "type": "boolean",
-            "title": "Include Diagnostic Scorecard",
-            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
-            "default": false
-          },
-          "strictness_level": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 100.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strictness Level",
-            "description": "Profile-level strictness override."
-          },
-          "scoring_strategy": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ScoringStrategy"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Profile-level strategy override."
-          },
-          "layouts": {
-            "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock-Output"
+              "$ref": "#/components/schemas/OutputLayoutBlock"
             },
             "type": "array",
             "title": "Layouts",
@@ -4872,79 +4706,7 @@
         "title": "ExecutionStepState",
         "description": "Real-time status tracking for a single DAG node."
       },
-      "ExpectedInput-Input": {
-        "properties": {
-          "input_key": {
-            "type": "string",
-            "title": "Input Key",
-            "description": "The internal key for routing this input (e.g., 'history_text')."
-          },
-          "label": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Localized label for the UI."
-          },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "description": "Whether this input is universally required."
-          },
-          "is_chat_history": {
-            "type": "boolean",
-            "title": "Is Chat History",
-            "description": "If True, routes to ChatParserService for special parsing.",
-            "default": false
-          },
-          "scan_for_performative_patterns": {
-            "type": "boolean",
-            "title": "Scan For Performative Patterns",
-            "description": "Whether to scan this input for performative AI jargon.",
-            "default": false
-          },
-          "input_modes": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Input Modes",
-            "description": "Allowed modes: 'file', 'paste', 'questionnaire'."
-          },
-          "description": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Localized description/help text."
-          },
-          "ai_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ai Description",
-            "description": "MANDATORY: English cognitive instructions for the LLM. Isolates AI prompt from UI localizations."
-          },
-          "questionnaire_definition": {
-            "items": {
-              "$ref": "#/components/schemas/QuestionnaireItem"
-            },
-            "type": "array",
-            "title": "Questionnaire Definition",
-            "description": "Definitions if 'questionnaire' is in input_modes."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "input_key",
-          "label",
-          "required",
-          "description"
-        ],
-        "title": "ExpectedInput",
-        "description": "Dynamic input definition for a workflow (0-N inputs)."
-      },
-      "ExpectedInput-Output": {
+      "ExpectedInput": {
         "properties": {
           "input_key": {
             "type": "string",
@@ -5467,38 +5229,7 @@
         "title": "MCPGatewayDeleteResponse",
         "description": "API Response schema for deleting an MCP gateway.\n\nAttributes:\n    status: Action outcome status message.\n    deleted_id: Opaque ID of the deleted gateway."
       },
-      "MatrixClaim-Input": {
-        "properties": {
-          "label": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "User-facing empirical claim."
-          },
-          "ai_description": {
-            "type": "string",
-            "title": "Ai Description",
-            "description": "Specific AI enforcement rule for this claim."
-          },
-          "tda_assertions": {
-            "items": {
-              "$ref": "#/components/schemas/TDAAssertion"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Tda Assertions",
-            "description": "Test-Driven Assertion rules explicitly set by experts."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "label",
-          "ai_description",
-          "tda_assertions"
-        ],
-        "title": "MatrixClaim",
-        "description": "Represents a single behavioral claim with an AI evaluation directive.\n\nAttributes:\n    label: User-facing empirical claim.\n    ai_description: Specific AI enforcement rule for this claim.\n    tda_assertions: Test-Driven Assertion rules explicitly set by experts."
-      },
-      "MatrixClaim-Output": {
+      "MatrixClaim": {
         "properties": {
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -5550,7 +5281,7 @@
         "title": "MatrixRow",
         "description": "Represents a row in a 2D matrix evaluating multiple dimensions.\n\nAttributes:\n    label: User-facing row name.\n    ai_description: Dedicated AI evaluation instruction for this sub-dimension."
       },
-      "MatrixScale-Input": {
+      "MatrixScale": {
         "properties": {
           "score": {
             "type": "integer",
@@ -5575,48 +5306,7 @@
           },
           "claims": {
             "items": {
-              "$ref": "#/components/schemas/MatrixClaim-Input"
-            },
-            "type": "array",
-            "title": "Claims",
-            "description": "List of behavioral claims/criteria for this score."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "score",
-          "ai_label"
-        ],
-        "title": "MatrixScale",
-        "description": "Represents a single score point in a BARS matrix scale.\n\nAttributes:\n    score: Numerical value of the scale point.\n    name: Optional name for the scale point (e.g., 'Excellent').\n    ai_label: Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE.\n    claims: List of behavioral claims/criteria for this score."
-      },
-      "MatrixScale-Output": {
-        "properties": {
-          "score": {
-            "type": "integer",
-            "title": "Score",
-            "description": "Numerical value of the scale point."
-          },
-          "name": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional name for the scale point (e.g., 'Excellent')."
-          },
-          "ai_label": {
-            "type": "string",
-            "title": "Ai Label",
-            "description": "Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE"
-          },
-          "claims": {
-            "items": {
-              "$ref": "#/components/schemas/MatrixClaim-Output"
+              "$ref": "#/components/schemas/MatrixClaim"
             },
             "type": "array",
             "title": "Claims",
@@ -5977,7 +5667,7 @@
         "title": "OrganizationDeleteResponse",
         "description": "Payload response for deleting an organization.\n\nAttributes:\n    status (str): Deletion status message.\n    deleted_id (str): ID of the deleted organization."
       },
-      "OutputLayoutBlock-Input": {
+      "OutputLayoutBlock": {
         "properties": {
           "preset_view": {
             "type": "string",
@@ -6102,132 +5792,7 @@
         "title": "OutputLayoutBlock",
         "description": "A single sequential rendering block for a report profile."
       },
-      "OutputLayoutBlock-Output": {
-        "properties": {
-          "preset_view": {
-            "type": "string",
-            "enum": [
-              "1d_metrics",
-              "2d_compare",
-              "3d_complex",
-              "3d_matrix",
-              "default",
-              "text_only"
-            ],
-            "title": "Preset View",
-            "description": "The static UI renderer preset (e.g. 1d_metrics, 3d_complex)."
-          },
-          "title": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional localized layout title."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional localized layout description."
-          },
-          "steps": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Steps",
-            "description": "List of step IDs providing the axes."
-          },
-          "target_blocks": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Target Blocks",
-            "description": "Optional explicit block IDs to plot, filtering and ordering the axes."
-          },
-          "text_delivery_mode": {
-            "type": "string",
-            "enum": [
-              "full",
-              "titles_only",
-              "none"
-            ],
-            "title": "Text Delivery Mode",
-            "description": "Granularity of text output in PDF and UI grids.",
-            "default": "full"
-          },
-          "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional Section-Level Synthesis configuration for this block."
-          },
-          "synthesis_blocks": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Synthesis Blocks",
-            "description": "Optional Section-Level Synthesis content blocks."
-          },
-          "strictness_level": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 100.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strictness Level",
-            "description": "Override for strictness_level in this layout."
-          },
-          "scoring_strategy": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ScoringStrategy"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Override for scoring_strategy in this layout."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "preset_view"
-        ],
-        "title": "OutputLayoutBlock",
-        "description": "A single sequential rendering block for a report profile."
-      },
-      "OutputProfile-Input": {
+      "OutputProfile": {
         "properties": {
           "id": {
             "type": "string",
@@ -6405,203 +5970,7 @@
           },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock-Input"
-            },
-            "type": "array",
-            "title": "Layouts",
-            "description": "Ordered sequence of layout blocks."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "slug",
-          "workflow_id",
-          "name"
-        ],
-        "title": "OutputProfile",
-        "description": "A distinct report variant containing a sequence of layout blocks."
-      },
-      "OutputProfile-Output": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
-            "title": "Id",
-            "description": "Unique Profile ID"
-          },
-          "slug": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9_\\-]+$",
-            "title": "Slug",
-            "description": "Fallback slug identifier"
-          },
-          "workflow_id": {
-            "type": "string",
-            "title": "Workflow Id",
-            "description": "ID of the associated Workflow"
-          },
-          "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Organization Id",
-            "description": "Tenant organization ID."
-          },
-          "name": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Detailed profile context"
-          },
-          "custom_preface": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Rich text preface shown at the very beginning of the report."
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Language",
-            "description": "Target output language."
-          },
-          "formatting_directives": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Formatting Directives",
-            "description": "List of LLM formatting mandates."
-          },
-          "tone_instruction": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Dynamic tone instruction for synthesis."
-          },
-          "visible_metadata": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Visible Metadata",
-            "description": "List of metadata fields visible on the UI and PDF cover header."
-          },
-          "visible_block_extensions": {
-            "items": {
-              "$ref": "#/components/schemas/XaiExtensionType"
-            },
-            "type": "array",
-            "title": "Visible Block Extensions",
-            "description": "Block-level XAI extensions (per-matrix, LLM-produced)."
-          },
-          "visible_workflow_extensions": {
-            "items": {
-              "$ref": "#/components/schemas/XaiExtensionType"
-            },
-            "type": "array",
-            "title": "Visible Workflow Extensions",
-            "description": "Workflow-level global extensions (mathematical engines)."
-          },
-          "max_extension_items": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Max Extension Items",
-            "description": "Max number of items to show per grouped XAI extension.",
-            "default": 3
-          },
-          "display_scale": {
-            "type": "string",
-            "enum": [
-              "original",
-              "custom",
-              "normalized_100"
-            ],
-            "title": "Display Scale",
-            "description": "Selects the source scaling for the scores printed by Blueprint.",
-            "default": "original"
-          },
-          "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Nested definition for synthesis configurations."
-          },
-          "include_diagnostic_scorecard": {
-            "type": "boolean",
-            "title": "Include Diagnostic Scorecard",
-            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
-            "default": false
-          },
-          "strictness_level": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "enum": [
-                  85,
-                  100
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strictness Level",
-            "description": "Profile-level strictness override."
-          },
-          "scoring_strategy": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ScoringStrategy"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Profile-level strategy override."
-          },
-          "layouts": {
-            "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock-Output"
+              "$ref": "#/components/schemas/OutputLayoutBlock"
             },
             "type": "array",
             "title": "Layouts",
@@ -6800,7 +6169,7 @@
           },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock-Input"
+              "$ref": "#/components/schemas/OutputLayoutBlock"
             },
             "type": "array",
             "title": "Layouts",
@@ -6822,7 +6191,7 @@
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/OutputProfile-Output"
+              "$ref": "#/components/schemas/OutputProfile"
             },
             "type": "array",
             "title": "Items"
@@ -6834,7 +6203,7 @@
           "items"
         ],
         "title": "OutputProfileListResponse",
-        "description": "Response model for a list of OutputProfiles."
+        "description": "Response model for a list of OutputProfiles.\n\nAttributes:\n    items: List of OutputProfile domain objects."
       },
       "OutputProfileResponseDTO": {
         "properties": {
@@ -6986,7 +6355,7 @@
           },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock-Output"
+              "$ref": "#/components/schemas/OutputLayoutBlock"
             },
             "type": "array",
             "title": "Layouts"
@@ -7122,7 +6491,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/MatrixScale-Input"
+                  "$ref": "#/components/schemas/MatrixScale"
                 },
                 "type": "array"
               },
@@ -7353,7 +6722,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/MatrixScale-Output"
+                  "$ref": "#/components/schemas/MatrixScale"
                 },
                 "type": "array"
               },
@@ -8006,7 +7375,6 @@
         "type": "string",
         "enum": [
           "WATERFALL",
-          "DAMPENING",
           "AVERAGE",
           "WEIGHTED_AVERAGE",
           "PURE_MATH"
@@ -8706,50 +8074,7 @@
         "title": "SynthesisConfigDTO",
         "description": "Configuration for LLM output synthesis length, masking, and formatting."
       },
-      "SystemConfigMCPGateways-Input": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
-            "title": "Id",
-            "description": "System config ID"
-          },
-          "type": {
-            "type": "string",
-            "title": "Type",
-            "description": "Config type discriminator."
-          },
-          "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Slug",
-            "description": "System Config identifier slug"
-          },
-          "tools": {
-            "items": {
-              "$ref": "#/components/schemas/AllowedMCPTool"
-            },
-            "type": "array",
-            "title": "Tools",
-            "description": "Registry of all available MCP tools in the system."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "type"
-        ],
-        "title": "SystemConfigMCPGateways",
-        "description": "System-level registry of available MCP tool gateways."
-      },
-      "SystemConfigMCPGateways-Output": {
+      "SystemConfigMCPGateways": {
         "properties": {
           "id": {
             "type": "string",
@@ -9728,6 +9053,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -9815,7 +9147,7 @@
           },
           "output_profiles": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/EmbeddedOutputProfile-Input"
+              "$ref": "#/components/schemas/EmbeddedOutputProfile"
             },
             "type": "object",
             "title": "Output Profiles",
@@ -9865,7 +9197,7 @@
           },
           "expected_inputs": {
             "items": {
-              "$ref": "#/components/schemas/ExpectedInput-Input"
+              "$ref": "#/components/schemas/ExpectedInput"
             },
             "type": "array",
             "title": "Expected Inputs",
@@ -10100,7 +9432,7 @@
           },
           "output_profiles": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/EmbeddedOutputProfile-Output"
+              "$ref": "#/components/schemas/EmbeddedOutputProfile"
             },
             "type": "object",
             "title": "Output Profiles",
@@ -10150,7 +9482,7 @@
           },
           "expected_inputs": {
             "items": {
-              "$ref": "#/components/schemas/ExpectedInput-Output"
+              "$ref": "#/components/schemas/ExpectedInput"
             },
             "type": "array",
             "title": "Expected Inputs",

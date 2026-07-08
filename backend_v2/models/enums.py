@@ -17,7 +17,6 @@ class EvaluationMandate(StrEnum):
     )
 
 
-
 class ExecutionProfile(StrEnum):
     """Defines the execution intent for an LLM client, overriding static configuration rules.
 

@@ -7,7 +7,7 @@ import logging
 
 from fastapi import APIRouter
 
-from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioServiceDep
+from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioSystemConfigServiceDep
 from backend_v2.models.dtos.studio import ModelRegistryDeleteResponse
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/model-registry", tags=["Admin Studio V2 - Model Regi
 
 @router.get("/available-models", response_model=list[str])
 def get_available_models(
-    current_user: CurrentUserDep, llm_handler: LLMHandlerDep, studio_service: StudioServiceDep
+    current_user: CurrentUserDep, llm_handler: LLMHandlerDep, studio_service: StudioSystemConfigServiceDep
 ) -> list[str]:
     """Retrieve all available LLM models discovered by the LLM Handler.
 
@@ -38,7 +38,7 @@ def get_available_models(
 
 @router.get("/", response_model=list[SystemConfigModelRegistry])
 async def get_all_model_registries(
-    current_user: CurrentUserDep, studio_service: StudioServiceDep
+    current_user: CurrentUserDep, studio_service: StudioSystemConfigServiceDep
 ) -> list[SystemConfigModelRegistry]:
     """Retrieve all global model registry configurations securely via SSOT Service Layer.
 
@@ -57,7 +57,7 @@ async def get_all_model_registries(
 
 @router.post("/", response_model=SystemConfigModelRegistry)
 async def create_model_registry(
-    current_user: CurrentUserDep, studio_service: StudioServiceDep
+    current_user: CurrentUserDep, studio_service: StudioSystemConfigServiceDep
 ) -> SystemConfigModelRegistry:
     """Create a new Model Registry config draft securely via SSOT Service Layer.
 
@@ -78,7 +78,7 @@ async def create_model_registry(
 async def get_model_registry(
     registry_id: str,
     current_user: CurrentUserDep,
-    studio_service: StudioServiceDep,
+    studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigModelRegistry:
     """Retrieve a single model registry configuration securely via SSOT Service Layer.
 
@@ -102,7 +102,7 @@ async def save_model_registry(
     registry_id: str,
     data: SystemConfigModelRegistry,
     current_user: CurrentUserDep,
-    studio_service: StudioServiceDep,
+    studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigModelRegistry:
     """Update a model registry configuration securely via SSOT Service Layer.
 
@@ -124,7 +124,7 @@ async def save_model_registry(
 
 @router.delete("/{registry_id}", response_model=ModelRegistryDeleteResponse)
 async def delete_model_registry(
-    registry_id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
+    registry_id: str, current_user: CurrentUserDep, studio_service: StudioSystemConfigServiceDep
 ) -> ModelRegistryDeleteResponse:
     """Delete a model registry configuration securely via SSOT Service Layer.
 
@@ -148,7 +148,7 @@ async def delete_model_registry(
 async def clone_model_registry(
     registry_id: str,
     current_user: CurrentUserDep,
-    studio_service: StudioServiceDep,
+    studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigModelRegistry:
     """Deep clone a model registry configuration securely via SSOT Service Layer.
 

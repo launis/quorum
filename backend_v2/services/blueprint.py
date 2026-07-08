@@ -805,7 +805,8 @@ class BlueprintTransformer:
         default_profile_ref = workflow_obj.default_profile_id
         resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
 
-        all_profiles = await self.output_profile_repo.get_all_output_profiles_models()
+        all_profiles_dicts = await self.output_profile_repo.get_all_output_profiles()
+        all_profiles = [OutputProfile.model_validate(p_dict, strict=False) for p_dict in all_profiles_dicts]
 
         profile = next((p for p in all_profiles if p.id == resolved_pid_request), None)
 
@@ -835,9 +836,10 @@ class BlueprintTransformer:
             ext: [] for ext in block_ext_values + workflow_ext_values if ext != "source_id"
         }
 
-        all_blocks_models = await self.prompt_block_repo.get_all_prompt_blocks_models()
+        all_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
         blocks_by_id: dict[str, PromptBlock] = {}
-        for b in all_blocks_models:
+        for b_dict in all_blocks_raw:
+            b = PromptBlock.model_validate(b_dict, strict=False)
             if b.id:
                 blocks_by_id[b.id] = b
 

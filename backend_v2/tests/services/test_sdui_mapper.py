@@ -5,7 +5,10 @@ from backend_v2.services.sdui_mapper import SduiMapperService
 
 def test_map_evidence_to_sdui_valid() -> None:
     """Test that a valid QuoteEvidenceDTO maps to SduiQuoteCard."""
-    dto = QuoteEvidenceDTO.model_validate({"quote": "A valid quote", "source_alias": ["src_1", "src_2"]}, context={"alias_registry": {"src_1": "uuid-1", "src_2": "uuid-2"}})
+    dto = QuoteEvidenceDTO.model_validate(
+        {"quote": "A valid quote", "source_alias": ["src_1", "src_2"]},
+        context={"alias_registry": {"src_1": "uuid-1", "src_2": "uuid-2"}},
+    )
 
     result = SduiMapperService.map_evidence_to_sdui(dto)
 
@@ -16,7 +19,10 @@ def test_map_evidence_to_sdui_valid() -> None:
 
 def test_map_evidence_to_sdui_hallucinated() -> None:
     """Test that an unverified source alias yields a Warning Card (RFC 7807)."""
-    dto = QuoteEvidenceDTO.model_validate({"quote": "A hallucinated quote", "source_alias": ["src_1", "OpaqueID.UNVERIFIED", "src_2"]}, context={"alias_registry": {}})
+    dto = QuoteEvidenceDTO.model_validate(
+        {"quote": "A hallucinated quote", "source_alias": ["src_1", "OpaqueID.UNVERIFIED", "src_2"]},
+        context={"alias_registry": {}},
+    )
 
     result = SduiMapperService.map_evidence_to_sdui(dto)
 

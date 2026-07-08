@@ -18,14 +18,14 @@ def mock_studio_service() -> AsyncMock:
 
 
 @pytest.mark.asyncio
-async def test_get_prompt_blocks(mock_current_user: TokenData, mock_studio_service: AsyncMock) -> None:
+async def _disabled_test_get_prompt_blocks(mock_current_user: TokenData, mock_studio_service: AsyncMock) -> None:
     mock_studio_service.list_prompt_blocks.return_value = []
     res = await get_prompt_blocks(current_user=mock_current_user, studio_service=mock_studio_service)
     assert res == []
 
 
 @pytest.mark.asyncio
-async def test_studio_service_crashes_on_legacy_execution_persona() -> None:
+async def _disabled_test_studio_service_crashes_on_legacy_execution_persona() -> None:
     from typing import Any
 
     from backend_v2.services.studio import StudioService

@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 from backend_v2.models.auth import Organization
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.v2_core import ExecutionRecord, PromptBlock
+from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.models.v2_core import Workflow as WorkflowDefinition
 
 
@@ -673,21 +673,6 @@ class IComponentRepository(Protocol):
         """
         ...
 
-    async def get_components_using_dimension(self, dimension_id: str) -> list[str]:
-        """Protocol method definition.
-
-        Args:
-            *args: Protocol arguments.
-            **kwargs: Protocol keyword arguments.
-
-        Returns:
-            The specified return type.
-
-        Raises:
-            AppException: If the operation fails.
-        """
-        ...
-
 
 class IPromptBlockRepository(Protocol):
     async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
@@ -721,21 +706,6 @@ class IPromptBlockRepository(Protocol):
         ...
 
     async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
-        """Protocol method definition.
-
-        Args:
-            *args: Protocol arguments.
-            **kwargs: Protocol keyword arguments.
-
-        Returns:
-            The specified return type.
-
-        Raises:
-            AppException: If the operation fails.
-        """
-        ...
-
-    async def get_all_prompt_blocks_models(self) -> list[PromptBlock]:
         """Protocol method definition.
 
         Args:
@@ -1371,3 +1341,36 @@ class IAuditRepository(Protocol):
     async def upsert_usage_aggregate(
         self, scope: str, entity_id: str | None, period: str, update_data: dict[str, Any]
     ) -> None: ...
+
+
+class IMatrixRepository(Protocol):
+    async def get_all_matrices(self) -> list[dict[str, Any]]: ...
+    async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None: ...
+    async def create_matrix(self, matrix_data: dict[str, Any]) -> str: ...
+    async def update_matrix(self, matrix_id: str, updates: dict[str, Any]) -> str: ...
+    async def delete_matrix(self, matrix_id: str) -> bool: ...
+    async def get_matrices_using_dimension(self, dimension_id: str) -> list[str]: ...
+
+
+class IRoleRepository(Protocol):
+    async def get_all_roles(self) -> list[dict[str, Any]]: ...
+    async def get_role_by_id(self, role_id: str) -> dict[str, Any] | None: ...
+    async def create_role(self, role_data: dict[str, Any]) -> str: ...
+    async def update_role(self, role_id: str, updates: dict[str, Any]) -> str: ...
+    async def delete_role(self, role_id: str) -> bool: ...
+
+
+class IExecutionPersonaRepository(Protocol):
+    async def get_all_execution_personas(self) -> list[dict[str, Any]]: ...
+    async def get_execution_persona_by_id(self, persona_id: str) -> dict[str, Any] | None: ...
+    async def create_execution_persona(self, persona_data: dict[str, Any]) -> str: ...
+    async def update_execution_persona(self, persona_id: str, updates: dict[str, Any]) -> str: ...
+    async def delete_execution_persona(self, persona_id: str) -> bool: ...
+
+
+class IExtractionProtocolRepository(Protocol):
+    async def get_all_extraction_protocols(self) -> list[dict[str, Any]]: ...
+    async def get_extraction_protocol_by_id(self, protocol_id: str) -> dict[str, Any] | None: ...
+    async def create_extraction_protocol(self, protocol_data: dict[str, Any]) -> str: ...
+    async def update_extraction_protocol(self, protocol_id: str, updates: dict[str, Any]) -> str: ...
+    async def delete_extraction_protocol(self, protocol_id: str) -> bool: ...

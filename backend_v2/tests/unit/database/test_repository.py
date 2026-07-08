@@ -148,7 +148,7 @@ async def test_all_passthrough_methods(mock_validate: AsyncMock) -> None:
     await repo.get_mcp_gateways()
     await repo.update_mcp_gateways({})
     await repo.count_executions_by_matrix("1")
-    await repo.get_components_using_dimension("1")
+    await repo.get_matrices_using_dimension("1")
     await repo.list_organizations()
     await repo.get_organization("1")
     await repo.create_organization({"id": "1"})

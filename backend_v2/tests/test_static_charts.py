@@ -92,8 +92,9 @@ def test_empty_scatter() -> None:
         )
     ]
     from backend_v2.exceptions import AppException
+
     with pytest.raises(AppException):
-        b64 = generate_scatter_chart(axes)
+        generate_scatter_chart(axes)
 
 
 def test_empty_radar() -> None:
@@ -116,5 +117,6 @@ def test_empty_radar() -> None:
         ),
     ]
     from backend_v2.exceptions import AppException
+
     with pytest.raises(AppException):
-        b64 = generate_radar_chart(axes)
+        generate_radar_chart(axes)

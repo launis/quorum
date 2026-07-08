@@ -7,7 +7,7 @@ import logging
 
 from fastapi import APIRouter
 
-from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
+from backend_v2.api.dependencies import CurrentUserDep, StudioSystemConfigServiceDep
 from backend_v2.models.dtos.studio import MCPGatewayDeleteResponse
 from backend_v2.models.v2_core import SystemConfigMCPGateways
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/mcp-gateways", tags=["Admin Studio V2 - MCP Gateways
 
 @router.get("/", response_model=list[SystemConfigMCPGateways])
 async def get_all_mcp_gateways(
-    current_user: CurrentUserDep, studio_service: StudioServiceDep
+    current_user: CurrentUserDep, studio_service: StudioSystemConfigServiceDep
 ) -> list[SystemConfigMCPGateways]:
     """Retrieve all MCP Gateways configurations securely via SSOT Service Layer.
 
@@ -37,7 +37,7 @@ async def get_all_mcp_gateways(
 
 @router.post("/", response_model=SystemConfigMCPGateways)
 async def create_mcp_gateways(
-    current_user: CurrentUserDep, studio_service: StudioServiceDep
+    current_user: CurrentUserDep, studio_service: StudioSystemConfigServiceDep
 ) -> SystemConfigMCPGateways:
     """Create a new MCP Gateway Config draft securely via SSOT.
 
@@ -58,7 +58,7 @@ async def create_mcp_gateways(
 async def get_mcp_gateway(
     gateway_id: str,
     current_user: CurrentUserDep,
-    studio_service: StudioServiceDep,
+    studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigMCPGateways:
     """Retrieve a single MCP Gateway configuration securely via SSOT Service Layer.
 
@@ -82,7 +82,7 @@ async def save_mcp_gateway(
     gateway_id: str,
     data: SystemConfigMCPGateways,
     current_user: CurrentUserDep,
-    studio_service: StudioServiceDep,
+    studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigMCPGateways:
     """Update an MCP Gateway configuration securely via SSOT Service Layer.
 
@@ -104,7 +104,7 @@ async def save_mcp_gateway(
 
 @router.delete("/{gateway_id}", response_model=MCPGatewayDeleteResponse)
 async def delete_mcp_gateway(
-    gateway_id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
+    gateway_id: str, current_user: CurrentUserDep, studio_service: StudioSystemConfigServiceDep
 ) -> MCPGatewayDeleteResponse:
     """Delete an MCP Gateway configuration securely via SSOT Service Layer.
 
@@ -128,7 +128,7 @@ async def delete_mcp_gateway(
 async def clone_mcp_gateway(
     gateway_id: str,
     current_user: CurrentUserDep,
-    studio_service: StudioServiceDep,
+    studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigMCPGateways:
     """Deep clone an MCP Gateway configuration securely via SSOT Service Layer.
 

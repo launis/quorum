@@ -2,8 +2,6 @@ import hashlib
 from collections.abc import Awaitable
 from typing import Any, cast
 
-from unittest.mock import AsyncMock
-
 import pytest
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState

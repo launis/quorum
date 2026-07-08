@@ -8,7 +8,7 @@ import logging
 
 from fastapi import APIRouter, status
 
-from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
+from backend_v2.api.dependencies import CurrentUserDep, StudioOutputProfileServiceDep
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import (
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/output-profiles", tags=["Output Profiles"])
 @router.get("/", response_model=list[OutputProfileResponseDTO])
 async def list_output_profiles(
     initiator: CurrentUserDep,
-    service: StudioServiceDep,
+    service: StudioOutputProfileServiceDep,
 ) -> list[OutputProfile]:
     """List all available Output Profiles.
 
@@ -44,7 +44,7 @@ async def list_output_profiles(
 @router.post("/", response_model=OutputProfileResponseDTO)
 async def create_output_profile(
     initiator: CurrentUserDep,
-    service: StudioServiceDep,
+    service: StudioOutputProfileServiceDep,
 ) -> OutputProfile:
     """Create a new Output Profile draft securely via SSOT Service Layer.
 
@@ -62,7 +62,7 @@ async def create_output_profile(
 async def get_output_profile(
     profile_id: str,
     initiator: CurrentUserDep,
-    service: StudioServiceDep,
+    service: StudioOutputProfileServiceDep,
 ) -> OutputProfile:
     """Get a specific Output Profile by its unique identifier.
 
@@ -83,7 +83,7 @@ async def upsert_output_profile(
     profile_id: str,
     dto: OutputProfileCreateDTO,
     initiator: CurrentUserDep,
-    service: StudioServiceDep,
+    service: StudioOutputProfileServiceDep,
 ) -> OutputProfile:
     """Create or Update an Output Profile.
 
@@ -129,7 +129,7 @@ async def upsert_output_profile(
 async def delete_output_profile(
     profile_id: str,
     initiator: CurrentUserDep,
-    service: StudioServiceDep,
+    service: StudioOutputProfileServiceDep,
 ) -> None:
     """Delete an Output Profile.
 
@@ -145,7 +145,7 @@ async def delete_output_profile(
 async def clone_output_profile(
     profile_id: str,
     initiator: CurrentUserDep,
-    service: StudioServiceDep,
+    service: StudioOutputProfileServiceDep,
 ) -> OutputProfile:
     """Deep clone an Output Profile.
 

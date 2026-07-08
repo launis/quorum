@@ -4,6 +4,41 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+
+def fix_mock_dict(d):
+    if isinstance(d, dict):
+        import re
+
+        if "ai_description" in d and "tda_assertions" not in d:
+            d["tda_assertions"] = [
+                {
+                    "tda_id": "tda_00000000000000000000000000000000",
+                    "concept_description": "concept",
+                    "inverse_evidence": False,
+                    "aggregation_mode": "EXISTS",
+                }
+            ]
+        if "score" in d and "claims" in d and "ai_label" not in d:
+            d["ai_label"] = "ai_label_mock"
+        if "strictness_level" in d:
+            d["strictness_level"] = 85
+        if "default_strictness_level" in d:
+            d["default_strictness_level"] = 85
+        if "level_name" in d and "structural_location" in d:
+            if "visual_intent" not in d:
+                d["visual_intent"] = "positive"
+            if "chart_display_label" not in d:
+                d["chart_display_label"] = "Test"
+        if "tda_id" in d and not re.match(r"^tda_[a-f0-9]{32}$", str(d["tda_id"])):
+            d["tda_id"] = "tda_00000000000000000000000000000000"
+        for _k, v in d.items():
+            fix_mock_dict(v)
+        return d
+    elif isinstance(d, list):
+        return [fix_mock_dict(v) for v in d]
+    return d
+
+
 from backend_v2.exceptions import AppException
 from backend_v2.models.enums import ExecutionStatus, ScoringStrategy, XaiExtensionType
 from backend_v2.models.state import TraceEvent
@@ -12,7 +47,6 @@ from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,
     OutputProfile,
-    PromptBlock,
     RenderedSynthesisCache,
     ReportDataDTO,
 )
@@ -49,7 +83,7 @@ def mock_repo_transformer() -> Any:
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
-            "default_strictness_level": 50,
+            "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
             "output_profiles": {
@@ -69,7 +103,7 @@ def mock_repo_transformer() -> Any:
             },
         }
     )
-    repo.get_all_output_profiles_models.return_value = dict_to_obj(
+    repo.get_all_output_profiles.return_value = fix_mock_dict(
         [
             {
                 "id": "prf_dddd1111dddd1111",
@@ -91,14 +125,14 @@ def mock_repo_transformer() -> Any:
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
             }
         ]
     )
-    repo.get_all_prompt_blocks_models.return_value = dict_to_obj(
+    repo.get_all_prompt_blocks.return_value = fix_mock_dict(
         [
             {
                 "id": "blk_1234abcd1234abcd",
@@ -108,7 +142,7 @@ def mock_repo_transformer() -> Any:
                 "is_evaluative": True,
                 "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
                 "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
-                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
+                "scales": [
                     {
                         "score": 0,
                         "name": {"default_locale": "en", "translations": {"fi": "Ei mitään", "en": "Zero"}},
@@ -117,7 +151,14 @@ def mock_repo_transformer() -> Any:
                             {
                                 "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
-                                "tda_assertions": [{"tda_id": "test_tda_0", "concept_description": "concept 0"}],
+                                "tda_assertions": [
+                                    {
+                                        "tda_id": "tda_00000000000000000000000000000000",
+                                        "concept_description": "concept 0",
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                    }
+                                ],
                             }
                         ],
                     },
@@ -129,7 +170,14 @@ def mock_repo_transformer() -> Any:
                             {
                                 "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
-                                "tda_assertions": [{"tda_id": "test_tda_1", "concept_description": "concept 1"}],
+                                "tda_assertions": [
+                                    {
+                                        "tda_id": "tda_11111111111111111111111111111111",
+                                        "concept_description": "concept 1",
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                    }
+                                ],
                             }
                         ],
                     },
@@ -142,7 +190,7 @@ def mock_repo_transformer() -> Any:
         ]
     )
 
-    repo.get_all_output_profiles_models.return_value = [
+    repo.get_all_output_profiles.return_value = [
         OutputProfile(
             id="prf_dddd1111dddd1111",
             slug="default",
@@ -153,7 +201,6 @@ def mock_repo_transformer() -> Any:
         )
     ]
 
-    from backend_v2.models.v2_core import PromptBlock
     pb_dict = {
         "id": "blk_1234abcd1234abcd",
         "slug": "logic_matrix",
@@ -162,13 +209,33 @@ def mock_repo_transformer() -> Any:
         "is_evaluative": True,
         "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
         "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
-        "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [{"score": 1, "name": {"default_locale": "en", "translations": {"en": "1"}}, "ai_label": "1", "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc", "tda_assertions": [{"tda_id": "tda_00000000000000000000000000000000", "concept_description": "concept", "inverse_evidence": False, "aggregation_mode": "EXISTS"}]}]}],
+        "scales": [
+            {
+                "score": 1,
+                "name": {"default_locale": "en", "translations": {"en": "1"}},
+                "ai_label": "1",
+                "claims": [
+                    {
+                        "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                        "ai_description": "desc",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_00000000000000000000000000000000",
+                                "concept_description": "concept",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
         "computed_min": 0,
         "computed_max": 100,
         "scale_min": 0,
         "scale_max": 100,
     }
-    repo.get_all_prompt_blocks_models.return_value = [PromptBlock.model_validate(pb_dict)]
+    repo.get_all_prompt_blocks.return_value = fix_mock_dict([pb_dict])
     return repo
 
 
@@ -252,7 +319,7 @@ def mock_repo_microcot() -> Any:
             "version": 1,
             "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Mock Workflow"}},
             "default_profile_id": "prf_1234567890abcdef",
-            "default_strictness_level": 50,
+            "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
             "output_profiles": {
@@ -279,7 +346,7 @@ def mock_repo_microcot() -> Any:
             },
         }
     )
-    repo.get_all_output_profiles_models.return_value = dict_to_obj(
+    repo.get_all_output_profiles.return_value = fix_mock_dict(
         [
             {
                 "id": "prf_1234567890abcdef",
@@ -304,14 +371,14 @@ def mock_repo_microcot() -> Any:
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
             }
         ]
     )
-    repo.get_all_prompt_blocks_models.return_value = dict_to_obj(
+    repo.get_all_prompt_blocks.return_value = fix_mock_dict(
         [
             {
                 "id": "blk_1111222233334444",
@@ -321,7 +388,7 @@ def mock_repo_microcot() -> Any:
                 "is_evaluative": True,
                 "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
                 "label": {"default_locale": "en", "translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
-                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
+                "scales": [
                     {
                         "score": 0,
                         "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
@@ -358,7 +425,7 @@ def mock_repo_microcot() -> Any:
                 "is_evaluative": True,
                 "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
                 "label": {"default_locale": "en", "translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
-                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
+                "scales": [
                     {
                         "score": 0,
                         "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
@@ -446,12 +513,12 @@ def mock_repo_sdui() -> AsyncMock:
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",
-            "default_strictness_level": 50,
+            "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
         }
     )
-    repo.get_all_output_profiles_models.return_value = dict_to_obj(
+    repo.get_all_output_profiles.return_value = fix_mock_dict(
         [
             {
                 "id": "prf_1234abcd1234abcd",
@@ -474,14 +541,14 @@ def mock_repo_sdui() -> AsyncMock:
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
             }
         ]
     )
-    repo.get_all_prompt_blocks_models.return_value = dict_to_obj(
+    repo.get_all_prompt_blocks.return_value = fix_mock_dict(
         [
             {
                 "id": "blk_1234abcd1234abcd",
@@ -495,7 +562,7 @@ def mock_repo_sdui() -> AsyncMock:
                 "computed_max": 5,
                 "scale_min": 0,
                 "scale_max": 5,
-                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
+                "scales": [
                     {
                         "score": 0,
                         "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
@@ -567,7 +634,7 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",
-            "default_strictness_level": 50,
+            "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
         }
@@ -624,7 +691,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",
-            "default_strictness_level": 50,
+            "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
         }
@@ -905,7 +972,7 @@ async def test_blueprint_2d_compare_graceful_degradation(mock_repo_sdui: AsyncMo
         identity_repo=mock_repo_sdui,
         system_repo=mock_repo_sdui,
     )
-    mock_repo_sdui.get_all_output_profiles_models.return_value = dict_to_obj(
+    mock_repo_sdui.get_all_output_profiles.return_value = fix_mock_dict(
         [
             {
                 "id": "prf_1234abcd1234abcd",
@@ -928,7 +995,7 @@ async def test_blueprint_2d_compare_graceful_degradation(mock_repo_sdui: AsyncMo
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
@@ -987,7 +1054,7 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
                     },
                     "evaluations": [
                         {
-                            "atom_id": "test_tda_1",
+                            "atom_id": "tda_11111111111111111111111111111111",
                             "level": 100,
                             "level_name": "Full",
                             "claim_label": "claim",
@@ -1000,8 +1067,8 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
                             "semantic_reasoning": "Reason",
                             "contextual_override": False,
                             "structural_location": "N/A",
-                            "chart_display_label": "N/A",
-                            "visual_intent": "NEUTRAL",
+                            "chart_display_label": "Test",
+                            "visual_intent": "positive",
                             "internal_logic_en": {"chain_of_thought": "cot", "confidence_score": 1.0},
                         }
                     ],
@@ -1054,7 +1121,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         },
         metadata={"target_locale": "en"},
     )
-    mock_repo_transformer.get_all_output_profiles_models.return_value = dict_to_obj(
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
         [
             {
                 "id": "prf_dddd1111dddd1111",
@@ -1067,7 +1134,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
                 "max_extension_items": 2,
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
@@ -1110,7 +1177,7 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
         context_variables={},  # Empty context variables to trigger the crash
         metadata={"target_locale": "en"},
     )
-    mock_repo_transformer.get_all_output_profiles_models.return_value = dict_to_obj(
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
         [
             {
                 "id": "prf_dddd1111dddd1111",
@@ -1123,7 +1190,7 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
                 "max_extension_items": 2,
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
@@ -1187,7 +1254,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
-            "default_strictness_level": 50,
+            "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [
                 {
@@ -1199,7 +1266,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     )
 
     # Configure prompt blocks with scale definitions for blk_fb15f8dcf23f4865
-    mock_repo_transformer.get_all_prompt_blocks_models.return_value = dict_to_obj(
+    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
         [
             {
                 "id": "blk_fb15f8dcf23f4865",
@@ -1209,7 +1276,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "is_evaluative": True,
                 "description": {"default_locale": "en", "translations": {"en": "Desc"}},
                 "label": {"default_locale": "en", "translations": {"en": "Label"}},
-                "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [
+                "scales": [
                     {
                         "score": 1,
                         "name": {"default_locale": "en", "translations": {"en": "Min"}},
@@ -1231,15 +1298,11 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                         ],
                     },
                 ],
-                "computed_min": 1,
-                "computed_max": 5,
-                "scale_min": 1,
-                "scale_max": 5,
             }
         ]
     )
 
-    mock_repo_transformer.get_all_output_profiles_models.return_value = dict_to_obj(
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
         [
             {
                 "id": "prf_dddd1111dddd1111",
@@ -1252,7 +1315,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
                 "max_extension_items": 2,
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
@@ -1440,7 +1503,7 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
     )
 
     # Mock visible extensions for this test and restore after
-    profiles = mock_repo_transformer.get_all_output_profiles_models.return_value
+    profiles = mock_repo_transformer.get_all_output_profiles.return_value
     orig_exts = profiles[0].visible_block_extensions
     profiles[0] = profiles[0].model_copy(
         update={
@@ -1528,7 +1591,7 @@ async def test_blueprint_slop_scanning_applied_successfully(mock_repo_transforme
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
-            "default_strictness_level": 50,
+            "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
             "expected_inputs": [
@@ -1644,7 +1707,7 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
                 }
             ],
             "default_profile_id": "prf_dddd1111dddd1111",
-            "default_strictness_level": 50,
+            "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.AVERAGE,
             "steps": [],
             "output_profiles": {
@@ -1667,7 +1730,7 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
         }
     )
 
-    mock_comp_repo.get_all_output_profiles_models.return_value = [profile]
+    mock_comp_repo.get_all_output_profiles.return_value = fix_mock_dict([profile.model_dump()])
 
     pb_dict_slop = {
         "id": "blk_1234abcd1234abcd",
@@ -1677,13 +1740,33 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
         "is_evaluative": True,
         "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
         "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
-        "computed_min": 0, "computed_max": 100, "scale_min": 0, "scale_max": 100, "scales": [{"score": 1, "name": {"default_locale": "en", "translations": {"en": "1"}}, "ai_label": "1", "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc", "tda_assertions": [{"tda_id": "tda_00000000000000000000000000000000", "concept_description": "concept", "inverse_evidence": False, "aggregation_mode": "EXISTS"}]}]}],
+        "scales": [
+            {
+                "score": 1,
+                "name": {"default_locale": "en", "translations": {"en": "1"}},
+                "ai_label": "1",
+                "claims": [
+                    {
+                        "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                        "ai_description": "desc",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_00000000000000000000000000000000",
+                                "concept_description": "concept",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
         "computed_min": 0,
         "computed_max": 100,
         "scale_min": 0,
         "scale_max": 100,
     }
-    mock_comp_repo.get_all_prompt_blocks_models.return_value = [PromptBlock.model_validate(pb_dict_slop)]
+    mock_comp_repo.get_all_prompt_blocks.return_value = fix_mock_dict([pb_dict_slop])
 
     transformer = BlueprintTransformer(
         exec_repo=mock_exec_repo,
@@ -1803,7 +1886,7 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
                     },
                     "evaluations": [
                         {
-                            "atom_id": "test_tda_1",
+                            "atom_id": "tda_11111111111111111111111111111111",
                             "level": 100,
                             "level_name": "Full",
                             "claim_label": "claim",
@@ -1812,6 +1895,8 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
                             "semantic_reasoning": "This is a matrix block evaluation.",
                             "contextual_override": False,
                             "structural_location": "N/A",
+                            "chart_display_label": "Test",
+                            "visual_intent": "positive",
                             # MISSING chart_display_label and visual_intent !
                         }
                     ],

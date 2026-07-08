@@ -8,6 +8,7 @@ from typing import Any
 
 from pydantic import Field
 
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.dtos.report import PromptContextDTO
 from backend_v2.models.v2_core import PromptBlock, Step, Workflow
@@ -187,3 +188,13 @@ class WorkflowAvailableExtensionsResponse(BaseResponseDTO):
     """
 
     available_extensions: list[str] = Field(default_factory=list)
+
+
+class OutputProfileListResponse(BaseResponseDTO):
+    """Response model for a list of OutputProfiles.
+
+    Attributes:
+        items: List of OutputProfile domain objects.
+    """
+
+    items: list[OutputProfile]
