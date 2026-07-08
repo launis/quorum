@@ -154,7 +154,6 @@ class PromptCompiler:
             source_document_ids=source_document_ids,
             allowed_atom_ids=allowed_atom_ids,
             allowed_dynamic_keys=allowed_dynamic_keys,
-            allowed_mcp_prefixes=allowed_mcp_prefixes,
             max_evaluations=max_evaluations,
         )
 

@@ -377,6 +377,22 @@ class ModelRegistryView extends HookConsumerWidget {
                           cfg.copyWith(temperature: val),
                         ),
                       ),
+                      _buildDoubleField(
+                        cfg.frequencyPenalty,
+                        l10n.frequencyPenaltyLabel,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(frequencyPenalty: val),
+                        ),
+                      ),
+                      _buildDoubleField(
+                        cfg.presencePenalty,
+                        l10n.presencePenaltyLabel,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(presencePenalty: val),
+                        ),
+                      ),
                       _buildIntField(
                         cfg.maxTokens,
                         l10n.maxTokensLabel,

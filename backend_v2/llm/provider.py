@@ -127,6 +127,8 @@ class LLMProvider(ABC):
         max_tokens: int | None = None,
         top_p: float | None = None,
         top_k: int | None = None,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
         pass_reasoning_token: str | None = None,
         validation_context: dict[str, Any] | None = None,
         **kwargs: Any,
@@ -142,6 +144,8 @@ class LLMProvider(ABC):
             max_tokens: Max tokens to generate.
             top_p: Nucleus sampling mass.
             top_k: Top-K sampling count.
+            frequency_penalty: Penalizes tokens based on their frequency.
+            presence_penalty: Penalizes tokens based on their presence.
             pass_reasoning_token: Encrypted state blob from previous turn.
             validation_context: Optional context for validation.
             **kwargs: Additional provider-specific arguments.
@@ -296,6 +300,8 @@ class LiteLLMProvider(LLMProvider):
         max_tokens: int | None = None,
         top_p: float | None = None,
         top_k: int | None = None,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
         pass_reasoning_token: str | None = None,
         validation_context: dict[str, Any] | None = None,
         **kwargs: Any,
@@ -311,6 +317,8 @@ class LiteLLMProvider(LLMProvider):
             max_tokens: Max tokens to generate.
             top_p: Nucleus sampling mass.
             top_k: Top-K sampling count.
+            frequency_penalty: Penalizes tokens based on their frequency.
+            presence_penalty: Penalizes tokens based on their presence.
             pass_reasoning_token: Encrypted state blob from previous turn.
             validation_context: Optional context for validation.
             **kwargs: Additional provider-specific arguments.
@@ -428,6 +436,8 @@ class LiteLLMProvider(LLMProvider):
                 "max_tokens": max_tokens,
                 "top_p": top_p,
                 "top_k": top_k,
+                "frequency_penalty": frequency_penalty,
+                "presence_penalty": presence_penalty,
                 "response_format": response_format,
                 "api_key": self.api_key,
                 "drop_params": True,
@@ -898,6 +908,8 @@ class MockProvider(LLMProvider):
         max_tokens: int | None = None,
         top_p: float | None = None,
         top_k: int | None = None,
+        frequency_penalty: float | None = None,
+        presence_penalty: float | None = None,
         pass_reasoning_token: str | None = None,
         validation_context: dict[str, Any] | None = None,
         **kwargs: Any,

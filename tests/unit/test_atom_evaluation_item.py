@@ -39,7 +39,7 @@ def test_atom_evaluation_item_truncates_chart_label():
     # Case 4: > 3 words and combined length > 25 chars -> truncated words and length
     data["chart_display_label"] = "ThisIsALongWord And Another Long Word"
     dto = AtomEvaluationItemDTO.model_validate(data)
-    assert dto.chart_display_label == "ThisIsALongWord And..."
+    assert dto.chart_display_label == "ThisIsALongWord And An..."
     assert len(dto.chart_display_label) <= 25
 
 

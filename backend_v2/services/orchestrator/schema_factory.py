@@ -7,7 +7,6 @@ monolithic PromptCompiler, following SRP (Rule 88).
 """
 
 import logging
-import re
 from collections.abc import Callable
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Annotated, Any, cast
@@ -110,7 +109,6 @@ class SchemaFactory:
         source_document_ids: list[str] | None = None,
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
-        allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
@@ -122,7 +120,6 @@ class SchemaFactory:
             target_locale: Target language code for label resolution.
             strictness_level: Strictness level to control field leniency.
             source_document_ids: Dynamic literals corresponding to available documents.
-            allowed_mcp_prefixes: List of dynamic tool prefixes (e.g. tavily_, jira_).
 
         Returns:
             A dynamically generated Pydantic model class.
@@ -134,8 +131,7 @@ class SchemaFactory:
         doc_ids_str = "_".join(sorted(source_document_ids)) if source_document_ids else ""
         atom_ids_str = "_".join(sorted(allowed_atom_ids)) if allowed_atom_ids else ""
         dynamic_keys_str = "_".join(sorted(allowed_dynamic_keys)) if allowed_dynamic_keys else ""
-        mcp_prefixes_str = "_".join(sorted(allowed_mcp_prefixes)) if allowed_mcp_prefixes else ""
-        cache_key = f"{schema_name}_{criteria_ids}_{has_shuffled_atoms}_{target_locale}_{strictness_level}_{doc_ids_str}_{atom_ids_str}_{dynamic_keys_str}_{mcp_prefixes_str}"
+        cache_key = f"{schema_name}_{criteria_ids}_{has_shuffled_atoms}_{target_locale}_{strictness_level}_{doc_ids_str}_{atom_ids_str}_{dynamic_keys_str}"
 
         if cache_key in self._schema_cache:
             return self._schema_cache[cache_key]
@@ -150,7 +146,6 @@ class SchemaFactory:
             source_document_ids=source_document_ids,
             allowed_atom_ids=allowed_atom_ids,
             allowed_dynamic_keys=allowed_dynamic_keys,
-            allowed_mcp_prefixes=allowed_mcp_prefixes,
             max_evaluations=max_evaluations,
         )
 
@@ -166,7 +161,6 @@ class SchemaFactory:
         source_document_ids: list[str] | None = None,
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
-        allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
@@ -197,16 +191,8 @@ class SchemaFactory:
                 source_document_ids, allowed_atom_ids, allowed_dynamic_keys
             )
 
-            # Epic 89: Combine static literals with dynamic MCP tool regexes
-            if allowed_mcp_prefixes:
-                prefix_group = "|".join(re.escape(p) for p in allowed_mcp_prefixes)
-                pattern = rf"^({prefix_group})[a-zA-Z0-9_-]+$"
-                MCPIdsRegex = Annotated[str, Field(pattern=pattern)]
-                FinalDocIdsType = DocIdsLiteralType | MCPIdsRegex
-                FinalQuoteIdsType = QuoteIdsLiteralType | MCPIdsRegex
-            else:
-                FinalDocIdsType = DocIdsLiteralType
-                FinalQuoteIdsType = QuoteIdsLiteralType
+            FinalDocIdsType = DocIdsLiteralType
+            FinalQuoteIdsType = QuoteIdsLiteralType
 
             # V3 Fix: Explicitly define fields in exact order to protect Vertex AI Token Trie.
             # `source_id` MUST be first, before the massive unconstrained `text` string,

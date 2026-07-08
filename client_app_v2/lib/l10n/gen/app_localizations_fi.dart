@@ -1071,6 +1071,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String get temperatureLabel => 'Lämpötila (Temperature)';
 
   @override
+  String get frequencyPenaltyLabel => 'Toistuvuussakko (Frequency Penalty)';
+
+  @override
+  String get presencePenaltyLabel => 'Läsnäolosakko (Presence Penalty)';
+
+  @override
   String get modelNameLabel => 'Mallin nimi';
 
   @override

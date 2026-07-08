@@ -169,16 +169,44 @@ class AliasEngine:
         self.alias_map[alias] = real_id
         return alias
 
-    def resolve_alias(self, alias: str) -> str | None:
+    def resolve_alias(self, alias: str) -> str:
         """Return the real ID for a given alias, if it exists.
+
+        Enforces Fail-Fast Strict Hydration: If the alias matches a registered prefix
+        but is not found in the alias_map, raises an AppException(422).
+        Otherwise, returns the alias as is if it's not a known prefix.
 
         Args:
             alias: The short alias to look up.
 
         Returns:
-            The original opaque ID, or None if the alias is unregistered.
+            The original opaque ID, or the original string if not a known prefix.
         """
-        return self.alias_map.get(alias)
+        if not alias:
+            return alias
+
+        if alias in self.alias_map:
+            return self.alias_map[alias]
+
+        import re
+
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        active_prefixes = set()
+        for k in self.alias_map.keys():
+            match = re.match(r"^([a-zA-Z_-]+)\d+$", k)
+            if match:
+                active_prefixes.add(match.group(1))
+
+        match = re.match(r"^([a-zA-Z_-]+)\d+$", alias)
+        if match and match.group(1) in active_prefixes:
+            raise AppException(
+                status_code=422,
+                message=f"Invalid alias ID hallucinated by LLM: {alias}",
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        return alias
 
     def hydrate_dict_list(self, items: list[dict[str, Any]], field_name: str) -> int:
         """Hydrate a list of dictionaries in-place by replacing aliases with real IDs.

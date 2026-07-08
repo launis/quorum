@@ -39,5 +39,5 @@ flowchart TD
 
 ## 4. Physical Implementation Map (Auto-Generated)
 > **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/seed/seed_data.json` (SSOT), `backend_v2/models/enums.py` & `backend_v2/models/v2_core.py` (Pydantic V2 Domain Models), `backend_v2/services/orchestrator/schema_factory.py` (Polymorphic Router), `backend_v2/repositories/components/` (Domain-Specific Ontology Repositories: PromptBlocks, Matrices, Personas, Roles, Protocols).
+- **Backend Entrypoints:** `backend_v2/seed/seed_data.json` (SSOT), `backend_v2/models/enums.py` & `backend_v2/models/v2_core.py` (Pydantic V2 Domain Models), `backend_v2/services/orchestrator/schema_factory.py` (Polymorphic Router), `backend_v2/services/orchestrator/localization_compiler.py` (Semantic Localization), `backend_v2/api/routers/studio/` (Ontology CRUD Endpoints), `backend_v2/services/studio/` (Ontology Management Services), `backend_v2/database/repositories/components/` (Domain-Specific Ontology Repositories: PromptBlocks, Matrices, Personas, Roles, Protocols), `backend_v2/database/` (Data Persistence & Wrappers).
 - **Frontend Consumers:** `client_app_v2/lib/core/models/prompt_block_category.dart` (Enum Mapping).

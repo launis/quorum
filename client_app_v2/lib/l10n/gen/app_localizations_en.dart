@@ -1068,6 +1068,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get temperatureLabel => 'Temperature';
 
   @override
+  String get frequencyPenaltyLabel => 'Frequency Penalty';
+
+  @override
+  String get presencePenaltyLabel => 'Presence Penalty';
+
+  @override
   String get modelNameLabel => 'Model Name';
 
   @override

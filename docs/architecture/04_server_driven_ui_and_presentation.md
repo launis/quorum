@@ -34,5 +34,5 @@ flowchart TD
 
 ## 4. Physical Implementation Map (Auto-Generated)
 > **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/api/routers/studio/` (SDUI JSON formulation), `backend_v2/services/studio.py` (Markdown logic), `backend_v2/templates/` (PDF rendering).
+- **Backend Entrypoints:** `backend_v2/api/routers/execution/` (SDUI JSON formulation), `backend_v2/services/sdui_mapper.py` (BFF SDUI Translation), `backend_v2/templates/` (PDF rendering).
 - **Frontend Consumers:** `client_app_v2/lib/features/execution/views/widgets/sdui_block_renderer.dart` (SDUI Rendering), `client_app_v2/lib/shared/widgets/output_renderer.dart` (Markdown Parser).

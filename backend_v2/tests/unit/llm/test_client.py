@@ -4,7 +4,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend_v2.exceptions import AgentExecutionError
+from backend_v2.exceptions import (
+    AgentExecutionError,
+    ServiceUnavailableError,
+)
 from backend_v2.llm.client import LLMClient
 
 
@@ -20,6 +23,8 @@ class DummyConfig(BaseModel):
     caching_strategy: str = "none"
     top_p: float | None = None
     top_k: int | None = None
+    frequency_penalty: float | None = 0.0
+    presence_penalty: float | None = 0.0
 
 
 class DummyStrictModel(BaseModel):
@@ -167,3 +172,19 @@ async def test_client_delegates_to_caching_service(mock_prepare: AsyncMock, mock
     args, kwargs = mock_provider.generate.call_args
     assert kwargs["messages"] == [{"role": "system", "content": "mocked"}]
     assert kwargs["caching_injected"] is True
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_bubbles_up_service_unavailable_error(mock_create_provider: MagicMock) -> None:
+    """Ensure transient network errors are not swallowed by the JSON schema parser."""
+    mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock(side_effect=ServiceUnavailableError(message="Rate Limit", details=None))
+    mock_create_provider.return_value = mock_provider
+
+    client = LLMClient(config=cast(Any, DummyConfig()))
+    messages = [{"role": "user", "content": "Test"}]
+
+    # It MUST raise ServiceUnavailableError directly, NOT AgentExecutionError or LLMSchemaValidationError
+    with pytest.raises(ServiceUnavailableError):
+        await client.run_structured_task(messages=messages, response_model=DummyStrictModel)

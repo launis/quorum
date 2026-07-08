@@ -12,9 +12,13 @@ from backend_v2.services.mcp.tavily_search_client import tavily_search
 
 @pytest.fixture
 def mock_settings() -> Any:
-    """Mock the settings to provide a fake API key."""
+    """Mock the settings to provide a fake API key and limits."""
     with patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_get:
         mock_get.return_value.tavily_api_key = "test_tavily_key"
+        mock_get.return_value.tavily_api_url = "https://api.tavily.com/search"
+        mock_get.return_value.tavily_timeout_seconds = 15
+        mock_get.return_value.tavily_max_results = 5
+        mock_get.return_value.tavily_content_char_limit = 8000
         yield mock_get
 
 

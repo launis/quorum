@@ -562,6 +562,8 @@ class ModelProfile(V2CoreBase):
     tpm_limit: int | None = Field(default=None, description="Tokens per minute limit")
     rpm_limit: int | None = Field(default=None, description="Requests per minute limit")
     max_tokens: int | None = Field(default=None, description="Max generated tokens")
+    frequency_penalty: float | None = Field(default=None, description="Frequency penalty")
+    presence_penalty: float | None = Field(default=None, description="Presence penalty")
     allowed_tools: list[str] = Field(default_factory=list, description="Enabled tools")
     supports_grounding: bool = Field(default=False, description="Supports Google Search Grounding")
     api_key: str | None = Field(default=None, description="Optional override API key")

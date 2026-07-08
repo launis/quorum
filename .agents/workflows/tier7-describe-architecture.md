@@ -16,13 +16,13 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
       <catastrophic_reason>Scanning code without understanding the 5 core capabilities causes the AI to misinterpret files or falsely flag critical infrastructure as rogue code.</catastrophic_reason>
     </rule_block>
     <rule_block id="theory_immutability_mandate">
-      <mandatory_pattern>When performing Top-Down anchoring, you MUST ONLY edit the "Physical Implementation Map" section at the bottom of the 5 pillar documents. You MUST NEVER rewrite, delete, or alter the theoretical English text or KI rules within the documents.</mandatory_pattern>
-      <catastrophic_reason>Tier 7 is a physical auditor, not a theoretical designer. Overwriting the English theory with auto-generated code descriptions destroys the Knowledge Item foundation.</catastrophic_reason>
+      <mandatory_pattern>When performing Top-Down anchoring, you MUST ONLY edit the "Physical Implementation Map" section at the bottom of the 5 pillar documents, UNLESS the Knowledge Item (KI) database is actively being updated. If a KI is changed during Step 1, you MAY update the theoretical English text within the pillar documents to reflect the new KI. Otherwise, you MUST NEVER rewrite, delete, or alter the theoretical English text.</mandatory_pattern>
+      <catastrophic_reason>Tier 7 is a physical auditor, not a theoretical designer. Overwriting the English theory with auto-generated code descriptions destroys the Knowledge Item foundation unless explicitly driven by a KI update.</catastrophic_reason>
     </rule_block>
   </context_rules>
 
   <execution_protocol level="7">
-    <step id="1">THEORETICAL INGESTION: Read the 5 architectural pillar documents in `docs\architecture\`. Understand the 5 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience).</step>
+    <step id="1">KI EVALUATION & THEORETICAL INGESTION: First, evaluate if the recent changes necessitate an update to the Knowledge Items (KI database). This is uncommon, but if true, update the KI content and then update the theoretical sections of the relevant architectural documents. Then, read the 5 architectural pillar documents in `docs\architecture\`. Understand the 5 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience).</step>
     
     <step id="2">TOP-DOWN ANCHORING (Physical Mapping): Scan `backend_v2` and `client_app_v2` using your tools to find the physical files that implement these 5 capabilities. Use file editing tools to append these physical paths strictly to the "Physical Implementation Map" sections at the bottom of each pillar document.</step>
     

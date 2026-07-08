@@ -333,6 +333,8 @@
   "apiKeyLabel": "API-avain",
   "baseUrlLabel": "Base URL",
   "temperatureLabel": "Lämpötila (Temperature)",
+  "frequencyPenaltyLabel": "Toistuvuussakko (Frequency Penalty)",
+  "presencePenaltyLabel": "Läsnäolosakko (Presence Penalty)",
   "modelNameLabel": "Mallin nimi",
   "testConnection": "Testaa yhteys",
   "adhocTest": "Ad-Hoc -testi",

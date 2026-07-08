@@ -20,18 +20,22 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing and 
       <mandatory_pattern>Save your cumulative `monitor_state.json` strictly to the artifacts scratch directory (`<appDataDir>\brain\<conversation-id>/scratch/`), NEVER to the source code directory.</mandatory_pattern>
       <catastrophic_reason>Littering the project repository with AI scratch files corrupts the source tree and violates the workspace sandbox.</catastrophic_reason>
     </rule_block>
+    <rule_block id="cursor_enforcement_mandate">
+      <mandatory_pattern>You MUST store the last read line number (`last_processed_line`) into `monitor_state.json`. On every wakeup, you MUST use this index to start reading the logs from the correct position to prevent double-counting metrics.</mandatory_pattern>
+      <catastrophic_reason>Failing to track the cursor position causes the agent to re-read the entire log file repeatedly, resulting in exponentially inflated execution metrics and eventual context window collapse.</catastrophic_reason>
+    </rule_block>
   </context_rules>
 
   <execution_protocol level="6">
     <step id="1">INITIALIZE: Generate a unique execution ID. If the user provided a `--target` (Epic or Implementation Plan), read it immediately. Identify the critical objectives and success criteria. Create the empty `monitor_state.json` in your scratch directory.</step>
     
-    <step id="2">SCHEDULE: Use the `schedule` tool to activate a cron task (e.g., `CronExpression="* * * * *"`). When you receive the wakeup notification, read the latest lines from `backend_debug.log` and `llm_debug_prompts.md` using `view_file` or `grep_search`.</step>
+    <step id="2">SCHEDULE: Use the `schedule` tool to activate a cron task (e.g., `CronExpression="* * * * *"`). When you receive the wakeup notification, read the latest lines from `backend_debug.log` and `llm_telemetry.jsonl` using `view_file` or `grep_search`. Do NOT read `llm_debug_prompts.md` during normal monitoring to avoid OOM risks and context hallucinations.</step>
     
-    <step id="3">ACCRUE &amp; ANALYZE: Read your `monitor_state.json`, calculate new cumulative sums (e.g., LLM execution times, cache hit ratios, queue delays, self-healing cycles), and save it back. Analyze the logs focusing on: Fail-Fast crashes, LLM Rate Limits, DLQ fallbacks, and Semaphore queue times.</step>
+    <step id="3">ACCRUE &amp; ANALYZE: Read your `monitor_state.json`, calculate new cumulative sums (reading execution durations and cache-hits ONLY from the lightweight `llm_telemetry.jsonl` file), and save it back. Analyze the logs focusing on: Fail-Fast crashes, LLM Rate Limits, DLQ fallbacks, and Semaphore queue times.</step>
     
     <step id="4">REPORT (LOOP): On every wakeup, output a concise English summary to the user. Highlight any CRITICAL exceptions, PII redactions, cumulative speed data, and Epic speed targets.</step>
     
-    <step id="5">HALT &amp; INTERCEPT (CRITICAL): If you detect a FATAL error or a repeating Pydantic `ValidationError` that guarantees failure, you MUST explicitly offer to kill the execution using `manage_task kill`. Provide a copy-paste `/tier4-bug-hunting` command for the user to start a clean RCA session.</step>
+    <step id="5">HALT &amp; INTERCEPT (CRITICAL): If you detect a FATAL error or a repeating Pydantic `ValidationError` that guarantees failure, you MUST read `llm_debug_prompts.md` to capture the exact original prompt for the RCA report. Then explicitly offer to kill the execution using `manage_task kill`. Provide a copy-paste `/tier4-bug-hunting` command for the user to start a clean RCA session.</step>
     
     <step id="6">FINALIZE: When the execution completes successfully (e.g., `Execution Finalized successfully`), cancel the cron timer using `manage_task`. Compile a final "Forensic Execution Summary" artifact. This artifact MUST include a "Performance Profile" detailing cumulative queue times, LLM durations, and cache efficiency.</step>
   </execution_protocol>

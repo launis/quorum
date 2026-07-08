@@ -51,12 +51,20 @@ class TestAliasEngineCore:
         assert engine.alias_map["src_1"] == "doc_uvw"
 
     def test_resolve_alias_returns_real_id(self) -> None:
-        """Verify resolve_alias returns the correct real ID."""
+        """Verify resolve_alias returns the correct real ID or raises/returns original."""
         engine = AliasEngine()
         engine.register("tda_abc", prefix="a")
-
         assert engine.resolve_alias("a0") == "tda_abc"
-        assert engine.resolve_alias("nonexistent") is None
+        # Should return original string if not matching a known prefix
+        assert engine.resolve_alias("nonexistent") == "nonexistent"
+        # Should raise AppException for hallucinated alias (matches 'a' prefix but not found)
+        import pytest
+
+        from backend_v2.exceptions import AppException
+
+        with pytest.raises(AppException) as exc_info:
+            engine.resolve_alias("a99")
+        assert exc_info.value.status_code == 422
 
     def test_hydrate_dict_list_replaces_aliases(self) -> None:
         """Verify hydrate_dict_list replaces aliases in-place."""

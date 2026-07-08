@@ -437,7 +437,7 @@ async def test_chunk_retry_on_transient_error(mock_executor_class: Any) -> None:
     mock_client = AsyncMock()
     mock_executor_instance = mock_executor_class.return_value
 
-    import litellm
+    from litellm.exceptions import APIConnectionError
 
     from backend_v2.models.domain.usage import TokenUsage
 
@@ -446,7 +446,7 @@ async def test_chunk_retry_on_transient_error(mock_executor_class: Any) -> None:
 
     mock_executor_instance.execute_structured_task = AsyncMock()
     mock_executor_instance.execute_structured_task.side_effect = [
-        litellm.APIConnectionError(message="Connection reset", llm_provider="openai", model="gpt-4"),
+        APIConnectionError(message="Connection reset", llm_provider="openai", model="gpt-4"),
         (mock_result, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)),
     ]
 

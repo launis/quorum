@@ -139,11 +139,15 @@ class Settings(BaseSettings):
         bool, BeforeValidator(strip_whitespace), Field(description="Force structured JSON logging in any environment")
     ] = False
 
-    # --- API Keys ---
+    # --- API Keys & External Limits ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
     openai_api_key: Annotated[str | None, Field(description="OpenAI API Key (Optional)")] = None
     anthropic_api_key: Annotated[str | None, Field(description="Anthropic API Key (Optional)")] = None
     tavily_api_key: Annotated[str | None, Field(description="Tavily AI Search API Key")] = None
+    tavily_api_url: Annotated[str, Field(description="Tavily API URL")] = "https://api.tavily.com/search"
+    tavily_timeout_seconds: Annotated[int, Field(description="Timeout for Tavily requests")] = 15
+    tavily_max_results: Annotated[int, Field(description="Max search results to fetch")] = 5
+    tavily_content_char_limit: Annotated[int, Field(description="Max content characters from search")] = 8000
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
     discovery_location: Annotated[
         str | None, Field(description="Source Region for Model Discovery (e.g. us-west1)")

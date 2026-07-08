@@ -13,6 +13,7 @@ from backend_v2.exceptions import (
     ConfigurationError,
     ErrorCodes,
     LLMSchemaValidationError,
+    ServiceUnavailableError,
 )
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.llm.caching_service import LLMCachingService
@@ -208,6 +209,8 @@ class LLMClient:
             parsing_mode=target_strategy.parsing_mode,
             caching_strategy=final_caching_strategy,
             additional_params=target_strategy.additional_params,
+            frequency_penalty=target_strategy.frequency_penalty,
+            presence_penalty=target_strategy.presence_penalty,
         )
 
         return cls(config=provider_config)
@@ -262,12 +265,16 @@ class LLMClient:
                 max_tokens = self._config.default_max_tokens
             top_p = self._config.top_p
             top_k = self._config.top_k
+            frequency_penalty = self._config.frequency_penalty
+            presence_penalty = self._config.presence_penalty
         else:
             # Legacy pass-through
             target_model_name = model
             target_provider_type = "litellm"
             top_p = None
             top_k = None
+            frequency_penalty = None
+            presence_penalty = None
 
         compiled_prompt: CompiledPrompt | None = None
         if isinstance(messages, CompiledPrompt):
@@ -368,6 +375,8 @@ class LLMClient:
                     max_tokens=max_tokens,
                     top_p=top_p,
                     top_k=top_k,
+                    frequency_penalty=frequency_penalty,
+                    presence_penalty=presence_penalty,
                     mock_identity=mock_identity,
                     timeout=strict_timeout,
                     validation_context=validation_context,
@@ -438,6 +447,8 @@ class LLMClient:
                     raise schema_err
                 if isinstance(schema_err, LLMSchemaValidationError):
                     raise schema_err
+                if isinstance(schema_err, (ServiceUnavailableError, ConfigurationError)):
+                    raise schema_err
 
                 error_str = str(schema_err)
                 if isinstance(schema_err, AppException):
@@ -457,7 +468,7 @@ class LLMClient:
                 ) from schema_err
 
         except Exception as e:
-            if isinstance(e, (AgentExecutionError, LLMSchemaValidationError)):
+            if isinstance(e, (AgentExecutionError, LLMSchemaValidationError, AppException)):
                 raise
             logger.error(
                 "Execution of structured LLM task failed.",
@@ -527,12 +538,16 @@ class LLMClient:
                 max_tokens = self._config.default_max_tokens
             top_p = self._config.top_p
             top_k = self._config.top_k
+            frequency_penalty = self._config.frequency_penalty
+            presence_penalty = self._config.presence_penalty
         else:
             # Legacy pass-through
             target_model_name = model
             target_provider_type = "litellm"
             top_p = None
             top_k = None
+            frequency_penalty = None
+            presence_penalty = None
 
         # STRICT TIMEOUT PROTOCOL: Never overridden by caller, always uses global Enum constraint.
         strict_timeout = get_settings().llm_default_timeout_seconds
@@ -583,6 +598,8 @@ class LLMClient:
                 max_tokens=max_tokens,
                 top_p=top_p,
                 top_k=top_k,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
                 tools=tools,
                 tool_choice=tool_choice,
                 timeout=strict_timeout,

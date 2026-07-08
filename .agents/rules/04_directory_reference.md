@@ -40,13 +40,18 @@
     </module>
     
     <module path="backend_v2/services/">
-        <responsibility>CORE BUSINESS LOGIC & ORCHESTRATION</responsibility>
-        <key_domains>blueprint.py, studio.py, execution.py, auth.py, llm_task_executor.py, orchestrator/</key_domains>
+        <responsibility>CORE BUSINESS LOGIC & ORCHESTRATION (PILLAR 3)</responsibility>
+        <key_domains>blueprint.py, studio/ (Ontology Management), execution.py, auth.py, llm_task_executor.py, orchestrator/ (DAG & Context), mcp/ (Tool Execution)</key_domains>
     </module>
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS & ENUMS</responsibility>
         <key_domains>v2_core.py, enums.py</key_domains>
+    </module>
+    
+    <module path="backend_v2/database/">
+        <responsibility>DATA PERSISTENCE & REPOSITORIES (PILLAR 2)</responsibility>
+        <key_domains>interfaces.py, wrapper.py, repositories/</key_domains>
     </module>
     
     <module path="backend_v2/seed/">

@@ -471,6 +471,8 @@
   "apiKeyLabel": "API Key",
   "baseUrlLabel": "Base URL",
   "temperatureLabel": "Temperature",
+  "frequencyPenaltyLabel": "Frequency Penalty",
+  "presencePenaltyLabel": "Presence Penalty",
   "modelNameLabel": "Model Name",
   "testConnection": "Test Connection",
   "adhocTest": "Ad-Hoc Test",

@@ -31,6 +31,8 @@ abstract class LlmModelConfig with _$LlmModelConfig {
     @JsonKey(name: 'parsing_mode') String? parsingMode,
     @JsonKey(name: 'top_p') double? topP,
     @JsonKey(name: 'top_k') int? topK,
+    @JsonKey(name: 'frequency_penalty') double? frequencyPenalty,
+    @JsonKey(name: 'presence_penalty') double? presencePenalty,
     @JsonKey(name: 'tpm_limit') int? tpmLimit,
     @JsonKey(name: 'rpm_limit') int? rpmLimit,
     @JsonKey(name: 'supports_grounding') @Default(false) bool supportsGrounding,

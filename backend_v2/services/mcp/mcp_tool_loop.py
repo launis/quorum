@@ -10,8 +10,6 @@ Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 
 import asyncio
 import logging
-import time
-from datetime import datetime, timezone
 from typing import Any
 
 from pydantic import BaseModel
@@ -27,7 +25,8 @@ from backend_v2.models.domain.mcp import (
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SourceSufficiencyThreshold
 from backend_v2.models.v2_core import MCPAuditTrace
-from backend_v2.services.mcp.tavily_search_client import tavily_search
+from backend_v2.services.mcp.dispatcher import ToolDispatcher
+from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID, TavilyTool
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
@@ -49,31 +48,8 @@ _SELF_CORRECTION_SYSTEM_INSTRUCTION = build_system_directive(
     ],
 )
 
-# The only tool currently registered in the system.
-TAVILY_TOOL_ID = "mcp_tavily_search"
-
-# OpenAI function-calling schema for Tavily search.
-TAVILY_TOOL_DECLARATION: dict[str, Any] = {
-    "type": "function",
-    "function": {
-        "name": TAVILY_TOOL_ID,
-        "description": (
-            "Search the web for current, factual information using Tavily AI Search. "
-            "Use this tool when the user's input references real-world events, statistics, "
-            "organizations, or claims that require external verification."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The search query to look up.",
-                }
-            },
-            "required": ["query"],
-        },
-    },
-}
+# Global Dispatcher Instance
+DISPATCHER = ToolDispatcher(tools=[TavilyTool()])
 
 
 def validate_query_relevance(query: str, source_context: str) -> bool:
@@ -122,101 +98,6 @@ def is_source_sufficient(source_context: str) -> bool:
         False if there is an information gap (tools may be needed).
     """
     return len(source_context.strip()) >= SourceSufficiencyThreshold.MIN_CHARS.value
-
-
-def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
-    """Build OpenAI-format tool declarations from allowed tool IDs.
-
-    Args:
-        allowed_tools: List of allowed tool IDs (e.g., ["mcp_tavily_search"]).
-
-    Returns:
-        List of valid OpenAI function declarations.
-    """
-    declarations: list[dict[str, Any]] = []
-    for tool_id in allowed_tools:
-        if tool_id == TAVILY_TOOL_ID:
-            declarations.append(TAVILY_TOOL_DECLARATION)
-        else:
-            logger.warning("Unknown tool_id in allowed_tools — skipping.", extra={"tool_id": tool_id})
-    return declarations
-
-
-async def _execute_tavily_search(
-    query: str,
-    step_name: str,
-    target_language: str,
-    llm_client: Any | None = None,
-    reasoning: str = "",
-    claim_text: str | None = None,
-) -> MCPAuditTrace:
-    """Execute a Tavily search and return an audit trace.
-
-    Graceful Degradation (§6.3): Tavily failures return an audit trace with empty results,
-    allowing the LLM to proceed without external evidence. Translates evidence on-the-fly.
-
-    Args:
-        query: The search query string.
-        step_name: Current step name for auditing.
-        target_language: Target translation language.
-        llm_client: Bound LLM client (optional).
-
-    Returns:
-        Audit record containing the search results.
-
-    Raises:
-        AppException: If the search fails critically (ErrorCodes.FETCH_FAILED).
-    """
-    start_ms = int(time.monotonic() * 1000)
-    try:
-        result = await tavily_search(query)
-        response_summary = result.answer
-
-        if target_language and target_language.lower() != "en" and response_summary and llm_client:
-            from backend_v2.services.translation_service import translate_text
-
-            response_summary = await translate_text(
-                text=response_summary,
-                target_lang=target_language,
-                llm_client=llm_client,
-                source_language="English/Original",
-            )
-
-        elapsed_ms = int(time.monotonic() * 1000) - start_ms
-
-        import uuid
-
-        trace_id = f"tavily_{uuid.uuid4().hex[:8]}"
-
-        return MCPAuditTrace(
-            id=trace_id,
-            tool_id=TAVILY_TOOL_ID,
-            step_name=step_name,
-            claim_text=claim_text,
-            query=query,
-            reasoning=reasoning,
-            response_summary=response_summary,
-            source_urls=result.source_urls,
-            timestamp=datetime.now(timezone.utc),
-            duration_ms=elapsed_ms,
-        )
-    except Exception as e:
-        # Zero-Compromise Fail-Fast: Crash the step if external search fails
-        msg = f"Tavily search failed for query: '{query}'"
-        logger.error(
-            "[MCPToolLoop] %s: %s",
-            ErrorCodes.FETCH_FAILED.name,
-            msg,
-            extra={"detail": str(e)},
-            exc_info=True,
-        )
-        if isinstance(e, AppException):
-            raise
-        raise AppException(
-            message=msg,
-            status_code=502,
-            details={"error_code": ErrorCodes.FETCH_FAILED.value, "detail": str(e)},
-        ) from e
 
 
 def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dict[str, str]:
@@ -296,7 +177,7 @@ async def execute_tool_loop[T: BaseModel](
             ErrorCodes.VALIDATION_FAILED, or ErrorCodes.WORKFLOW_EXECUTION_FAILED).
     """
     audit_traces: list[MCPAuditTrace] = []
-    tool_declarations = _build_tool_declarations(allowed_tools)
+    tool_declarations = DISPATCHER.get_declarations(allowed_tools)
 
     if not tool_declarations:
         # No valid tools — direct passthrough (zero overhead)
@@ -535,7 +416,8 @@ async def execute_tool_loop[T: BaseModel](
                 extra={"step_name": step_name, "query": query},
             )
 
-            audit = await _execute_tavily_search(
+            audit = await DISPATCHER.execute_tool(
+                tool_id=TAVILY_TOOL_ID,
                 query=query,
                 step_name=step_name,
                 target_language=target_language,
@@ -563,7 +445,7 @@ async def execute_tool_loop[T: BaseModel](
 
         for audit in audit_traces:
             real_id = audit.id if audit.id else f"mcp_trace_{audit.query[:20]}"
-            local_id = local_alias_engine.register(real_id, prefix="doc")
+            local_id = local_alias_engine.register(real_id, prefix="mcp")
             local_alias_engine.source_document_aliases.append(local_id)
             text_payload = f"Query: {audit.query}\n"
             if audit.response_summary:

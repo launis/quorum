@@ -1,6 +1,7 @@
 """LLM Debug Logging Utility."""
 
 import datetime
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,7 @@ def write_debug_prompt_log(
     user_payload: str,
     task_blueprint: str | None = None,
     expected_schema_name: str | None = None,
+    trigger_reason: str = "initial",
 ) -> None:
     """Writes the generated LLM prompt and its origins to a debug log file.
 
@@ -36,6 +38,7 @@ def write_debug_prompt_log(
         user_payload: The fully constructed XML payload for the user message.
         task_blueprint: The blueprint ID to explain how this command was triggered.
         expected_schema_name: The Pydantic model name the LLM is expected to return.
+        trigger_reason: The dynamic reason why this call was triggered.
 
     Returns:
         None.
@@ -50,16 +53,15 @@ def write_debug_prompt_log(
     debug_file = target_dir / "llm_debug_prompts.md"
 
     lines = []
-    lines.append("\\n---\\n")
+    lines.append("\n---\n")
     lines.append(f"# Step Debug Log: {step_id}")
-    lines.append(f"Timestamp: {datetime.datetime.now(datetime.UTC).isoformat()}\\n")
+    lines.append(f"Timestamp: {datetime.datetime.now(datetime.UTC).isoformat()}\n")
 
-    lines.append("## 0. Konteksti (Miten käsky on tullut ja miksi)")
+    lines.append("## 0. Context & Trigger")
     lines.append(f"- **Task Blueprint**: {task_blueprint if task_blueprint else 'N/A'}")
-    reasoning_text = "Tämä LLM-suoritus on laukaistu osana työnkulkua yllämainitulla blueprintillä."
-    lines.append(f"- **Syy**: {reasoning_text}\\n")
+    lines.append(f"- **Trigger Reason**: {trigger_reason}\n")
 
-    lines.append("## 1. Prompt Source Blocks (Mistä ohje tuli kirjattua)")
+    lines.append("## 1. Prompt Source Blocks")
 
     role_info = f"{role_block.id} ('{role_block.category_id}')" if role_block else "None"
     lines.append(f"- **Role Block**: {role_info}")
@@ -86,3 +88,46 @@ def write_debug_prompt_log(
 
     with open(debug_file, "a", encoding="utf-8") as df:
         df.write("\n".join(lines))
+
+
+def write_llm_telemetry_log(
+    execution_id: str,
+    step_id: str,
+    duration_ms: int,
+    cache_hit: bool,
+    tokens: int,
+    trigger_reason: str,
+) -> None:
+    """Writes machine-readable telemetry data to a JSON Lines file after LLM execution.
+
+    Args:
+        execution_id: The ID of the current execution.
+        step_id: The ID of the current step.
+        duration_ms: Execution duration in milliseconds.
+        cache_hit: Whether the response was served from cache.
+        tokens: Number of tokens consumed/processed.
+        trigger_reason: The reason for the trigger (e.g., 'retry', 'initial').
+
+    Returns:
+        None.
+    """
+    if get_settings().environment != "development":
+        return
+
+    target_dir = Path("data") / "files" / "executions" / execution_id
+    if not target_dir.exists():
+        return
+
+    telemetry_file = target_dir / "llm_telemetry.jsonl"
+
+    data = {
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
+        "step_id": step_id,
+        "duration_ms": duration_ms,
+        "cache_hit": cache_hit,
+        "tokens": tokens,
+        "trigger_reason": trigger_reason,
+    }
+
+    with open(telemetry_file, "a", encoding="utf-8") as tf:
+        tf.write(json.dumps(data) + "\n")

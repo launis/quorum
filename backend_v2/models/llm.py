@@ -211,6 +211,20 @@ class LLMProviderConfig(BaseDTO):
             json_schema_extra={"x-ui-label": "Max Tokens"},
         ),
     ] = None
+    frequency_penalty: Annotated[
+        float | None,
+        Field(
+            description="Penalizes new tokens based on their existing frequency in the text.",
+            json_schema_extra={"x-ui-label": "Frequency Penalty"},
+        ),
+    ] = None
+    presence_penalty: Annotated[
+        float | None,
+        Field(
+            description="Penalizes new tokens based on whether they appear in the text so far.",
+            json_schema_extra={"x-ui-label": "Presence Penalty"},
+        ),
+    ] = None
     parsing_mode: Annotated[
         str | None,
         Field(
@@ -300,6 +314,34 @@ class LLMProviderConfig(BaseDTO):
             )
         return v
 
+    @field_validator("frequency_penalty", mode="after")
+    @classmethod
+    def validate_frequency_penalty(cls, v: float | None) -> float | None:
+        """Validates that frequency_penalty is within bounds [-2.0, 2.0] at runtime."""
+        if v is not None and not (-2.0 <= v <= 2.0):
+            msg = "frequency_penalty must be between -2.0 and 2.0"
+            logger.error("[LLMProviderConfig] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        return v
+
+    @field_validator("presence_penalty", mode="after")
+    @classmethod
+    def validate_presence_penalty(cls, v: float | None) -> float | None:
+        """Validates that presence_penalty is within bounds [-2.0, 2.0] at runtime."""
+        if v is not None and not (-2.0 <= v <= 2.0):
+            msg = "presence_penalty must be between -2.0 and 2.0"
+            logger.error("[LLMProviderConfig] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        return v
+
 
 class AdHocTestRequest(BaseDTO):
     """Request payload for ephemeral LLM testing.
@@ -317,6 +359,8 @@ class AdHocTestRequest(BaseDTO):
     system_instruction: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="System prompt.")]
     user_prompt: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="User prompt.")]
     model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")]
+    frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty override.")]
+    presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty override.")]
 
     model_config = ConfigDict(frozen=True)
 

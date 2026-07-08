@@ -19,6 +19,7 @@ from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
 from backend_v2.settings import get_settings
+from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -431,9 +432,9 @@ class ChunkWorker:
                 def _is_structural(exc: BaseException) -> bool:
                     if isinstance(exc, ExceptionGroup):
                         return any(_is_structural(inner) for inner in exc.exceptions)
-                    return isinstance(exc, (LLMSchemaValidationError, AppException)) or not _is_transient_chunk_error(
-                        exc
-                    )
+                    if _is_transient_chunk_error(exc):
+                        return False
+                    return isinstance(exc, (LLMSchemaValidationError, AppException))
 
                 if attempt < MAX_CHUNK_RETRIES and _is_transient_chunk_error(e) and not _is_structural(e):
                     attempt += 1
@@ -595,7 +596,7 @@ class ChunkWorker:
                         filtered_criteria.append(bm)
                 chunk_criteria = filtered_criteria
 
-        from backend_v2.utils.alias_engine import AliasEngine, AliasManifest
+        from backend_v2.utils.alias_engine import AliasManifest
 
         # Phase 3: Reconstruct engine from upstream manifest (source doc aliases)
         if step_metadata and "alias_manifest" in step_metadata:
@@ -642,13 +643,11 @@ class ChunkWorker:
 
         allowed_dynamic_keys = []
         if step_metadata and "allowed_dynamic_keys" in step_metadata:
-            allowed_dynamic_keys = step_metadata["allowed_dynamic_keys"]
+            allowed_dynamic_keys = list(step_metadata["allowed_dynamic_keys"])
 
-        mcp_prefixes = []
         if effective_mcp_tools:
-            for t in effective_mcp_tools:
-                if isinstance(t, str):
-                    mcp_prefixes.append(t.split("_")[0] + "_")
+            max_mcp = get_settings().max_tool_calls_per_step
+            allowed_dynamic_keys.extend([f"mcp{i}" for i in range(max_mcp)])
 
         local_dynamic_schema = compiler.build_dynamic_schema(
             schema_name=f"Step_{step_id}_Response",
@@ -659,7 +658,6 @@ class ChunkWorker:
             source_document_ids=source_document_ids,
             allowed_atom_ids=list(allowed_atom_ids) if allowed_atom_ids else None,
             allowed_dynamic_keys=allowed_dynamic_keys,
-            allowed_mcp_prefixes=mcp_prefixes if mcp_prefixes else None,
             max_evaluations=len(chunk.items) if chunk and hasattr(chunk, "items") else None,
         )
 

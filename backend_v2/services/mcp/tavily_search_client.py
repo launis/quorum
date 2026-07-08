@@ -20,12 +20,10 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-# NOTE (Architecture): Timeout is enforced per §3.4 Reliability Strategy.
-# Tavily typically responds in 1-3s; 15s is a generous safety margin for Serverless.
-TAVILY_TIMEOUT_SECONDS = 15
-TAVILY_API_URL = "https://api.tavily.com/search"
-MAX_RESULTS = 5
-CONTENT_CHAR_LIMIT = 8000
+# Limits are dynamically loaded via get_settings() to obey Global Config Sovereignty
+# TAVILY_TIMEOUT_SECONDS = get_settings().tavily_timeout_seconds
+# MAX_RESULTS = get_settings().tavily_max_results
+# CONTENT_CHAR_LIMIT = get_settings().tavily_content_char_limit
 
 
 def _sanitize_text(text: str) -> str:
@@ -71,7 +69,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
     payload: dict[str, Any] = {
         "api_key": api_key,
         "query": query,
-        "max_results": MAX_RESULTS,
+        "max_results": settings.tavily_max_results,
         "include_answer": True,
         "include_raw_content": False,
         "search_depth": "basic",
@@ -80,8 +78,8 @@ async def tavily_search(query: str) -> TavilySearchResult:
     start_ms = int(time.monotonic() * 1000)
 
     try:
-        async with httpx.AsyncClient(timeout=TAVILY_TIMEOUT_SECONDS) as client:
-            response = await client.post(TAVILY_API_URL, json=payload)
+        async with httpx.AsyncClient(timeout=settings.tavily_timeout_seconds) as client:
+            response = await client.post(settings.tavily_api_url, json=payload)
 
         elapsed_ms = int(time.monotonic() * 1000) - start_ms
 
@@ -137,7 +135,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
             if snippet:
                 content_parts.append(_sanitize_text(snippet))
 
-        raw_content = "\n\n".join(content_parts)[:CONTENT_CHAR_LIMIT]
+        raw_content = "\n\n".join(content_parts)[: settings.tavily_content_char_limit]
 
         logger.info(
             "[TavilyClient] Search completed.",

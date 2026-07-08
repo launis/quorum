@@ -74,7 +74,7 @@ async def test_citation_extraction_empty_document() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=[])
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         result = await execute_tool_loop(
             llm_client=client,
             executor=executor,
@@ -116,7 +116,7 @@ async def test_execute_tool_loop_deterministic_search() -> None:
     mock_settings = MagicMock()
     mock_settings.max_tool_calls_per_step = 3
     with (
-        patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search,
+        patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search,
         patch("backend_v2.services.mcp.mcp_tool_loop.get_settings", return_value=mock_settings),
     ):
         from datetime import datetime, timezone
@@ -184,7 +184,7 @@ async def test_ensemble_vote_consensus() -> None:
 
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         from datetime import datetime, timezone
 
         from backend_v2.models.v2_core import MCPAuditTrace
@@ -223,7 +223,7 @@ async def test_strictness_override_bypasses_physical_anchoring() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["hallucinated claim"])
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         from datetime import datetime, timezone
 
         from backend_v2.models.v2_core import MCPAuditTrace
@@ -288,7 +288,7 @@ async def test_agentic_self_reflection_success() -> None:
     executor = MagicMock()
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         from datetime import datetime, timezone
 
         from backend_v2.models.v2_core import MCPAuditTrace

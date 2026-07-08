@@ -2054,6 +2054,18 @@ abstract class AppLocalizations {
   /// **'Temperature'**
   String get temperatureLabel;
 
+  /// No description provided for @frequencyPenaltyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency Penalty'**
+  String get frequencyPenaltyLabel;
+
+  /// No description provided for @presencePenaltyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Presence Penalty'**
+  String get presencePenaltyLabel;
+
   /// No description provided for @modelNameLabel.
   ///
   /// In en, this message translates to:
