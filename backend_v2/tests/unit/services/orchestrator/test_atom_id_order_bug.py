@@ -60,7 +60,6 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
     dynamic_schema = compiler.build_dynamic_schema(
         schema_name="Step_Test_Response",
         criteria=[PromptBlock.model_validate(mock_matrix_block)],
-        has_search_result=False,
         has_shuffled_atoms=True,
         target_locale="en",
         strictness_level=50,

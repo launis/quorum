@@ -10,7 +10,6 @@ def test_empty_evaluations_should_pass_when_fixed() -> None:
     DynamicSchema = factory.build_dynamic_schema(
         schema_name="TestSchema",
         criteria=[],
-        has_search_result=False,
         has_shuffled_atoms=True,
         target_locale="en",
         strictness_level=100,

@@ -51,7 +51,6 @@ def test_reproduce_tier4_schema_bug() -> None:
     schema = compiler.build_dynamic_schema(
         schema_name="TestSchema",
         criteria=[block],
-        has_search_result=False,
         has_shuffled_atoms=False,
         target_locale="en",
         strictness_level=50,

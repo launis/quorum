@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from backend_v2.database.repositories.prompt_block import PromptBlockRepositoryImpl
+from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
 
 

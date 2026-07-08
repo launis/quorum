@@ -644,16 +644,22 @@ class ChunkWorker:
         if step_metadata and "allowed_dynamic_keys" in step_metadata:
             allowed_dynamic_keys = step_metadata["allowed_dynamic_keys"]
 
+        mcp_prefixes = []
+        if effective_mcp_tools:
+            for t in effective_mcp_tools:
+                if isinstance(t, str):
+                    mcp_prefixes.append(t.split("_")[0] + "_")
+
         local_dynamic_schema = compiler.build_dynamic_schema(
             schema_name=f"Step_{step_id}_Response",
             criteria=chunk_criteria,
-            has_search_result=has_search,
             has_shuffled_atoms=has_shuffled_atoms,
             target_locale=target_locale,
             strictness_level=strictness_level,
             source_document_ids=source_document_ids,
             allowed_atom_ids=list(allowed_atom_ids) if allowed_atom_ids else None,
             allowed_dynamic_keys=allowed_dynamic_keys,
+            allowed_mcp_prefixes=mcp_prefixes if mcp_prefixes else None,
             max_evaluations=len(chunk.items) if chunk and hasattr(chunk, "items") else None,
         )
 

@@ -35,16 +35,16 @@ from backend_v2.database.interfaces import (
     ITaskBlueprintRepository,
     IWorkflowRepository,
 )
-from backend_v2.database.repositories.agent import AgentRepositoryImpl
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
 from backend_v2.database.repositories.component import ComponentRepositoryImpl
+from backend_v2.database.repositories.components.agent import AgentRepositoryImpl
+from backend_v2.database.repositories.components.output_profile import OutputProfileRepositoryImpl
+from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
+from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
-from backend_v2.database.repositories.output_profile import OutputProfileRepositoryImpl
-from backend_v2.database.repositories.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
-from backend_v2.database.repositories.task_blueprint import TaskBlueprintRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 from backend_v2.exceptions import AuthenticationError, PermissionDeniedError
 from backend_v2.llm.handler import LLMHandler

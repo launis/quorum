@@ -11,7 +11,6 @@ def test_prompt_compiler_strict_atom_schema_descriptions() -> None:
     DynamicSchema = compiler.build_dynamic_schema(
         schema_name="TestSchema",
         criteria=[],
-        has_search_result=False,
         has_shuffled_atoms=True,
         target_locale="fi",
         strictness_level=50,
@@ -41,7 +40,6 @@ def test_prompt_compiler_no_confusing_id_examples() -> None:
     DynamicSchema = compiler.build_dynamic_schema(
         schema_name="TestSchema",
         criteria=[],
-        has_search_result=False,
         has_shuffled_atoms=True,
         target_locale="fi",
         strictness_level=50,

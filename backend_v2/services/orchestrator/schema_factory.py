@@ -7,6 +7,7 @@ monolithic PromptCompiler, following SRP (Rule 88).
 """
 
 import logging
+import re
 from collections.abc import Callable
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Annotated, Any, cast
@@ -102,7 +103,6 @@ class SchemaFactory:
         self,
         schema_name: str,
         criteria: list[PromptBlock],
-        has_search_result: bool = False,
         has_shuffled_atoms: bool = False,
         target_locale: str = "en",
         *,
@@ -110,6 +110,7 @@ class SchemaFactory:
         source_document_ids: list[str] | None = None,
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
+        allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
@@ -117,11 +118,11 @@ class SchemaFactory:
         Args:
             schema_name: Name for the generated Pydantic model class.
             criteria: List of PromptBlock definitions driving schema fields.
-            has_search_result: Whether to include search result extensions.
             has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
             target_locale: Target language code for label resolution.
             strictness_level: Strictness level to control field leniency.
             source_document_ids: Dynamic literals corresponding to available documents.
+            allowed_mcp_prefixes: List of dynamic tool prefixes (e.g. tavily_, jira_).
 
         Returns:
             A dynamically generated Pydantic model class.
@@ -133,14 +134,14 @@ class SchemaFactory:
         doc_ids_str = "_".join(sorted(source_document_ids)) if source_document_ids else ""
         atom_ids_str = "_".join(sorted(allowed_atom_ids)) if allowed_atom_ids else ""
         dynamic_keys_str = "_".join(sorted(allowed_dynamic_keys)) if allowed_dynamic_keys else ""
-        cache_key = f"{schema_name}_{criteria_ids}_{has_search_result}_{has_shuffled_atoms}_{target_locale}_{strictness_level}_{doc_ids_str}_{atom_ids_str}_{dynamic_keys_str}"
+        mcp_prefixes_str = "_".join(sorted(allowed_mcp_prefixes)) if allowed_mcp_prefixes else ""
+        cache_key = f"{schema_name}_{criteria_ids}_{has_shuffled_atoms}_{target_locale}_{strictness_level}_{doc_ids_str}_{atom_ids_str}_{dynamic_keys_str}_{mcp_prefixes_str}"
 
         if cache_key in self._schema_cache:
             return self._schema_cache[cache_key]
 
         return self._build_dynamic_schema_internal(
             schema_name,
-            has_search_result,
             has_shuffled_atoms,
             target_locale,
             strictness_level,
@@ -149,13 +150,13 @@ class SchemaFactory:
             source_document_ids=source_document_ids,
             allowed_atom_ids=allowed_atom_ids,
             allowed_dynamic_keys=allowed_dynamic_keys,
+            allowed_mcp_prefixes=allowed_mcp_prefixes,
             max_evaluations=max_evaluations,
         )
 
     def _build_dynamic_schema_internal(
         self,
         schema_name: str,
-        has_search_result: bool,
         has_shuffled_atoms: bool,
         target_locale: str,
         strictness_level: int,
@@ -165,6 +166,7 @@ class SchemaFactory:
         source_document_ids: list[str] | None = None,
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
+        allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
@@ -173,7 +175,6 @@ class SchemaFactory:
 
         Args:
             schema_name: Name for the generated Pydantic model class.
-            has_search_result: Whether to include search result extensions.
             has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
             target_locale: Target language code for label resolution.
             criteria: List of PromptBlock objects to build the schema from.
@@ -191,12 +192,21 @@ class SchemaFactory:
         step_semantic_class: type[BaseModel] = StepDTOSemantic
 
         if source_document_ids is not None or allowed_atom_ids is not None or allowed_dynamic_keys is not None:
-            DocIdsLiteralType = AliasEngine.build_doc_ids_literal(
-                source_document_ids, allowed_dynamic_keys, has_search_result
-            )
+            DocIdsLiteralType = AliasEngine.build_doc_ids_literal(source_document_ids, allowed_dynamic_keys)
             QuoteIdsLiteralType = AliasEngine.build_quote_ids_literal(
-                source_document_ids, allowed_atom_ids, allowed_dynamic_keys, has_search_result
+                source_document_ids, allowed_atom_ids, allowed_dynamic_keys
             )
+
+            # Epic 89: Combine static literals with dynamic MCP tool regexes
+            if allowed_mcp_prefixes:
+                prefix_group = "|".join(re.escape(p) for p in allowed_mcp_prefixes)
+                pattern = rf"^({prefix_group})[a-zA-Z0-9_-]+$"
+                MCPIdsRegex = Annotated[str, Field(pattern=pattern)]
+                FinalDocIdsType = DocIdsLiteralType | MCPIdsRegex
+                FinalQuoteIdsType = QuoteIdsLiteralType | MCPIdsRegex
+            else:
+                FinalDocIdsType = DocIdsLiteralType
+                FinalQuoteIdsType = QuoteIdsLiteralType
 
             # V3 Fix: Explicitly define fields in exact order to protect Vertex AI Token Trie.
             # `source_id` MUST be first, before the massive unconstrained `text` string,
@@ -204,7 +214,7 @@ class SchemaFactory:
             DynamicLLMExtractedQuote = create_model(
                 "DynamicLLMExtractedQuote",
                 source_id=(
-                    QuoteIdsLiteralType,
+                    FinalQuoteIdsType,
                     Field(
                         ...,
                         description="Auto-resolved document ID (e.g. doc0, a1)",
@@ -218,7 +228,7 @@ class SchemaFactory:
                 "StepDTOStrictDynamic",
                 __base__=StepDTOStrict,
                 source_document_aliases=(
-                    list[DocIdsLiteralType],  # type: ignore
+                    list[FinalDocIdsType],  # type: ignore
                     Field(
                         ...,
                         max_length=get_settings().schema_max_source_aliases,
@@ -239,7 +249,7 @@ class SchemaFactory:
                 "StepDTOSemanticDynamic",
                 __base__=StepDTOSemantic,
                 source_document_aliases=(
-                    list[DocIdsLiteralType],  # type: ignore
+                    list[FinalDocIdsType],  # type: ignore
                     Field(
                         ...,
                         max_length=get_settings().schema_max_source_aliases,

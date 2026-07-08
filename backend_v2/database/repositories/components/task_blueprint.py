@@ -1,4 +1,4 @@
-"""Extracted Repository."""
+"""Extracted Repository for Task Blueprints."""
 
 import logging
 from typing import Any
@@ -10,69 +10,72 @@ logger = logging.getLogger(__name__)
 
 
 class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
-    """TaskBlueprintRepositoryImpl implementation."""
+    """Implementation of the Task Blueprint Repository.
+
+    This repository is responsible for CRUD operations on task blueprints.
+    It inherits from AppendOnlyRepositoryBase to support versioned documents.
+    """
 
     def __init__(self, driver: StorageDriver):
+        """Initializes the repository with a storage driver.
+
+        Args:
+            driver: The underlying storage driver for database operations.
+        """
         super().__init__(driver)
 
     async def get_task_blueprint_by_id(self, blueprint_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+        """Retrieves a task blueprint by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            blueprint_id: The unique identifier of the task blueprint.
 
         Returns:
-            The expected result of the operation.
+            A dictionary containing the task blueprint data if found, otherwise None.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the database query fails.
         """
         return await self.driver.get("task_blueprints", blueprint_id)
 
     async def get_all_task_blueprints(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+        """Retrieves all task blueprints from the database.
 
         Returns:
-            The expected result of the operation.
+            A list of dictionaries representing the task blueprints.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the database query fails.
         """
         return await self.driver.query("task_blueprints")
 
     async def create_task_blueprint(self, blueprint_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new task blueprint.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            blueprint_data: The dictionary containing the task blueprint data.
 
         Returns:
-            The expected result of the operation.
+            The ID of the created task blueprint.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the upsert operation fails.
         """
         doc_id = blueprint_data["id"]
         return await self.driver.upsert("task_blueprints", blueprint_data, doc_id)
 
     async def update_task_blueprint(self, blueprint_id: str, updates: dict[str, Any]) -> bool:
-        """Repository method implementation.
+        """Updates an existing task blueprint using versioned append-only logic.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            blueprint_id: The ID of the task blueprint to update.
+            updates: A dictionary of key-value pairs to update.
 
         Returns:
-            The expected result of the operation.
+            True if the update was successful, False if the document was not found.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if database operations fail.
         """
         old_doc = await self.get_task_blueprint_by_id(blueprint_id)
         if not old_doc:
@@ -93,17 +96,16 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
         return True
 
     async def delete_task_blueprint(self, blueprint_id: str) -> bool:
-        """Repository method implementation.
+        """Deletes a task blueprint by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            blueprint_id: The ID of the task blueprint to delete.
 
         Returns:
-            The expected result of the operation.
+            True if successfully deleted, False if the document did not exist.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if database operations fail.
         """
         blueprint = await self.get_task_blueprint_by_id(blueprint_id)
         if not blueprint:

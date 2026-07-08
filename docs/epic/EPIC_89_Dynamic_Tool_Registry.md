@@ -71,6 +71,7 @@ Siirretään nykyinen logiikka uuteen tiedostoon `backend_v2/services/mcp/tools/
    - Työkalun palauttamat todisteet tulee injektoida `AliasEngine`:n kautta, jotta käyttöliittymään (Flutter/PDF) päätyy vain turvallisia `docN` pseudonyymejä (esim. `local_id = local_alias_engine.register(real_id)`).
 
 ## **✅ Varmistus / Falsifiointisuunnitelma**
-- [ ] Backendin testit menevät läpi uudella dispatcherilla: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
-- [ ] Uuden työkalun (esim. MockTool) rekisteröinti onnistuu yhtä koodiriviä muuttamalla.
-- [ ] Koko koodikannasta (paitsi `tools/tavily.py`) ei löydy enää sanaa "Tavily".
+- [x] **Phase 1 (Dynamic Tool ID Validation):** Ratkaistu (2026-07-08). `AliasEngine` puhdistettu työkalulogiikasta. `SchemaFactory` luo Pydantic Union -tyyppejä (Literal + Regex) MCP-työkaluille dynaamisesti luupissa. Execution Monitor vahvisti (exe_9b35a21d33b54b4dbb359d42fd96fb63), että Vertex AI -kutsut menevät läpi ja MCP-luuppi hakee Tavily-dokumentteja dynaamisilla ID-tunnisteilla ilman validointivirheitä tai Rate Limit 429 -kaatumisia (Pacing Lock -mekanismin suojatessa yli 180 sekunnin Semaphore-jonot).
+- [ ] **Phase 2 (ToolDispatcher):** Backendin testit menevät läpi uudella dispatcherilla: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+- [ ] **Phase 2 (ToolDispatcher):** Uuden työkalun (esim. MockTool) rekisteröinti onnistuu yhtä koodiriviä muuttamalla.
+- [ ] **Phase 2 (ToolDispatcher):** Koko koodikannasta (paitsi `tools/tavily.py`) ei löydy enää sanaa "Tavily".

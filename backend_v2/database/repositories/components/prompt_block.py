@@ -6,6 +6,7 @@ from typing import Any
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.v2_core import PromptBlock
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,30 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             AppException: Propagated from driver if the database query fails.
         """
         return await self.driver.query("prompt_blocks")
+
+    async def get_all_prompt_blocks_models(self) -> list[PromptBlock]:
+        """Retrieves all prompt blocks and maps them to Pydantic models.
+
+        Returns:
+            A list of PromptBlock models.
+
+        Raises:
+            AppException: With VALIDATION_FAILED if a block cannot be parsed.
+        """
+        data = await self.get_all_prompt_blocks()
+        models = []
+        for b in data:
+            try:
+                models.append(PromptBlock.model_validate(b, strict=False))
+            except Exception as e:
+                logger.error("Failed to parse PromptBlock %s: %s", b.get("id"), e, exc_info=True)
+
+                raise AppException(
+                    message=f"Failed to parse PromptBlock {b.get('id')} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return models
 
     async def create_prompt_block(self, block_data: dict[str, Any]) -> str:
         """Creates a new prompt block.

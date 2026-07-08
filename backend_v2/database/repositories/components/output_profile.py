@@ -1,4 +1,4 @@
-"""Extracted Repository."""
+"""Extracted Repository for Output Profiles."""
 
 import logging
 from typing import Any
@@ -12,38 +12,38 @@ logger = logging.getLogger(__name__)
 
 
 class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
-    """OutputProfileRepositoryImpl implementation."""
+    """Implementation of the Output Profile Repository.
+
+    This repository is responsible for CRUD operations on output profiles.
+    """
 
     def __init__(self, driver: StorageDriver):
+        """Initializes the repository with a storage driver.
+
+        Args:
+            driver: The underlying storage driver for database operations.
+        """
         super().__init__(driver)
 
     async def get_all_output_profiles(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+        """Retrieves all output profiles from the database.
 
         Returns:
-            The expected result of the operation.
+            A list of dictionaries representing the output profiles.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the database query fails.
         """
         return await self.driver.query("output_profiles")
 
     async def get_all_output_profiles_models(self) -> list[OutputProfile]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+        """Retrieves all output profiles and maps them to Pydantic models.
 
         Returns:
-            The expected result of the operation.
+            A list of OutputProfile models.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: With VALIDATION_FAILED if a profile cannot be parsed.
         """
         data = await self.get_all_output_profiles()
         models = []
@@ -61,62 +61,59 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
         return models
 
     async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+        """Retrieves an output profile by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            profile_id: The unique identifier of the output profile.
 
         Returns:
-            The expected result of the operation.
+            A dictionary containing the output profile data if found, otherwise None.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the database query fails.
         """
         return await self.driver.get("output_profiles", profile_id)
 
     async def create_output_profile(self, profile_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new output profile.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            profile_data: The dictionary containing the output profile data.
 
         Returns:
-            The expected result of the operation.
+            The ID of the created output profile.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the upsert operation fails.
         """
         doc_id = profile_data["id"]
         return await self.driver.upsert("output_profiles", profile_data, doc_id)
 
     async def update_output_profile(self, profile_id: str, updates: dict[str, Any]) -> bool:
-        """Repository method implementation.
+        """Updates an existing output profile directly (no version increment).
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            profile_id: The ID of the output profile to update.
+            updates: A dictionary of key-value pairs to update.
 
         Returns:
-            The expected result of the operation.
+            True if the update was successful, False if the document was not found.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if database operations fail.
         """
         return await self.driver.update("output_profiles", profile_id, updates)
 
     async def delete_output_profile(self, profile_id: str) -> bool:
-        """Repository method implementation.
+        """Deletes an output profile by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            profile_id: The ID of the output profile to delete.
 
         Returns:
-            The expected result of the operation.
+            True if successfully deleted, False if the document did not exist.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if database operations fail.
         """
         return await self.driver.delete("output_profiles", profile_id)

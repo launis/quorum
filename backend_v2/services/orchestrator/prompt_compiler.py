@@ -118,7 +118,6 @@ class PromptCompiler:
         self,
         schema_name: str,
         criteria: list[PromptBlock],
-        has_search_result: bool = False,
         has_shuffled_atoms: bool = False,
         target_locale: str = "en",
         *,
@@ -126,6 +125,7 @@ class PromptCompiler:
         source_document_ids: list[str] | None = None,
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
+        allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
@@ -133,13 +133,13 @@ class PromptCompiler:
         Args:
             schema_name: Name for the generated Pydantic model class.
             criteria: List of PromptBlock definitions driving schema fields.
-            has_search_result: Whether to include search result extensions.
             has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
             target_locale: Target language code for label resolution.
             strictness_level: Strictness level to control field leniency.
             source_document_ids: Dynamic literals corresponding to available documents.
             allowed_atom_ids: Dynamic literals corresponding to available atom items.
             allowed_dynamic_keys: Dynamic keys loaded from step input mappings.
+            allowed_mcp_prefixes: List of dynamic tool prefixes (e.g. tavily_, jira_).
             max_evaluations: Dynamic upper limit for evaluations array.
 
         Returns:
@@ -148,13 +148,13 @@ class PromptCompiler:
         return self._schema_factory.build_dynamic_schema(
             schema_name,
             criteria,
-            has_search_result,
-            has_shuffled_atoms,
-            target_locale,
+            has_shuffled_atoms=has_shuffled_atoms,
+            target_locale=target_locale,
             strictness_level=strictness_level,
             source_document_ids=source_document_ids,
             allowed_atom_ids=allowed_atom_ids,
             allowed_dynamic_keys=allowed_dynamic_keys,
+            allowed_mcp_prefixes=allowed_mcp_prefixes,
             max_evaluations=max_evaluations,
         )
 

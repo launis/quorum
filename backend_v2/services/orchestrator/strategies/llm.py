@@ -512,12 +512,12 @@ class LLMNodeStrategy(NodeStrategy):
             global_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
                 criteria=criteria_blocks,
-                has_search_result=has_search,
                 has_shuffled_atoms=has_shuffled_atoms,
                 target_locale=target_locale,
                 strictness_level=context.strictness_level,
                 source_document_ids=source_doc_ids,
                 allowed_dynamic_keys=allowed_dynamic_keys,
+                allowed_mcp_prefixes=hook_state.metadata.get("allowed_mcp_prefixes", []),
             )
             frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()
 

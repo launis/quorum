@@ -17,7 +17,6 @@ def test_schema_factory_reasoning_trace_alias() -> None:
     DynamicSchema = factory.build_dynamic_schema(
         schema_name="TestSchema",
         criteria=[],
-        has_search_result=False,
         has_shuffled_atoms=False,
         target_locale="en",
         strictness_level=50,

@@ -14,7 +14,7 @@ def test_prompt_compiler_adapter_delegation() -> None:
     adapter = PromptCompilerAdapter()
 
     # Verify delegation of build_dynamic_schema
-    DynamicSchema = adapter.build_dynamic_schema("DynamicTest", [], False, False, "en", strictness_level=50)
+    DynamicSchema = adapter.build_dynamic_schema("DynamicTest", [], False, "en", strictness_level=50)
     assert DynamicSchema is not None
     assert hasattr(DynamicSchema, "model_fields")
 

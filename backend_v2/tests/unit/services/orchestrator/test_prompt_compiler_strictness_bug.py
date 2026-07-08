@@ -11,7 +11,6 @@ def test_prompt_compiler_build_dynamic_schema_accepts_strictness_level() -> None
     compiler.build_dynamic_schema(
         schema_name="TestSchema",
         criteria=[],
-        has_search_result=False,
         has_shuffled_atoms=False,
         target_locale="en",
         strictness_level=100,

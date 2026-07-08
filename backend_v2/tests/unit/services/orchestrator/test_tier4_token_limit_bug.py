@@ -30,7 +30,6 @@ async def test_tier4_reasoning_trace_truncation_bug() -> None:
 
     schema_model = factory.build_dynamic_schema(
         schema_name="TestSchema",
-        has_search_result=False,
         has_shuffled_atoms=False,
         target_locale="fi",
         criteria=criteria,

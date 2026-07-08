@@ -1,4 +1,4 @@
-"""Extracted Repository."""
+"""Extracted Repository for Agents."""
 
 import logging
 from typing import Any
@@ -10,69 +10,72 @@ logger = logging.getLogger(__name__)
 
 
 class AgentRepositoryImpl(AppendOnlyRepositoryBase):
-    """AgentRepositoryImpl implementation."""
+    """Implementation of the Agent Repository.
+
+    This repository is responsible for CRUD operations on agents.
+    It inherits from AppendOnlyRepositoryBase to support versioned documents.
+    """
 
     def __init__(self, driver: StorageDriver):
+        """Initializes the repository with a storage driver.
+
+        Args:
+            driver: The underlying storage driver for database operations.
+        """
         super().__init__(driver)
 
     async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+        """Retrieves an agent by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            agent_id: The unique identifier of the agent.
 
         Returns:
-            The expected result of the operation.
+            A dictionary containing the agent data if found, otherwise None.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the database query fails.
         """
         return await self.driver.get("agents", agent_id)
 
     async def get_all_agents(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+        """Retrieves all agents from the database.
 
         Returns:
-            The expected result of the operation.
+            A list of dictionaries representing the agents.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the database query fails.
         """
         return await self.driver.query("agents")
 
     async def create_agent(self, agent_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new agent.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            agent_data: The dictionary containing the agent data.
 
         Returns:
-            The expected result of the operation.
+            The ID of the created agent.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if the upsert operation fails.
         """
         doc_id = agent_data["id"]
         return await self.driver.upsert("agents", agent_data, doc_id)
 
     async def update_agent(self, agent_id: str, updates: dict[str, Any]) -> bool:
-        """Repository method implementation.
+        """Updates an existing agent using versioned append-only logic.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            agent_id: The ID of the agent to update.
+            updates: A dictionary of key-value pairs to update.
 
         Returns:
-            The expected result of the operation.
+            True if the update was successful, False if the document was not found.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if database operations fail.
         """
         old_doc = await self.get_agent_by_id(agent_id)
         if not old_doc:
@@ -93,17 +96,16 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
         return True
 
     async def delete_agent(self, agent_id: str) -> bool:
-        """Repository method implementation.
+        """Deletes an agent by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            agent_id: The ID of the agent to delete.
 
         Returns:
-            The expected result of the operation.
+            True if successfully deleted, False if the document did not exist.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: Propagated from driver if database operations fail.
         """
         agent = await self.get_agent_by_id(agent_id)
         if not agent:
