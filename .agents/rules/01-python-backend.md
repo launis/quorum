@@ -144,6 +144,12 @@
         <banned_pattern>Hardcoding application vocabulary, UI display strings, or string comparisons inside the backend code.</banned_pattern>
         <mandatory_pattern>Backend APIs MUST resolve to Enum Keys (e.g. `AUTH_ORGANIC`). Raw UI rendering string resolution is deferred purely to Flutter `.arb` runtime evaluation.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="strict_enum_l10n_mapping">
+        <banned_pattern>Using string manipulation (e.g., `role.value.split('_')` or `.lower()`) in the backend to magically guess the frontend's ARB translation keys from an Enum.</banned_pattern>
+        <mandatory_pattern>When the backend is responsible for formatting text (Server-Driven UI Localization), the mapping between the Python `UPPER_SNAKE_CASE` enum and the Flutter `.arb` `camelCase` key MUST be defined explicitly inside the Enum class via an `@property def l10n_key(self) -> str:` method. This acts as a strict Adapter Pattern.</mandatory_pattern>
+        <catastrophic_reason>Magic string manipulation is brittle. If an enum's name does not perfectly align with the ARB key pattern, the localization will fail silently. Explicit mapping ensures 100% type safety and clear architectural boundaries.</catastrophic_reason>
+    </rule_block>
     
     <rule_block id="data_leak_prevention_firewall">
         <banned_pattern>Returning raw DB models natively out of FastAPI endpoints, bypassing Pydantic filtering, or defining `exclude=True` locally in Routers for security fields.</banned_pattern>

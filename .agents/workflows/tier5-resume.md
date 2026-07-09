@@ -16,12 +16,8 @@ description: Tier 5 (Resume & Universal Bootstrapper) - The universal receiver t
   <execution_protocol level="5">
     <step id="1">INGEST &amp; MANDATORY READING: Parse the handover payload (`--target`, `--workflow`, `--achieved`, `--learned`, `--remaining`, `--rules`). You MUST actively read the rules specified in `--rules`. You MUST internalize the `--learned` context to avoid repeating the previous agent's mistakes.</step>
     
-    <step id="2">DYNAMIC CONTEXT ACQUISITION (ZERO-BLINDNESS MANDATE): Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely target and verify the current state of the files mentioned in the payload. Never assume the state of the codebase based on the prompt alone; load the physical reality into your context window.</step>
+    <step id="2">BASELINE STATE VERIFICATION (ZERO-BLINDNESS MANDATE): Never assume the state of the codebase based on the prompt alone. You MUST execute `git status` via `run_command` immediately. If the workspace is dirty (uncommitted files, broken state), you MUST halt and ask the user for instructions. Only after confirming a clean Git baseline should you use `view_file` to precisely target the files mentioned in the payload.</step>
     
-    <step id="3">BOOTSTRAP &amp; INHERIT: Read the `--workflow` parameter. You MUST actively load the corresponding workflow file from `.agents\workflows\` (e.g., read `tier2-execute.md` if `--workflow=/tier2-execute`). You MUST then fully adopt the role, context rules, and execution protocol of that target workflow.</step>
-    
-    <step id="4">EXECUTE: Begin executing the inherited `--workflow` targeting the `--remaining` tasks according to the rigid rules of that Tier. Do not stop until the current step is completed.</step>
-    
-    <step id="5">END-OF-PLAN HARDENING MANDATE: When the entire new context window's plan is completed, you MUST run the appropriate Quality Gate Hardening loop YOURSELF using the `run_command` tool as defined in `AGENTS.md`. DO NOT delegate this to the user. You MUST also verify if `docs\architecture\` or `04_directory_reference.md` requires physical updates before closing the session.</step>
+    <step id="3">BOOTSTRAP, OVERRIDE &amp; EXECUTE: Read the `--workflow` parameter. You MUST use `view_file` to load the corresponding workflow file from `.agents\workflows\`. Once loaded, the target workflow's `execution_protocol` COMPLETELY OVERRIDES AND REPLACES this Tier 5 protocol. You MUST drop your Tier 5 identity, adopt the target workflow's rules entirely, and begin executing its Step 1 against the `--remaining` tasks. (Note: End-of-plan hardening and documentation audits are now the responsibility of the inherited workflow).</step>
   </execution_protocol>
 </system_prompt>

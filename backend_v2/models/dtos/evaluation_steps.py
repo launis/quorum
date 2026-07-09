@@ -12,7 +12,6 @@ from pydantic import Field, model_validator
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
-from backend_v2.settings import get_settings
 
 
 class BaseExtractionDTO(V2CoreBase):
@@ -23,7 +22,6 @@ class BaseExtractionDTO(V2CoreBase):
 
     used_source_aliases: list[str] = Field(
         ...,
-        max_length=get_settings().schema_max_source_aliases,
         description="List of exact <search_result id> strings you relied upon for this specific extraction.",
     )
 
@@ -136,12 +134,9 @@ class StepDTOStrict(BaseExtractionDTO):
     )
     source_document_aliases: list[str] = Field(
         ...,
-        max_length=get_settings().schema_max_source_aliases,
         description="Dynamic literals corresponding to available documents.",
     )
-    exact_quotes: list[LLMExtractedQuote] = Field(
-        ..., max_length=get_settings().schema_max_quotes_target, description=DESC_EXACT_QUOTES
-    )
+    exact_quotes: list[LLMExtractedQuote] = Field(..., description=DESC_EXACT_QUOTES)
     reasoning_steps: str = Field(
         description=(
             "Step-by-step mechanical audit trace BEFORE making a decision. "

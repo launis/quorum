@@ -29,7 +29,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
   <execution_protocol level="0">
     <step id="1">DYNAMIC CONTEXT ACQUISITION: Read and internalize the provided `[epic_document]`. Actively use search tools (`grep_search`, `view_file`) to check the current state of the global architecture (`backend_v2/`, `client_app_v2/`, and `backend_v2/seed/seed_data.json`) to understand the baseline the Epic is modifying.</step>
     
-    <step id="2">SYSTEM 2 ANALYSIS & CHAIN-OF-THOUGHT: Create a `<research_and_analysis>` block to document your thought process. Analyze the Epic through the Quorum "Panel of Architects":
+    <step id="2">SYSTEM 2 ANALYSIS & CHAIN-OF-THOUGHT: Create a `<thinking_process>` block to document your thought process (Do NOT use custom XML tags like `research_and_analysis`). Analyze the Epic through the Quorum "Panel of Architects":
       - Global System Architect: Does this Epic violate any "Catastrophic System Bans" (e.g., legacy fallbacks, bypasses of Fail-Fast)? Does it maintain the Single Source of Truth (SSOT)?
       - Backend/Data Architect: Are the proposed data structures deterministic? Are we forcing dynamic API shapes into static persistence layers improperly?
       - SDUI & Frontend Architect: Does this maintain strict Server-Driven UI parity? Are we relying on frontend business logic where the backend should be responsible?
@@ -49,7 +49,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
 
     <step id="5">SYNTHESIS & ARCHITECTURAL ALIGNMENT: Draft a clear synthesis on how the Epic must be adjusted to achieve perfect alignment with the local architectural rules. Ensure the proposed architecture is future-proof and deterministic.</step>
 
-    <step id="6">EPIC MUTATION & ANALYSIS SEPARATION: Mutate the `[epic_document]` (or create an updated version) based on your findings so the document becomes a bulletproof, unambiguous blueprint. PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a concise justification for the architectural constraints and modifications you applied.</step>
+    <step id="6">EPIC MUTATION & ANALYSIS SEPARATION (WRITE SAFETY): Update the `[epic_document]` based on your findings so the document becomes a bulletproof, unambiguous blueprint. You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation. Full file overwrites (`write_to_file`) are strictly forbidden. PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a concise justification for the architectural constraints and modifications you applied.</step>
   </execution_protocol>
 </system_prompt>
 ```

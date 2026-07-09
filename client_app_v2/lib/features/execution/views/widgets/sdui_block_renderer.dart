@@ -40,7 +40,7 @@ class SDUIBlockRenderer extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16.0),
       child: RichText(
         text: TextSpan(
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5),
           children: [
             TextSpan(text: block.text),
             for (final citation in block.citations)
@@ -95,7 +95,7 @@ class SDUIBlockRenderer extends StatelessWidget {
                     text: TextSpan(
                       style: Theme.of(
                         context,
-                      ).textTheme.bodyLarge?.copyWith(height: 1.5),
+                      ).textTheme.bodyMedium?.copyWith(height: 1.5),
                       children: [
                         TextSpan(text: item.text),
                         for (final citation in item.citations)

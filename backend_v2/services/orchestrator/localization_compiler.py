@@ -79,6 +79,7 @@ class LocalizationCompiler:
         target_locale: str,
         execution_persona_block: PromptBlock | None = None,
         allowed_atom_ids: set[str] | None = None,
+        atom_alias_map: dict[str, str] | None = None,
     ) -> str:
         """Epic 12/55: Generates Thick XML/Markdown rubrics for the System Prompt with Persona SSOT.
 
@@ -114,11 +115,19 @@ class LocalizationCompiler:
                 for s in scales:
                     for c in s.claims:
                         for assertion in c.tda_assertions:
-                            if allowed_atom_ids is not None and assertion.tda_id not in allowed_atom_ids:
-                                continue
+                            if atom_alias_map is not None:
+                                if assertion.tda_id not in atom_alias_map:
+                                    continue
+                                rule_id = atom_alias_map[assertion.tda_id]
+                            elif allowed_atom_ids is not None:
+                                if assertion.tda_id not in allowed_atom_ids:
+                                    continue
+                                rule_id = assertion.tda_id
+                            else:
+                                rule_id = assertion.tda_id
 
                             assertion_xml = []
-                            assertion_xml.append(f'  <rule id="{assertion.tda_id}">')
+                            assertion_xml.append(f'  <rule id="{rule_id}">')
                             if assertion.concept_description:
                                 assertion_xml.append(
                                     f"    <concept_description>{assertion.concept_description}</concept_description>"

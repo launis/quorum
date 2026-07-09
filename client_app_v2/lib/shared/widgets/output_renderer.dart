@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class OutputRenderer extends StatelessWidget {
   final String markdownContent;
@@ -9,17 +8,9 @@ class OutputRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     String renderedContent = markdownContent;
 
-    if (l10n != null) {
-      renderedContent = renderedContent
-          .replaceAll('ROLE_ARCHITECT', l10n.roleArchitect)
-          .replaceAll('ROLE_DRIVER', l10n.roleDriver)
-          .replaceAll('ROLE_NAVIGATOR', l10n.roleNavigator)
-          .replaceAll('ROLE_PASSENGER', l10n.rolePassenger);
-    }
-
+    // Backend now provides translated roles, so no dynamic replacement is needed here
     // Clean up possible HTML <br> tags coming from raw text extractions
     renderedContent = renderedContent.replaceAll(
       RegExp(r'<br\s*\/?>', caseSensitive: false),

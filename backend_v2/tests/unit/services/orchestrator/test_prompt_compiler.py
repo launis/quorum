@@ -258,15 +258,14 @@ def test_dynamic_schema_descriptions_are_present() -> None:
         == "The validated item payload matching the target data schema."
     )  # noqa: E501
 
-    # 3. Assert max_length constraints exist to limit LLM schema serving states
+    # 3. Assert max_length constraints DO NOT exist to limit LLM schema serving states
     from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
 
     tda_schema = StrippedBaseTDAExtraction.model_json_schema()
     assert "localized_anchors_found" not in tda_schema["properties"]
-    from backend_v2.settings import get_settings
 
     chunk_json_schema = ChunkSchema.model_json_schema()
-    assert chunk_json_schema["properties"]["records"]["maxItems"] == get_settings().schema_max_chunk_records
+    assert "maxItems" not in chunk_json_schema["properties"]["records"]
 
 
 def test_fsm_serving_state_safety_limits() -> None:

@@ -35,6 +35,7 @@ class PromptCompilerAdapter:
         ),
         previous_errors: list[str] | None = None,
         allowed_atom_ids: set[str] | None = None,
+        atom_alias_map: dict[str, str] | None = None,
     ) -> CompiledPrompt:
         """Compile static and dynamic message tiers with V3 cache-safe separation.
 
@@ -70,7 +71,7 @@ class PromptCompilerAdapter:
         # 1. Chunk-specific rubrics (vary per chunk when atom subsets differ)
         # We bypass the PromptCompiler adapter layer to pass allowed_atom_ids to LocalizationCompiler
         local_xml_rubrics = self._compiler._localization_compiler.compile_xml_rubrics(
-            chunk_criteria, target_locale, allowed_atom_ids=allowed_atom_ids
+            chunk_criteria, target_locale, allowed_atom_ids=allowed_atom_ids, atom_alias_map=atom_alias_map
         )
         if local_xml_rubrics:
             dynamic_parts.append(f"<evaluation_criteria>\n{local_xml_rubrics}\n</evaluation_criteria>")

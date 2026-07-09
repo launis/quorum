@@ -20,6 +20,8 @@ class DummyConfig(BaseModel):
     caching_strategy: str = "none"
     top_p: float | None = None
     top_k: int | None = None
+    frequency_penalty: float | None = None
+    presence_penalty: float | None = None
 
 
 class DummyModel(BaseModel):

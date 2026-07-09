@@ -22,15 +22,17 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
   </context_rules>
 
   <execution_protocol level="7">
-    <step id="1">KI EVALUATION & THEORETICAL INGESTION: First, evaluate if the recent changes necessitate an update to the Knowledge Items (KI database). This is uncommon, but if true, update the KI content and then update the theoretical sections of the relevant architectural documents. Then, read the 5 architectural pillar documents in `docs\architecture\`. Understand the 5 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience).</step>
+    <step id="1">THEORETICAL INGESTION: Read the 5 architectural pillar documents in `docs\architecture\`. Understand the 5 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience). Do NOT attempt to evaluate KI updates at this stage before scanning the physical code.</step>
     
-    <step id="2">TOP-DOWN ANCHORING (Physical Mapping): Scan `backend_v2` and `client_app_v2` using your tools to find the physical files that implement these 5 capabilities. Use file editing tools to append these physical paths strictly to the "Physical Implementation Map" sections at the bottom of each pillar document.</step>
+    <step id="2">TOP-DOWN ANCHORING (Physical Mapping): Use targeted `grep_search` with specific architectural signatures (e.g., `class .*Service`, `implements PromptBlock`, `extends Riverpod`) to find the physical files that implement the 5 capabilities. You MUST strictly exclude and NEVER scan `build/`, `.venv/`, `.dart_tool/`, and `__pycache__/` directories. Append these physical paths strictly to the "Physical Implementation Map" sections at the bottom of each pillar document.</step>
     
-    <step id="3">BOTTOM-UP COVERAGE (Orphan Hunting): Scan the top-level directories and core modules of the codebase. Attempt to map every major module to one of the 5 pillars.</step>
+    <step id="3">BOTTOM-UP COVERAGE (Orphan Hunting): Systematically map every major module found in `backend_v2` and `client_app_v2` to one of the 5 pillars. Rely on targeted searches and `list_dir` on specific domain folders, avoiding recursive blind crawling.</step>
     
     <step id="4">ORPHAN REPORTING: If you discover any files, folders, or modules that DO NOT logically fit into the 5 pillars, you MUST generate an "Orphan Report" artifact. Flag these as either "Rogue/Legacy Code to be deleted" or "Missing Architectural Capability" and wait for User guidance.</step>
     
-    <step id="5">DIRECTORY REFERENCE SYNC: Update `.agents\rules\04_directory_reference.md` using your file editing tools to ensure the directory map precisely reflects the anchored component clusters.</step>
+    <step id="5">EVIDENCE-BASED KI EVALUATION: Based on the Orphan Report and your physical mapping, evaluate if recent changes necessitate an update to the Knowledge Items (KI database). If new legitimate patterns emerged that the theory doesn't cover, update the KIs now, and adjust the English theory in the pillar documents accordingly.</step>
+
+    <step id="6">DIRECTORY REFERENCE SYNC: Update `.agents\rules\04_directory_reference.md` using your file editing tools to ensure the directory map precisely reflects the anchored component clusters.</step>
   </execution_protocol>
 </system_prompt>
 ```

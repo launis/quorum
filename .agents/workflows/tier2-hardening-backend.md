@@ -43,6 +43,7 @@ We will now unpack the virtual list autonomously in a continuous loop:
 9. **DOCUMENTATION AUDIT MANDATE:** If the refactoring caused significant architectural changes, file deletions, or the creation of new directories, you MUST physically modify the documents in the `docs\architecture\` directory and the `.agents\rules\04_directory_reference.md` file, strictly maintaining their existing table structures. Never just put a comment "Updated", physically modify the files.
 10. **STATE PERSISTENCE:** When the folder is complete and tests pass, update `tmp\hardening_state.json` and mark the subdirectory as "DONE".
 11. **SESSION LIMIT & HANDOVER:** Keep a tally of the total number of files you have audited in this session. If you have processed 5 files, STOP immediately once the folder is complete. Do not move on to the next. Print to the user: "Session limit reached. Continue by issuing the command: /tier5-resume --target [epic_or_task_md]" and ensure the task file is updated.
+12. **LEGACY DEBT ANNIHILATION (Decomposition Handoff):** If you encounter code that appears to be recently migrated legacy logic (e.g. it uses dynamic dictionaries, `**kwargs` passing, or performs on-the-fly database queries mid-execution), your primary task is architectural modernization. You MUST aggressively refactor data contracts into strict Pydantic V2 models and convert the Pull model into a top-down injected Push model according to Phase 9 rules. Update the unit tests using a Red-Green-Refactor cycle to support these new models.
     </phase>
   </phases>
 </system_prompt>

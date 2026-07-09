@@ -14,7 +14,7 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
   </context_rules>
 
   <execution_protocol level="5">
-    <step id="1">PRE-HANDOVER QUALITY GATE (MANDATORY): Before generating any handover package, you MUST run the Universal Quality Gate YOURSELF using `run_command` as defined in `AGENTS.md`. If tests fail, you MUST fix them before allowing the handover. NEVER propose a Git commit for broken code.</step>
+    <step id="1">PRE-HANDOVER QUALITY GATE &amp; ESCALATION (MANDATORY): Before generating any handover package, you MUST run the Universal Quality Gate YOURSELF using `run_command` as defined in `AGENTS.md`. If tests fail, you must attempt to fix them. DIRTY STATE ROLLBACK: If you fail to fix the tests 3 times (Circuit Breaker trips), you MUST ABORT the handover. Do not attempt to duct-tape the code. Explicitly instruct the user to run `git restore .` to revert the corrupted state. Only proceed with handover once the codebase is clean and tests pass.</step>
     
     <step id="2">DOCUMENTATION &amp; TRACKER STATE PERSISTENCE: You MUST physically modify the current target `.md` plan/Epic file using your file editing tools. Mark completed tasks with `[x]` and leave incomplete tasks as `[ ]`. You MUST ALSO verify if `docs\architecture\` or `04_directory_reference.md` require updates. Ensure these files reflect the absolute truth of the codebase.</step>
     
@@ -27,7 +27,7 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
     
     <step id="4">KNOWLEDGE &amp; RULES ROUTING: Determine WHICH specific rules from `.agents/rules/` and WHICH Knowledge Items (KIs) are critical for the next agent to read to prevent amnesia.</step>
     
-    <step id="5">GIT COMMIT EXECUTION: Once all tests pass and documentation is physically updated on disk, use your `run_command` tool to execute the Git commit YOURSELF: `git add .` followed by `git commit -m "feat: [brief description]"`. Do not delegate this to the user.</step>
+    <step id="5">ATOMIC GIT COMMIT EXECUTION: Once all tests pass and documentation is physically updated on disk, use your `run_command` tool to execute the Git commit YOURSELF. You MUST NEVER use `git add .` as it stages temporary logs and artifacts. You MUST specify exact relative file paths (e.g., `git add backend_v2/models/enums.py`). If unsure of the exact files you modified, run `git status` first to verify. Then execute `git commit -m "feat: [brief description]"`. Do not delegate this to the user.</step>
     
     <step id="6">BATON PASS (NEW SESSION): Output exactly this Markdown block for the user to copy-paste into a NEW chat window. Do NOT use Finnish comments.
 ```bash

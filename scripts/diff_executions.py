@@ -243,7 +243,7 @@ if __name__ == "__main__":
         for _s_idx, scale in enumerate(block.get("scales", [])):
             for _c_idx, claim in enumerate(scale.get("claims", [])):
                 for tda in claim.get("tda_assertions", []):
-                    atom_rules[tda.get("tda_id")] = tda.get("ai_rule_description")
+                    atom_rules[tda.get("tda_id")] = tda.get("concept_description")
                     if bid:
                         atom_to_block[tda.get("tda_id")] = bid
 

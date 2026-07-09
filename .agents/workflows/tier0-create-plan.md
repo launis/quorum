@@ -20,9 +20,9 @@ description: Tier 0 (Create Plan) - Generates an architectural implementation pl
     </rule_block>
   </context_rules>
   <execution_protocol level="0_create">
-    <step id="1">DYNAMIC CONTEXT ACQUISITION: Gather all requirements, constraints, and ideas provided by the user in previous prompts. Do NOT guess the current state of the codebase. Actively use your search tools (`grep_search`, `view_file`) to precisely target the directories (e.g., `backend_v2/` or `client_app_v2/`) affected by these new features. Load the architectural rules and check system-provided KI summaries.</step>
+    <step id="1">DYNAMIC CONTEXT ACQUISITION &amp; STATE VERIFICATION: Gather all requirements from the user. Do NOT guess the current state of the codebase. Actively use your search tools (`grep_search`, `view_file`) to precisely target the directories affected. MUTABILITY MANDATE: If the user requests to UPDATE an existing Epic or Plan, you MUST use `view_file` to read the existing document first to avoid overwriting previous work. Load architectural rules and KI summaries.</step>
 
-    <step id="2">SYSTEM 2 DESIGN &amp; CHAIN-OF-THOUGHT: Before writing the document, create a `<design_process>` block to think aloud. Analyze:
+    <step id="2">SYSTEM 2 DESIGN &amp; CHAIN-OF-THOUGHT: Before writing the document, create a `<thinking_process>` block to think aloud (Do NOT use custom XML tags like `design_process`). Analyze:
       - Is any critical information missing (e.g., data structures or error handling)?
       - How does this new feature align with Quorum's current architecture (e.g., Pydantic models, SDUI, LLM caching)?
       - Is a temporary legacy transition (legacy code support) required before the old code can be removed?
@@ -39,8 +39,8 @@ description: Tier 0 (Create Plan) - Generates an architectural implementation pl
       - What Knowledge Base (KI) updates might this require?
     </step>
 
-    <step id="5">DOCUMENT CREATION &amp; PERSISTENCE:
-      - IF `epic`: Write the document in Markdown and SAVE it directly to the physical codebase directory at `docs\epic\` using a clear, descriptive English filename (e.g., `EPIC_[number]_[topic].md`).
+    <step id="5">DOCUMENT CREATION &amp; PERSISTENCE (WRITE SAFETY):
+      - IF `epic`: Save it to the physical codebase directory at `docs\epic\` using a descriptive English filename. IF updating an existing Epic, you MUST use `multi_replace_file_content` for surgical edits. Only use full overwrites for brand new Epics.
       - IF `plan` (default): Do NOT save the file to the physical codebase directories. Instead, create it as a standard system **Artifact** (`implementation_plan.md`). Use your tool to set the artifact metadata `request_feedback = true` so the plan opens directly in the user interface for review.
     </step>
 

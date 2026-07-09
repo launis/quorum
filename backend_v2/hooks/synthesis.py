@@ -891,6 +891,58 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             except Exception as e:
                 logger.error("[SynthesisHook] Row explanation generation failed: %s", e, exc_info=True)
 
+        # ----------------------------------------------------------------------
+        # EARLY L10N REPLACEMENT
+        # ----------------------------------------------------------------------
+        l10n_dict = {}
+        try:
+            from pathlib import Path
+
+            l10n_dir = Path("c:/src/quorum/client_app_v2/lib/l10n")
+            target_locale = language if language in ("fi", "en") else "en"
+            arb_path = l10n_dir / f"app_{target_locale}.arb"
+            if arb_path.exists():
+                with open(arb_path, encoding="utf-8") as f:
+                    l10n_dict = json.load(f)
+        except Exception as e:
+            logger.warning("[SynthesisHook] Failed to load translations: %s", e)
+
+        if l10n_dict:
+            from backend_v2.models.enums import RoleClassification
+
+            replacements = []
+            for role in RoleClassification:
+                # Use the explicit l10n_key from the Enum
+                arb_key = role.l10n_key
+                # Fallback to e.g. 'Driver'
+                fallback = role.value.split("_")[-1].capitalize()
+                replacements.append((role.value, f"**{l10n_dict.get(arb_key, fallback)}**"))
+
+            def apply_replacements(text: str) -> str:
+                if not text:
+                    return text
+                res = text
+                for k, v in replacements:
+                    res = res.replace(k, v)
+                return res
+
+            for blk in global_blocks:
+                if isinstance(blk, dict) and "text" in blk and isinstance(blk["text"], str):
+                    blk["text"] = apply_replacements(blk["text"])
+                if isinstance(blk, dict) and blk.get("block_type") == "bullet_list" and "items" in blk:
+                    for itm in blk["items"]:
+                        if isinstance(itm, dict) and "text" in itm and isinstance(itm["text"], str):
+                            itm["text"] = apply_replacements(itm["text"])
+
+            for _, s_blocks in section_dict.items():
+                for blk in s_blocks:
+                    if isinstance(blk, dict) and "text" in blk and isinstance(blk["text"], str):
+                        blk["text"] = apply_replacements(blk["text"])
+                    if isinstance(blk, dict) and blk.get("block_type") == "bullet_list" and "items" in blk:
+                        for itm in blk["items"]:
+                            if isinstance(itm, dict) and "text" in itm and isinstance(itm["text"], str):
+                                itm["text"] = apply_replacements(itm["text"])
+
         return HookResult(
             success=True,
             state_delta={

@@ -74,12 +74,31 @@ def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int
     if not isinstance(exact_quotes_raw, list):
         exact_quotes_raw = []
 
+    blacklist = {
+        "null",
+        "none",
+        "n/a",
+        "false",
+        "",
+        "ei löydy",
+        "not found",
+        "-",
+        "ei mainittu",
+        "none detected",
+        "[]",
+        "{}",
+        "ei sovelleta",
+        "ei lainausta",
+        "no quote",
+        "ei ole",
+        "[contextual_override_applied]",
+    }
+
     exact_quotes = []
     for q in exact_quotes_raw:
-        if isinstance(q, str):
-            exact_quotes.append(q)
-        elif hasattr(q, "text"):
-            exact_quotes.append(q.text)
+        text_val = q if isinstance(q, str) else (q.text if hasattr(q, "text") else "")
+        if text_val and str(text_val).strip().lower() not in blacklist:
+            exact_quotes.append(str(text_val))
 
     contextual_override = extraction.contextual_override if hasattr(extraction, "contextual_override") else False
     if not isinstance(contextual_override, bool):
@@ -622,7 +641,9 @@ class ChunkWorker:
                         source_docs.append(SourceDocumentContext.model_validate(doc_dict))
 
         chunk_atoms_xml = None
-        allowed_atom_ids = set()
+        atom_alias_map: dict[str, str] = {}
+        allowed_atom_aliases: set[str] = set()
+
         if has_shuffled_atoms and chunk is not None:
             blind_items = []
             for i, item in enumerate(chunk.items):
@@ -632,14 +653,13 @@ class ChunkWorker:
                     if aid
                     else base_alias_engine.register(f"unnamed_atom_{i}", prefix="a")
                 )
+                if aid:
+                    atom_alias_map[aid] = alias
+                    allowed_atom_aliases.add(alias)
+
                 blind_items.append({"atom_id": alias, "rule_anchor": alias, "question": item.get("question", "")})
             atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
             chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
-
-            for item in blind_items:
-                aid = item.get("atom_id")
-                if aid:
-                    allowed_atom_ids.add(aid)
 
         allowed_dynamic_keys = []
         if step_metadata and "allowed_dynamic_keys" in step_metadata:
@@ -656,7 +676,7 @@ class ChunkWorker:
             target_locale=target_locale,
             strictness_level=strictness_level,
             source_document_ids=source_document_ids,
-            allowed_atom_ids=list(allowed_atom_ids) if allowed_atom_ids else None,
+            allowed_atom_ids=list(allowed_atom_aliases) if allowed_atom_aliases else None,
             allowed_dynamic_keys=allowed_dynamic_keys,
             max_evaluations=len(chunk.items) if chunk and hasattr(chunk, "items") else None,
         )
@@ -668,7 +688,7 @@ class ChunkWorker:
             chunk_atoms_xml=chunk_atoms_xml,
             strictness_level=strictness_level,
             target_locale=target_locale,
-            allowed_atom_ids=allowed_atom_ids if has_shuffled_atoms else None,
+            atom_alias_map=atom_alias_map if has_shuffled_atoms else None,
         )
 
         prompt_context = PromptContextDTO(

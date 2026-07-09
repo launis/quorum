@@ -39,7 +39,7 @@ SYNTHESIS_SDUI_MANDATES = (
     "<sdui_mandate>\n"
     "- SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY "
     "the allowed SDUI `content_blocks`.\n"
-    "- ALLOWED SDUI BLOCKS: 'paragraph', 'bullet_list', 'alert_box', 'quote_card', 'hero_insight', 'warning_card', 'markdown'. "
+    "- ALLOWED SDUI BLOCKS: 'paragraph', 'bullet_list', 'alert_box', 'quote_card', 'warning_card'. "
     "NO OTHER TYPES ARE ALLOWED.\n"
     '- BULLET LISTS MUST USE OBJECTS: For `bullet_list`, the `items` array MUST contain objects with a `text` field (e.g. `[{"text": "kohta 1"}]`), NOT raw strings!\n'
     "- NO RECURSION: Nested blocks inside blocks are strictly banned.\n"
@@ -48,6 +48,7 @@ SYNTHESIS_SDUI_MANDATES = (
     "text fields. The UI will render text structurally.\n"
     "- CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of "
     "integers in the `citations: list[int]` field for each block that uses sources.\n"
+    "- ROLE TRANSLATION: Do NOT translate role constants (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, ROLE_ARCHITECT). Output them exactly as they are in text so the UI can translate and format them.\n"
     "</sdui_mandate>"
 )
 

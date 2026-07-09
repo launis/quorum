@@ -23,7 +23,6 @@ from backend_v2.models.prompts.field_prompts import (
     DESC_REASONING_TRACE,
 )
 from backend_v2.models.v2_core import PromptBlock
-from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
@@ -68,7 +67,6 @@ class StrippedBaseTDAExtraction(BaseModel):
 
     exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,
-        max_length=get_settings().schema_max_quotes_target,
         description=DESC_EXACT_QUOTES,
     )
     contextual_override: bool = Field(
@@ -217,7 +215,6 @@ class SchemaFactory:
                     list[FinalDocIdsType],  # type: ignore
                     Field(
                         ...,
-                        max_length=get_settings().schema_max_source_aliases,
                         description="Dynamic literals corresponding to available documents.",
                     ),
                 ),
@@ -225,7 +222,6 @@ class SchemaFactory:
                     list[DynamicLLMExtractedQuote],
                     Field(
                         default_factory=list,
-                        max_length=get_settings().schema_max_quotes_target,
                         description=DESC_EXACT_QUOTES,
                     ),
                 ),
@@ -238,7 +234,6 @@ class SchemaFactory:
                     list[FinalDocIdsType],  # type: ignore
                     Field(
                         ...,
-                        max_length=get_settings().schema_max_source_aliases,
                         description="Dynamic literals corresponding to available documents.",
                     ),
                 ),
@@ -246,7 +241,6 @@ class SchemaFactory:
                     list[DynamicLLMExtractedQuote],
                     Field(
                         default_factory=list,
-                        max_length=get_settings().schema_max_quotes_target,
                         description=DESC_EXACT_QUOTES,
                     ),
                 ),
@@ -281,15 +275,11 @@ class SchemaFactory:
                     "AtomResponseSemantic", __base__=cast(Any, (step_semantic_class, AtomResponseBase))
                 )
 
-            effective_max_evaluations = (
-                max_evaluations if max_evaluations is not None else get_settings().schema_max_evaluations
-            )
             eval_type: Any = list[AtomResponseClass]
             fields["evaluations"] = (
                 eval_type,
                 Field(
                     ...,
-                    max_length=effective_max_evaluations,
                     description="List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in <BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. Do NOT hallucinate, invent, or evaluate any unlisted concepts.",
                 ),
             )
@@ -587,7 +577,6 @@ class SchemaFactory:
             list[Any],
             Field(
                 ...,
-                max_length=get_settings().schema_max_chunk_records,
                 description="List of records contained in this execution chunk.",
             ),
         )

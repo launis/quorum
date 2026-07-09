@@ -785,10 +785,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get rolePassenger => 'Matkustaja';
 
   @override
-  String get roleNavigator => 'Kartanlukija';
+  String get roleNavigator => 'Navigaattori';
 
   @override
-  String get roleDriver => 'Kuski';
+  String get roleDriver => 'Ohjaaja';
 
   @override
   String get roleArchitect => 'Arkkitehti';

@@ -13,9 +13,9 @@
     </rule_block>
 
     <rule_block id="strict_model_location">
-        <banned_pattern>Defining Pydantic classes or local Enums organically inside service files or routers.</banned_pattern>
-        <mandatory_pattern>ALL Single Source of Truth (SSOT) data structures, requests, and domain models MUST be placed inside `backend_v2/models/` (e.g. `v2_core.py`, `enums.py`). No models can live outside this boundary.</mandatory_pattern>
-        <catastrophic_reason>Scattered models cause circular import crashes and duplicate Pydantic definitions across different micro-services.</catastrophic_reason>
+        <banned_pattern>Defining Pydantic classes or local Enums organically inside service files or routers, or dumping new models into the monolithic `v2_core.py`.</banned_pattern>
+        <mandatory_pattern>ALL Single Source of Truth (SSOT) data structures, requests, and domain models MUST be placed inside `backend_v2/models/` using strict Interface Segregation. You MUST separate pure SSOT database shapes into `domain/`, API payloads into `dtos/`, and static LLM instructions into `prompts/`. No models can live outside this boundary.</mandatory_pattern>
+        <catastrophic_reason>Scattered models cause circular import crashes. Dumping API requests and SSOT domains into the same "God File" (like `v2_core.py`) destroys boundary isolation and causes router-to-service import deadlocks.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="frontend_feature_isolation">
@@ -45,8 +45,8 @@
     </module>
     
     <module path="backend_v2/models/">
-        <responsibility>SSOT PYDANTIC SCHEMAS & ENUMS</responsibility>
-        <key_domains>v2_core.py, enums.py</key_domains>
+        <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
+        <key_domains>domain/ (SSOT DB shapes), dtos/ (API boundaries), prompts/ (LLM templates), enums.py</key_domains>
     </module>
     
     <module path="backend_v2/database/">
@@ -62,6 +62,11 @@
     <module path="backend_v2/hooks/">
         <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1)</responsibility>
         <key_domains>interaction_hook.py, synthesis.py</key_domains>
+    </module>
+
+    <module path="backend_v2/llm/">
+        <responsibility>FOUNDATIONAL MODEL ORCHESTRATION & ADAPTERS</responsibility>
+        <key_domains>adapters/, mock.py, provider.py</key_domains>
     </module>
 
     <module path="backend_v2/utils/">

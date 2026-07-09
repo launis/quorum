@@ -391,6 +391,17 @@ class RoleClassification(StrEnum):
     DRIVER = "ROLE_DRIVER"
     ARCHITECT = "ROLE_ARCHITECT"
 
+    @property
+    def l10n_key(self) -> str:
+        """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
+        mapping = {
+            RoleClassification.PASSENGER: "rolePassenger",
+            RoleClassification.NAVIGATOR: "roleNavigator",
+            RoleClassification.DRIVER: "roleDriver",
+            RoleClassification.ARCHITECT: "roleArchitect",
+        }
+        return mapping.get(self, "")
+
 
 class InteractionStrategy(StrEnum):
     """Prompt engineering strategy classification for interaction quality assessment."""

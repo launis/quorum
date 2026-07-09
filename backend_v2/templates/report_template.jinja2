@@ -22,8 +22,8 @@
             background-color: #fff;
         }
         h1, h2, h3, h4 { color: #2c3e50; margin-top: 0; }
-        h1 { font-size: 22px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; text-align: center; color: #1a237e; }
-        h2 { font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 15px; margin-bottom: 12px; font-weight: 700; }
+        h1 { font-size: 22px; margin-bottom: 20px; font-weight: bold; }
+        h2 { font-size: 18px; margin-bottom: 15px; font-weight: bold; }
         
         .header-card {
             border: 2px solid #4CAF50;
@@ -94,15 +94,15 @@
     {% macro render_sdui_blocks(blocks) %}
         {% for block in blocks %}
             {% if block.block_type == 'paragraph' %}
-                <p style="margin-top: 0; margin-bottom: 10px;">
-                    {{ block.text }}
+                <div style="margin-top: 0; margin-bottom: 10px; font-size: 13px; line-height: 1.6; color: #333;">
+                    {{ block.text | md | safe }}
                     {% if block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
-                </p>
+                </div>
             {% elif block.block_type == 'bullet_list' %}
                 <ul style="margin-top: 0; margin-bottom: 10px; padding-left: 20px;">
                     {% for item in block.get('items', []) %}
                         <li style="margin-bottom: 4px;">
-                            {{ item.text }}
+                            {{ item.text | md | safe }}
                             {% if item.citations %}{% for cit in item.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
                         </li>
                     {% endfor %}
@@ -110,9 +110,32 @@
             {% elif block.block_type == 'alert_box' %}
                 {% set border_color = '#1E88E5' if block.severity == 'info' else '#F57C00' %}
                 {% set bg_color = '#E3F2FD' if block.severity == 'info' else '#FFF3E0' %}
-                <div class="alert alert-{{ block.severity }}" style="border-left: 4px solid {{ border_color }}; background-color: {{ bg_color }}; padding: 12px; margin-bottom: 15px; border-radius: 6px;">
-                    {{ block.text }}
+                <div class="alert alert-{{ block.severity }}" style="border-left: 4px solid {{ border_color }}; background-color: {{ bg_color }}; padding: 12px; margin-bottom: 15px; border-radius: 6px; font-size: 13px; line-height: 1.6; color: #333;">
+                    {{ block.text | md | safe }}
                     {% if block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+                </div>
+            {% elif block.block_type == 'hero_insight' %}
+                <h3 style="color: #1E88E5; font-size: 18px; margin-top: 15px; margin-bottom: 15px;">
+                    {{ block.text | md | safe }}
+                    {% if block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+                </h3>
+            {% elif block.block_type == 'markdown' %}
+                <div style="margin-bottom: 15px; font-size: 13px; line-height: 1.6; color: #333;">
+                    {{ block.text | md | safe }}
+                </div>
+            {% elif block.block_type == 'quote_card' %}
+                <div style="margin-bottom: 15px; border-left: 3px solid #9E9E9E; padding-left: 10px; font-style: italic; color: #616161;">
+                    {{ block.quote }}
+                    {% if block.source_aliases %}
+                        <div style="font-size: 11px; margin-top: 5px; font-weight: bold;">- {{ block.source_aliases | join(', ') }}</div>
+                    {% endif %}
+                </div>
+            {% elif block.block_type == 'warning_card' %}
+                <div style="margin-bottom: 15px; border-left: 4px solid #D32F2F; background-color: #FFEBEE; padding: 12px; border-radius: 6px;">
+                    <strong style="color: #D32F2F;">Warning:</strong> {{ block.message }}
+                    {% if block.quote_text %}
+                        <div style="margin-top: 5px; font-style: italic; color: #D32F2F; font-size: 11px;">"{{ block.quote_text }}"</div>
+                    {% endif %}
                 </div>
             {% endif %}
         {% endfor %}

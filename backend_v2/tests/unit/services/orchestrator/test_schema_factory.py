@@ -1,5 +1,3 @@
-from backend_v2.settings import get_settings
-
 """Unit tests for SchemaFactory dynamic Pydantic schema generation."""
 
 import pytest
@@ -36,34 +34,6 @@ def test_build_dynamic_schema_empty(schema_factory: SchemaFactory) -> None:
     assert issubclass(model, BaseModel)
     assert "reasoning_trace" in model.model_fields
     assert "evaluation_notes" in model.model_fields
-
-
-def test_schema_strictness_triggers_dlq_fallback(schema_factory: SchemaFactory) -> None:
-    """TDD GREEN: Test that Pydantic strictness correctly triggers a ValidationError
-    if the LLM hallucinates extra items beyond the Chunk Size bounds (max_length=10).
-    This proves that Fail-Fast works at the boundary, ensuring ChunkWorker delegates to DLQ.
-    """
-    import json
-
-    import pydantic
-
-    class DummyPayload(BaseModel):
-        test_field: str
-
-    model = schema_factory.build_chunk_response_schema("ChunkSchema", DummyPayload)
-
-    records = []
-    for i in range(22):
-        records.append({"original_id": f"id_{i}", "payload": {"test_field": "val"}})
-
-    json_str = '{"chunk_id": "chunk_1", "records": ' + json.dumps(records) + "}"
-
-    expected_max = get_settings().schema_max_chunk_records
-
-    with pytest.raises(pydantic.ValidationError) as exc:
-        model.model_validate_json(json_str)
-
-    assert f"List should have at most {expected_max} items after validation, not 22" in str(exc.value)
 
 
 def test_dunder_hallucination_rejected_by_extra_forbid() -> None:

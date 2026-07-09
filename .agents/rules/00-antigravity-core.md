@@ -20,7 +20,7 @@
     </rule_block>
     <rule_block id="anti_apology">
         <banned_pattern>Outputting apologies, conversational filler, or subjective justifications after violating a rule (e.g., "I apologize for the oversight", "You are correct").</banned_pattern>
-        <mandatory_pattern>You MUST silently output the corrected code block immediately. Zero conversational filler.</mandatory_pattern>
+        <mandatory_pattern>When correcting a mistake based on user feedback, do not apologize or use conversational filler. You MUST first output your required `<thinking_process>` block detailing the root cause of the error, and then immediately output the corrected code. If the erroneous code was already committed, instruct the user to amend the commit.</mandatory_pattern>
         <catastrophic_reason>Conversational filler consumes tokens, dilutes the architectural context window, and slows down automated workflows.</catastrophic_reason>
     </rule_block>
     <rule_block id="anti_hallucination_read">
@@ -31,6 +31,10 @@
         <banned_pattern>Writing code comments, docstrings, variable names, or git commit messages in Finnish or any language other than English.</banned_pattern>
         <mandatory_pattern>You MUST write ALL code-level artifacts (variables, functions, classes, docstrings, inline comments, and git commit messages) EXCLUSIVELY in English. Even if the user communicates in Finnish, the codebase MUST remain strictly English.</mandatory_pattern>
         <catastrophic_reason>Mixing languages in the codebase destroys readability for international developers, violates standard conventions, and breaks automated code analysis tools.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="documentation_present_tense_mandate">
+        <banned_pattern>Writing historical context, describing what was done in the past, or mentioning things like "Epic XX brought this..." in code comments or docstrings.</banned_pattern>
+        <mandatory_pattern>When documenting code (docstrings, comments), always write in the present tense describing the CURRENT state and functionality. NEVER write about the history of the code or past iterations. A comment must only explain what the code does NOW.</mandatory_pattern>
     </rule_block>
     <rule_block id="ssot_reuse_mandate">
         <banned_pattern>Writing new components without analyzing reusability, building a new SSOT without migrating existing code, OR forcing "False Unifications" across decoupled domains.</banned_pattern>
@@ -47,7 +51,7 @@
     </rule_block>
     <rule_block id="atomic_checkpoint_mandate">
         <banned_pattern>Modifying multiple architectural domains (e.g., UI and Backend) concurrently without a save state, proposing `git add .`, or writing git commit messages in a language other than English.</banned_pattern>
-        <mandatory_pattern>After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST explicitly instruct the user to perform an atomic `git commit` BEFORE proceeding to the next file or logic block. You MUST ALWAYS specify exact relative file paths (e.g., `git add client_app_v2/[tiedosto]`). Git commit messages MUST ALWAYS be written in English.</mandatory_pattern>
+        <mandatory_pattern>After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST explicitly instruct the user to perform an atomic `git commit` BEFORE proceeding to the next file or logic block. Exception: If a structural refactor mathematically requires modifying a coupled set of files (e.g., extracting shared interfaces to break circular imports) before the system can compile, you are authorized to modify that specific batch of files concurrently BEFORE running the quality gate and instructing the atomic commit. You MUST ALWAYS specify exact relative file paths (e.g., `git add client_app_v2/[tiedosto]`). Git commit messages MUST ALWAYS be written in English.</mandatory_pattern>
         <catastrophic_reason>Failure to enforce atomic commits per-file/per-domain results in massive, un-rollbackable Git histories and makes identifying regression bugs mathematically impossible.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">

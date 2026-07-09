@@ -20,15 +20,15 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
     </rule_block>
   </context_rules>
   <execution_protocol level="4">
-    <step id="1">DYNAMIC CONTEXT ACQUISITION &amp; IDENTIFY (Root Cause Analysis): Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely trace data flow to its origin. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.</step>
+    <step id="1">OBSERVABILITY FIRST &amp; IDENTIFY (Root Cause Analysis): Do NOT start by blindly guessing the bug from static code. You MUST first analyze runtime telemetry to understand the exact state of the crash. Actively use `view_file` to read `backend_debug.log`, `client_debug.log`, or (if an LLM issue) the `llm_debug_prompts.md` artifacts and Logfire traces. ONLY AFTER understanding the runtime trace should you use `grep_search` to precisely trace the data flow in the codebase. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.</step>
     
-    <step id="2">REGRESSION TEST MANDATE (RED): Before modifying ANY domain code, you MUST write a failing unit test that reliably reproduces the exact bug. This test MUST NOT be a temporary scratch script; it MUST be permanently saved into the appropriate test suite folder (e.g., `tests/unit/`) to permanently prevent future regressions. Naked execution of `pytest` or `flutter test` is CATASTROPHICALLY PROHIBITED.</step>
+    <step id="2">REGRESSION TEST MANDATE (RED): You MUST write a failing unit test that reliably reproduces the exact bug. This test MUST be permanently saved into the appropriate test suite folder to prevent future regressions. ATOMIC INTERFACE EXCEPTION: If the bug is purely logical, write the test first. However, if the bug is structural (requires changing a function signature, interface, or schema), you MUST update both the test AND the code interface in the same atomic batch to prevent asymmetrical compile crashes during the Proof of Failure step.</step>
     
     <step id="3">PROOF OF FAILURE (AI EXECUTION): You MUST run the test YOURSELF using the `run_command` tool via the Universal Quality Gate as defined in `AGENTS.md`. DO NOT instruct the user to run it. Wait for your background task to finish and read the trace.</step>
     
     <step id="4">BLAST RADIUS ANALYSIS &amp; PLAN: Explain the Root Cause of the bug briefly based on the failed test trace. Before proposing a fix, you MUST use `grep_search` to find all downstream consumers of the function you intend to modify. Propose an atomic code fix that solves the bug without side effects to those consumers.</step>
     
-    <step id="5">FIX &amp; VERIFY (GREEN): Wait for "PERMISSION GRANTED" from the user. Once granted, use your structural editing tools to write the fix. You MUST then run the tests YOURSELF again to verify the fix passes.</step>
+    <step id="5">FIX &amp; VERIFY (GREEN): Wait for "PERMISSION GRANTED" from the user. Once granted, use your structural editing tools to write the final logic fix (if not already handled by the Atomic Interface Exception). You MUST then run the tests YOURSELF again via the Quality Gate to verify the fix passes.</step>
     
     <step id="6">END-TO-END SMOKE TEST: After tests pass, you MUST verify the bug is completely resolved in the actual runtime context (e.g., UI behavior or full pipeline execution) before marking the hunt complete.</step>
     

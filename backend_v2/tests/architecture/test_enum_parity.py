@@ -95,18 +95,30 @@ def test_parity_xai_extensions() -> None:
     )
 
 
+PYTHON_SDUI_PATH = os.path.join(repo_root, "backend_v2", "models", "view", "sdui.py")
+JINJA_TEMPLATE_PATH = os.path.join(repo_root, "backend_v2", "templates", "report_template.jinja2")
+
+
 def get_python_sdui_block_types(python_code: str) -> set[str]:
     """Finds all block_type Literal values in SDUI models."""
     values = re.findall(r"block_type:\s*Literal\[['\"]([^'\"]+)['\"]\]", python_code)
     return set(values)
 
 
+def get_jinja_sdui_block_types(jinja_code: str) -> set[str]:
+    """Finds all handled block_type checks in the Jinja template."""
+    values = re.findall(r"block\.block_type\s*==\s*['\"]([^'\"]+)['\"]", jinja_code)
+    return set(values)
+
+
 def test_parity_sdui_block_types() -> None:
-    """Fail-Fast Check: Asserts Python SDUI block_types exist in Dart SduiBlockType Enum."""
+    """Fail-Fast Check: Asserts Python SDUI block_types exist in Dart and Jinja."""
     dart_code = read_file(DART_ENUM_PATH)
     py_sdui_code = read_file(PYTHON_SDUI_PATH)
+    jinja_code = read_file(JINJA_TEMPLATE_PATH)
 
     py_values = get_python_sdui_block_types(py_sdui_code)
+    jinja_values = get_jinja_sdui_block_types(jinja_code)
 
     try:
         dart_values = extract_dart_enum_json_values(dart_code, "SduiBlockType")
@@ -115,6 +127,7 @@ def test_parity_sdui_block_types() -> None:
 
     missing_in_dart = py_values - dart_values
     missing_in_python = dart_values - py_values
+    missing_in_jinja = py_values - jinja_values
 
     assert not missing_in_dart, (
         f"CROSS-LANGUAGE PARITY FAILURE: Python allows SDUI block_type {missing_in_dart} "
@@ -123,6 +136,10 @@ def test_parity_sdui_block_types() -> None:
     assert not missing_in_python, (
         f"CROSS-LANGUAGE PARITY FAILURE: Dart defines SduiBlockType {missing_in_python} "
         "but Python does not allow it! Update sdui.py Literals!"
+    )
+    assert not missing_in_jinja, (
+        f"CROSS-LANGUAGE PARITY FAILURE: Python allows SDUI block_type {missing_in_jinja} "
+        "but PDF jinja template ignores it! Add to render_sdui_blocks in report_template.jinja2!"
     )
 
 

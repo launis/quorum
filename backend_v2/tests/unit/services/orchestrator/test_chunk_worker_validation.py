@@ -128,3 +128,112 @@ async def test_chunk_worker_pop_reasoning_steps_bug():
 
     finally:
         cw.LLMTaskExecutor = original_executor
+
+
+@pytest.mark.asyncio
+async def test_chunk_worker_phantom_quote_trace_contradiction():
+    """Reproduces the bug where the LLM populates exact_quotes with a phantom quote ('None'/'N/A')
+    while reasoning_steps indicates a failure ('[5. validation decision: fail]'),
+    triggering a Trace Contradiction inside AnchorValidationService.
+    """
+    compiler = PromptCompiler()
+
+    class MockCompiledPrompt:
+        static_messages = []
+        dynamic_messages = []
+        metadata = {}
+
+        def to_flat_messages(self):
+            return []
+
+    compiler.compile_chunk_prompt = MagicMock(return_value=MockCompiledPrompt())
+
+    tda_id = "tda_12345678901234567890123456789012"
+    sr_id = "sr_1234567890123456"
+
+    i18n_label = I18nText(default_locale="en", translations={"en": "Test"})
+    tda = TDAAssertion(tda_id=tda_id, concept_description="Test", aggregation_mode="EXISTS", inverse_evidence=False)
+    claim = MatrixClaim(label=i18n_label, ai_description="Test", tda_assertions=[tda])
+    scale = MatrixScale(score=1, ai_label="TEST", claims=[claim])
+    block = PromptBlock(
+        id=sr_id,
+        slug="test",
+        category_id="matrix",
+        scales=[scale],
+        label=i18n_label,
+        description=i18n_label,
+        type="string",
+    )
+
+    class DummyAtomResponse(BaseModel):
+        atom_id: str = tda_id
+        exact_quotes: list[dict] = [{"text": "None", "source_id": "N/A"}]  # Phantom quote
+        reasoning_steps: str = "[5. validation decision: fail]"
+        decision: bool = False
+        semantic_reasoning: str = "It failed."
+        contextual_override: bool = False
+        rule_internalization: str = "Test internalization"
+        used_source_aliases: list[str] = []
+        source_document_aliases: list[str] = ["N/A"]
+        falsification_argument: str = "No falsification possible."
+        override_reason: str | None = None
+
+    class DummyResponse(BaseModel):
+        evaluations: list[DummyAtomResponse]
+        reasoning_trace: str = "Global reasoning trace."
+        evaluation_notes: str = "Global evaluation notes."
+        global_matrices: dict[str, dict] = {}
+
+    async def mock_execute_structured_task(*args, **kwargs):
+        return DummyResponse(
+            evaluations=[DummyAtomResponse()],
+            reasoning_trace="Global reasoning trace.",
+            evaluation_notes="Global evaluation notes.",
+            global_matrices={sr_id: {"semantic_reasoning": "Test reasoning"}},
+        ), None
+
+    executor_mock = MagicMock()
+    executor_mock.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
+    original_executor = cw.LLMTaskExecutor
+    cw.LLMTaskExecutor = MagicMock(return_value=executor_mock)
+
+    try:
+
+        class DummyChunk:
+            items = [{"atom_id": tda_id, "question": "test"}]
+
+            def model_copy(self, **kwargs):
+                return self
+
+        result, _, _, _ = await ChunkWorker.process_chunk(
+            chunk=DummyChunk(),
+            sem=asyncio.Semaphore(1),
+            compiler=compiler,
+            criteria_blocks=[block],
+            user_payload="Test payload",
+            global_source_text="Test source text",
+            base_system_prompt="Test base",
+            has_search=False,
+            has_shuffled_atoms=True,
+            atom_to_block_ids={tda_id: {sr_id}},
+            effective_mcp_tools=[],
+            bound_client=MagicMock(),
+            step_id="test_step",
+            target_locale="fi",
+            synthesis_instructions=None,
+            output_profile=None,
+            strictness_level=50,
+            step_metadata={"is_lightweight_extraction": False},
+        )
+
+        assert result.get("_dlq_status") is None, (
+            f"Expected chunk to process correctly, but got DLQ: {result.get('reason')}"
+        )
+
+        # It should process as FAIL without triggering Trace Contradiction and dropping into DLQ
+        evals = result.get("evaluations", [])
+        assert len(evals) > 0
+        assert evals[0]["status"] == "FAIL"
+
+    finally:
+        cw.LLMTaskExecutor = original_executor

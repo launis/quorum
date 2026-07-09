@@ -105,3 +105,65 @@ def test_compile_dynamic_instructions() -> None:
     )
     assert "<DYNAMIC_INSTRUCTION" in result
     assert "{CURRENT_DATE}" not in result
+
+
+def test_compile_xml_rubrics_atom_alias_map_filtering() -> None:
+    compiler = LocalizationCompiler()
+    mock_criteria = [
+        {
+            "id": "blk_3234567890abcdef",
+            "slug": "test",
+            "category_id": "matrix",
+            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "type": "float",
+            "scale_min": 1,
+            "scale_max": 5,
+            "computed_min": 1,
+            "computed_max": 5,
+            "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+            "ai_description": "Test description",
+            "scales": [
+                {
+                    "score": 1,
+                    "ai_label": "ONE",
+                    "claims": [
+                        {
+                            "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
+                            "ai_description": "Directive 1",
+                            "tda_assertions": [
+                                {
+                                    "tda_id": "tda_44444444444444444444444444444444",
+                                    "concept_description": "Directive 1",
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "ALL_MUST_COMPLY",
+                                    "allow_contextual_override": True,
+                                    "anchor_target": "Source",
+                                    "bounding_box_scope": "document",
+                                    "extraction_rule": "Rule",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+    ]
+
+    criteria = [PromptBlock.model_validate(c) for c in mock_criteria]
+
+    # Scenario 1: atom_alias_map is provided and matches. Output should use alias.
+    result_alias = compiler.compile_xml_rubrics(
+        criteria, target_locale="en", atom_alias_map={"tda_44444444444444444444444444444444": "a0"}
+    )
+    assert '<rule id="a0">' in result_alias
+    assert '<rule id="tda_44444444444444444444444444444444">' not in result_alias
+
+    # Scenario 2: atom_alias_map is provided but does NOT match. Rule should be completely skipped.
+    result_skipped = compiler.compile_xml_rubrics(criteria, target_locale="en", atom_alias_map={"tda_5555": "a1"})
+    assert '<rule id="' not in result_skipped
+    assert "CRITICAL_DIRECTIVES" not in result_skipped
+
+    # Scenario 3: The error scenario. allowed_atom_ids is provided but it contains the alias ("a0"), not the UUID.
+    # This proves the original bug behavior if atom_alias_map was missing.
+    result_bug = compiler.compile_xml_rubrics(criteria, target_locale="en", allowed_atom_ids={"a0"})
+    assert '<rule id="' not in result_bug

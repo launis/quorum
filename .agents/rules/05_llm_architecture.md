@@ -17,9 +17,9 @@
     </rule_block>
 
     <rule_block id="eager_llm_dependency_loading">
-        <banned_pattern>Placing `import litellm`, `import vertexai` or other heavy PyO3/Rust-based LLM libraries at the module level (top of the file) in backend providers or handlers.</banned_pattern>
-        <mandatory_pattern>Enforce Lazy Loading / Deferred Initialization: Heavy LLM SDK imports MUST be placed inside the specific functions/methods (e.g. `__init__`, `generate`) where they are actually invoked.</mandatory_pattern>
-        <catastrophic_reason>Importing Rust-based libraries (like `tokenizers` via LiteLLM) at the module level permanently crashes Python 3.14+ test suites running with `pytest-cov` due to PyO3 multi-initialization constraints. Lazy loading guarantees test collection is safe and accelerates application boot times.</catastrophic_reason>
+        <banned_pattern>Placing `import litellm`, `import vertexai` or other heavy PyO3/Rust-based LLM libraries at the module level (top of the file) in backend providers or handlers without `TYPE_CHECKING` guards.</banned_pattern>
+        <mandatory_pattern>Enforce Lazy Loading / Deferred Initialization: Heavy LLM SDK imports MUST be placed inside the specific functions/methods (e.g. `__init__`, `generate`) where they are actually invoked. **Exception for Typing**: To satisfy strict Pydantic and MyPy type hints, you MUST use `if typing.TYPE_CHECKING:` for module-level imports of heavy SDKs, combined with `from __future__ import annotations` or string-based type hints.</mandatory_pattern>
+        <catastrophic_reason>Importing Rust-based libraries (like `tokenizers` via LiteLLM) at the module level permanently crashes Python 3.14+ test suites running with `pytest-cov` due to PyO3 multi-initialization constraints. The `TYPE_CHECKING` protocol ensures test collection is safe while preserving strict Quorum typing.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="data_leak_logging">
@@ -30,13 +30,13 @@
 
     <rule_block id="infinite_retry_loops">
         <banned_pattern>Running generic self-healing retry pipelines with high `max_retries` causing infinite logic loops upon complex JSON schema mismatches.</banned_pattern>
-        <mandatory_pattern>Enforce an absolute max stringency using `SystemConcurrency.LLM_MAX_RETRIES` (which MUST be fixed at 2). If the AI Generator and AI Critic conflict, trigger Fail-Fast and push the error to the AppErrorBoundary.</mandatory_pattern>
+        <mandatory_pattern>Enforce an absolute max stringency using the SSOT config (e.g. `settings.llm_max_retries`). If the AI Generator and AI Critic conflict, trigger Fail-Fast and push the error to the AppErrorBoundary.</mandatory_pattern>
         <catastrophic_reason>Infinite loops on failed prompt engineering will explode API billing exponentially within minutes.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="system_concurrency_ssot">
         <banned_pattern>Hardcoding parallel task limits (e.g. semaphores, iterators) and retry limits scattered across files, ignoring global constraints.</banned_pattern>
-        <mandatory_pattern>All execution limits MUST reference `SystemConcurrency` strictly. Parallel async LLM workers must wrap execution in a TaskGroup limited natively by `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS)` (fixed at 2). Hardcoded or arbitrary new limits are banned.</mandatory_pattern>
+        <mandatory_pattern>All global execution limits MUST reference the `settings.py` SSOT strictly. Macro-level parallel async LLM workers must wrap execution in a TaskGroup limited natively by `asyncio.Semaphore(settings.max_concurrent_llm_steps)`. Hardcoded or arbitrary new macro limits are banned.</mandatory_pattern>
         <catastrophic_reason>Fractured limits allow exponential concurrent API triggers, resulting in instant Cloud Rate Limits (HTTP 429) and quota exhaustion across the entire infrastructure.</catastrophic_reason>
     </rule_block>
     <rule_block id="native_language_system_prompts">
@@ -147,9 +147,9 @@
     </rule_block>
 
     <rule_block id="ensemble_parallel_evaluation_mandate">
-        <banned_pattern>Using multi-pass "negative rules" logic or chained sequential verifications for high-entropy / inverse-evidence PromptBlocks.</banned_pattern>
-        <mandatory_pattern>Execute high-entropy and negative validation steps using a single-pass "Best-of-3" ensemble. You MUST run parallel LLM calls cleanly wrapped in `asyncio.TaskGroup` and resolve the final output via a strict majority vote where lexically invalid hallucinations are discarded before counting.</mandatory_pattern>
-        <catastrophic_reason>Multi-pass negative logic forces the LLM into "double-negative" confusion, causing severe output oscillation. Parallel Best-of-3 polling mathematically smooths statistical anomalies without convoluting the system prompts.</catastrophic_reason>
+        <banned_pattern>Using multi-pass "negative rules" logic or chained sequential verifications for high-entropy / inverse-evidence PromptBlocks, or bottlenecking micro-ensembles with the global `settings.max_concurrent_llm_steps` macro-limit.</banned_pattern>
+        <mandatory_pattern>Execute high-entropy and negative validation steps using a single-pass "Best-of-3" ensemble. You MUST run parallel LLM calls cleanly wrapped in `asyncio.TaskGroup` and resolve the final output via a strict majority vote. **Micro-Level Concurrency Exemption**: For this specific Best-of-3 micro-task, you MUST use a localized `asyncio.Semaphore(3)` to allow the ensemble to fire in a single pass without deadlocking against the global macro-level limit.</mandatory_pattern>
+        <catastrophic_reason>Multi-pass negative logic forces the LLM into "double-negative" confusion. Parallel Best-of-3 polling mathematically smooths statistical anomalies. Enforcing macro-limits on micro-ensembles causes deadlocks and queuing delays.</catastrophic_reason>
     </rule_block>
     <rule_block id="prompt_asset_ssot_mandate">
         <banned_pattern>Hardcoding system instructions, language translation directives (like `<linguistic_context>`), or Pydantic JSON schema descriptions directly into service layer classes (e.g., `PromptFactory`, `translation_service.py`, or `schema_factory.py`).</banned_pattern>
