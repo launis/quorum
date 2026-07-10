@@ -1,6 +1,11 @@
+# **Epic 93: SDUI Output Rendering Unification (Vaihe 3/3)**
+
+> [!CAUTION]
+> **RIIPPUVUUSVAROITUS:** Tämä on arkkitehtuurimigraation viimeinen vaihe (3/3). Tätä Epicciä EI saa toteuttaa ennen kuin Epic 91.5 (DTO Bridge) ja Epic 92 (Moottori) ovat tuotannossa. Tämän Epicin tehtävänä on kuluttaa puhtaita `ReportDataDto` -objekteja ja kääntää ne SDUI-käyttöliittymäksi ja PDF-dokumenteiksi. Vanha Putki B (Jumalkoodi) tuhotaan tämän Epicin päätteeksi kokonaan.
+
 # **OSA 1: Alkuperäinen Luonnos ja Nykytilan Kartoitus**
 
-## **Epic 93: Tulostuksen Unifikaatio ja DTO-vetoinen Universaali Ulostulo**
+## **Tulostuksen Unifikaatio ja DTO-vetoinen Universaali Ulostulo**
 
 ### **1\. Nykytilan Analyysi (Kahden putken ongelma)**
 

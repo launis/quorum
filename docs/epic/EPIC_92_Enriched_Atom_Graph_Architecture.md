@@ -1,4 +1,7 @@
-# Epic 92: Enriched Atom Graph Architecture (Kontekstuaalisen Atomisaation Korjaus)
+# Epic 92: Enriched Atom Graph Architecture (Vaihe 2/3)
+
+> [!CAUTION]
+> **RIIPPUVUUSVAROITUS:** Tämä on vaihe 2/3 uudesta arkkitehtuurista. Epic 91.5 (DTO Bridge) on oltava täysin implementoituna ja tuotannossa ENNEN kuin tämän Epicin moottoria aletaan rakentaa. Tämän Epicin uusi DAG-moottori on rakennettava tuottamaan puhdasta `ReportDataDto` -objektia. Vanha järjestelmä on samalla tuhottava ilman fallback-polkua.
 
 > [!IMPORTANT]
 > **THE CONTEXT-LOSS PARADOX RESOLUTION MANDATE**: Atomien flattauksen aiheuttama referenttien menetys (Anaphora) ja ehdollisuuden hajoaminen (Conditional Logic Decoupling) on ratkaistava ilman flat-list -arkkitehtuurin hylkäämistä. Järjestelmän tulee suorittaa "Enriched Atom Graph" -pipeline: 1. Probabilistinen LLM Resolution -passi (Anaphora + Condition -tunnistus) ja 2. Deterministinen Pydantic- ja Python-ohjattu ehdollinen arviointi.
@@ -73,22 +76,22 @@ from typing import Optional, List, Literal
 
 class CausalEdge(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True)
+    edge_reasoning: str = Field(description="Chain-of-thought: LLM:n päättely siitä, miksi tämä kausaalisuhde on olemassa (Reason-then-Format).")
     tda_id: str = Field(description="Vanhemman atomin Opaque ID")
     expected_status: Literal['PASSED', 'FAILED'] = Field(
         default='PASSED',
-        description="Vanhemman atomin tilan on vastattava tätä arvoa. Mahdollistaa negatiiviset ehdot (esim. Jos A on FAILED, laukaise B)."
+        description="Mahdollistaa negatiiviset ehdot."
     )
-    edge_confidence: float = Field(
-        ge=0.0, le=1.0, 
-        description="Käytetään VAIN syklien deterministiseen murtamiseen. LLM coerce-ongelmien varalta vaatii BeforeValidatorin."
-    )
+    # HUOM: edge_confidence on poistettu arkkitehtuurisäännöksellä (LLM Hallusinaatioriski).
+    # Tasapelit / syklinkatkaisut ratkaistaan deterministisesti lokaalin `chunk_index` mukaan.
 
 # 1. IMMUTABLE DOMAIN MODEL - VAIHE 1 (Staattinen louhintatulos)
 class ExtractedAtom(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-    tda_id: str = Field(pattern=r"^tda_[a-fA-F0-9]{16,32}$")
+    reasoning: str = Field(description="Chain-of-thought: anaforan ja väitteen purkamisen päättely.")
     resolved_claim: str = Field(description="Puhdistettu väite")
     source_quote: str = Field(description="Sanatarkka lainaus alkuperäisestä tekstistä.")
+    tda_id: str = Field(pattern=r"^tda_[a-fA-F0-9]{16,32}$")
     source_id: str | None = Field(description="Spatiaalinen ankkuri (Chunk ID).")
 
 # 2. IMMUTABLE GRAPH WRAPPER - VAIHE 2 (Graafin topologia)
@@ -136,27 +139,29 @@ Pelkkä entiteettien louhinta (Map-Reduce Entity Resolution) ei kykene purkamaan
 
 Python antaa jokaiselle puretulle väitteelle globaalin Opaque ID:n (UUID). **Huomio (AliasEngine Mandate):** Pitkiä UUID-tunnisteita EI SAA syöttää sellaisenaan LLM:lle, koska se aiheuttaa Token Bloatia. `AliasEngine` rekisteröi nämä ja muuttaa lyhyiksi ankkureiksi (`a0`).
 
+**Kriittinen sääntö (Pydantic Pre-Validation Hydration):** `AliasEngine.hydrate_dict_list()` on suoritettava natiiviin Python `dict`-raakadataan ENNEN kuin sitä yritetään syöttää `ExtractedAtom.model_validate()` -metodille. Jos validointi yritettäisiin ensin, Pydanticin Strict Regex (`^tda_...`) kaatuisi LLM:n tuottamiin lyhyisiin aliaksiin.
+
 ### 3.1.3 Deterministinen Graafin Eheytys (Cycle Breaker & Phantom Isolation)
 LLM:n hallusinoimaa topologiaa ei saa koskaan sokeasti hyväksyä tai antaa sen kaataa TaskGroupia poikkeuksiin.
 * **Haamuviittausten käsittely (Phantom Edge Handling, Strict-yhteensopiva):** Jos Vaihe 2 (liukuva ikkuna, sliding window) viittaa tunnisteeseen, jota ei ole olemassa (esim. `a99`), tietojen koostaminen (hydraus, hydration) ei saa sivuuttaa sitä hiljaisesti (The Silent Drop Loophole). Hiljainen sivuuttaminen tekisi ehtolauseesta virheellisesti absoluuttisen väitteen. Lapsiatomi eristetään välittömästi tilaan `SYSTEM_ERROR` (syynä `UNRESOLVED_DEPENDENCY`). Tämä ylläpitää nopean vikaantumisen (Fail-Fast) arkkitehtuuria.
-* **Deterministinen syklinkatkaisija (Deterministic Cycle Breaker):** Ennen topologista arviointia kausaaliverkko analysoidaan syvyyshaulla (DFS / `networkx.simple_cycles()`). Jos kehäpäätelmä (sykli, esim. A -> B -> A) havaitaan, järjestelmä katkaisee syklin deterministisesti spatiaalisen suunnan perusteella: se poistaa kaaren, joka viittaa alkuperäisessä asiakirjassa epäloogisesti taaksepäin (suuremmasta lohkoindeksistä, chunk index, pienempään). Kielimallin tuottamaa probabilistista `edge_confidence`-arvoa käytetään ainoastaan toissijaisena tasapelin ratkaisijana saman lohkon sisällä. Katkaisusta kirjataan tarkastuslokitapahtuma (`EDGE_PRUNED_CYCLIC`), ja suoritus jatkuu keskeytyksettä.
+* **Deterministinen syklin eristäminen (Fail-Fast):** Ennen topologista arviointia kausaaliverkko analysoidaan syvyyshaulla (DFS / `networkx.simple_cycles()`). Jos kehäpäätelmä (sykli, esim. A -> B -> A) havaitaan, järjestelmä EI KOSKAAN saa yrittää korjata sitä hiljaisesti poistamalla kaaria. Kaikki sykliin osallistuvat solmut eristetään välittömästi tilaan `SYSTEM_ERROR` (Syy: `CYCLIC_DEPENDENCY_DETECTED`). Tämä ylläpitää tiukkaa Fail-Fast -politiikkaa.
 
 #### Vaihe 2: Hierarkkinen Global Graph Linker (Sliding Window)
 Jos kaikki sadat atomit syötettäisiin kerralla Vaiheelle 2, malli kärsisi "Lost in the Middle" -ilmiöstä ja jättäisi huomiotta listan keskellä olevia riippuvuuksia. Koska Vaihe 1 on jo rakentanut lokaalit aligraafit, Vaiheen 2 tehtävä muuttuu **Hierarkkiseksi Linkittäjäksi**, joka käyttää **Sliding Window -algoritmia**:
 
 1. **Järjestys:** Aligraafit järjestetään alkuperäisen dokumentin spatiaalisen järjestyksen mukaan (`chunk_index`).
 2. **Ikkunakoko:** `W = settings.GRAPH_LINKER_WINDOW_SIZE` (oletus: 4 lohko (chunk)a). Overlap: `O = settings.GRAPH_LINKER_OVERLAP` (oletus: 2 lohko (chunk)a).
-3. **Iteraatio:** LLM saa kerrallaan W lohkon (chunk) aligraafit ja etsii cross-chunk -riippuvuuksia vain näiden välillä. Jokaiselle tunnistetulle kaarelle LLM palauttaa `CausalEdge`-rakenteen `edge_confidence`-arvoineen.
+3. **Iteraatio:** LLM saa kerrallaan W lohkon (chunk) aligraafit ja etsii cross-chunk -riippuvuuksia vain näiden välillä. Jokaiselle tunnistetulle kaarelle LLM palauttaa `CausalEdge`-rakenteen `edge_reasoning`-päättelyineen.
    * *Prompt:* "Yhdistä nämä olemassa olevat aligraafit kausaalisesti toisiinsa alkuperäisen tekstin perusteella."
-   * *Output:* LLM palauttaa lyhyiden tunnisteiden tunnisteiden kohdistuksen (ID mapping): `{"a5": [{"tda_id": "a1", "expected_state": "PASSED", "edge_confidence": 0.92}]}`.
-4. **Merge:** Python yhdistää deterministisesti kaikkien ikkunoiden tuottamat inter-chunk -kaaret. Duplikaattikaaret (sama `tda_id`-pari) yhdistetään ottamalla **korkein `edge_confidence`**.
+   * *Output:* LLM palauttaa lyhyiden tunnisteiden tunnisteiden kohdistuksen (ID mapping): `{"a5": [{"edge_reasoning": "...", "tda_id": "a1", "expected_status": "PASSED"}]}`.
+4. **Merge:** Python yhdistää deterministisesti kaikkien ikkunoiden tuottamat inter-chunk -kaaret. Duplikaattikaaret (sama `tda_id`-pari) yhdistetään deterministisesti ja toisteiset kaaret poistetaan.
 5. **Transitiivisuustarkistus:** Lopullinen graafi ajetaan `GraphValidatorService`:n läpi syklien ja orpojen tunnistamiseksi.
 
 **Aikakompleksisuus:** O(N/W) LLM-kutsua, missä N on lohko (chunk)en määrä. Jokainen kutsu on kevyt, koska konteksti sisältää vain W lohkon (chunk) atomit (tyypillisesti < 40 atomia).
 
 Suorituksen jälkeen Python-kerros käyttää deterministisesti `AliasEngine.hydrate_dict_list()` -metodia kääntääkseen lyhyet ankkurit (`a0`, `a5`) takaisin aidoiksi järjestelmätason UUID:iksi.
 
-**Fallback (Graceful Degradation):** Jos yksikään sliding window -kutsu epäonnistuu, kyseisen ikkunan lohkot (chunks) merkitään `UNLINKED`-tilaan. DAG suoritetaan ilman näiden cross-chunk -kaaria. Tämä on hyväksyttävä graceful degradation, koska lokaalit aligraafit (Vaiheen 1) ovat edelleen ehjät.
+**VIKAANTUMISPOLITIIKKA (Ei Graceful Degradationia):** Jos liukuvan ikkunan kutsu epäonnistuu (DLQ ja Tenacity-retryjen jälkeen), ikkunan solmuja ei koskaan sivuuteta `UNLINKED`-tilaan. Kyseiset atomit pakotetaan välittömästi `SYSTEM_ERROR`-tilaan, mikä laukaisee alaspäin suuntautuvan `BLOCKED`-kaskadin.
 
 Tämä vaihe viimeistelee täydellisen DAG:in (Directed Acyclic Graph) ilman Output-kriisiä tai konteksti-ikkunan sokeita pisteitä. Se ratkaisee hajallaan olevien aligraafien riippuvuudet toisistaan, **edellyttäen, että Vaihe 1 kykeni limityksen avulla purkamaan pronominit oikein**.
 
@@ -206,7 +211,7 @@ Jotta arkkitehtuuri pysyy ehdottoman Single Source of Truth (SSOT) -säännön a
 
 ### 3.7 Risk Mitigation (Critical Safeguards)
 Tämän arkkitehtuurin tekniset riskit on torjuttava jo suunnitteluvaiheessa:
-1. **TaskGroup Cascade of Death:** Koska `asyncio.TaskGroup` peruuttaa kaikki tehtävät yhden kaatuessa, jokaisen solmun sisällä **täytyy** olla tiukka `try-except` -Error Boundary. Tilapäiset virheet (esim. HTTP 503) on hoidettava solmun sisällä (Transient Error Resilience) tai merkittävä `SYSTEM_ERROR` -tilaksi, jotta koko graafiajo ei kaadu yhteen odottamattomaan poikkeukseen.
+1. **TaskGroup Cascade of Death & DLQ Mandate:** `asyncio.TaskGroup` peruuttaa kaikki tehtävät yhden kaatuessa. Tämän estämiseksi solmun sisällä on oltava tiukka Error Boundary. Tilapäisiä virheitä (API 503, Rate Limits) EI SAA kuitata pelkällä lokaalilla `try-except` -ohituksella, vaan niiden on mentävä LLMTaskExecutorin natiivin Tenacity-retry ja DLQ (Dead Letter Queue) -putken läpi. Vasta kun DLQ on ammennettu tyhjiin, solmun käsittelemätön poikkeus (unhandled exception) on nieltävä (swallowed) ja solmu on merkittävä tilaan `SYSTEM_ERROR`. **Kriittinen sääntö:** Jokaisen Taskin on ehdottomasti suoritettava `finished_event.set()` `finally:` -lohkossa. Muuten järjestelmä ajautuu ikuiseen Event Loop -deadlockiin.
 2. **Event Loop -lukkiutuminen (NetworkX):** Raskaat synkroniset graafialgoritmit (kuten syklinetsintä) on ehdottomasti ajettava erillisessä säikeessä `await asyncio.to_thread()` avustuksella, jotta FastAPI:n asynkroninen Event Loop ei jäädy suurten graafien kohdalla.
 3. **AliasEngine -Muistivuodot:** Koska AliasEngine toimii keskusmuistina, sen elinkaari (Scope) on rajattava tarkasti Request- tai Job-kohtaiseksi. Globaalin, tyhjentämättömän tilan pitäminen muistissa on kielletty muistivuotojen estämiseksi.
 
@@ -293,29 +298,41 @@ Vaikka arviointimoottori (Backend) erottelee luonnolliset ohitukset (`N_A`) virh
     "total_atoms": 45,
     "evaluated": 40,
     "short_circuited_na": 5,
-    "unclear_contested": 0,
     "final_score_percentage": 0.85,
     "completeness_ratio": 1.00
   },
   "results": [
     {
       "tda_id": "tda_1",
-      "resolved_claim": "Järjestelmä on vaarantunut",
       "status": "PASSED",
       "depends_on_tda_ids": [],
-      "short_circuit_reason_tda_id": null
+      "short_circuit_reason_tda_ids": [],
+      "evaluation_reasoning": "Lokit osoittavat selkeän murron."
     },
     {
       "tda_id": "tda_2",
-      "resolved_claim": "Poista data",
-      "status": "N/A",
+      "status": "N_A",
       "depends_on_tda_ids": ["tda_1"],
-      "short_circuit_reason_tda_id": "tda_1" 
+      "short_circuit_reason_tda_ids": ["tda_1"] 
     }
-  ]
+  ],
+  "hydrated_references": {
+    "tda_1": {
+      "resolved_claim": "Järjestelmä on vaarantunut",
+      "source_quote": "Systeemi hakkeroitiin eilen..."
+    },
+    "tda_2": {
+      "resolved_claim": "Poista data",
+      "source_quote": "Tällöin data on poistettava heti."
+    }
+  }
 }
 ```
-**Hyödyt:** Tämä rakenne sallii UI:n (tai kenen tahansa asiakkaan) piirtää interaktiivisen visuaalisen graafin lukemalla `depends_on_tda_ids` -relaatiot, mutta pitää itse payloadin litteänä, nopeana ja helposti auditoitavana taulukkomuodossa.
+**Hyödyt (SDUI & Strict Parity):** Tämä rakenne erottaa ajonaikaisen tilan (`results`) staattisesta tiedosta (`hydrated_references`). Se poistaa massiivisen datan duplikoinnin ja tekee Pydantic-validoinnista huomattavasti nopeampaa. Tärkeimpänä: tämä tukee **Epic 93:n SDUI-tavoitetta**. Koska graafiset 2D-verkot rikkoisivat PDF/Flutter-symmetrian (Strict ICU Markdown Parity), backendin "Projector" lukee tämän litteän listan ja luo siitä pelkkää Enum-ohjattua, hierarkkista Markdown-taulukkoa tai sisennettyä listaa. Flutter ja PDF-moottori renderöivät litteän tekstipuun (ja `source_quote`-blokit) identtisesti, puhtaasti DTO-datan pohjalta ilman erillisiä tietokantahakuja UI:ssa.
+
+#### 6.2.1.1 Pydantic V2 DTO -Määrittely (Siirretty)
+> [!NOTE]
+> Varsinaiset Pydantic V2 DTO -mallit (kuten `ReportDataDto`, `AtomResultDTO` ja `HydratedAtomDTO`) on eriytetty omaan perustamisvaiheeseensa. Katso **Epic 91.5: The Universal DTO Bridge** nähdäksesi tarkan kooditason sopimuksen.
 
 #### 6.2.2 Matemaattinen Pistelaskenta (Scoring Engine Math)
 Koska lopputuloksena pitää usein pystyä antamaan numeerinen arvosana (esim. 80% väitteistä on oikein), järjestelmä käyttää UI-tiloja seuraavan deterministisen säännön mukaisesti:
