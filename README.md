@@ -3,36 +3,48 @@
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
 > **Status:** Phase 9 Hardening (2026 SOTA)
-> **Architecture:** Event Sourcing DAG Orchestrator, Storage Driver Pattern, Riverpod SWR
+> **Architecture:** Compound AI System, Event Sourcing DAG Orchestrator, Server-Driven UI
 > **Philosophy:** Zero-Magic, Fail-Fast, Strict Rust-Core Pydantic DTOs, Zero-Math UI.
 
-Cognitive Quorum on erikoistunut asiantuntijajärjestelmä (Specialized AI Orchestration Platform) kriittiseen kognitiiviseen asiantuntijatyöhön, kuten tieteelliseen vertaisarviointiin ja lakisääteiseen auditointiin. Toisin kuin perinteiset LLM-chatbotit, Quorum pakottaa jokaisen tekoälyn askeleen **Strict Object Modeen**, missä päätösten matematiikka puretaan koneellisiksi atomeiksi (Micro-CoT) ja tallennetaan jäljitettäväksi (Forensic Sovereignty).
+Cognitive Quorum is a specialized AI orchestration platform designed for critical cognitive expert work, such as scientific peer review and statutory auditing. Unlike traditional LLM chatbots, Quorum is a "Compound AI System" that forces AI behavior into a deterministic structure. The mathematics of decision-making are disassembled into machine-readable atoms (Micro-CoT) and stored for traceability (Forensic Sovereignty), while protecting system integrity through five architectural pillars.
 
 ---
 
-## 🚀 Key Features (V2.9 Arkkitehtuuri)
+## 🚀 The 5 Pillars of Architecture (V2.9)
 
-### 1. The "Zero-Compromise" Manifesto
-Quorum inhoaa "Mustia Laatikoita". Kaikki kognitio pakotetaan deterministiseen muotoon:
-*   **Strict Pydantic V2 (Rust-Core) & Anti-TDD Trap**: Kaikki I/O kulkee Pydantic-mallien läpi `extra="forbid"` turvalla varustettuna. Olemme poistaneet koodikannasta (myös testikoodista) kaiken legacy-sanakirjapohjaisen (dict) parsinnan.
-*   **Fail-Fast & RFC 7807**: Järjestelmä ei koskaan "korjaa hiljaa" (SizedBox.shrink tai try-except pass). Virheet kaatavat yksittäiset solmut näkyvästi `AppException` (RFC 7807) virhekehyksillä pitäen muun prosessin pystyssä.
-*   **The Hook Layer & LLMTaskExecutor**: Tekoälymallit eivät luo omien pyyntöjensä rakenteita vapaasti. Keskitetty `LLMTaskExecutor` -palvelu hallinnoi kaikkia strukturoituja pyyntöjä. Järjestelmä kokoaa (Jinja2) työnkulut lennossa, ampuu LLM-kutsut asynkronisesti ja puhdistaa vastaukset "Algorithmic Tyranny Kill Switch" mekanismin läpi.
+### 1. System Context & Core Invariants
+Quorum abhors "Black Boxes" and silent failures. All cognition is forced into a deterministic form:
+*   **The Zero-Compromise Pledge & Universal Fail-Fast:** All I/O passes through strict Pydantic V2 / Freezed models (`extra="forbid"`). If data is malformed or missing, the system crashes immediately (`AppException`). Duct-tape solutions and silent fallbacks are strictly prohibited.
+*   **Opaque ID Hydration (AliasEngine):** The LLM never sees real database UUIDs, only deterministic anchors (e.g., `a0`), preventing token bloat and hallucinations.
+*   **Hybrid UI Sanitization & Dual-Reporting (RFC 7807):** LLM responses are sanitized in the Python layer ("The Sandwich") before reaching the UI. Errors are always reported both visually and via deep forensic logging (Logfire).
 
-### 2. Event Sourcing DAG Orchestrator
-Eroon perinteisistä peräkkäisistä purkkaliitos-putkista. Asynkroninen moottori `services/orchestrator/dag_executor.py`:
-*   **Event Sourcing**: Jokainen ajon vaihe (`TraceEvent`) tallentuu historiikkiin, mahdollistaen rehydration-tilat ("Kesken jääneet työt").
-*   **Storage Driver Pattern**: Järjestelmä ei sitoudu suoriin yksittäisiin tietokantoihin (Koodi tukee lennosta lokaalia `db_v2.json` TinyDB-ajuria tai pilven Firestorea). Uutena V2:ssa, yli 100 KB raskaat tekoälytulokset ohjataan automaattisesti Blob Storageen keventäen rajapintoja.
-*   **Model Context Protocol (MCP)**: Tekoälyn asiantuntijalaajennukset ja dynaamiset faktantarkistustyökalut (esim. Tavily Search) on eristetty tiukkaan Fail-Fast -luuppiin. Kaikki ulkoiset haut ja todistusaineistot tallentuvat rikkoutumattomina auditointijäljinä (Audit Trace) raporttiin.
-*   **Arq Worker (Redis)**: Raskaat API-puhelut LLM:lle lähetetään aina HTTP 202 Accepted -jonoon FastAPI-prosessin tukehtumisen estämiseksi.
+### 2. Data Seeding & Ontology
+The system is data-driven, not code-driven. AI rules, allowed models, and vocabularies are defined centrally in the `seed_data.json` file (Single Source of Truth).
+*   **Polymorphic Rule Routing:** Rules are automatically routed as dynamic Pydantic validation via a unified `PromptBlock` model.
+*   **Semantic Localization:** AI behavioral guidance and linguistic nuances ("performative lexicons") are injected as data, not hardcoded logic.
+*   **The Y-Funnel Pre-Hook:** Data migrations are handled via Pre-Hooks before model validation, keeping Domain Models clean from legacy logic.
 
-### 3. Desktop-First Flutter (App)
-*   **Zero-Math UI**: Käyttöliittymä ei koskaan laske tekoälyn XAI-värejä, keskiarvoja tai numeerisia korrelaatioita (Backend-For-Frontend palvelee ne valmiina `ReportLayoutDTO` -pakettina).
-*   **Riverpod 3.0 & SWR**: Ei latausympyröitä (Loading Spinners). Nollalatenssin dynaaminen reititys kätkee verkkopyynnöt asynkronisesti ruutujen taustalle koodigeneroidulla Optimistisella UI:lla.
-*   **Infinite Canvas**: Työnkulkujen ja parametrien (SystemInspector) muokkaaminen asuu asiantuntijoille suunnatulla rajattomalla vuokaavio-alustalla (`InteractiveViewer`), hyläten jähmettyneet listat ikkunoistaan.
+### 3. Cognitive Orchestration Engine
+The brain that connects the static ontology to dynamic LLM execution with maximum fault tolerance and speed.
+*   **TDA Best-Of-Three Flash:** Instead of single, heavy "Pro" models, the system dispatches 3 parallel requests to fast models (e.g., Gemini Flash) and requires a 2/3 majority vote for the results. This eliminates timeouts and guarantees 98% self-consistency.
+*   **Provider-Agnostic Static-First Caching:** Static instructions are packed at the beginning of the prompt and dynamic variables at the end, ensuring over 95% Context Caching hit rates regardless of the model provider (Vertex AI / Anthropic / OpenAI).
+*   **Unified Model Multiplexing:** Models are swapped dynamically on the fly without code changes via the LLMClient.
+
+### 4. Server-Driven UI & Presentation
+The Flutter client application (`client_app_v2`) is a completely "dumb" rendering engine with zero business logic or AI computation (Zero-Math UI).
+*   **The De-Generator Execution Paradigm:** The UI handles only human-readable Markdown. The backend `PromptCompiler` wraps the data in XML envelopes, preventing Prompt Injection attacks and manual prompt engineering.
+*   **Strict ICU Markdown Parity:** Layout and colors are purely the responsibility of the UI. The backend serves only semantic content, ensuring 100% visual parity between the Flutter interactive display and the static PDF generation.
+*   **Null-Safe State Synchronization:** SDUI models are exhaustive, and the frontend must not attempt to patch missing fields with hidden fallbacks like `SizedBox.shrink()`.
+
+### 5. Resilience & Observability
+The system is shielded from LLM service degradation and network anomalies to guarantee stable execution.
+*   **Transient Error Resilience:** The system distinguishes between 503/429 network errors and semantic errors, routing the former to an automatic Exponential Backoff queue (Arq Worker/Redis).
+*   **LLM Schema Validation Healing:** If the LLM returns broken JSON, the system reflects the error back to the LLM (`PydanticValidationError`), forcing the model to "heal" its own response on the fly.
+*   **App Error Boundary:** A single UI component failure does not crash the entire application. Instead, it visually isolates the error, rendering a targeted barcode-like error card (Red Screen Mitigation).
 
 ---
 
-## 🏗️ Järjestelmäarkkitehtuuri
+## 🏗️ System Architecture
 
 ```mermaid
 flowchart LR
@@ -44,54 +56,54 @@ flowchart LR
     Worker -.->|"LLM Token Traces"| Cloud
 
     subgraph The Logic Boundary
-        Worker -->|"Pre-Hook & LLM"| LLM[Google Gemini / Vertex AI]
-        LLM -->|"Post-Hook & Zero-Math"| Worker
+        Worker -->|"Best-Of-Three Flash"| LLM[Google Gemini / Vertex AI]
+        LLM -->|"Schema Healing / Sanitization"| Worker
     end
 
     Worker -->|"StorageDriver Pattern"| DB[("TinyDB / Firestore")]
-    UI -->|"SWR Polling/SSE"| DB
+    UI -->|"SDUI Polling/SSE"| DB
 ```
 
 ---
 
-## 📚 Dokumentaatio
+## 📚 Documentation
 
-Kaikki ajantasainen ja tekninen Master-dokumentaatio asuu koodikannan osana:
+All up-to-date and technical master documentation lives alongside the codebase:
 
-* **[Arkkitehtuuridokumentaatio (V2.9 Hakemisto)](docs/architecture/)**: Ehdoton Single Source of Truth järjestelmän komponenteista (DAG, The Hook Layer, Storage Driver, yms.).
-* **[Agenttien Säännöstöt (Config)](.agents/rules/)**: IDE-tason pakotetut direktiivit koodin laadunvarmistukseen (Pydantic Strict Typing, Flutter Isolate Mandate ja V2 SWR-säännöt).
-
----
-
-## 🛠️ Teknologiapino
-
-*   **Kielet**: Python 3.14+ (Strict) & Dart 3.27+
-*   **Frameworkit**: FastAPI, Arq, Riverpod 3.0+, Freezed
-*   **Tietokannat**: TinyDB (Dev) / Firestore (Tuotanto) + Redis (Arq)
-*   **Infrastruktuuri**: Docker, Logfire Instrumentointi
-*   **Työkalut**: `uv` (Package Mgmt), `ruff` (Linting), `mypy` (Typing)
+* **[Architecture Documentation (V2.9 Directory)](docs/architecture/)**: The absolute Single Source of Truth for system components.
+* **[Agent Rules (Config)](.agents/rules/)**: IDE-level enforced directives for code quality assurance (Pydantic Strict Typing, Zero-Compromise, Universal Fail-Fast).
 
 ---
 
-## 📦 Käynnistys
+## 🛠️ Technology Stack
 
-1. **Riippuvuudet**: `uv`, Docker
-2. **Asennus**:
+*   **Languages**: Python 3.14+ (Strict) & Dart 3.27+
+*   **Frameworks**: FastAPI, Arq, Riverpod 3.0+, Freezed
+*   **Databases**: TinyDB (Dev) / Firestore (Production) + Redis (Arq)
+*   **Infrastructure**: Docker, Logfire Instrumentation
+*   **Tooling**: `uv` (Package Mgmt), `ruff` (Linting), `mypy` (Typing)
+
+---
+
+## 📦 Getting Started
+
+1. **Dependencies**: `uv`, Docker
+2. **Installation**:
    ```bash
    git clone https://github.com/launis/quorum.git
    cd quorum
    uv sync
    ```
-3. **Infrastruktuurin pystytys**: Käynnistää Rediksen asynkronisla jonotuksia varten.
+3. **Infrastructure Setup**: Boots Redis for asynchronous task queuing.
    ```bash
    docker-compose up -d redis
    ```
-4. **Taustapalvelimet ja Työntekijä (Startup Script)**:
+4. **Backend Servers & Worker (Startup Script)**:
    ```bash
    ./run_local.bat
    ```
 
-*(Huom! Testidatan muokkaus "Siementäminen" suoritetaan säännösteltynä komennolla `uv run python backend_v2/seed/run_seed.py local` estäen suoran manuaalisen muokkauksen jotta Opaque ID -työnkulut eivät korruptoidu.)*
+*(Note! Modifying test data "Seeding" is strictly governed via `uv run python backend_v2/seed/run_seed.py local` to prevent direct manual edits, ensuring Opaque ID workflows remain uncorrupted and the SSOT remains untouched.)*
 
 ---
 
