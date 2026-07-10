@@ -182,9 +182,10 @@ Ratkaisemme riippuvuudet **yksinkertaisella implisiittisellä AND-listalla** (`d
 > **Hitaiden yksittäissuoritusten viiveen (Straggler) ratkaisu:** Koska Injektiossa 2 lisättiin deterministinen syklinkatkaisija (Cycle Breaker), tapahtumapohjainen (event-driven) asynkroninen suoritus on nyt täysin turvallinen (ei lukkiutumisriskiä, deadlock). Moottori hyödyntää natiivia Python 3.11+ `TaskGroup`-rinnakkaisajoa ja solmukohtaisia tapahtumalukkoja:
 
 1. **Globaali käynnistys (Global Spawning):** Jokaiselle graafin solmulle luodaan `asyncio.Event()` ja oma asynkroninen tehtävä (Task), jotka kaikki käynnistetään samaan `asyncio.TaskGroup`:iin samanaikaisesti. Rajapintakutsujen (API) rinnakkaisuutta säädellään semaforeilla (`asyncio.Semaphore`).
-2. **Solmukohtainen odotus (Node-Level Wait):** Tehtävän ensimmäinen toimenpide on asynkroninen odotus, joka purkautuu heti kun *vain sen omat* vanhemmat ovat valmiita: `await asyncio.gather(*[parent.finished_event.wait() for parent in parents])`. Tämä ratkaisee kerrosmallin aiheuttaman synkronointipullonkaulan.
-3. **Deterministinen kaskadi (Prioriteettimatriisi, Parent Priority Matrix):** Kun vanhempien tilat on selvitetty, ne tarkastetaan. Jos yksikin vanhempi on tilassa `SYSTEM_ERROR` tai `BLOCKED`, lapsi merkitään välittömästi kaskadina tilaan `BLOCKED`. Jos vanhemman tila on odotusten vastainen (esim. ehto on epätosi ja odotus oli `PASSED`), lapsi ohitetaan ja saa tilan `N_A` (oikosulku). Syyllisten solmujen tunnisteet tallennetaan `short_circuit_reason_tda_ids` -listaan.
-4. **Oikosulkureaktio (Short-Circuit Reaction):** Oikosulkutilanteissa tehtävä asettaa oman valmiussignaalinsa `finished_event.set()` millisekunneissa ilman uutta kielimallikutsua, mikä laukaisee ketjureaktion (kaskadin) alaspäin salamannopeasti.
+2. **Fail-Safe Suorituskuori (DLQ & Deadlock Prevention):** Koko solmun suoritus (odotus mukaan lukien) ON EHDOTTOMASTI käärittävä `try...except Exception...finally` -lohkoon. Jos solmu kaatuu käsittelemättömään poikkeukseen, poikkeus siepataan (ei anneta kaataa koko `TaskGroup`ia ja peruuttaa muita ajossa olevia solmuja) ja solmu ohjataan DLQ-tilaan (`SYSTEM_ERROR`). **Kriittisin kohta:** Valmiussignaali `finished_event.set()` on pakko kutsua `finally`-lohkossa. Muuten kaatunut vanhempi jättää lapsensa ikuiseen lukkoon (`Deadlock`), kun lapset jäävät odottamaan `await parent.finished_event.wait()` -kutsua, jota ei koskaan tapahdu.
+3. **Solmukohtainen odotus (Node-Level Wait):** Tehtävän ensimmäinen toimenpide on asynkroninen odotus, joka purkautuu heti kun *vain sen omat* vanhemmat ovat valmiita. **Kriittinen sääntö:** Tätä ei saa tehdä `asyncio.gather` -kutsulla, sillä sen virheidenkäsittely jättää kaatuessa zombitehtäviä muistiin. Odotus on suoritettava turvallisella, sekventiaalisella asynkronisella silmukalla: `for parent in parents: await parent.finished_event.wait()`. Tämä ratkaisee kerrosmallin aiheuttaman synkronointipullonkaulan turvallisesti.
+4. **Deterministinen kaskadi (Prioriteettimatriisi, Parent Priority Matrix):** Kun vanhempien tilat on selvitetty, ne tarkastetaan. Jos yksikin vanhempi on tilassa `SYSTEM_ERROR` tai `BLOCKED`, lapsi merkitään välittömästi kaskadina tilaan `BLOCKED`. Jos vanhemman tila on odotusten vastainen (esim. ehto on epätosi ja odotus oli `PASSED`), lapsi ohitetaan ja saa tilan `N_A` (oikosulku). Syyllisten solmujen tunnisteet tallennetaan `short_circuit_reason_tda_ids` -listaan.
+5. **Oikosulkureaktio (Short-Circuit Reaction):** Oikosulkutilanteissa tehtävä asettaa oman valmiussignaalinsa `finished_event.set()` millisekunneissa ilman uutta kielimallikutsua, mikä laukaisee ketjureaktion (kaskadin) alaspäin salamannopeasti.
 
 ### 3.4 Yksinkertaistettu Tilakone (6 Core States)
 
@@ -200,6 +201,9 @@ Ratkaisemme riippuvuudet **yksinkertaisella implisiittisellä AND-listalla** (`d
 
 **Adaptiivinen arviointistrategia (Adaptive 1-Then-3 Evaluator / Tiered Bo3):** Ehtoarviointi käyttää dynaamista eskalointia API-kutsuissa: Tehdään ensin 1 nopean mallin kutsu. Jos luottamus on korkea, tila lukitaan (`PASSED`/`FAILED`). Vain, jos luottamus on kynnysarvoa matalampi tai tulos epäselvä, laukaistaan lisäkutsut (paras kolmesta -konsensus, Best-of-Three). Tämä leikkaa API-kustannuksia säilyttäen argumentaation tarkkuuden.
 
+> [!WARNING]
+> **Cross-Language Enum Parity (Kriittinen UI-Mandaatti):** Uusien tilojen (kuten `N_A`, `BLOCKED` ja `SYSTEM_ERROR`) tuominen backendin Pydantic-malleihin rikkoo Frontendin välittömästi (Null-Pointer), jos niitä ei synkronoida Flutterin koodikantaan. Kaikki Pydantic-tilat on EHDOTTOMASTI peilattava Dart-koodikannan `enums.dart` -tiedostoon `@JsonEnum()` -annotaatioilla varustettuna (Freezed-valmius). Frontendin on pystyttävä desiarlisoimaan jokainen näistä 6 tilasta luotettavasti.
+
 ### 3.5 Kieliriippumattomuus (Cross-Lingual Resilience)
 * **LLM Semantic Parsing:** Koska Stage 1 luottaa kielimallin syvään semanttiseen ymmärrykseen, pronominien purkaminen on kieliriippumatonta. LLM ymmärtää pro-drop -kielten piilopronominit, agglutinatiiviset päätteet ja englannin eksplisiittiset pronominit yhtä lailla.
 * **Agnostinen Python-kerros:** Python-kerros ja Pydantic-mallit toimivat puhtaasti matemaattisilla graafeilla. Koodi ei etsi tekstistä sanaa "Jos", vaan ohjaa suoritusta täysin kieliriippumattomien Opaque Stripe ID -relaatioiden avulla.
@@ -214,6 +218,8 @@ Tämän arkkitehtuurin tekniset riskit on torjuttava jo suunnitteluvaiheessa:
 1. **TaskGroup Cascade of Death & DLQ Mandate:** `asyncio.TaskGroup` peruuttaa kaikki tehtävät yhden kaatuessa. Tämän estämiseksi solmun sisällä on oltava tiukka Error Boundary. Tilapäisiä virheitä (API 503, Rate Limits) EI SAA kuitata pelkällä lokaalilla `try-except` -ohituksella, vaan niiden on mentävä LLMTaskExecutorin natiivin Tenacity-retry ja DLQ (Dead Letter Queue) -putken läpi. Vasta kun DLQ on ammennettu tyhjiin, solmun käsittelemätön poikkeus (unhandled exception) on nieltävä (swallowed) ja solmu on merkittävä tilaan `SYSTEM_ERROR`. **Kriittinen sääntö:** Jokaisen Taskin on ehdottomasti suoritettava `finished_event.set()` `finally:` -lohkossa. Muuten järjestelmä ajautuu ikuiseen Event Loop -deadlockiin.
 2. **Event Loop -lukkiutuminen (NetworkX):** Raskaat synkroniset graafialgoritmit (kuten syklinetsintä) on ehdottomasti ajettava erillisessä säikeessä `await asyncio.to_thread()` avustuksella, jotta FastAPI:n asynkroninen Event Loop ei jäädy suurten graafien kohdalla.
 3. **AliasEngine -Muistivuodot:** Koska AliasEngine toimii keskusmuistina, sen elinkaari (Scope) on rajattava tarkasti Request- tai Job-kohtaiseksi. Globaalin, tyhjentämättömän tilan pitäminen muistissa on kielletty muistivuotojen estämiseksi.
+4. **Frozen State Mutability (event.model_copy):** Koska DAG-moottorin mallit on merkittävä globaalilla `ConfigDict(frozen=True)` -asetuksella, tilamuutoksia EI SAA koskaan tehdä ohittamalla tyyppiturvallisuutta väliaikaisilla Python-sanakirjoilla (no_naked_dicts_in_state). Kaikki tilamutaatiot ajon aikana on EHDOTTOMASTI tehtävä `event.model_copy(update={...})` -metodilla, joka takaa immutaabelin event sourcing -mallin rikkoutumattomuuden.
+5. **Data Healing Validator (mode='before'):** Graceful Degradation on varmistettava data-muotoiluvaiheessa. Jos LLM hallusinoi (esim. lainauksen contextual_override-tilassa), perinteinen `@model_validator(mode='after')` kaataisi koko kalliin LLM-ajon `ValueError` -poikkeukseen (Fail Fast liian myöhään). Koska Pydantic-malli on `frozen=True`, kenttien korjaus/parannus (healing) on pakko mutatoitava EHDOTTOMASTI `mode='before'` -vaiheessa ennen mallin jäätymistä. Näin turvataan kallis ajo pelkältä muotovirheeltä.
 
 ---
 
@@ -288,7 +294,7 @@ Vaikka arviointimoottori (Backend) erottelee luonnolliset ohitukset (`N_A`) virh
 
 1. **HYVÄKSYTTY** (`PASSED`)
 2. **HYLÄTTY** (`FAILED`)
-3. **OHITETTU** (`N_A`): Looginen N/A oikosulku, syy löytyy `short_circuit_reason_tda_id` -kentästä. Näkyy harmaana.
+3. **OHITETTU** (`N_A`): Looginen N/A oikosulku, syyt löytyvät `short_circuit_reason_tda_ids` -kentästä (lista). Näkyy harmaana.
 4. **JÄRJESTELMÄVIRHE** (`SYSTEM_ERROR`): Kriittinen infrastruktuuri, ristiriita tai topologiavirhe. Odottaa auditoijan manuaalista päätöstä. Näkyy varoitusvärillä.
 
 ```json
@@ -297,9 +303,7 @@ Vaikka arviointimoottori (Backend) erottelee luonnolliset ohitukset (`N_A`) virh
   "global_metrics": {
     "total_atoms": 45,
     "evaluated": 40,
-    "short_circuited_na": 5,
-    "final_score_percentage": 0.85,
-    "completeness_ratio": 1.00
+    "short_circuited_na": 5
   },
   "results": [
     {
@@ -334,35 +338,11 @@ Vaikka arviointimoottori (Backend) erottelee luonnolliset ohitukset (`N_A`) virh
 > [!NOTE]
 > Varsinaiset Pydantic V2 DTO -mallit (kuten `ReportDataDto`, `AtomResultDTO` ja `HydratedAtomDTO`) on eriytetty omaan perustamisvaiheeseensa. Katso **Epic 91.5: The Universal DTO Bridge** nähdäksesi tarkan kooditason sopimuksen.
 
-#### 6.2.2 Matemaattinen Pistelaskenta (Scoring Engine Math)
-Koska lopputuloksena pitää usein pystyä antamaan numeerinen arvosana (esim. 80% väitteistä on oikein), järjestelmä käyttää UI-tiloja seuraavan deterministisen säännön mukaisesti:
+#### 6.2.2 Decoupled Scoring Architecture (Asynkroninen Jälkilaskenta)
+Vaikka numeerinen dampening-matematiikka on revitty irti ydinsuoritusputkesta (Execution Pipeline) ja DTO-kannasta, järjestelmällä voi silti olla tarve joskus esittää loppukäyttäjälle yksinkertaistettu prosenttiluku tai arvosana. Tämä toteutetaan täysin **irrallaan DAG-moottorin suorituksesta**.
 
-* **Osoittaja (Numerator) ja Nimittäjä (Denominator):** Pisteet lasketaan kaavalla `Pisteet / Arvioidut Atomit`.
-* **HYVÄKSYTTY (PASSED):** Osoittaja +1, Nimittäjä +1.
-* **HYLÄTTY (FAILED):** Osoittaja +0, Nimittäjä +1. (Tästä rokotetaan, koska ehto oli tosi, mutta seuraus väärin).
-* **OHITETTU (N_A):** Osoittaja +0, Nimittäjä +0. **(Kriittinen oivallus!)** Koska ehto ei täyttynyt, väitettä ei pidä rankaista `FAILED`-tilalla, mutta sitä ei myöskään lasketa onnistumiseksi. Ohitetut atomit yksinkertaisesti **pudotetaan** kokonaispisteiden laskennasta.
-* **ESTYNYT / RISTIRIITAINEN / JÄRJESTELMÄVIRHE:** Pisteytys riippuu järjestelmän konfiguraatiosta (ks. 6.2.3). Jos järjestelmä on manuaalitilassa (`BLOCK`), matriisin lopputulokseksi asetetaan deterministisesti `NULL` (tai `NaN`), eikä arvausta tehdä. Jos järjestelmä on automaattiajossa, sovelletaan Auto-Resolution sääntöä.
-
-#### 6.2.3 Autonomous Auto-Resolution (Globaali Automaatiopolitiikka)
-Automaattisissa ajoissa (olipa kyseessä **yksittäinen** asynkroninen API-pyyntö tai 10 000 asiakirjan yöajo) järjestelmä ei voi pysähtyä odottamaan auditoijan "Manual Override" -toimintoa. Voidakseen laskea matriisille lopullisen prosenttiluvun ilman ihmistä, järjestelmä käyttää `settings.py`:ssä määriteltyä `AUTO_RESOLVE_POLICY` -konfiguraatiota ongelmatiloille (kaikki niputetaan nyt `SYSTEM_ERROR` -tilaan, tarkka syy löytyy metadatasta):
-
-1. **`BLOCK` (Interaktiivinen UI-tila):** Pisteet jäädytetään `NULL`-tilaan, kunnes ihminen tekee päätöksen. (Tarkoitettu vain, kun käyttäjä seuraa ajoa reaaliajassa).
-2. **`STRICT_FAIL` (Pessimistinen / Turvallinen):** Kaikki `SYSTEM_ERROR` -tilat lasketaan lopputuloksessa **hylätyiksi** (Osoittaja +0, Nimittäjä +1). Jos data on epäselvää (mallit erimielisiä) tai infra kaatuu, järjestelmä olettaa "Syyllinen kunnes toisin todistetaan" (Fail-Fast).
-3. **`IGNORE_NULL` (Optimistinen):** Kaikki `SYSTEM_ERROR` -tilat käyttäytyvät kuten `N/A`, eli ne **pudotetaan** laskennasta (Osoittaja +0, Nimittäjä +0). Loppupiste lasketaan vain onnistuneesti arvioitujen (`PASSED`/`FAILED`) atomien perusteella.
-
-Kaikki lapsiatomit, joiden suoritus estyi (tila `BLOCKED`) vanhemman `SYSTEM_ERROR` -virheen vuoksi, **perivät** saman automaattisen resoluution (FAIL tai IGNORE) kuin heidän vanhempansa.
-
-**Kriittinen Varmistus: Execution Completeness Ratio (Kattavuusindeksi)**
-Voidakseen luottaa **mihin tahansa automaattiajoon** (yksittäiseen asiakirjaan tai massaan), pelkkä onnistumisprosentti (`final_score_percentage`) on vaarallinen. Jos auto-pilot käyttää `IGNORE_NULL` -sääntöä, se saattaisi antaa "100%" tuloksen yksittäisellekin asiakirjalle, josta poistettiin suuri osa infrastruktuurivirheiden tai ristiriitojen vuoksi (False Positive). Tämän estämiseksi arviointimoottori laskee AINA rinnalle **Kattavuusindeksin (`completeness_ratio`)**:
-
-**Laskentakaava:**
-`Completeness Ratio = (Hyväksytyt puhtaat tilat) / Kaikki DAG:n atomit`
-* **Osoittaja (Hyväksytyt puhtaat tilat):** `PASSED + FAILED + N_A`
-  * *Miksi `N_A` on puhdas?* Koska ohitettu ehto on 100% varma ja deterministinen looginen päätelmä, ei virhe. Järjestelmä suoritti työnsä täydellisesti huomatessaan, ettei ehto täyty.
-* **Nimittäjä (Kaikki DAG:n atomit):** Graafin kaikkien solmujen kokonaismäärä.
-* **Mitä tästä seuraa (`BLOCKED`-tilan vaikutus):** Kaikki järjestelmävirheet (`SYSTEM_ERROR`) **sekä niiden laukaisemat kymmenet tai sadat `BLOCKED`-tilassa olevat lapsisolmut** jäävät nimittäjään, mutta puuttuvat osoittajasta. Kaskadina estyneet solmut laskevat kattavuusindeksiä voimakkaasti. Tämä on tarkoituksellinen arkkitehtuurinen turvaominaisuus (Zero-Compromise), joka romahduttaa indeksin ja estää automaattiajoja palauttamasta korkeaa luotettavuusarviota silloin, kun merkittävä osa riippuvuuspuusta on jäänyt arvioimatta ylätason virheen vuoksi.
-
-`settings.py`:ssä määritellään `MINIMUM_COMPLETENESS_THRESHOLD` (esim. `0.95`). Jos asiakirjan kattavuus laskee tämän alle, sen loppuraporttiin (PDF/UI) tulostetaan kriittinen varoitus ja status muuttuu "Manuaalista tarkastusta vaativaksi", vaikka arvosana (`final_score_percentage`) olisi 100%. Tämä on ainoa tapa taata automaation "Zero-Compromise" -luotettavuus myös yksittäisissä ajoissa.
+* **Pisteytyksen Mutaatio Ilman Kustannuksia (Zero-Cost Recalculation):** Koska DAG-moottori tuottaa ainoastaan deterministisiä, kausaalisia tiloja (`PASSED`, `FAILED`, `N_A`), mahdollinen numeerinen pisteytys lasketaan vasta jälkikäteen. Laskennan tekee käyttöliittymä (Frontend) tai täysin erillinen asynkroninen raportointimoottori (Reporting Engine) pelkkien tilojen perusteella.
+* **Jälkilaskennan Voima:** Jos asiakas haluaa myöhemmin muuttaa matematiikan sääntöjä (esim. "muuta FAILED-tilan saaman sakon painotusta" tai "salli IGNORE_NULL-optimismi"), satoja tuhansia kalliita ja hitaita LLM-ajoja ei tarvitse koskaan ajaa uudelleen! Pisteet voidaan laskea uudelleen lennosta kaikille historiassa ajetuille asiakirjoille, koska taustalla oleva totuus (Immutable Execution State) on täydellinen, säilytetty ja matemaattisesti puhdas. Tämä on irti kytketyn (Decoupled) datamallin suurin arvolupaus.
 
 ### 6.3 Asiakkaan Hyödyt ja Arvolupaus (End-User Value)
 Miksi tämä arkkitehtuuri on loppuasiakkaalle (esim. compliance-upseerille, juristille tai kouluttajalle) täysin mullistava, ja mitä hän konkreettisesti näkee suorituksen jälkeen UI:ssa?
