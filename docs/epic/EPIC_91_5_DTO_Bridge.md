@@ -45,7 +45,6 @@ class ExecutionStatus(str, Enum):
     SYSTEM_ERROR = "SYSTEM_ERROR"
     BLOCKED = "BLOCKED"
     PENDING = "PENDING"
-    SKIPPED = "SKIPPED"
 
     @property
     def l10n_key(self) -> str:
@@ -57,6 +56,7 @@ class SDUIComponentType(str, Enum):
     BOOLEAN_CARD = "boolean_card"
     EXTRACTED_VALUE_CARD = "extracted_value_card"
     ERROR_CARD = "error_card"
+    N_A_CARD = "n_a_card"
     
     @property
     def l10n_key(self) -> str:
@@ -75,6 +75,7 @@ class HydratedAtomDTO(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra='forbid')
     sdui_component: Annotated[SDUIComponentType, Field(description="Server-Driven UI hint for frontend. Ensures frontend performs no reasoning logic.")]
     resolved_claim: Annotated[str, Field(description="Cleaned claim in human language")]
+    source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote from the document (static forensic evidence)")]
 
 class ExtractedValueDTO(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra='forbid')
@@ -89,7 +90,7 @@ class AtomResultDTO(BaseModel):
     tda_id: Annotated[str, Field(description="Opaque ID pointing to the hydrated_references dictionary key")]
     status: ExecutionStatus
     extracted_data: Annotated[ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result")]
-    exact_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote from the document")]
+    source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote from the document")]
     contextual_override: Annotated[bool, Field(default=False, description="Allows cognitive override without a verbatim quote")]
     evaluation_reasoning: Annotated[str | None, Field(default=None, description="Strictly AI cognitive reasoning, no infra errors")]
     error_details: Annotated[ErrorDetailsDTO | None, Field(default=None, description="Populated only if status is SYSTEM_ERROR")]
@@ -103,16 +104,16 @@ class AtomResultDTO(BaseModel):
         """Fail-Fast & Graceful Healing: Prevents hallucinations and incomplete data before freeze."""
         if isinstance(data, dict):
             # Null-Hypothesis Override (blind_extraction_null_hypothesis)
-            if data.get('contextual_override') is True and data.get('exact_quote') is not None:
+            if data.get('contextual_override') is True and data.get('source_quote') is not None:
                 # Healing: Jos LLM hallusinoi lainauksen, pyyhitään se turvallisesti mode='before'
-                data['exact_quote'] = None
+                data['source_quote'] = None
                 
             status = data.get('status')
             if status in ("PASSED", "FAILED", ExecutionStatus.PASSED, ExecutionStatus.FAILED):
                 if not data.get('evaluation_reasoning'):
                     raise ValueError(f"Reasoning is mandatory for cognitive status {status}")
-                if not data.get('contextual_override') and not data.get('exact_quote'):
-                    raise ValueError("exact_quote is mandatory unless contextual_override is True")
+                if not data.get('contextual_override') and not data.get('source_quote'):
+                    raise ValueError("source_quote is mandatory unless contextual_override is True")
                     
             if status in ("SYSTEM_ERROR", ExecutionStatus.SYSTEM_ERROR) and not data.get('error_details'):
                 raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")
@@ -125,11 +126,23 @@ class ExecutionMetricsDTO(BaseModel):
     short_circuited_na: int
     duration_ms: Annotated[int, Field(default=0, description="Execution duration in milliseconds for observability")]
 
+class GlobalSynthesisDTO(BaseModel):
+    """
+    Data structure for high-level synthesized reports.
+    """
+    model_config = ConfigDict(strict=True, frozen=True, extra='forbid')
+    executive_summary: Annotated[str | None, Field(default=None, description="High-level synthesized summary")]
+    urgency_level: Annotated[int | None, Field(default=None)]
+
 class ReportDataDto(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra='forbid')
     execution_id: str
     workflow_id: Annotated[str, Field(description="For UI correlation")]
     global_metrics: ExecutionMetricsDTO
+    global_synthesis: Annotated[GlobalSynthesisDTO | None, Field(
+        default=None, 
+        description="Stores the final synthesized output of the document."
+    )]
     results: Annotated[list[AtomResultDTO], Field(
         description="SDUI-RULE: Backend must return this list strictly topologically sorted. Frontend does not compute the DAG."
     )]
@@ -208,8 +221,9 @@ Tämä DTO-silta torjuu seuraavat järjestelmätason uhat ennen Epic 92/93 aloit
 
 ## 5. Toimeenpanosuunnitelma (Implementation Plan)
 
-### Phase 0: Coverage Bootstrap (Golden Master)
+### Phase 0: Coverage Bootstrap (Golden Master) & ResultProjector Interface
 Ennen kuin alkuperäinen moottori tuhotaan, sen antamat takuut on pelastettava.
+* **ResultProjector-rajapinnan määrittely:** Koska Epic 92 (DAG) operoi `AtomExecutionState`-tasolla ja Epic 93 (SDUI) vaatii `ReportDataDto`:ta, määritellään abstrakti rajapinta `ResultProjector`, jonka vastuulla on muuntaa atomitason tulokset `ReportDataDto`-muotoon topologisesti lajiteltuna.
 * **[MODIFY] `backend_v2/tests/test_data/...`**
   - Konvertoidaan kaikki nykyiset mockit ja fixturet vastaamaan uuden DTO-kannan (`ReportDataDto`) rakennetta.
   - Poistetaan orvot fixturet.

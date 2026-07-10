@@ -52,6 +52,11 @@ Putki B tuhotaan. Synteesit lisätään prompt\_blocks \-säännöiksi, jotta ne
 3. **REST API (B2B SaaS / Muut järjestelmät):** API palauttaa Pydanticilla validoidun ReportDataDto \-objektin puhtaana JSONina.  
 4. **Syväluotaus (Raakadata):** backend\_v2/services/flattener.py hakee DTO:sta raa'at atomit ja väitteet ja palauttaa ne csv/json \-muodossa analytiikkaa varten.
 
+### 3.1 matrix_reducer.py (The Filter)
+MatrixReducer on deterministinen Python-luokka, jonka ainoa tehtävä on suodattaa SDUI-puusta (tai sen lähdedatasta) pois kaikki komponentit, jotka on ratkaistu Boolean-tiloihin:
+* **Kriittinen turvaraja (GCEL-eristys):** MatrixReducer operoi ainoastaan Epic 91.5:n `ReportDataDto`-tason datalla, se ei saa suoraa pääsyä Epic 92:n GCEL-raakadataan (jottei LLM-synteesi vuoda token-rajojen yli massiivisten Ledger-puun rakenteiden takia).
+* Kaikki `PASSED`-tilaiset boolean_cardit poistetaan. Keskiössä on puhtaan DTO-kannan rooli ja Headless-ajattelu.
+
 # **Raportti (Lopullinen Synteesi)**
 
 Tässä on tavoitearkkitehtuuri, joka ratkaisee Quorumin ongelmat, poistaa jumalkoodit ja noudattaa moderneja arkkitehtuuristandardeja. Keskiössä on puhtaan DTO-kannan rooli ja Headless-ajattelu.
@@ -139,6 +144,10 @@ class QuoteEvidenceDTO(BaseModel):
     unverified_aliases: Annotated[list[str], Field(default_factory=list, description="XAI auditable LLM hallucinations")]
     is_verified: Annotated[bool, Field(default=True)]
 
+    # Sijainti- ja luotettavuusmetatieto.
+    info: QuoteInfoDTO
+    # Huom: Nimi on 'quote' (SDUI renderöitävä teksti), vaikka Epic 92/91.5:ssä forensinen kenttä on 'source_quote'.
+
     @model_validator(mode='before')
     @classmethod
     def resolve_and_partition_aliases(cls, data: Any, info: ValidationInfo) -> Any:
@@ -203,21 +212,25 @@ def map_evidence_to_sdui(q: QuoteEvidenceDTO, snapshot_registry: dict[UUID, str]
     return SduiQuoteCard(text=q.quote, sources=source_names)
 
 def map_report_to_sdui(report: ReportDataDto, snapshot_registry: dict[UUID, str]) -> SduiLayout:
-    # HARD CUTOVER MANDATE (Zero Legacy): No backward compatibility fallbacks allowed.
-    # The system will Fail-Fast (HTTP 500) if legacy data arrives.
+    # No backward compatibility fallbacks allowed.
+    # The system will Fail-Fast (HTTP 500) if unsupported data arrives.
     return SduiLayout(components=[])
 ```
 
-**Johtopäätös:** Tämä malli poistaa alias-resoluution erillisen vaiheen kokonaan pois kognitiivisesta ytimestä. Se estää LLM:n syntaksivirheet deterministisellä Regex-esikäsittelyllä, kieltää validattoreiden sivuvaikutukset ja pakottaa hallusinaatiot datavirtaan, jonka SDUI-BFF-kerros lopulta nappaa turvallisesti ja lähettää telemetriaan. Jumalkoodi ja Regex-hakkerointi on virallisesti korvattu tyyppiturvallisella putkella.
+**Johtopäötös:** Tämä malli poistaa alias-resoluution erillisen vaiheen kokonaan pois kognitiivisesta ytimestä. Se estää LLM:n syntaksivirheet deterministisellä Regex-esikäsittelyllä, kieltää validattoreiden sivuvaikutukset ja pakottaa hallusinaatiot datavirtaan, jonka SDUI-BFF-kerros lopulta nappaa turvallisesti ja lähettää telemetriaan. Jumalkoodi ja Regex-hakkerointi on virallisesti korvattu tyyppiturvallisella putkella.
 
 ---
 
-## 5. Toimeenpanosuunnitelma (Implementation Plan)
+## 4. Toimeenpanosuunnitelma (Implementation Plan)
 
-### Phase 3: SDUI ja Universal Output (Epic 93)
+### Phase 0: End-to-End Golden Master Test
+* Koko Epic 91.5 → 92 → 93 -ketju nojaa siihen, että tieto liikkuu virheettömästi kerroksesta toiseen.
+* Ennen toteutuksen alkua on määriteltävä `backend_v2/tests/integration/test_epic_chain_e2e.py`, joka todentaa reitin: `seed_data.json fixture → DAG run (Epic 92) → ResultProjector → ReportDataDto (Epic 91.5) → SduiMapper (Epic 93) → SduiComponent tree`.
+* Yksikään Phase ei ole valmis ennen kuin tämä testi läpäisee.
+
+### Phase 1: SDUI Mapper Service
 Kytketään uusi DTO käyttöliittymään ja PDF-generaattoriin. Alias-resoluution eristäminen (Separation of Concerns) toteutuu tässä.
 
 * **[MODIFY] `backend_v2/models/dtos/report/atoms.py`** (`QuoteEvidenceDTO`): Päivitetään sisältämään `@model_validator(mode='before')`, joka käyttää `info.context.get("alias_registry")` -injektiota erottelemaan validit UUID:t hallusinaatioista.
 * **[MODIFY] `backend_v2/services/pdf_generator.py`** (sekä Jinja2-pohjat): Pakotetaan `jinja2.StrictUndefined` Fail-Fast -turvaksi. Lisätään Jinja2-pohjiin `N_A` (Oikosulku) -tilan käsittely, jotta vältetään "None"-tekstit PDF:ssä.
 * **[NEW] `backend_v2/services/sdui_mapper_service.py`**: Uusi Service-kerros, joka muuntaa topologisesti järjestetyn `ReportDataDto.results` -listan `SduiComponent` -objekteiksi.
-* **[MODIFY] `backend_v2/api/routers/output_profiles.py`**: Pakotetaan reititin aneemiseksi. Reititin ainoastaan injektoi luvat ja delegoi kutsun `SduiMapperService`:lle (Anemic Routers -mandaatti).

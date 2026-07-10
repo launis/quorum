@@ -77,9 +77,9 @@ from typing import Optional, List, Literal
 class CausalEdge(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True)
     edge_reasoning: str = Field(description="Chain-of-thought: LLM:n päättely siitä, miksi tämä kausaalisuhde on olemassa (Reason-then-Format).")
-    tda_id: str = Field(description="Vanhemman atomin Opaque ID")
-    expected_status: Literal['PASSED', 'FAILED'] = Field(
-        default='PASSED',
+    tda_id: str = Field(description="Vanhemman atomin")
+    source_id: str
+    expected_status: ExecutionStatus = Field(default=ExecutionStatus.PASSED),
         description="Mahdollistaa negatiiviset ehdot."
     )
     # HUOM: edge_confidence on poistettu arkkitehtuurisäännöksellä (LLM Hallusinaatioriski).
@@ -105,12 +105,10 @@ class LinkedAtomGraph(BaseModel):
 
 # 3. IMMUTABLE EXECUTION STATE MODEL (Arviointimoottorin lopullinen tuloste)
 class AtomExecutionState(BaseModel):
-    # Luodaan ajon lopuksi. State mutaatiota DAG-ajon aikana hallitaan väliaikaisilla sanakirjoilla, ei Pydantic-mutaatioilla.
-    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    """Runtime tila yksittäiselle Atomille DAG:ssa"""
     tda_id: str
-    status: Literal['PENDING', 'PASSED', 'FAILED', 'N_A', 'SYSTEM_ERROR', 'BLOCKED'] = 'PENDING'
-    short_circuit_reason_tda_ids: List[str] = Field(
-        default_factory=list,
+    status: ExecutionStatus = Field(default=ExecutionStatus.PENDING)
+    short_circuit_reason_tda_ids: list[str] = Field(default_factory=list),
         description="Lista tda_id -arvoista, jotka oikosulkivat atomin (Blame determinismi)."
     )
     evaluation_reasoning: str | None = Field(default=None)
@@ -128,7 +126,7 @@ Liukuva ikkuna ja GCEL-sääntömuisti on sokea yksittäisille kaukaisille entit
 #### Vaihe 1: Tekstin lohkominen ja paikallinen aliverkko (Chunked Extraction ja Local Sub-Graph)
 Pitkä asiakirja jaetaan lohkoihin (lohkominen (chunking)). Kielimalli louhii jokaisesta lohkosta väitteitä (`resolved_claim`) ja purkaa pronominit (anaforan ratkaisu, anaphora resolution). Koska käsittely tapahtuu pienissä osissa, tulosteen maksimiraja ei ylity. 
 
-**Paikallisen graafin rakennus (Lost-in-the-Middle -ratkaisu):** Koko verkon rakentamista ei jätetä Vaiheeseen 2, vaan kielimalli muodostaa jo Vaiheessa 1 lohkon sisäisen riippuvuusverkon (Local Sub-Graph). Tässä pienessä konteksti-ikkunassa LLM:n huomiokyky on huipussaan, jolloin lokaalit riippuvuudet saadaan talteen virheettömästi.
+**Paikallisen graafin rakennus (Lost-in-the-Middle -ratkaisu):** Koko verkon rakentamista ei jätetä Vaiheeseen 2, vaan kielimalli muodostaa jo Vaiheessa 1 lohkon sisäisen riippuvuusverkon (Local Sub-Graph). Tässä pienessä konteksti-ikkunassa LLM'n huomiokyky on huipussaan, jolloin lokaalit riippuvuudet saadaan talteen virheettömästi.
 
 ### 3.1.2 Global Condition & Event Ledger (O(1) Cross-Chunk Memory)
 Pelkkä entiteettien louhinta (Map-Reduce Entity Resolution) ei kykene purkamaan abstrakteja makrotason ehtoja. Cross-Chunk Amnesia ratkaistaan hierarkkisella **Global Condition & Event Ledger (GCEL)** -putkella:
@@ -139,10 +137,10 @@ Pelkkä entiteettien louhinta (Map-Reduce Entity Resolution) ei kykene purkamaan
 
 Python antaa jokaiselle puretulle väitteelle globaalin Opaque ID:n (UUID). **Huomio (AliasEngine Mandate):** Pitkiä UUID-tunnisteita EI SAA syöttää sellaisenaan LLM:lle, koska se aiheuttaa Token Bloatia. `AliasEngine` rekisteröi nämä ja muuttaa lyhyiksi ankkureiksi (`a0`).
 
-**Kriittinen sääntö (Pydantic Pre-Validation Hydration):** `AliasEngine.hydrate_dict_list()` on suoritettava natiiviin Python `dict`-raakadataan ENNEN kuin sitä yritetään syöttää `ExtractedAtom.model_validate()` -metodille. Jos validointi yritettäisiin ensin, Pydanticin Strict Regex (`^tda_...`) kaatuisi LLM:n tuottamiin lyhyisiin aliaksiin.
+**Kriittinen sääntö (Pydantic Pre-Validation Hydration):** `AliasEngine.hydrate_dict_list()` on suoritettava natiiviin Python `dict`-raakadataan ENNEN kuin sitä yritetään syöttää `ExtractedAtom.model_validate()` -metodille. Jos validointi yritettäisiin ensin, Pydanticin Strict Regex (`^tda_...`) kaatuisi LLM'n tuottamiin lyhyisiin aliaksiin.
 
 ### 3.1.3 Deterministinen Graafin Eheytys (Cycle Breaker & Phantom Isolation)
-LLM:n hallusinoimaa topologiaa ei saa koskaan sokeasti hyväksyä tai antaa sen kaataa TaskGroupia poikkeuksiin.
+LLM'n hallusinoimaa topologiaa ei saa koskaan sokeasti hyväksyä tai antaa sen kaataa TaskGroupia poikkeuksiin.
 * **Haamuviittausten käsittely (Phantom Edge Handling, Strict-yhteensopiva):** Jos Vaihe 2 (liukuva ikkuna, sliding window) viittaa tunnisteeseen, jota ei ole olemassa (esim. `a99`), tietojen koostaminen (hydraus, hydration) ei saa sivuuttaa sitä hiljaisesti (The Silent Drop Loophole). Hiljainen sivuuttaminen tekisi ehtolauseesta virheellisesti absoluuttisen väitteen. Lapsiatomi eristetään välittömästi tilaan `SYSTEM_ERROR` (syynä `UNRESOLVED_DEPENDENCY`). Tämä ylläpitää nopean vikaantumisen (Fail-Fast) arkkitehtuuria.
 * **Deterministinen syklin eristäminen (Fail-Fast):** Ennen topologista arviointia kausaaliverkko analysoidaan syvyyshaulla (DFS / `networkx.simple_cycles()`). Jos kehäpäätelmä (sykli, esim. A -> B -> A) havaitaan, järjestelmä EI KOSKAAN saa yrittää korjata sitä hiljaisesti poistamalla kaaria. Kaikki sykliin osallistuvat solmut eristetään välittömästi tilaan `SYSTEM_ERROR` (Syy: `CYCLIC_DEPENDENCY_DETECTED`). Tämä ylläpitää tiukkaa Fail-Fast -politiikkaa.
 
@@ -174,9 +172,10 @@ Vaiheen 2 DAG-rakentaja ei saa toimia "sokeana yhdistäjänä" (Blind Linker). J
 > [!NOTE]
 > **Karsinta 1 (Pareto 80/20):** Alkuperäinen suunnitelma Turing-täydellisestä DNF-logiikasta (OR/AND-portit) hylättiin ylisuunnitteluna (overengineering). LLM:n kyky poimia monimutkaisia Boolean-portteja vapaasta tekstistä johtaa hallusinaatioihin ("Format Tax"). 
 
-Ratkaisemme riippuvuudet **yksinkertaisella implisiittisellä AND-listalla** (`depends_on`). Oletamme, että jos atomilla on useita vanhempia, niiden kaikkien on täytyttävä (`PASSED`). Tämä kattaa 95 % tosimaailman vaatimuksista (esim. "Jos ehto A ja ehto B täyttyvät..."). Mahdolliset monimutkaisemmat skenaariot ratkaistaan suoraan LLM:n luonnollisen kielen ymmärryksellä atomin `resolved_claim` -tekstissä, ei monimutkaisilla Pydantic-porteilla.
+Ratkaisemme riippuvuudet **yksinkertaisella implisiittisellä AND-listalla** (`depends_on`). Oletamme, että jos atomilla on useita vanhempia, niiden kaikkien on täytyttävä (`PASSED`). Tämä kattaa 95 % tosimaailman vaatimuksista (esim. "Jos ehto A ja ehto B täyttyvät..."). Mahdolliset monimutkaisemmat skenaariot ratkaistaan suoraan LLM'n luonnollisen kielen ymmärryksellä atomin `resolved_claim` -tekstissä, ei monimutkaisilla Pydantic-porteilla.
 
-### 3.3 Event-Driven TaskGroup Execution (Ei-lukitseva Kaskadi)
+### 3.6 Moottorin Eristäminen (TaskGroup over Gather)
+`TopologicalEvaluator` toimii **yhden Stepin sisäisenä** atomitason arvioijana. Se ei korvaa nykyistä työnkulkutason orkestroijaa (`dag_executor.py`), vaan `LLMNodeStrategy` delegoi arviointilogiikan `TopologicalEvaluator`ille.ion (Ei-lukitseva Kaskadi)
 
 > [!IMPORTANT]
 > **Hitaiden yksittäissuoritusten viiveen (Straggler) ratkaisu:** Koska Injektiossa 2 lisättiin deterministinen syklinkatkaisija (Cycle Breaker), tapahtumapohjainen (event-driven) asynkroninen suoritus on nyt täysin turvallinen (ei lukkiutumisriskiä, deadlock). Moottori hyödyntää natiivia Python 3.11+ `TaskGroup`-rinnakkaisajoa ja solmukohtaisia tapahtumalukkoja:
@@ -254,11 +253,15 @@ Arkkitehtuuri on jaettu suorituskykyä ja asiakasarvoa nopeasti tuottaviin MVP-v
 * **Mitä tehdään:** Yhdistetään Vaiheen 1 moottori ja Vaiheen 3 tuottama verkko. Järjestelmä simuloi sensoreita ja ajaa koko verkon läpi.
 * **Deliverables:**
   * Pää-Orchestrator, joka käynnistää asynkronisen TaskGroup-kaskadin.
-  * `N_A` ja `BLOCKED` propagointi oikealla datalla.
+  * `N_A` and `BLOCKED` propagointi oikealla datalla.
 * **Hyödyt (Business Value):** Tuo logiikan eloon. Järjestelmä pystyy nyt päättelemään: *"Koska Sääntö A ei täyttynyt sivulla 5, pysäytän automaattisesti seuraukset B, C ja D sivuilla 10 ja 12."*
 
 ### Vaihe 5: Schema Projection (The Output)
 * **Mitä tehdään:** Transformoidaan matemaattinen graafi ihmisen tai Excelin ymmärtämään muotoon.
+* **Phase 5.5: ResultProjector:**
+  * Epic 91.5:n vaatiman `ResultProjector`-rajapinnan toteutus: `AtomExecutionState` muunnetaan `AtomResultDTO` ja `HydratedAtomDTO` -objekteiksi.
+  * Tässä vaiheessa suoritetaan staattisen `source_quote`-tiedon hajautus ja topologinen lajittelu.
+  * *Huom:* Phase 5.5:n ulostulo pakataan `ReportDataDto`-muotoon (Epic 93:n vaatima SSOT kontrakt).
 * **Deliverables:**
   * SDUI (Server-Driven UI) -muuntimet Flutterille (värikoodatut nodet, virhekortit).
   * Litteät raportti-DTO:t (CSV/Excel/PDF -valmius).
@@ -277,7 +280,7 @@ Arkkitehtuuri on jaettu suorituskykyä ja asiakasarvoa nopeasti tuottaviin MVP-v
 
 ## 6. Käyttöliittymän ja Seed-Datan Muutokset (Admin Studio UI)
 
-**Kriittinen sääntö (ID Hydration & UI Rendering):** Kaikki käyttöliittymäkomponentit ja vientityökalut (Excel, PDF), jotka esittävät `tda_id` -viittauksia (erityisesti `depends_on_tda_ids` ja `short_circuit_reason_tda_id`), on ehdottomasti rikastettava. Järjestelmän tulee ohjelmallisesti hakea pelkän Opaque ID:n rinnalle tietokannasta (tai tulos-payloadin sanakirjasta) kyseisen solmun `resolved_claim` -teksti (esim. `tda_123 ("Järjestelmä on vaarantunut")`). Opaque ID:tä ei saa koskaan esittää loppukäyttäjälle pelkkänä koodina ilman sen semanttista selitettä.
+**Kriittinen sääntö (ID Hydration & UI Rendering):** Kaikki käyttöliittymäkomponentit ja vientityökalut (Excel, PDF), jotka esittävät `tda_id` -viittauksia (erityisesti `depends_on_tda_ids` ja `short_circuit_reason_tda_id`), on ehdottomasti rikastettava. Järjestelmän tulee ohjelmallisesti hakea pelkän Opaque ID:n rinnalle tietokannasta (tai tulos-payloadin sanakirjasta) kyseisen solmun `resolved_claim` -tekst (esim. `tda_123 ("Järjestelmä on vaarantunut")`). Opaque ID:tä ei saa koskaan esittää loppukäyttäjälle pelkkänä koodina ilman sen semanttista selitettä.
 
 ### 6.1 Audit Trail / Suoritusraportti UI (Execution Viewer)
 Tämä on merkittävin visuaalinen muutos loppukäyttäjälle ja auditoijalle:
