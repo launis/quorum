@@ -34,11 +34,11 @@ async def test_execution_repo(mock_driver: AsyncMock) -> None:
     await repo.delete_execution("exec_123")
     mock_driver.delete.assert_called_with("executions", "exec_123")
 
-    mock_driver.get.return_value = {"id": "exec_123", "status": "pending"}
+    mock_driver.get.return_value = {"id": "exec_123", "status": "PENDING"}
     exec_record = await repo.get_execution("exec_123")
     assert exec_record is None  # fails because of mock hydration error or invalid model. That's fine for coverage.
 
-    mock_driver.query.return_value = [{"id": "exec_123", "status": "pending"}]
+    mock_driver.query.return_value = [{"id": "exec_123", "status": "PENDING"}]
     await repo.get_all_executions(organization_id="org1")
     await repo.get_recent_completed_executions()
     mock_driver.count.return_value = 5

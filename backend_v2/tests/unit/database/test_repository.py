@@ -94,8 +94,8 @@ async def test_workflow_fetching() -> None:
 async def test_all_passthrough_methods(mock_validate: AsyncMock) -> None:
     mock_validate.return_value = AsyncMock()
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = [{"id": "1", "type": "test", "status": "completed"}]
-    mock_driver.get.return_value = {"id": "1", "status": "completed"}
+    mock_driver.query.return_value = [{"id": "1", "type": "test", "status": "PASSED"}]
+    mock_driver.get.return_value = {"id": "1", "status": "PASSED"}
     mock_driver.upsert.return_value = "new_id"
     mock_driver.update.return_value = True
     mock_driver.delete.return_value = True

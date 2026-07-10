@@ -36,7 +36,7 @@ def test_lax_execution_status() -> None:
     class DummyModel(BaseModel):
         status: LaxExecutionStatus
 
-    obj = DummyModel(status="pending")
+    obj = DummyModel(status="PENDING")
     assert obj.status == ExecutionStatus.PENDING
 
 

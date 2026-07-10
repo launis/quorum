@@ -17,7 +17,7 @@ def test_flat_file_service_flatten_results() -> None:
     record = ExecutionRecord(
         id=execution_id,
         workflow_id="wf_test",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[],
     )
 
@@ -46,7 +46,7 @@ def test_flat_file_service_flatten_results() -> None:
 
     assert flat_data["execution_id"] == execution_id
     assert flat_data["workflow_id"] == "wf_test"
-    assert flat_data["status"] == "completed"
+    assert flat_data["status"] == "PASSED"
     assert flat_data["global_score"] == 85.0
     assert flat_data["has_warning"] is False
 
@@ -71,5 +71,5 @@ def test_flat_file_service_empty_results() -> None:
 
     assert flat_data["execution_id"] == execution_id
     assert flat_data["workflow_id"] == "wf_empty"
-    assert flat_data["status"] == "failed"
+    assert flat_data["status"] == "FAILED"
     assert "global_score" not in flat_data

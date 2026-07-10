@@ -95,4 +95,4 @@ class TestExecutionCoreFieldsValidation:
         """Frozen model must reject in-place mutation."""
         instance = ExecutionCoreFields.model_validate({})
         with pytest.raises(ValidationError):
-            instance.status = ExecutionStatus.RUNNING  # type: ignore[misc]
+            instance.status = ExecutionStatus.PENDING  # type: ignore[misc]

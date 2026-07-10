@@ -68,7 +68,7 @@ def test_execution_record_has_context_variables() -> None:
     data = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890",
-        "status": "pending",
+        "status": "PENDING",
         "raw_inputs": {},
         "context_variables": {"report_context": {"output_extensions": []}},
     }

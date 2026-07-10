@@ -244,7 +244,7 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000001",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
@@ -287,7 +287,7 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000002",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[],
         active_profile_id="prf_dddd1111dddd1111",
         metadata={"target_locale": "fi"},
@@ -464,7 +464,7 @@ async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any,
     mock_repo_microcot.get_execution.return_value = ExecutionRecord(
         id="exe_abcdef1234567890",
         workflow_id="wf_1234567890abcdef",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
@@ -607,7 +607,7 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
     mock_execution = ExecutionRecord(
         id="exe_1111111122222222",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 event_type="output",
@@ -663,7 +663,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
     mock_execution = ExecutionRecord(
         id="exe_1111111122222222",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         profile_syntheses={
             "prf_1234abcd1234abcd": RenderedSynthesisCache(
                 content_blocks=[
@@ -718,7 +718,7 @@ async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000003",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 step_name="step_1",
@@ -775,7 +775,7 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000004",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[],
         active_profile_id="prf_dddd1111dddd1111",
         frozen_context=frozen,
@@ -818,7 +818,7 @@ async def test_mcp_audit_fails_fast_on_incomplete_data() -> None:
         ExecutionRecord(
             id="exe_0000000000000005",
             workflow_id="wf_1234abcd1234abcd",
-            status=ExecutionStatus.COMPLETED,
+            status=ExecutionStatus.PASSED,
             active_profile_id="prf_dddd1111dddd1111",
             frozen_context={"mcp_tool_audit": [invalid_mcp_audit]},  # type: ignore
             metadata={"target_locale": "en"},
@@ -848,7 +848,7 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
     mock_execution = ExecutionRecord(
         id="exe_3333333344444444",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 event_type="output",
@@ -877,7 +877,7 @@ async def test_blueprint_virtual_matrix_allows_missing_justification(mock_repo_t
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000006",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 step_name="step_virtual_math",
@@ -918,7 +918,7 @@ async def test_blueprint_xai_extensions_type_coercion(mock_repo_transformer: Any
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000007",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 step_name="step_xai_coercion",
@@ -1005,7 +1005,7 @@ async def test_blueprint_2d_compare_graceful_degradation(mock_repo_sdui: AsyncMo
     mock_execution = ExecutionRecord(
         id="exe_5555555555555555",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         active_profile_id="prf_1234abcd1234abcd",
         execution_trace=[
             TraceEvent(
@@ -1038,7 +1038,7 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000008",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 synthesized_markdown="Global MD", row_explanations={"blk_1234abcd1234abcd": "This should not be empty!"}
@@ -1108,7 +1108,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000009",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[],
         active_profile_id="prf_dddd1111dddd1111",
         context_variables={
@@ -1171,7 +1171,7 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000010",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[],
         active_profile_id="prf_dddd1111dddd1111",
         context_variables={},  # Empty context variables to trigger the crash
@@ -1221,7 +1221,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000011",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 step_name="sr_1d7e6d26b02b457b",
@@ -1363,7 +1363,7 @@ async def test_blueprint_skips_raw_extensions_when_curated_exists(mock_repo_tran
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000012",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 synthesized_markdown="Global MD",
@@ -1414,7 +1414,7 @@ async def test_blueprint_skips_raw_extensions_when_curated_exists(mock_repo_tran
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000013",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 synthesized_markdown="Global MD",
@@ -1463,7 +1463,7 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000014",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 synthesized_markdown="Global MD",
@@ -1544,7 +1544,7 @@ async def test_blueprint_slop_scanning_applied_successfully(mock_repo_transforme
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000005",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
@@ -1674,7 +1674,7 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
     mock_exec_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000001",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         profile_syntheses={},
     )
 
@@ -1816,7 +1816,7 @@ async def test_blueprint_causal_mapping_reverse_lookup(mock_repo_transformer: An
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000011112222",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
@@ -1870,7 +1870,7 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000009",
         workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 synthesized_markdown="Global MD", row_explanations={"blk_1234abcd1234abcd": "Matrix explanation"}

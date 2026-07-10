@@ -16,7 +16,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
     mock_execution = ExecutionRecord(
         id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         metadata={"target_locale": "en"},
         execution_trace=[TraceEvent(step_name="test_step", event_type="output", content={"ok": True})],
     )
@@ -48,7 +48,7 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
     mock_execution = ExecutionRecord(
         id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         metadata={"target_locale": "en"},
         execution_trace=[TraceEvent(step_name="test_step", event_type="output", content={"ok": True})],
     )

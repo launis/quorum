@@ -38,7 +38,7 @@ async def test_check_resumability_failed_only() -> None:
     is_res = await service.check_resumability(record)
     assert is_res is False
 
-    record.status = ExecutionStatus.COMPLETED
+    record.status = ExecutionStatus.PASSED
     is_res = await service.check_resumability(record)
     assert is_res is False
 
@@ -305,7 +305,7 @@ async def test_resume_execution_firewall_denied() -> None:
     # Unresumable record (e.g. status COMPLETED)
     record = Mock(spec=ExecutionRecord)
     record.id = "exe_1"
-    record.status = ExecutionStatus.COMPLETED
+    record.status = ExecutionStatus.PASSED
     record.execution_trace = []  # Empty trace
     record.organization_id = "org_1"
     record.created_by = "u2"

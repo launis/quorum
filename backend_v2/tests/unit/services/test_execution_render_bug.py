@@ -26,7 +26,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
     )
 
     mock_record = Mock(spec=ExecutionRecord)
-    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"

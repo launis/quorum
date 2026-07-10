@@ -25,7 +25,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         id="exec_1234567812345678",
         workflow_id="wf_1234567812345678",
         output_profile_id="default",
-        status=ExecutionStatus.COMPLETED,
+        status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
                 v=1,

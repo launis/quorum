@@ -167,6 +167,14 @@ class Settings(BaseSettings):
     # --- Integrity Thresholds (Integrity, Scoring, Linguistics) ---
     citation_integrity_threshold: Annotated[float, Field(description="Minimum integrity score (0.0-1.0)")] = 0.0
 
+    # --- Epic 91.5 Global DTO Policies ---
+    auto_resolve_policy: Annotated[str, Field(description="Policy for automatic resolution of execution nodes")] = (
+        "strict"
+    )
+    minimum_completeness_threshold: Annotated[
+        float, Field(description="Threshold for completeness before auto-resolve (0.0-1.0)")
+    ] = 0.8
+
     # Scoring Hooks
     scoring_security_cap: Annotated[float, Field(description="Max score if Security Threat detected")] = 1.0
     scoring_logical_cap: Annotated[float, Field(description="Max score if Logical Fallacy detected")] = 2.0

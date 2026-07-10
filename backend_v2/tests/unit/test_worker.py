@@ -63,7 +63,7 @@ async def test_execute_workflow_job_success() -> None:
     from backend_v2.models.v2_core import ExecutionRecord
 
     mock_exec_record = ExecutionRecord(
-        id="exe_1234567890123456", workflow_id="wf_1234567890123456", status=ExecutionStatus.RUNNING, step_states={}
+        id="exe_1234567890123456", workflow_id="wf_1234567890123456", status=ExecutionStatus.PENDING, step_states={}
     )
     mock_engine = AsyncMock()
     mock_engine.execute_workflow.return_value = mock_exec_record

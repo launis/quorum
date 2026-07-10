@@ -202,13 +202,37 @@ class EvaluationCategory(StrEnum):
 
 
 class ExecutionStatus(StrEnum):
-    """Execution lifecycle status."""
+    """Execution lifecycle status.
 
-    PENDING = "pending"
-    QUEUED = "queued"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    Str-Enum is mandatory for OpenAPI/Swagger generation,
+    ensuring Flutter receives type-safe classes instead of Literal strings.
+    """
+
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    N_A = "N_A"
+    SYSTEM_ERROR = "SYSTEM_ERROR"
+    BLOCKED = "BLOCKED"
+    PENDING = "PENDING"
+
+    @property
+    def l10n_key(self) -> str:
+        """strict_enum_l10n_mapping: Guarantees Flutter .arb compatibility."""
+        return f"status_{self.name.lower()}"
+
+
+class SDUIComponentType(StrEnum):
+    """no_raw_string_enum_mappings: Prevents Magic String crashes in Flutter."""
+
+    BOOLEAN_CARD = "boolean_card"
+    EXTRACTED_VALUE_CARD = "extracted_value_card"
+    ERROR_CARD = "error_card"
+    N_A_CARD = "n_a_card"
+
+    @property
+    def l10n_key(self) -> str:
+        """strict_enum_l10n_mapping: Guarantees Flutter .arb compatibility."""
+        return f"sdui_{self.name.lower()}"
 
 
 class VirtualSystemStepID(StrEnum):

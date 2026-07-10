@@ -83,7 +83,7 @@ def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL") 
         "organization_id": "org_123",
         "created_by": "usr_123",
         "output_profile_id": "prof_123",
-        "status": "running",
+        "status": "PENDING",
         "raw_inputs": {},
         "execution_trace": [],
         "step_states": {},

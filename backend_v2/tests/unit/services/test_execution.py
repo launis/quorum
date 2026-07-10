@@ -56,7 +56,7 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
 
     # Setup mock to return an already running execution (invalid for resume)
     mock_record = Mock(spec=ExecutionRecord)
-    mock_record.status = ExecutionStatus.RUNNING
+    mock_record.status = ExecutionStatus.PENDING
     mock_record.execution_trace = []
     mock_record.model_copy.return_value = mock_record
     repo_mock.get_execution.return_value = mock_record
@@ -100,13 +100,13 @@ async def test_list_executions_admin_sees_all() -> None:
 
     mock_record1 = Mock(spec=ExecutionRecord)
     mock_record1.organization_id = "org_1"
-    mock_record1.status = ExecutionStatus.COMPLETED
+    mock_record1.status = ExecutionStatus.PASSED
     mock_record1.execution_trace = []
     mock_record1.model_copy.return_value = mock_record1
 
     mock_record2 = Mock(spec=ExecutionRecord)
     mock_record2.organization_id = "org_2"
-    mock_record2.status = ExecutionStatus.COMPLETED
+    mock_record2.status = ExecutionStatus.PASSED
     mock_record2.execution_trace = []
     mock_record2.model_copy.return_value = mock_record2
 
@@ -142,14 +142,14 @@ async def test_list_executions_tenant_sees_own() -> None:
     mock_record1 = Mock(spec=ExecutionRecord)
     mock_record1.organization_id = "org_1"
     mock_record1.created_by = "u2"
-    mock_record1.status = ExecutionStatus.COMPLETED
+    mock_record1.status = ExecutionStatus.PASSED
     mock_record1.execution_trace = []
     mock_record1.model_copy.return_value = mock_record1
 
     mock_record2 = Mock(spec=ExecutionRecord)
     mock_record2.organization_id = "org_2"
     mock_record2.created_by = "u3"
-    mock_record2.status = ExecutionStatus.COMPLETED
+    mock_record2.status = ExecutionStatus.PASSED
     mock_record2.execution_trace = []
     mock_record2.model_copy.return_value = mock_record2
 
@@ -185,7 +185,7 @@ async def test_get_execution_admin_sees_any() -> None:
 
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.organization_id = "org_other"
-    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace = []
     mock_record.model_copy.return_value = mock_record
     repo_mock.get_execution.return_value = mock_record
@@ -220,7 +220,7 @@ async def test_get_execution_tenant_sees_own() -> None:
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.organization_id = "org_1"
     mock_record.created_by = "u2"
-    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace = []
     mock_record.model_copy.return_value = mock_record
     repo_mock.get_execution.return_value = mock_record
@@ -340,7 +340,7 @@ async def test_render_execution_flat() -> None:
     )
 
     mock_record = Mock(spec=ExecutionRecord)
-    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
@@ -392,7 +392,7 @@ async def test_render_execution_json() -> None:
     )
 
     mock_record = Mock(spec=ExecutionRecord)
-    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
@@ -461,7 +461,7 @@ async def test_enqueue_pdf_generation_success() -> None:
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.id = "exe_1"
     mock_record.workflow_id = "wf_1"
-    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.step_states = {}
     mock_record.execution_trace = []
     mock_record.organization_id = "org_1"
@@ -547,7 +547,7 @@ async def test_override_atom_success() -> None:
     step_state = ExecutionStepState(
         id="sr_1_step",
         label="Label",
-        status="completed",
+        status="PASSED",
         scorecard_atoms={"tda_1": atom},
     )
 
@@ -599,7 +599,7 @@ async def test_get_execution_export_bytes_success() -> None:
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.frozen_context = FrozenContext()
     mock_record.frozen_context_storage_path = None
-    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace_storage_path = None
     mock_record.execution_trace = []
     mock_record.step_states = {}
@@ -637,7 +637,7 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.frozen_context = FrozenContext()
     mock_record.frozen_context_storage_path = None
-    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace_storage_path = None
 
     # Simulate a trace event with a list of dicts in exact_quotes

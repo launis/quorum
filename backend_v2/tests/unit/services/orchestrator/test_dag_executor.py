@@ -66,7 +66,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     assert args[1].global_context_vars.get("language") == "fi"
 
     # Epic 47 Phase 2: Workflow remains RUNNING for async render worker
-    assert record.status == ExecutionStatus.RUNNING
+    assert record.status == ExecutionStatus.PENDING
 
 
 @pytest.mark.asyncio
@@ -116,7 +116,7 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
 
     await committer.commit_trace(
         trace=[],
-        status=ExecutionStatus.RUNNING,
+        status=ExecutionStatus.PENDING,
         step_states={},
         error="test error",
         context_variables={"test_key": "test_val"},
@@ -125,7 +125,7 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
     mock_repo.update_execution.assert_called_once()
     args, kwargs = mock_repo.update_execution.call_args
     assert args[0] == "exec_123"
-    assert args[1]["status"] == "running"
+    assert args[1]["status"] == "PENDING"
     assert args[1]["error"] == "test error"
     assert args[1]["context_variables"] == {"test_key": "test_val"}
 
