@@ -408,7 +408,21 @@ async def override_atom(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> dict[str, str]:
-    """Apply a human override to a scorecard atom."""
+    """Apply a human override to a scorecard atom.
+
+    Args:
+        execution_id: The unique identifier of the execution.
+        atom_id: The opaque identifier of the atom to override.
+        payload: The human override request payload containing the reason and new status.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Returns:
+        A success message indicating the atom was overridden and the execution recalculated.
+
+    Raises:
+        AppException: If the override fails or permission is denied.
+    """
     await execution_service.override_atom(
         initiator=current_user,
         execution_id=execution_id,

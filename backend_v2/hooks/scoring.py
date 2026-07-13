@@ -1221,12 +1221,20 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
     for k, v in payload.items():
         if isinstance(v, dict) and "evaluated_atoms" in v and "justification" in v:
             # Check if this is a matrix block
-            try:
-                mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(v)
-                _ = LightweightMatrixOutput.model_validate(mapped_data)
-                matrix_keys.append(k)
-            except Exception:
-                pass
+            pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(k)
+            if pb_data:
+                pb_model = PromptBlock.model_validate(pb_data)
+                if pb_model.category_id == "matrix":
+                    try:
+                        mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(v)
+                        _ = LightweightMatrixOutput.model_validate(mapped_data)
+                        matrix_keys.append(k)
+                    except Exception as e:
+                        msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput for matrix '{k}': {e}"
+                        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                        ) from e
 
     for pb_id in matrix_keys:
         raw_data = payload[pb_id]
@@ -1329,8 +1337,12 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
             for ext_str in pb_model.output_extensions:
                 try:
                     allowed_exts.append(LaxXaiExtensionType(ext_str))
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    msg = f"Strict Fail-Fast Enforced: Unsupported LaxXaiExtensionType '{ext_str}' in '{pb_id}'"
+                    logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    ) from e
 
         parsed_payload = LightweightMatrixOutput(
             raw_score=raw_score,

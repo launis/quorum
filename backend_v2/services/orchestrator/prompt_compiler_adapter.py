@@ -6,7 +6,9 @@ import re
 from typing import Any
 
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.v2_core import PromptBlock
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
 class PromptCompilerAdapter:
@@ -14,8 +16,6 @@ class PromptCompilerAdapter:
 
     def __init__(self) -> None:
         """Initialize the adapter by lazily loading and instantiating the PromptCompiler."""
-        from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-
         self._compiler = PromptCompiler()
 
     def __getattr__(self, name: str) -> Any:
@@ -82,8 +82,6 @@ class PromptCompilerAdapter:
 
         # 3. Task instruction
         dynamic_parts.append(f"<task>{task_instruction}</task>")
-
-        from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 
         strictness_instruction = self.calibrate_strictness(strictness_level)
         dynamic_parts.append(

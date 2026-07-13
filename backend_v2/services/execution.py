@@ -6,12 +6,13 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 from arq.connections import ArqRedis
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
+from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
@@ -28,10 +29,16 @@ from backend_v2.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
+from backend_v2.hooks.scoring import recalculate
 from backend_v2.models.auth import SystemOrganizations, TokenData
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.report.root import ReportDataDto
-from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
+from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+from backend_v2.models.dtos.report.root import GlobalSynthesisDTO, ReportDataDto
+from backend_v2.models.state import (
+    EvidenceOverrideDTO,
+    TraceEvent,
+    WorkflowState,  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
+)
 from backend_v2.models.v2_core import (
     ComponentType,
     DataDictionaryField,
@@ -40,12 +47,14 @@ from backend_v2.models.v2_core import (
     ExecutionStatus,
     ExecutionStepState,
     FrozenContext,
+    HumanOverrideDTO,
     HumanOverrideRequest,
     PromptBlock,
     Step,
     Workflow,
     WorkflowInputs,
 )
+from backend_v2.models.view.sdui import ReportView, UiSection
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.flattener import FlatFileService
@@ -133,7 +142,17 @@ class ExecutionService:
         self.executor = executor
 
     async def list_executions(self, initiator: TokenData) -> list[ExecutionRecord]:
-        """Fetch executions securely based on Tenant/Role."""
+        """Fetch executions securely based on Tenant/Role.
+
+        Args:
+            initiator: The TokenData containing user identity and role.
+
+        Returns:
+            A list of validated ExecutionRecord objects.
+
+        Raises:
+            AppException: If listing the executions fails from the database.
+        """
         try:
             executions = await self.exec_repo.get_all_executions()
 
@@ -163,7 +182,19 @@ class ExecutionService:
             ) from e
 
     async def get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
-        """Fetch single execution securely."""
+        """Fetch single execution securely.
+
+        Args:
+            initiator: The TokenData containing user identity and role.
+            execution_id: The UUID of the target execution.
+
+        Returns:
+            The hydrated ExecutionRecord object.
+
+        Raises:
+            ResourceNotFoundError: If the execution is missing.
+            PermissionDeniedError: If the tenant doesn't own the execution.
+        """
         data = await self.exec_repo.get_execution(execution_id)
         if not data:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
@@ -179,7 +210,18 @@ class ExecutionService:
         return data.model_copy(update={"is_resumable": is_resumable})
 
     async def stream_status(self, initiator: TokenData, execution_id: str) -> AsyncGenerator[str]:
-        """Stream execution status and results securely via Server-Sent Events (SSE)."""
+        """Stream execution status and results securely via Server-Sent Events (SSE).
+
+        Args:
+            initiator: The TokenData containing user identity and role.
+            execution_id: The UUID of the target execution.
+
+        Yields:
+            Server-Sent Events as formatted string blobs.
+
+        Raises:
+            ResourceNotFoundError: If the execution is missing.
+        """
         # 1. Authorize connection first
         await self.get_execution(initiator=initiator, execution_id=execution_id)
 
@@ -200,7 +242,20 @@ class ExecutionService:
             yield f'data: {{"error": "SSE Stream Interrupted: {str(e)}"}}\n\n'
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
-        """Securely delete an execution."""
+        """Securely delete an execution.
+
+        Args:
+            initiator: The TokenData containing user identity and role.
+            execution_id: The UUID of the target execution.
+
+        Returns:
+            True if the execution was successfully deleted, False otherwise.
+
+        Raises:
+            ResourceNotFoundError: If the execution is missing.
+            PermissionDeniedError: If the user lacks the authorization role.
+            AppException: If underlying deletion fails.
+        """
         record = await self.exec_repo.get_execution(execution_id, hydrate=False)
         if not record:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
@@ -247,7 +302,22 @@ class ExecutionService:
         arq_pool: ArqRedis,
         doc_service: DocumentExtractionService | None = None,
     ) -> ExecutionRecord:
-        """Initialize and trigger workflow securely."""
+        """Initialize and trigger workflow securely.
+
+        Args:
+            initiator: The TokenData containing user identity and role.
+            payload: The requested payload attributes.
+            arq_pool: ARQ Redis connection pool for enqueuing jobs.
+            doc_service: Optional document extraction service.
+
+        Returns:
+            The created ExecutionRecord tracking the execution.
+
+        Raises:
+            ResourceNotFoundError: If workflow definitions are missing.
+            PermissionDeniedError: If tenant organization is mismatched.
+            AppException: If quota validation fails or payload attributes are malformed.
+        """
         # 1. O(1) Manifesti: Poimi alkuperäiset tiedostojen nimet (ja muut näyttönimet)
         # ennen kuin Eager Extraction muuntaa ne pelkäksi tekstiksi.
         source_identity_manifest: dict[str, str] = {}
@@ -469,6 +539,12 @@ class ExecutionService:
         3. The active DAG workflow blueprint must exist, its step IDs must perfectly match step_states,
            and workflow version must not have drifted.
         4. The tenant organization must have sufficient FinOps quota.
+
+        Args:
+            record: The ExecutionRecord to evaluate.
+
+        Returns:
+            True if resumable, False otherwise.
         """
         # Rule 1: Status check (resumable only from FAILED state)
         if record.status != ExecutionStatus.FAILED:
@@ -508,7 +584,19 @@ class ExecutionService:
         return True
 
     async def resume_execution(self, initiator: TokenData, execution_id: str, arq_pool: ArqRedis) -> ExecutionRecord:
-        """Securely resume an existing FAILED execution."""
+        """Securely resume an existing FAILED execution.
+
+        Args:
+            initiator: The TokenData containing user identity and role.
+            execution_id: The UUID of the target execution.
+            arq_pool: ARQ Redis connection pool for enqueuing jobs.
+
+        Returns:
+            The hydrated and resumed ExecutionRecord object.
+
+        Raises:
+            AppException: If the execution cannot be resumed due to state or quota violations.
+        """
         # 1. Authorize via get (Fail-Fast ResourceNotFound / PermissionDenied)
         record = await self.get_execution(initiator, execution_id)
 
@@ -553,6 +641,18 @@ class ExecutionService:
         return record
 
     async def get_frozen_context_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
+        """Get the frozen context bytes for a specific execution.
+
+        Args:
+            initiator: The TokenData containing user identity and role.
+            execution_id: The UUID of the target execution.
+
+        Returns:
+            A tuple of the context bytes and the suggested filename.
+
+        Raises:
+            AppException: If storage access fails.
+        """
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
         if execution.frozen_context_storage_path:
             storage = get_storage_driver()
@@ -589,19 +689,20 @@ class ExecutionService:
             AppException: If parsing fails or storage access fails.
         """
         import io
-        import json
 
         import pandas as pd
+
+        from backend_v2.models.state import StateProjector
 
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
         frozen_bytes, _ = await self.get_frozen_context_bytes(initiator, execution_id)
 
-        trace_data: list[Any] = []
+        trace_data: list[TraceEvent] = []
         if execution.execution_trace_storage_path:
             storage = get_storage_driver()
             try:
                 raw_trace = await storage.read(execution.execution_trace_storage_path)
-                trace_data = json.loads(raw_trace.decode("utf-8"))
+                trace_data = TypeAdapter(list[TraceEvent]).validate_json(raw_trace)
             except Exception as e:
                 logger.error("[ExecutionService] Failed to load trace from storage", exc_info=True)
                 raise AppException(
@@ -610,7 +711,10 @@ class ExecutionService:
                     details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                 ) from e
         else:
-            trace_data = [t.model_dump(mode="json") for t in execution.execution_trace]
+            trace_data = execution.execution_trace
+
+        projector = StateProjector()
+        projected_steps = projector.fold_trace(trace_data)
 
         def find_evals(obj: Any) -> list[dict[str, Any]]:
             found: list[dict[str, Any]] = []
@@ -624,14 +728,21 @@ class ExecutionService:
                     found.extend(find_evals(item))
             return found
 
+        folded_dicts = [step.model_dump(mode="json") for step in projected_steps]
+        all_evals = find_evals(folded_dicts)
+
         components = await self.comp_repo.get_all_components("prompt_block")
         blocks_by_id = {}
         for b in components:
             try:
                 b_obj = PromptBlock.model_validate(b)
                 blocks_by_id[b_obj.id] = b_obj
-            except Exception:
-                pass
+            except ValidationError as e:
+                msg = f"Strict Fail-Fast Enforced: Invalid PromptBlock '{b.get('id', 'unknown')}' in DB: {e}"
+                logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                ) from e
 
         atom_to_matrix_title = {}
         atom_to_claim_label = {}
@@ -639,8 +750,6 @@ class ExecutionService:
             for s_atom in step_state.scorecard_atoms.values():
                 atom_to_matrix_title[s_atom.atom_id] = step_state.label
                 atom_to_claim_label[s_atom.atom_id] = s_atom.claim_label
-
-        all_evals = find_evals(trace_data)
         rows: list[dict[str, Any]] = []
         for ev in all_evals:
             status_val = ev.get("status")
@@ -694,7 +803,7 @@ class ExecutionService:
         df_raw = pd.DataFrame(rows)
         summary_rows: list[dict[str, Any]] = []
         for event in trace_data:
-            content = event.get("content", {})
+            content = event.content
             if isinstance(content, dict) and "scoring_results" in content:
                 for matrix_score in content.get("scoring_results", []):
                     m_id = matrix_score.get("matrix_id")
@@ -807,8 +916,6 @@ class ExecutionService:
 
         from datetime import datetime, timezone
 
-        from backend_v2.models.v2_core import HumanOverrideDTO
-
         override_dto = HumanOverrideDTO(
             new_status=payload.new_status,
             reason=payload.reason,
@@ -836,11 +943,6 @@ class ExecutionService:
                         for ra in v["raw_atoms"]:
                             if ra.get("tda_id") == atom_id or ra.get("atom_id") == atom_id:
                                 ra["human_override"] = payload.new_status
-
-        from typing import cast
-
-        from backend_v2.core.hook_registry import HookDependencies
-        from backend_v2.hooks.scoring import recalculate
 
         deps = HookDependencies(
             exec_repo=self.exec_repo,
@@ -879,7 +981,7 @@ class ExecutionService:
             msg = "You do not have permission to modify this execution."
             raise PermissionDeniedError(msg)
 
-        from backend_v2.models.state import EvidenceOverrideDTO, TraceEvent
+        from backend_v2.models.state import TraceEvent
 
         dto = EvidenceOverrideDTO(
             evq_id=evq_id,
@@ -1157,9 +1259,6 @@ class ExecutionService:
         if full_dto.has_warning:
             exec_summary = "Report generated with warnings."
 
-        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
-
         return ReportDataDto(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
@@ -1175,8 +1274,6 @@ class ExecutionService:
         execution_id: str,
     ) -> dict[str, Any]:
         """Get the SDUI view components for an execution."""
-        from backend_v2.models.view.sdui import ReportView, UiSection
-
         dto = await self.get_report_dto(initiator, execution_id)
 
         sections: list[UiSection] = []

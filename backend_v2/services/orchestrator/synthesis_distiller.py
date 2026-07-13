@@ -18,9 +18,11 @@ from fastapi import status
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import SynthesisStepDataDTO
+from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, Step, Workflow
+from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +251,6 @@ def _assemble_matrices_to_explain(available_dtos: list[StepOutputDTO]) -> list[d
 
     # Phase 2, Milestone 1.5: Cross-reference matrices with normalized_score
     matrices_to_explain_map: dict[str, dict[str, Any]] = {}
-    from backend_v2.utils.alias_engine import AliasEngine
 
     alias_engine = AliasEngine()
 
@@ -360,8 +361,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
 
-    from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-
     active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict)
 
     synthesis_cfg = active_profile_dto.synthesis
@@ -386,9 +385,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     all_steps = [Step.model_validate(rs) for rs in raw_steps]
 
     title_map = _build_title_map(workflow_data, all_steps, language)
-
-    # Phase 2, Milestone 1.2: Compress/distill all step payloads
-    from backend_v2.utils.alias_engine import AliasEngine
 
     alias_engine = AliasEngine()
 

@@ -7,6 +7,7 @@ chunked map-reduce evaluation, DLQ graceful degradation, and anomaly retry logic
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import time
@@ -16,9 +17,21 @@ from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.models.v2_core import FrozenContext, MCPAuditTrace, PromptBlock, StepRule, Workflow
+from backend_v2.models.v2_core import (
+    EmbeddedOutputProfile,
+    ExecutionRecord,
+    ExecutionStatus,
+    FrozenContext,
+    MCPAuditTrace,
+    PromptBlock,
+    StepRule,
+    Workflow,
+)
 from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.chunk_accumulator import ChunkAccumulator
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
@@ -26,6 +39,8 @@ from backend_v2.services.orchestrator.strategies.base import NodeStrategy, Strat
 from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
+from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
+from backend_v2.utils.alias_engine import AliasEngine
 from backend_v2.utils.llm_debug_logger import write_debug_prompt_log
 
 logger = logging.getLogger(__name__)
@@ -264,9 +279,6 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 )
 
-            from backend_v2.models.domain.output_profile import OutputProfile
-            from backend_v2.models.v2_core import EmbeddedOutputProfile
-
             p = OutputProfile.model_validate(profile_data, strict=False)
             output_profile = EmbeddedOutputProfile(
                 name=p.name,
@@ -347,8 +359,6 @@ class LLMNodeStrategy(NodeStrategy):
             shuffled_atoms = state_data["shuffled_atoms"]
             if isinstance(shuffled_atoms, list) and len(shuffled_atoms) > 0:
                 has_shuffled_atoms = True
-
-        from backend_v2.utils.alias_engine import AliasEngine
 
         # Tier 4 Fix: AliasEngine is initialized with clean state.
         # prompt_compiler.build_xml_context() will register source doc aliases via .register().
@@ -449,8 +459,6 @@ class LLMNodeStrategy(NodeStrategy):
         # Fetch execution record to build SourceDocumentContext for validation context
         execution_record_raw = None
         try:
-            import inspect
-
             res = self.exec_repo.get_execution(context.execution_id)
             if inspect.isawaitable(res):
                 execution_record_raw = await res
@@ -460,9 +468,6 @@ class LLMNodeStrategy(NodeStrategy):
             pass
 
         if execution_record_raw:
-            from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
-            from backend_v2.models.v2_core import ExecutionRecord
-
             try:
                 if isinstance(execution_record_raw, ExecutionRecord):
                     exec_obj = execution_record_raw
@@ -593,10 +598,6 @@ class LLMNodeStrategy(NodeStrategy):
                         break
                     await asyncio.sleep(1)
             else:
-                from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
-                from backend_v2.models.v2_core import ExecutionStatus
-                from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
-
                 evaluator = TopologicalEvaluator()
                 task_results_map: dict[str, Any] = {}
                 nodes: list[LinkedAtomGraph] = []

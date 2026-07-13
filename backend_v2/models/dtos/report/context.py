@@ -37,15 +37,22 @@ class PromptContextDTO(BaseDTO):
 
     static_messages: Annotated[
         list[dict[str, Any]],
-        Field(description="Globally identical content across all chunks (base system prompt + source document)."),
-    ] = Field(default_factory=list)
+        Field(
+            description="Globally identical content across all chunks (base system prompt + source document).",
+            default_factory=list,
+        ),
+    ]
     dynamic_messages: Annotated[
         list[dict[str, Any]],
-        Field(description="Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors)."),
-    ] = Field(default_factory=list)
+        Field(
+            description="Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors).",
+            default_factory=list,
+        ),
+    ]
     metadata: Annotated[
-        dict[str, Any], Field(description="Arbitrary execution metadata (e.g., token proxy scores).")
-    ] = Field(default_factory=dict)
+        dict[str, Any],
+        Field(description="Arbitrary execution metadata (e.g., token proxy scores).", default_factory=dict),
+    ]
 
 
 class GlobalContextVarsDTO(BaseDTO):

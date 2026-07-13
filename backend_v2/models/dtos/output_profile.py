@@ -3,7 +3,7 @@
 These models handle the ingestion and output formats for the Output Profile REST APIs.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -40,50 +40,74 @@ class OutputProfileCreateDTO(V2CoreBase):
         layouts: Sequence of layout rendering blocks.
     """
 
-    id: str = Field(
-        ...,
-        pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
-        description="Unique string ID for the profile. Must follow Stripe Pattern",
-    )
-    slug: str = Field(..., description="Human-readable routing identifier.")
-    workflow_id: str = Field(..., description="References the execution DAG to scope Target Matrices.")
-    organization_id: str | None = Field(default=None, description="Tenant organization scope.")
-    name: I18nText = Field(..., description="Localized name.")
-    description: I18nText | None = Field(default=None, description="Localized description.")
-    custom_preface: I18nText | None = Field(default=None, description="Rich text preface.")
-    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
-    language: str | None = Field(default=None, description="Target output language.")
-    formatting_directives: list[str] = Field(default_factory=list, description="List of LLM formatting mandates.")
+    id: Annotated[
+        str,
+        Field(
+            ...,
+            pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
+            description="Unique string ID for the profile. Must follow Stripe Pattern",
+        ),
+    ]
+    slug: Annotated[str, Field(..., description="Human-readable routing identifier.")]
+    workflow_id: Annotated[str, Field(..., description="References the execution DAG to scope Target Matrices.")]
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
+    name: Annotated[I18nText, Field(..., description="Localized name.")]
+    description: Annotated[I18nText | None, Field(default=None, description="Localized description.")]
+    custom_preface: Annotated[I18nText | None, Field(default=None, description="Rich text preface.")]
+    tone_instruction: Annotated[
+        I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
+    ]
+    language: Annotated[str | None, Field(default=None, description="Target output language.")]
+    formatting_directives: Annotated[
+        list[str], Field(default_factory=list, description="List of LLM formatting mandates.")
+    ]
 
-    visible_metadata: list[str] = Field(
-        default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
-        description="List of metadata fields visible on the UI and PDF cover header.",
-    )
-    visible_block_extensions: list[LaxXaiExtensionType] = Field(
-        default_factory=list,
-        description="Block-level XAI extensions (per-matrix, LLM-produced).",
-    )
-    visible_workflow_extensions: list[LaxXaiExtensionType] = Field(
-        default_factory=list,
-        description="Workflow-level global extensions (mathematical engines).",
-    )
-    max_extension_items: int | None = Field(
-        default=None,
-        ge=1,
-        description="Max number of items to show per grouped XAI extension. Sorted by severity.",
-    )
-    display_scale: Literal["original", "custom", "normalized_100"] = Field(
-        default="original", description="UI rendering scale instruction."
-    )
-    synthesis: SynthesisConfigDTO | None = Field(
-        default=None, description="Nested definition for synthesis configurations."
-    )
-    include_diagnostic_scorecard: bool = Field(
-        default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
-    )
-    strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
-    scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
-    layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Sequence of layouts.")
+    visible_metadata: Annotated[
+        list[str],
+        Field(
+            default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
+            description="List of metadata fields visible on the UI and PDF cover header.",
+        ),
+    ]
+    visible_block_extensions: Annotated[
+        list[LaxXaiExtensionType],
+        Field(
+            default_factory=list,
+            description="Block-level XAI extensions (per-matrix, LLM-produced).",
+        ),
+    ]
+    visible_workflow_extensions: Annotated[
+        list[LaxXaiExtensionType],
+        Field(
+            default_factory=list,
+            description="Workflow-level global extensions (mathematical engines).",
+        ),
+    ]
+    max_extension_items: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=1,
+            description="Max number of items to show per grouped XAI extension. Sorted by severity.",
+        ),
+    ]
+    display_scale: Annotated[
+        Literal["original", "custom", "normalized_100"],
+        Field(default="original", description="UI rendering scale instruction."),
+    ]
+    synthesis: Annotated[
+        SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
+    ]
+    include_diagnostic_scorecard: Annotated[
+        bool, Field(default=False, description="Epic 24: Enable appending the independent diagnostic scorecard.")
+    ]
+    strictness_level: Annotated[
+        Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
+    ]
+    scoring_strategy: Annotated[
+        LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
+    ]
+    layouts: Annotated[list[OutputLayoutBlock], Field(default_factory=list, description="Sequence of layouts.")]
 
 
 class OutputProfileUpdateDTO(V2CoreBase):
@@ -108,45 +132,66 @@ class OutputProfileUpdateDTO(V2CoreBase):
         layouts: Optional mapped layout instructions.
     """
 
-    slug: str | None = Field(default=None, description="Human-readable routing identifier.")
-    workflow_id: str | None = Field(default=None, description="Optional workflow reassignment.")
-    name: I18nText | None = Field(default=None, description="Localized name.")
-    description: I18nText | None = Field(default=None, description="Localized description.")
-    custom_preface: I18nText | None = Field(default=None, description="Rich text preface.")
-    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
-    language: str | None = Field(default=None, description="Target output language.")
-    formatting_directives: list[str] | None = Field(default=None, description="List of LLM formatting mandates.")
+    slug: Annotated[str | None, Field(default=None, description="Human-readable routing identifier.")]
+    workflow_id: Annotated[str | None, Field(default=None, description="Optional workflow reassignment.")]
+    name: Annotated[I18nText | None, Field(default=None, description="Localized name.")]
+    description: Annotated[I18nText | None, Field(default=None, description="Localized description.")]
+    custom_preface: Annotated[I18nText | None, Field(default=None, description="Rich text preface.")]
+    tone_instruction: Annotated[
+        I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
+    ]
+    language: Annotated[str | None, Field(default=None, description="Target output language.")]
+    formatting_directives: Annotated[
+        list[str] | None, Field(default=None, description="List of LLM formatting mandates.")
+    ]
 
-    organization_id: str | None = Field(default=None, description="Tenant organization scope.")
-    visible_metadata: list[str] | None = Field(
-        default=None,
-        description="List of metadata fields visible on the UI and PDF cover header.",
-    )
-    visible_block_extensions: list[LaxXaiExtensionType] | None = Field(
-        default=None,
-        description="Block-level XAI extensions (per-matrix, LLM-produced).",
-    )
-    visible_workflow_extensions: list[LaxXaiExtensionType] | None = Field(
-        default=None,
-        description="Workflow-level global extensions (mathematical engines).",
-    )
-    max_extension_items: int | None = Field(
-        default=None,
-        ge=1,
-        description="Max number of items to show per grouped XAI extension. Sorted by severity.",
-    )
-    display_scale: Literal["original", "custom", "normalized_100"] | None = Field(
-        default=None, description="UI rendering scale instruction."
-    )
-    synthesis: SynthesisConfigDTO | None = Field(
-        default=None, description="Nested definition for synthesis configurations."
-    )
-    include_diagnostic_scorecard: bool | None = Field(
-        default=None, description="Epic 24: Enable appending the independent diagnostic scorecard."
-    )
-    strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
-    scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
-    layouts: list[OutputLayoutBlock] | None = Field(default=None, description="Sequence of layouts.")
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
+    visible_metadata: Annotated[
+        list[str] | None,
+        Field(
+            default=None,
+            description="List of metadata fields visible on the UI and PDF cover header.",
+        ),
+    ]
+    visible_block_extensions: Annotated[
+        list[LaxXaiExtensionType] | None,
+        Field(
+            default=None,
+            description="Block-level XAI extensions (per-matrix, LLM-produced).",
+        ),
+    ]
+    visible_workflow_extensions: Annotated[
+        list[LaxXaiExtensionType] | None,
+        Field(
+            default=None,
+            description="Workflow-level global extensions (mathematical engines).",
+        ),
+    ]
+    max_extension_items: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=1,
+            description="Max number of items to show per grouped XAI extension. Sorted by severity.",
+        ),
+    ]
+    display_scale: Annotated[
+        Literal["original", "custom", "normalized_100"] | None,
+        Field(default=None, description="UI rendering scale instruction."),
+    ]
+    synthesis: Annotated[
+        SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
+    ]
+    include_diagnostic_scorecard: Annotated[
+        bool | None, Field(default=None, description="Epic 24: Enable appending the independent diagnostic scorecard.")
+    ]
+    strictness_level: Annotated[
+        Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
+    ]
+    scoring_strategy: Annotated[
+        LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
+    ]
+    layouts: Annotated[list[OutputLayoutBlock] | None, Field(default=None, description="Sequence of layouts.")]
 
 
 class OutputProfileResponseDTO(BaseResponseDTO):
@@ -179,19 +224,19 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     custom_preface: I18nText | None = None
     tone_instruction: I18nText | None = None
     language: str | None = None
-    formatting_directives: list[str] = Field(default_factory=list)
+    formatting_directives: Annotated[list[str], Field(default_factory=list)]
 
-    visible_metadata: list[str] = Field(
-        default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"]
-    )
-    visible_block_extensions: list[LaxXaiExtensionType] = Field(default_factory=list)
-    visible_workflow_extensions: list[LaxXaiExtensionType] = Field(default_factory=list)
+    visible_metadata: Annotated[
+        list[str], Field(default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"])
+    ]
+    visible_block_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]
+    visible_workflow_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]
     max_extension_items: int | None = None
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
     synthesis: SynthesisConfigDTO | None = None
-    include_diagnostic_scorecard: bool = Field(
-        default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
-    )
+    include_diagnostic_scorecard: Annotated[
+        bool, Field(default=False, description="Epic 24: Enable appending the independent diagnostic scorecard.")
+    ]
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
     layouts: list[OutputLayoutBlock]

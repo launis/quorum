@@ -1,11 +1,13 @@
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import LaxVisualIntent, LaxXaiExtensionType, get_lexical_fuzz_threshold
+from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.settings import get_settings
+from backend_v2.utils.alias_engine import AliasEngine
 
 _settings = get_settings()
 _schema_max_quotes_target = _settings.schema_max_quotes_target
@@ -34,7 +36,7 @@ class XAILogDto(V2CoreBase):
     """
 
     pedagogical_key: str
-    engine_debug_trace: dict[str, Any] = Field(default_factory=dict)
+    engine_debug_trace: Annotated[dict[str, Any], Field(default_factory=dict)]
 
 
 class LightweightMatrixOutput(V2CoreBase):
@@ -52,12 +54,12 @@ class LightweightMatrixOutput(V2CoreBase):
     """
 
     raw_score: float | None = None
-    normalized_score: float | None = Field(default=None)
+    normalized_score: float | None = None
     level_breakdown: dict[str, dict[str, int]] | None = None
     justification: str = ""
     xai_log: XAILogDto | None = None
-    evaluated_atoms: dict[str, bool | str] = Field(default_factory=dict)
-    extensions: dict[LaxXaiExtensionType, Any] = Field(default_factory=dict)
+    evaluated_atoms: Annotated[dict[str, bool | str], Field(default_factory=dict)] = Field(default_factory=dict)
+    extensions: Annotated[dict[LaxXaiExtensionType, Any], Field(default_factory=dict)] = Field(default_factory=dict)
     allowed_extensions: list[LaxXaiExtensionType] | None = None
 
     @field_validator("normalized_score")
@@ -156,29 +158,39 @@ class LightweightExtractionAtom(V2CoreBase):
     """
 
     atom_id: str
-    used_source_aliases: list[str] = Field(
-        default_factory=list,
-        description="List of exact <search_result id> strings you relied upon for this specific extraction.",
-    )
-    used_evidence_ids: list[str] = Field(
-        default_factory=list,
-        description="Resolved document or search IDs relied upon for this specific extraction.",
-    )
-    extracted_facts: dict[str, str | None] = Field(default_factory=dict)
-    exact_quotes: list[LLMExtractedQuote] = Field(
-        default_factory=list,
-        max_length=_schema_max_quotes,
-        description=(
-            f"A list of physically contiguous, character-for-character verbatim substrings extracted "
-            f"directly from the source text. Maximum {_schema_max_quotes_target} items. Each quote MUST be UNDER {_schema_max_quote_length} characters. "
-            f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
-            f"in the ORIGINAL language of the source document."
+    used_source_aliases: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="List of exact <search_result id> strings you relied upon for this specific extraction.",
         ),
-    )
-    status: Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None = Field(
-        default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."
-    )
-    confidence: float | None = Field(default=None)
+    ]
+    used_evidence_ids: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Resolved document or search IDs relied upon for this specific extraction.",
+        ),
+    ]
+    extracted_facts: Annotated[dict[str, str | None], Field(default_factory=dict)]
+    exact_quotes: Annotated[
+        list[LLMExtractedQuote],
+        Field(
+            default_factory=list,
+            max_length=_schema_max_quotes,
+            description=(
+                f"A list of physically contiguous, character-for-character verbatim substrings extracted "
+                f"directly from the source text. Maximum {_schema_max_quotes_target} items. Each quote MUST be UNDER {_schema_max_quote_length} characters. "
+                f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
+                f"in the ORIGINAL language of the source document."
+            ),
+        ),
+    ]
+    status: Annotated[
+        Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None,
+        Field(default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."),
+    ]
+    confidence: float | None = None
 
     @field_validator("exact_quotes", mode="before")
     @classmethod
@@ -261,12 +273,14 @@ class LightweightExtractionAtom(V2CoreBase):
 class ReasoningStepDTO(V2CoreBase):
     """Structured micro-CoT reasoning step schema to prevent JSON escaping issues."""
 
-    step_1_identify_premise: str = Field(description="Extract the exact claim from the prompt.")
-    step_2_scan_source: str = Field(
-        description="Analyze if the source text physically contains evidence for or against the premise."
-    )
-    step_3_evaluate_anti_patterns: str = Field(description="Check if any strict anti-patterns or exclusions apply.")
-    step_4_final_conclusion: str = Field(description="Synthesize steps 1-3 into a final logical conclusion.")
+    step_1_identify_premise: Annotated[str, Field(description="Extract the exact claim from the prompt.")]
+    step_2_scan_source: Annotated[
+        str, Field(description="Analyze if the source text physically contains evidence for or against the premise.")
+    ]
+    step_3_evaluate_anti_patterns: Annotated[
+        str, Field(description="Check if any strict anti-patterns or exclusions apply.")
+    ]
+    step_4_final_conclusion: Annotated[str, Field(description="Synthesize steps 1-3 into a final logical conclusion.")]
 
 
 class AtomEvaluationItemDTO(V2CoreBase):
@@ -287,62 +301,97 @@ class AtomEvaluationItemDTO(V2CoreBase):
     """
 
     atom_id: str
-    used_source_aliases: list[str] = Field(
-        default_factory=list,
-        description="List of exact <search_result id> strings you relied upon for this specific extraction.",
-    )
-    used_evidence_ids: list[str] = Field(
-        default_factory=list,
-        description="Resolved document or search IDs relied upon for this specific extraction.",
-    )
-    extracted_facts: dict[str, str | None] = Field(default_factory=dict)
-    exact_quotes: list[LLMExtractedQuote] = Field(
-        default_factory=list,
-        max_length=_schema_max_quotes,
-        description=(
-            f"A list of physically contiguous, character-for-character verbatim substrings extracted "
-            f"directly from the source text. Maximum {_schema_max_quotes_target} items. Each quote MUST be UNDER {_schema_max_quote_length} characters. "
-            f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
-            f"in the ORIGINAL language of the source document."
+    used_source_aliases: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="List of exact <search_result id> strings you relied upon for this specific extraction.",
         ),
-    )
-    internal_logic_en: ReasoningStepDTO = Field(
-        description="Rigorous internal mathematical/logical Chain of Thought deduction mapped step-by-step in English."
-    )
-    status: Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None = Field(
-        default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."
-    )
-    chart_display_label: str = Field(
-        max_length=25, description="Short display label for UI charts, truncated to max 3 words and 25 characters."
-    )
-    visual_intent: LaxVisualIntent = Field(
-        description="Visual intent for SDUI rendering. Must not have a default fallback."
-    )
-    counter_quote: str | None = Field(
-        default=None,
-        description=(
-            "If you believe the exact_quotes are taken out of context, provide a SEPARATE "
-            "verbatim quote from the source text that contradicts or contextualizes them. "
-            "This counter-evidence MUST also be a physically contiguous substring. "
-            "If you cannot find contradicting evidence, leave this as null."
+    ]
+    used_evidence_ids: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Resolved document or search IDs relied upon for this specific extraction.",
         ),
-    )
-    semantic_reasoning: str = Field(
-        description="Detailed reasoning for the evaluation. Must be in the Localized Target Language.",
-    )
-    contextual_override: bool = Field(
-        description=(
-            "Set to true ONLY if evidence is implicitly valid despite lacking exact quote. "
-            "If true, you MUST populate structural_location."
+    ]
+    extracted_facts: Annotated[dict[str, str | None], Field(default_factory=dict)]
+    exact_quotes: Annotated[
+        list[LLMExtractedQuote],
+        Field(
+            default_factory=list,
+            max_length=_schema_max_quotes,
+            description=(
+                f"A list of physically contiguous, character-for-character verbatim substrings extracted "
+                f"directly from the source text. Maximum {_schema_max_quotes_target} items. Each quote MUST be UNDER {_schema_max_quote_length} characters. "
+                f"NEVER translate, fix grammar, paraphrase, or alter the language. The quote MUST remain "
+                f"in the ORIGINAL language of the source document."
+            ),
         ),
-    )
-    structural_location: str = Field(
-        description=(
-            "Exact structural location (e.g. 'page 3', 'paragraph 2'). Must be in the Localized "
-            "Target Language. If contextual_override is False, you MUST output 'N/A'. "
-            "If contextual_override is True, you MUST provide the concrete location."
+    ]
+    internal_logic_en: Annotated[
+        ReasoningStepDTO,
+        Field(
+            description="Rigorous internal mathematical/logical Chain of Thought deduction mapped step-by-step in English."
         ),
-    )
+    ]
+    status: Annotated[
+        Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None,
+        Field(default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."),
+    ]
+    chart_display_label: Annotated[
+        str,
+        Field(
+            max_length=25, description="Short display label for UI charts, truncated to max 3 words and 25 characters."
+        ),
+    ]
+    visual_intent: Annotated[
+        LaxVisualIntent, Field(description="Visual intent for SDUI rendering. Must not have a default fallback.")
+    ]
+    counter_quote: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "If you believe the exact_quotes are taken out of context, provide a SEPARATE "
+                "verbatim quote from the source text that contradicts or contextualizes them. "
+                "This counter-evidence MUST also be a physically contiguous substring. "
+                "If you cannot find contradicting evidence, leave this as null."
+            ),
+        ),
+    ]
+    semantic_reasoning: Annotated[
+        str,
+        Field(
+            description="Detailed reasoning for the evaluation. Must be in the Localized Target Language.",
+        ),
+    ]
+    extensions: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Schema-less escape hatch for dynamic custom integrations.",
+            default_factory=dict,
+        ),
+    ] = Field(default_factory=dict)
+    contextual_override: Annotated[
+        bool,
+        Field(
+            description=(
+                "Set to true ONLY if evidence is implicitly valid despite lacking exact quote. "
+                "If true, you MUST populate structural_location."
+            ),
+        ),
+    ]
+    structural_location: Annotated[
+        str,
+        Field(
+            description=(
+                "Exact structural location (e.g. 'page 3', 'paragraph 2'). Must be in the Localized "
+                "Target Language. If contextual_override is False, you MUST output 'N/A'. "
+                "If contextual_override is True, you MUST provide the concrete location."
+            ),
+        ),
+    ]
 
     @field_validator("chart_display_label", mode="before")
     @classmethod
@@ -461,8 +510,6 @@ class AtomEvaluationItemDTO(V2CoreBase):
             context = info.context if info else None
             alias_map = context.get("alias_map", {}) if context else {}
             if alias_map:
-                from backend_v2.utils.alias_engine import AliasEngine
-
                 engine = AliasEngine(alias_map=alias_map)
 
                 if "semantic_reasoning" in data and isinstance(data["semantic_reasoning"], str):
@@ -493,12 +540,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
                 locale = context.get("locale") if context else None
                 strictness_level = context.get("strictness_level", 50) if context else 50
 
-                from backend_v2.utils.alias_engine import AliasEngine
-
                 alias_engine = AliasEngine(alias_map=alias_map)
-
-                from backend_v2.models.enums import get_lexical_fuzz_threshold
-                from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
                 def _is_match(doc_text: str, q_text: str) -> bool:
                     norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(doc_text)
@@ -594,8 +636,6 @@ class AtomEvaluationItemDTO(V2CoreBase):
                 has_mcp_tools = context.get("has_mcp_tools", False) if context else False
                 if source_text and not has_mcp_tools:
                     # Normalize both source and quote using the same exact logic as the orchestrator
-                    from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
-
                     norm_source, _ = AnchorValidationService.normalize_text_with_mapping(source_text)
                     locale = context.get("system_locale") if context else None
                     threshold = get_lexical_fuzz_threshold(locale)

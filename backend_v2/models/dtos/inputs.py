@@ -32,7 +32,7 @@ class GuidedReflectionInputDTO(V2CoreBase):
     """
 
     pairs: Annotated[list[QuestionAnswerPair], Field(min_length=1)]
-    metadata: Annotated[dict[str, str], Field(default_factory=dict)] = Field(default_factory=dict)
+    metadata: Annotated[dict[str, str], Field(default_factory=dict)]
 
     def to_markdown(self, title: str = "Questionnaire") -> str:
         """Deterministically serializes the questionnaire into a Markdown document.

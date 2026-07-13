@@ -3,6 +3,8 @@
 These schemas enforce structured JSON outputs from the LLM when extracting source claims.
 """
 
+from typing import Annotated
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.models.domain.source_verification import SourceClaimDTO
@@ -17,6 +19,6 @@ class SourceExtractionResponseSchema(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    claims: list[SourceClaimDTO] = Field(
-        default_factory=list, description="List of source claims extracted from the text."
-    )
+    claims: Annotated[
+        list[SourceClaimDTO], Field(default_factory=list, description="List of source claims extracted from the text.")
+    ]

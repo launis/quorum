@@ -1,4 +1,7 @@
-from pydantic import BaseModel, ConfigDict
+import logging
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz
 
 from backend_v2.llm.client import LLMClient
@@ -65,8 +68,6 @@ class ExtractiveSensorService:
         Returns:
             A PreFlightResult indicating if the decision was resolved early.
         """
-        import logging
-
         logger = logging.getLogger(__name__)
 
         if not tda.enforce_pre_flight or not tda.syntactic_anchors:
@@ -132,16 +133,12 @@ class ExtractiveSensorService:
             ExecutionStatus.PASSED if the claim is verified, FAILED otherwise.
             ExecutionStatus.SYSTEM_ERROR if the evaluation crashes.
         """
-        import logging
-
-        from pydantic import Field
-
         logger = logging.getLogger(__name__)
 
         class BooleanEvaluationResult(BaseModel):
             model_config = ConfigDict(strict=True, frozen=True)
-            reasoning: str = Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")
-            is_true: bool = Field(description="True if the text confirms the claim, False otherwise.")
+            reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
+            is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
 
         prompt = (
             "Evaluate if the following claim is true based strictly on the provided context.\n\n"

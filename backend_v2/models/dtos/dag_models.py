@@ -86,7 +86,10 @@ class LinkedAtomGraph(BaseModel):
     atom: Annotated[ExtractedAtom, Field(description="The extracted claim.")]
     depends_on: Annotated[
         list[CausalEdge],
-        Field(description="Implicit AND-list. Atom is evaluated only if all parents match their expected_status."),
+        Field(
+            description="Implicit AND-list. Atom is evaluated only if all parents match their expected_status.",
+            default_factory=list,
+        ),
     ] = Field(default_factory=list)
 
 
@@ -108,7 +111,10 @@ class AtomExecutionState(BaseModel):
     )
     short_circuit_reason_tda_ids: Annotated[
         list[str],
-        Field(description="List of tda_id values that caused this atom to short-circuit (Blame determinism)."),
+        Field(
+            description="List of tda_id values that caused this atom to short-circuit (Blame determinism).",
+            default_factory=list,
+        ),
     ] = Field(default_factory=list)
     evaluation_reasoning: Annotated[
         str | None,
@@ -135,9 +141,9 @@ class GlobalOntologyMap(BaseModel):
 
     entities: Annotated[
         list[OntologyEntity],
-        Field(description="A list of distinct entities, actors, and concepts."),
+        Field(description="A list of distinct entities, actors, and concepts.", default_factory=list),
     ] = Field(default_factory=list)
     macro_rules: Annotated[
         list[str],
-        Field(description="A list of global rules or conditions that apply across the document."),
+        Field(description="A list of global rules or conditions that apply across the document.", default_factory=list),
     ] = Field(default_factory=list)

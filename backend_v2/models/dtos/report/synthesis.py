@@ -29,8 +29,9 @@ class XAIFlatReportDTO(BaseDTO):
 
     # Flattened Metrics (Key-Value for easy BI pivoting)
     flattened_scores: Annotated[
-        dict[str, float], Field(description="Key-value map of dimension IDs to their numeric scores.")
-    ] = Field(default_factory=dict)
+        dict[str, float],
+        Field(description="Key-value map of dimension IDs to their numeric scores.", default_factory=dict),
+    ]
 
 
 class ReportSynthesisDTO(BaseDTO):

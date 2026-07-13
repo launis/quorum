@@ -96,7 +96,7 @@ class TestAliasEngineCore:
                         "tda_id": "a1",
                         "source_id": "chunk_0",
                     }
-                ]
+                ],
             }
         ]
 

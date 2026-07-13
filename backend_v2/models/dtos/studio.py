@@ -4,7 +4,7 @@ These models define API Response boundaries enforcing Data Sovereignty.
 Verified Phase 1 Decoupled TDA schema propagation.
 """
 
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field
 
@@ -21,7 +21,9 @@ class WorkflowResponseDTO(BaseResponseDTO, Workflow):
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
 
-    organization_id: str | None = Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+    organization_id: Annotated[
+        str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+    ]
 
 
 class StepResponseDTO(BaseResponseDTO, Step):
@@ -31,7 +33,9 @@ class StepResponseDTO(BaseResponseDTO, Step):
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
 
-    organization_id: str | None = Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+    organization_id: Annotated[
+        str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+    ]
 
 
 class PromptBlockResponseDTO(BaseResponseDTO, PromptBlock):
@@ -41,7 +45,9 @@ class PromptBlockResponseDTO(BaseResponseDTO, PromptBlock):
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
 
-    organization_id: str | None = Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+    organization_id: Annotated[
+        str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
+    ]
 
 
 class MCPGatewayDeleteResponse(BaseResponseDTO):
@@ -78,11 +84,13 @@ class PromptBlockSimulationResponse(BaseResponseDTO):
         trace: Metadata containing state execution variables.
     """
 
-    valid: bool = Field(default=True, description="Indicates if the prompt block simulation is successful.")
-    errors: list[str] = Field(default_factory=list, description="Validation errors found during simulation.")
-    rendered_prompt: str = Field(default="", description="The simulated rendered prompt template.")
-    trace: dict[str, Any] = Field(default_factory=dict, description="Execution trace metadata.")
-    prompt_context: PromptContextDTO | None = Field(default=None, description="XAI compiled prompt structure.")
+    valid: Annotated[bool, Field(default=True, description="Indicates if the prompt block simulation is successful.")]
+    errors: Annotated[list[str], Field(default_factory=list, description="Validation errors found during simulation.")]
+    rendered_prompt: Annotated[str, Field(default="", description="The simulated rendered prompt template.")]
+    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")]
+    prompt_context: Annotated[
+        PromptContextDTO | None, Field(default=None, description="XAI compiled prompt structure.")
+    ]
 
 
 class PromptBlockDeleteResponse(BaseResponseDTO):
@@ -106,7 +114,7 @@ class PromptBlockSimulationRequest(BaseDTO):
     """
 
     block: PromptBlock
-    mock_inputs: dict[str, Any] = Field(default_factory=dict)
+    mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
 
 
 class StepSimulationResponse(BaseResponseDTO):
@@ -119,11 +127,13 @@ class StepSimulationResponse(BaseResponseDTO):
         trace: Associated performance profiling variables.
     """
 
-    valid: bool = Field(default=True, description="Indicates if the step simulation is successful.")
-    errors: list[str] = Field(default_factory=list, description="Validation errors found during simulation.")
-    rendered_prompt: str = Field(default="", description="The simulated rendered step prompts.")
-    trace: dict[str, Any] = Field(default_factory=dict, description="Execution trace metadata.")
-    prompt_context: PromptContextDTO | None = Field(default=None, description="XAI compiled prompt structure.")
+    valid: Annotated[bool, Field(default=True, description="Indicates if the step simulation is successful.")]
+    errors: Annotated[list[str], Field(default_factory=list, description="Validation errors found during simulation.")]
+    rendered_prompt: Annotated[str, Field(default="", description="The simulated rendered step prompts.")]
+    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")]
+    prompt_context: Annotated[
+        PromptContextDTO | None, Field(default=None, description="XAI compiled prompt structure.")
+    ]
 
 
 class StepDeleteResponse(BaseResponseDTO):
@@ -147,7 +157,7 @@ class StepSimulationRequest(BaseDTO):
     """
 
     step: Step
-    mock_inputs: dict[str, Any] = Field(default_factory=dict)
+    mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
 
 
 class WorkflowSimulationResponse(BaseResponseDTO):
@@ -161,11 +171,13 @@ class WorkflowSimulationResponse(BaseResponseDTO):
         trace: Aggregated telemetry profiling outputs.
     """
 
-    valid: bool = Field(default=True, description="Indicates if the workflow DAG simulation is successful.")
-    errors: list[str] = Field(default_factory=list, description="Structure and wiring errors.")
-    step_status: dict[str, str] = Field(default_factory=dict, description="Compilation status per step.")
-    execution_order: list[str] = Field(default_factory=list, description="Topologically sorted execution order.")
-    trace: dict[str, Any] = Field(default_factory=dict, description="Execution trace metadata.")
+    valid: Annotated[bool, Field(default=True, description="Indicates if the workflow DAG simulation is successful.")]
+    errors: Annotated[list[str], Field(default_factory=list, description="Structure and wiring errors.")]
+    step_status: Annotated[dict[str, str], Field(default_factory=dict, description="Compilation status per step.")]
+    execution_order: Annotated[
+        list[str], Field(default_factory=list, description="Topologically sorted execution order.")
+    ]
+    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")]
 
 
 class WorkflowDeleteResponse(BaseResponseDTO):
@@ -187,7 +199,7 @@ class WorkflowAvailableExtensionsResponse(BaseResponseDTO):
         available_extensions: Union of all output_extensions defined across all Target Matrices.
     """
 
-    available_extensions: list[str] = Field(default_factory=list)
+    available_extensions: Annotated[list[str], Field(default_factory=list)]
 
 
 class OutputProfileListResponse(BaseResponseDTO):

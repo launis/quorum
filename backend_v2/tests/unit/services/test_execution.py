@@ -564,7 +564,7 @@ async def test_override_atom_success() -> None:
         evidence_quotes=[],
     )
 
-    with patch("backend_v2.hooks.scoring.recalculate", AsyncMock()) as mock_recalc:
+    with patch("backend_v2.services.execution.recalculate", new_callable=AsyncMock) as mock_recalc:
         await service.override_atom(
             initiator=initiator,
             execution_id="exe_1234567890abcdef",

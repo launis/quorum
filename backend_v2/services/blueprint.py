@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 import bleach
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.database.interfaces import (
     IComponentRepository,
@@ -16,7 +17,8 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.hooks.linguistics import scan_report_for_slop
+from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO, LightweightMatrixOutput, ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.report.matrix import TraceMatrixPayloadDTO
 from backend_v2.models.dtos.report.scoring import TraceScoringPayloadDTO
@@ -32,7 +34,9 @@ from backend_v2.models.v2_core import (
     ReportDataDTO,
     ReportLayoutDTO,
     ScorecardAtomDTO,
+    SystemConfigPerformativeLexicons,
 )
+from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
 logger = logging.getLogger(__name__)
@@ -455,10 +459,6 @@ class BlueprintTransformer:
             used_evidence_ids_set = set()
 
             if "quotes" in matrix_visible_cols:
-                from pydantic import BaseModel, ConfigDict
-
-                from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO, ReasoningStepDTO
-                from backend_v2.models.v2_core import ScorecardAtomDTO
 
                 class MatrixTraceItemDTO(BaseModel):
                     model_config = ConfigDict(extra="ignore")
@@ -1315,9 +1315,6 @@ class BlueprintTransformer:
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
-
-                from backend_v2.models.v2_core import SystemConfigPerformativeLexicons
-
                 config_obj = SystemConfigPerformativeLexicons.model_validate(config_data)
                 target_lexicon = config_obj.lexicon_configs.get(lang)
                 if not target_lexicon or not target_lexicon.words:
@@ -1363,10 +1360,6 @@ class BlueprintTransformer:
                     informational_matrices=informational_matrices,
                     matrix_visible_columns=matrix_visible_cols,
                 )
-
-                from backend_v2.hooks.linguistics import scan_report_for_slop
-                from backend_v2.settings import get_settings
-
                 slop_phrases = scan_report_for_slop(temp_dto, lexicon, fuzz_threshold)
 
                 if len(slop_phrases) >= get_settings().slop_phrase_warning_threshold:

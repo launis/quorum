@@ -2,6 +2,8 @@ import asyncio
 import copy
 import json
 import logging
+import random
+import time
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -9,9 +11,9 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationError, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, SourceDocumentContext
 from backend_v2.models.dtos.report.context import PromptContextDTO
-from backend_v2.models.enums import EvaluationRunCount
+from backend_v2.models.enums import EnsembleJitter, EvaluationRunCount
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -19,7 +21,8 @@ from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
 from backend_v2.settings import get_settings
-from backend_v2.utils.alias_engine import AliasEngine
+from backend_v2.utils.alias_engine import AliasEngine, AliasManifest
+from backend_v2.utils.normalization import normalize_evaluation_input
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +31,6 @@ FEATURE_FLAG_EXTRACTIVE_SENSOR = True
 
 def _is_transient_chunk_error(exc: BaseException) -> bool:
     """Classify whether a chunk-level error is transient (retryable) or structural (terminal)."""
-    import asyncio
-
     import litellm
 
     TRANSIENT_TYPES = (
@@ -358,8 +359,6 @@ class ChunkWorker:
                 - List: List of telemetry and self-correction audit traces.
                 - PromptContextDTO: Compiled prompt representation for logs.
         """
-        from backend_v2.utils.normalization import normalize_evaluation_input
-
         if running_event is not None and not running_event.is_set():
             running_event.set()
 
@@ -615,8 +614,6 @@ class ChunkWorker:
                         filtered_criteria.append(bm)
                 chunk_criteria = filtered_criteria
 
-        from backend_v2.utils.alias_engine import AliasManifest
-
         # Phase 3: Reconstruct engine from upstream manifest (source doc aliases)
         if step_metadata and "alias_manifest" in step_metadata:
             upstream_manifest = AliasManifest.model_validate(step_metadata["alias_manifest"])
@@ -634,8 +631,6 @@ class ChunkWorker:
             if "source_document_ids" in step_metadata:
                 source_document_ids = step_metadata["source_document_ids"]
             if "source_documents" in step_metadata:
-                from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
-
                 for doc_dict in step_metadata["source_documents"]:
                     if isinstance(doc_dict, dict):
                         source_docs.append(SourceDocumentContext.model_validate(doc_dict))
@@ -712,10 +707,6 @@ class ChunkWorker:
 
             async def _safe_execute(index: int = 0) -> tuple[Any, Any, list[Any]]:
                 if index > 0:
-                    import random
-
-                    from backend_v2.models.enums import EnsembleJitter
-
                     base_delay = index * EnsembleJitter.BASE_DELAY.value
                     random_jitter = random.uniform(0.0, EnsembleJitter.BASE_DELAY.value)
                     await asyncio.sleep(base_delay + random_jitter)
@@ -723,8 +714,6 @@ class ChunkWorker:
                 local_prompt = prompt
                 if index > 0 and has_shuffled_atoms and chunk is not None:
                     # Phase 3, Step 3: Implement random deterministic atom shuffling per ensemble iteration (index > 0)
-                    import random
-
                     rng = random.Random(index)  # Deterministic seed per ensemble index
                     shuffled_blind_items = list(blind_items)
                     rng.shuffle(shuffled_blind_items)
@@ -741,8 +730,6 @@ class ChunkWorker:
                         target_locale=target_locale,
                         allowed_atom_ids=allowed_atom_ids if has_shuffled_atoms else None,
                     )
-
-                import time
 
                 queue_start = time.time()
                 logger.info("[Semaphore Queue] Step %s | Call %d entering semaphore queue", step_id, index)
