@@ -6,7 +6,7 @@ from backend_v2.models.domain.xai import (
     ComparisonDataDTO,
     XAIOutputDTO,
 )
-from backend_v2.models.dtos.report import MatrixObservabilityDTO
+from backend_v2.models.dtos.report.matrix import MatrixObservabilityDTO
 from backend_v2.models.enums import ReferenceTitle, XaiExtensionType
 
 

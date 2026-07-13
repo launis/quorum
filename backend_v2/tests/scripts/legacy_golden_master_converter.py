@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from backend_v2.models.dtos.report import ReportDataDto
+from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+from backend_v2.models.dtos.report.root import GlobalSynthesisDTO, ReportDataDto
 from backend_v2.services.orchestrator.result_projector import ResultProjector
 
 
@@ -21,9 +22,15 @@ class LegacyResultProjector(ResultProjector):
         # to ensure Zero Behavioral Change and allow the tests to pass.
 
         return ReportDataDto(
-            executive_summary="Legacy V1 converted summary.",
-            evidence_quotes=[],
-            urgency_level=0,
+            execution_id="legacy_id",
+            workflow_id="wf_1",
+            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+            global_synthesis=GlobalSynthesisDTO(
+                executive_summary="Legacy V1 converted summary.",
+                urgency_level=0,
+            ),
+            results=[],
+            hydrated_references={},
         )
 
 

@@ -7,7 +7,7 @@ successfully parse into the strict V2 ReportDataDto base.
 import json
 from pathlib import Path
 
-from backend_v2.models.dtos.report import ReportDataDto
+from backend_v2.models.dtos.report.root import ReportDataDto
 
 TEST_DATA_DIR = Path(__file__).parent.parent / "test_data"
 
@@ -25,9 +25,9 @@ def test_legacy_golden_master_parse_success() -> None:
     # Note: Pydantic ConfigDict(strict=True, extra="forbid") is enforced globally.
     dto = ReportDataDto.model_validate(raw_data)
 
-    assert dto.executive_summary == "Legacy V1 converted summary."
-    assert dto.evidence_quotes == []
-    assert dto.urgency_level == 0
+    assert dto.global_synthesis is not None
+    assert dto.global_synthesis.executive_summary == "Legacy V1 converted summary."
+    assert dto.global_synthesis.urgency_level == 0
 
 
 def test_legacy_golden_master_noisy_parse_success() -> None:
@@ -39,6 +39,6 @@ def test_legacy_golden_master_noisy_parse_success() -> None:
 
     dto = ReportDataDto.model_validate(raw_data)
 
-    assert dto.executive_summary == "Legacy V1 converted summary."
-    assert dto.evidence_quotes == []
-    assert dto.urgency_level == 0
+    assert dto.global_synthesis is not None
+    assert dto.global_synthesis.executive_summary == "Legacy V1 converted summary."
+    assert dto.global_synthesis.urgency_level == 0

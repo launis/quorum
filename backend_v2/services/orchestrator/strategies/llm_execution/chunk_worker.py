@@ -10,7 +10,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationE
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.dtos.report import PromptContextDTO
+from backend_v2.models.dtos.report.context import PromptContextDTO
 from backend_v2.models.enums import EvaluationRunCount
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock

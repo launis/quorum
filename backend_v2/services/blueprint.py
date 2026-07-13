@@ -18,7 +18,8 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.report import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
+from backend_v2.models.dtos.report.matrix import TraceMatrixPayloadDTO
+from backend_v2.models.dtos.report.scoring import TraceScoringPayloadDTO
 from backend_v2.models.enums import SystemConfigID, SystemLocale, VirtualSystemStepID, VisualIntent
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (

@@ -67,16 +67,17 @@ class TestPhase1DTORefactoring:
 
         The model must exist and contain semantic fields, not Markdown/HTML.
         """
-        from backend_v2.models.dtos.report import ReportDataDto
+        from backend_v2.models.dtos.report.root import ReportDataDto
 
         # Verify the class exists
         assert ReportDataDto is not None
 
         # Verify it has the promised semantic fields
         fields = ReportDataDto.model_fields
-        assert "executive_summary" in fields, "Missing promised field: executive_summary"
-        assert "evidence_quotes" in fields, "Missing promised field: evidence_quotes"
-        assert "urgency_level" in fields, "Missing promised field: urgency_level"
+        assert "execution_id" in fields, "Missing field: execution_id"
+        assert "workflow_id" in fields, "Missing field: workflow_id"
+        assert "global_synthesis" in fields, "Missing field: global_synthesis"
+        assert "results" in fields, "Missing field: results"
 
         # Falsification: Verify NO Markdown/HTML contamination in field types
         for field_name, field_info in fields.items():
@@ -320,17 +321,6 @@ class TestPhase2PipelineUnification:
 class TestPhase1Phase2Integration:
     """Verify that Phase 1 DTOs and Phase 2 DAG pipeline integrate correctly."""
 
-    def test_report_data_dto_uses_quote_evidence_dto(self) -> None:
-        """INTEGRATION: ReportDataDto.evidence_quotes must use QuoteEvidenceDTO type."""
-        from backend_v2.models.dtos.report import ReportDataDto
-
-        field = ReportDataDto.model_fields["evidence_quotes"]
-        # The annotation should involve QuoteEvidenceDTO
-        annotation_str = str(field.annotation)
-        assert "QuoteEvidenceDTO" in annotation_str, (
-            f"INTEGRATION FAILURE: evidence_quotes type is {annotation_str}, expected list[QuoteEvidenceDTO]."
-        )
-
     def test_execution_state_uses_quote_evidence_dto(self) -> None:
         """INTEGRATION: ExecutionState.evidence_quotes must use QuoteEvidenceDTO type."""
         from backend_v2.models.state import ExecutionState
@@ -340,33 +330,6 @@ class TestPhase1Phase2Integration:
         assert "QuoteEvidenceDTO" in annotation_str, (
             f"INTEGRATION FAILURE: ExecutionState.evidence_quotes type is {annotation_str}."
         )
-
-    def test_quote_evidence_dto_instantiation_e2e(self) -> None:
-        """INTEGRATION: Full E2E: raw LLM string -> QuoteEvidenceDTO -> ReportDataDto.
-
-        Simulates the complete data flow from LLM output to final DTO packaging.
-        """
-        from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-        from backend_v2.models.dtos.report import ReportDataDto
-
-        # Simulate LLM output with messy alias format
-        registry = {"DOC-1": "src_abc", "DOC-2": "src_def"}
-        quote_dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "The analysis shows significant gaps.", "source_alias": "DOC-1 and DOC-2"},
-            context={"alias_registry": registry},
-        )
-
-        # Verify resolution
-        assert quote_dto.source_alias == ["src_abc", "src_def"]
-
-        # Package into ReportDataDto
-        report = ReportDataDto(
-            executive_summary="Test summary.",
-            evidence_quotes=[quote_dto],
-            urgency_level=3,
-        )
-        assert len(report.evidence_quotes) == 1
-        assert report.evidence_quotes[0].quote == "The analysis shows significant gaps."
 
     def test_synthesis_distiller_output_is_serializable(self) -> None:
         """INTEGRATION: Distiller output (state_delta) must be JSON-serializable

@@ -14,14 +14,14 @@ from pydantic import ValidationError
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.xai import VarianceValidationExtension
-from backend_v2.models.dtos.report import (
+from backend_v2.models.dtos.report.context import (
     AuditQuestionItem,
     GlobalContextVarsDTO,
-    MatrixObservabilityDTO,
     ReportContextDTO,
-    ReportSynthesisDTO,
-    ScoreItem,
 )
+from backend_v2.models.dtos.report.matrix import MatrixObservabilityDTO
+from backend_v2.models.dtos.report.scoring import ScoreItem
+from backend_v2.models.dtos.report.synthesis import ReportSynthesisDTO
 from backend_v2.models.view.sdui import ReferenceIntent, ReferenceItem
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 

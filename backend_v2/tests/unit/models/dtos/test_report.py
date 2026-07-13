@@ -1,16 +1,16 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.report import (
-    GlobalContextVarsDTO,
+from backend_v2.models.dtos.report.context import GlobalContextVarsDTO
+from backend_v2.models.dtos.report.matrix import (
     MatrixFieldsMixin,
     MatrixObservabilityDTO,
     MatrixObservabilityItem,
-    ReportSynthesisDTO,
     TraceMatrixPayloadDTO,
-    TraceScoringPayloadDTO,
-    XaiReportData,
 )
+from backend_v2.models.dtos.report.scoring import TraceScoringPayloadDTO
+from backend_v2.models.dtos.report.specialists import XaiReportData
+from backend_v2.models.dtos.report.synthesis import ReportSynthesisDTO
 
 
 def test_matrix_fields_mixin_instantiation() -> None:

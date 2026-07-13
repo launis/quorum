@@ -11,7 +11,7 @@ from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, DocumentExtractionServiceDep, ExecutionServiceDep
-from backend_v2.models.dtos.report import ReportDataDto
+from backend_v2.models.dtos.report.root import ReportDataDto
 from backend_v2.models.v2_core import (
     EvidenceRejectionRequest,
     ExecutionCreate,

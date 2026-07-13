@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from backend_v2.models.dtos.report import ReportDataDto
+from backend_v2.models.dtos.report.root import ReportDataDto
 
 
 class ResultProjector(ABC):

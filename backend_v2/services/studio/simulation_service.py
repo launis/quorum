@@ -8,7 +8,7 @@ from typing import Any
 
 from backend_v2.exceptions import ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
-from backend_v2.models.dtos.report import PromptContextDTO
+from backend_v2.models.dtos.report.context import PromptContextDTO
 from backend_v2.models.v2_core import (
     PromptBlock,
     Step,

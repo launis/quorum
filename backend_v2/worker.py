@@ -639,7 +639,9 @@ async def generate_pdf_task(
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     new_states = dict(exec_record_local.step_states)
-                    new_states[v_step_id] = old_state.model_copy(update={"status": ExecutionStatus.FAILED.value, "last_error": str(e)})
+                    new_states[v_step_id] = old_state.model_copy(
+                        update={"status": ExecutionStatus.FAILED.value, "last_error": str(e)}
+                    )
                     exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
                 updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
 
@@ -964,7 +966,9 @@ async def generate_profile_synthesis_and_pdf_task(
             if exec_record_local:
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
-                    updated_state = old_state.model_copy(update={"status": ExecutionStatus.FAILED.value, "last_error": str(e)})
+                    updated_state = old_state.model_copy(
+                        update={"status": ExecutionStatus.FAILED.value, "last_error": str(e)}
+                    )
                     new_step_states = dict(exec_record_local.step_states)
                     new_step_states[v_step_id] = updated_state
                     exec_record_local = exec_record_local.model_copy(update={"step_states": new_step_states})

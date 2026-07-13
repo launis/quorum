@@ -1,5 +1,16 @@
 {
-  "executive_summary": "Legacy V1 converted summary.",
-  "evidence_quotes": [],
-  "urgency_level": 0
+  "execution_id": "legacy_id",
+  "workflow_id": "wf_1",
+  "global_metrics": {
+    "total_atoms": 0,
+    "evaluated": 0,
+    "short_circuited_na": 0,
+    "duration_ms": 0
+  },
+  "global_synthesis": {
+    "executive_summary": "Legacy V1 converted summary.",
+    "urgency_level": 0
+  },
+  "results": [],
+  "hydrated_references": {}
 }

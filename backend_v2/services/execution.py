@@ -30,7 +30,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.models.auth import SystemOrganizations, TokenData
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.report import ReportDataDto
+from backend_v2.models.dtos.report.root import ReportDataDto
 from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
 from backend_v2.models.v2_core import (
     ComponentType,
@@ -1157,7 +1157,17 @@ class ExecutionService:
         if full_dto.has_warning:
             exec_summary = "Report generated with warnings."
 
-        return ReportDataDto(executive_summary=exec_summary, evidence_quotes=unique_quotes, urgency_level=0)
+        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
+        return ReportDataDto(
+            execution_id=execution_id,
+            workflow_id=execution.workflow_id,
+            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+            global_synthesis=GlobalSynthesisDTO(executive_summary=exec_summary, urgency_level=0),
+            results=[],
+            hydrated_references={},
+        )
 
     async def get_sdui_view(
         self,
@@ -1165,23 +1175,19 @@ class ExecutionService:
         execution_id: str,
     ) -> dict[str, Any]:
         """Get the SDUI view components for an execution."""
-        from backend_v2.models.view.sdui import ReportView, SectionType, UiSection
-        from backend_v2.services.sdui_mapper import SduiMapperService
+        from backend_v2.models.view.sdui import ReportView, UiSection
 
         dto = await self.get_report_dto(initiator, execution_id)
 
-        sections = []
-        if dto.evidence_quotes:
-            blocks = [SduiMapperService.map_evidence_to_sdui(q) for q in dto.evidence_quotes]
-            sections.append(
-                UiSection(
-                    id="evidence_blocks", type=SectionType.MARKDOWN_BLOCK, title="Lainaukset", data={"blocks": blocks}
-                )
-            )
+        sections: list[UiSection] = []
+
+        title = "Raportti"
+        if dto.global_synthesis and dto.global_synthesis.executive_summary:
+            title = dto.global_synthesis.executive_summary
 
         view = ReportView(
             view_id=execution_id,
-            title=dto.executive_summary or "Raportti",
+            title=title,
             status_theme="success",
             sections=sections,
             metrics=None,

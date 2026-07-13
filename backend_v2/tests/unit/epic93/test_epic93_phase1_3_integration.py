@@ -24,7 +24,7 @@ from backend_v2.api.dependencies import get_current_user_from_header, get_execut
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.report import ReportDataDto
+from backend_v2.models.dtos.report.root import ReportDataDto
 from backend_v2.models.view.sdui import (
     SduiQuoteCard,
     SduiWarningCard,
@@ -154,20 +154,35 @@ class TestPhase1ReportDataDtoHeadless:
 
     def test_minimal_construction(self) -> None:
         """ReportDataDto can be constructed with minimal data."""
-        dto = ReportDataDto(executive_summary="Summary", evidence_quotes=[], urgency_level=0)
-        assert dto.executive_summary == "Summary"
-        assert dto.evidence_quotes == []
-        assert dto.urgency_level == 0
+        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
+        dto = ReportDataDto(
+            execution_id="exe_1",
+            workflow_id="wf_1",
+            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+            global_synthesis=GlobalSynthesisDTO(executive_summary="Summary", urgency_level=0),
+            results=[],
+            hydrated_references={},
+        )
+        assert dto.global_synthesis.executive_summary == "Summary"
+        assert dto.global_synthesis.urgency_level == 0
+        assert dto.results == []
 
     def test_with_evidence_quotes(self) -> None:
-        """ReportDataDto carries QuoteEvidenceDTO instances."""
-        q = QuoteEvidenceDTO.model_validate(
-            {"quote": "A quote", "source_alias": ["resolved_id"]},
-            context={"alias_registry": {}},
+        """ReportDataDto carries atom results. (evidence_quotes deprecated in Phase 1)."""
+        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
+        dto = ReportDataDto(
+            execution_id="exe_1",
+            workflow_id="wf_1",
+            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+            global_synthesis=GlobalSynthesisDTO(executive_summary="With quotes", urgency_level=0),
+            results=[],
+            hydrated_references={},
         )
-        dto = ReportDataDto(executive_summary="With quotes", evidence_quotes=[q], urgency_level=0)
-        assert len(dto.evidence_quotes) == 1
-        assert dto.evidence_quotes[0].quote == "A quote"
+        assert dto.global_synthesis.executive_summary == "With quotes"
 
     def test_no_markdown_html_ui_fields(self) -> None:
         """ReportDataDto must NOT contain Markdown/HTML/UI fields."""
@@ -183,16 +198,22 @@ class TestPhase1ReportDataDtoHeadless:
 
     def test_serialization_roundtrip(self) -> None:
         """Pydantic model_dump/model_validate roundtrip succeeds."""
-        q = QuoteEvidenceDTO.model_validate(
-            {"quote": "Quote", "source_alias": ["id_1"]},
-            context={"alias_registry": {}},
+        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
+        dto = ReportDataDto(
+            execution_id="exe_1",
+            workflow_id="wf_1",
+            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+            global_synthesis=GlobalSynthesisDTO(executive_summary="RT", urgency_level=3),
+            results=[],
+            hydrated_references={},
         )
-        dto = ReportDataDto(executive_summary="RT", evidence_quotes=[q], urgency_level=3)
         serialized = dto.model_dump(mode="json")
         restored = ReportDataDto.model_validate(serialized, context={"alias_registry": {}})
-        assert restored.executive_summary == "RT"
-        assert restored.urgency_level == 3
-        assert len(restored.evidence_quotes) == 1
+        assert restored.global_synthesis.executive_summary == "RT"
+        assert restored.global_synthesis.urgency_level == 3
+        assert restored.results == []
 
 
 # ===========================================================================
@@ -351,10 +372,16 @@ class TestPhase3ReportEndpoint:
     def test_report_returns_200_with_dto_shape(self, override_dependencies: Any, mock_execution_service: Any) -> None:
         """Headless endpoint returns clean JSON without SDUI wrapping."""
         client = TestClient(app)
+        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
         mock_dto = ReportDataDto(
-            executive_summary="Headless test",
-            evidence_quotes=[],
-            urgency_level=5,
+            execution_id="test_123",
+            workflow_id="wf_1",
+            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+            global_synthesis=GlobalSynthesisDTO(executive_summary="Headless test", urgency_level=5),
+            results=[],
+            hydrated_references={},
         )
         mock_execution_service.get_report_dto.return_value = mock_dto
 
@@ -362,24 +389,24 @@ class TestPhase3ReportEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["executive_summary"] == "Headless test"
-        assert data["urgency_level"] == 5
+        assert data["global_synthesis"]["executive_summary"] == "Headless test"
+        assert data["global_synthesis"]["urgency_level"] == 5
         assert "sections" not in data, "Headless endpoint must NOT contain SDUI sections"
         assert "view_id" not in data, "Headless endpoint must NOT contain SDUI view_id"
 
     def test_report_with_evidence_quotes(self, override_dependencies: Any, mock_execution_service: Any) -> None:
-        """Headless endpoint serializes QuoteEvidenceDTO correctly."""
+        """Headless endpoint serializes QuoteEvidenceDTO correctly. (deprecated in Phase 1)."""
         client = TestClient(app)
-        # Use model_validate with context to get properly resolved aliases
-        registry = {"DOC-1": "src_resolved"}
-        q = QuoteEvidenceDTO.model_validate(
-            {"quote": "Evidence quote", "source_alias": ["DOC-1"]},
-            context={"alias_registry": registry},
-        )
+        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
         mock_dto = ReportDataDto(
-            executive_summary="With evidence",
-            evidence_quotes=[q],
-            urgency_level=0,
+            execution_id="test_123",
+            workflow_id="wf_1",
+            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+            global_synthesis=GlobalSynthesisDTO(executive_summary="With evidence", urgency_level=0),
+            results=[],
+            hydrated_references={},
         )
         mock_execution_service.get_report_dto.return_value = mock_dto
 
@@ -387,9 +414,7 @@ class TestPhase3ReportEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data["evidence_quotes"]) == 1
-        assert data["evidence_quotes"][0]["quote"] == "Evidence quote"
-        assert data["evidence_quotes"][0]["source_alias"] == ["src_resolved"]
+        assert data["global_synthesis"]["executive_summary"] == "With evidence"
 
 
 class TestPhase3SduiEndpoint:
@@ -491,18 +516,17 @@ class TestCrossPhaseIntegration:
 
     def test_report_dto_carries_pipeline_output(self) -> None:
         """ReportDataDto can carry the full pipeline output."""
-        registry = {"DOC-1": "id_1"}
-        q = QuoteEvidenceDTO.model_validate(
-            {"quote": "Pipeline output", "source_alias": ["DOC-1"]},
-            context={"alias_registry": registry},
-        )
+        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
         dto = ReportDataDto(
-            executive_summary="Pipeline test",
-            evidence_quotes=[q],
-            urgency_level=2,
+            execution_id="exe_1",
+            workflow_id="wf_1",
+            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+            global_synthesis=GlobalSynthesisDTO(executive_summary="Pipeline test", urgency_level=2),
+            results=[],
+            hydrated_references={},
         )
-        # Verify the DTO carries the resolved data
-        assert dto.evidence_quotes[0].source_alias == ["id_1"]
         # Verify serialization preserves the pipeline
         serialized = dto.model_dump(mode="json")
-        assert serialized["evidence_quotes"][0]["source_alias"] == ["id_1"]
+        assert serialized["global_synthesis"]["executive_summary"] == "Pipeline test"

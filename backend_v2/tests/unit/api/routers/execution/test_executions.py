@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from backend_v2.api.dependencies import get_current_user_from_header, get_execution_service
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.dtos.report import ReportDataDto
+from backend_v2.models.dtos.report.root import ReportDataDto
 
 # Basic mock for user
 mock_user = TokenData(id="test-user-id", role=UserRole.ROOT, organization_id="root_org")
@@ -32,10 +32,16 @@ def test_get_execution_report_returns_raw_dto(override_dependencies: Any, mock_e
     # Integration test for /report headless endpoint
     client = TestClient(app)
 
+    from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+    from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
     mock_dto = ReportDataDto(
-        executive_summary="Headless summary",
-        evidence_quotes=[],
-        urgency_level=0,
+        execution_id="test_execution_123",
+        workflow_id="wf_1",
+        global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
+        global_synthesis=GlobalSynthesisDTO(executive_summary="Headless summary", urgency_level=0),
+        results=[],
+        hydrated_references={},
     )
     mock_execution_service.get_report_dto.return_value = mock_dto
 
@@ -43,7 +49,7 @@ def test_get_execution_report_returns_raw_dto(override_dependencies: Any, mock_e
 
     assert response.status_code == 200
     data = response.json()
-    assert data["executive_summary"] == "Headless summary"
+    assert data["global_synthesis"]["executive_summary"] == "Headless summary"
     # Ensure it's not wrapped in SDUI
     assert "sections" not in data
 
