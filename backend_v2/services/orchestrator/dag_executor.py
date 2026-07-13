@@ -490,7 +490,7 @@ class DAGExecutor:
                 await step_events[dep].wait()
 
             # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
-            if step_obj.task_blueprint == "synthesis_generation":
+            if step_obj.task_blueprint == "sp_7a8b9c0d1e2f3a4b":
                 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
                 from backend_v2.services.orchestrator.result_projector import V3ResultProjector
 

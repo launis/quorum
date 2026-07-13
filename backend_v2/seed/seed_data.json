@@ -7442,9 +7442,9 @@
       }
     },
     {
-      "id": "blk_synthesis_generation",
+      "id": "blk_8f7e6d5c4b3a2019",
       "slug": "synthesis_generation_block",
-      "category_id": "instruction",
+      "category_id": "task_definition",
       "type": "instruction",
       "label": {
         "default_locale": "en",
@@ -7767,8 +7767,8 @@
           }
         },
         {
-          "id": "sr_synthesis_generation",
-          "task_blueprint": "sp_synthesis_generation",
+          "id": "sr_9e8d7c6b5a40312b",
+          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
           "depends_on": [
             "sr_2fa56dc36614469a"
           ],
@@ -8892,7 +8892,7 @@
       ]
     },
     {
-      "id": "sp_synthesis_generation",
+      "id": "sp_7a8b9c0d1e2f3a4b",
       "slug": "synthesis_generation",
       "type": "llm",
       "model_strategy": "synthesis",
@@ -8921,8 +8921,10 @@
       "output_schema": null,
       "organization_id": "SYSTEM",
       "role_block_id": null,
-      "extraction_protocol_block_id": "blk_synthesis_generation",
-      "criteria_block_ids": []
+      "extraction_protocol_block_id": "blk_8f7e6d5c4b3a2019",
+      "criteria_block_ids": [
+        "blk_8f7e6d5c4b3a2019"
+      ]
     }
   ],
   "organizations": [

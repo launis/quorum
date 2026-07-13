@@ -49,7 +49,9 @@ class TestPipeBDestruction:
         init_path = Path("backend_v2/hooks/__init__.py")
         if init_path.exists():
             content = init_path.read_text(encoding="utf-8")
-            assert "synthesis" not in content.lower(), "BROKEN CONTRACT: hooks/__init__.py STILL references 'synthesis'."
+            assert "synthesis" not in content.lower(), (
+                "BROKEN CONTRACT: hooks/__init__.py STILL references 'synthesis'."
+            )
 
 
 # ============================================================================
