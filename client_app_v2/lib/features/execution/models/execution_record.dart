@@ -26,6 +26,14 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)
     String? traceVersion,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
+    @JsonKey(name: 'created_at') String? createdAt,
+    @JsonKey(name: 'cost_estimate') double? costEstimate,
+    @JsonKey(name: 'metadata') Map<String, dynamic>? metadata,
+    @JsonKey(name: 'error') String? error,
+    @JsonKey(name: 'is_resumable') bool? isResumable,
+    @JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,
+    @JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,
+    @JsonKey(name: 'results') Map<String, dynamic>? results,
 
     /// The strictly typed DTO containing the presentation flat data.
     /// Replaces the legacy `results` Map.

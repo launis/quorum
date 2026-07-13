@@ -324,7 +324,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
                 builder: (context, ref, child) {
                   final statusMsg = ref.watch(renderStatusProvider);
                   return Text(
-                    statusMsg,
+                    statusMsg ?? '',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 14,

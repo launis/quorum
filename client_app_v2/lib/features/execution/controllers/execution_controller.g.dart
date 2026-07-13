@@ -8,24 +8,24 @@ part of 'execution_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provider to fetch executions using native casting (No Freezed API DTOs)
+/// Provider to fetch executions strictly adhering to Freezed DTOs
 
 @ProviderFor(executionList)
 final executionListProvider = ExecutionListProvider._();
 
-/// Provider to fetch executions using native casting (No Freezed API DTOs)
+/// Provider to fetch executions strictly adhering to Freezed DTOs
 
 final class ExecutionListProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<Map<String, dynamic>>>,
-          List<Map<String, dynamic>>,
-          FutureOr<List<Map<String, dynamic>>>
+          AsyncValue<List<ExecutionRecord>>,
+          List<ExecutionRecord>,
+          FutureOr<List<ExecutionRecord>>
         >
     with
-        $FutureModifier<List<Map<String, dynamic>>>,
-        $FutureProvider<List<Map<String, dynamic>>> {
-  /// Provider to fetch executions using native casting (No Freezed API DTOs)
+        $FutureModifier<List<ExecutionRecord>>,
+        $FutureProvider<List<ExecutionRecord>> {
+  /// Provider to fetch executions strictly adhering to Freezed DTOs
   ExecutionListProvider._()
     : super(
         from: null,
@@ -42,24 +42,24 @@ final class ExecutionListProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+  $FutureProviderElement<List<ExecutionRecord>> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+  FutureOr<List<ExecutionRecord>> create(Ref ref) {
     return executionList(ref);
   }
 }
 
-String _$executionListHash() => r'48613113487c8f8b6e793453e63b0b32b8229ba8';
+String _$executionListHash() => r'53088a35bac32973bee5242a2b42f1f7a2ee3506';
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
 ///
 /// Implements Riverpod 3.x optimal practices:
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
-/// - Uses raw `Map<String, dynamic>` strictly adhering to the De-Generator Policy.
+/// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
 
 @ProviderFor(ExecutionController)
 final executionControllerProvider = ExecutionControllerProvider._();
@@ -69,16 +69,15 @@ final executionControllerProvider = ExecutionControllerProvider._();
 /// Implements Riverpod 3.x optimal practices:
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
-/// - Uses raw `Map<String, dynamic>` strictly adhering to the De-Generator Policy.
+/// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
 final class ExecutionControllerProvider
-    extends
-        $StreamNotifierProvider<ExecutionController, Map<String, dynamic>?> {
+    extends $StreamNotifierProvider<ExecutionController, ExecutionRecord?> {
   /// Controller managing the lifecycle of a V2 DAG Execution.
   ///
   /// Implements Riverpod 3.x optimal practices:
   /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
   /// - Handles real-time backend updates efficiently without manual polling loops.
-  /// - Uses raw `Map<String, dynamic>` strictly adhering to the De-Generator Policy.
+  /// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
   ExecutionControllerProvider._()
     : super(
         from: null,
@@ -99,32 +98,27 @@ final class ExecutionControllerProvider
 }
 
 String _$executionControllerHash() =>
-    r'2ac3abe71d33c23561cba32e8b08a4b6a20f8bc2';
+    r'fcabb5d0d33de6429e12c2b55b375648d6b648c3';
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
 ///
 /// Implements Riverpod 3.x optimal practices:
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
-/// - Uses raw `Map<String, dynamic>` strictly adhering to the De-Generator Policy.
+/// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
 
-abstract class _$ExecutionController
-    extends $StreamNotifier<Map<String, dynamic>?> {
-  Stream<Map<String, dynamic>?> build();
+abstract class _$ExecutionController extends $StreamNotifier<ExecutionRecord?> {
+  Stream<ExecutionRecord?> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final ref =
-        this.ref
-            as $Ref<AsyncValue<Map<String, dynamic>?>, Map<String, dynamic>?>;
+        this.ref as $Ref<AsyncValue<ExecutionRecord?>, ExecutionRecord?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<Map<String, dynamic>?>,
-                Map<String, dynamic>?
-              >,
-              AsyncValue<Map<String, dynamic>?>,
+              AnyNotifier<AsyncValue<ExecutionRecord?>, ExecutionRecord?>,
+              AsyncValue<ExecutionRecord?>,
               Object?,
               Object?
             >;

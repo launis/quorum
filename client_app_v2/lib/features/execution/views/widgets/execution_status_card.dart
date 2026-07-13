@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
-import 'package:client_app/core/error/app_exception.dart';
+
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// A card widget that displays the current status of a DAG workflow execution.
@@ -54,7 +55,7 @@ class ExecutionStatusCard extends ConsumerWidget {
   Widget _buildStateContent(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<Map<String, dynamic>?> state,
+    AsyncValue<ExecutionRecord?> state,
     AppLocalizations l10n,
   ) {
     return switch (state) {
@@ -64,27 +65,18 @@ class ExecutionStatusCard extends ConsumerWidget {
           return Text(l10n.waitingToStart);
         }
 
-        final status =
-            record['status']?.toString() ??
-            (throw AppException.validation(
-              'CRITICAL FAIL-FAST: Missing execution status',
-            ));
-        final executionId =
-            record['id']?.toString() ??
-            (throw AppException.validation(
-              'CRITICAL FAIL-FAST: Missing execution ID',
-            ));
-
-        // Assuming results exist if there are any
-        final results = record['results'] as Map<String, dynamic>? ?? {};
+        final status = record.status;
+        final executionId = record.id;
 
         // Extract Metrics
-        final cost = (record['cost_estimate'] as num?)?.toDouble() ?? 0.0;
-        final totalT = record['total_tokens'] as int? ?? 0;
-        final promptT = record['prompt_tokens'] as int? ?? 0;
-        final completionT = record['completion_tokens'] as int? ?? 0;
-        final cachedT = record['cached_tokens'] as int? ?? 0;
-        final reasoningT = record['reasoning_tokens'] as int? ?? 0;
+        final cost = record.costEstimate ?? 0.0;
+        final metadata = record.metadata ?? {};
+        final totalT = (metadata['total_tokens'] as num?)?.toInt() ?? 0;
+        final promptT = (metadata['prompt_tokens'] as num?)?.toInt() ?? 0;
+        final completionT =
+            (metadata['completion_tokens'] as num?)?.toInt() ?? 0;
+        final cachedT = (metadata['cached_tokens'] as num?)?.toInt() ?? 0;
+        final reasoningT = (metadata['reasoning_tokens'] as num?)?.toInt() ?? 0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,9 +121,9 @@ class ExecutionStatusCard extends ConsumerWidget {
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 8),
-            if (status == 'passed' ||
-                status == 'completed' ||
-                status == 'failed') ...[
+            if (status.toLowerCase() == 'passed' ||
+                status.toLowerCase() == 'completed' ||
+                status.toLowerCase() == 'failed') ...[
               Text(
                 l10n.resultsTitle,
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -143,7 +135,7 @@ class ExecutionStatusCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  results.toString(),
+                  record.reportData?.toString() ?? '{}',
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
@@ -170,16 +162,16 @@ class ExecutionStatusCard extends ConsumerWidget {
   Widget _buildActionButtons(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<Map<String, dynamic>?> state,
+    AsyncValue<ExecutionRecord?> state,
     AppLocalizations l10n,
   ) {
     final isRunning =
         state.isLoading ||
         (state.hasValue &&
             state.value != null &&
-            (state.value!['status'] == 'pending' ||
-                state.value!['status'] == 'queued' ||
-                state.value!['status'] == 'running'));
+            (state.value!.status.toLowerCase() == 'pending' ||
+                state.value!.status.toLowerCase() == 'queued' ||
+                state.value!.status.toLowerCase() == 'running'));
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,

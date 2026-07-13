@@ -10,9 +10,9 @@ part 'report_controller.g.dart';
 @riverpod
 class RenderStatus extends _$RenderStatus {
   @override
-  String build() => 'Valmistellaan tulostusta...';
+  String? build() => null;
 
-  void updateStatus(String msg) {
+  void updateStatus(String? msg) {
     if (state != msg) state = msg;
   }
 }
@@ -40,8 +40,7 @@ class ReportController extends _$ReportController {
       );
 
       if (rawData.containsKey('status') && rawData['status'] == 'pending') {
-        final msg =
-            rawData['message'] as String? ?? 'Valmistellaan tulostusta...';
+        final msg = rawData['message'] as String?;
         ref.read(renderStatusProvider.notifier).updateStatus(msg);
 
         attempts++;

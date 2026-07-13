@@ -10,7 +10,8 @@ import 'package:client_app/shared/widgets/global_error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
 import 'package:client_app/features/execution/views/widgets/async_scorecard_widget.dart';
-import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
+
+import 'package:client_app/features/execution/models/execution_record.dart';
 
 import 'dart:convert';
 
@@ -90,7 +91,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
   }
 
   Widget _buildExecutionContent(
-    Map<String, dynamic>? record,
+    ExecutionRecord? record,
     MutationState<void> resumeMutation,
   ) {
     if (record == null) {
@@ -99,34 +100,18 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
       );
     }
 
-    final status = record['status']?.toString().toLowerCase();
-    if (status == null) {
-      return ErrorView(
-        error: AppException.validation(
-          'CRITICAL FAIL-FAST: Missing execution status',
-        ),
-        stackTrace: StackTrace.current,
-        onRetry: () => ref
-            .read(executionControllerProvider.notifier)
-            .resumeExecution(widget.executionId),
-      );
-    }
+    final status = record.status.toLowerCase();
 
-    final isRecoverable = record['is_resumable'] == true;
+    final isRecoverable = record.isResumable == true;
 
-    final fzRaw = record['frozen_context'];
-    final frozenContext = fzRaw is Map ? fzRaw : {};
+    final frozenContext = record.frozenContext ?? {};
 
-    final stepStatesRaw = record['step_states'];
-    final stepStatesMap = stepStatesRaw is Map ? stepStatesRaw : {};
+    final stepStatesMap = record.stepStates ?? {};
     final stepStatesList = stepStatesMap.values
         .map((e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{})
         .toList();
 
-    final resRaw = record['results'];
-    final results = resRaw is Map
-        ? resRaw as Map<String, dynamic>
-        : <String, dynamic>{};
+    final results = record.results ?? <String, dynamic>{};
 
     return CustomScrollView(
       slivers: [
@@ -238,9 +223,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           ),
 
         // V3 Global Error View for Actionable Hints
-        if (status == 'failed' &&
-            record.containsKey('error') &&
-            record['error'] != null)
+        if (status == 'failed' && record.error != null)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -252,8 +235,8 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   title: AppLocalizations.of(
                     context,
                   )!.errWorkflowExecutionFailed,
-                  detail: record['error'].toString(),
-                  extensions: {'error_code': record['error'].toString()},
+                  detail: record.error.toString(),
+                  extensions: {'error_code': record.error.toString()},
                 ),
                 actionLabel: isRecoverable
                     ? AppLocalizations.of(context)!.resumeActionableHint
@@ -284,11 +267,10 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           ),
 
         // V3 Flat MVC Report Rendering
-        if (record.containsKey('report_data') &&
-            record['report_data'] != null) ...[
+        if (record.reportData != null) ...[
           SliverToBoxAdapter(
             child: ReportRendererV2Widget(
-              payload: record['report_data'] as ReportDataDto,
+              payload: record.reportData!,
               executionId: widget.executionId,
             ),
           ),

@@ -84,22 +84,10 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                   itemCount: value.length,
                   itemBuilder: (context, index) {
                     final exec = value[index];
-                    final id =
-                        exec['id']?.toString() ??
-                        (throw AppException.validation(
-                          'CRITICAL FAIL-FAST: Missing execution ID',
-                        ));
-                    final status =
-                        exec['status']?.toString() ??
-                        (throw AppException.validation(
-                          'CRITICAL FAIL-FAST: Missing execution status',
-                        ));
-                    final workflowId =
-                        exec['workflow_id']?.toString() ??
-                        (throw AppException.validation(
-                          'CRITICAL FAIL-FAST: Missing workflow_id',
-                        ));
-                    final createdAt = exec['created_at']?.toString() ?? '';
+                    final id = exec.id;
+                    final status = exec.status;
+                    final workflowId = exec.workflowId;
+                    final createdAt = exec.createdAt ?? '';
 
                     // Formatting date
                     String dateStr = createdAt;
@@ -124,11 +112,8 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                     }
 
                     // Metrics
-                    final costEstimate =
-                        (exec['cost_estimate'] as num?)?.toDouble() ?? 0.0;
-                    final metadata = exec['metadata'] is Map
-                        ? exec['metadata'] as Map
-                        : {};
+                    final costEstimate = exec.costEstimate ?? 0.0;
+                    final metadata = exec.metadata ?? {};
                     final totalTokens =
                         (metadata['total_tokens'] as num?)?.toInt() ?? 0;
                     final promptTokens =

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/features/execution/models/execution_record.dart';
 
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
@@ -12,39 +14,28 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_controller.g.dart';
 
-/// Centralized execution logic settings
-class ExecutionSettings {
-  const ExecutionSettings._();
+// Settings moved to SystemConcurrency per centralized enums rule.
 
-  /// The duration to yield before reconnecting to a rehydrated SSE stream.
-  static const Duration rehydrationDelay = Duration(milliseconds: 500);
-}
-
-/// Centralized settings for the Execution Dashboard
-class DashboardSettings {
-  const DashboardSettings._();
-
-  /// Auto-refresh interval for the continuous background polling
-  static const Duration refreshRate = Duration(seconds: 10);
-}
-
-/// Provider to fetch executions using native casting (No Freezed API DTOs)
+/// Provider to fetch executions strictly adhering to Freezed DTOs
 @riverpod
-Future<List<Map<String, dynamic>>> executionList(Ref ref) async {
+Future<List<ExecutionRecord>> executionList(Ref ref) async {
   // 1. Riverpod Polling (Auto-Refresh)
   // Poll backend every 10 seconds to keep the Execution Dashboard alive and fresh,
   // bypassing the StatefulShellRoute cache stagnation issue.
-  final timer = Timer(DashboardSettings.refreshRate, () {
-    ref.invalidateSelf();
-  });
+  final timer = Timer(
+    Duration(seconds: SystemConcurrency.dashboardRefreshRateSeconds.value),
+    () {
+      ref.invalidateSelf();
+    },
+  );
   ref.onDispose(timer.cancel);
 
   final dio = ref.watch(apiClientProvider);
   final response = await dio.get('/execution/executions');
 
-  final List<dynamic> data = response.data is List ? response.data as List : [];
+  final List<dynamic> data = response.data as List;
   return data
-      .map((e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{})
+      .map((e) => ExecutionRecord.fromJson(e as Map<String, dynamic>))
       .toList();
 }
 
@@ -53,14 +44,14 @@ Future<List<Map<String, dynamic>>> executionList(Ref ref) async {
 /// Implements Riverpod 3.x optimal practices:
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
-/// - Uses raw `Map<String, dynamic>` strictly adhering to the De-Generator Policy.
+/// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
 @riverpod
 class ExecutionController extends _$ExecutionController {
   StreamSubscription? _sseSubscription;
   int _retryCount = 0;
 
   @override
-  Stream<Map<String, dynamic>?> build() async* {
+  Stream<ExecutionRecord?> build() async* {
     // Initial state is idle (null)
     ref.onDispose(() {
       _sseSubscription?.cancel();
@@ -91,7 +82,7 @@ class ExecutionController extends _$ExecutionController {
       final executionId = initialRecord['id'] as String;
 
       // Update with initial record before stream connects
-      state = AsyncValue.data(initialRecord);
+      state = AsyncValue.data(ExecutionRecord.fromJson(initialRecord));
 
       // Connect to SSE stream
       _connectToStream(executionId);
@@ -111,7 +102,7 @@ class ExecutionController extends _$ExecutionController {
 
   /// Reconnects to an existing execution stream by ID
   Future<void> resumeExecution(String executionId) async {
-    state = const AsyncValue<Map<String, dynamic>?>.loading();
+    state = const AsyncValue<ExecutionRecord?>.loading();
     await _sseSubscription?.cancel();
     _retryCount = 0;
 
@@ -122,7 +113,7 @@ class ExecutionController extends _$ExecutionController {
   /// This adheres to the Riverpod 3.0 Mutation pattern by optimistically updating the state.
   Future<void> submitRehydration(String executionId) async {
     // Preserve existing state while loading to prevent UI flicker
-    state = const AsyncValue<Map<String, dynamic>?>.loading();
+    state = const AsyncValue<ExecutionRecord?>.loading();
     await _sseSubscription?.cancel();
     _retryCount = 0;
     try {
@@ -130,10 +121,12 @@ class ExecutionController extends _$ExecutionController {
       final resumedRecord = await client.resumeExecution(executionId);
 
       // Immediately hydrate with the backend's verified resumed state
-      state = AsyncValue.data(resumedRecord);
+      state = AsyncValue.data(ExecutionRecord.fromJson(resumedRecord));
 
       // Wait a tiny bit for the backend to transition state before we hook SSE again
-      await Future.delayed(ExecutionSettings.rehydrationDelay);
+      await Future.delayed(
+        Duration(milliseconds: SystemConcurrency.rehydrationDelayMs.value),
+      );
       _connectToStream(executionId);
     } catch (e, stack) {
       ref
@@ -153,10 +146,8 @@ class ExecutionController extends _$ExecutionController {
   /// Manually refreshes the current status by reconnecting the stream
   void refreshStatus() {
     if (state.hasValue && state.value != null) {
-      final id = state.value!['id'] as String?;
-      if (id != null) {
-        resumeExecution(id);
-      }
+      final id = state.value!.id;
+      resumeExecution(id);
     }
   }
 
@@ -184,21 +175,16 @@ class ExecutionController extends _$ExecutionController {
       if (!ref.mounted) return;
 
       if (state.hasValue && state.value != null) {
-        // Merge the heavy DTO back into the raw Map state for backward compatibility
-        // with the temporary ExecutionView payload before Milestone 4 applies Flat MVC.
-        final Map<String, dynamic> merged = Map<String, dynamic>.from(
-          state.value!,
-        );
-        merged['report_data'] = reportData;
-        merged['results'] = renderData; // Temporary legacy support
+        ExecutionRecord merged = state.value!.copyWith(reportData: reportData);
 
         // DEFENSIVE MERGE (Tier 4 Bugfix): If we successfully downloaded and parsed
         // the final Heavy payload, the execution is mathematically guaranteed to be
-        // completed (otherwise /render would have returned 202 Pending or 400).
-        // This prevents asynchronous Race Conditions where state.value was momentarily stale.
-        final currentStatus = merged['status']?.toString().toLowerCase();
-        if (currentStatus != 'failed') {
-          merged['status'] = 'completed';
+        // passed (otherwise /render would have returned 202 Pending or 400).
+        if (merged.status.toLowerCase() !=
+            ExecutionStatus.failed.name.toLowerCase()) {
+          merged = merged.copyWith(
+            status: ExecutionStatus.passed.name.toUpperCase(),
+          );
         }
 
         state = AsyncValue.data(merged);
@@ -230,61 +216,77 @@ class ExecutionController extends _$ExecutionController {
             bool needsHeavyFetch = false;
 
             if (currentState != null) {
-              // Preserve heavy fetched properties that SSE payload dropped
-              if (currentState.containsKey('report_data')) {
-                update['report_data'] = currentState['report_data'];
+              if (!update.containsKey('workflow_id')) {
+                update['workflow_id'] = currentState.workflowId;
               }
-              if (currentState.containsKey('results')) {
-                update['results'] = currentState['results'];
+            }
+
+            ExecutionRecord newRecord;
+            try {
+              newRecord = ExecutionRecord.fromJson(update);
+            } catch (e) {
+              ref
+                  .read(loggerServiceProvider)
+                  .warning(
+                    'ExecutionController',
+                    'Failed to parse SSE update',
+                    e,
+                  );
+              return;
+            }
+
+            if (currentState != null) {
+              // Preserve heavy fetched properties that SSE payload dropped
+              if (currentState.reportData != null &&
+                  newRecord.reportData == null) {
+                newRecord = newRecord.copyWith(
+                  reportData: currentState.reportData,
+                );
               }
 
               // Detect Trace Version change
-              final oldVersion = currentState['trace_version']?.toString();
-              final newVersion = update['trace_version']?.toString();
+              final oldVersion = currentState.traceVersion;
+              final newVersion = newRecord.traceVersion;
 
               if (newVersion != null && newVersion != oldVersion) {
                 needsHeavyFetch = true;
               }
 
               // Detect completion
-              final oldStatus = (currentState['status'] as String?)
-                  ?.toLowerCase();
-              final newStatus = (update['status'] as String?)?.toLowerCase();
-              if ((newStatus == 'passed' || newStatus == 'completed') &&
-                  (oldStatus != 'passed' && oldStatus != 'completed')) {
+              final oldStatus = currentState.status.toLowerCase();
+              final newStatus = newRecord.status.toLowerCase();
+              if (newStatus == ExecutionStatus.passed.name.toLowerCase() &&
+                  oldStatus != ExecutionStatus.passed.name.toLowerCase()) {
                 needsHeavyFetch = true;
               }
             } else {
               // Bootstrapping initial stream state
-              final newStatus = (update['status'] as String?)?.toLowerCase();
-              if (update['trace_version'] != null ||
-                  newStatus == 'passed' ||
-                  newStatus == 'completed') {
+              final newStatus = newRecord.status.toLowerCase();
+              if (newRecord.traceVersion != null ||
+                  newStatus == ExecutionStatus.passed.name.toLowerCase()) {
                 needsHeavyFetch = true;
               }
             }
 
-            state = AsyncValue.data(update);
+            state = AsyncValue.data(newRecord);
 
             if (needsHeavyFetch) {
               _performHeavyFetch(executionId);
             }
 
-            final status = (update['status'] as String?)?.toLowerCase();
-            if (status == 'passed' ||
-                status == 'completed' ||
-                status == 'failed') {
+            final status = newRecord.status.toLowerCase();
+            if (status == ExecutionStatus.passed.name.toLowerCase() ||
+                status == ExecutionStatus.failed.name.toLowerCase()) {
               ref.invalidate(executionListProvider);
               _sseSubscription?.cancel();
             }
           },
           onError: (e, stack) {
             final currentState = state.value;
-            final status = (currentState?['status'] as String?)?.toLowerCase();
+            final status = currentState?.status.toLowerCase();
             final isTerminal =
-                status == 'passed' ||
-                status == 'completed' ||
-                status == 'failed';
+                status == ExecutionStatus.passed.name.toLowerCase() ||
+                status == ExecutionStatus.failed.name.toLowerCase();
 
             if (currentState != null && !isTerminal && _retryCount < 5) {
               _retryCount++;
@@ -297,7 +299,7 @@ class ExecutionController extends _$ExecutionController {
               _sseSubscription?.cancel();
               Future.delayed(const Duration(seconds: 2), () {
                 if (!ref.mounted) return;
-                final currentId = state.value?['id'] as String?;
+                final currentId = state.value?.id;
                 if (currentId == executionId) {
                   _connectToStream(executionId);
                 }

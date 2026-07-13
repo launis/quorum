@@ -14,40 +14,36 @@ class MockExecutionClient implements ExecutionClient {
     int? strictnessLevel,
     String? scoringStrategy,
   }) async {
-    return {'id': 'test_exec', 'status': 'running'};
+    return {'id': 'test_exec', 'workflow_id': 'test_wf', 'status': 'running'};
   }
 
   @override
   Future<Map<String, dynamic>> resumeExecution(String executionId) async {
-    return {'id': executionId, 'status': 'running'};
+    return {'id': executionId, 'workflow_id': 'test_wf', 'status': 'running'};
   }
 
-  @override
   Future<Map<String, dynamic>> renderExecution(
     String executionId, {
     String lang = 'fi',
     String variant = 'default',
   }) async {
     return {
+      'execution_id': executionId,
       'workflow_id': 'test_wf',
-      'profile_id': 'default',
-      'profile_name': {
-        'default_locale': 'en',
-        'translations': {'en': 'Default Profile'},
+      'global_metrics': {
+        'total_atoms': 5,
+        'evaluated': 5,
+        'short_circuited_na': 0,
+        'duration_ms': 100,
       },
-      'available_profiles': {
-        'default': {
-          'default_locale': 'en',
-          'translations': {'en': 'Default Profile'},
-        },
-      },
-      'layouts': [],
+      'results': [],
+      'hydrated_references': {},
     };
   }
 
   @override
   Future<Map<String, dynamic>> getExecutionStatus(String executionId) async {
-    return {'id': executionId, 'status': 'completed'};
+    return {'id': executionId, 'workflow_id': 'test_wf', 'status': 'passed'};
   }
 
   @override
@@ -68,7 +64,12 @@ class MockExecutionClient implements ExecutionClient {
 class MockSseClient implements SseClient {
   @override
   Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
-    yield {'id': executionId, 'status': 'completed', 'trace_version': '1.0'};
+    yield {
+      'id': executionId,
+      'workflow_id': 'test_wf',
+      'status': 'passed',
+      'trace_version': '1.0',
+    };
   }
 }
 
@@ -128,9 +129,10 @@ void main() {
 
       final state = container.read(executionControllerProvider);
       expect(state.hasValue, true);
-      expect(state.value?['id'], 'test_exec');
-      expect(state.value?['status'], 'completed');
-      expect(state.value?.containsKey('report_data'), true);
+      // Wait, state.value is an ExecutionRecord.
+      expect(state.value?.id, 'test_exec');
+      expect(state.value?.status, 'PASSED');
+      expect(state.value?.reportData != null, true);
 
       sub.close();
     },

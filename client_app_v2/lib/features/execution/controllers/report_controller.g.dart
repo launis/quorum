@@ -13,7 +13,7 @@ part of 'report_controller.dart';
 final renderStatusProvider = RenderStatusProvider._();
 
 final class RenderStatusProvider
-    extends $NotifierProvider<RenderStatus, String> {
+    extends $NotifierProvider<RenderStatus, String?> {
   RenderStatusProvider._()
     : super(
         from: null,
@@ -33,27 +33,27 @@ final class RenderStatusProvider
   RenderStatus create() => RenderStatus();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(String value) {
+  Override overrideWithValue(String? value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<String>(value),
+      providerOverride: $SyncValueProvider<String?>(value),
     );
   }
 }
 
-String _$renderStatusHash() => r'bc2c6252ddbe696fb186ef4c0d2cd1f3e63a2724';
+String _$renderStatusHash() => r'ad04910789136df8464db506fd5eb1c4f7c6da7f';
 
-abstract class _$RenderStatus extends $Notifier<String> {
-  String build();
+abstract class _$RenderStatus extends $Notifier<String?> {
+  String? build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<String, String>;
+    final ref = this.ref as $Ref<String?, String?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<String, String>,
-              String,
+              AnyNotifier<String?, String?>,
+              String?,
               Object?,
               Object?
             >;
@@ -106,7 +106,7 @@ final class ReportControllerProvider
   }
 }
 
-String _$reportControllerHash() => r'6fdefa88cf88bc145f73a234b7a47007fdd64ee9';
+String _$reportControllerHash() => r'eaa0af83f09c260d13b54d403132d52488b96ed6';
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
 
