@@ -5,8 +5,8 @@
 - [x] Phase 1.2: Legacy Migration & KI Registration (`docs\epic\tasks_EPIC_92_Enriched_Atom_Graph_Architecture\phase_1_2_legacy_migration.md`)
 - [x] Phase 2.1: GECL Prompts & Atomizer Pipeline (`docs\epic\tasks_EPIC_92_Enriched_Atom_Graph_Architecture\phase_2_1_gecl_and_prompts.md`)
 - [x] Phase 2.2: Alias Engine Integration (`docs\epic\tasks_EPIC_92_Enriched_Atom_Graph_Architecture\phase_2_2_alias_engine_integration.md`)
-- [x] [NOK] Tier 1 Planner Invocation: "Invoke the Tier 1 Planner again to generate detailed plans for Phase 3 (Global Sliding Window), Phase 4 (Graph Execution & Cascade), and Phase 5 (Schema Projection) based on the updated codebase state."
-- [ ] Phase 3: Global Sliding Window (`docs\epic\tasks_EPIC_92_Enriched_Atom_Graph_Architecture\phase_3_global_sliding_window.md`)
+- [x] Tier 1 Planner Invocation: "Invoke the Tier 1 Planner again to generate detailed plans for Phase 3 (Global Sliding Window), Phase 4 (Graph Execution & Cascade), and Phase 5 (Schema Projection) based on the updated codebase state."
+- [x] Phase 3: Global Sliding Window (`docs\epic\tasks_EPIC_92_Enriched_Atom_Graph_Architecture\phase_3_global_sliding_window.md`)
 - [ ] Phase 4: Graph Execution & Cascade (`docs\epic\tasks_EPIC_92_Enriched_Atom_Graph_Architecture\phase_4_graph_execution_and_cascade.md`)
 - [ ] Phase 5: Schema Projection (`docs\epic\tasks_EPIC_92_Enriched_Atom_Graph_Architecture\phase_5_schema_projection.md`)
 - [ ] [NOK] Tier 2 Hardening: "Run the Tier 2 Hardening Loop (e.g. `/tier2-hardening-backend`) specifically targeted at the newly created/modified directories (`backend_v2/services/orchestrator` and `backend_v2/models/dtos/`). Ensure architecture is modernized to Pydantic V2 and Push models."
