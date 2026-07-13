@@ -593,37 +593,75 @@ class LLMNodeStrategy(NodeStrategy):
                         break
                     await asyncio.sleep(1)
             else:
-                tasks = []
-                async with asyncio.TaskGroup() as tg:
-                    for c in chunks_list:
-                        tasks.append(
-                            tg.create_task(
-                                ChunkWorker.process_chunk(
-                                    chunk=c,
-                                    sem=sem,
-                                    compiler=self.compiler,
-                                    criteria_blocks=criteria_blocks,
-                                    user_payload=user_payload,
-                                    global_source_text=global_source_text,
-                                    base_system_prompt=base_system_prompt,
-                                    has_search=has_search,
-                                    has_shuffled_atoms=has_shuffled_atoms,
-                                    atom_to_block_ids=atom_to_block_ids,
-                                    effective_mcp_tools=effective_mcp_tools,
-                                    bound_client=bound_client,
-                                    step_id=step.id,
-                                    target_locale=target_locale,
-                                    synthesis_instructions=syn_instr,
-                                    output_profile=output_profile,
-                                    strictness_level=context.strictness_level,
-                                    running_event=running_event,
-                                    step_metadata=hook_state.metadata,
-                                )
-                            )
-                        )
+                from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+                from backend_v2.models.v2_core import ExecutionStatus
+                from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
 
-                # Task results parsed after TaskGroup completes clean context boundaries.
-                task_results = [t.result() for t in tasks]
+                evaluator = TopologicalEvaluator()
+                task_results_map: dict[str, Any] = {}
+                nodes: list[LinkedAtomGraph] = []
+
+                for i, _c in enumerate(chunks_list):
+                    tda_id = f"tda_{hex(i)[2:].zfill(16)}"
+                    atom = ExtractedAtom(
+                        reasoning=f"Legacy Chunk Wrapper {i}",
+                        resolved_claim=f"Legacy Chunk Evaluation {i}",
+                        source_quote="N/A",
+                        tda_id=tda_id,
+                        source_id=f"chunk_{i}",
+                    )
+                    nodes.append(LinkedAtomGraph(atom=atom, depends_on=[]))
+
+                async def eval_callback(
+                    node: LinkedAtomGraph,
+                    _syn_instr: dict[str, Any] | None = syn_instr,
+                    _task_results_map: dict[str, Any] = task_results_map,
+                ) -> ExecutionStatus:
+                    if not node.atom.source_id:
+                        return ExecutionStatus.SYSTEM_ERROR
+                    idx = int(node.atom.source_id.split("_")[1])
+                    c = chunks_list[idx]
+
+                    try:
+                        res = await ChunkWorker.process_chunk(
+                            chunk=c,
+                            sem=sem,
+                            compiler=self.compiler,
+                            criteria_blocks=criteria_blocks,
+                            user_payload=user_payload,
+                            global_source_text=global_source_text,
+                            base_system_prompt=base_system_prompt,
+                            has_search=has_search,
+                            has_shuffled_atoms=has_shuffled_atoms,
+                            atom_to_block_ids=atom_to_block_ids,
+                            effective_mcp_tools=effective_mcp_tools,
+                            bound_client=bound_client,
+                            step_id=step.id,
+                            target_locale=target_locale,
+                            synthesis_instructions=_syn_instr,
+                            output_profile=output_profile,
+                            strictness_level=context.strictness_level,
+                            running_event=running_event,
+                            step_metadata=hook_state.metadata,
+                        )
+                        _task_results_map[node.atom.tda_id] = res
+                        return ExecutionStatus.PASSED
+                    except Exception as e:
+                        logger.error(f"[LLMNodeStrategy] ChunkWorker fallback failed: {e}", exc_info=True)
+                        return ExecutionStatus.SYSTEM_ERROR
+
+                await evaluator.evaluate_graph(nodes, eval_callback)
+
+                # Task results parsed sequentially matching chunks_list
+                task_results = []
+                for i in range(len(chunks_list)):
+                    tda_id = f"tda_{hex(i)[2:].zfill(16)}"
+                    if tda_id in task_results_map:
+                        task_results.append(task_results_map[tda_id])
+                    else:
+                        task_results.append(
+                            ({"_dlq_status": "FAILED/DLQ", "reason": "Graph Evaluator Dropped Chunk"}, None, [], None)
+                        )
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
 
