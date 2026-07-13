@@ -19,9 +19,9 @@
     </rule_block>
 
     <rule_block id="frontend_feature_isolation">
-        <banned_pattern>Mixing specific UI feature code (e.g. Studio Canvas) into `lib/core/` or `lib/shared/` folders, or cross-importing deep between different features.</banned_pattern>
-        <mandatory_pattern>Flutter code MUST strictly adhere to Feature-First isolation in `client_app_v2/lib/features/`. Shared abstract logic belongs in `core/` or `shared/`.</mandatory_pattern>
-        <catastrophic_reason>Cross-feature spaghetti imports break the Riverpod reactive dependency tree and cause massive compilation bottlenecks.</catastrophic_reason>
+        <banned_pattern>Mixing specific UI feature code (e.g. Studio Canvas) or feature-specific SDUI Freezed models into `lib/core/` or `lib/shared/` folders, or cross-importing deep between different features.</banned_pattern>
+        <mandatory_pattern>Flutter code MUST strictly adhere to Feature-First isolation in `client_app_v2/lib/features/` (e.g., `execution/models/` and `execution/providers/`). Shared abstract logic belongs in `core/` or `shared/`. Legacy monolithic proxy models are strictly banned; all models must be decoupled Freezed classes to enable strict UI decoupling and Riverpod O(1) lookups.</mandatory_pattern>
+        <catastrophic_reason>Cross-feature spaghetti imports break the Riverpod reactive dependency tree and cause massive compilation bottlenecks. Monolithic models prevent strict UI decoupling and O(1) state resolution.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="ephemeral_storage_mandate">
@@ -75,8 +75,8 @@
     </module>
 
     <module path="client_app_v2/lib/features/">
-        <responsibility>RIVERPOD SDUI VERTICAL FEATURES</responsibility>
-        <key_domains>studio/ (Admin Canvas), execution/ (Dashboards), auth/</key_domains>
+        <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
+        <key_domains>studio/ (Admin Canvas), execution/ (Dashboards, SDUI Freezed DTOs), auth/</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">
