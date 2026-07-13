@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../core/error/app_exception.dart';
 import '../models/hydrated_atom_dto.dart';
 import 'report_data_v2_provider.dart';
 
@@ -11,7 +12,9 @@ HydratedAtomDTO? hydratedReference(Ref ref, String executionId, String tdaId) {
   final reportData = ref.watch(reportDataV2Provider(executionId));
 
   if (reportData == null) {
-    return null;
+    throw AppException.validation(
+      'Fail-Fast: ReportDataDto is not initialized for execution $executionId',
+    );
   }
 
   return reportData.hydratedReferences[tdaId];

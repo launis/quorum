@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../core/error/app_exception.dart';
 import '../models/atom_result_dto.dart';
 import 'report_data_v2_provider.dart';
 
@@ -11,7 +12,9 @@ List<AtomResultDTO> atomResults(Ref ref, String executionId) {
   final reportData = ref.watch(reportDataV2Provider(executionId));
 
   if (reportData == null) {
-    return const [];
+    throw AppException.validation(
+      'Fail-Fast: ReportDataDto is not initialized for execution $executionId',
+    );
   }
 
   return reportData.results;

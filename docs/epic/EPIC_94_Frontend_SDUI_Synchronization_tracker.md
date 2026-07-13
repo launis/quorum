@@ -7,7 +7,7 @@
 - [x] `[OK]` Phase 1: Freezed Models Synchronization (Execute `docs/epic/tasks_EPIC_94_Frontend_SDUI_Synchronization/phase_1_models.md`)
 - [x] `[OK]` Phase 2: Riverpod State Providers (Execute `docs/epic/tasks_EPIC_94_Frontend_SDUI_Synchronization/phase_2_providers.md`)
 - [x] `[OK]` Phase 3: SDUI Widget Rendering Components (Execute `docs/epic/tasks_EPIC_94_Frontend_SDUI_Synchronization/phase_3_sdui_widgets.md`)
-- [ ] `[NOK]` Tier 2 Hardening (Run `/tier2-hardening-frontend` targeted at the newly created `models` and `providers` directories to modernize to Freezed strictness)
+- [x] `[OK]` Tier 2 Hardening (Run `/tier2-hardening-frontend` targeted at the newly created `models` and `providers` directories to modernize to Freezed strictness)
 - [ ] `[NOK]` Phase 4: Proxy Sunset & Consumer Migration (Codebase-wide search/replace old import paths to bypass proxies before deleting legacy `ReportDataDTO` and `ScorecardDTO` models)
 - [ ] `[NOK]` Pre-Delete Audit (Verify no orphaned dependencies remain and completely DELETED the original legacy models and views)
 - [ ] `[NOK]` Baseline Parity & Zero-Loss Audit (Mathematically verify that the final test count and coverage match or exceed the Phase 1 baseline)
@@ -24,10 +24,10 @@
 ---
 
 # Session Handover Context
-**Achieved**: Completed Tier 2 Hardening for `client_app_v2/lib/features/execution/models`. Fixed `silent_json_fallbacks` on TDAState and added `parseInBackground` to ReportDataDto. Tests and audit loop are fully passing (GREEN).
-**Learned**: Freezed sealed classes require `@JsonSerializable(disallowUnrecognizedKeys: true)` on their factory constructors combined with `// ignore_for_file: invalid_annotation_target` at the top of the file to satisfy the code generator.
-**Remaining**: Tier 2 Hardening for `client_app_v2/lib/features/execution/providers` directory, followed by Phase 4 Proxy Sunset.
+**Achieved**: Completed Tier 2 Hardening for BOTH `client_app_v2/lib/features/execution/models` and `client_app_v2/lib/features/execution/providers`. Removed `silent_json_fallbacks` and implemented strict `AppException.validation` Fail-Fast crashes for missing base data (e.g., null ReportDataDto). Tests and audit loops are fully passing (GREEN).
+**Learned**: Riverpod providers returning nullable types still require downstream consumers to Fail-Fast manually when fetching data via `ref.watch`. `ProviderException` correctly wraps `AppException` internally within Riverpod's testing container and `throwsA(predicate(...))` is the safest way to assert it.
+**Remaining**: Phase 4: Proxy Sunset & Consumer Migration (Codebase-wide search/replace old import paths to bypass proxies before deleting legacy `ReportDataDTO` and `ScorecardDTO` models).
 
 ## Next Session Resume Command
 `To resume execution, start a NEW chat session and run:`
-`/tier5-resume --workflow=/tier2-hardening-frontend --target="client_app_v2/lib/features/execution/providers" --rules="c:\src\quorum\.agents\rules\00-antigravity-core.md, c:\src\quorum\.agents\rules\02_flutter_desktop.md"`
+`/tier5-resume --workflow=/tier3-feature-refactor --target="docs/epic/EPIC_94_Frontend_SDUI_Synchronization_tracker.md" --achieved="Tier 2 Hardening for SDUI models and providers complete" --learned="Riverpod null-state requires explicit Exception throwing for Fail-Fast" --remaining="Phase 4: Proxy Sunset & Consumer Migration" --rules="c:\src\quorum\.agents\rules\00-antigravity-core.md, c:\src\quorum\.agents\rules\02_flutter_desktop.md"`
