@@ -251,3 +251,37 @@ enum VisualIntent {
   @JsonValue('NEUTRAL')
   neutral,
 }
+
+/// Execution lifecycle status.
+@JsonEnum()
+enum ExecutionStatus {
+  @JsonValue('PASSED')
+  passed,
+  @JsonValue('FAILED')
+  failed,
+  @JsonValue('N_A')
+  nA,
+  @JsonValue('SYSTEM_ERROR')
+  systemError,
+  @JsonValue('BLOCKED')
+  blocked,
+  @JsonValue('PENDING')
+  pending,
+  @JsonValue('RUNNING')
+  running,
+  @JsonValue('QUEUED')
+  queued,
+}
+
+/// SDUI Component types mapped from backend.
+@JsonEnum()
+enum SDUIComponentType {
+  @JsonValue('boolean_card')
+  booleanCard,
+  @JsonValue('extracted_value_card')
+  extractedValueCard,
+  @JsonValue('error_card')
+  errorCard,
+  @JsonValue('n_a_card')
+  nACard,
+}

@@ -291,7 +291,8 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
               executionId: widget.executionId,
             ),
           ),
-        ] else if ((status == 'passed' || status == 'completed') && results.isNotEmpty)
+        ] else if ((status == 'passed' || status == 'completed') &&
+            results.isNotEmpty)
           // ALWAYS show Raw Data JSON on completion if Heavy Fetch failed
           SliverToBoxAdapter(
             child: Padding(

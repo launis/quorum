@@ -129,7 +129,9 @@ class ExecutionStatusCard extends ConsumerWidget {
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 8),
-            if (status == 'passed' || status == 'completed' || status == 'failed') ...[
+            if (status == 'passed' ||
+                status == 'completed' ||
+                status == 'failed') ...[
               Text(
                 l10n.resultsTitle,
                 style: const TextStyle(fontWeight: FontWeight.bold),

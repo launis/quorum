@@ -20,6 +20,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(Map<String, dynamic> json) =>
             'trace_version',
             'strictness_level',
             'report_data',
+            'report_data_v2',
           ],
         );
         final val = _ExecutionRecord(
@@ -43,6 +44,12 @@ _ExecutionRecord _$ExecutionRecordFromJson(Map<String, dynamic> json) =>
                 ? null
                 : ReportDataDTO.fromJson(v as Map<String, dynamic>),
           ),
+          reportDataV2: $checkedConvert(
+            'report_data_v2',
+            (v) => v == null
+                ? null
+                : ReportDataDto.fromJson(v as Map<String, dynamic>),
+          ),
         );
         return val;
       },
@@ -51,6 +58,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(Map<String, dynamic> json) =>
         'traceVersion': 'trace_version',
         'strictnessLevel': 'strictness_level',
         'reportData': 'report_data',
+        'reportDataV2': 'report_data_v2',
       },
     );
 
@@ -62,4 +70,5 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'trace_version': instance.traceVersion,
       'strictness_level': instance.strictnessLevel,
       'report_data': instance.reportData?.toJson(),
+      'report_data_v2': instance.reportDataV2?.toJson(),
     };

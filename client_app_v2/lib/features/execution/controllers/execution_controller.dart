@@ -250,13 +250,16 @@ class ExecutionController extends _$ExecutionController {
               final oldStatus = (currentState['status'] as String?)
                   ?.toLowerCase();
               final newStatus = (update['status'] as String?)?.toLowerCase();
-              if ((newStatus == 'passed' || newStatus == 'completed') && (oldStatus != 'passed' && oldStatus != 'completed')) {
+              if ((newStatus == 'passed' || newStatus == 'completed') &&
+                  (oldStatus != 'passed' && oldStatus != 'completed')) {
                 needsHeavyFetch = true;
               }
             } else {
               // Bootstrapping initial stream state
               final newStatus = (update['status'] as String?)?.toLowerCase();
-              if (update['trace_version'] != null || newStatus == 'passed' || newStatus == 'completed') {
+              if (update['trace_version'] != null ||
+                  newStatus == 'passed' ||
+                  newStatus == 'completed') {
                 needsHeavyFetch = true;
               }
             }
@@ -268,7 +271,9 @@ class ExecutionController extends _$ExecutionController {
             }
 
             final status = (update['status'] as String?)?.toLowerCase();
-            if (status == 'passed' || status == 'completed' || status == 'failed') {
+            if (status == 'passed' ||
+                status == 'completed' ||
+                status == 'failed') {
               ref.invalidate(executionListProvider);
               _sseSubscription?.cancel();
             }
@@ -276,7 +281,10 @@ class ExecutionController extends _$ExecutionController {
           onError: (e, stack) {
             final currentState = state.value;
             final status = (currentState?['status'] as String?)?.toLowerCase();
-            final isTerminal = status == 'passed' || status == 'completed' || status == 'failed';
+            final isTerminal =
+                status == 'passed' ||
+                status == 'completed' ||
+                status == 'failed';
 
             if (currentState != null && !isTerminal && _retryCount < 5) {
               _retryCount++;
