@@ -37,6 +37,9 @@ class AliasEngine:
 
     This engine isolates raw UUIDs/IDs from LLM prompts and provides semantic
     'Attention Anchors' (e.g., 'a0', 'doc1') to prevent hallucination and token bloat.
+
+    WARNING: AliasEngine MUST be instantiated per-request or per-job. Do NOT use it
+    as a global singleton, or you will cause catastrophic memory leaks.
     """
 
     # V2_2: Universaali regex, joka sallii aakkosnumeeriset tunnisteet.
@@ -72,6 +75,21 @@ class AliasEngine:
         quote_choices = sorted(list(choices))
         QuoteIdsLiteral = Literal[tuple(quote_choices)]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2
         return QuoteIdsLiteral
+
+    @staticmethod
+    def build_atom_ids_literal(
+        allowed_atom_ids: list[str] | None,
+        allowed_dynamic_keys: list[str] | None = None,
+    ) -> Any:
+        """Builds an Annotated Literal type for DAG atom dependencies."""
+        choices = set(allowed_atom_ids or [])
+        choices.update(DEFAULT_ALIAS_LITERALS)
+        if allowed_dynamic_keys:
+            choices.update(allowed_dynamic_keys)
+
+        atom_choices = sorted(list(choices))
+        AtomIdsLiteral = Literal[tuple(atom_choices)]  # type: ignore[valid-type]
+        return AtomIdsLiteral
 
     @staticmethod
     def extract_literal_values(annotation: Any) -> list[str]:
@@ -211,6 +229,9 @@ class AliasEngine:
     def hydrate_dict_list(self, items: list[dict[str, Any]], field_name: str) -> int:
         """Hydrate a list of dictionaries in-place by replacing aliases with real IDs.
 
+        Recursively navigates through nested dictionaries and lists (e.g., LinkedAtomGraph
+        with atom and depends_on).
+
         Args:
             items: List of dictionaries containing aliased fields.
             field_name: The key within each dictionary to hydrate.
@@ -222,13 +243,21 @@ class AliasEngine:
         if not items:
             return hydrated_count
 
-        for item in items:
-            if field_name in item:
-                alias = item[field_name]
-                if alias and alias in self.alias_map:
-                    item[field_name] = self.alias_map[alias]
-                    hydrated_count += 1
+        def _recurse(node: Any) -> None:
+            nonlocal hydrated_count
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    if key == field_name:
+                        if value and isinstance(value, str) and value in self.alias_map:
+                            node[key] = self.alias_map[value]
+                            hydrated_count += 1
+                    else:
+                        _recurse(value)
+            elif isinstance(node, list):
+                for item in node:
+                    _recurse(item)
 
+        _recurse(items)
         return hydrated_count
 
     def hydrate_reasoning_text(self, text: str) -> str:

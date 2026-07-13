@@ -1,8 +1,14 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.llm.client import LLMClient
+from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
+from backend_v2.services.orchestrator.two_pass_atomizer import DraftAtomList, DraftExtractedAtom, TwoPassAtomizer
 
 
 def test_tda_assertion_validation() -> None:
@@ -93,3 +99,54 @@ async def test_atomizer_deterministic_mapping() -> None:
 
     # tda2 should retain its preset ID
     assert updated_claim.tda_assertions[1].tda_id == "tda_12341234123412341234123412341234"
+
+
+@pytest.mark.asyncio
+async def test_two_pass_atomizer_phase_0() -> None:
+    """Test Phase 0 global entity map extraction."""
+    mock_executor = AsyncMock(spec=LLMTaskExecutor)
+
+    # Mock return value for Phase 0
+    mock_map = GlobalOntologyMap(
+        entities=[OntologyEntity(name="System", description="The main system.")], macro_rules=["Rule 1"]
+    )
+    mock_executor.execute_structured_task.return_value = (mock_map, None)
+
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_client = AsyncMock(spec=LLMClient)
+
+    result = await atomizer.execute_phase_0(client=mock_client, chunks=["Chunk 1", "Chunk 2"])
+
+    assert len(result.entities) == 1
+    assert result.entities[0].name == "System"
+    assert len(result.macro_rules) == 1
+    assert mock_executor.execute_structured_task.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_two_pass_atomizer_phase_1() -> None:
+    """Test Phase 1 local extraction receiving the ontology map."""
+    mock_executor = AsyncMock(spec=LLMTaskExecutor)
+
+    # Mock return value for Phase 1
+    mock_draft_list = DraftAtomList(
+        atoms=[
+            DraftExtractedAtom(
+                reasoning="Test logic", resolved_claim="Test claim", source_quote="Test quote", draft_id="a1"
+            )
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (mock_draft_list, None)
+
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_client = AsyncMock(spec=LLMClient)
+    mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+
+    result = await atomizer.execute_phase_1(client=mock_client, chunks=["Chunk 1"], ontology=mock_ontology)
+
+    assert len(result) == 1
+    assert isinstance(result[0], ExtractedAtom)
+    assert result[0].resolved_claim == "Test claim"
+    assert result[0].tda_id.startswith("tda_")
+    assert result[0].source_id == "chunk_0"
+    assert mock_executor.execute_structured_task.call_count == 1
