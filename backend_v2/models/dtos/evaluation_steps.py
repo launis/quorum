@@ -5,7 +5,7 @@ used during matrix execution.
 """
 
 from types import UnionType
-from typing import Any, Union, get_args, get_origin
+from typing import Annotated, Any, Union, get_args, get_origin
 
 from pydantic import Field, model_validator
 
@@ -20,10 +20,10 @@ class BaseExtractionDTO(V2CoreBase):
     Enforces common validation behaviors for all step extraction schemas.
     """
 
-    used_source_aliases: list[str] = Field(
-        ...,
-        description="List of exact <search_result id> strings you relied upon for this specific extraction.",
-    )
+    used_source_aliases: Annotated[
+        list[str],
+        Field(description="List of exact <search_result id> strings you relied upon for this specific extraction."),
+    ]
 
     @model_validator(mode="before")
     @classmethod
@@ -86,8 +86,6 @@ class BaseExtractionDTO(V2CoreBase):
                 args = get_args(field_info.annotation)
                 if args:
                     item_type = args[0]
-                    from typing import Annotated
-
                     if get_origin(item_type) is Annotated:
                         item_type = get_args(item_type)[0]
 
@@ -129,27 +127,33 @@ class StepDTOStrict(BaseExtractionDTO):
         semantic_reasoning: Short summary statement of decision logic.
     """
 
-    rule_internalization: str = Field(
-        description="Brief internalization of the rule requirements and criteria in English."
-    )
-    source_document_aliases: list[str] = Field(
-        ...,
-        description="Dynamic literals corresponding to available documents.",
-    )
-    exact_quotes: list[LLMExtractedQuote] = Field(..., description=DESC_EXACT_QUOTES)
-    reasoning_steps: str = Field(
-        description=(
-            "Step-by-step mechanical audit trace BEFORE making a decision. "
+    rule_internalization: Annotated[
+        str,
+        Field(description="Brief internalization of the rule requirements and criteria in English."),
+    ]
+    source_document_aliases: Annotated[
+        list[str],
+        Field(description="Dynamic literals corresponding to available documents."),
+    ]
+    exact_quotes: Annotated[list[LLMExtractedQuote], Field(description=DESC_EXACT_QUOTES)]
+    reasoning_steps: Annotated[
+        str,
+        Field(
+            description="Step-by-step mechanical audit trace BEFORE making a decision. "
             "Format: '1) Rule requires X. 2) Text provides Y. 3) Y meets/fails X.' Max 3 sentences."
-        )
-    )
-    falsification_argument: str | None = Field(
-        default=None, description="Why this evidence might NOT satisfy the strict causal requirement of the rule."
-    )
-    decision: bool = Field(description="True if the condition is physically met, False otherwise.")
-    semantic_reasoning: str = Field(
-        description="Final summary of the decision. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis."
-    )
+        ),
+    ]
+    falsification_argument: Annotated[
+        str | None,
+        Field(description="Why this evidence might NOT satisfy the strict causal requirement of the rule."),
+    ] = None
+    decision: Annotated[bool, Field(description="True if the condition is physically met, False otherwise.")]
+    semantic_reasoning: Annotated[
+        str,
+        Field(
+            description="Final summary of the decision. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis."
+        ),
+    ]
 
 
 class StepDTOSemantic(StepDTOStrict):
@@ -162,11 +166,11 @@ class StepDTOSemantic(StepDTOStrict):
         override_reason: Justification details for the contextual override.
     """
 
-    contextual_override: bool = Field(
-        default=False,
-        description=DESC_CONTEXTUAL_OVERRIDE,
-    )
-    override_reason: str | None = Field(default=None, description="Explanation for the contextual override.")
+    contextual_override: Annotated[
+        bool,
+        Field(description=DESC_CONTEXTUAL_OVERRIDE),
+    ] = False
+    override_reason: Annotated[str | None, Field(description="Explanation for the contextual override.")] = None
 
 
 class ParsingLogStepsStrict(BaseExtractionDTO):
@@ -178,7 +182,7 @@ class ParsingLogStepsStrict(BaseExtractionDTO):
         steps: Sequential list of strict evaluation steps.
     """
 
-    steps: list[StepDTOStrict] = Field(description="The sequence of evaluation steps.")
+    steps: Annotated[list[StepDTOStrict], Field(description="The sequence of evaluation steps.")]
 
 
 class ParsingLogStepsSemantic(BaseExtractionDTO):
@@ -190,4 +194,4 @@ class ParsingLogStepsSemantic(BaseExtractionDTO):
         steps: Sequential list of semantic evaluation steps.
     """
 
-    steps: list[StepDTOSemantic] = Field(description="The sequence of evaluation steps.")
+    steps: Annotated[list[StepDTOSemantic], Field(description="The sequence of evaluation steps.")]

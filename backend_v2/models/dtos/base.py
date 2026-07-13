@@ -6,6 +6,8 @@ Provides standard configurations and base models for request and response valida
 across dynamic presentation and communication interfaces.
 """
 
+from typing import Annotated
+
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
@@ -31,4 +33,4 @@ class BaseResponseDTO(V2CoreBase):
         organization_id: Organization reference identifier excluded from client serialization.
     """
 
-    organization_id: str | None = Field(default=None, exclude=True)
+    organization_id: Annotated[str | None, Field(exclude=True)] = None

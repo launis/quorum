@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
@@ -29,8 +31,8 @@ class GuidedReflectionInputDTO(V2CoreBase):
         metadata: Flat dictionary storing supplemental execution metadata.
     """
 
-    pairs: list[QuestionAnswerPair] = Field(min_length=1)
-    metadata: dict[str, str] = Field(default_factory=dict)
+    pairs: Annotated[list[QuestionAnswerPair], Field(min_length=1)]
+    metadata: Annotated[dict[str, str], Field(default_factory=dict)] = Field(default_factory=dict)
 
     def to_markdown(self, title: str = "Questionnaire") -> str:
         """Deterministically serializes the questionnaire into a Markdown document.
