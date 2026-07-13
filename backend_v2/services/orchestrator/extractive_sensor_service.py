@@ -1,9 +1,12 @@
 from pydantic import BaseModel, ConfigDict
 from rapidfuzz import fuzz
 
+from backend_v2.llm.client import LLMClient
+from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import get_lexical_fuzz_threshold
+from backend_v2.models.enums import ExecutionStatus, get_lexical_fuzz_threshold
 from backend_v2.models.v2_core import TDAAssertion
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
 
@@ -110,3 +113,49 @@ class ExtractiveSensorService:
         # Anchors WERE found. We MUST delegate to LLM to evaluate contextual conditions.
         logger.info("[ExtractiveSensor] TDA %s | Anchors found, delegating to LLM for context evaluation", tda.tda_id)
         return PreFlightResult(decided=False)
+
+    @staticmethod
+    async def evaluate_atom_boolean(
+        node: LinkedAtomGraph,
+        executor: LLMTaskExecutor,
+        client: LLMClient,
+        context_text: str,
+    ) -> ExecutionStatus:
+        """Evaluates an atom's claim against the source text using an LLM.
+
+        Args:
+            node: The LinkedAtomGraph node to evaluate.
+            executor: The LLMTaskExecutor to run the query.
+            context_text: The source document text.
+
+        Returns:
+            ExecutionStatus.PASSED if the claim is verified, FAILED otherwise.
+            ExecutionStatus.SYSTEM_ERROR if the evaluation crashes.
+        """
+        import logging
+
+        from pydantic import Field
+
+        logger = logging.getLogger(__name__)
+
+        class BooleanEvaluationResult(BaseModel):
+            model_config = ConfigDict(strict=True, frozen=True)
+            reasoning: str = Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")
+            is_true: bool = Field(description="True if the text confirms the claim, False otherwise.")
+
+        prompt = (
+            "Evaluate if the following claim is true based strictly on the provided context.\n\n"
+            f"<claim>\n{node.atom.resolved_claim}\n</claim>\n\n"
+            f"<context>\n{context_text}\n</context>"
+        )
+
+        try:
+            result, _ = await executor.execute_structured_task(
+                client=client,
+                messages=[{"role": "user", "content": prompt}],
+                response_model=BooleanEvaluationResult,
+            )
+            return ExecutionStatus.PASSED if result.is_true else ExecutionStatus.FAILED
+        except Exception as e:
+            logger.error("Boolean evaluation failed for TDA %s: %s", node.atom.tda_id, str(e))
+            return ExecutionStatus.SYSTEM_ERROR
