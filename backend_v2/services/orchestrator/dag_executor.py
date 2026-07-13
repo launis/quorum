@@ -489,6 +489,33 @@ class DAGExecutor:
             for dep in step_obj.depends_on:
                 await step_events[dep].wait()
 
+            # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
+            if step_obj.task_blueprint == "synthesis_generation":
+                from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
+                from backend_v2.services.orchestrator.result_projector import V3ResultProjector
+
+                try:
+                    v3_projector = V3ResultProjector()
+                    # We pass a copy of the current exec_record to the projector
+                    report_dto = v3_projector.project({"record": exec_record})
+                    lightweight_matrix = MatrixReducer.reduce_matrix(report_dto)
+
+                    reduce_event = TraceEvent(
+                        step_name="matrix_reducer", event_type="output", content=lightweight_matrix.model_dump()
+                    )
+
+                    async with _update_lock:
+                        exec_record.execution_trace.append(reduce_event)
+                        projector.apply_delta(reduce_event)
+                    logger.info("[DAGExecutor] Successfully applied V3ResultProjector and MatrixReducer pre-synthesis.")
+                except Exception as e:
+                    logger.error(
+                        "[DAGExecutor] Failed to project and reduce matrix pre-synthesis: %s", e, exc_info=True
+                    )
+                    raise WorkflowExecutionError(
+                        step_id=step_id, task_key=step_obj.task_blueprint, original_error=e
+                    ) from e
+
             try:
                 async with _update_lock:
                     new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.QUEUED})
@@ -536,25 +563,25 @@ class DAGExecutor:
 
                 new_cv = dict(exec_record.context_variables)
                 has_cv_updates = False
-                for e in events:
-                    exec_record.execution_trace.append(e)
-                    projector.apply_delta(e)
-                    if e.event_type == "decision" and e.metadata and e.metadata.get("is_context_update"):
-                        new_cv.update(e.content)
+                for evt in events:
+                    exec_record.execution_trace.append(evt)
+                    projector.apply_delta(evt)
+                    if evt.event_type == "decision" and evt.metadata and evt.metadata.get("is_context_update"):
+                        new_cv.update(evt.content)
                         has_cv_updates = True
 
                 if has_cv_updates:
                     async with _update_lock:
                         exec_record = exec_record.model_copy(update={"context_variables": new_cv})
 
-                if any(isinstance(e, ErrorTraceEvent) for e in events):
+                if any(isinstance(evt, ErrorTraceEvent) for evt in events):
                     async with _update_lock:
                         new_state = exec_record.step_states[step_id].model_copy(
                             update={"status": ExecutionStatus.FAILED}
                         )
                         new_states = {**exec_record.step_states, step_id: new_state}
                         exec_record = exec_record.model_copy(update={"step_states": new_states})
-                    err_msg = [e.error_message for e in events if isinstance(e, ErrorTraceEvent)][0]
+                    err_msg = [evt.error_message for evt in events if isinstance(evt, ErrorTraceEvent)][0]
                     msg = f"Step {step_id} emitted ErrorTraceEvent: {err_msg}"
                     logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
                     raise AppException(
@@ -589,27 +616,6 @@ class DAGExecutor:
                 step_states=exec_record.step_states,
                 context_variables=exec_record.context_variables,
             )
-
-            # --- Epic 93 Phase 2: Matrix Reducer & Synthesis Pipeline Integration ---
-            from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
-            from backend_v2.services.orchestrator.result_projector import V3ResultProjector
-
-            try:
-                # 1. Project V3 execution record into SSOT ReportDataDto
-                v3_projector = V3ResultProjector()
-                report_dto = v3_projector.project({"record": exec_record})
-
-                # 2. Reduce the matrix (Filters out PASSED booleans to save tokens)
-                lightweight_matrix = MatrixReducer.reduce_matrix(report_dto)
-
-                # 3. Store the reduced matrix into execution metadata for the upcoming Native Synthesis LLM (Phase 3)
-                # We inject it here so Phase 3 can just pick it up directly from context variables or trace
-                exec_record.metadata["reduced_matrix"] = lightweight_matrix.model_dump()
-                logger.info("[DAGExecutor] Successfully applied V3ResultProjector and MatrixReducer.")
-
-            except Exception as e:
-                logger.error("[DAGExecutor] Failed to project and reduce matrix: %s", e, exc_info=True)
-                # Non-fatal to the workflow state, log and continue
 
             return exec_record
 

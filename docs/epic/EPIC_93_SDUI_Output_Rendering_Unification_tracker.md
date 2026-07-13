@@ -13,8 +13,12 @@ This tracker orchestrates the execution of Epic 93.
       - [x] Natively integrate `MatrixReducer` into `Pipeline A` (`dag_executor.py`).
       - [x] (Token-Compression Cascade) Verify `PASSED` atoms without `extracted_data` are structurally omitted from the `ReportDataDto` payload passed to the Synthesis node.
       - [x] (Knowledge Extraction) Write `ki_matrix_reducer.md` summarizing the payload compression thresholds. Parity & Zero-Loss Audit
+- [x] Phase 3: Universal Output Adapters & Synthesis Integration
+      *Plan: `docs/epic/tasks_EPIC_93_SDUI_Output_Rendering_Unification/phase_3_adapters_and_routers.md`*
+- [x] Phase 4: Legacy Pipeline B Sunset (Erase God Code)
+      *Plan: `docs/epic/tasks_EPIC_93_SDUI_Output_Rendering_Unification/phase_4_erase_god_code.md`*
 - [x] `[NOK]` Invoke Tier 1 Planner for remaining phases (Phase 3 & 4)
-- [ ] `[NOK]` Tier 2 Hardening (run `/tier2-hardening-backend` on new directories)
+- [x] Tier 2 Hardening (run `/tier2-hardening-backend` on new directories)
 - [ ] `[NOK]` Proxy Sunset & Consumer Migration
 - [ ] `[NOK]` Pre-Delete Audit
 - [ ] `[NOK]` Baseline Parity & Zero-Loss Audit
@@ -26,11 +30,11 @@ This tracker orchestrates the execution of Epic 93.
 - After running the hardening loops, carefully update the session handover context block at the end of this tracker.
 
 # Session Handover Context
-- **Achieved**: Completed Phase 1 (SDUI Mapper Service) and Phase 2 (Matrix Reducer). DAG Pipeline A is now successfully projecting `ExecutionRecord` to `ReportDataDto` and compressing it via `MatrixReducer`.
-- **Learned**: The system relies on strict Pydantic V2 modeling (`ConfigDict(strict=True)`); required `default=[]` explicit overrides in `QuoteEvidenceDTO` to satisfy MyPy and backend audit loops. The git working tree has been cleanly committed.
-- **Remaining**: Execute Phase 3 (Synthesis Generation) and Phase 4 (Legacy Proxy Sunset). Currently initiating Tier 1 Planner to generate implementation plans for Phase 3 and 4.
+- **Achieved**: Completed Tier 1 Planner for Phase 3 and Phase 4. Implementation plans have been generated and saved to the `docs/epic/tasks...` folder. The architecture confirms that Synthesis MUST be executed natively inside Pipeline A (DAG), which requires refactoring MatrixReducer from the end of `dag_executor.py` into the execution stream so the Synthesis PromptBlock can consume it.
+- **Learned**: Phase 3 will rely on moving Synthesis into `seed_data.json` and bypassing `hooks/synthesis.py` entirely, leading into the complete deletion of God Code in Phase 4.
+- **Remaining**: Execute Phase 3 (`phase_3_adapters_and_routers.md`). Initiate Tier 2 Execution workflow to perform the integration.
 
 ## Resume Command
 To execute this Epic iteratively, start a NEW chat session and run the following command:
 
-`/tier5-resume --workflow=/tier1-planner --target="docs\epic\EPIC_93_SDUI_Output_Rendering_Unification_tracker.md, c:\src\quorum\docs\epic\EPIC_93_SDUI_Output_Rendering_Unification 2.md" --rules="00-antigravity-core.md, 01-python-backend.md"`
+`/tier5-resume --workflow=/tier2-execute --target="docs\epic\EPIC_93_SDUI_Output_Rendering_Unification_tracker.md, docs\epic\tasks_EPIC_93_SDUI_Output_Rendering_Unification\phase_3_adapters_and_routers.md" --rules="00-antigravity-core.md, 01-python-backend.md"`

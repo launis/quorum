@@ -8,7 +8,7 @@ from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGrap
 from backend_v2.models.dtos.report.atoms import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
 from backend_v2.models.dtos.report.root import ReportDataDto
-from backend_v2.models.enums import SDUIComponentType, ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
 
 
 class ResultProjector(ABC):
@@ -148,7 +148,7 @@ class V3ResultProjector(ResultProjector):
         total_atoms = 0
         evaluated = 0
 
-        for step_id, step_state in record.step_states.items():
+        for _step_id, step_state in record.step_states.items():
             for tda_id, scorecard_atom in step_state.scorecard_atoms.items():
                 total_atoms += 1
                 if scorecard_atom.status != "N_A" and scorecard_atom.status != "BLOCKED":

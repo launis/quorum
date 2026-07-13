@@ -17,10 +17,8 @@ from backend_v2.hooks import (
     metadata,
     metrics,
     references,
-    reporting,
     scoring,
     security,
-    synthesis,
     validation,
 )
 
@@ -37,11 +35,7 @@ __all__ = [
     "metadata",
     "metrics",
     "references",
-    "reporting",
     "scoring",
     "security",
-    "synthesis",
     "validation",
 ]
-
-# Register synthesis components tied to the HookRegistry (Epic 93)

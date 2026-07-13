@@ -54,7 +54,6 @@ from backend_v2.models.v2_core import (
     Workflow,
     WorkflowInputs,
 )
-from backend_v2.models.view.sdui import ReportView, UiSection
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.flattener import FlatFileService
@@ -1278,22 +1277,15 @@ class ExecutionService:
     ) -> dict[str, Any]:
         """Get the SDUI view components for an execution."""
         dto = await self.get_report_dto(initiator, execution_id)
+        from backend_v2.services.sdui_mapper_service import SduiMapperService
 
-        sections: list[UiSection] = []
+        mapper = SduiMapperService()
 
-        title = "Raportti"
+        view = mapper.map_report_to_sdui(dto)
+
         if dto.global_synthesis and dto.global_synthesis.executive_summary:
-            title = dto.global_synthesis.executive_summary
+            view = view.model_copy(update={"title": dto.global_synthesis.executive_summary})
 
-        view = ReportView(
-            view_id=execution_id,
-            title=title,
-            status_theme="success",
-            sections=sections,
-            metrics=None,
-            system_notification=None,
-            references=[],
-        )
         return view.model_dump(mode="json")
 
     async def enqueue_pdf_generation(

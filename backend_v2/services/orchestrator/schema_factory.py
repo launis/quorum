@@ -164,21 +164,12 @@ class SchemaFactory:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
         Radically stripped to enforce BaseTDAExtraction determinism and prevent Vertex AI state limits.
-
-        Args:
-            schema_name: Name for the generated Pydantic model class.
-            has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
-            target_locale: Target language code for label resolution.
-            criteria: List of PromptBlock objects to build the schema from.
-            cache_key: Key to save the built schema in cache.
-
-        Returns:
-            A dynamically generated Pydantic model class.
-
-        Raises:
-            ConfigurationError (ErrorCodes.VALIDATION_FAILED): If a PromptBlock is missing required fields.
-            AppException (ErrorCodes.INTERNAL_SERVER_ERROR): If dynamic schema compilation fails critically.
         """
+        if "synthesis_generation" in schema_name:
+            from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+
+            return GlobalSynthesisDTO
+
         # Resolve target base classes, overriding source_document_ids if requested
         step_strict_class: type[BaseModel] = StepDTOStrict
         step_semantic_class: type[BaseModel] = StepDTOSemantic

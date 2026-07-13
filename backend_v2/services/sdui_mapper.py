@@ -23,11 +23,11 @@ class SduiMapperService:
         Returns:
             The appropriate SDUI block representing the evidence.
         """
-        for alias in q.source_alias:
+        for alias in q.unverified_aliases:
             if alias == "OpaqueID.UNVERIFIED":
                 logger.error("Hallucinated alias detected during SDUI translation")
                 return SduiWarningCard(
                     message="Lainauksen lähdettä ei voitu vahvistaa (hallusinoitu alias).", quote_text=q.quote
                 )
 
-        return SduiQuoteCard(quote=q.quote, source_aliases=q.source_alias)
+        return SduiQuoteCard(quote=q.quote, source_aliases=q.verified_source_ids)

@@ -7440,6 +7440,28 @@
           "fi": "Rivisivun selityksen muotoilusäännöt"
         }
       }
+    },
+    {
+      "id": "blk_synthesis_generation",
+      "slug": "synthesis_generation_block",
+      "category_id": "instruction",
+      "type": "instruction",
+      "label": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Synthesis Generation",
+          "fi": "Synteesin generointi"
+        }
+      },
+      "ai_description": "Generate a high-level executive summary and an urgency level based on the evaluation results.",
+      "output_extensions": [],
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Synthesis Generation Block",
+          "fi": "Synthesis Generation Block"
+        }
+      }
     }
   ],
   "workflows": [
@@ -7742,6 +7764,17 @@
           ],
           "input_mappings": {
             "results": "$steps.sr_5f3dd7712a7f4bb3"
+          }
+        },
+        {
+          "id": "sr_synthesis_generation",
+          "task_blueprint": "sp_synthesis_generation",
+          "depends_on": [
+            "sr_2fa56dc36614469a"
+          ],
+          "input_mappings": {
+            "results": "$steps.sr_2fa56dc36614469a",
+            "reduced_matrix": "$event.reduced_matrix"
           }
         }
       ],
@@ -8857,6 +8890,39 @@
       "criteria_block_ids": [
         "blk_ad303690b26b413d"
       ]
+    },
+    {
+      "id": "sp_synthesis_generation",
+      "slug": "synthesis_generation",
+      "type": "llm",
+      "model_strategy": "synthesis",
+      "name": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Synthesis Generation",
+          "fi": "Synteesin Generointi"
+        }
+      },
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Generates GlobalSynthesisDTO headless data.",
+          "fi": "Generates GlobalSynthesisDTO headless data."
+        }
+      },
+      "allowed_mcp_tools": [],
+      "safety": "safe",
+      "pre_hooks": [],
+      "post_hooks": [],
+      "expected_inputs": [
+        "results",
+        "reduced_matrix"
+      ],
+      "output_schema": null,
+      "organization_id": "SYSTEM",
+      "role_block_id": null,
+      "extraction_protocol_block_id": "blk_synthesis_generation",
+      "criteria_block_ids": []
     }
   ],
   "organizations": [

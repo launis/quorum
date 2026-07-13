@@ -12,25 +12,18 @@ class SduiMapperService:
 
     def map_evidence_to_sdui(self, evidence: QuoteEvidenceDTO) -> AnySduiBlock:
         """Map QuoteEvidenceDTO to SduiQuoteCard or SduiWarningCard.
-        
+
         Performs Dual-Reporting Telemetry logging for hallucinated aliases.
         """
         # Telemetry logging for hallucinations (Dual-Reporting)
         if not evidence.is_verified or evidence.unverified_aliases:
-            logger.warning(
-                "[TELEMETRY] Hallucination detected. Unverified aliases: %s",
-                evidence.unverified_aliases
-            )
+            logger.warning("[TELEMETRY] Hallucination detected. Unverified aliases: %s", evidence.unverified_aliases)
             return SduiWarningCard(
                 message=f"Hallucinated citations detected: {', '.join(evidence.unverified_aliases)}",
-                quote_text=evidence.quote
+                quote_text=evidence.quote,
             )
 
-        return SduiQuoteCard(
-            quote=evidence.quote,
-            source_aliases=evidence.verified_source_ids,
-            citations=[]
-        )
+        return SduiQuoteCard(quote=evidence.quote, source_aliases=evidence.verified_source_ids, citations=[])
 
     def map_report(self, report: ReportDataDto) -> ReportView:
         """Alias for map_report_to_sdui to satisfy existing test bindings if any."""
