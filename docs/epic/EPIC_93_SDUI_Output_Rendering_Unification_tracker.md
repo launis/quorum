@@ -19,10 +19,10 @@ This tracker orchestrates the execution of Epic 93.
       *Plan: `docs/epic/tasks_EPIC_93_SDUI_Output_Rendering_Unification/phase_4_erase_god_code.md`*
 - [x] `[NOK]` Invoke Tier 1 Planner for remaining phases (Phase 3 & 4)
 - [x] Tier 2 Hardening (run `/tier2-hardening-backend` on new directories)
-- [ ] `[NOK]` Proxy Sunset & Consumer Migration
-- [ ] `[NOK]` Pre-Delete Audit
-- [ ] `[NOK]` Baseline Parity & Zero-Loss Audit
-- [ ] `[NOK]` Update architectural documentation and 04_directory_reference.md
+- [x] `[OK]` Proxy Sunset & Consumer Migration
+- [x] `[OK]` Pre-Delete Audit
+- [x] `[OK]` Baseline Parity & Zero-Loss Audit
+- [x] `[OK]` Update architectural documentation and 04_directory_reference.md
 
 ## Instructions for the Execution Agent
 - Execute the plans one by one using the `/tier2-execute` workflow.
@@ -30,9 +30,9 @@ This tracker orchestrates the execution of Epic 93.
 - After running the hardening loops, carefully update the session handover context block at the end of this tracker.
 
 # Session Handover Context
-- **Achieved**: Completed Tier 1 Planner for Phase 3 and Phase 4. Implementation plans have been generated and saved to the `docs/epic/tasks...` folder. The architecture confirms that Synthesis MUST be executed natively inside Pipeline A (DAG), which requires refactoring MatrixReducer from the end of `dag_executor.py` into the execution stream so the Synthesis PromptBlock can consume it.
-- **Learned**: Phase 3 will rely on moving Synthesis into `seed_data.json` and bypassing `hooks/synthesis.py` entirely, leading into the complete deletion of God Code in Phase 4.
-- **Remaining**: Execute Phase 3 (`phase_3_adapters_and_routers.md`). Initiate Tier 2 Execution workflow to perform the integration.
+- **Achieved**: Completed Phase 4 (Legacy Pipeline B Sunset). Safely deleted `synthesis.py` and `reporting.py` and removed `text_consolidation_hook` references from `worker.py`. Rewrote `worker.py` to extract `RenderedSynthesisCache` directly from the DAG `execution_trace` (Output Event). Successfully resolved all type checking errors and failing assertions related to the modernized `QuoteEvidenceDTO` (empty lists, unverified aliases logic) and `SduiMapperService` instantiation. Passed the comprehensive backend audit loop across all `backend_v2` with Zero-Loss Baseline Parity.
+- **Learned**: Pydantic `model_validate` handles empty string parsing logic via the `mode="before"` validator; ensure empty strings correctly map to empty lists instead of `[""]` for aliases. Unused local variables (like `HookState` in `worker.py`) cause Ruff F841 audit failures and must be cleared.
+- **Remaining**: Epic 93 is complete! The codebase now features a fully unified SDUI Output Rendering pipeline using the modernized adapter pattern and cleanly sunsetted God code. The next step is to begin the next Epic or Feature in the backlog.
 
 ## Resume Command
 To execute this Epic iteratively, start a NEW chat session and run the following command:

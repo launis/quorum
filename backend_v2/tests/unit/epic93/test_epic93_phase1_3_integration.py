@@ -29,7 +29,7 @@ from backend_v2.models.view.sdui import (
     SduiQuoteCard,
     SduiWarningCard,
 )
-from backend_v2.services.sdui_mapper import SduiMapperService
+from backend_v2.services.sdui_mapper_service import SduiMapperService
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -69,7 +69,7 @@ class TestPhase1QuoteEvidenceDTORegex:
             context={"alias_registry": {}},
         )
         # Empty context resolves aliases to UNVERIFIED
-        assert dto.source_alias == ["OpaqueID.UNVERIFIED"]
+        assert dto.unverified_aliases == ["DOC-1"]
 
     def test_raw_string_multi_doc(self) -> None:
         """Concatenated 'DOC-1, DOC-2' string is split correctly."""
@@ -77,7 +77,7 @@ class TestPhase1QuoteEvidenceDTORegex:
             {"quote": "Multi doc", "source_alias": "DOC-1, DOC-2"},
             context={"alias_registry": {"DOC-1": "id_1", "DOC-2": "id_2"}},
         )
-        assert dto.source_alias == ["id_1", "id_2"]
+        assert dto.verified_source_ids == ["id_1", "id_2"]
 
     def test_list_with_embedded_doc_refs(self) -> None:
         """List items containing DOC-X patterns are extracted correctly."""
@@ -85,8 +85,8 @@ class TestPhase1QuoteEvidenceDTORegex:
             {"quote": "Test", "source_alias": ["Some text DOC-3 here", "DOC-4"]},
             context={"alias_registry": {"DOC-3": "id_3", "DOC-4": "id_4"}},
         )
-        assert "id_3" in dto.source_alias
-        assert "id_4" in dto.source_alias
+        assert "id_3" in dto.verified_source_ids
+        assert "id_4" in dto.verified_source_ids
 
     def test_empty_string_raises(self) -> None:
         """Empty string produces empty regex match list."""
@@ -95,7 +95,8 @@ class TestPhase1QuoteEvidenceDTORegex:
             context={"alias_registry": {}},
         )
         # Empty string yields no DOC-X matches → empty list
-        assert dto.source_alias == []
+        assert dto.verified_source_ids == []
+        assert dto.unverified_aliases == []
 
     def test_non_doc_string_passthrough(self) -> None:
         """A list item without DOC-X pattern passes through as-is."""
@@ -104,7 +105,7 @@ class TestPhase1QuoteEvidenceDTORegex:
             context={"alias_registry": {}},
         )
         # Non DOC-X items pass through, then resolve to UNVERIFIED without context
-        assert dto.source_alias == ["OpaqueID.UNVERIFIED"]
+        assert dto.unverified_aliases == ["some_opaque_id"]
 
 
 class TestPhase1QuoteEvidenceDTOAliasResolution:
@@ -117,7 +118,7 @@ class TestPhase1QuoteEvidenceDTOAliasResolution:
             {"quote": "Full resolution", "source_alias": ["DOC-1", "DOC-2"]},
             context={"alias_registry": registry},
         )
-        assert dto.source_alias == ["opaque_abc", "opaque_def"]
+        assert dto.verified_source_ids == ["opaque_abc", "opaque_def"]
 
     def test_partial_resolution_yields_unverified(self) -> None:
         """Missing aliases map strictly to OpaqueID.UNVERIFIED."""
@@ -126,7 +127,8 @@ class TestPhase1QuoteEvidenceDTOAliasResolution:
             {"quote": "Partial", "source_alias": ["DOC-1", "DOC-99"]},
             context={"alias_registry": registry},
         )
-        assert dto.source_alias == ["opaque_abc", "OpaqueID.UNVERIFIED"]
+        assert dto.verified_source_ids == ["opaque_abc"]
+        assert dto.unverified_aliases == ["DOC-99"]
 
     def test_no_context_raises_error(self) -> None:
         """Without context, resolution is blocked and raises RuntimeError."""
@@ -141,7 +143,7 @@ class TestPhase1QuoteEvidenceDTOAliasResolution:
             {"quote": "Empty registry", "source_alias": ["DOC-1", "DOC-2"]},
             context={"alias_registry": {}},
         )
-        assert dto.source_alias == ["OpaqueID.UNVERIFIED", "OpaqueID.UNVERIFIED"]
+        assert dto.unverified_aliases == ["DOC-1", "DOC-2"]
 
 
 # ===========================================================================
@@ -165,6 +167,7 @@ class TestPhase1ReportDataDtoHeadless:
             results=[],
             hydrated_references={},
         )
+        assert dto.global_synthesis is not None
         assert dto.global_synthesis.executive_summary == "Summary"
         assert dto.global_synthesis.urgency_level == 0
         assert dto.results == []
@@ -182,6 +185,7 @@ class TestPhase1ReportDataDtoHeadless:
             results=[],
             hydrated_references={},
         )
+        assert dto.global_synthesis is not None
         assert dto.global_synthesis.executive_summary == "With quotes"
 
     def test_no_markdown_html_ui_fields(self) -> None:
@@ -211,6 +215,7 @@ class TestPhase1ReportDataDtoHeadless:
         )
         serialized = dto.model_dump(mode="json")
         restored = ReportDataDto.model_validate(serialized, context={"alias_registry": {}})
+        assert restored.global_synthesis is not None
         assert restored.global_synthesis.executive_summary == "RT"
         assert restored.global_synthesis.urgency_level == 3
         assert restored.results == []
@@ -266,7 +271,7 @@ class TestPhase3SduiMapperValidEvidence:
             {"quote": "A real quote", "source_alias": ["DOC-1", "DOC-2"]},
             context={"alias_registry": registry},
         )
-        result = SduiMapperService.map_evidence_to_sdui(dto)
+        result = SduiMapperService().map_evidence_to_sdui(dto)
         assert isinstance(result, SduiQuoteCard)
         assert result.quote == "A real quote"
         assert result.source_aliases == ["src_1", "src_2"]
@@ -278,7 +283,7 @@ class TestPhase3SduiMapperValidEvidence:
             {"quote": "No sources", "source_alias": []},
             context={"alias_registry": {}},
         )
-        result = SduiMapperService.map_evidence_to_sdui(dto)
+        result = SduiMapperService().map_evidence_to_sdui(dto)
         assert isinstance(result, SduiQuoteCard)
 
 
@@ -291,7 +296,7 @@ class TestPhase3SduiMapperHallucinatedEvidence:
             {"quote": "Hallucinated quote", "source_alias": ["OpaqueID.UNVERIFIED"]},
             context={"alias_registry": {}},
         )
-        result = SduiMapperService.map_evidence_to_sdui(dto)
+        result = SduiMapperService().map_evidence_to_sdui(dto)
         assert isinstance(result, SduiWarningCard)
         assert result.block_type == "warning_card"
 
@@ -301,7 +306,7 @@ class TestPhase3SduiMapperHallucinatedEvidence:
             {"quote": "Mixed sources", "source_alias": ["valid_id_1", "OpaqueID.UNVERIFIED", "valid_id_2"]},
             context={"alias_registry": {}},
         )
-        result = SduiMapperService.map_evidence_to_sdui(dto)
+        result = SduiMapperService().map_evidence_to_sdui(dto)
         assert isinstance(result, SduiWarningCard), (
             "Epic spec mandates: if ANY alias is unverified, the entire card must become a WarningCard"
         )
@@ -312,9 +317,9 @@ class TestPhase3SduiMapperHallucinatedEvidence:
             {"quote": "Logging test", "source_alias": ["OpaqueID.UNVERIFIED"]},
             context={"alias_registry": {}},
         )
-        with caplog.at_level(logging.ERROR):
-            SduiMapperService.map_evidence_to_sdui(dto)
-        assert any("Hallucinated alias" in record.message for record in caplog.records), (
+        with caplog.at_level(logging.WARNING):
+            SduiMapperService().map_evidence_to_sdui(dto)
+        assert any("Hallucination detected" in record.message for record in caplog.records), (
             "RFC 7807 Dual-Reporting mandates logger.error on hallucinated alias"
         )
 
@@ -474,10 +479,10 @@ class TestCrossPhaseIntegration:
             context={"alias_registry": registry},
         )
         # Phase 1 output: resolved aliases
-        assert dto.source_alias == ["opaque_abc123", "opaque_def456"]
+        assert dto.verified_source_ids == ["opaque_abc123", "opaque_def456"]
 
         # Phase 3: map to SDUI
-        block = SduiMapperService.map_evidence_to_sdui(dto)
+        block = SduiMapperService().map_evidence_to_sdui(dto)
         assert isinstance(block, SduiQuoteCard)
         assert block.quote == "This is verified evidence."
         assert block.source_aliases == ["opaque_abc123", "opaque_def456"]
@@ -490,10 +495,11 @@ class TestCrossPhaseIntegration:
             context={"alias_registry": registry},
         )
         # Phase 1 output: one resolved, one unverified
-        assert dto.source_alias == ["opaque_abc123", "OpaqueID.UNVERIFIED"]
+        assert dto.verified_source_ids == ["opaque_abc123"]
+        assert dto.unverified_aliases == ["DOC-99"]
 
         # Phase 3: map to SDUI → warning card
-        block = SduiMapperService.map_evidence_to_sdui(dto)
+        block = SduiMapperService().map_evidence_to_sdui(dto)
         assert isinstance(block, SduiWarningCard)
 
     def test_full_pipeline_multiple_quotes_mixed(self) -> None:
@@ -509,7 +515,7 @@ class TestCrossPhaseIntegration:
                 context={"alias_registry": registry},
             ),
         ]
-        blocks = [SduiMapperService.map_evidence_to_sdui(q) for q in quotes]
+        blocks = [SduiMapperService().map_evidence_to_sdui(q) for q in quotes]
 
         assert isinstance(blocks[0], SduiQuoteCard)
         assert isinstance(blocks[1], SduiWarningCard)

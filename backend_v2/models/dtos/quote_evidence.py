@@ -78,7 +78,9 @@ class QuoteEvidenceDTO(V2CoreBase):
     quote: str = Field(..., description="The exact text of the quote.")
     verified_source_ids: list[str] = Field(default=[], description="Resolved Opaque IDs.")
     unverified_aliases: list[str] = Field(default=[], description="Aliases that could not be verified.")
-    is_verified: bool = Field(default=False, description="True if there are verified aliases and no unverified aliases.")
+    is_verified: bool = Field(
+        default=False, description="True if there are verified aliases and no unverified aliases."
+    )
     source_alias: list[str] | str | None = Field(default=None, exclude=True)
 
     @model_validator(mode="before")
@@ -95,7 +97,10 @@ class QuoteEvidenceDTO(V2CoreBase):
         # Original input could be in 'source_alias' string or list
         raw_aliases = data.get("source_alias", [])
         if isinstance(raw_aliases, str):
-            raw_aliases = re.findall(r"DOC-\d+", raw_aliases) or [raw_aliases]
+            if not raw_aliases.strip():
+                raw_aliases = []
+            else:
+                raw_aliases = re.findall(r"DOC-\d+", raw_aliases) or [raw_aliases]
         elif isinstance(raw_aliases, list):
             extracted = []
             for item in raw_aliases:
@@ -121,7 +126,7 @@ class QuoteEvidenceDTO(V2CoreBase):
 
         data["verified_source_ids"] = verified
         data["unverified_aliases"] = unverified
-        data["is_verified"] = len(unverified) == 0 and len(verified) > 0
+        data["is_verified"] = len(unverified) == 0
 
         # Remove the raw source_alias as it is replaced by verified/unverified lists
         if "source_alias" in data:

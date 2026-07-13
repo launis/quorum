@@ -40,9 +40,9 @@ def test_reduce_dispatcher() -> None:
 
 
 def test_reduce_matrix() -> None:
-    from backend_v2.models.dtos.report.root import ReportDataDto
     from backend_v2.models.dtos.report.atoms import AtomResultDTO
     from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
+    from backend_v2.models.dtos.report.root import ReportDataDto
     from backend_v2.models.enums import ExecutionStatus
 
     metrics = ExecutionMetricsDTO(
@@ -87,15 +87,11 @@ def test_reduce_matrix() -> None:
         results=[atom_passed, atom_failed],
         hydrated_references={
             "tda_11111111111111111111111111111111": HydratedAtomDTO(
-                sdui_component=SDUIComponentType.BOOLEAN_CARD,
-                resolved_claim="Claim 1",
-                source_quote=None
+                sdui_component=SDUIComponentType.BOOLEAN_CARD, resolved_claim="Claim 1", source_quote=None
             ),
             "tda_22222222222222222222222222222222": HydratedAtomDTO(
-                sdui_component=SDUIComponentType.BOOLEAN_CARD,
-                resolved_claim="Claim 2",
-                source_quote=None
-            )
+                sdui_component=SDUIComponentType.BOOLEAN_CARD, resolved_claim="Claim 2", source_quote=None
+            ),
         },
     )
 

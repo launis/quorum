@@ -12,7 +12,6 @@ from typing import Any
 import logfire
 from arq.connections import RedisSettings
 
-from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.core.registry import TaskRegistry
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
@@ -842,35 +841,20 @@ async def generate_profile_synthesis_and_pdf_task(
         # V2 Integrity Mandate: Inject step_results explicitly for SynthesisHook
         metadata["step_results"] = final_inputs
 
-        global_context_vars = {"steps": final_inputs}
-        state = HookState(
-            execution_id=execution_id,
-            workflow_id=execution.workflow_id,
-            inputs={"steps": final_inputs},
-            metadata=metadata,
-            global_context_vars=global_context_vars,
-        )
-        deps = HookDependencies(
-            exec_repo=repo,
-            workflow_repo=repo,
-            comp_repo=repo,
-            prompt_block_repo=repo,
-            output_profile_repo=repo,
-            identity_repo=repo,
-            audit_repo=repo,
-            system_repo=repo,
-        )  # noqa: E501
-
-        # Execute Text Consolidation Hook
+        # Extract Synthesis from DAG Execution Trace (Epic 93 Phase 3/4)
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
-        hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
 
-        if hook_res.success and hook_res.state_delta:
-            delta = dict(hook_res.state_delta)
-            # Remove V2 engine metrics that are not part of the Cache schema
-            step_metadata_updates = delta.pop("step_metadata_updates", None)
-            mcp_tool_audit = delta.pop("mcp_tool_audit", None)
+        delta = None
+        for evt in execution.execution_trace:
+            # Check if it's an output event with dictionary content
+            event_type = getattr(evt, "event_type", getattr(evt, "type", None))
+            content = getattr(evt, "content", None)
+            if event_type == "output" and isinstance(content, dict):
+                if "synthesized_markdown" in content or "content_blocks" in content:
+                    delta = content
+                    break
 
+        if delta:
             # Enforce Fail-Fast Hydration (No Naked Dict Extraction)
             cache = RenderedSynthesisCache.model_validate(delta)
 
@@ -879,63 +863,9 @@ async def generate_profile_synthesis_and_pdf_task(
             pid: str = profile_id if profile_id is not None else "default"
             current_syntheses[pid] = cache
             dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
-            update_payload: dict[str, Any] = {}
-            update_payload["profile_syntheses"] = dict_syntheses
-
-            # Epic 6/14: Safely append LLM token usage and pricing back into ExecutionRecord metadata
-            if step_metadata_updates and "token_usage" in step_metadata_updates:
-                usage = step_metadata_updates["token_usage"]
-                if usage:
-                    # Phase 2, Step 2.2: Remove old trace iteration loop and use pre-calculated DAG costs
-                    meta = dict(execution.metadata) if execution.metadata else {}
-
-                    dag_cost = meta.get("dag_cost_usd", execution.cost_estimate or 0.0)
-                    new_synth_cost = usage.get("cost_usd", 0.0)
-                    cumulative_synth_cost = meta.get("synthesis_cost_usd", 0.0) + new_synth_cost
-                    total_cost = dag_cost + cumulative_synth_cost
-
-                    total_p_tokens = usage.get("prompt_tokens", 0)
-                    total_c_tokens = usage.get("completion_tokens", 0)
-                    total_t_tokens = usage.get("total_tokens", 0)
-
-                    exec_summary = meta.get("execution_summary", {})
-                    if "aggregated_usage" in exec_summary:
-                        agg = exec_summary["aggregated_usage"]
-                        total_p_tokens += agg.get("prompt_tokens", 0)
-                        total_c_tokens += agg.get("completion_tokens", 0)
-                        total_t_tokens += agg.get("prompt_tokens", 0) + agg.get("completion_tokens", 0)
-                    else:
-                        total_p_tokens += meta.get("prompt_tokens", 0)
-                        total_c_tokens += meta.get("completion_tokens", 0)
-                        total_t_tokens += meta.get("total_tokens", 0)
-
-                    # Isolate DAG cost vs Synthesis cost
-                    meta["synthesis_cost_usd"] = cumulative_synth_cost
-                    meta["dag_cost_usd"] = dag_cost
-
-                    meta["total_tokens"] = total_t_tokens
-                    meta["prompt_tokens"] = total_p_tokens
-                    meta["completion_tokens"] = total_c_tokens
-                    meta["cost_estimate"] = total_cost
-
-                    update_payload["metadata"] = meta
-                    update_payload["cost_estimate"] = total_cost
-
-                    if execution.models_used:
-                        update_payload["models_used"] = dict(execution.models_used)
-
-            # Save the updated trace with dynamically calculated matrix scores
-            update_payload["execution_trace"] = [evt.model_dump(mode="json") for evt in execution.execution_trace]
+            update_payload: dict[str, Any] = {"profile_syntheses": dict_syntheses}
 
             await repo.update_execution(execution_id, update_payload)
-
-            # Epic 6: Save MCP tool audits directly to the driver's subcollection to avoid overwriting blobs
-            if mcp_tool_audit and isinstance(mcp_tool_audit, list):
-                coll_path = f"executions/{execution_id}/audit_trails"
-                for item in mcp_tool_audit:
-                    item_id = item["id"] if "id" in item and item["id"] else str(uuid.uuid4())
-                    item["id"] = item_id
-                    await driver.upsert(coll_path, item, item_id)
 
             logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
         else:

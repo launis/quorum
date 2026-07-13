@@ -26,20 +26,19 @@ from typing import Any
 class TestPipeBDestruction:
     """Verify EPIC 93 §2: 'Putki B (backend_v2/hooks/synthesis.py) lakkautetaan.'."""
 
-    def test_synthesis_py_file_exists(self) -> None:
-        """PROMISE: 'backend_v2/hooks/synthesis.py' is restored."""
+    def test_synthesis_py_file_is_destroyed(self) -> None:
+        """PROMISE: 'backend_v2/hooks/synthesis.py' is destroyed."""
         synthesis_path = Path("backend_v2/hooks/synthesis.py")
-        assert synthesis_path.exists(), "BROKEN CONTRACT: synthesis.py does not exist."
+        assert not synthesis_path.exists(), "BROKEN CONTRACT: synthesis.py still exists."
 
-    def test_text_consolidation_hook_is_registered(self) -> None:
-        """PROMISE: TextConsolidationHook is back in action."""
-        import backend_v2.hooks.synthesis  # noqa: F401
+    def test_text_consolidation_hook_is_unregistered(self) -> None:
+        """PROMISE: TextConsolidationHook is permanently removed."""
         from backend_v2.core.hook_registry import HookRegistry
 
         registry = HookRegistry()
         registered_hooks = list(registry._hooks.keys())
-        assert "text_consolidation_hook" in registered_hooks, (
-            "BROKEN CONTRACT: text_consolidation_hook is NOT registered in HookRegistry. "
+        assert "text_consolidation_hook" not in registered_hooks, (
+            "BROKEN CONTRACT: text_consolidation_hook is STILL registered in HookRegistry. "
         )
 
     def test_no_synthesis_imports_in_hooks_init(self) -> None:
@@ -50,7 +49,7 @@ class TestPipeBDestruction:
         init_path = Path("backend_v2/hooks/__init__.py")
         if init_path.exists():
             content = init_path.read_text(encoding="utf-8")
-            assert "synthesis" in content.lower(), "BROKEN CONTRACT: hooks/__init__.py must reference 'synthesis'."
+            assert "synthesis" not in content.lower(), "BROKEN CONTRACT: hooks/__init__.py STILL references 'synthesis'."
 
 
 # ============================================================================
@@ -101,7 +100,8 @@ class TestPhase1DTORefactoring:
 
         fields = QuoteEvidenceDTO.model_fields
         assert "quote" in fields, "Missing promised field: quote"
-        assert "source_alias" in fields, "Missing promised field: source_alias"
+        assert "verified_source_ids" in fields, "Missing promised field: verified_source_ids"
+        assert "unverified_aliases" in fields, "Missing promised field: unverified_aliases"
 
     def test_quote_evidence_before_validator_regex_parsing(self) -> None:
         """PROMISE (Phase 1 §2): 'mode=before @field_validator on source_alias to intercept
@@ -115,9 +115,9 @@ class TestPhase1DTORefactoring:
             {"quote": "Test.", "source_alias": "DOC-1, DOC-2"},
             context={"alias_registry": {"DOC-1": "opq_1", "DOC-2": "opq_2"}},
         )
-        # Verify the regex extracted both
-        assert len(dto.source_alias) == 2, (
-            f"BROKEN CONTRACT: Expected 2 aliases, got {len(dto.source_alias)}. "
+        # Verify the regex extracted both into verified (or unverified depending on registry)
+        assert len(dto.verified_source_ids) + len(dto.unverified_aliases) == 2, (
+            f"BROKEN CONTRACT: Expected 2 total aliases, got {len(dto.verified_source_ids) + len(dto.unverified_aliases)}. "
             "Phase 1 mandates regex re.findall(r'DOC-\\d+', v) parsing."
         )
 
@@ -133,9 +133,9 @@ class TestPhase1DTORefactoring:
             {"quote": "Test.", "source_alias": "DOC-999"},
             context={"alias_registry": {"DOC-1": "opq_1"}},
         )
-        assert dto.source_alias == ["OpaqueID.UNVERIFIED"], (
-            f"BROKEN CONTRACT: Expected ['OpaqueID.UNVERIFIED'], got {dto.source_alias}. "
-            "Phase 1 mandates strict OpaqueID.UNVERIFIED mapping for unknown aliases."
+        assert dto.unverified_aliases == ["DOC-999"], (
+            f"BROKEN CONTRACT: Expected ['DOC-999'], got {dto.unverified_aliases}. "
+            "Phase 1 mandates storing unknown aliases in unverified_aliases."
         )
 
     def test_quote_evidence_context_injection_works(self) -> None:
@@ -151,8 +151,8 @@ class TestPhase1DTORefactoring:
             {"quote": "Evidence.", "source_alias": ["DOC-1", "DOC-2"]},
             context={"alias_registry": registry},
         )
-        assert dto.source_alias == ["src_abc123", "src_def456"], (
-            f"BROKEN CONTRACT: Alias resolution failed. Got {dto.source_alias}. "
+        assert dto.verified_source_ids == ["src_abc123", "src_def456"], (
+            f"BROKEN CONTRACT: Alias resolution failed. Got {dto.verified_source_ids}. "
             "Phase 1 mandates ValidationInfo context-based resolution."
         )
 
@@ -165,9 +165,9 @@ class TestPhase1DTORefactoring:
 
         from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 
-        source = inspect.getsource(QuoteEvidenceDTO.resolve_source_alias)
+        source = inspect.getsource(QuoteEvidenceDTO.resolve_and_verify_aliases)
         assert "logger" not in source, (
-            "BROKEN CONTRACT: resolve_source_alias contains logging. "
+            "BROKEN CONTRACT: resolve_and_verify_aliases contains logging. "
             "Phase 1 mandates: 'No logging or side-effects inside the validator.'"
         )
 

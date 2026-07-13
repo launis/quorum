@@ -61,7 +61,7 @@
 
     <module path="backend_v2/hooks/">
         <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1)</responsibility>
-        <key_domains>interaction_hook.py, synthesis.py</key_domains>
+        <key_domains>interaction_hook.py</key_domains>
     </module>
 
     <module path="backend_v2/llm/">
