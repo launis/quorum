@@ -208,8 +208,8 @@ return dlq(_that.userReason,_that.backendTrace);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class Pending implements TDAState {
   const Pending({final  String? $type}): $type = $type ?? 'pending';
   factory Pending.fromJson(Map<String, dynamic> json) => _$PendingFromJson(json);
@@ -247,8 +247,8 @@ String toString() {
 
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class Evaluated implements TDAState {
   const Evaluated({required this.passed, required this.displayQuote, required this.rawAnchor, final  String? $type}): $type = $type ?? 'evaluated';
   factory Evaluated.fromJson(Map<String, dynamic> json) => _$EvaluatedFromJson(json);
@@ -324,8 +324,8 @@ as String,
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class Dlq implements TDAState {
   const Dlq({required this.userReason, required this.backendTrace, final  String? $type}): $type = $type ?? 'dlq';
   factory Dlq.fromJson(Map<String, dynamic> json) => _$DlqFromJson(json);

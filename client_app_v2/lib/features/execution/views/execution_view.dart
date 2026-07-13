@@ -8,8 +8,9 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/shared/widgets/global_error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
+import 'package:client_app/features/execution/views/widgets/async_scorecard_widget.dart';
+import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 
 import 'dart:convert';
 
@@ -286,10 +287,13 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
         if (record.containsKey('report_data') &&
             record['report_data'] != null) ...[
           SliverToBoxAdapter(
-            child: ReportRendererWidget(
-              payload: record['report_data'] as ReportDataDTO,
+            child: ReportRendererV2Widget(
+              payload: record['report_data'] as ReportDataDto,
               executionId: widget.executionId,
             ),
+          ),
+          SliverToBoxAdapter(
+            child: AsyncScorecardWidget(executionId: widget.executionId),
           ),
         ] else if ((status == 'passed' || status == 'completed') &&
             results.isNotEmpty)

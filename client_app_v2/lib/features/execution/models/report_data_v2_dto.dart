@@ -1,5 +1,7 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'dart:convert';
+import 'package:client_app/core/utils/safe_isolate.dart';
 
 import 'atom_result_dto.dart';
 import 'execution_metrics_dto.dart';
@@ -24,4 +26,13 @@ abstract class ReportDataDto with _$ReportDataDto {
 
   factory ReportDataDto.fromJson(Map<String, dynamic> json) =>
       _$ReportDataDtoFromJson(json);
+
+  /// Parses a heavy raw JSON string into a ReportDataDto entirely off the Main Thread.
+  /// This prevents Main Thread Jank when handling large payloads.
+  static Future<ReportDataDto> parseInBackground(String rawJson) async {
+    return safeIsolateRun(() {
+      final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+      return ReportDataDto.fromJson(decoded);
+    });
+  }
 }

@@ -27,7 +27,7 @@ The objective of this phase is to implement new, Macro-Breakpoint compliant Flut
 - Create `ReportRendererV2Widget` which takes the root `ReportDataDto` payload.
 - Build the executive summary using `globalSynthesis` and `globalMetrics`.
 - Instead of relying on nested layout arrays, iterate natively over the topologically sorted `results` flat array. For each `AtomResultDto`, instantiate an `SduiNodeRenderer(nodeId: atom.nodeId)`.
-- Re-integrate `DiagnosticScorecardWidget` and `XAIEvidenceBox` correctly at the bottom of the scroll view.
+- Re-integrate `DiagnosticScorecardWidget` and `XAIEvidenceBox`. Since the V2 payload decoupled matrices, create a `scorecardProvider(executionId)` that fetches from `executionClient.getScorecard(executionId)`. Wrap `DiagnosticScorecardWidget` in a Consumer to render it asynchronously at the bottom of the scroll view.
 
 #### [MODIFY] [execution_view.dart](file:///c:/src/quorum/client_app_v2/lib/features/execution/views/execution_view.dart)
 - Update the live execution screen to parse `record['report_data']` as the new `ReportDataDto` structure.

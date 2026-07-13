@@ -73,5 +73,28 @@ void main() {
 
       expect(() => ReportDataDto.fromJson(json), throwsA(anything));
     });
+
+    test('parseInBackground correctly parses JSON in a separate isolate', () async {
+      final jsonString = '''
+      {
+        "execution_id": "exec_isolate",
+        "workflow_id": "wf_isolate",
+        "global_metrics": {
+          "total_atoms": 5,
+          "evaluated": 5,
+          "short_circuited_na": 0,
+          "duration_ms": 100
+        },
+        "results": [],
+        "hydrated_references": {}
+      }
+      ''';
+
+      final dto = await ReportDataDto.parseInBackground(jsonString);
+
+      expect(dto.executionId, 'exec_isolate');
+      expect(dto.workflowId, 'wf_isolate');
+      expect(dto.globalMetrics.totalAtoms, 5);
+    });
   });
 }
