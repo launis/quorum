@@ -665,3 +665,21 @@ class AtomEvaluationItemDTO(V2CoreBase):
                                     f"(got {score:.1f}%, required >= {threshold:.1f}%)."
                                 )
         return self
+
+
+class ReducedAtomDTO(V2CoreBase):
+    """Reduced atom data for synthesis, containing only what is strictly necessary."""
+
+    tda_id: str
+    status: str
+    reasoning: str | None = None
+    source_quote: str | None = None
+    extracted_data: dict[str, Any] | None = None
+
+
+class LightweightMatrixDTO(V2CoreBase):
+    """Token-compressed matrix payload for Synthesis Generation."""
+
+    execution_id: str
+    reduced_atoms: list[ReducedAtomDTO]
+    global_metrics: dict[str, Any]

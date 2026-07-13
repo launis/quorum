@@ -68,7 +68,9 @@ class PdfReportService:
 
         # Setup Jinja2 env
         template_dir = Path(__file__).parent.parent / "templates"
-        self.env = Environment(loader=FileSystemLoader(str(template_dir)))
+        import jinja2
+
+        self.env = Environment(loader=FileSystemLoader(str(template_dir)), undefined=jinja2.StrictUndefined)
 
         def md_filter(text: Any) -> str:
             """Lightweight Custom Markdown Filter for Bold (**) and Italic (*).

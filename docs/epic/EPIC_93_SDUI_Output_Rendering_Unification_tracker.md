@@ -3,12 +3,16 @@
 This tracker orchestrates the execution of Epic 93.
 
 ## Tasks
-- [ ] Phase 0: Coverage Bootstrap Plan (End-to-End Golden Master)
+- [x] Phase 0: Coverage Bootstrap Plan (End-to-End Golden Master)
       *Plan: `docs/epic/tasks_EPIC_93_SDUI_Output_Rendering_Unification/phase_0_e2e_golden_master.md`*
-- [ ] Phase 1: SDUI Mapper Service & Context Injection
+- [x] Phase 1: SDUI Mapper Service & Context Injection
       *Plan: `docs/epic/tasks_EPIC_93_SDUI_Output_Rendering_Unification/phase_1_context_injection.md`*
-- [ ] Phase 2: Matrix Reducer & Pipeline A Integration
-      *Plan: `docs/epic/tasks_EPIC_93_SDUI_Output_Rendering_Unification/phase_2_matrix_reducer.md`*
+- [x] Phase 2: Matrix Reducer & Pipeline A Integration
+      **Goal**: Implement the deterministic `MatrixReducer` to sanitize boolean cards out of the payload, preventing token explosions during Final Synthesis.
+      - [x] Implement `backend_v2/services/orchestrator/matrix_reducer.py` with 100% unit test coverage.
+      - [x] Natively integrate `MatrixReducer` into `Pipeline A` (`dag_executor.py`).
+      - [x] (Token-Compression Cascade) Verify `PASSED` atoms without `extracted_data` are structurally omitted from the `ReportDataDto` payload passed to the Synthesis node.
+      - [x] (Knowledge Extraction) Write `ki_matrix_reducer.md` summarizing the payload compression thresholds. Parity & Zero-Loss Audit
 - [ ] `[NOK]` Invoke Tier 1 Planner for remaining phases (Phase 3 & 4)
 - [ ] `[NOK]` Tier 2 Hardening (run `/tier2-hardening-backend` on new directories)
 - [ ] `[NOK]` Proxy Sunset & Consumer Migration

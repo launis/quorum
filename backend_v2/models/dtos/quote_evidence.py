@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.utils.alias_engine import AliasEngine
@@ -70,24 +70,35 @@ class QuoteEvidenceDTO(V2CoreBase):
 
     Attributes:
         quote: The exact text of the quote.
-        source_alias: A list of resolved Opaque IDs representing the source documents.
+        verified_source_ids: Resolved Opaque IDs.
+        unverified_aliases: Aliases that could not be verified.
+        is_verified: True if there are verified aliases and no unverified aliases.
     """
 
-    quote: Annotated[str, Field(..., description="The exact text of the quote.")]
-    source_alias: Annotated[
-        list[str],
-        Field(default_factory=list, description="A list of resolved Opaque IDs representing the source documents."),
-    ]
+    quote: str = Field(..., description="The exact text of the quote.")
+    verified_source_ids: list[str] = Field(default=[], description="Resolved Opaque IDs.")
+    unverified_aliases: list[str] = Field(default=[], description="Aliases that could not be verified.")
+    is_verified: bool = Field(default=False, description="True if there are verified aliases and no unverified aliases.")
+    source_alias: list[str] | str | None = Field(default=None, exclude=True)
 
-    @field_validator("source_alias", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def parse_source_alias(cls, v: Any) -> list[str]:
-        """Normalize raw strings like 'DOC-1, DOC-2' into a list of strings."""
-        if isinstance(v, str):
-            return re.findall(r"DOC-\d+", v)
-        if isinstance(v, list):
+    def resolve_and_verify_aliases(cls, data: Any, info: ValidationInfo) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        if info.context is None:
+            raise RuntimeError("ValidationInfo.context is missing. Cannot resolve aliases without context.")
+
+        registry = info.context.get("alias_registry", {})
+
+        # Original input could be in 'source_alias' string or list
+        raw_aliases = data.get("source_alias", [])
+        if isinstance(raw_aliases, str):
+            raw_aliases = re.findall(r"DOC-\d+", raw_aliases) or [raw_aliases]
+        elif isinstance(raw_aliases, list):
             extracted = []
-            for item in v:
+            for item in raw_aliases:
                 if isinstance(item, str):
                     matches = re.findall(r"DOC-\d+", item)
                     if matches:
@@ -96,24 +107,24 @@ class QuoteEvidenceDTO(V2CoreBase):
                         extracted.append(item)
                 else:
                     extracted.append(str(item))
-            return extracted
-        raise ValueError("source_alias must be a string or a list of strings")
+            raw_aliases = extracted
 
-    @field_validator("source_alias", mode="after")
-    @classmethod
-    def resolve_source_alias(cls, v: list[str], info: ValidationInfo) -> list[str]:
-        """Resolve aliases to Opaque IDs using the alias_registry from context."""
-        if info.context is None:
-            raise RuntimeError("ValidationInfo.context is missing. Cannot resolve aliases without context.")
+        verified = []
+        unverified = []
 
-        registry = info.context.get("alias_registry", {})
-
-        resolved = []
-        for alias in v:
+        for alias in raw_aliases:
             opaque_id = registry.get(alias)
             if opaque_id is not None:
-                resolved.append(opaque_id)
+                verified.append(opaque_id)
             else:
-                resolved.append("OpaqueID.UNVERIFIED")
+                unverified.append(alias)
 
-        return resolved
+        data["verified_source_ids"] = verified
+        data["unverified_aliases"] = unverified
+        data["is_verified"] = len(unverified) == 0 and len(verified) > 0
+
+        # Remove the raw source_alias as it is replaced by verified/unverified lists
+        if "source_alias" in data:
+            del data["source_alias"]
+
+        return data

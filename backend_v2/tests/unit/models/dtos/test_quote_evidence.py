@@ -8,7 +8,9 @@ def test_quote_evidence_validates_raw_string():
         context={"alias_registry": {"DOC-1": "opaque_1", "DOC-2": "opaque_2"}},
     )
     assert dto.quote == "This is a test quote."
-    assert dto.source_alias == ["opaque_1", "opaque_2"]
+    assert dto.verified_source_ids == ["opaque_1", "opaque_2"]
+    assert dto.unverified_aliases == []
+    assert dto.is_verified is True
 
 
 def test_quote_evidence_validates_list_of_strings():
@@ -17,19 +19,20 @@ def test_quote_evidence_validates_list_of_strings():
         {"quote": "Another test quote.", "source_alias": ["DOC-3", "Some other string DOC-4"]},
         context={"alias_registry": {"DOC-3": "opaque_3", "DOC-4": "opaque_4", "Some other string DOC-4": "opaque_5"}},
     )
-    # The 'DOC-4' is extracted from the complex string, but wait, the logic:
-    # if it's a string, it extracts DOC-\d+. So "Some other string DOC-4" yields "DOC-4".
-    # DOC-3 yields DOC-3.
-    assert "opaque_3" in dto.source_alias
-    assert "opaque_4" in dto.source_alias
+    assert "opaque_3" in dto.verified_source_ids
+    assert "opaque_4" in dto.verified_source_ids
+    assert dto.unverified_aliases == []
+    assert dto.is_verified is True
 
 
 def test_quote_evidence_fallback_to_unverified():
-    """Test that missing aliases map strictly to OpaqueID.UNVERIFIED."""
+    """Test that missing aliases are pushed to unverified_aliases and is_verified is False."""
     dto = QuoteEvidenceDTO.model_validate(
         {"quote": "Missing alias quote.", "source_alias": "DOC-99"}, context={"alias_registry": {"DOC-1": "opaque_1"}}
     )
-    assert dto.source_alias == ["OpaqueID.UNVERIFIED"]
+    assert dto.verified_source_ids == []
+    assert dto.unverified_aliases == ["DOC-99"]
+    assert dto.is_verified is False
 
 
 def test_quote_evidence_missing_context():

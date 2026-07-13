@@ -589,6 +589,28 @@ class DAGExecutor:
                 step_states=exec_record.step_states,
                 context_variables=exec_record.context_variables,
             )
+
+            # --- Epic 93 Phase 2: Matrix Reducer & Synthesis Pipeline Integration ---
+            from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
+            from backend_v2.services.orchestrator.result_projector import V3ResultProjector
+
+            try:
+                # 1. Project V3 execution record into SSOT ReportDataDto
+                v3_projector = V3ResultProjector()
+                report_dto = v3_projector.project({"record": exec_record})
+
+                # 2. Reduce the matrix (Filters out PASSED booleans to save tokens)
+                lightweight_matrix = MatrixReducer.reduce_matrix(report_dto)
+
+                # 3. Store the reduced matrix into execution metadata for the upcoming Native Synthesis LLM (Phase 3)
+                # We inject it here so Phase 3 can just pick it up directly from context variables or trace
+                exec_record.metadata["reduced_matrix"] = lightweight_matrix.model_dump()
+                logger.info("[DAGExecutor] Successfully applied V3ResultProjector and MatrixReducer.")
+
+            except Exception as e:
+                logger.error("[DAGExecutor] Failed to project and reduce matrix: %s", e, exc_info=True)
+                # Non-fatal to the workflow state, log and continue
+
             return exec_record
 
         except ExceptionGroup as eg:

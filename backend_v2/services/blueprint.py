@@ -528,6 +528,9 @@ class BlueprintTransformer:
                                                     QuoteEvidenceDTO(
                                                         quote=qt.text,
                                                         source_alias=[source_id],
+                                                        verified_source_ids=[],
+                                                        unverified_aliases=[],
+                                                        is_verified=False,
                                                     )
                                                 )
 

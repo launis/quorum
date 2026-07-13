@@ -8,7 +8,7 @@ from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGrap
 from backend_v2.models.dtos.report.atoms import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
 from backend_v2.models.dtos.report.root import ReportDataDto
-from backend_v2.models.enums import SDUIComponentType
+from backend_v2.models.enums import SDUIComponentType, ExecutionStatus
 
 
 class ResultProjector(ABC):
@@ -119,3 +119,76 @@ class EnrichedResultProjector(ResultProjector):
         )
 
         return report_dto
+
+
+class V3ResultProjector(ResultProjector):
+    """Concrete projector for V3 Workflows (ExecutionRecord).
+
+    Translates the Step-based state machine history into the standardized ReportDataDto contract.
+    """
+
+    def project(self, engine_output: dict[str, Any]) -> ReportDataDto:
+        """Projects V3 ExecutionRecord into ReportDataDto.
+
+        Args:
+            engine_output: A dictionary containing:
+                - 'record' (ExecutionRecord)
+
+        Returns:
+            ReportDataDto: The strictly typed projection.
+        """
+        from backend_v2.models.v2_core import ExecutionRecord
+
+        record: ExecutionRecord = engine_output["record"]
+        global_synthesis = engine_output.get("global_synthesis")
+
+        results: list[AtomResultDTO] = []
+        hydrated_references: dict[str, HydratedAtomDTO] = {}
+
+        total_atoms = 0
+        evaluated = 0
+
+        for step_id, step_state in record.step_states.items():
+            for tda_id, scorecard_atom in step_state.scorecard_atoms.items():
+                total_atoms += 1
+                if scorecard_atom.status != "N_A" and scorecard_atom.status != "BLOCKED":
+                    evaluated += 1
+
+                # Construct AtomResultDTO
+                source_quote_text = scorecard_atom.exact_quotes[0].quote if scorecard_atom.exact_quotes else None
+                atom_result = AtomResultDTO(
+                    tda_id=tda_id,
+                    status=ExecutionStatus(scorecard_atom.status) if scorecard_atom.status else ExecutionStatus.PENDING,
+                    extracted_data=None,  # V3 handles extraction natively in state
+                    source_quote=source_quote_text,
+                    contextual_override=scorecard_atom.contextual_override,
+                    evaluation_reasoning=scorecard_atom.semantic_reasoning or "No reasoning provided.",
+                    error_details=None,
+                    depends_on_tda_ids=[],  # V3 handles dependencies at macro-step layer
+                    short_circuit_reason_tda_ids=[],
+                )
+                results.append(atom_result)
+
+                # Construct HydratedAtomDTO
+                hydrated_ref = HydratedAtomDTO(
+                    sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                    resolved_claim=scorecard_atom.claim_label,
+                    source_quote=source_quote_text,
+                )
+                hydrated_references[tda_id] = hydrated_ref
+
+        metrics = ExecutionMetricsDTO(
+            total_atoms=total_atoms,
+            evaluated=evaluated,
+            short_circuited_na=total_atoms - evaluated,
+            duration_ms=record.duration_ms,
+        )
+
+        return ReportDataDto(
+            execution_id=record.id,
+            workflow_id=record.workflow_id,
+            global_metrics=metrics,
+            global_synthesis=global_synthesis,
+            results=results,
+            hydrated_references=hydrated_references,
+        )

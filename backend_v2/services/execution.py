@@ -1244,13 +1244,16 @@ class ExecutionService:
                     QuoteEvidenceDTO(
                         quote=matrix.cited_text_quote,
                         source_alias=[matrix.cited_source_id or "Unknown"],
+                        verified_source_ids=[],
+                        unverified_aliases=[],
+                        is_verified=False,
                     )
                 )
 
         unique_quotes = []
         seen = set()
         for q in all_quotes:
-            sig = (q.quote, tuple(q.source_alias))
+            sig = (q.quote, tuple(q.verified_source_ids + q.unverified_aliases))
             if sig not in seen:
                 seen.add(sig)
                 unique_quotes.append(q)
