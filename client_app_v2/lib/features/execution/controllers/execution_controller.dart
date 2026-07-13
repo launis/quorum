@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
@@ -176,7 +176,7 @@ class ExecutionController extends _$ExecutionController {
       }
 
       // We parse it in Isolate to guarantee no Jank.
-      final reportData = await ReportDataDTO.parseInBackground(
+      final reportData = await ReportDataDto.parseInBackground(
         jsonEncode(renderData),
       );
 

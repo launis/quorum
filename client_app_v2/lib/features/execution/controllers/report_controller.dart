@@ -1,7 +1,7 @@
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/api/execution_client.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
@@ -21,7 +21,7 @@ class RenderStatus extends _$RenderStatus {
 @riverpod
 class ReportController extends _$ReportController {
   @override
-  Future<ReportDataDTO> build(
+  Future<ReportDataDto> build(
     String executionId, {
     String lang = 'fi',
     String variant = 'default',
@@ -55,7 +55,7 @@ class ReportController extends _$ReportController {
         continue;
       }
 
-      return await safeIsolateRun(() => ReportDataDTO.fromJson(rawData));
+      return await safeIsolateRun(() => ReportDataDto.fromJson(rawData));
     }
   }
 }

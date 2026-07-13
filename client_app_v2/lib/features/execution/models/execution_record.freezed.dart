@@ -17,8 +17,7 @@ mixin _$ExecutionRecord {
 
  String get id;@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(fromJson: _statusFromJson) String get status;@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? get traceVersion;@JsonKey(name: 'strictness_level') int? get strictnessLevel;/// The strictly typed DTO containing the presentation flat data.
 /// Replaces the legacy `results` Map.
-@JsonKey(name: 'report_data') ReportDataDTO? get reportData;/// Phase 2 V2 Payload implementation
-@JsonKey(name: 'report_data_v2') ReportDataDto? get reportDataV2;
+@JsonKey(name: 'report_data') ReportDataDto? get reportData;
 /// Create a copy of ExecutionRecord
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -33,7 +32,7 @@ $ExecutionRecordCopyWith<ExecutionRecord> get copyWith => _$ExecutionRecordCopyW
 
 @override
 String toString() {
-  return 'ExecutionRecord(id: $id, workflowId: $workflowId, status: $status, traceVersion: $traceVersion, strictnessLevel: $strictnessLevel, reportData: $reportData, reportDataV2: $reportDataV2)';
+  return 'ExecutionRecord(id: $id, workflowId: $workflowId, status: $status, traceVersion: $traceVersion, strictnessLevel: $strictnessLevel, reportData: $reportData)';
 }
 
 
@@ -44,11 +43,11 @@ abstract mixin class $ExecutionRecordCopyWith<$Res>  {
   factory $ExecutionRecordCopyWith(ExecutionRecord value, $Res Function(ExecutionRecord) _then) = _$ExecutionRecordCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? traceVersion,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'report_data') ReportDataDTO? reportData,@JsonKey(name: 'report_data_v2') ReportDataDto? reportDataV2
+ String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? traceVersion,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'report_data') ReportDataDto? reportData
 });
 
 
-$ReportDataDTOCopyWith<$Res>? get reportData;$ReportDataDtoCopyWith<$Res>? get reportDataV2;
+$ReportDataDtoCopyWith<$Res>? get reportData;
 
 }
 /// @nodoc
@@ -61,7 +60,7 @@ class _$ExecutionRecordCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionRecord
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? workflowId = null,Object? status = null,Object? traceVersion = freezed,Object? strictnessLevel = freezed,Object? reportData = freezed,Object? reportDataV2 = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? workflowId = null,Object? status = null,Object? traceVersion = freezed,Object? strictnessLevel = freezed,Object? reportData = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
@@ -69,7 +68,6 @@ as String,status: null == status ? _self.status : status // ignore: cast_nullabl
 as String,traceVersion: freezed == traceVersion ? _self.traceVersion : traceVersion // ignore: cast_nullable_to_non_nullable
 as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
 as int?,reportData: freezed == reportData ? _self.reportData : reportData // ignore: cast_nullable_to_non_nullable
-as ReportDataDTO?,reportDataV2: freezed == reportDataV2 ? _self.reportDataV2 : reportDataV2 // ignore: cast_nullable_to_non_nullable
 as ReportDataDto?,
   ));
 }
@@ -77,25 +75,13 @@ as ReportDataDto?,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$ReportDataDTOCopyWith<$Res>? get reportData {
+$ReportDataDtoCopyWith<$Res>? get reportData {
     if (_self.reportData == null) {
     return null;
   }
 
-  return $ReportDataDTOCopyWith<$Res>(_self.reportData!, (value) {
+  return $ReportDataDtoCopyWith<$Res>(_self.reportData!, (value) {
     return _then(_self.copyWith(reportData: value));
-  });
-}/// Create a copy of ExecutionRecord
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$ReportDataDtoCopyWith<$Res>? get reportDataV2 {
-    if (_self.reportDataV2 == null) {
-    return null;
-  }
-
-  return $ReportDataDtoCopyWith<$Res>(_self.reportDataV2!, (value) {
-    return _then(_self.copyWith(reportDataV2: value));
   });
 }
 }
@@ -179,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'report_data')  ReportDataDTO? reportData, @JsonKey(name: 'report_data_v2')  ReportDataDto? reportDataV2)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'report_data')  ReportDataDto? reportData)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionRecord() when $default != null:
-return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.reportData,_that.reportDataV2);case _:
+return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.reportData);case _:
   return orElse();
 
 }
@@ -200,10 +186,10 @@ return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'report_data')  ReportDataDTO? reportData, @JsonKey(name: 'report_data_v2')  ReportDataDto? reportDataV2)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'report_data')  ReportDataDto? reportData)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionRecord():
-return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.reportData,_that.reportDataV2);case _:
+return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.reportData);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -220,10 +206,10 @@ return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'report_data')  ReportDataDTO? reportData, @JsonKey(name: 'report_data_v2')  ReportDataDto? reportDataV2)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'report_data')  ReportDataDto? reportData)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionRecord() when $default != null:
-return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.reportData,_that.reportDataV2);case _:
+return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.reportData);case _:
   return null;
 
 }
@@ -235,7 +221,7 @@ return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ExecutionRecord extends ExecutionRecord {
-  const _ExecutionRecord({required this.id, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(fromJson: _statusFromJson) required this.status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) this.traceVersion, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'report_data') this.reportData, @JsonKey(name: 'report_data_v2') this.reportDataV2}): super._();
+  const _ExecutionRecord({required this.id, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(fromJson: _statusFromJson) required this.status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) this.traceVersion, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'report_data') this.reportData}): super._();
   factory _ExecutionRecord.fromJson(Map<String, dynamic> json) => _$ExecutionRecordFromJson(json);
 
 @override final  String id;
@@ -245,9 +231,7 @@ class _ExecutionRecord extends ExecutionRecord {
 @override@JsonKey(name: 'strictness_level') final  int? strictnessLevel;
 /// The strictly typed DTO containing the presentation flat data.
 /// Replaces the legacy `results` Map.
-@override@JsonKey(name: 'report_data') final  ReportDataDTO? reportData;
-/// Phase 2 V2 Payload implementation
-@override@JsonKey(name: 'report_data_v2') final  ReportDataDto? reportDataV2;
+@override@JsonKey(name: 'report_data') final  ReportDataDto? reportData;
 
 /// Create a copy of ExecutionRecord
 /// with the given fields replaced by the non-null parameter values.
@@ -264,7 +248,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExecutionRecord(id: $id, workflowId: $workflowId, status: $status, traceVersion: $traceVersion, strictnessLevel: $strictnessLevel, reportData: $reportData, reportDataV2: $reportDataV2)';
+  return 'ExecutionRecord(id: $id, workflowId: $workflowId, status: $status, traceVersion: $traceVersion, strictnessLevel: $strictnessLevel, reportData: $reportData)';
 }
 
 
@@ -275,11 +259,11 @@ abstract mixin class _$ExecutionRecordCopyWith<$Res> implements $ExecutionRecord
   factory _$ExecutionRecordCopyWith(_ExecutionRecord value, $Res Function(_ExecutionRecord) _then) = __$ExecutionRecordCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? traceVersion,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'report_data') ReportDataDTO? reportData,@JsonKey(name: 'report_data_v2') ReportDataDto? reportDataV2
+ String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? traceVersion,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'report_data') ReportDataDto? reportData
 });
 
 
-@override $ReportDataDTOCopyWith<$Res>? get reportData;@override $ReportDataDtoCopyWith<$Res>? get reportDataV2;
+@override $ReportDataDtoCopyWith<$Res>? get reportData;
 
 }
 /// @nodoc
@@ -292,7 +276,7 @@ class __$ExecutionRecordCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionRecord
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? workflowId = null,Object? status = null,Object? traceVersion = freezed,Object? strictnessLevel = freezed,Object? reportData = freezed,Object? reportDataV2 = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? workflowId = null,Object? status = null,Object? traceVersion = freezed,Object? strictnessLevel = freezed,Object? reportData = freezed,}) {
   return _then(_ExecutionRecord(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
@@ -300,7 +284,6 @@ as String,status: null == status ? _self.status : status // ignore: cast_nullabl
 as String,traceVersion: freezed == traceVersion ? _self.traceVersion : traceVersion // ignore: cast_nullable_to_non_nullable
 as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
 as int?,reportData: freezed == reportData ? _self.reportData : reportData // ignore: cast_nullable_to_non_nullable
-as ReportDataDTO?,reportDataV2: freezed == reportDataV2 ? _self.reportDataV2 : reportDataV2 // ignore: cast_nullable_to_non_nullable
 as ReportDataDto?,
   ));
 }
@@ -309,25 +292,13 @@ as ReportDataDto?,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$ReportDataDTOCopyWith<$Res>? get reportData {
+$ReportDataDtoCopyWith<$Res>? get reportData {
     if (_self.reportData == null) {
     return null;
   }
 
-  return $ReportDataDTOCopyWith<$Res>(_self.reportData!, (value) {
+  return $ReportDataDtoCopyWith<$Res>(_self.reportData!, (value) {
     return _then(_self.copyWith(reportData: value));
-  });
-}/// Create a copy of ExecutionRecord
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$ReportDataDtoCopyWith<$Res>? get reportDataV2 {
-    if (_self.reportDataV2 == null) {
-    return null;
-  }
-
-  return $ReportDataDtoCopyWith<$Res>(_self.reportDataV2!, (value) {
-    return _then(_self.copyWith(reportDataV2: value));
   });
 }
 }

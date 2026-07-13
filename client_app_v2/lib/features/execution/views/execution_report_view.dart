@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/execution/controllers/report_controller.dart';
-import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
+import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:file_saver/file_saver.dart';
 import 'dart:typed_data';
-import 'package:client_app/router/router.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 
@@ -105,29 +104,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     });
 
     try {
-      final locale = Localizations.localeOf(context).languageCode == 'fi'
-          ? 'fi'
-          : 'en';
-      final payload = ref
-          .read(
-            reportControllerProvider(
-              widget.executionId,
-              lang: locale,
-              variant: widget.variant,
-            ),
-          )
-          .value;
-
-      DateTime targetDate;
-      if (payload?.createdAt != null) {
-        try {
-          targetDate = DateTime.parse(payload!.createdAt!).toLocal();
-        } catch (_) {
-          targetDate = DateTime.now();
-        }
-      } else {
-        targetDate = DateTime.now();
-      }
+      final targetDate = DateTime.now();
 
       final localTimeStr =
           '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')} ${targetDate.hour.toString().padLeft(2, '0')}:${targetDate.minute.toString().padLeft(2, '0')}';
@@ -311,7 +288,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         label: const Text('Lataa Excel'),
       ),
       body: switch (reportAsync) {
-        AsyncData(:final value) => ReportRendererWidget(
+        AsyncData(:final value) => ReportRendererV2Widget(
           payload: value,
           executionId: widget.executionId,
         ),
@@ -364,54 +341,12 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
 
   Widget _buildAppBarTitle(
     BuildContext context,
-    ReportDataDTO? payload,
+    ReportDataDto? payload,
     String locale,
   ) {
-    if (payload == null || payload.availableProfiles.length <= 1) {
-      return Text(
-        '${AppLocalizations.of(context)!.report}: ${widget.executionId}${widget.variant != 'default' ? ' (${widget.variant})' : ''}',
-        style: const TextStyle(fontSize: 16),
-      );
-    }
-
-    // Safely fallback to first available if variant not found
-    final safeVariant = payload.availableProfiles.containsKey(widget.variant)
-        ? widget.variant
-        : payload.availableProfiles.keys.first;
-
-    return DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: safeVariant,
-        icon: Icon(
-          Icons.arrow_drop_down,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        onChanged: (String? newValue) {
-          if (newValue != null && newValue != widget.variant) {
-            ExecutionReportRoute(
-              executionId: widget.executionId,
-              variant: newValue,
-            ).go(context);
-          }
-        },
-        items: payload.availableProfiles.entries.map((entry) {
-          final translatedName = entry.value.get(locale);
-          final profileName = translatedName.isEmpty
-              ? entry.key
-              : translatedName;
-          return DropdownMenuItem<String>(
-            value: entry.key,
-            child: Text(
-              '${AppLocalizations.of(context)!.report}: $profileName',
-            ),
-          );
-        }).toList(),
-      ),
+    return Text(
+      '${AppLocalizations.of(context)!.report}: ${widget.executionId}${widget.variant != 'default' ? ' (${widget.variant})' : ''}',
+      style: const TextStyle(fontSize: 16),
     );
   }
 }

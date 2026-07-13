@@ -68,7 +68,7 @@ final reportControllerProvider = ReportControllerFamily._();
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
 final class ReportControllerProvider
-    extends $AsyncNotifierProvider<ReportController, ReportDataDTO> {
+    extends $AsyncNotifierProvider<ReportController, ReportDataDto> {
   /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
   ReportControllerProvider._({
     required ReportControllerFamily super.from,
@@ -106,7 +106,7 @@ final class ReportControllerProvider
   }
 }
 
-String _$reportControllerHash() => r'c6d4d31c8200461f0665d663f9d14229464e6694';
+String _$reportControllerHash() => r'6fdefa88cf88bc145f73a234b7a47007fdd64ee9';
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
 
@@ -114,9 +114,9 @@ final class ReportControllerFamily extends $Family
     with
         $ClassFamilyOverride<
           ReportController,
-          AsyncValue<ReportDataDTO>,
-          ReportDataDTO,
-          FutureOr<ReportDataDTO>,
+          AsyncValue<ReportDataDto>,
+          ReportDataDto,
+          FutureOr<ReportDataDto>,
           (String, {String lang, String variant})
         > {
   ReportControllerFamily._()
@@ -145,13 +145,13 @@ final class ReportControllerFamily extends $Family
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
 
-abstract class _$ReportController extends $AsyncNotifier<ReportDataDTO> {
+abstract class _$ReportController extends $AsyncNotifier<ReportDataDto> {
   late final _$args = ref.$arg as (String, {String lang, String variant});
   String get executionId => _$args.$1;
   String get lang => _$args.lang;
   String get variant => _$args.variant;
 
-  FutureOr<ReportDataDTO> build(
+  FutureOr<ReportDataDto> build(
     String executionId, {
     String lang = 'fi',
     String variant = 'default',
@@ -159,12 +159,12 @@ abstract class _$ReportController extends $AsyncNotifier<ReportDataDTO> {
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<ReportDataDTO>, ReportDataDTO>;
+    final ref = this.ref as $Ref<AsyncValue<ReportDataDto>, ReportDataDto>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<ReportDataDTO>, ReportDataDTO>,
-              AsyncValue<ReportDataDTO>,
+              AnyNotifier<AsyncValue<ReportDataDto>, ReportDataDto>,
+              AsyncValue<ReportDataDto>,
               Object?,
               Object?
             >;

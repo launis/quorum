@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,16 +8,16 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
 /// Renders the XAI Evidence Box — clickable source URLs from MCP Tool Loop searches.
-/// Follows Flat MVC (§5): Zero logic, pure data mapping from MCPToolAuditDTO.
+/// Follows Flat MVC (§5): Zero logic, pure data mapping from McpAuditTraceDto.
 /// Only renders if audit traces are non-empty (zero visual clutter for non-MCP workflows).
 class XAIEvidenceBox extends ConsumerWidget {
-  final List<MCPToolAuditDTO> auditTraces;
+  final List<McpAuditTraceDto> traces;
 
-  const XAIEvidenceBox({super.key, required this.auditTraces});
+  const XAIEvidenceBox({super.key, required this.traces});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (auditTraces.isEmpty) return const SizedBox();
+    if (traces.isEmpty) return const SizedBox();
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -38,7 +38,7 @@ class XAIEvidenceBox extends ConsumerWidget {
         ),
         children: [
           const Divider(height: 1),
-          ...auditTraces.asMap().entries.map((entry) {
+          ...traces.asMap().entries.map((entry) {
             final index = entry.key;
             final audit = entry.value;
             return _buildAuditEntry(context, ref, audit, index);
@@ -52,7 +52,7 @@ class XAIEvidenceBox extends ConsumerWidget {
   Widget _buildAuditEntry(
     BuildContext context,
     WidgetRef ref,
-    MCPToolAuditDTO audit,
+    McpAuditTraceDto audit,
     int index,
   ) {
     final l10n = AppLocalizations.of(context)!;
@@ -287,7 +287,7 @@ class XAIEvidenceBox extends ConsumerWidget {
               ),
             ],
 
-            if (index < auditTraces.length - 1) const Divider(height: 24),
+            if (index < traces.length - 1) const Divider(height: 24),
           ],
         ),
       );

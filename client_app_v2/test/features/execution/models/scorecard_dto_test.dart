@@ -10,7 +10,10 @@ void main() {
         'level_name': 'T1',
         'claim_label': 'Test Claim',
         'extracted_facts': {'fact1': 'value'},
-        'exact_quotes': ['quote 1', 'quote 2'],
+        'exact_quotes': [
+          {'quote_text': 'quote 1'},
+          {'quote_text': 'quote 2'}
+        ],
         'internal_logic_en': {
           'step_1_identify_premise': 'p',
           'step_2_scan_source': 's',
@@ -21,6 +24,8 @@ void main() {
         'semantic_reasoning': 'because',
         'contextual_override': false,
         'structural_location': 'doc.txt',
+        'chart_display_label': 'Skipped',
+        'visual_intent': 'NEUTRAL',
       };
 
       final dto = ScorecardAtomDto.fromJson(json);
@@ -35,7 +40,10 @@ void main() {
       final json = {
         'block_id': 'blk_1',
         'name': 'test_matrix',
-        'label_i18n': {'en': 'Test', 'fi': 'Testi'},
+        'label_i18n': {
+          'default_locale': 'en',
+          'translations': {'en': 'Test', 'fi': 'Testi'}
+        },
         'evaluated_atoms': [
           {
             'atom_id': 'atm_1',
@@ -54,6 +62,8 @@ void main() {
             'semantic_reasoning': 'r',
             'contextual_override': false,
             'structural_location': 'L',
+            'chart_display_label': 'OK',
+            'visual_intent': 'success',
           },
           {
             'atom_id': 'atm_2',
@@ -72,6 +82,8 @@ void main() {
             'semantic_reasoning': 'r',
             'contextual_override': false,
             'structural_location': 'L',
+            'chart_display_label': 'OK',
+            'visual_intent': 'success',
           },
           {
             'atom_id': 'atm_3',
@@ -90,6 +102,8 @@ void main() {
             'semantic_reasoning': 'r',
             'contextual_override': false,
             'structural_location': 'L',
+            'chart_display_label': 'OK',
+            'visual_intent': 'success',
           },
         ],
       };

@@ -16,7 +16,8 @@ void main() {
       expect(
         () => TDAState.fromJson(jsonWithUnknownKey),
         throwsA(isA<CheckedFromJsonException>()),
-        reason: 'TDAState should disallow unrecognized keys to enforce silent_json_fallbacks rule',
+        reason:
+            'TDAState should disallow unrecognized keys to enforce silent_json_fallbacks rule',
       );
     });
   });

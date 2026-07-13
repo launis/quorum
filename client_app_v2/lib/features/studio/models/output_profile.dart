@@ -3,10 +3,66 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart';
 
 part 'output_profile.freezed.dart';
 part 'output_profile.g.dart';
+
+@Freezed(unionKey: 'block_type')
+sealed class SduiBlockDTO with _$SduiBlockDTO {
+  const SduiBlockDTO._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('paragraph')
+  const factory SduiBlockDTO.paragraph({
+    required String text,
+    @Default([]) List<int> citations,
+    @Default([]) List<String> exactQuotes,
+  }) = SduiParagraphBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('bullet_list')
+  const factory SduiBlockDTO.bulletList({
+    required List<SduiBulletListItemDTO> items,
+  }) = SduiBulletListBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('alert_box')
+  const factory SduiBlockDTO.alertBox({
+    required String text,
+    required String severity,
+    @Default([]) List<int> citations,
+    @Default([]) List<String> exactQuotes,
+  }) = SduiAlertBoxBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('hero_insight')
+  const factory SduiBlockDTO.heroInsight({
+    required String text,
+    @Default([]) List<int> citations,
+    @Default([]) List<String> exactQuotes,
+  }) = SduiHeroInsightBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('markdown')
+  const factory SduiBlockDTO.markdown({required String text}) =
+      SduiMarkdownBlock;
+
+  factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
+      _$SduiBlockDTOFromJson(json);
+}
+
+@Freezed(equal: false)
+abstract class SduiBulletListItemDTO with _$SduiBulletListItemDTO {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory SduiBulletListItemDTO({
+    required String text,
+    @Default([]) List<int> citations,
+    @Default([]) List<String> exactQuotes,
+  }) = _SduiBulletListItemDTO;
+
+  factory SduiBulletListItemDTO.fromJson(Map<String, dynamic> json) =>
+      _$SduiBulletListItemDTOFromJson(json);
+}
 
 @Freezed(equal: false)
 abstract class OutputLayoutBlock with _$OutputLayoutBlock {

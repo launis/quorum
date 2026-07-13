@@ -3,7 +3,6 @@ import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 
 part 'execution_record.freezed.dart';
@@ -30,10 +29,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
 
     /// The strictly typed DTO containing the presentation flat data.
     /// Replaces the legacy `results` Map.
-    @JsonKey(name: 'report_data') ReportDataDTO? reportData,
-
-    /// Phase 2 V2 Payload implementation
-    @JsonKey(name: 'report_data_v2') ReportDataDto? reportDataV2,
+    @JsonKey(name: 'report_data') ReportDataDto? reportData,
   }) = _ExecutionRecord;
 
   /// Instantiates a strictly typed [ExecutionRecord] from raw JSON.

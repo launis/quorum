@@ -1,4 +1,3 @@
-import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/atom_result_dto.dart';
 import 'package:client_app/features/execution/models/execution_metrics_dto.dart';
@@ -68,21 +67,32 @@ void main() {
     });
 
     test('hydratedReference returns null for invalid node', () {
-      final hydrated = container.read(hydratedReferenceProvider('exec_123', 'invalid_node'));
+      final hydrated = container.read(
+        hydratedReferenceProvider('exec_123', 'invalid_node'),
+      );
       expect(hydrated, isNull);
     });
 
-    test('hydratedReference throws ProviderException if reportData is null', () {
-      final emptyContainer = ProviderContainer(
-        overrides: [
-          reportDataV2Provider('exec_456').overrideWith(() => MockReportDataV2Notifier(null)),
-        ],
-      );
-      expect(
-        () => emptyContainer.read(hydratedReferenceProvider('exec_456', 'node_1')),
-        throwsA(predicate((e) => e.toString().contains('Fail-Fast: ReportDataDto'))),
-      );
-    });
+    test(
+      'hydratedReference throws ProviderException if reportData is null',
+      () {
+        final emptyContainer = ProviderContainer(
+          overrides: [
+            reportDataV2Provider(
+              'exec_456',
+            ).overrideWith(() => MockReportDataV2Notifier(null)),
+          ],
+        );
+        expect(
+          () => emptyContainer.read(
+            hydratedReferenceProvider('exec_456', 'node_1'),
+          ),
+          throwsA(
+            predicate((e) => e.toString().contains('Fail-Fast: ReportDataDto')),
+          ),
+        );
+      },
+    );
 
     test('atomResults returns list without topological sorting', () {
       final results = container.read(atomResultsProvider('exec_123'));
@@ -93,12 +103,16 @@ void main() {
     test('atomResults throws ProviderException if reportData is null', () {
       final emptyContainer = ProviderContainer(
         overrides: [
-          reportDataV2Provider('exec_456').overrideWith(() => MockReportDataV2Notifier(null)),
+          reportDataV2Provider(
+            'exec_456',
+          ).overrideWith(() => MockReportDataV2Notifier(null)),
         ],
       );
       expect(
         () => emptyContainer.read(atomResultsProvider('exec_456')),
-        throwsA(predicate((e) => e.toString().contains('Fail-Fast: ReportDataDto'))),
+        throwsA(
+          predicate((e) => e.toString().contains('Fail-Fast: ReportDataDto')),
+        ),
       );
     });
   });
