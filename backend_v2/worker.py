@@ -20,10 +20,8 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-
-# --- Phase 9 Imports ---
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-from backend_v2.models.enums import StrictnessAnchor
+from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -398,7 +396,9 @@ async def execute_workflow_job(
                         profile_id = workflow_def.default_profile_id
 
                     v_step_id = f"sys_render_{profile_id}"
-                    v_step = ExecutionStepState(id=v_step_id, label="Generating Output Report", status="running")
+                    v_step = ExecutionStepState(
+                        id=v_step_id, label="Generating Output Report", status=ExecutionStatus.RUNNING
+                    )
 
                     new_states = dict(updated_exec_record.step_states)
                     new_states[v_step_id] = v_step
@@ -408,7 +408,7 @@ async def execute_workflow_job(
                     await repository.update_execution(
                         exec_id,
                         {
-                            "status": "running",  # keep execution running until PDF is done
+                            "status": ExecutionStatus.RUNNING.value,  # keep execution running until PDF is done
                             "step_states": step_states_dict,
                             "duration_ms": duration_ms,
                             "models_used": models_used,
@@ -429,7 +429,7 @@ async def execute_workflow_job(
                     await repository.update_execution(
                         exec_id,
                         {
-                            "status": "completed",
+                            "status": ExecutionStatus.PASSED.value,
                             "completed_at": datetime.now(UTC).isoformat(),
                             "duration_ms": duration_ms,
                             "models_used": models_used,
@@ -463,7 +463,11 @@ async def execute_workflow_job(
                 try:
                     await repository.update_execution(
                         exec_id,
-                        {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()},
+                        {
+                            "status": ExecutionStatus.FAILED.value,
+                            "error": str(e),
+                            "completed_at": datetime.now(UTC).isoformat(),
+                        },
                     )
                 except Exception as update_err:
                     update_msg = f"Failed to update execution failure status: {update_err}"
@@ -481,7 +485,7 @@ async def execute_workflow_job(
                     await repository.update_execution(
                         exec_id,
                         {
-                            "status": "failed",
+                            "status": ExecutionStatus.FAILED.value,
                             "error": "Task execution was cancelled or timed out.",
                             "completed_at": datetime.now(UTC).isoformat(),
                         },
@@ -600,14 +604,14 @@ async def generate_pdf_task(
 
         updates: dict[str, Any] = {}
         updates["pdf_report_path"] = saved_path
-        updates["status"] = "completed"
+        updates["status"] = ExecutionStatus.PASSED.value
 
         exec_record_local = await repo.get_execution(execution_id, hydrate=False)
         if exec_record_local:
             if v_step_id in exec_record_local.step_states:
                 old_state = exec_record_local.step_states[v_step_id]
                 new_states = dict(exec_record_local.step_states)
-                new_states[v_step_id] = old_state.model_copy(update={"status": "completed"})
+                new_states[v_step_id] = old_state.model_copy(update={"status": ExecutionStatus.PASSED.value})
                 exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
             updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
 
@@ -627,7 +631,7 @@ async def generate_pdf_task(
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
             updates = {}
-            updates["status"] = "failed"
+            updates["status"] = ExecutionStatus.FAILED.value
             updates["error"] = f"PDF Generation failed: {str(e)}"
             updates["completed_at"] = datetime.now(UTC).isoformat()
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
@@ -635,7 +639,7 @@ async def generate_pdf_task(
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     new_states = dict(exec_record_local.step_states)
-                    new_states[v_step_id] = old_state.model_copy(update={"status": "failed", "last_error": str(e)})
+                    new_states[v_step_id] = old_state.model_copy(update={"status": ExecutionStatus.FAILED.value, "last_error": str(e)})
                     exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
                 updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
 
@@ -715,9 +719,9 @@ async def generate_profile_synthesis_and_pdf_task(
             if exec_record_local:
                 old_state = exec_record_local.step_states.get(v_step_id)
                 if old_state:
-                    updated_state = old_state.model_copy(update={"label": msg, "status": "running"})
+                    updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING.value})
                 else:
-                    updated_state = ExecutionStepState(id=v_step_id, label=msg, status="running")
+                    updated_state = ExecutionStepState(id=v_step_id, label=msg, status=ExecutionStatus.RUNNING)
                 new_states = dict(exec_record_local.step_states)
                 new_states[v_step_id] = updated_state
                 updates = {"step_states": {k: v.model_dump() for k, v in new_states.items()}}
@@ -953,14 +957,14 @@ async def generate_profile_synthesis_and_pdf_task(
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
             updates: dict[str, Any] = {}
-            updates["status"] = "failed"
+            updates["status"] = ExecutionStatus.FAILED.value
             updates["error"] = f"Text Synthesis failed: {str(e)}"
             updates["completed_at"] = datetime.now(UTC).isoformat()
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
-                    updated_state = old_state.model_copy(update={"status": "failed", "last_error": str(e)})
+                    updated_state = old_state.model_copy(update={"status": ExecutionStatus.FAILED.value, "last_error": str(e)})
                     new_step_states = dict(exec_record_local.step_states)
                     new_step_states[v_step_id] = updated_state
                     exec_record_local = exec_record_local.model_copy(update={"step_states": new_step_states})

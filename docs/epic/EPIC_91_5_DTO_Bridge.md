@@ -45,6 +45,8 @@ class ExecutionStatus(str, Enum):
     SYSTEM_ERROR = "SYSTEM_ERROR"
     BLOCKED = "BLOCKED"
     PENDING = "PENDING"
+    RUNNING = "RUNNING"  # DAG macro-orchestration requires runtime states
+    QUEUED = "QUEUED"
 
     @property
     def l10n_key(self) -> str:
@@ -216,6 +218,8 @@ Tämä DTO-silta torjuu seuraavat järjestelmätason uhat ennen Epic 92/93 aloit
 * **SDUI-pariteetin turvaaminen (Frontend Logic Ban):** Jos Backend lähettää litteän listan, Frontend ei saa vastata DAG-puun topologisesta järjestämisestä. **Korjaus:** Backendin on palautettava `results`-lista valmiiksi topologisesti järjestettynä. Lisättiin `sdui_component` -tyyppivihje (sidottu `SDUIComponentType` -enumiin). Frontendin ei tule koskaan "päätellä", miten tieto esitetään, vaan sen on sokeasti toteltava backendin ohjeita.
 * **OpenAPI- ja LLM-sopimusten löyhyys:** Ratkaistu koodigeneraatiota tukevalla `ExecutionStatus(str, Enum)` -luokalla, sekä kognitiivisen tilan validaattorilla (`validate_cognitive_vs_system_state`), joka tekee perusteluista pakollisia onnistuessa.
 * **Anti-Corruption Layer ja Kanta-migraatio (Duct-Tape Riski):** Täsmennettiin tilapäisen adapterin ehtoja: se ei saa koskaan niellä virheitä (esim. `try/except pass` -fallbackeilla), vaan sen on kaaduttava deterministisesti (HTTP 500), jos vanha moottori tuottaa rikkonaista tai yhteensopimatonta dataa. Lisäksi vaaditaan tietokantojen migraatio tai tyhjennys, koska vanhojen DTO-mallien poistaminen koodikannasta hajoittaa väistämättä olemassa olevien dokumenttien deserialisoinnin.
+* **Pydantic V2 Enum Strict Casing & Raw Database Updates (No-String Mandate Strictness):** Pydantic V2:n `StrEnum` on erittäin tiukka kirjainkoon suhteen (esim. `ExecutionStatus.RUNNING` eikä `"running"`). Jos tietokantaa (kuten TinyDB) päivitetään suoraan raw-sanakirjoilla ohittaen Pydantic-validaatio (esim. `{"status": "running"}`), kirjoitus onnistuu, mutta sitä seuraava luku (`model_validate`) kaatuu `ValidationError`-virheeseen. **Arkkitehtuurisääntö:** Kovakoodattujen status-merkkijonojen käyttö koodikannassa on ehdottomasti kielletty. Tietokantapäivityksissä on aina käytettävä enumin `.value` -attribuuttia (esim. `ExecutionStatus.RUNNING.value`) silloin kun päivitetään dict-muodossa.
+* **DAG Macro-Orchestration Status -synkronisaatio (Magic Strings -kielto):** Aiempi tapa käyttää vapaita merkkijonoja (kuten `"completed"`, `"finished"`, `"done"`) aiheutti synkronointiongelmia backendin, tietokannan ja käyttöliittymän (Frontend) välillä, ja romutti OpenAPI/Swagger-rajapintakuvauksen luotettavuuden. `ExecutionStatus` toimii nyt järjestelmän Single Source of Truth -luokkana, jonka on tuettava reaaliaikaisia tilasiirtymiä (RUNNING, QUEUED) ja tiukasti määriteltyjä lopputiloja. **Arkkitehtuurisääntö:** Vanha, epätarkka `COMPLETED`-tila on poistettu (deprecated). Ohjelmistoarkkitehtuurissa kaatunut ajo (FAILED) on myös "valmis", joten pelkkä "completed" on liian moniselitteinen. Tästä lähtien päättynyt tila ilmaistaan aina yksiselitteisesti joko `PASSED` (onnistui) tai `FAILED` (kaatui). Pydanticin Fail-Fast -validointi (`strict=True`) estää automaattisesti näiden sääntöjen rikkomisen.
 
 ---
 

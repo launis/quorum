@@ -214,6 +214,8 @@ class ExecutionStatus(StrEnum):
     SYSTEM_ERROR = "SYSTEM_ERROR"
     BLOCKED = "BLOCKED"
     PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    QUEUED = "QUEUED"
 
     @property
     def l10n_key(self) -> str:

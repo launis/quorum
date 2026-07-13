@@ -175,7 +175,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     # Assert repo called new method instead of get_all_matrices
     mock_repo.get_all_prompt_blocks.assert_called_once()
     assert not hasattr(mock_repo, "get_all_matrices") or not mock_repo.get_all_matrices.called
-    assert record.status == ExecutionStatus.PENDING
+    assert record.status == ExecutionStatus.RUNNING
     from backend_v2.models.state import StateProjector
 
     print(f"DEBUG TRACE: {record.execution_trace}")

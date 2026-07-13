@@ -198,7 +198,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                           children: [
                             _buildStatusChip(status),
                             const SizedBox(width: 8),
-                            if (status.toLowerCase() == 'completed') ...[
+                            if (status.toLowerCase() == 'passed' || status.toLowerCase() == 'completed') ...[
                               IconButton(
                                 icon: Icon(
                                   Icons.print,
@@ -243,7 +243,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                         isThreeLine: true,
                         onTap: () {
                           // Navigate to details safely using GoRouter codegen
-                          if (status.toLowerCase() == 'completed') {
+                          if (status.toLowerCase() == 'passed' || status.toLowerCase() == 'completed') {
                             ExecutionReportRoute(executionId: id).go(context);
                           } else {
                             ExecutionRoute(executionId: id).go(context);
@@ -620,7 +620,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     Color textColor = Theme.of(context).colorScheme.onSurfaceVariant;
     final s = status.toLowerCase();
 
-    if (s == 'completed') {
+    if (s == 'passed' || s == 'completed') {
       bgColor = Theme.of(context).colorScheme.primaryContainer;
       textColor = Theme.of(context).colorScheme.onPrimaryContainer;
     } else if (s == 'failed') {

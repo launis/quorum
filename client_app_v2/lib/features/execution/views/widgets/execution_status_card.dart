@@ -129,7 +129,7 @@ class ExecutionStatusCard extends ConsumerWidget {
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 8),
-            if (status == 'completed' || status == 'failed') ...[
+            if (status == 'passed' || status == 'completed' || status == 'failed') ...[
               Text(
                 l10n.resultsTitle,
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -208,6 +208,7 @@ class ExecutionStatusCard extends ConsumerWidget {
 
   Widget _buildStatusIcon(String status) {
     switch (status.toLowerCase()) {
+      case 'passed':
       case 'completed':
         return const Icon(Icons.check_circle, color: Colors.green);
       case 'failed':
@@ -228,6 +229,7 @@ class ExecutionStatusCard extends ConsumerWidget {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
+      case 'passed':
       case 'completed':
         return Colors.green;
       case 'failed':

@@ -1,7 +1,5 @@
 from typing import Any
 
-import pytest
-
 from backend_v2.models.domain.tools import BaseTool
 from backend_v2.models.v2_core import MCPAuditTrace
 

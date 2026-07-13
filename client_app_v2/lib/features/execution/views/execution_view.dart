@@ -82,8 +82,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
 
   Color _getStatusColor(BuildContext context, String status) {
     if (status == 'failed') return Theme.of(context).colorScheme.error;
-    if (status == 'completed')
+    if (status == 'passed' || status == 'completed') {
       return Theme.of(context).colorScheme.primaryContainer;
+    }
     return Theme.of(context).colorScheme.surfaceContainerHighest;
   }
 
@@ -152,7 +153,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                               : null,
                         ),
                       )
-                    else if (status == 'completed')
+                    else if (status == 'passed' || status == 'completed')
                       Icon(
                         Icons.check_circle,
                         color: Theme.of(context).colorScheme.primary,
@@ -290,7 +291,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
               executionId: widget.executionId,
             ),
           ),
-        ] else if (status == 'completed' && results.isNotEmpty)
+        ] else if ((status == 'passed' || status == 'completed') && results.isNotEmpty)
           // ALWAYS show Raw Data JSON on completion if Heavy Fetch failed
           SliverToBoxAdapter(
             child: Padding(

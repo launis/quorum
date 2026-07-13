@@ -9,7 +9,7 @@ valid_execution_data = {
     "id": "exe_123",
     "workflow_id": "wf_123",
     "organization_id": "org_1",
-    "status": "running",
+    "status": "RUNNING",
     "output_profile_id": "prof_123",
 }
 

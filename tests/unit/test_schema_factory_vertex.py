@@ -1,17 +1,16 @@
-import pytest
-from pydantic.json_schema import models_json_schema
-from types import SimpleNamespace
 import json
+from types import SimpleNamespace
+
+from pydantic.json_schema import models_json_schema
 
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
-from backend_v2.settings import get_settings
+
 
 def resolve_i18n(label, locale):
     return label
 
 def test_schema_factory_max_length_vertex_ai_bug():
-    """
-    Regression test for Vertex AI 400 'too many states for serving'.
+    """Regression test for Vertex AI 400 'too many states for serving'.
     
     Ensures that when dynamically generating Pydantic schemas using SchemaFactory,
     the resulting JSON Schema does NOT contain 'maxItems' or 'maxLength' for lists,
@@ -19,7 +18,7 @@ def test_schema_factory_max_length_vertex_ai_bug():
     causing 400 BadRequest with 'too many states for serving' on complex models (e.g., Matrix).
     """
     factory = SchemaFactory(resolve_i18n_fn=resolve_i18n)
-    
+
     # Mocking PromptBlock to bypass strict Pydantic validation for the test
     criteria = [
         SimpleNamespace(
@@ -40,7 +39,7 @@ def test_schema_factory_max_length_vertex_ai_bug():
             scales=[]
         )
     ]
-    
+
     Model = factory.build_dynamic_schema(
         schema_name="TestSchema",
         criteria=criteria,
@@ -52,10 +51,10 @@ def test_schema_factory_max_length_vertex_ai_bug():
         allowed_dynamic_keys=["k1"],
         max_evaluations=7
     )
-    
+
     _, schema = models_json_schema([(Model, "validation")])
-    
+
     schema_str = json.dumps(schema)
-    
+
     assert "maxItems" not in schema_str, "maxItems found in JSON Schema, which causes Vertex AI 400 errors!"
     assert "maxLength" not in schema_str, "maxLength found in JSON Schema, which causes Vertex AI 400 errors!"

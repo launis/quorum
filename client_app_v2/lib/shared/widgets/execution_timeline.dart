@@ -29,11 +29,14 @@ class ExecutionTimeline extends StatelessWidget {
         separatorBuilder: (_, _) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final step = steps[index];
-          final stepStatus = step['status']?.toString() ?? 'pending';
+          final stepStatus =
+              step['status']?.toString().toLowerCase() ?? 'pending';
           final stepLabel = step['label']?.toString() ?? 'Tuntematon askel';
 
           final isCompleted =
-              stepStatus == 'completed' || stepStatus == 'finished';
+              stepStatus == 'passed' ||
+              stepStatus == 'finished' ||
+              stepStatus == 'completed';
           final isQueued = stepStatus == 'queued';
           final isRunning = stepStatus == 'running';
           final isFailed = stepStatus == 'failed' || stepStatus == 'error';

@@ -16,10 +16,12 @@ Build the core foundational blocks of the new Single Source of Truth (SSOT) DTOs
 1. `strict_configuration_segregation`: `enums.py` for string/int constants; `settings.py` for global bounds/limits. No logic in enums.
 2. `strict_enum_l10n_mapping`: `ExecutionStatus` and `SDUIComponentType` in `enums.py` must include an `@property def l10n_key(self) -> str:` method to map to Flutter ARB keys.
 3. `strict_pydantic_v2_rust`: `ErrorDetailsDTO` must use `model_config = ConfigDict(strict=True, frozen=True, extra='forbid')`.
+4. `strict_enum_casing_mandate`: Hardcoded lowercase status strings (e.g. `"running"`, `"completed"`) are strictly forbidden when updating database records via dicts. Always use the enum's value (e.g. `ExecutionStatus.RUNNING.value` or `ExecutionStatus.PASSED.value`) to guarantee Pydantic validation passes on subsequent reads.
+5. `strict_terminal_state_mandate`: The ambiguous state `"COMPLETED"` is deprecated. All terminal execution states must strictly resolve to either `ExecutionStatus.PASSED` or `ExecutionStatus.FAILED` to eliminate logic errors in the DAG and Frontend where a failed execution was incorrectly treated as a successful completion.
 
 ## Proposed Changes
 ### `backend_v2/models/enums.py`
-- **[MODIFY]**: Add `ExecutionStatus` with states (PASSED, FAILED, N_A, SYSTEM_ERROR, BLOCKED, PENDING) and its `l10n_key` property (`status_{name}`).
+- **[MODIFY]**: Add `ExecutionStatus` with states (PASSED, FAILED, N_A, SYSTEM_ERROR, BLOCKED, PENDING, RUNNING, QUEUED) and its `l10n_key` property (`status_{name}`).
 - **[MODIFY]**: Add `SDUIComponentType` with states (BOOLEAN_CARD, EXTRACTED_VALUE_CARD, ERROR_CARD, N_A_CARD) and its `l10n_key` property (`sdui_{name}`).
 
 ### `backend_v2/settings.py`
@@ -41,7 +43,7 @@ Build the core foundational blocks of the new Single Source of Truth (SSOT) DTOs
 
 # Session Handover Context
 **Achieved:** Phase 1.1 planned.
-**Learned:** Tripartite Configuration Architecture enforced.
+**Learned:** Tripartite Configuration Architecture enforced. ExecutionStatus SSOT successfully implemented for both DAG macro-orchestration and DTO boundaries.
 **Remaining:** Execute Phase 1.1 and proceed to Phase 1.2.
 
 > To execute this Epic iteratively, start a NEW chat session and run the /tier5-resume command found at the bottom of your tracker.

@@ -1,11 +1,11 @@
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
+
 from backend_v2.models.dtos.lightweight_matrix import LightweightExtractionAtom
-from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+
 
 def test_lightweight_extraction_atom_accepts_chat_log_source_id():
     """Test that a LightweightExtractionAtom accepts 'chat_log' as a source_id."""
-    
     # This should work but currently fails because AliasEngine.ALIAS_REGEX_PATTERN requires \d+$
     try:
         atom = LightweightExtractionAtom.model_validate({

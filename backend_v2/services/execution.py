@@ -191,7 +191,7 @@ class ExecutionService:
                 # V2 Protocol Requirement: JSON Payload inside 'data: '
                 yield f"data: {record.model_dump_json()}\n\n"
 
-                if record.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED]:
+                if record.status in [ExecutionStatus.PASSED, ExecutionStatus.FAILED]:
                     break
 
                 await asyncio.sleep(2)
@@ -343,7 +343,9 @@ class ExecutionService:
 
             # Populate initial pending step state for timeline
             step_label = step_obj.name.resolve(target_locale)
-            step_states[step_rule.id] = ExecutionStepState(id=step_rule.id, label=step_label, status="pending")
+            step_states[step_rule.id] = ExecutionStepState(
+                id=step_rule.id, label=step_label, status=ExecutionStatus.PENDING
+            )
 
             prompt_blocks_refs = []
             if step_obj.role_block_id:
@@ -536,7 +538,7 @@ class ExecutionService:
                 )
 
         record = record.model_copy(update={"status": ExecutionStatus.RUNNING})
-        await self.exec_repo.update_execution(execution_id, {"status": "running"})
+        await self.exec_repo.update_execution(execution_id, {"status": ExecutionStatus.RUNNING.value})
 
         # 2. Fire Async Process into durable Redis Queue using original raw inputs
         await arq_pool.enqueue_job(
@@ -906,7 +908,7 @@ class ExecutionService:
     ) -> tuple[bytes | list[Any] | dict[str, Any] | Any, str, str | None]:
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
-        if execution.status != ExecutionStatus.COMPLETED:
+        if execution.status != ExecutionStatus.PASSED:
             msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
@@ -975,7 +977,7 @@ class ExecutionService:
             from backend_v2.models.v2_core import JobAcceptedDTO
 
             return (
-                JobAcceptedDTO(status="pending", message=active_message, execution_id=execution_id),
+                JobAcceptedDTO(status=ExecutionStatus.PENDING, message=active_message, execution_id=execution_id),
                 "application/json",
                 None,
             )
@@ -1111,7 +1113,7 @@ class ExecutionService:
         """Get the headless ReportDataDto for an execution."""
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
-        if execution.status != ExecutionStatus.COMPLETED:
+        if execution.status != ExecutionStatus.PASSED:
             msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
@@ -1204,7 +1206,7 @@ class ExecutionService:
 
         # 2. Inject Virtual Step
         v_step_id = f"sys_render_{profile_id}"
-        v_step = ExecutionStepState(id=v_step_id, label=v_step_id, status="running")
+        v_step = ExecutionStepState(id=v_step_id, label=v_step_id, status=ExecutionStatus.RUNNING)
 
         exec_record_local = await self.exec_repo.get_execution(execution_id, hydrate=False)
         if exec_record_local:
@@ -1212,7 +1214,7 @@ class ExecutionService:
             await self.exec_repo.update_execution(
                 execution_id,
                 {
-                    "status": "running",
+                    "status": ExecutionStatus.RUNNING.value,
                     "step_states": {k: v.model_dump() for k, v in exec_record_local.step_states.items()},
                 },
             )

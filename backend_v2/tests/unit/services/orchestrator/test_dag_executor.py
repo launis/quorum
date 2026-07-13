@@ -66,7 +66,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     assert args[1].global_context_vars.get("language") == "fi"
 
     # Epic 47 Phase 2: Workflow remains RUNNING for async render worker
-    assert record.status == ExecutionStatus.PENDING
+    assert record.status == ExecutionStatus.RUNNING
 
 
 @pytest.mark.asyncio

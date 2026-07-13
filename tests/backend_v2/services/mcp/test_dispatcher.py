@@ -63,6 +63,6 @@ async def test_execute_tool_not_found() -> None:
     dispatcher = ToolDispatcher(tools=[DummyToolA()])
     with pytest.raises(AppException) as exc_info:
         await dispatcher.execute_tool("mcp_unknown", arg="val")
-    
+
     assert exc_info.value.status_code == 400
     assert "not found" in exc_info.value.message.lower()

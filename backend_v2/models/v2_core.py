@@ -1351,7 +1351,9 @@ class ExecutionStepState(V2CoreBase):
 
     id: str = Field(pattern=r"^([a-z0-9_]{2,15})_[a-zA-Z0-9_-]+$", description="Step ID")
     label: str = Field(description="Localized label for UI tracking")
-    status: str = Field(default="pending", description="Status: pending, running, completed, failed")
+    status: LaxExecutionStatus = Field(
+        default=ExecutionStatus.PENDING, description="Status: pending, running, passed, failed"
+    )
     last_error: str | None = Field(default=None, description="Error message if the step failed")
     message_code: str | None = Field(default=None, description="Optional UX message code for SSE")
     scorecard_atoms: dict[str, ScorecardAtomDTO] = Field(

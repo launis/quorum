@@ -41,7 +41,7 @@ async def test_worker_preserves_models_used() -> None:
     mock_repository.get_execution.return_value = {
         "id": execution_id,
         "workflow_id": workflow_id,
-        "status": "running",
+        "status": "RUNNING",
         "output_profile_id": "prf_a1b2c3d4e5f67890",
         "models_used": {},
         "created_at": "2026-06-16T12:00:00Z",
