@@ -11,13 +11,13 @@ from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, DocumentExtractionServiceDep, ExecutionServiceDep
-from backend_v2.models.dtos.report.root import ReportDataDto
 from backend_v2.models.v2_core import (
     EvidenceRejectionRequest,
     ExecutionCreate,
     ExecutionRecord,
     HumanOverrideRequest,
     JobAcceptedDTO,
+    ReportDataDTO,
     ScorecardResponseDTO,
 )
 from backend_v2.models.view.sdui import ReportView
@@ -230,12 +230,12 @@ async def download_execution_export(
     )
 
 
-@router.get("/{execution_id}/report", response_model=ReportDataDto)
+@router.get("/{execution_id}/report", response_model=ReportDataDTO)
 async def get_execution_report(
     execution_id: str,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
-) -> ReportDataDto:
+) -> ReportDataDTO:
     """Get the clean, UI-agnostic ReportDataDto for machine integrations (B2B Headless).
 
     Args:
@@ -244,7 +244,7 @@ async def get_execution_report(
         execution_service: The execution domain service.
 
     Returns:
-        The headless ReportDataDto.
+        The headless ReportDataDTO.
 
     Raises:
         AppException: If execution is not found or permission is denied.

@@ -80,6 +80,7 @@ __all__ = [
     "HumanOverrideDTO",
     "ScorecardAtomDTO",
     "ScorecardResponseDTO",
+    "ReportDataDTO",
 ]
 
 
@@ -1033,6 +1034,13 @@ class ReportLayoutDTO(V2CoreBase):
     synthesis_blocks: list[dict[str, Any]] | None = Field(
         default=None, description="The rendered SDUI blocks for this layout"
     )
+
+
+class GlobalSynthesisDTO(V2CoreBase):
+    """Data structure for high-level synthesized reports."""
+
+    executive_summary: Annotated[str | None, Field(default=None, description="High-level synthesized summary")]
+    urgency_level: Annotated[int | None, Field(default=None)]
 
 
 class ReportDataDTO(V2CoreBase):

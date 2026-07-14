@@ -1,12 +1,11 @@
 """Synchronous reduction of three-state logic (Passed, Failed, DLQ)."""
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixDTO, ReducedAtomDTO
-from backend_v2.models.dtos.report.root import ReportDataDto
-from backend_v2.models.v2_core import TDAAssertion
+from backend_v2.models.v2_core import ExecutionRecord, TDAAssertion
 
 logger = logging.getLogger(__name__)
 
@@ -57,29 +56,61 @@ class MatrixReducer:
         )
 
     @staticmethod
-    def reduce_matrix(report: ReportDataDto) -> LightweightMatrixDTO:
-        """Filters out PASSED atoms to save Context Window space for Synthesis LLM."""
-        reduced_atoms = []
-        for atom in report.results:
-            # Token-compression cascade: Drop boolean PASSED atoms
-            # to save context window, unless they have extracted quantitative data
-            status_str = atom.status.value if hasattr(atom.status, "value") else str(atom.status)
-            if status_str == "PASSED" and atom.extracted_data is None:
-                continue
+    def reduce_matrix(record: ExecutionRecord) -> LightweightMatrixDTO:
+        """Filters out PASSED atoms to save Context Window space for Synthesis LLM.
 
-            reduced_atom = ReducedAtomDTO(
-                tda_id=atom.tda_id,
-                status=status_str,
-                reasoning=atom.evaluation_reasoning,
-                source_quote=atom.source_quote,
-                extracted_data=atom.extracted_data.model_dump() if atom.extracted_data else None,
-            )
-            reduced_atoms.append(reduced_atom)
+        Iterates directly over ExecutionRecord.step_states → scorecard_atoms,
+        bypassing the need for V3ResultProjector.
 
-        logger.info("[MatrixReducer] Reduced %d atoms to %d for synthesis.", len(report.results), len(reduced_atoms))
+        Args:
+            record: The modern ExecutionRecord containing step_states with scorecard_atoms.
+
+        Returns:
+            A token-compressed LightweightMatrixDTO for the synthesis phase.
+        """
+        reduced_atoms: list[ReducedAtomDTO] = []
+        total_atoms = 0
+
+        for step_state in record.step_states.values():
+            for atom_id, atom in step_state.scorecard_atoms.items():
+                total_atoms += 1
+                status_str = atom.status if isinstance(atom.status, str) else str(atom.status)
+
+                # Token-compression cascade: Drop boolean PASSED atoms
+                # to save context window, unless they have extracted quantitative data
+                has_extracted_data = bool(atom.extracted_facts)
+                if status_str == "PASS" and not has_extracted_data:
+                    continue
+
+                # Extract first quote text if available
+                source_quote: str | None = None
+                if atom.exact_quotes:
+                    first_quote = atom.exact_quotes[0]
+                    source_quote = first_quote.quote if hasattr(first_quote, "quote") else None
+
+                extracted_data: dict[str, Any] | None = atom.extracted_facts if atom.extracted_facts else None
+
+                reduced_atom = ReducedAtomDTO(
+                    tda_id=atom_id,
+                    status=status_str,
+                    reasoning=atom.semantic_reasoning,
+                    source_quote=source_quote,
+                    extracted_data=extracted_data,
+                )
+                reduced_atoms.append(reduced_atom)
+
+        logger.info("[MatrixReducer] Reduced %d atoms to %d for synthesis.", total_atoms, len(reduced_atoms))
+
+        # Build dynamic global metrics from the step_states
+        evaluated = total_atoms
+        global_metrics: dict[str, Any] = {
+            "total_atoms": total_atoms,
+            "evaluated": evaluated,
+            "duration_ms": record.duration_ms,
+        }
 
         return LightweightMatrixDTO(
-            execution_id=report.execution_id,
+            execution_id=record.id,
             reduced_atoms=reduced_atoms,
-            global_metrics=report.global_metrics.model_dump(),
+            global_metrics=global_metrics,
         )

@@ -31,9 +31,6 @@ from backend_v2.exceptions import (
 )
 from backend_v2.hooks.scoring import recalculate
 from backend_v2.models.auth import SystemOrganizations, TokenData
-from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-from backend_v2.models.dtos.report.root import GlobalSynthesisDTO, ReportDataDto
 from backend_v2.models.state import (
     EvidenceOverrideDTO,
     TraceEvent,
@@ -50,6 +47,7 @@ from backend_v2.models.v2_core import (
     HumanOverrideDTO,
     HumanOverrideRequest,
     PromptBlock,
+    ReportDataDTO,
     ScorecardResponseDTO,
     Step,
     Workflow,
@@ -1199,8 +1197,8 @@ class ExecutionService:
         self,
         initiator: TokenData,
         execution_id: str,
-    ) -> ReportDataDto:
-        """Get the headless ReportDataDto for an execution."""
+    ) -> ReportDataDTO:
+        """Get the headless ReportDataDTO for an execution."""
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
         if execution.status != ExecutionStatus.PASSED:
@@ -1224,51 +1222,7 @@ class ExecutionService:
             execution_id, profile_id=None, accept_language=accept_language, custom_preface_md=None, local_time_str=None
         )
 
-        all_quotes = []
-        matrices = (full_dto.evaluative_matrices or []) + (full_dto.informational_matrices or [])
-        for matrix in matrices:
-            if matrix.cited_text_quote:
-                all_quotes.append(
-                    QuoteEvidenceDTO(
-                        quote=matrix.cited_text_quote,
-                        source_alias=[matrix.cited_source_id or "Unknown"],
-                        verified_source_ids=[],
-                        unverified_aliases=[],
-                        is_verified=False,
-                    )
-                )
-
-        unique_quotes = []
-        seen = set()
-        for q in all_quotes:
-            sig = (q.quote, tuple(q.verified_source_ids + q.unverified_aliases))
-            if sig not in seen:
-                seen.add(sig)
-                unique_quotes.append(q)
-
-        exec_summary = ""
-        if full_dto.layouts:
-            for layout in full_dto.layouts:
-                if layout.synthesis_blocks:
-                    for block in layout.synthesis_blocks:
-                        if block.get("type") == "markdown":
-                            exec_summary += block.get("text", "") + "\n\n"
-                        elif block.get("type") == "paragraph":
-                            exec_summary += block.get("text", "") + "\n\n"
-
-        if not exec_summary:
-            exec_summary = "Report generated successfully."
-            if full_dto.has_warning:
-                exec_summary = "Report generated with warnings."
-
-        return ReportDataDto(
-            execution_id=execution_id,
-            workflow_id=execution.workflow_id,
-            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-            global_synthesis=GlobalSynthesisDTO(executive_summary=exec_summary.strip(), urgency_level=0),
-            results=[],
-            hydrated_references={},
-        )
+        return full_dto
 
     async def get_scorecard_dto(
         self,
@@ -1320,10 +1274,17 @@ class ExecutionService:
 
         mapper = SduiMapperService()
 
-        view = mapper.map_report_to_sdui(dto)
+        view = mapper.map_report_to_sdui(dto, execution_id=execution_id)
 
-        if dto.global_synthesis and dto.global_synthesis.executive_summary:
-            view = view.model_copy(update={"title": dto.global_synthesis.executive_summary})
+        # Fallback if there are content blocks containing markdown text for the title
+        title_summary = ""
+        if dto.content_blocks:
+            for block in dto.content_blocks:
+                if block.get("type") in ("markdown", "paragraph"):
+                    title_summary += block.get("text", "") + " "
+
+        if title_summary:
+            view = view.model_copy(update={"title": title_summary.strip()[:100]})
 
         return view.model_dump(mode="json")
 

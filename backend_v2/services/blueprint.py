@@ -20,8 +20,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.linguistics import scan_report_for_slop
 from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO, LightweightMatrixOutput, ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.report.matrix import TraceMatrixPayloadDTO
-from backend_v2.models.dtos.report.scoring import TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import SystemConfigID, SystemLocale, VirtualSystemStepID, VisualIntent
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (

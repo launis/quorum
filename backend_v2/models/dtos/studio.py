@@ -10,7 +10,7 @@ from pydantic import Field
 
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
-from backend_v2.models.dtos.report.context import PromptContextDTO
+from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.v2_core import PromptBlock, Step, Workflow
 
 

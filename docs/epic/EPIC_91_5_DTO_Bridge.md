@@ -225,26 +225,59 @@ Tämä DTO-silta torjuu seuraavat järjestelmätason uhat ennen Epic 92/93 aloit
 
 ## 5. Toimeenpanosuunnitelma (Implementation Plan)
 
-### Phase 0: Coverage Bootstrap (Golden Master) & ResultProjector Interface
-Ennen kuin alkuperäinen moottori tuhotaan, sen antamat takuut on pelastettava.
-* **ResultProjector-rajapinnan määrittely:** Koska Epic 92 (DAG) operoi `AtomExecutionState`-tasolla ja Epic 93 (SDUI) vaatii `ReportDataDto`:ta, määritellään abstrakti rajapinta `ResultProjector`, jonka vastuulla on muuntaa atomitason tulokset `ReportDataDto`-muotoon topologisesti lajiteltuna.
-* **[MODIFY] `backend_v2/tests/test_data/...`**
-  - Konvertoidaan kaikki nykyiset mockit ja fixturet vastaamaan uuden DTO-kannan (`ReportDataDto`) rakennetta.
-  - Poistetaan orvot fixturet.
-  - Luodaan "Golden Master" -testit (Characterization Tests), jotka lukitsevat nykyisen liiketoimintalogiikan.
+> [!IMPORTANT]
+> **Phase A (Foundation Cleanup)** on pääosin valmis. Alla oleva tilannekatsaus päivitetty 2026-07-14.
 
-### Phase 1: DTO-Kannan Rakentaminen (Epic 91.5)
-Rakennetaan järjestelmän uusi Single Source of Truth (SSOT). Tier 3 -mandaatin mukaisesti tämä jaetaan useaan tiedostoon God Coden välttämiseksi.
-* **[NEW] `backend_v2/models/dtos/report/shared.py`**: Sisältää `ErrorDetailsDTO`.
-* **[MODIFY] `backend_v2/models/enums.py`**: Keskitetään kaikki globaalit tilat, mukaan lukien `ExecutionStatus` (Enum).
-* **[MODIFY] `backend_v2/settings.py`**: Keskitetään kaikki globaalit konfiguraatiot (kuten `AUTO_RESOLVE_POLICY` ja `MINIMUM_COMPLETENESS_THRESHOLD`).
-* **[NEW] `backend_v2/models/dtos/report/atoms.py`**: Sisältää `HydratedAtomDTO`, `ExtractedValueDTO` ja `AtomResultDTO`.
-* **[NEW] `backend_v2/models/dtos/report/metrics.py`**: Sisältää `ExecutionMetricsDTO`.
-* **[NEW] `backend_v2/models/dtos/report/root.py`**: Kokoaa moduulit yhteen ja määrittelee pääluokan `ReportDataDto`. Sisältää referentiaalisen eheyden validaattorit.
+### Phase A: Foundation Cleanup (Status)
+
+| Tehtävä | Kuvaus | Status |
+|---|---|---|
+| **A1** | Live Models siirto pois legacy-tiedostoista (`PromptContextDTO` → `prompt_context.py`) | ✅ Valmis |
+| **A2** | Aidosti orpojen legacy-tiedostojen poisto (`context.py`, `matrix.py`, `scoring.py`, `specialists.py`, `synthesis.py`, `validation.py`) | ✅ Valmis |
+| **A3** | `ReportDataDto` → `v2_core.ReportDataDTO` migraatio (tuotantokoodi: `execution.py`, `executions.py` router, `sdui_mapper_service.py`) | ✅ Valmis |
+| **A3+** | Testien korjaus, `MatrixReducer` refaktorointi, legacy `dtos/report/` -hakemiston ja `result_projector.py` lopullinen tuhoaminen | ☐ Toteutetaan seuraavaksi (ks. `implementation_plan.md`) |
+| **A4** | MatrixReducer Contradiction → `reduce_matrix(ExecutionRecord)` | ☐ Katettu A3+ -planimme sivuvaikutuksena |
+| **A5** | Puuttuvat DTO-asetukset: `AUTO_RESOLVE_POLICY` ja `MINIMUM_COMPLETENESS_THRESHOLD` → `settings.py` | ☐ Itsenäinen `/tier3-feature-refactor` -sessio |
+| **A6** | Golden Master Fixture Cleanup | ✅ De facto valmis: fixture-tiedostot deletoidaan A3+ -planissa, koska koko vanha DTO-malli tuhoutuu |
+
+### Phase B: Backend Features (Odottaa Phase A:n valmistumista)
+
+| Tehtävä | Kuvaus | Status |
+|---|---|---|
+| **B1** | SDUI Mapper Service täydentäminen | ☐ |
+| **B2** | PDF Generator `StrictUndefined` Enforcement | ☐ |
+| **B3** | Golden Master E2E Test (uusi, v2_core-pohjainen) | ☐ |
+| **B4** | Excel Export Modernization | ☐ |
+| **B5** | N/A Manual Override API | ☐ |
+
+### Phase C: Frontend Synchronization (Odottaa Phase B:n valmistumista)
+
+| Tehtävä | Kuvaus | Status |
+|---|---|---|
+| **C1** | Riverpod Cache Invalidation | ☐ |
+| **C2** | Sunset Legacy Frontend Models & Views | ☐ |
+| **C3** | XAI Evidence Cards | ☐ |
+| **C4** | Main Thread Jank Prevention (`Isolate.run()`) | ☐ |
 
 ---
 
 ## 6. Definition of Done (DoD)
-* Uudet Pydantic-mallit on koodattu ja testattu.
-* API palauttaa yksinomaan `ReportDataDto` -objekteja (topologisesti järjestettynä).
-* Käyttöliittymä ja PDF-generaattori eivät hajoa, vaan osaavat hakea tekstinsä O(1)-hakuna.* Vanhat DTO-mallit on tuhottu koodikannasta ja tietokannat resetoitu.
+
+### Phase A DoD (Foundation Cleanup)
+* ✅ `v2_core.ReportDataDTO` on koodattu ja toimii tuotannossa SSOT:na.
+* ✅ API (`executions.py` router) palauttaa yksinomaan `v2_core.ReportDataDTO` -objekteja.
+* ☐ Vanha `backend_v2/models/dtos/report/` -hakemisto on tuhottu koodikannasta.
+* ☐ `result_projector.py` (EnrichedResultProjector, V3ResultProjector) on tuhottu.
+* ☐ Kaikki testit käyttävät uutta `v2_core.ReportDataDTO` -mallia.
+* ☐ `settings.py` sisältää `AUTO_RESOLVE_POLICY` ja `MINIMUM_COMPLETENESS_THRESHOLD`.
+
+### Phase B DoD (Backend Features)
+* ☐ `SduiMapperService` tuottaa täydellisen `ReportView` -komponenttipuun.
+* ☐ PDF Generator käyttää `StrictUndefined` -moottoria.
+* ☐ Golden Master E2E -testi todistaa koko putken: `ExecutionRecord → ReportDataDTO → ReportView`.
+
+### Phase C DoD (Frontend Synchronization)
+* ☐ Flutter käyttää Riverpod O(1) -välimuistia ja Freezed-malleja.
+* ☐ Legacy frontend-mallit on tuhottu.
+* ☐ XAI Evidence Cards renderöidään SDUI-komponentteina.
+* ☐ `Isolate.run()` estää Main Thread Jank -ongelman.

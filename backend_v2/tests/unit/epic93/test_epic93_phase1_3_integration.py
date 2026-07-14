@@ -24,7 +24,6 @@ from backend_v2.api.dependencies import get_current_user_from_header, get_execut
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.report.root import ReportDataDto
 from backend_v2.models.view.sdui import (
     SduiQuoteCard,
     SduiWarningCard,
@@ -147,78 +146,6 @@ class TestPhase1QuoteEvidenceDTOAliasResolution:
 
 
 # ===========================================================================
-# PHASE 1: ReportDataDto headless contract
-# ===========================================================================
-
-
-class TestPhase1ReportDataDtoHeadless:
-    """Phase 1.1: Verify ReportDataDto is headless with only semantic data."""
-
-    def test_minimal_construction(self) -> None:
-        """ReportDataDto can be constructed with minimal data."""
-        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
-
-        dto = ReportDataDto(
-            execution_id="exe_1",
-            workflow_id="wf_1",
-            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-            global_synthesis=GlobalSynthesisDTO(executive_summary="Summary", urgency_level=0),
-            results=[],
-            hydrated_references={},
-        )
-        assert dto.global_synthesis is not None
-        assert dto.global_synthesis.executive_summary == "Summary"
-        assert dto.global_synthesis.urgency_level == 0
-        assert dto.results == []
-
-    def test_with_evidence_quotes(self) -> None:
-        """ReportDataDto carries atom results. (evidence_quotes deprecated in Phase 1)."""
-        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
-
-        dto = ReportDataDto(
-            execution_id="exe_1",
-            workflow_id="wf_1",
-            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-            global_synthesis=GlobalSynthesisDTO(executive_summary="With quotes", urgency_level=0),
-            results=[],
-            hydrated_references={},
-        )
-        assert dto.global_synthesis is not None
-        assert dto.global_synthesis.executive_summary == "With quotes"
-
-    def test_no_markdown_html_ui_fields(self) -> None:
-        """ReportDataDto must NOT contain Markdown/HTML/UI fields."""
-        field_names = set(ReportDataDto.model_fields.keys())
-        # These are the forbidden patterns from the Epic spec
-        forbidden_patterns = ["markdown", "html", "ui_", "render", "template", "layout"]
-        for pattern in forbidden_patterns:
-            for field in field_names:
-                assert pattern not in field.lower(), (
-                    f"Field '{field}' contains forbidden pattern '{pattern}' — "
-                    f"ReportDataDto must be headless (no presentation logic)"
-                )
-
-    def test_serialization_roundtrip(self) -> None:
-        """Pydantic model_dump/model_validate roundtrip succeeds."""
-        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
-
-        dto = ReportDataDto(
-            execution_id="exe_1",
-            workflow_id="wf_1",
-            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-            global_synthesis=GlobalSynthesisDTO(executive_summary="RT", urgency_level=3),
-            results=[],
-            hydrated_references={},
-        )
-        serialized = dto.model_dump(mode="json")
-        restored = ReportDataDto.model_validate(serialized, context={"alias_registry": {}})
-        assert restored.global_synthesis is not None
-        assert restored.global_synthesis.executive_summary == "RT"
-        assert restored.global_synthesis.urgency_level == 3
-        assert restored.results == []
 
 
 # ===========================================================================
@@ -367,59 +294,6 @@ class TestPhase3SduiModels:
 
 
 # ===========================================================================
-# PHASE 3: API Endpoint Integration Tests
-# ===========================================================================
-
-
-class TestPhase3ReportEndpoint:
-    """Phase 3.6: GET /{execution_id}/report returns headless ReportDataDto."""
-
-    def test_report_returns_200_with_dto_shape(self, override_dependencies: Any, mock_execution_service: Any) -> None:
-        """Headless endpoint returns clean JSON without SDUI wrapping."""
-        client = TestClient(app)
-        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
-
-        mock_dto = ReportDataDto(
-            execution_id="test_123",
-            workflow_id="wf_1",
-            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-            global_synthesis=GlobalSynthesisDTO(executive_summary="Headless test", urgency_level=5),
-            results=[],
-            hydrated_references={},
-        )
-        mock_execution_service.get_report_dto.return_value = mock_dto
-
-        response = client.get("/api/v2/execution/executions/test_123/report")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["global_synthesis"]["executive_summary"] == "Headless test"
-        assert data["global_synthesis"]["urgency_level"] == 5
-        assert "sections" not in data, "Headless endpoint must NOT contain SDUI sections"
-        assert "view_id" not in data, "Headless endpoint must NOT contain SDUI view_id"
-
-    def test_report_with_evidence_quotes(self, override_dependencies: Any, mock_execution_service: Any) -> None:
-        """Headless endpoint serializes QuoteEvidenceDTO correctly. (deprecated in Phase 1)."""
-        client = TestClient(app)
-        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
-
-        mock_dto = ReportDataDto(
-            execution_id="test_123",
-            workflow_id="wf_1",
-            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-            global_synthesis=GlobalSynthesisDTO(executive_summary="With evidence", urgency_level=0),
-            results=[],
-            hydrated_references={},
-        )
-        mock_execution_service.get_report_dto.return_value = mock_dto
-
-        response = client.get("/api/v2/execution/executions/test_123/report")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["global_synthesis"]["executive_summary"] == "With evidence"
 
 
 class TestPhase3SduiEndpoint:
@@ -519,20 +393,3 @@ class TestCrossPhaseIntegration:
 
         assert isinstance(blocks[0], SduiQuoteCard)
         assert isinstance(blocks[1], SduiWarningCard)
-
-    def test_report_dto_carries_pipeline_output(self) -> None:
-        """ReportDataDto can carry the full pipeline output."""
-        from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-        from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
-
-        dto = ReportDataDto(
-            execution_id="exe_1",
-            workflow_id="wf_1",
-            global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-            global_synthesis=GlobalSynthesisDTO(executive_summary="Pipeline test", urgency_level=2),
-            results=[],
-            hydrated_references={},
-        )
-        # Verify serialization preserves the pipeline
-        serialized = dto.model_dump(mode="json")
-        assert serialized["global_synthesis"]["executive_summary"] == "Pipeline test"

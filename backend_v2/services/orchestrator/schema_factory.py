@@ -166,7 +166,7 @@ class SchemaFactory:
         Radically stripped to enforce BaseTDAExtraction determinism and prevent Vertex AI state limits.
         """
         if "sp_7a8b9c0d1e2f3a4b" in schema_name:
-            from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
+            from backend_v2.models.v2_core import GlobalSynthesisDTO
 
             return GlobalSynthesisDTO
 

@@ -492,13 +492,9 @@ class DAGExecutor:
             # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
             if step_obj.task_blueprint == "sp_7a8b9c0d1e2f3a4b":
                 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
-                from backend_v2.services.orchestrator.result_projector import V3ResultProjector
 
                 try:
-                    v3_projector = V3ResultProjector()
-                    # We pass a copy of the current exec_record to the projector
-                    report_dto = v3_projector.project({"record": exec_record})
-                    lightweight_matrix = MatrixReducer.reduce_matrix(report_dto)
+                    lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
 
                     reduce_event = TraceEvent(
                         step_name="matrix_reducer", event_type="output", content=lightweight_matrix.model_dump()
@@ -507,7 +503,7 @@ class DAGExecutor:
                     async with _update_lock:
                         exec_record.execution_trace.append(reduce_event)
                         projector.apply_delta(reduce_event)
-                    logger.info("[DAGExecutor] Successfully applied V3ResultProjector and MatrixReducer pre-synthesis.")
+                    logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
                 except Exception as e:
                     logger.error(
                         "[DAGExecutor] Failed to project and reduce matrix pre-synthesis: %s", e, exc_info=True

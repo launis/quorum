@@ -63,31 +63,6 @@ class TestPipeBDestruction:
 class TestPhase1DTORefactoring:
     """Verify Phase 1 promises from phase1_dto_refactoring.md."""
 
-    def test_report_data_dto_exists_and_is_headless(self) -> None:
-        """PROMISE: 'ReportDataDto refaktoroidaan täysin irti esitystavasta.'.
-
-        The model must exist and contain semantic fields, not Markdown/HTML.
-        """
-        from backend_v2.models.dtos.report.root import ReportDataDto
-
-        # Verify the class exists
-        assert ReportDataDto is not None
-
-        # Verify it has the promised semantic fields
-        fields = ReportDataDto.model_fields
-        assert "execution_id" in fields, "Missing field: execution_id"
-        assert "workflow_id" in fields, "Missing field: workflow_id"
-        assert "global_synthesis" in fields, "Missing field: global_synthesis"
-        assert "results" in fields, "Missing field: results"
-
-        # Falsification: Verify NO Markdown/HTML contamination in field types
-        for field_name, field_info in fields.items():
-            field_type_str = str(field_info.annotation)
-            assert "markdown" not in field_type_str.lower(), (
-                f"BROKEN CONTRACT: ReportDataDto.{field_name} has Markdown type. "
-                "Phase 1 mandates headless semantic data only."
-            )
-
     def test_execution_state_exists_and_is_headless(self) -> None:
         """PROMISE: 'ExecutionState eivät enää sisällä Markdownia, HTML:ää tai UI-tageja.'."""
         from backend_v2.models.state import ExecutionState
@@ -167,7 +142,7 @@ class TestPhase1DTORefactoring:
 
         from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 
-        source = inspect.getsource(QuoteEvidenceDTO.resolve_and_verify_aliases)
+        source = inspect.getsource(QuoteEvidenceDTO.resolve_and_verify_aliases)  # type: ignore[arg-type]
         assert "logger" not in source, (
             "BROKEN CONTRACT: resolve_and_verify_aliases contains logging. "
             "Phase 1 mandates: 'No logging or side-effects inside the validator.'"

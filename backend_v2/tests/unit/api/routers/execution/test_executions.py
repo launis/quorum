@@ -1,3 +1,5 @@
+"""Test suite for execution router endpoints."""
+
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import AsyncMock
@@ -8,7 +10,7 @@ from fastapi.testclient import TestClient
 from backend_v2.api.dependencies import get_current_user_from_header, get_execution_service
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.dtos.report.root import ReportDataDto
+from backend_v2.models.v2_core import ReportDataDTO
 
 # Basic mock for user
 mock_user = TokenData(id="test-user-id", role=UserRole.ROOT, organization_id="root_org")
@@ -29,19 +31,13 @@ def mock_execution_service() -> Any:
 
 
 def test_get_execution_report_returns_raw_dto(override_dependencies: Any, mock_execution_service: Any) -> None:
-    # Integration test for /report headless endpoint
+    """Integration test for /report headless endpoint using v2_core.ReportDataDTO."""
     client = TestClient(app)
 
-    from backend_v2.models.dtos.report.metrics import ExecutionMetricsDTO
-    from backend_v2.models.dtos.report.root import GlobalSynthesisDTO
-
-    mock_dto = ReportDataDto(
-        execution_id="test_execution_123",
+    mock_dto = ReportDataDTO(
         workflow_id="wf_1",
-        global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-        global_synthesis=GlobalSynthesisDTO(executive_summary="Headless summary", urgency_level=0),
-        results=[],
-        hydrated_references={},
+        profile_id="prf_001",
+        global_score=72.5,
     )
     mock_execution_service.get_report_dto.return_value = mock_dto
 
@@ -49,13 +45,15 @@ def test_get_execution_report_returns_raw_dto(override_dependencies: Any, mock_e
 
     assert response.status_code == 200
     data = response.json()
-    assert data["global_synthesis"]["executive_summary"] == "Headless summary"
+    assert data["workflow_id"] == "wf_1"
+    assert data["profile_id"] == "prf_001"
+    assert data["global_score"] == 72.5
     # Ensure it's not wrapped in SDUI
     assert "sections" not in data
 
 
 def test_get_execution_sdui_returns_view(override_dependencies: Any, mock_execution_service: Any) -> None:
-    # Integration test for /sdui SDUI view endpoint
+    """Integration test for /sdui SDUI view endpoint."""
     client = TestClient(app)
 
     mock_sdui_view: dict[str, Any] = {

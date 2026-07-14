@@ -1,22 +1,9 @@
-import pytest
-from pydantic import ValidationError
-
 from backend_v2.models.domain.xai import (
     CitationExtension,
     ComparisonDataDTO,
     XAIOutputDTO,
 )
-from backend_v2.models.dtos.report.matrix import MatrixObservabilityDTO
 from backend_v2.models.enums import ReferenceTitle, XaiExtensionType
-
-
-def test_matrix_observability_dto_strictness() -> None:
-    """Test that MatrixObservabilityDTO forbids extra fields."""
-    dto = MatrixObservabilityDTO(true_atoms_count=5, false_atoms_count=2)
-    assert dto.true_atoms_count == 5
-
-    with pytest.raises(ValidationError):
-        MatrixObservabilityDTO(true_atoms_count=5, false_atoms_count=2, extra_field="should fail")  # type: ignore[call-arg]
 
 
 def test_xai_output_dto_polymorphic_extensions() -> None:
