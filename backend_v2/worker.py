@@ -4,6 +4,7 @@ Modernized for GraphEngine and TaskRegistry (V2.9).
 """
 
 import asyncio
+import json
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -12,6 +13,7 @@ from typing import Any
 import logfire
 from arq.connections import RedisSettings
 
+import backend_v2.hooks  # noqa: F401
 from backend_v2.core.registry import TaskRegistry
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
@@ -33,10 +35,12 @@ from backend_v2.models.v2_core import (
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import normalize_score_to_100
+from backend_v2.utils.redis_patcher import ASYNC_ACCUMULATOR_LUA
 from backend_v2.utils.scoring import get_scoring_engine
 
 # Initialize settings
@@ -44,13 +48,7 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 # Pre-register all hooks for background execution
-import json
-
-import backend_v2.hooks  # noqa: F401
-
 # --- Worker Job Tasks ---
-from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
-from backend_v2.utils.redis_patcher import ASYNC_ACCUMULATOR_LUA
 
 
 async def evaluate_chunk_job(
@@ -202,15 +200,18 @@ async def execute_workflow_job(
     """Background job to execute a workflow using GraphEngine.
 
     Args:
-        ctx (Any): Arq worker context containing initialized services.
-        workflow_id (str): ID of the workflow configuration to run.
-        inputs (dict): Raw input arguments for the workflow.
-        execution_id (str): ID of the execution record to update.
-        organization_id (str): Organization ID context.
-        user_id (str): User ID context.
+        ctx: Arq worker context containing initialized services.
+        workflow_id: ID of the workflow configuration to run.
+        inputs: Raw input arguments for the workflow.
+        execution_id: ID of the execution record to update.
+        organization_id: Organization ID context.
+        user_id: User ID context.
 
     Returns:
-        dict: The final workflow state.
+        The final workflow state.
+
+    Raises:
+        AppException: Inherited from execution logic.
     """
     msg = (
         f"[Job] Executing workflow: {workflow_id} "
@@ -513,6 +514,9 @@ async def generate_pdf_job(
 
     Returns:
         Status message string upon completion.
+
+    Raises:
+        AppException: If PDF generation fails.
     """
     await generate_pdf_task(execution_id, accept_language, profile_id)
     return f"PDF Generated for {execution_id}"
@@ -667,6 +671,9 @@ async def render_profile_job(
 
     Returns:
         Status message string upon completion.
+
+    Raises:
+        AppException: If profile synthesis fails.
     """
     await generate_profile_synthesis_and_pdf_task(execution_id, accept_language, profile_id, ctx.get("redis"))  # noqa: E501
     return f"Render Job Completed for {execution_id}"
@@ -687,7 +694,7 @@ async def generate_profile_synthesis_and_pdf_task(
         redis: Optional Redis context.
 
     Raises:
-        Exception: If synthesis or execution update fails.
+        AppException: If synthesis or execution update fails.
     """
     logger.info(f"[Task] Starting Async Text Synthesis for execution {execution_id} (Profile: {profile_id})")  # noqa: E501
     try:
@@ -844,6 +851,12 @@ async def generate_profile_synthesis_and_pdf_task(
         # Extract Synthesis from DAG Execution Trace (Epic 93 Phase 3/4)
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
 
+        synthesis_block_id = (
+            active_profile_dto.synthesis.synthesis_block_id
+            if active_profile_dto and active_profile_dto.synthesis
+            else None
+        )
+
         delta = None
         for evt in execution.execution_trace:
             # Check if it's an output event with dictionary content
@@ -853,23 +866,29 @@ async def generate_profile_synthesis_and_pdf_task(
                 if "synthesized_markdown" in content or "content_blocks" in content:
                     delta = content
                     break
+                elif synthesis_block_id and synthesis_block_id in content:
+                    delta = {"synthesized_markdown": content[synthesis_block_id]}
+                    break
 
         if delta:
             # Enforce Fail-Fast Hydration (No Naked Dict Extraction)
             cache = RenderedSynthesisCache.model_validate(delta)
-
-            # Add new synthesis to record
-            current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
-            pid: str = profile_id if profile_id is not None else "default"
-            current_syntheses[pid] = cache
-            dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
-            update_payload: dict[str, Any] = {"profile_syntheses": dict_syntheses}
-
-            await repo.update_execution(execution_id, update_payload)
-
-            logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
         else:
-            logger.warning(f"Synthesis payload not found for execution {execution_id}. DAG execution incomplete?")
+            logger.warning(
+                f"Synthesis payload not found for execution {execution_id}. Falling back to empty synthesis cache (SDUI only mode)."
+            )
+            cache = RenderedSynthesisCache()
+
+        # Add new synthesis to record
+        current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
+        pid: str = profile_id if profile_id is not None else "default"
+        current_syntheses[pid] = cache
+        dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
+        update_payload: dict[str, Any] = {"profile_syntheses": dict_syntheses}
+
+        await repo.update_execution(execution_id, update_payload)
+
+        logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
 
         # Now trigger the statically cached PDF job based on our newly cached synthesis
         await _update_render_status("Koostetaan tulosteita valmiiksi...")

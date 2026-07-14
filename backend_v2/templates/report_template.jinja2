@@ -528,7 +528,8 @@
         <div style="page-break-before: always; margin-top: 30px;">
 
             {% set default_summary_title = l10n.scorecard_matrix_summary | default('Yhteenveto / Matrix Summary') %}
-            {% set summary_title = first_layout.title.resolve(lang_code) if first_layout and first_layout.title else default_summary_title %}
+            {% set first_layout = report_data.layouts[0] if report_data and report_data.layouts else none %}
+            {% set summary_title = (first_layout.title.get(lang_code, first_layout.title.get('en', default_summary_title))) if first_layout and first_layout.title else default_summary_title %}
             <h2 style="color: #1a237e; text-transform: uppercase; border-bottom: 2px solid #1a237e; padding-bottom: 8px; margin-bottom: 20px;">{{ summary_title }}</h2>
             <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">
                 <thead>

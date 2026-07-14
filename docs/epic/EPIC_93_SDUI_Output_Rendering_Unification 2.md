@@ -74,7 +74,8 @@ Järjestelmän sydän on **Data Transfer Object (DTO)** \-kerros (backend\_v2/mo
 
 Kahden putken malli poistetaan. Putki B (backend\_v2/hooks/synthesis.py) lakkautetaan. Kaikki sen kognitiiviset vastuut siirretään deterministiseen Putki A:han (DAG).
 
-* **Tietokantaohjattu Työnkulku:** Synteesi ja lainauksien haku lisätään tietokantaan ("prompt\_blocks") omina solmuinaan. Ne ketjutetaan "workflows"-taulussa ajettavaksi tiedonlouhinnan jälkeen (dependencies).  
+* **Tietokantaohjattu Työnkulku:** Synteesi ja lainauksien haku lisätään tietokantaan ("prompt_blocks") omina solmuinaan. Ne ketjutetaan "workflows"-taulussa ajettavaksi tiedonlouhinnan jälkeen (dependencies).  
+* **Polymorphic Rule Routing & Synthesis Mapping (Epic 94 lisäys):** Kun synteesi on dynaaminen solmu DAG:ssa (esim. `blk_8f7e6d5c4b3a2019`), emme voi enää luottaa kovakoodattuun `synthesized_markdown` -avaimeen. Tämän ratkaisee `OutputProfile`-konfiguraatio, johon lisätään valinnainen `synthesis_block_id`. `BlueprintTransformer` ja `Worker` lukevat tämän ID:n ja poimivat oikean tuloksen lennosta. Tämä irrottaa esityslogiikan täysin taustajärjestelmästä.
 * **Kognitiivisen Kuorman Hallinta (Strict Matrix Reducer):** Jotta uusi, yksinomaan DAG:ssa toimiva synteesivaihe onnistuu ilman Context Window -ylityksiä, työnkulkuun lisätään ohjelmallinen `matrix_reducer.py` -solmu.
     * **Toiminta:** Karsii aiempien louhintasolmujen tulosteista raskaan metadatan (kuten vektorimallien embed-taulukot) ja syöttää vain tislatun tiedon synteesi-LLM:lle.
     * **Tyyppisopimus:** Reducerin on palautettava tiukasti tyypitetty `LightweightMatrixDTO`. Se ei saa koskaan poistaa `OpaqueID`-viitteitä, jotta synteesin jäljitettävyys (XAI) säilyy.

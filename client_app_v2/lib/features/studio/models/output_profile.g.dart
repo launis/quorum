@@ -335,6 +335,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'matrix_visible_columns',
             'model_strategy',
             'tone_instruction',
+            'synthesis_block_id',
           ],
         );
         final val = _SynthesisConfigDTO(
@@ -384,6 +385,10 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             (v) =>
                 v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
           ),
+          synthesisBlockId: $checkedConvert(
+            'synthesis_block_id',
+            (v) => v as String?,
+          ),
         );
         return val;
       },
@@ -399,6 +404,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         'matrixVisibleColumns': 'matrix_visible_columns',
         'modelStrategy': 'model_strategy',
         'toneInstruction': 'tone_instruction',
+        'synthesisBlockId': 'synthesis_block_id',
       },
     );
 
@@ -415,6 +421,7 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'matrix_visible_columns': instance.matrixVisibleColumns,
       'model_strategy': instance.modelStrategy,
       'tone_instruction': instance.toneInstruction?.toJson(),
+      'synthesis_block_id': instance.synthesisBlockId,
     };
 
 _OutputProfile _$OutputProfileFromJson(
@@ -446,6 +453,7 @@ _OutputProfile _$OutputProfileFromJson(
         'language',
         'formatting_directives',
         'layouts',
+        'content_blocks',
       ],
     );
     final val = _OutputProfile(
@@ -539,6 +547,10 @@ _OutputProfile _$OutputProfileFromJson(
                 .toList() ??
             const [],
       ),
+      contentBlocks: $checkedConvert(
+        'content_blocks',
+        (v) => v as List<dynamic>? ?? const [],
+      ),
     );
     return val;
   },
@@ -556,6 +568,7 @@ _OutputProfile _$OutputProfileFromJson(
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
     'formattingDirectives': 'formatting_directives',
+    'contentBlocks': 'content_blocks',
   },
 );
 
@@ -586,6 +599,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'language': instance.language,
   'formatting_directives': instance.formattingDirectives,
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
+  'content_blocks': instance.contentBlocks,
 };
 
 const _$XaiExtensionTypeEnumMap = {
@@ -630,6 +644,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'language',
         'formatting_directives',
         'layouts',
+        'content_blocks',
       ],
     );
     final val = _EmbeddedOutputProfile(
@@ -713,6 +728,10 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
                 .toList() ??
             const [],
       ),
+      contentBlocks: $checkedConvert(
+        'content_blocks',
+        (v) => v as List<dynamic>? ?? const [],
+      ),
     );
     return val;
   },
@@ -728,6 +747,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
     'formattingDirectives': 'formatting_directives',
+    'contentBlocks': 'content_blocks',
   },
 );
 
@@ -754,4 +774,5 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'language': instance.language,
   'formatting_directives': instance.formattingDirectives,
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
+  'content_blocks': instance.contentBlocks,
 };

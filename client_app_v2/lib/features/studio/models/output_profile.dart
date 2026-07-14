@@ -111,6 +111,7 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     List<String> matrixVisibleColumns,
     @JsonKey(name: 'model_strategy') String? modelStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
+    @JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,
   }) = _SynthesisConfigDTO;
 
   factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>
@@ -146,6 +147,7 @@ abstract class OutputProfile with _$OutputProfile {
     @Default([])
     List<String> formattingDirectives,
     @Default([]) List<OutputLayoutBlock> layouts,
+    @JsonKey(name: 'content_blocks') @Default([]) List<dynamic> contentBlocks,
   }) = _OutputProfile;
 
   factory OutputProfile.fromJson(Map<String, dynamic> json) =>
@@ -177,6 +179,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     @Default([])
     List<String> formattingDirectives,
     @Default([]) List<OutputLayoutBlock> layouts,
+    @JsonKey(name: 'content_blocks') @Default([]) List<dynamic> contentBlocks,
   }) = _EmbeddedOutputProfile;
 
   factory EmbeddedOutputProfile.fromJson(Map<String, dynamic> json) =>

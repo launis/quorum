@@ -853,6 +853,8 @@ class BlueprintTransformer:
         synthesis_md = None
         scoring_out = None
 
+        synthesis_block_id = profile.synthesis.synthesis_block_id if profile.synthesis else None
+
         for dto in results:
             if dto.block_id == VirtualSystemStepID.SCORING_RESULT.value and isinstance(dto.payload, dict):
                 scoring_out = dto.payload
@@ -861,18 +863,23 @@ class BlueprintTransformer:
             if dto.block_id == VirtualSystemStepID.SYNTHESIZED_MARKDOWN.value and dto.payload:
                 synthesis_md = dto.payload
 
+            # Epic 94: Polymorphic dynamic block mapping
+            if synthesis_block_id and isinstance(dto.payload, dict) and synthesis_block_id in dto.payload:
+                synthesis_md = dto.payload[synthesis_block_id]
+
         profile_cache = execution.profile_syntheses.get(resolved_pid)
         original_synthesis_md = synthesis_md
         section_syntheses: dict[str, list[dict[str, Any]]] = {}
         row_explanations_cache: dict[str, str] = {}
         row_curated_quotes_cache: dict[str, list[str]] = {}
         xai_highlights_cache: list[Any] = []
-        content_blocks = None
+        content_blocks = [b.copy() for b in profile.content_blocks] if profile.content_blocks else []
 
         if profile_cache:
             section_syntheses = profile_cache.section_syntheses or {}
-            content_blocks = profile_cache.content_blocks or None
-            synthesis_md = original_synthesis_md
+            # Epic 94: Do NOT overwrite profile.content_blocks with cached synthesis blocks!
+            # The OutputProfile is the Single Source of Truth for SDUI layout.
+            synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
             row_explanations_cache = profile_cache.row_explanations or {}
             row_curated_quotes_cache = profile_cache.row_curated_quotes or {}
             xai_highlights_cache = profile_cache.xai_highlights or []
@@ -1118,7 +1125,7 @@ class BlueprintTransformer:
         try:
             layouts_list = self._build_layouts(layout_defs, all_parsed_matrices, section_syntheses)
 
-            if synthesis_md and not content_blocks:
+            if synthesis_md:
                 allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
                     "h1",
                     "h2",
@@ -1152,7 +1159,22 @@ class BlueprintTransformer:
                 ]
                 allowed_attributes = {"*": ["class", "id"], "a": ["href", "title", "target"]}
                 safe_md = bleach.clean(str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True)
-                content_blocks = [{"block_type": "markdown", "text": safe_md}]
+
+                injected = False
+                if synthesis_block_id and content_blocks:
+                    for c_block in content_blocks:
+                        if c_block.get("id") == synthesis_block_id:
+                            c_block["text"] = safe_md
+                            c_block["block_type"] = "markdown"
+                            injected = True
+                            break
+
+                if not injected and synthesis_block_id:
+                    msg = f"Synthesis mapping failed: No SDUI ContentBlock found with id '{synthesis_block_id}' in OutputProfile. Fallback is forbidden."
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    )
         except AppException:
             raise
         except Exception as e:

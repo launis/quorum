@@ -980,6 +980,10 @@ class SynthesisConfigDTO(V2CoreBase):
     """Configuration for LLM output synthesis length, masking, and formatting."""
 
     system_prompt: str | None = Field(default=None, description="Optional system prompt overriding default synthesis.")
+    synthesis_block_id: str | None = Field(
+        default=None,
+        description="Epic 94: Optional explicit reference to the extraction block UUID that generates the global synthesis (e.g. blk_8f7e6d5c4b3a2019).",
+    )
     model_strategy: str = Field(
         default="synthesis",
         description=(
@@ -1163,6 +1167,9 @@ class OutputProfile(V2CoreBase):
     strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
+    content_blocks: list[dict[str, Any]] = Field(
+        default_factory=list, description="Base SDUI content blocks predefined by the profile."
+    )
 
 
 class EmbeddedOutputProfile(V2CoreBase):
@@ -1207,6 +1214,9 @@ class EmbeddedOutputProfile(V2CoreBase):
     strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
+    content_blocks: list[dict[str, Any]] = Field(
+        default_factory=list, description="Base SDUI content blocks predefined by the profile."
+    )
 
 
 class Workflow(V2CoreBase):

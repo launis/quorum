@@ -39,7 +39,8 @@ class ReportController extends _$ReportController {
         variant: variant,
       );
 
-      if (rawData.containsKey('status') && rawData['status'] == 'pending') {
+      if (rawData.containsKey('status') &&
+          rawData['status'].toString().toLowerCase() == 'pending') {
         final msg = rawData['message'] as String?;
         ref.read(renderStatusProvider.notifier).updateStatus(msg);
 
@@ -54,7 +55,7 @@ class ReportController extends _$ReportController {
         continue;
       }
 
-      return await safeIsolateRun(() => ReportDataDto.fromJson(rawData));
+      return await safeIsolateRun(() => ReportDataDto.fromBackendResponse(rawData));
     }
   }
 }

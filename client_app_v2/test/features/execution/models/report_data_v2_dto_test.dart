@@ -56,22 +56,27 @@ void main() {
       );
     });
 
-    test('throws exception on unrecognized keys due to strict schema', () {
-      final json = {
+    test('strips unrecognized SDUI keys from RenderedReportResponse payload', () {
+      final Map<String, dynamic> json = {
         'execution_id': 'exec_123',
         'workflow_id': 'wf_abc',
-        'global_metrics': {
+        'global_metrics': <String, dynamic>{
           'total_atoms': 10,
           'evaluated': 8,
           'short_circuited_na': 2,
           'duration_ms': 1500,
         },
-        'results': [],
-        'hydrated_references': {},
-        'unrecognized_rogue_key': 'should_crash',
+        'results': <dynamic>[],
+        'hydrated_references': <String, dynamic>{},
+        'scoring_strategy': 'WATERFALL', // SDUI Extra Key
+        'user_name': 'tester', // SDUI Extra Key
+        'unrecognized_rogue_key': 'should_be_stripped',
       };
 
-      expect(() => ReportDataDto.fromJson(json), throwsA(anything));
+      // It should no longer crash, but successfully parse the allowed keys
+      final dto = ReportDataDto.fromBackendResponse(json);
+      
+      expect(dto.executionId, 'exec_123');
     });
 
     test(

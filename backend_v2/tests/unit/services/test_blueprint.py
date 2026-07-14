@@ -1622,6 +1622,33 @@ async def test_blueprint_slop_scanning_applied_successfully(mock_repo_transforme
     )
     mock_repo_transformer.get_workflow.return_value = mock_workflow
 
+    mock_profiles = fix_mock_dict(
+        [
+            {
+                "id": "prf_dddd1111dddd1111",
+                "slug": "default",
+                "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                "workflow_id": "wf_1234abcd1234abcd",
+                "synthesis": {"synthesis_block_id": "blk_synthesis_999"},
+                "content_blocks": [{"id": "blk_synthesis_999", "block_type": "markdown", "text": ""}],
+                "layouts": [
+                    {
+                        "preset_view": "1d_metrics",
+                        "text_delivery_mode": "full",
+                        "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
+                "display_scale": "original",
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
+                "max_extension_items": 2,
+                "strictness_level": 85,
+            }
+        ]
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = mock_profiles
+
     mock_repo_transformer.get_system_config.return_value = {
         "id": "sys_e0b2a3c4d5e6f7a8",
         "slug": "performative_lexicons",

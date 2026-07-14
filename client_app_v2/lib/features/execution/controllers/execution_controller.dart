@@ -34,9 +34,20 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
   final response = await dio.get('/execution/executions');
 
   final List<dynamic> data = response.data as List;
-  return data
-      .map((e) => ExecutionRecord.fromJson(e as Map<String, dynamic>))
-      .toList();
+  
+  // Phase 9 Strictness: The backend returns full database models but ExecutionRecord
+  // uses disallowUnrecognizedKeys: true. We must strip unrecognized keys.
+  const allowedKeys = {
+    'id', 'workflow_id', 'status', 'trace_version', 'strictness_level',
+    'created_at', 'cost_estimate', 'metadata', 'error', 'is_resumable',
+    'frozen_context', 'step_states', 'results', 'report_data'
+  };
+
+  return data.map((e) {
+    final map = Map<String, dynamic>.from(e as Map<String, dynamic>);
+    map.removeWhere((key, value) => !allowedKeys.contains(key));
+    return ExecutionRecord.fromJson(map);
+  }).toList();
 }
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
@@ -162,7 +173,7 @@ class ExecutionController extends _$ExecutionController {
 
       // Epic 14: Guard against 202 Accepted pending synthesis poll
       if (renderData.containsKey('status') &&
-          renderData['status'] == 'pending') {
+          renderData['status'].toString().toLowerCase() == 'pending') {
         return; // Synthesis is still running, abort parsing
       }
 

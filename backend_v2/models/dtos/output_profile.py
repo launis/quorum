@@ -3,7 +3,7 @@
 These models handle the ingestion and output formats for the Output Profile REST APIs.
 """
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field
 
@@ -108,6 +108,10 @@ class OutputProfileCreateDTO(V2CoreBase):
         LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
     ]
     layouts: Annotated[list[OutputLayoutBlock], Field(default_factory=list, description="Sequence of layouts.")]
+    content_blocks: Annotated[
+        list[dict[str, Any]],
+        Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
+    ]
 
 
 class OutputProfileUpdateDTO(V2CoreBase):
@@ -192,6 +196,10 @@ class OutputProfileUpdateDTO(V2CoreBase):
         LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
     ]
     layouts: Annotated[list[OutputLayoutBlock] | None, Field(default=None, description="Sequence of layouts.")]
+    content_blocks: Annotated[
+        list[dict[str, Any]] | None,
+        Field(default=None, description="Base SDUI content blocks predefined by the profile."),
+    ]
 
 
 class OutputProfileResponseDTO(BaseResponseDTO):
@@ -240,3 +248,4 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
     layouts: list[OutputLayoutBlock]
+    content_blocks: list[dict[str, Any]] = Field(default_factory=list)

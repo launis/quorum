@@ -33,6 +33,7 @@ The Flutter Frontend (`client_app_v2`), however, still uses the obsolete `Report
 - [ ] Implement a unified `SduiNodeRenderer` widget that uses Dart 3 `switch` expressions on `SDUIComponentType` to determine the layout (e.g., `hero_insight`, `bullet_list`, `alert_box`).
 - [ ] Ensure all dynamic strings utilize exact matching without fallback generic strings (`ki_strict_translation_fallback_mandate`).
 - [ ] Implement `MatrixReducer` compatibility on the frontend to render compressed Token Matrices.
+- [ ] Incorporate **Polymorphic Rule Routing & Synthesis Mapping** by ensuring the frontend correctly parses dynamically mapped `global_synthesis` blocks (driven by the backend's `OutputProfile.synthesis_block_id` injection).
 
 ### Phase 4: Erase Legacy Models & Views
 **Goal:** Clean up the codebase to enforce SSOT.

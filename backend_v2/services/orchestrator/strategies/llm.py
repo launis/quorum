@@ -340,6 +340,7 @@ class LLMNodeStrategy(NodeStrategy):
             schema_map["_audit_signature"] = _SCHEMA_BLOCK_SYSTEM
             schema_map["inputs"] = _SCHEMA_BLOCK_TEXT
             schema_map["raw_inputs"] = _SCHEMA_BLOCK_TEXT
+            schema_map["matrix_reducer"] = _SCHEMA_BLOCK_SYSTEM
 
         criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id or ""))
 

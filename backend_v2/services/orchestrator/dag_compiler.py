@@ -65,7 +65,7 @@ class DAGCompilerService:
                         raise WorkflowCompilationError(step_id=step.id, message=msg)
                 # Check $steps
                 elif root_namespace.startswith("$steps"):
-                    if root_namespace == "$steps":
+                    if root_namespace in ["$steps", "$steps.matrix_reducer"]:
                         continue
 
                     if root_namespace not in available_keys:

@@ -27,12 +27,28 @@ abstract class ReportDataDto with _$ReportDataDto {
   factory ReportDataDto.fromJson(Map<String, dynamic> json) =>
       _$ReportDataDtoFromJson(json);
 
+  factory ReportDataDto.fromBackendResponse(Map<String, dynamic> json) {
+    // Tier 4 Bugfix: Strip RenderedReportResponse SDUI keys from the payload
+    // to comply with ReportDataDto's disallowUnrecognizedKeys strictness.
+    const allowedKeys = {
+      'execution_id',
+      'workflow_id',
+      'global_metrics',
+      'global_synthesis',
+      'results',
+      'hydrated_references',
+    };
+    final filtered = Map<String, dynamic>.from(json)
+      ..removeWhere((key, value) => !allowedKeys.contains(key));
+    return _$ReportDataDtoFromJson(filtered);
+  }
+
   /// Parses a heavy raw JSON string into a ReportDataDto entirely off the Main Thread.
   /// This prevents Main Thread Jank when handling large payloads.
   static Future<ReportDataDto> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
       final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
-      return ReportDataDto.fromJson(decoded);
+      return ReportDataDto.fromBackendResponse(decoded);
     });
   }
 }

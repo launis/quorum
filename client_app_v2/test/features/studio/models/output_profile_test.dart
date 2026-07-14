@@ -39,6 +39,9 @@ void main() {
           },
           'language': 'fi',
           'formatting_directives': ['directive 1', 'directive 2'],
+          'content_blocks': [
+            {'id': 'blk_123', 'block_type': 'markdown', 'text': 'test'},
+          ],
         };
 
         final profile = EmbeddedOutputProfile.fromJson(jsonPayload);
@@ -58,10 +61,30 @@ void main() {
           'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
+        'content_blocks': [
+          {'id': 'blk_123', 'block_type': 'markdown', 'text': 'test'},
+        ],
       };
 
       final profile = OutputProfile.fromJson(jsonPayload);
       expect(profile.workflowId, 'wf_9d68c573802341db');
+    });
+  });
+
+  group('SynthesisConfigDTO JSON Parsing', () {
+    test('Should parse SynthesisConfigDTO with synthesis_block_id', () {
+      final jsonPayload = {
+        'historical_context_mode': 'DISABLED',
+        'enable_pii_masking': false,
+        'allowed_exports': ['pdf'],
+        'omit_empty_sections': true,
+        'allowed_mcp_tools': [],
+        'matrix_visible_columns': ['label'],
+        'synthesis_block_id': 'blk_8f7e6d5c4b3a2019',
+      };
+
+      final dto = SynthesisConfigDTO.fromJson(jsonPayload);
+      expect(dto.synthesisBlockId, 'blk_8f7e6d5c4b3a2019');
     });
   });
 }
