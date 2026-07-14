@@ -2,7 +2,7 @@
 
 - [x] [OK] Execute Plan B1: SDUI Mapper Service
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B1_sdui_mapper.md`
-- [ ] [NOK] Execute Plan B2: PDF Generator StrictUndefined Enforcement
+- [x] [OK] Execute Plan B2: PDF Generator StrictUndefined Enforcement
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B2_pdf_generator.md`
 - [ ] [NOK] Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state.
 - [ ] [NOK] Phase B3: Golden Master E2E Test (uusi, v2_core-pohjainen)

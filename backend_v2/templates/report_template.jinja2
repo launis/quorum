@@ -287,7 +287,7 @@
                             <h3 style="margin: 0; color: #1a1a1a; font-size: 16px;">{{ axis.name }}</h3>
                         {% if axis.score != None %}
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            {% if axis.forensics and axis.forensics.all_evidence_rejected %}
+                            {% if axis.contextual_override %}
                             <span style="color: #f57c00; font-size: 12px; font-weight: 500;">⚠️ {{ l10n.get('evidence_rejected', 'Arvosanan perusteet kumottu asiantuntijan toimesta') }}</span>
                             {% endif %}
                             <div style="background-color: #e3f2fd; color: #1976D2; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 14px;">
@@ -308,9 +308,9 @@
                     {% endif %}
                     
                     {% if layout.text_delivery_mode != 'none' %}
-                        {% if axis.justification %}
+                        {% if axis.row_explanation %}
                             <div style="font-size: 13px; line-height: 1.5; color: #333; margin-top: 8px;">
-                                {{ axis.justification | md | safe }}
+                                {{ axis.row_explanation | md | safe }}
                             </div>
                         {% endif %}
 
@@ -329,8 +329,8 @@
                                                     {% for quote_dto in atom.exact_quotes %}
                                                         <div style="font-style: italic; margin-bottom: 4px;">
                                                             "{{ quote_dto.quote }}"
-                                                            {% if quote_dto.source_alias %}
-                                                                <br><span style="font-size: 10px; color: #1976D2; font-weight: bold;">(Lähde: {{ quote_dto.source_alias | join(', ') }})</span>
+                                                            {% if quote_dto.verified_source_ids %}
+                                                                <br><span style="font-size: 10px; color: #1976D2; font-weight: bold;">(Lähde: {{ quote_dto.verified_source_ids | join(', ') }})</span>
                                                             {% endif %}
                                                         </div>
                                                     {% endfor %}
