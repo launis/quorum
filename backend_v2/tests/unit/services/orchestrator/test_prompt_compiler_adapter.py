@@ -131,6 +131,27 @@ def test_prompt_compiler_adapter_compile_prompt_fallback() -> None:
     assert prompt.dynamic_messages[2]["role"] == "user"
 
 
+def test_prompt_compiler_adapter_compile_prompt_empty_dynamic_fallback() -> None:
+    """Verifies that if no dynamic tags are present, the last message is moved to dynamic_msgs to prevent Vertex AI 400 errors."""
+    adapter = PromptCompilerAdapter()
+
+    messages = [
+        {"role": "system", "content": "Static system"},
+        {"role": "user", "content": "Just a plain user message without any execution parameters or error tags."}
+    ]
+
+    prompt = adapter.compile_prompt(messages)
+
+    # 1. System is static
+    assert len(prompt.static_messages) == 1
+    assert prompt.static_messages[0]["role"] == "system"
+
+    # 2. User message moved to dynamic as fallback
+    assert len(prompt.dynamic_messages) == 1
+    assert prompt.dynamic_messages[0]["role"] == "user"
+    assert "plain user message" in prompt.dynamic_messages[0]["content"]
+
+
 def test_prompt_caching_cryptographic_determinism_proof() -> None:
     """Cryptographic Determinism Proof: Modifying dynamic parameters across 10 distinct runs
     MUST result in a 100% identical SHA-256 hash for the static_messages segment.

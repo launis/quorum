@@ -873,7 +873,9 @@ class BlueprintTransformer:
         row_explanations_cache: dict[str, str] = {}
         row_curated_quotes_cache: dict[str, list[str]] = {}
         xai_highlights_cache: list[Any] = []
-        content_blocks = [b.copy() for b in profile.content_blocks] if profile.content_blocks else []
+        content_blocks: list[dict[str, Any]] = (
+            [b.copy() for b in profile.content_blocks] if profile.content_blocks else []
+        )
 
         if profile_cache:
             section_syntheses = profile_cache.section_syntheses or {}
@@ -1127,56 +1129,78 @@ class BlueprintTransformer:
         try:
             layouts_list = self._build_layouts(layout_defs, all_parsed_matrices, section_syntheses)
 
-            if synthesis_md:
-                allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
-                    "h1",
-                    "h2",
-                    "h3",
-                    "h4",
-                    "h5",
-                    "h6",
-                    "p",
-                    "br",
-                    "hr",
-                    "strong",
-                    "em",
-                    "u",
-                    "b",
-                    "i",
-                    "ul",
-                    "ol",
-                    "li",
-                    "a",
-                    "span",
-                    "div",
-                    "pre",
-                    "code",
-                    "blockquote",
-                    "table",
-                    "thead",
-                    "tbody",
-                    "tr",
-                    "th",
-                    "td",
-                ]
-                allowed_attributes = {"*": ["class", "id"], "a": ["href", "title", "target"]}
-                safe_md = bleach.clean(str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True)
-
-                injected = False
-                if synthesis_block_id and content_blocks:
-                    for c_block in content_blocks:
-                        if c_block.get("id") == synthesis_block_id:
+            injected = False
+            if synthesis_block_id and content_blocks:
+                new_content_blocks: list[dict[str, Any]] = []
+                for c_block in content_blocks:
+                    if c_block.get("id") == synthesis_block_id:
+                        if profile_cache and profile_cache.content_blocks and not synthesis_md:
+                            # Epic 94: SDUI Block Splicing
+                            for cache_b in profile_cache.content_blocks:
+                                new_content_blocks.append(cache_b.copy() if hasattr(cache_b, "copy") else cache_b)
+                            injected = True
+                        elif synthesis_md:
+                            # Legacy Markdown Fallback
+                            allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
+                                "h1",
+                                "h2",
+                                "h3",
+                                "h4",
+                                "h5",
+                                "h6",
+                                "p",
+                                "br",
+                                "hr",
+                                "strong",
+                                "em",
+                                "u",
+                                "b",
+                                "i",
+                                "ul",
+                                "ol",
+                                "li",
+                                "a",
+                                "span",
+                                "div",
+                                "pre",
+                                "code",
+                                "blockquote",
+                                "table",
+                                "thead",
+                                "tbody",
+                                "tr",
+                                "th",
+                                "td",
+                            ]
+                            allowed_attributes = {"*": ["class", "id"], "a": ["href", "title", "target"]}
+                            safe_md = bleach.clean(
+                                str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True
+                            )
                             c_block["text"] = safe_md
                             c_block["block_type"] = "markdown"
+                            new_content_blocks.append(c_block)
                             injected = True
-                            break
+                        else:
+                            # Epic 94 fix: If there is no synthesis_md and no cache, keep the original block
+                            # to maintain exact schema parity for Flutter and PDF renders.
+                            logger.warning(
+                                "[BlueprintTransformer] SDUI Block Splicing fallback triggered for '%s'. Missing synthesis_md.",
+                                synthesis_block_id,
+                            )
+                            new_content_blocks.append(c_block)
+                            injected = True
+                    else:
+                        new_content_blocks.append(c_block)
 
-                if not injected and synthesis_block_id:
-                    msg = f"Synthesis mapping failed: No SDUI ContentBlock found with id '{synthesis_block_id}' in OutputProfile. Fallback is forbidden."
-                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    )
+                if injected:
+                    content_blocks = new_content_blocks
+
+            if not injected and synthesis_block_id and profile.content_blocks:
+                msg = f"Synthesis mapping failed: No SDUI ContentBlock found with id '{synthesis_block_id}' in OutputProfile. Fallback is forbidden."
+                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
         except AppException:
             raise
         except Exception as e:

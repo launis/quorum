@@ -18,6 +18,7 @@ from backend_v2.models.v2_core import (
     ExecutionRecord,
     HumanOverrideRequest,
     JobAcceptedDTO,
+    ScorecardResponseDTO,
 )
 from backend_v2.models.view.sdui import ReportView
 
@@ -249,6 +250,19 @@ async def get_execution_report(
         AppException: If execution is not found or permission is denied.
     """
     return await execution_service.get_report_dto(initiator=current_user, execution_id=execution_id)
+
+
+@router.get("/{execution_id}/scorecard", response_model=ScorecardResponseDTO)
+async def get_execution_scorecard(
+    execution_id: str,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> ScorecardResponseDTO:
+    """Get the diagnostic scorecard for an execution.
+
+    Dynamically builds from the SSOT ReportDataDTO output to guarantee synchronization.
+    """
+    return await execution_service.get_scorecard_dto(initiator=current_user, execution_id=execution_id)
 
 
 @router.get("/{execution_id}/sdui", response_model=ReportView)

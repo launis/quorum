@@ -72,7 +72,9 @@ class ExecutionClient {
 
   /// Retrieves the diagnostic scorecard for an execution.
   Future<Map<String, dynamic>> getScorecard(String executionId) async {
-    final response = await _dio.get('/execution/scorecard/$executionId');
+    final response = await _dio.get(
+      '/execution/executions/$executionId/scorecard',
+    );
     return response.data as Map<String, dynamic>;
   }
 

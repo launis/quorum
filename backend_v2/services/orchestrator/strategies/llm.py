@@ -251,9 +251,12 @@ class LLMNodeStrategy(NodeStrategy):
 
         # Phase 4 Step 3: Wire Best-of-Three ensemble flag
         is_lightweight = any(block.is_lightweight_protocol for block in criteria_blocks_models)
+        if hook_state.metadata is None:
+            hook_state.metadata = {}
+
+        hook_state.metadata["execution_id"] = context.execution_id
+
         if is_lightweight:
-            if hook_state.metadata is None:
-                hook_state.metadata = {}
             hook_state.metadata["is_lightweight_extraction"] = True
 
         if "target_locale" not in context.metadata or not context.metadata["target_locale"]:

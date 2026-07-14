@@ -34,13 +34,24 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
   final response = await dio.get('/execution/executions');
 
   final List<dynamic> data = response.data as List;
-  
+
   // Phase 9 Strictness: The backend returns full database models but ExecutionRecord
   // uses disallowUnrecognizedKeys: true. We must strip unrecognized keys.
   const allowedKeys = {
-    'id', 'workflow_id', 'status', 'trace_version', 'strictness_level',
-    'created_at', 'cost_estimate', 'metadata', 'error', 'is_resumable',
-    'frozen_context', 'step_states', 'results', 'report_data'
+    'id',
+    'workflow_id',
+    'status',
+    'trace_version',
+    'strictness_level',
+    'created_at',
+    'cost_estimate',
+    'metadata',
+    'error',
+    'is_resumable',
+    'frozen_context',
+    'step_states',
+    'results',
+    'report_data',
   };
 
   return data.map((e) {

@@ -79,6 +79,7 @@ __all__ = [
     "HumanOverrideRequest",
     "HumanOverrideDTO",
     "ScorecardAtomDTO",
+    "ScorecardResponseDTO",
 ]
 
 
@@ -407,7 +408,7 @@ class PromptBlock(V2CoreBase):
         default_factory=list,
         description="List of requested XAI output extensions (e.g. 'justification', 'risk_flag').",
     )
-    # Epic 55: execution_persona field REMOVED. execution_persona_block_id now resides on the Step model.
+    # execution_persona field REMOVED. execution_persona_block_id now resides on the Step model.
     theory_grounding: TheoryGrounding | None = Field(
         default=None,
         description="Fetches and injects source theory as <theory_context>.",
@@ -931,7 +932,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
     cited_text_quote: str | None = None
     cited_web_citation: str | None = None
 
-    # Epic 6: XAI Output Extensions
+    # XAI Output Extensions
     coaching: str | None = None
     confidence: float | None = None
     falsification: str | None = None
@@ -948,7 +949,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
 
     level_breakdown: dict[str, str] | None = Field(
         default=None,
-        description="Epic 24 Breakdowns: DINA hits vs total per scale floor e.g. {'1.0': '5/5'}",
+        description="Breakdowns: DINA hits vs total per scale floor e.g. {'1.0': '5/5'}",
     )
 
     level_names: dict[str, str] | None = Field(
@@ -967,10 +968,10 @@ class MatrixScorecardRowDTO(V2CoreBase):
 
     used_evidence_ids: list[str] = Field(default_factory=list, description="Trace IDs used for this row.")
     evaluated_atoms: list[ScorecardAtomDTO] = Field(
-        default_factory=list, description="Epic 88: Flat presentation-only atoms evaluated for this row."
+        default_factory=list, description="Flat presentation-only atoms evaluated for this row."
     )
     clustered_row_sources: list[MCPAuditTrace] = Field(
-        default_factory=list, description="Epic 89: Purity Paradox resolution, cluster arrays at row level."
+        default_factory=list, description="Purity Paradox resolution, cluster arrays at row level."
     )
 
     tda_state: dict[str, Any] | None = Field(default=None, description="TDAState union representation.")
@@ -982,7 +983,11 @@ class SynthesisConfigDTO(V2CoreBase):
     system_prompt: str | None = Field(default=None, description="Optional system prompt overriding default synthesis.")
     synthesis_block_id: str | None = Field(
         default=None,
-        description="Epic 94: Optional explicit reference to the extraction block UUID that generates the global synthesis (e.g. blk_8f7e6d5c4b3a2019).",
+        description="Optional explicit reference to the extraction block UUID that generates the global synthesis (e.g. blk_8f7e6d5c4b3a2019).",
+    )
+    row_explanations_block_id: str | None = Field(
+        default=None,
+        description="Optional explicit reference to the extraction block UUID that generates row explanations.",
     )
     model_strategy: str = Field(
         default="synthesis",
@@ -1081,12 +1086,24 @@ class ReportDataDTO(V2CoreBase):
     )
 
     grouped_extensions: dict[str, list[Any]] | None = Field(
-        default_factory=dict, description="Keskitetysti ryhmitellyt XAI-laajennukset (esim. 'citation': [...])"
+        default_factory=dict, description="Centrally grouped XAI extensions (e.g. 'citation': [...])"
     )
 
     penalties_applied: list[str] = Field(
         default_factory=list, description="List of penalty warnings formatted for print."
     )
+
+
+class ScorecardResponseDTO(V2CoreBase):
+    """Diagnostic Scorecard for execution results."""
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+    execution_id: str
+    workflow_id: str
+    global_average: float | None = None
+    evaluative_matrices: list[MatrixScorecardRowDTO] = Field(default_factory=list)
+    informational_matrices: list[MatrixScorecardRowDTO] = Field(default_factory=list)
 
 
 class OutputLayoutBlock(V2CoreBase):
@@ -1162,13 +1179,16 @@ class OutputProfile(V2CoreBase):
         default=None, description="Nested definition for synthesis configurations."
     )
     include_diagnostic_scorecard: bool = Field(
-        default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
+        default=False, description="Enable appending the independent diagnostic scorecard."
     )
     strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[dict[str, Any]] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
+    )
+    matrix_column_labels: dict[str, I18nText] | None = Field(
+        default=None, description="SDUI control of the matrix table headers."
     )
 
 
@@ -1209,13 +1229,16 @@ class EmbeddedOutputProfile(V2CoreBase):
         default=None, description="Nested definition for synthesis configurations."
     )
     include_diagnostic_scorecard: bool = Field(
-        default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
+        default=False, description="Enable appending the independent diagnostic scorecard."
     )
     strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[dict[str, Any]] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
+    )
+    matrix_column_labels: dict[str, I18nText] | None = Field(
+        default=None, description="SDUI control of the matrix table headers."
     )
 
 
@@ -1255,7 +1278,7 @@ class Workflow(V2CoreBase):
     )
     system_audit_trail: bool = Field(
         default=False,
-        description="Epic 82: If True, activates the background XAI Citation Extraction tracking mechanism.",
+        description="If True, activates the background XAI Citation Extraction tracking mechanism.",
     )
     expected_inputs: list[ExpectedInput] = Field(
         default_factory=list,
@@ -1340,9 +1363,7 @@ class ExecutionCreate(V2CoreBase):
     )
     profile_id: str | None = Field(
         default=None,
-        description=(
-            "Epic 13 M1: Optional Opaque ID of the Output Profile to apply. If omitted, fallback to workflow default."
-        ),
+        description=("Optional Opaque ID of the Output Profile to apply. If omitted, fallback to workflow default."),
     )
     matrix_sampling_strategy: int = Field(
         default_factory=lambda: get_settings().matrix_sampling_limit,

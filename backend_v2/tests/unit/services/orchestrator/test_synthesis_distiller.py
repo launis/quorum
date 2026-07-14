@@ -21,13 +21,13 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
         "evaluations": [
             {
                 "atom_id": "a1",
-                "exact_quotes": [{"quote_text": "This is a valid quote."}],
+                "exact_quotes": [{"quote": "This is a valid quote."}],
                 "semantic_reasoning": "Strong reasoning trace.",
                 "some_extra": "data",
             },
             {
                 "atom_id": "a2",
-                "exact_quotes": [{"quote_text": "None"}],
+                "exact_quotes": [{"quote": "None"}],
                 "semantic_reasoning": "Weak reasoning.",
             },
         ],
@@ -45,7 +45,7 @@ def test_compress_synthesis_payload_caps_evaluations_at_20() -> None:
     evals = [
         {
             "atom_id": f"a{i}",
-            "exact_quotes": [{"quote_text": f"Quote {i}"}],
+            "exact_quotes": [{"quote": f"Quote {i}"}],
             "semantic_reasoning": f"Reason {i}",
         }
         for i in range(30)
@@ -73,10 +73,10 @@ def test_compress_synthesis_payload_strips_null_quotes() -> None:
             {
                 "atom_id": "a1",
                 "exact_quotes": [
-                    {"quote_text": "N/A"},
-                    {"quote_text": "null"},
-                    {"quote_text": "N/A - insufficient data"},
-                    {"quote_text": "[INDETERMINATE]"},
+                    {"quote": "N/A"},
+                    {"quote": "null"},
+                    {"quote": "N/A - insufficient data"},
+                    {"quote": "[INDETERMINATE]"},
                 ],
                 "semantic_reasoning": "Test",
             },
@@ -104,19 +104,20 @@ def test_compress_synthesis_payload_compresses_anchors() -> None:
 
 
 def test_assemble_matrices_to_explain_basic() -> None:
-    """Test basic assembly of matrices_to_explain from atom_quotes and scored payloads."""
+    """Test basic assembly of matrices_to_explain from scored payloads with evaluated_atoms."""
     dtos = [
-        StepOutputDTO(
-            step_id="scoring",
-            block_id="atom_quotes",
-            data_type="unknown",
-            payload={"blk_matrix1": ["Quote A from source.", "Quote B from source."]},
-        ),
         StepOutputDTO(
             step_id="step1",
             block_id="blk_matrix1",
             data_type="matrix",
-            payload={"normalized_score": 78.5, "level_breakdown": {"3": 2}},
+            payload={
+                "normalized_score": 78.5,
+                "level_breakdown": {"3": 2},
+                "evaluated_atoms": [
+                    {"atom_id": "a1", "exact_quotes": [{"quote": "Quote A from source."}]},
+                    {"atom_id": "a2", "exact_quotes": [{"quote": "Quote B from source."}]},
+                ],
+            },
         ),
     ]
     result = _assemble_matrices_to_explain(dtos)
@@ -130,7 +131,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
 
 
 def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
-    """Test that matrices without atom_quotes are excluded."""
+    """Test that matrices without evaluated_atoms are excluded."""
     dtos = [
         StepOutputDTO(
             step_id="step1",
@@ -147,16 +148,10 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
     """Test that matrices with empty quote lists are excluded."""
     dtos = [
         StepOutputDTO(
-            step_id="scoring",
-            block_id="atom_quotes",
-            data_type="unknown",
-            payload={"blk_matrix1": []},
-        ),
-        StepOutputDTO(
             step_id="step1",
             block_id="blk_matrix1",
             data_type="matrix",
-            payload={"normalized_score": 78.5},
+            payload={"normalized_score": 78.5, "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": []}]},
         ),
     ]
     result = _assemble_matrices_to_explain(dtos)
@@ -167,22 +162,22 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
     """Test that duplicate block_id entries are deduplicated (first wins)."""
     dtos = [
         StepOutputDTO(
-            step_id="scoring",
-            block_id="atom_quotes",
-            data_type="unknown",
-            payload={"blk_m1": ["Quote 1"]},
-        ),
-        StepOutputDTO(
             step_id="step1",
             block_id="blk_m1",
             data_type="matrix",
-            payload={"normalized_score": 50.0},
+            payload={
+                "normalized_score": 50.0,
+                "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": [{"quote": "Quote 1"}]}],
+            },
         ),
         StepOutputDTO(
             step_id="step2",
             block_id="blk_m1",
             data_type="matrix",
-            payload={"normalized_score": 90.0},
+            payload={
+                "normalized_score": 90.0,
+                "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": [{"quote": "Quote 2"}]}],
+            },
         ),
     ]
     result = _assemble_matrices_to_explain(dtos)

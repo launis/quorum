@@ -48,6 +48,14 @@ Koska meillä on nyt yksi täydellinen, polymorfinen lista lohkoja, PDF-generaat
 1. **Flutter-Käyttöliittymä:** Lukee lohkoja yksitellen ja palauttaa oikean natiivikomponentin katsomatta koodin isoa kuvaa (esim. `for block in blocks: buildWidget(block)`).
 2. **Staattinen PDF (Jinja2):** Jinja-template yksinkertaistuu massiivisesti. Se vain iteroi saman `blocks`-listan läpi ja tulostaa lohkon tyypin mukaisen HTML-pätkän. Kaikki monimutkainen taulukkologiikka on ratkaistu jo backendissä.
 
+### **4. SDUI Block Splicing (Output Profile Anchor Injection)**
+
+Jotta polymorfinen renderöinti pysyy "tyhmänä", backendin (`blueprint.py`) on hoidettava LLM:n tuottamien dynaamisten SDUI-lohkojen ja käyttäjän määrittelemän staattisen pohjan (Output Profile) yhdistäminen.
+
+* **Ongelma:** Jos LLM-lohkot ylikirjoittavat suoraan profiilin `content_blocks`-listan, menetetään staattinen rakenne (kuten asetetut alkusanat tai graafien selitteet).
+* **Ratkaisu (SDUI Block Splicing):** Backend käyttää "ankkurilohkoa" (`synthesis_block_id`). Se etsii Output Profilen lohkoista ankkurin, ja **splicettaa** (injektoi) LLM:n palauttaman polymorfisen lohkolistan suoraan sen tilalle. Näin Output Profilen staattinen asettelu säilyy ennallaan ja dynaamiset SDUI-lohkot asettuvat täydellisesti oikeaan väliin. Lopputuloksena muodostuu yksi valmis JSON-rakenne (`ReportDataDTO`), jota sekä Flutter että PDF-generaattori käyttävät täsmälleen samanlaisena ilman minkäänlaisia omia muokkauksia.
+* **Fallback- ja Pariteettisääntö:** Jos suorituksen aikana synteesi on puutteellinen tai epäonnistunut, alkuperäinen profiilin sisältölohko säilytetään ja palautetaan sellaisenaan ("splicing fallback"). Tämä varmistaa, että profiilin tiukka rakenne ei rikkoudu ja PDF/Flutter-puolet pysyvät täydellisessä pariteetissa. Tällöin PDF tai Flutter näyttää tyhjän lohkon omien sääntöjensä mukaisesti ilman, että niiden tarvitsee tehdä omia erillisiä laskenta- tai synteesioperaatioita.
+
 ---
 
 # **OSA 2: Arkkitehtuurin Kriittinen Jalostus ja Kooditason Ratkaisut**

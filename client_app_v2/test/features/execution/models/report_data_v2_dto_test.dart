@@ -56,28 +56,31 @@ void main() {
       );
     });
 
-    test('strips unrecognized SDUI keys from RenderedReportResponse payload', () {
-      final Map<String, dynamic> json = {
-        'execution_id': 'exec_123',
-        'workflow_id': 'wf_abc',
-        'global_metrics': <String, dynamic>{
-          'total_atoms': 10,
-          'evaluated': 8,
-          'short_circuited_na': 2,
-          'duration_ms': 1500,
-        },
-        'results': <dynamic>[],
-        'hydrated_references': <String, dynamic>{},
-        'scoring_strategy': 'WATERFALL', // SDUI Extra Key
-        'user_name': 'tester', // SDUI Extra Key
-        'unrecognized_rogue_key': 'should_be_stripped',
-      };
+    test(
+      'strips unrecognized SDUI keys from RenderedReportResponse payload',
+      () {
+        final Map<String, dynamic> json = {
+          'execution_id': 'exec_123',
+          'workflow_id': 'wf_abc',
+          'global_metrics': <String, dynamic>{
+            'total_atoms': 10,
+            'evaluated': 8,
+            'short_circuited_na': 2,
+            'duration_ms': 1500,
+          },
+          'results': <dynamic>[],
+          'hydrated_references': <String, dynamic>{},
+          'scoring_strategy': 'WATERFALL', // SDUI Extra Key
+          'user_name': 'tester', // SDUI Extra Key
+          'unrecognized_rogue_key': 'should_be_stripped',
+        };
 
-      // It should no longer crash, but successfully parse the allowed keys
-      final dto = ReportDataDto.fromBackendResponse(json);
-      
-      expect(dto.executionId, 'exec_123');
-    });
+        // It should no longer crash, but successfully parse the allowed keys
+        final dto = ReportDataDto.fromBackendResponse(json);
+
+        expect(dto.executionId, 'exec_123');
+      },
+    );
 
     test(
       'parseInBackground correctly parses JSON in a separate isolate',

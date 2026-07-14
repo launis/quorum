@@ -244,7 +244,7 @@ class TestPhase2PipelineUnification:
             "evaluations": [
                 {
                     "atom_id": "a1",
-                    "exact_quotes": [{"quote_text": "Valid quote."}],
+                    "exact_quotes": [{"quote": "Valid quote."}],
                     "semantic_reasoning": "Good reasoning.",
                     "internal_debug_trace": "MUST_BE_STRIPPED",
                 },
@@ -266,7 +266,7 @@ class TestPhase2PipelineUnification:
         evals = [
             {
                 "atom_id": f"a{i}",
-                "exact_quotes": [{"quote_text": f"Quote {i}"}],
+                "exact_quotes": [{"quote": f"Quote {i}"}],
                 "semantic_reasoning": f"Reason {i}",
             }
             for i in range(30)
@@ -289,22 +289,19 @@ class TestPhase2PipelineUnification:
 
         dtos = [
             StepOutputDTO(
-                step_id="scoring",
-                block_id="atom_quotes",
-                data_type="unknown",
-                payload={"blk_m1": ["Q1"], "blk_m2": []},
-            ),
-            StepOutputDTO(
                 step_id="s1",
                 block_id="blk_m1",
                 data_type="matrix",
-                payload={"normalized_score": 80.0},
+                payload={
+                    "normalized_score": 80.0,
+                    "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": [{"quote": "Q1"}]}],
+                },
             ),
             StepOutputDTO(
                 step_id="s2",
                 block_id="blk_m2",
                 data_type="matrix",
-                payload={"normalized_score": 60.0},
+                payload={"normalized_score": 60.0, "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": []}]},
             ),
         ]
         result = _assemble_matrices_to_explain(dtos)
@@ -346,7 +343,7 @@ class TestPhase1Phase2Integration:
             "evaluations": [
                 {
                     "atom_id": "a1",
-                    "exact_quotes": [{"quote_text": "Key evidence."}],
+                    "exact_quotes": [{"quote": "Key evidence."}],
                     "semantic_reasoning": "Solid reasoning.",
                 }
             ],

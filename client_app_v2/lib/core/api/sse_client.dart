@@ -66,12 +66,15 @@ class SseClient {
                 'workflow_id': raw['workflow_id'],
                 'status': raw['status'],
                 'trace_version': raw['trace_version'],
-                'step_states': raw['step_states'], // Lightweight Timeline status
+                'step_states':
+                    raw['step_states'], // Lightweight Timeline status
                 'frozen_context':
                     (raw['frozen_context'] is Map &&
-                            (raw['frozen_context'] as Map).containsKey('version_id'))
-                        ? {'version_id': raw['frozen_context']['version_id']}
-                        : null, // Only version_id for Drift Warning, strip heavy context
+                        (raw['frozen_context'] as Map).containsKey(
+                          'version_id',
+                        ))
+                    ? {'version_id': raw['frozen_context']['version_id']}
+                    : null, // Only version_id for Drift Warning, strip heavy context
               };
             });
             yield payload;

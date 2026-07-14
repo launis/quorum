@@ -336,6 +336,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'model_strategy',
             'tone_instruction',
             'synthesis_block_id',
+            'row_explanations_block_id',
           ],
         );
         final val = _SynthesisConfigDTO(
@@ -389,6 +390,10 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'synthesis_block_id',
             (v) => v as String?,
           ),
+          rowExplanationsBlockId: $checkedConvert(
+            'row_explanations_block_id',
+            (v) => v as String?,
+          ),
         );
         return val;
       },
@@ -405,6 +410,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         'modelStrategy': 'model_strategy',
         'toneInstruction': 'tone_instruction',
         'synthesisBlockId': 'synthesis_block_id',
+        'rowExplanationsBlockId': 'row_explanations_block_id',
       },
     );
 
@@ -422,6 +428,7 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'model_strategy': instance.modelStrategy,
       'tone_instruction': instance.toneInstruction?.toJson(),
       'synthesis_block_id': instance.synthesisBlockId,
+      'row_explanations_block_id': instance.rowExplanationsBlockId,
     };
 
 _OutputProfile _$OutputProfileFromJson(
@@ -452,6 +459,7 @@ _OutputProfile _$OutputProfileFromJson(
         'tone_instruction',
         'language',
         'formatting_directives',
+        'matrix_column_labels',
         'layouts',
         'content_blocks',
       ],
@@ -537,6 +545,12 @@ _OutputProfile _$OutputProfileFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      matrixColumnLabels: $checkedConvert(
+        'matrix_column_labels',
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+        ),
+      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -568,6 +582,7 @@ _OutputProfile _$OutputProfileFromJson(
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
     'formattingDirectives': 'formatting_directives',
+    'matrixColumnLabels': 'matrix_column_labels',
     'contentBlocks': 'content_blocks',
   },
 );
@@ -598,6 +613,9 @@ Map<String, dynamic> _$OutputProfileToJson(
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
   'formatting_directives': instance.formattingDirectives,
+  'matrix_column_labels': instance.matrixColumnLabels?.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks,
 };
@@ -643,6 +661,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'tone_instruction',
         'language',
         'formatting_directives',
+        'matrix_column_labels',
         'layouts',
         'content_blocks',
       ],
@@ -718,6 +737,12 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      matrixColumnLabels: $checkedConvert(
+        'matrix_column_labels',
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+        ),
+      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -747,6 +772,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
     'formattingDirectives': 'formatting_directives',
+    'matrixColumnLabels': 'matrix_column_labels',
     'contentBlocks': 'content_blocks',
   },
 );
@@ -773,6 +799,9 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
   'formatting_directives': instance.formattingDirectives,
+  'matrix_column_labels': instance.matrixColumnLabels?.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks,
 };

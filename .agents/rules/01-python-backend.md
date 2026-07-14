@@ -66,6 +66,12 @@
          <banned_pattern>Using XML tags like `<system_directive>`, `<role>`, or `<objective>` inside `seed_data.json` prompt fields (`ai_description`, `system_prompt`).</banned_pattern>
          <mandatory_pattern>Enforce the "De-Generator" mandate: write pure business logic using Markdown headings (e.g. `ROLE:`, `OBJECTIVE:`). The backend `prompt_factory.py` automatically handles all necessary XML wrappers for the LLM.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="internal_language_and_epic_ban">
+        <banned_pattern>Using the term "Epic" (or "EPIC") in any `description`, docstring, or comment. Using Finnish or any non-English language in comments, variable names, or internal descriptions.</banned_pattern>
+        <mandatory_pattern>All internal codebase documentation, inline comments, and Pydantic `description` fields MUST be written exclusively in English. The word "Epic" MUST NOT be used anywhere in the codebase to describe tasks or fields.</mandatory_pattern>
+        <catastrophic_reason>Hardcoding non-English terminology or agile tracking terms like 'Epic' pollutes the codebase with ephemeral/localized metadata that degrades over time and confuses cross-functional developers.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

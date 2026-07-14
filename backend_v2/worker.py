@@ -269,7 +269,7 @@ async def execute_workflow_job(
             else:
                 exec_record = execution_data
 
-            # Epic 47 Phase 2: Dynamic Strictness Level resolution
+            # Dynamic Strictness Level resolution
             profile_id = exec_record.output_profile_id
             if not profile_id and hasattr(workflow_def, "default_profile_id"):
                 profile_id = workflow_def.default_profile_id
@@ -685,7 +685,7 @@ async def generate_profile_synthesis_and_pdf_task(
     profile_id: str | None = None,
     redis: Any | None = None,  # noqa: E501
 ) -> None:
-    """Background Task. Synthesizes Markdown and enqueues PDF generation. Epic 14 M4.
+    """Background Task. Synthesizes Markdown and enqueues PDF generation.
 
     Args:
         execution_id: Target execution identifier.
@@ -848,7 +848,7 @@ async def generate_profile_synthesis_and_pdf_task(
         # V2 Integrity Mandate: Inject step_results explicitly for SynthesisHook
         metadata["step_results"] = final_inputs
 
-        # Extract Synthesis from DAG Execution Trace (Epic 93 Phase 3/4)
+        # Extract Synthesis from DAG Execution Trace (Phase 3/4)
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
 
         synthesis_block_id = (
@@ -856,28 +856,130 @@ async def generate_profile_synthesis_and_pdf_task(
             if active_profile_dto and active_profile_dto.synthesis
             else None
         )
+        row_explanations_block_id = (
+            active_profile_dto.synthesis.row_explanations_block_id
+            if active_profile_dto and active_profile_dto.synthesis
+            else None
+        )
 
-        delta = None
-        for evt in execution.execution_trace:
-            # Check if it's an output event with dictionary content
-            event_type = getattr(evt, "event_type", getattr(evt, "type", None))
-            content = getattr(evt, "content", None)
-            if event_type == "output" and isinstance(content, dict):
-                if "synthesized_markdown" in content or "content_blocks" in content:
-                    delta = content
-                    break
-                elif synthesis_block_id and synthesis_block_id in content:
-                    delta = {"synthesized_markdown": content[synthesis_block_id]}
-                    break
+        from backend_v2.core.hook_registry import HookDependencies, HookState
+        from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
+        from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
 
-        if delta:
-            # Enforce Fail-Fast Hydration (No Naked Dict Extraction)
-            cache = RenderedSynthesisCache.model_validate(delta)
-        else:
-            logger.warning(
-                f"Synthesis payload not found for execution {execution_id}. Falling back to empty synthesis cache (SDUI only mode)."
-            )
-            cache = RenderedSynthesisCache()
+        hook_state = HookState(
+            execution_id=execution_id,
+            workflow_id=execution.workflow_id,
+            metadata=metadata,
+            global_context_vars={},
+            inputs={"steps": final_inputs},
+        )
+        hook_deps = HookDependencies(
+            exec_repo=repo,
+            workflow_repo=repo,
+            comp_repo=repo,
+            prompt_block_repo=repo,
+            output_profile_repo=repo,
+            identity_repo=repo,
+            audit_repo=repo,
+            system_repo=repo,
+        )
+        hook_result = await synthesis_distiller_hook(hook_state, hook_deps)  # type: ignore
+        distilled_data = hook_result.state_delta or {}
+
+        distilled_inputs = distilled_data.get("distilled_inputs", "")
+        matrices_to_explain = distilled_data.get("matrices_to_explain", [])
+
+        synthesis_model_strategy = (
+            active_profile_dto.synthesis.model_strategy
+            if active_profile_dto and active_profile_dto.synthesis
+            else "synthesis"
+        )
+
+        synthesis_res = None
+        row_expl_res = None
+
+        async with asyncio.TaskGroup() as tg:
+            t_synth = None
+            t_row = None
+
+            if synthesis_block_id:
+                pb_dict = await repo.get_prompt_block(synthesis_block_id)
+                if pb_dict:
+                    s_pb = PromptBlock.model_validate(pb_dict)
+                    sys_prompt = s_pb.ai_description
+                    if (
+                        active_profile_dto
+                        and active_profile_dto.synthesis
+                        and active_profile_dto.synthesis.system_prompt
+                    ):
+                        sys_prompt = active_profile_dto.synthesis.system_prompt
+
+                    client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
+                    synth_messages: list[dict[str, Any]] = [
+                        {"role": "system", "content": sys_prompt},
+                        {"role": "user", "content": f"DATA TO SYNTHESIZE:\n{distilled_inputs}"},
+                    ]
+                    t_synth = tg.create_task(
+                        client.run_structured_task(
+                            messages=synth_messages,
+                            response_model=SynthesisOutputDTO,
+                        )
+                    )
+
+            if row_explanations_block_id and matrices_to_explain:
+                pb_dict = await repo.get_prompt_block(row_explanations_block_id)
+                if pb_dict:
+                    r_pb = PromptBlock.model_validate(pb_dict)
+                    client = await LLMClient.from_strategy("strict", repository=repo)
+                    row_messages: list[dict[str, Any]] = [
+                        {"role": "system", "content": r_pb.ai_description},
+                        {
+                            "role": "user",
+                            "content": f"MATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2)}",
+                        },
+                    ]
+                    t_row = tg.create_task(
+                        client.run_structured_task(
+                            messages=row_messages,
+                            response_model=MatrixExplanationsResult,
+                        )
+                    )
+
+        if t_synth and t_synth.result():
+            synth_dto, _ = t_synth.result()
+            synthesis_res = synth_dto
+
+        if t_row and t_row.result():
+            row_dto, _ = t_row.result()
+            row_expl_res = row_dto
+
+        import typing
+
+        sec_dict: dict[str, list[dict[str, Any]]] = {}
+        if synthesis_res and hasattr(synthesis_res, "section_syntheses"):
+            for sec in synthesis_res.section_syntheses:
+                raw_blocks = sec.content_blocks if hasattr(sec, "content_blocks") else []
+                sec_dict[sec.layout_id] = typing.cast(
+                    list[dict[str, Any]],
+                    [cb.model_dump(exclude_none=True) if hasattr(cb, "model_dump") else cb for cb in raw_blocks],
+                )
+
+        raw_content = (
+            synthesis_res.content_blocks
+            if synthesis_res and hasattr(synthesis_res, "content_blocks") and synthesis_res.content_blocks
+            else []
+        )
+        cache = RenderedSynthesisCache(
+            synthesized_markdown="",
+            content_blocks=typing.cast(
+                list[dict[str, Any]],
+                [b.model_dump(exclude_none=True) if hasattr(b, "model_dump") else b for b in raw_content],
+            ),
+            section_syntheses=sec_dict,
+            row_explanations={item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
+            if row_expl_res and hasattr(row_expl_res, "explanations")
+            else {},
+        )
 
         # Add new synthesis to record
         current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}

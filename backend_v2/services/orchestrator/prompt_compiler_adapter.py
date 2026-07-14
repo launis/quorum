@@ -201,6 +201,12 @@ class PromptCompilerAdapter:
                 new_msg.update(extra_props)
                 dynamic_msgs.append(new_msg)
 
+        # Fallback: Vertex AI caching requires at least one dynamic message.
+        # If no explicit dynamic tags were found, move the last user message to dynamic_msgs.
+        if not dynamic_msgs and static_msgs:
+            last_msg = static_msgs.pop()
+            dynamic_msgs.append(last_msg)
+
         return CompiledPrompt(
             static_messages=static_msgs,
             dynamic_messages=dynamic_msgs,

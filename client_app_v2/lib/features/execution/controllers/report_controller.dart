@@ -55,7 +55,9 @@ class ReportController extends _$ReportController {
         continue;
       }
 
-      return await safeIsolateRun(() => ReportDataDto.fromBackendResponse(rawData));
+      return await safeIsolateRun(
+        () => ReportDataDto.fromBackendResponse(rawData),
+      );
     }
   }
 }

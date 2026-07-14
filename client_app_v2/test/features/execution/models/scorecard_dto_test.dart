@@ -12,7 +12,7 @@ void main() {
         'extracted_facts': {'fact1': 'value'},
         'exact_quotes': [
           {'quote_text': 'quote 1'},
-          {'quote_text': 'quote 2'}
+          {'quote_text': 'quote 2'},
         ],
         'internal_logic_en': {
           'step_1_identify_premise': 'p',
@@ -42,7 +42,7 @@ void main() {
         'name': 'test_matrix',
         'label_i18n': {
           'default_locale': 'en',
-          'translations': {'en': 'Test', 'fi': 'Testi'}
+          'translations': {'en': 'Test', 'fi': 'Testi'},
         },
         'evaluated_atoms': [
           {

@@ -53,6 +53,7 @@ from backend_v2.models.v2_core import (
     Step,
     Workflow,
     WorkflowInputs,
+    ScorecardResponseDTO,
 )
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.document_extraction import DocumentExtractionService
@@ -1084,19 +1085,7 @@ class ExecutionService:
             )
 
         if fmt == "json":
-            transformer = BlueprintTransformer(
-                self.exec_repo,
-                self.workflow_repo,
-                self.comp_repo,
-                self.prompt_block_repo,
-                self.output_profile_repo,
-                self.identity_repo,
-                self.system_repo,
-            )
-            dto = await transformer.build_report_dto(
-                execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
-            )
-
+            dto = await self.get_report_dto(initiator, execution_id)
             return dto.model_dump(mode="json"), "application/json", None
 
         elif fmt == "html":
@@ -1119,12 +1108,12 @@ class ExecutionService:
                 self.identity_repo,
                 self.system_repo,
             )
-            dto = await transformer.build_report_dto(
+            rep_dto = await transformer.build_report_dto(
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
 
             pdf_service = PdfReportService(self.exec_repo, self.workflow_repo)
-            html_string = await pdf_service.generate_execution_html(execution_id, report_dto=dto)
+            html_string = await pdf_service.generate_execution_html(execution_id, report_dto=rep_dto)
 
             return html_string.encode("utf-8"), "text/html", f"execution_{execution_id}.html"
 
@@ -1170,12 +1159,12 @@ class ExecutionService:
                 self.identity_repo,
                 self.system_repo,
             )
-            dto = await transformer.build_report_dto(
+            rep_dto = await transformer.build_report_dto(
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
 
             pdf_service = PdfReportService(self.exec_repo, self.workflow_repo)
-            pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, report_dto=dto)
+            pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, report_dto=rep_dto)
 
             if resolved_pid == default_pid:
                 try:
@@ -1257,17 +1246,67 @@ class ExecutionService:
                 seen.add(sig)
                 unique_quotes.append(q)
 
-        exec_summary = "Report generated successfully."
-        if full_dto.has_warning:
-            exec_summary = "Report generated with warnings."
+        exec_summary = ""
+        if full_dto.layouts:
+            for layout in full_dto.layouts:
+                if layout.synthesis_blocks:
+                    for block in layout.synthesis_blocks:
+                        if block.get("type") == "markdown":
+                            exec_summary += block.get("text", "") + "\n\n"
+                        elif block.get("type") == "paragraph":
+                            exec_summary += block.get("text", "") + "\n\n"
+
+        if not exec_summary:
+            exec_summary = "Report generated successfully."
+            if full_dto.has_warning:
+                exec_summary = "Report generated with warnings."
 
         return ReportDataDto(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
             global_metrics=ExecutionMetricsDTO(total_atoms=0, evaluated=0, short_circuited_na=0, duration_ms=0),
-            global_synthesis=GlobalSynthesisDTO(executive_summary=exec_summary, urgency_level=0),
+            global_synthesis=GlobalSynthesisDTO(executive_summary=exec_summary.strip(), urgency_level=0),
             results=[],
             hydrated_references={},
+        )
+
+    async def get_scorecard_dto(
+        self,
+        initiator: TokenData,
+        execution_id: str,
+    ) -> ScorecardResponseDTO:
+        """Get the ScorecardResponseDTO directly."""
+        execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
+
+        if execution.status != ExecutionStatus.PASSED:
+            msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        accept_language = None
+        if "target_locale" in execution.metadata:
+            accept_language = str(execution.metadata["target_locale"])
+
+        transformer = BlueprintTransformer(
+            self.exec_repo,
+            self.workflow_repo,
+            self.comp_repo,
+            self.prompt_block_repo,
+            self.output_profile_repo,
+            self.identity_repo,
+            self.system_repo,
+        )
+        full_dto = await transformer.build_report_dto(
+            execution_id, profile_id=None, accept_language=accept_language, custom_preface_md=None, local_time_str=None
+        )
+
+        from backend_v2.models.v2_core import ScorecardResponseDTO
+
+        return ScorecardResponseDTO(
+            execution_id=execution_id,
+            workflow_id=full_dto.workflow_id,
+            global_average=full_dto.global_score,
+            evaluative_matrices=full_dto.evaluative_matrices or [],
+            informational_matrices=full_dto.informational_matrices or [],
         )
 
     async def get_sdui_view(

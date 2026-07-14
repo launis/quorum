@@ -22,6 +22,7 @@ from backend_v2.services.orchestrator.anchor_validation_service import AnchorVal
 from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine, AliasManifest
+from backend_v2.utils.llm_debug_logger import write_llm_telemetry_log
 from backend_v2.utils.normalization import normalize_evaluation_input
 
 logger = logging.getLogger(__name__)
@@ -772,6 +773,16 @@ class ChunkWorker:
                             logger.info(
                                 "[LLM Exec] Step %s | Call %d (MCP) completed in %.1f ms", step_id, index, llm_time_ms
                             )
+                            write_llm_telemetry_log(
+                                execution_id=step_metadata.get("execution_id", "unknown_exec")
+                                if step_metadata
+                                else "unknown_exec",
+                                step_id=step_id,
+                                duration_ms=int(llm_time_ms),
+                                cache_hit=getattr(loop_res.usage, "cache_hit", False) if loop_res.usage else False,
+                                tokens=loop_res.usage.total_tokens if loop_res.usage else 0,
+                                trigger_reason="initial" if index == 0 else f"ensemble_{index}",
+                            )
                             return (
                                 loop_res.result_data,
                                 loop_res.usage,
@@ -801,6 +812,16 @@ class ChunkWorker:
                             llm_time_ms = (time.time() - llm_start) * 1000
                             logger.info(
                                 "[LLM Exec] Step %s | Call %d completed in %.1f ms", step_id, index, llm_time_ms
+                            )
+                            write_llm_telemetry_log(
+                                execution_id=step_metadata.get("execution_id", "unknown_exec")
+                                if step_metadata
+                                else "unknown_exec",
+                                step_id=step_id,
+                                duration_ms=int(llm_time_ms),
+                                cache_hit=getattr(usg, "cache_hit", False) if usg else False,
+                                tokens=usg.total_tokens if usg else 0,
+                                trigger_reason="initial" if index == 0 else f"ensemble_{index}",
                             )
                             return res, usg, []
                     except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:

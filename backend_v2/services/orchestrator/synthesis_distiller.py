@@ -71,7 +71,11 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
                             for q in eq_list:
                                 if not q:
                                     continue
-                                q_text = (q.get("quote_text") or q.get("text", "")) if isinstance(q, dict) else str(q)
+                                q_text = (
+                                    (q.get("quote") or q.get("quote_text") or q.get("text", ""))
+                                    if isinstance(q, dict)
+                                    else str(q)
+                                )
                                 q_str = q_text.strip()
                                 if (
                                     q_str
@@ -230,9 +234,9 @@ def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], lang
 
 
 def _assemble_matrices_to_explain(available_dtos: list[StepOutputDTO]) -> list[dict[str, Any]]:
-    """Assemble the matrices_to_explain list by cross-referencing atom_quotes with normalized scores.
+    """Assemble the matrices_to_explain list by extracting quotes from Epic 94 evaluated_atoms.
 
-    Epic 93 Phase 2, Milestone 1.5: Migrated from synthesis.py L803-823.
+    Epic 94 Enriched Atom Graph migration: Extracts directly from MatrixScorecardRowDTO structures.
 
     Args:
         available_dtos: All step output DTOs from the execution state.
@@ -240,29 +244,32 @@ def _assemble_matrices_to_explain(available_dtos: list[StepOutputDTO]) -> list[d
     Returns:
         List of dicts with keys: matrix_id, score, justification.
     """
-    atom_quotes: dict[str, list[str]] = {}
-    for step_dto_obj in available_dtos:
-        if step_dto_obj.block_id == "atom_quotes" and isinstance(step_dto_obj.payload, dict):
-            atom_quotes.update(step_dto_obj.payload)
-        elif isinstance(step_dto_obj.payload, dict) and "atom_quotes" in step_dto_obj.payload:
-            aq = step_dto_obj.payload["atom_quotes"]
-            if isinstance(aq, dict):
-                atom_quotes.update(aq)
-
-    # Phase 2, Milestone 1.5: Cross-reference matrices with normalized_score
     matrices_to_explain_map: dict[str, dict[str, Any]] = {}
-
     alias_engine = AliasEngine()
 
     for step_dto_obj in available_dtos:
         payload = step_dto_obj.payload
         block_id = step_dto_obj.block_id
 
-        if isinstance(payload, dict) and "normalized_score" in payload and block_id in atom_quotes:
-            quotes_list = atom_quotes[block_id]
+        if isinstance(payload, dict) and "normalized_score" in payload and "evaluated_atoms" in payload:
+            quotes_list: list[str] = []
+
+            # Extract quotes from nested ScorecardAtomDTO -> QuoteEvidenceDTO
+            atoms = payload.get("evaluated_atoms", [])
+            if isinstance(atoms, list):
+                for atom in atoms:
+                    if isinstance(atom, dict) and "exact_quotes" in atom:
+                        exact_quotes = atom.get("exact_quotes", [])
+                        if isinstance(exact_quotes, list):
+                            for evidence in exact_quotes:
+                                if isinstance(evidence, dict) and "quote" in evidence and evidence["quote"]:
+                                    quotes_list.append(str(evidence["quote"]))
+
             if quotes_list and block_id not in matrices_to_explain_map:
                 matrix_alias = alias_engine.register(block_id, prefix="MX-")
-                justification_text = "\n".join([f"- {q}" for q in quotes_list])
+                # Deduplicate quotes to prevent redundant justifications
+                unique_quotes = list(dict.fromkeys(quotes_list))
+                justification_text = "\n".join([f"- {q}" for q in unique_quotes])
                 matrices_to_explain_map[block_id] = {
                     "real_matrix_id": block_id,
                     "matrix_id": matrix_alias,
