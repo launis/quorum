@@ -4,10 +4,14 @@
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B1_sdui_mapper.md`
 - [x] [OK] Execute Plan B2: PDF Generator StrictUndefined Enforcement
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B2_pdf_generator.md`
-- [ ] [NOK] Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state.
+- [x] [OK] Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state.
 - [ ] [NOK] Phase B3: Golden Master E2E Test (uusi, v2_core-pohjainen)
+  - Execute `docs/epic/tasks_epic_91_5_phase_b/B3_golden_master_e2e.md`
 - [ ] [NOK] Phase B4: Excel Export Modernization
+  - Execute `docs/epic/tasks_epic_91_5_phase_b/B4_excel_export_modernization.md`
+- [ ] [NOK] Invoke the Tier 1 Planner again to generate detailed plans for Phase B5.
 - [ ] [NOK] Phase B5: N/A Manual Override API
+  - Execute `docs/epic/tasks_epic_91_5_phase_b/B5_manual_override_api.md`
 - [ ] [NOK] Tier 2 Hardening
 - [ ] [NOK] Proxy Sunset & Consumer Migration
 - [ ] [NOK] Pre-Delete Audit
@@ -18,18 +22,18 @@ You MUST systematically execute the above tasks from top to bottom using the `/t
 
 # Session Handover Context
 **Achieved:**
-- Tier 1 Planning completed for Phase B1 and B2.
-- Tier 0 Red-Team Analysis and refinement completed for B1 and B2 (Fixed SDUI mapping and Jinja StrictUndefined vectors).
+- Tier 1 Planning completed for Phase B3 and B4.
+- B1 and B2 execution successfully completed, committed, and passing tests.
 
 **Learned:**
-- `v2_core.ReportDataDTO` is fully established as the SSOT. The SDUI Mapper and PDF Generator must adapt to its nested matrix and layout architecture instead of the deprecated flat list approach from Phase A.
-- Jinja template must strictly access `row_explanation` (not `justification`) and `verified_source_ids` (not `source_alias`) to prevent `StrictUndefined` failures.
+- Excel export logic in `execution.py` parses deeply nested trace data and needs to switch to using `ReportDataDTO.evaluative_matrices` and `ScorecardAtomDTO`s.
+- Existing E2E test `test_epic_chain_e2e.py` only mocks `ReportDataDTO` and must be transformed into a proper Golden Master testing the full generator pipeline.
 
 **Remaining:**
-- Execute B1 Plan (SDUI Mapper Service).
-- Execute B2 Plan (PDF Generator).
-- Re-run Tier 1 Planner for B3, B4, B5.
+- Execute B3 Plan (Golden Master E2E Test).
+- Execute B4 Plan (Excel Export Modernization).
+- Re-run Tier 1 Planner for B5.
 - Execute remaining phases.
 
 To resume execution in a new context window:
-`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B2_pdf_generator.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`
+`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B3_golden_master_e2e.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`
