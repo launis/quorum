@@ -137,7 +137,7 @@ def test_prompt_compiler_adapter_compile_prompt_empty_dynamic_fallback() -> None
 
     messages = [
         {"role": "system", "content": "Static system"},
-        {"role": "user", "content": "Just a plain user message without any execution parameters or error tags."}
+        {"role": "user", "content": "Just a plain user message without any execution parameters or error tags."},
     ]
 
     prompt = adapter.compile_prompt(messages)

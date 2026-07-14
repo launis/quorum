@@ -188,6 +188,22 @@ class BlueprintTransformer:
             return True
         return True
 
+    def _apply_pii_masking(self, text: str) -> str:
+        """Applies regex-based PII masking to text.
+
+        Args:
+            text: The raw text string.
+
+        Returns:
+            The redacted string.
+        """
+        import re
+
+        # Basic regex fallbacks. Can be replaced with Presidio later.
+        text = re.sub(r"[\w\.-]+@[\w\.-]+", "[REDACTED EMAIL]", text)
+        text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[REDACTED PHONE]", text)
+        return text
+
     def _extract_matrices_and_extensions(
         self,
         results: list[Any],
@@ -446,13 +462,18 @@ class BlueprintTransformer:
                 true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
                 total_atoms = len(matrix_payload.evaluated_atoms)
 
-            if b_id in row_explanations_cache:
+            if profile.synthesis and profile.synthesis.row_explanations_block_id and has_synthesis_cache:
+                if b_id not in row_explanations_cache:
+                    msg = f"Fail-Fast: row_explanations_cache missing entry for matrix '{b_id}'. Worker synthesis incomplete."
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
                 final_explanation = row_explanations_cache[b_id]
-            elif matrix_payload.justification and "[INDETERMINATE]" in matrix_payload.justification:
-                final_explanation = matrix_payload.justification
             else:
-                # Curation of Matrix Extensions, Step 2: Fall back to empty string instead of justification
-                final_explanation = ""
+                final_explanation = row_explanations_cache.get(b_id, "")
 
             evaluated_atoms_list = []
             clustered_row_sources = []
@@ -1129,6 +1150,15 @@ class BlueprintTransformer:
         try:
             layouts_list = self._build_layouts(layout_defs, all_parsed_matrices, section_syntheses)
 
+            if profile.synthesis and profile.synthesis.omit_empty_sections:
+                filtered_layouts = []
+                for layout in layouts_list:
+                    has_synth_content = bool(layout.synthesis_blocks)
+                    has_matrices = bool(layout.axes)
+                    if has_synth_content or has_matrices:
+                        filtered_layouts.append(layout)
+                layouts_list = filtered_layouts
+
             injected = False
             if synthesis_block_id and content_blocks:
                 new_content_blocks: list[dict[str, Any]] = []
@@ -1176,6 +1206,10 @@ class BlueprintTransformer:
                             safe_md = bleach.clean(
                                 str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True
                             )
+                            if profile.synthesis and profile.synthesis.length_constraint:
+                                max_len = profile.synthesis.length_constraint
+                                if len(safe_md) > max_len:
+                                    safe_md = safe_md[:max_len] + "..."
                             c_block["text"] = safe_md
                             c_block["block_type"] = "markdown"
                             new_content_blocks.append(c_block)
@@ -1183,7 +1217,7 @@ class BlueprintTransformer:
                         else:
                             # Epic 94 fix: If there is no synthesis_md and no cache, keep the original block
                             # to maintain exact schema parity for Flutter and PDF renders.
-                            logger.warning(
+                            logger.debug(
                                 "[BlueprintTransformer] SDUI Block Splicing fallback triggered for '%s'. Missing synthesis_md.",
                                 synthesis_block_id,
                             )
@@ -1194,6 +1228,23 @@ class BlueprintTransformer:
 
                 if injected:
                     content_blocks = new_content_blocks
+
+            if profile.synthesis and profile.synthesis.preamble_text:
+                from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+                compiler = PromptCompiler()
+                resolved_preamble = compiler.resolve_i18n(profile.synthesis.preamble_text, locale)
+                if resolved_preamble:
+                    content_blocks.insert(0, {"block_type": "markdown", "text": resolved_preamble, "id": "preamble"})
+
+            if profile.synthesis and profile.synthesis.enable_pii_masking:
+                for cb in content_blocks:
+                    if isinstance(cb, dict) and "text" in cb and isinstance(cb["text"], str):
+                        cb["text"] = self._apply_pii_masking(cb["text"])
+                for _layout_id, sec_blocks in section_syntheses.items():
+                    for sb in sec_blocks:
+                        if isinstance(sb, dict) and "text" in sb and isinstance(sb["text"], str):
+                            sb["text"] = self._apply_pii_masking(sb["text"])
 
             if not injected and synthesis_block_id and profile.content_blocks:
                 msg = f"Synthesis mapping failed: No SDUI ContentBlock found with id '{synthesis_block_id}' in OutputProfile. Fallback is forbidden."

@@ -77,11 +77,11 @@ async def test_execute_structured_task_retry_on_schema_error(
     retry_messages = calls[1].kwargs["messages"]
 
     # Should still only be 2 messages (system, user), no new assistant message appended
-    assert len(retry_messages.static_messages) == 2
+    assert len(retry_messages.static_messages) == 1
     assert retry_messages.static_messages[0]["role"] == "system"
-    assert retry_messages.static_messages[1]["role"] == "user"
-    assert "user_payload" in retry_messages.static_messages[1]["content"]
     assert len(retry_messages.dynamic_messages) == 1
+    assert retry_messages.dynamic_messages[0]["role"] == "user"
+    assert "user_payload" in retry_messages.dynamic_messages[0]["content"]
     assert "<PREVIOUS_SCHEMA_ERROR>" in retry_messages.dynamic_messages[0]["content"]
     assert "FIX THIS JSON" in retry_messages.dynamic_messages[0]["content"]
 
@@ -174,11 +174,11 @@ async def test_execute_structured_task_logical_error_retry(
     assert len(calls) == 2
     retry_messages = calls[1].kwargs["messages"]
 
-    assert len(retry_messages.static_messages) == 2
+    assert len(retry_messages.static_messages) == 1
     assert retry_messages.static_messages[0]["role"] == "system"
-    assert retry_messages.static_messages[1]["role"] == "user"
-    assert "user_payload" in retry_messages.static_messages[1]["content"]
     assert len(retry_messages.dynamic_messages) == 1
+    assert retry_messages.dynamic_messages[0]["role"] == "user"
+    assert "user_payload" in retry_messages.dynamic_messages[0]["content"]
     assert "<PREVIOUS_SCHEMA_ERROR>" in retry_messages.dynamic_messages[0]["content"]
     assert "Failed Output" in retry_messages.dynamic_messages[0]["content"]
 

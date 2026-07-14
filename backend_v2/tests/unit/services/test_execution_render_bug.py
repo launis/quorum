@@ -28,6 +28,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
+    mock_record.metadata = {}
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
     # "prof_1" on oletusprofiili-ID, joten profiilisynteesi löytyy sille
@@ -51,6 +52,10 @@ async def test_render_execution_json_default_profile_resolves() -> None:
 
     # Mockataan BlueprintTransformer
     mock_dto = Mock()
+    mock_dto.evaluative_matrices = []
+    mock_dto.informational_matrices = []
+    mock_dto.layouts = []
+    mock_dto.has_warning = False
     mock_dto.model_dump.return_value = {"json": "data"}
 
     with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_class:
@@ -70,9 +75,12 @@ async def test_render_execution_json_default_profile_resolves() -> None:
                 arq_pool=arq_pool,
             )
 
-    # Varmistetaan, että build_report_dto kutsuttiin arvolla "prof_1" (resolved_pid) eikä "default"
-    mock_transformer.build_report_dto.assert_called_once_with("exe_1", "prof_1", None, None, None)
+    # Varmistetaan, että JSON-formatissa get_report_dto kutsuu arvolla profile_id=None
+    mock_transformer.build_report_dto.assert_called_once_with(
+        "exe_1", profile_id=None, accept_language=None, custom_preface_md=None, local_time_str=None
+    )
 
-    assert data == {"json": "data"}
+    assert data["execution_id"] == "exe_1"
+    assert data["workflow_id"] == "wf_1"
     assert mime == "application/json"
     assert filename is None

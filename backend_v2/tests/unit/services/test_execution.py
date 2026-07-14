@@ -394,6 +394,7 @@ async def test_render_execution_json() -> None:
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
+    mock_record.metadata = {}
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
     mock_record.profile_syntheses = {"prof_1": Mock()}
@@ -416,6 +417,10 @@ async def test_render_execution_json() -> None:
 
     # Mocking BlueprintTransformer
     mock_dto = Mock()
+    mock_dto.evaluative_matrices = []
+    mock_dto.informational_matrices = []
+    mock_dto.layouts = []
+    mock_dto.has_warning = False
     mock_dto.model_dump.return_value = {"json": "data"}
 
     with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_class:
@@ -435,7 +440,8 @@ async def test_render_execution_json() -> None:
                 arq_pool=arq_pool,
             )
 
-    assert data == {"json": "data"}
+    assert data["execution_id"] == "exe_1"
+    assert data["workflow_id"] == "wf_1"
     assert mime == "application/json"
     assert filename is None
 

@@ -15,25 +15,34 @@ The Flutter Frontend (`client_app_v2`), however, still uses the obsolete `Report
 
 ## Execution Phases
 
+### Phase 0: Backend SDUI Output Rendering Unification & Hardening (Completed)
+**Goal:** Enforce Single Source of Truth (SSOT), Fail-Fast, and No Fallback mandates on the backend before the frontend consumes the new API.
+- [x] Wire `row_explanations_block_id` and `formatting_directives` into the Database Seed Data (`OutputProfile` → `SynthesisConfigDTO`).
+- [x] Enforce single-source synthesis prompt in `worker.py` (removing dual-source fallback chains).
+- [x] Implement deterministic Python enforcement (Sandwich Architecture) in `BlueprintTransformer` (e.g., PII masking, truncation, layout filtering).
+- [x] Eradicate legacy string fallbacks (`justification`) and dead code from `hook_prompts.py`.
+- [x] Re-align all backend unit tests (`test_execution.py`, `test_chat_parser.py`, `test_llm_task_executor.py`) with Pydantic V2 and the new `ReportDataDto` contract.
+- [x] Pass the `/tier2-hardening-backend` audit loop ensuring strict 30% TDD coverage.
+
 ### Phase 1: Freezed Models Synchronization
 **Goal:** Create the new Dart Freezed schemas to mirror `backend_v2/models/dtos/report/`.
-- [ ] Create `atom_result_dto.dart` mapped to backend `AtomResultDTO` (including `ExtractedValueDTO` and `ErrorDetailsDTO`).
-- [ ] Create `hydrated_atom_dto.dart` mapped to backend `HydratedAtomDTO` (including `SDUIComponentType` enum mappings in `enums.dart`).
-- [ ] Create `global_synthesis_dto.dart` mapped to backend `GlobalSynthesisDTO`.
-- [ ] Create `report_data_v2_dto.dart` representing the new root payload structure (`execution_id`, `global_metrics`, `global_synthesis`, `results`, `hydrated_references`).
+- [x] Create `atom_result_dto.dart` mapped to backend `AtomResultDTO` (including `ExtractedValueDTO` and `ErrorDetailsDTO`).
+- [x] Create `hydrated_atom_dto.dart` mapped to backend `HydratedAtomDTO` (including `SDUIComponentType` enum mappings in `enums.dart`).
+- [x] Create `global_synthesis_dto.dart` mapped to backend `GlobalSynthesisDTO`.
+- [x] Create `report_data_v2_dto.dart` representing the new root payload structure (`execution_id`, `global_metrics`, `global_synthesis`, `results`, `hydrated_references`).
 
 ### Phase 2: Riverpod State Providers (O(1) Data Binding)
 **Goal:** Abstract the `report_data_v2_dto` payload into granular Riverpod Notifiers to prevent full-screen re-renders.
-- [ ] Implement `HydratedReferenceProvider` to serve O(1) lookups for static `HydratedAtomDTO` ontology.
-- [ ] Implement `AtomResultListProvider` to expose the topologically sorted `results` array.
+- [x] Implement `HydratedReferenceProvider` to serve O(1) lookups for static `HydratedAtomDTO` ontology.
+- [x] Implement `AtomResultListProvider` to expose the topologically sorted `results` array.
 - [ ] Ensure tenant/organization boundary caches are flushed on execution load (`ref.invalidate`).
 
 ### Phase 3: SDUI Widget Rendering Components
 **Goal:** Build responsive, Macro-Breakpoint compliant UI widgets that react exclusively to the new V2 models.
-- [ ] Implement a unified `SduiNodeRenderer` widget that uses Dart 3 `switch` expressions on `SDUIComponentType` to determine the layout (e.g., `hero_insight`, `bullet_list`, `alert_box`).
-- [ ] Ensure all dynamic strings utilize exact matching without fallback generic strings (`ki_strict_translation_fallback_mandate`).
+- [x] Implement a unified `SduiNodeRenderer` widget that uses Dart 3 `switch` expressions on `SDUIComponentType` to determine the layout (e.g., `hero_insight`, `bullet_list`, `alert_box`).
+- [x] Ensure all dynamic strings utilize exact matching without fallback generic strings (`ki_strict_translation_fallback_mandate`).
 - [ ] Implement `MatrixReducer` compatibility on the frontend to render compressed Token Matrices.
-- [ ] Incorporate **Polymorphic Rule Routing & Synthesis Mapping** by ensuring the frontend correctly parses dynamically mapped `global_synthesis` blocks (driven by the backend's `OutputProfile.synthesis_block_id` injection).
+- [x] Incorporate **Polymorphic Rule Routing & Synthesis Mapping** by ensuring the frontend correctly parses dynamically mapped `global_synthesis` blocks (driven by the backend's `OutputProfile.synthesis_block_id` injection).
 
 ### Phase 4: Erase Legacy Models & Views
 **Goal:** Clean up the codebase to enforce SSOT.

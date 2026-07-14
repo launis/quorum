@@ -903,28 +903,47 @@ async def generate_profile_synthesis_and_pdf_task(
             t_row = None
 
             if synthesis_block_id:
-                pb_dict = await repo.get_prompt_block(synthesis_block_id)
-                if pb_dict:
-                    s_pb = PromptBlock.model_validate(pb_dict)
-                    sys_prompt = s_pb.ai_description
-                    if (
-                        active_profile_dto
-                        and active_profile_dto.synthesis
-                        and active_profile_dto.synthesis.system_prompt
-                    ):
-                        sys_prompt = active_profile_dto.synthesis.system_prompt
-
-                    client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
-                    synth_messages: list[dict[str, Any]] = [
-                        {"role": "system", "content": sys_prompt},
-                        {"role": "user", "content": f"DATA TO SYNTHESIZE:\n{distilled_inputs}"},
-                    ]
-                    t_synth = tg.create_task(
-                        client.run_structured_task(
-                            messages=synth_messages,
-                            response_model=SynthesisOutputDTO,
-                        )
+                synthesis_cfg = active_profile_dto.synthesis if active_profile_dto else None
+                if not synthesis_cfg or not synthesis_cfg.system_prompt:
+                    msg = f"Fail-Fast: OutputProfile '{profile_id}' missing mandatory synthesis.system_prompt."
+                    logger.error("[Task] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                     )
+
+                sys_prompt = synthesis_cfg.system_prompt
+
+                from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+                compiler = PromptCompiler()
+
+                # Wire ALL SynthesisConfigDTO fields into the prompt
+                if synthesis_cfg.length_constraint:
+                    sys_prompt += f"\n<global_length_constraint_chars>{synthesis_cfg.length_constraint}</global_length_constraint_chars>"
+
+                if synthesis_cfg.tone_instruction:
+                    tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language or "en")
+                    if tone:
+                        sys_prompt += f"\n<tone_instruction>{tone}</tone_instruction>"
+
+                if active_profile_dto and active_profile_dto.formatting_directives:
+                    dirs = "\n".join(f"  <directive>{d}</directive>" for d in active_profile_dto.formatting_directives)
+                    sys_prompt += f"\n<formatting_directives>\n{dirs}\n</formatting_directives>"
+
+                if synthesis_cfg.omit_empty_sections:
+                    sys_prompt += "\n<omit_empty_sections>true</omit_empty_sections>"
+
+                client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
+                synth_messages: list[dict[str, Any]] = [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": f"DATA TO SYNTHESIZE:\n{distilled_inputs}"},
+                ]
+                t_synth = tg.create_task(
+                    client.run_structured_task(
+                        messages=synth_messages,
+                        response_model=SynthesisOutputDTO,
+                    )
+                )
 
             if row_explanations_block_id and matrices_to_explain:
                 pb_dict = await repo.get_prompt_block(row_explanations_block_id)
@@ -969,8 +988,15 @@ async def generate_profile_synthesis_and_pdf_task(
             if synthesis_res and hasattr(synthesis_res, "content_blocks") and synthesis_res.content_blocks
             else []
         )
+        # Concatenate SDUI text blocks into synthesized_markdown for PDF rendering
+        flat_md_parts = []
+        for b in raw_content:
+            b_dict = b.model_dump(exclude_none=True) if hasattr(b, "model_dump") else b
+            if isinstance(b_dict, dict) and "text" in b_dict:
+                flat_md_parts.append(str(b_dict["text"]))
+
         cache = RenderedSynthesisCache(
-            synthesized_markdown="",
+            synthesized_markdown="\n\n".join(flat_md_parts),
             content_blocks=typing.cast(
                 list[dict[str, Any]],
                 [b.model_dump(exclude_none=True) if hasattr(b, "model_dump") else b for b in raw_content],
