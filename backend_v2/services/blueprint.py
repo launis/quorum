@@ -879,6 +879,8 @@ class BlueprintTransformer:
             section_syntheses = profile_cache.section_syntheses or {}
             # Epic 94: Do NOT overwrite profile.content_blocks with cached synthesis blocks!
             # The OutputProfile is the Single Source of Truth for SDUI layout.
+            if not content_blocks and profile_cache.content_blocks:
+                content_blocks = [b.copy() for b in profile_cache.content_blocks]
             synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
             row_explanations_cache = profile_cache.row_explanations or {}
             row_curated_quotes_cache = profile_cache.row_curated_quotes or {}
