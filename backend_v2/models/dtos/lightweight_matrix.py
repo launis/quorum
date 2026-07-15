@@ -210,7 +210,7 @@ class LightweightExtractionAtom(V2CoreBase):
 
     @property
     def evidence_found(self) -> bool:
-        """Phantom Boolean -esto: Sanitoi LLM:n tuottamat haamu-nullit.
+        """Prevent Phantom Booleans: Sanitize hallucinated nulls produced by LLMs.
 
         Returns:
             True if meaningful, non-hallucinated evidence text is found, else False.
@@ -232,7 +232,7 @@ class LightweightExtractionAtom(V2CoreBase):
         return False
 
     def calculate_rule_satisfied(self, inverse_evidence: bool, allow_contextual_override: bool = False) -> bool | str:
-        """Deterministinen tuomiovalta. Kevyt uutto ei tue contextual_overridea.
+        """Deterministic judgment. Lightweight extraction does not support contextual_override.
 
         Args:
             inverse_evidence: True to flip logic condition (e.g. absence means PASS).
@@ -267,7 +267,7 @@ class LightweightExtractionAtom(V2CoreBase):
 
     @property
     def semantic_reasoning(self) -> str:
-        return "N/A (Kevyt poiminta)"
+        return "N/A (Lightweight extraction)"
 
 
 class ReasoningStepDTO(V2CoreBase):
@@ -397,7 +397,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
     @classmethod
     def truncate_chart_label(cls, v: Any) -> Any:
         if isinstance(v, str) and len(v) > 25:
-            # Emme yritä katkaista pisteeseen, koska tämä on vain lyhyt otsikko
+            # Do not attempt to truncate at a period, as this is only a short title.
             return v[:22] + "..."
         return v
 
@@ -437,7 +437,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
 
     @property
     def evidence_found(self) -> bool:
-        """Phantom Boolean -esto: Sanitoi LLM:n tuottamat haamu-nullit.
+        """Prevent Phantom Booleans: Sanitize hallucinated nulls produced by LLMs.
 
         Returns:
             True if robust quote or extracted data exists, False otherwise.
@@ -476,7 +476,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
         return False
 
     def calculate_rule_satisfied(self, inverse_evidence: bool, allow_contextual_override: bool = False) -> bool | str:
-        """Deterministinen tuomiovalta: Laskee rule_satisfied arvon kooditasolla.
+        """Deterministic judgment: Calculates rule_satisfied at the code level.
 
         Args:
             inverse_evidence: True if successful condition implies missing evidence.
@@ -618,7 +618,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
             ValueError: If lengths, strings or contextual fuzz ratios fail compliance checks.
         """
         if self.contextual_override:
-            # Milestone 4: Spatiaalinen ankkurointi & Anti-Laziness enforcement
+            # Milestone 4: Spatial anchoring & Anti-Laziness enforcement
             reasoning = self.semantic_reasoning or ""
             if len(reasoning) < 50:
                 raise ValueError("Contextual override requires semantic_reasoning to be at least 50 characters long.")

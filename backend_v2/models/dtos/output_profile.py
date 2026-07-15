@@ -34,7 +34,7 @@ class OutputProfileCreateDTO(V2CoreBase):
         max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.
         display_scale: UI rendering scale instruction (e.g., 'normalized_100').
         synthesis: Nested definition for synthesis configurations.
-        include_diagnostic_scorecard: Epic 24 feature indicating whether to append independent scorecards.
+        include_diagnostic_scorecard: Feature indicating whether to append independent scorecards.
         strictness_level: Profile-level strictness override setting.
         scoring_strategy: Profile-level strategy calculation override.
         layouts: Sequence of layout rendering blocks.
@@ -99,7 +99,7 @@ class OutputProfileCreateDTO(V2CoreBase):
         SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
     ]
     include_diagnostic_scorecard: Annotated[
-        bool, Field(default=False, description="Epic 24: Enable appending the independent diagnostic scorecard.")
+        bool, Field(default=False, description="Enable appending the independent diagnostic scorecard.")
     ]
     strictness_level: Annotated[
         Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
@@ -187,7 +187,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
         SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
     ]
     include_diagnostic_scorecard: Annotated[
-        bool | None, Field(default=None, description="Epic 24: Enable appending the independent diagnostic scorecard.")
+        bool | None, Field(default=None, description="Enable appending the independent diagnostic scorecard.")
     ]
     strictness_level: Annotated[
         Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
@@ -243,7 +243,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
     synthesis: SynthesisConfigDTO | None = None
     include_diagnostic_scorecard: Annotated[
-        bool, Field(default=False, description="Epic 24: Enable appending the independent diagnostic scorecard.")
+        bool, Field(default=False, description="Enable appending the independent diagnostic scorecard.")
     ]
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
