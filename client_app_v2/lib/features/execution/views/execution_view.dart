@@ -9,8 +9,6 @@ import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/shared/widgets/global_error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
-import 'package:client_app/features/execution/views/widgets/async_scorecard_widget.dart';
-
 import 'package:client_app/features/execution/models/execution_record.dart';
 
 import 'dart:convert';
@@ -273,9 +271,6 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
               payload: record.reportData!,
               executionId: widget.executionId,
             ),
-          ),
-          SliverToBoxAdapter(
-            child: AsyncScorecardWidget(executionId: widget.executionId),
           ),
         ] else if ((status == 'passed' || status == 'completed') &&
             results.isNotEmpty)

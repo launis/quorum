@@ -79,7 +79,6 @@ __all__ = [
     "HumanOverrideRequest",
     "HumanOverrideDTO",
     "ScorecardAtomDTO",
-    "ScorecardResponseDTO",
     "ReportDataDTO",
 ]
 
@@ -1101,18 +1100,6 @@ class ReportDataDTO(V2CoreBase):
     penalties_applied: list[str] = Field(
         default_factory=list, description="List of penalty warnings formatted for print."
     )
-
-
-class ScorecardResponseDTO(V2CoreBase):
-    """Diagnostic Scorecard for execution results."""
-
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
-
-    execution_id: str
-    workflow_id: str
-    global_average: float | None = None
-    evaluative_matrices: list[MatrixScorecardRowDTO] = Field(default_factory=list)
-    informational_matrices: list[MatrixScorecardRowDTO] = Field(default_factory=list)
 
 
 class OutputLayoutBlock(V2CoreBase):

@@ -35,6 +35,7 @@ def test_get_execution_report_returns_raw_dto(override_dependencies: Any, mock_e
     client = TestClient(app)
 
     mock_dto = ReportDataDTO(
+        execution_id="test_execution_123",
         workflow_id="wf_1",
         profile_id="prf_001",
         global_score=72.5,

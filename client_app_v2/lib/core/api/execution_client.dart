@@ -70,14 +70,6 @@ class ExecutionClient {
     return response.data as Map<String, dynamic>;
   }
 
-  /// Retrieves the diagnostic scorecard for an execution.
-  Future<Map<String, dynamic>> getScorecard(String executionId) async {
-    final response = await _dio.get(
-      '/execution/executions/$executionId/scorecard',
-    );
-    return response.data as Map<String, dynamic>;
-  }
-
   /// Manually overrides an atom's score and logic (Epic 91 Phase 4).
   Future<Map<String, dynamic>> overrideAtom({
     required String executionId,

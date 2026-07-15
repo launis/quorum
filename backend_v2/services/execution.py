@@ -48,7 +48,6 @@ from backend_v2.models.v2_core import (
     HumanOverrideRequest,
     PromptBlock,
     ReportDataDTO,
-    ScorecardResponseDTO,
     Step,
     Workflow,
     WorkflowInputs,
@@ -1200,45 +1199,6 @@ class ExecutionService:
         )
 
         return full_dto
-
-    async def get_scorecard_dto(
-        self,
-        initiator: TokenData,
-        execution_id: str,
-    ) -> ScorecardResponseDTO:
-        """Get the ScorecardResponseDTO directly."""
-        execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
-
-        if execution.status != ExecutionStatus.PASSED:
-            msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
-        accept_language = None
-        if "target_locale" in execution.metadata:
-            accept_language = str(execution.metadata["target_locale"])
-
-        transformer = BlueprintTransformer(
-            self.exec_repo,
-            self.workflow_repo,
-            self.comp_repo,
-            self.prompt_block_repo,
-            self.output_profile_repo,
-            self.identity_repo,
-            self.system_repo,
-        )
-        full_dto = await transformer.build_report_dto(
-            execution_id, profile_id=None, accept_language=accept_language, custom_preface_md=None, local_time_str=None
-        )
-
-        from backend_v2.models.v2_core import ScorecardResponseDTO
-
-        return ScorecardResponseDTO(
-            execution_id=execution_id,
-            workflow_id=full_dto.workflow_id,
-            global_average=full_dto.global_score,
-            evaluative_matrices=full_dto.evaluative_matrices or [],
-            informational_matrices=full_dto.informational_matrices or [],
-        )
 
     async def get_sdui_view(
         self,
