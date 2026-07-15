@@ -1,3 +1,9 @@
+"""Input Data Transfer Objects (DTOs) for processing incoming data streams.
+
+This module defines strict schemas for parsing and validating unstructured or flat
+inputs into strict types, ensuring a Fail-Fast pipeline at the API boundary.
+"""
+
 from __future__ import annotations
 
 from typing import Annotated

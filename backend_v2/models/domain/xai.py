@@ -49,25 +49,31 @@ class XAIReporterInput(V2CoreBase):
         dynamic_inputs: Dynamically passed variables.
     """
 
-    chat_log: str = Field(..., description="Conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
-    step_judge: JudgeOutput | None = Field(default=None, description="Standard evaluate output.")
-    step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
+    chat_log: Annotated[str, Field(description="Conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})]
+    last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
+    step_judge: Annotated[JudgeOutput | None, Field(description="Standard evaluate output.")] = None
+    step_judge_cognitive: Annotated[JudgeOutput | None, Field(description="Cognitive Judge output.")] = None
 
     # --- Universal Routing Inputs ---
-    step_analyst: AnalystOutput | None = Field(default=None, description="Analyst hypotheses and RAG data.")
-    step_profiler: ProfilerOutput | None = Field(default=None, description="Profiler cognitive bias data.")
-    step_falsifier: FalsifierOutput | None = Field(default=None, description="Falsifier critical distance data.")
-    step_logician: LogicianOutput | None = Field(default=None, description="Logician Toulmin analysis data.")
-    step_causal_analyst: CausalOutput | None = Field(
-        default=None, description="Causal Analyst post-hoc and counterfactual data."
+    step_analyst: Annotated[AnalystOutput | None, Field(description="Analyst hypotheses and RAG data.")] = None
+    step_profiler: Annotated[ProfilerOutput | None, Field(description="Profiler cognitive bias data.")] = None
+    step_falsifier: Annotated[FalsifierOutput | None, Field(description="Falsifier critical distance data.")] = None
+    step_logician: Annotated[LogicianOutput | None, Field(description="Logician Toulmin analysis data.")] = None
+    step_causal_analyst: Annotated[
+        CausalOutput | None, Field(description="Causal Analyst post-hoc and counterfactual data.")
+    ] = None
+    step_performativity: Annotated[
+        PerformativityOutput | None, Field(description="Cognitive performativity output.")
+    ] = None
+    step_metrics: Annotated[ProfilerMetricsDTO | None, Field(description="Mechanical text and behavioral metrics.")] = (
+        None
     )
-    step_performativity: PerformativityOutput | None = Field(
-        default=None, description="Cognitive performativity output."
+    step_linguistics: Annotated[LinguisticsResultDTO | None, Field(description="Mechanical linguistic patterns.")] = (
+        None
     )
-    step_metrics: ProfilerMetricsDTO | None = Field(default=None, description="Mechanical text and behavioral metrics.")
-    step_linguistics: LinguisticsResultDTO | None = Field(default=None, description="Mechanical linguistic patterns.")
-    dynamic_inputs: dict[str, Any] = Field(default_factory=dict, description="Dynamically passed variables.")
+    dynamic_inputs: Annotated[dict[str, Any], Field(description="Dynamically passed variables.")] = Field(
+        default_factory=dict
+    )
 
 
 class XAIScoreItem(V2CoreBase):
@@ -80,10 +86,10 @@ class XAIScoreItem(V2CoreBase):
         weight: Importance multiplier weight of this item.
     """
 
-    label: str = Field(..., min_length=1, description="Label for the score item.")
-    score: float = Field(..., description="Score value.")
-    reasoning: str | None = Field(default=None, description="Reasoning for the score.")
-    weight: float = Field(default=1.0, description="Weight of this item.")
+    label: Annotated[str, Field(min_length=1, description="Label for the score item.")]
+    score: Annotated[float, Field(description="Score value.")]
+    reasoning: Annotated[str | None, Field(description="Reasoning for the score.")] = None
+    weight: Annotated[float, Field(description="Weight of this item.")] = 1.0
 
 
 class CitationExtension(V2CoreBase):
@@ -91,9 +97,9 @@ class CitationExtension(V2CoreBase):
 
     model_config = ConfigDict(title="citation")
     extension_type: Literal[XaiExtensionType.CITATION] = XaiExtensionType.CITATION
-    source_id: str = Field(..., description="Unique reference document source ID.")
-    snippet: str = Field(..., description="The captured exact contextual snippet text.")
-    url: str | None = Field(default=None, description="Optional direct reference web link.")
+    source_id: Annotated[str, Field(description="Unique reference document source ID.")]
+    snippet: Annotated[str, Field(description="The captured exact contextual snippet text.")]
+    url: Annotated[str | None, Field(description="Optional direct reference web link.")] = None
 
 
 class JustificationExtension(V2CoreBase):
@@ -101,7 +107,7 @@ class JustificationExtension(V2CoreBase):
 
     model_config = ConfigDict(title="justification")
     extension_type: Literal[XaiExtensionType.JUSTIFICATION] = XaiExtensionType.JUSTIFICATION
-    reasoning: str = Field(..., description="The explanatory text justification.")
+    reasoning: Annotated[str, Field(description="The explanatory text justification.")]
 
 
 class FalsificationExtension(V2CoreBase):
@@ -109,8 +115,10 @@ class FalsificationExtension(V2CoreBase):
 
     model_config = ConfigDict(title="falsification")
     extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
-    counter_argument: str = Field(..., description="The key falsification counter argument.")
-    vulnerabilities: list[str] = Field(default_factory=list, description="Specific logical vulnerabilities detected.")
+    counter_argument: Annotated[str, Field(description="The key falsification counter argument.")]
+    vulnerabilities: Annotated[list[str], Field(description="Specific logical vulnerabilities detected.")] = Field(
+        default_factory=list
+    )
 
 
 class TheoryLinkExtension(V2CoreBase):
@@ -118,8 +126,8 @@ class TheoryLinkExtension(V2CoreBase):
 
     model_config = ConfigDict(title="theory_link")
     extension_type: Literal[XaiExtensionType.THEORY_LINK] = XaiExtensionType.THEORY_LINK
-    theory_name: str = Field(..., description="Name of referenced academic/logical framework.")
-    relevance: str = Field(..., description="Direct relevance alignment explanation.")
+    theory_name: Annotated[str, Field(description="Name of referenced academic/logical framework.")]
+    relevance: Annotated[str, Field(description="Direct relevance alignment explanation.")]
 
 
 class RiskFlagExtension(V2CoreBase):
@@ -127,8 +135,8 @@ class RiskFlagExtension(V2CoreBase):
 
     model_config = ConfigDict(title="risk_flag")
     extension_type: Literal[XaiExtensionType.RISK_FLAG] = XaiExtensionType.RISK_FLAG
-    risk_level: str = Field(..., description="Assessed hazard status.")
-    description: str = Field(..., description="Explaining context behind hazard determination.")
+    risk_level: Annotated[str, Field(description="Assessed hazard status.")]
+    description: Annotated[str, Field(description="Explaining context behind hazard determination.")]
 
 
 class CoachingExtension(V2CoreBase):
@@ -136,7 +144,9 @@ class CoachingExtension(V2CoreBase):
 
     model_config = ConfigDict(title="coaching")
     extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
-    actionable_steps: list[str] = Field(default_factory=list, description="Structured actions for improvement.")
+    actionable_steps: Annotated[list[str], Field(description="Structured actions for improvement.")] = Field(
+        default_factory=list
+    )
 
 
 class MissingContextExtension(V2CoreBase):
@@ -144,7 +154,7 @@ class MissingContextExtension(V2CoreBase):
 
     model_config = ConfigDict(title="missing_context")
     extension_type: Literal[XaiExtensionType.MISSING_CONTEXT] = XaiExtensionType.MISSING_CONTEXT
-    context_needed: str = Field(..., description="Explicit context points missing from execution pipeline.")
+    context_needed: Annotated[str, Field(description="Explicit context points missing from execution pipeline.")]
 
 
 class RemediationStepsExtension(V2CoreBase):
@@ -152,7 +162,9 @@ class RemediationStepsExtension(V2CoreBase):
 
     model_config = ConfigDict(title="remediation_steps")
     extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
-    steps: list[str] = Field(default_factory=list, description="Sequence of operations to apply to mitigate errors.")
+    steps: Annotated[list[str], Field(description="Sequence of operations to apply to mitigate errors.")] = Field(
+        default_factory=list
+    )
 
 
 class EmotionalSentimentExtension(V2CoreBase):
@@ -160,8 +172,8 @@ class EmotionalSentimentExtension(V2CoreBase):
 
     model_config = ConfigDict(title="emotional_sentiment")
     extension_type: Literal[XaiExtensionType.EMOTIONAL_SENTIMENT] = XaiExtensionType.EMOTIONAL_SENTIMENT
-    sentiment: str = Field(..., description="Detected subjective linguistic tone.")
-    intensity: float = Field(..., description="Numeric magnitude of evaluated emotional tone.")
+    sentiment: Annotated[str, Field(description="Detected subjective linguistic tone.")]
+    intensity: Annotated[float, Field(description="Numeric magnitude of evaluated emotional tone.")]
 
 
 class ConfidenceExtension(V2CoreBase):
@@ -169,8 +181,10 @@ class ConfidenceExtension(V2CoreBase):
 
     model_config = ConfigDict(title="confidence")
     extension_type: Literal[XaiExtensionType.CONFIDENCE] = XaiExtensionType.CONFIDENCE
-    confidence_score: float = Field(..., description="Numeric value between 0.0 and 1.0 indicating security factor.")
-    rationale: str = Field(..., description="Systematic evaluation context behind computed confidence level.")
+    confidence_score: Annotated[
+        float, Field(description="Numeric value between 0.0 and 1.0 indicating security factor.")
+    ]
+    rationale: Annotated[str, Field(description="Systematic evaluation context behind computed confidence level.")]
 
 
 class SourceIDExtension(V2CoreBase):
@@ -178,7 +192,7 @@ class SourceIDExtension(V2CoreBase):
 
     model_config = ConfigDict(title="source_id")
     extension_type: Literal[XaiExtensionType.SOURCE_ID] = XaiExtensionType.SOURCE_ID
-    source_id: str = Field(..., description="The exact reference target key index identifier.")
+    source_id: Annotated[str, Field(description="The exact reference target key index identifier.")]
 
 
 class VarianceValidationExtension(V2CoreBase):
@@ -186,16 +200,12 @@ class VarianceValidationExtension(V2CoreBase):
 
     model_config = ConfigDict(title="variance_validation")
     extension_type: Literal[XaiExtensionType.VARIANCE_VALIDATION] = XaiExtensionType.VARIANCE_VALIDATION
-    mechanical_metric_ref: str = Field(..., description="Reference to the mechanical metric key used.")
-    cognitive_metric_ref: str = Field(..., description="Reference to the cognitive agent score key used.")
-    variance_score: float = Field(
-        ...,
-        description="Calculated absolute variance between mechanical and cognitive assessments.",
-    )
-    alignment_verdict: str = Field(
-        ...,
-        description="Abstract verdict (e.g., 'ALIGNED', 'MISALIGNED_SYCOPHANCY').",
-    )
+    mechanical_metric_ref: Annotated[str, Field(description="Reference to the mechanical metric key used.")]
+    cognitive_metric_ref: Annotated[str, Field(description="Reference to the cognitive agent score key used.")]
+    variance_score: Annotated[
+        float, Field(description="Calculated absolute variance between mechanical and cognitive assessments.")
+    ]
+    alignment_verdict: Annotated[str, Field(description="Abstract verdict (e.g., 'ALIGNED', 'MISALIGNED_SYCOPHANCY').")]
 
 
 class ComparisonDataDTO(V2CoreBase):
@@ -207,9 +217,9 @@ class ComparisonDataDTO(V2CoreBase):
         trend: Evaluated qualitative vector indicator.
     """
 
-    baseline_score: float | None = Field(default=None, description="Baseline rating reference context.")
-    delta: float | None = Field(default=None, description="Difference factor between current run and baseline.")
-    trend: str | None = Field(default=None, description="Evaluated qualitative vector indicator.")
+    baseline_score: Annotated[float | None, Field(description="Baseline rating reference context.")] = None
+    delta: Annotated[float | None, Field(description="Difference factor between current run and baseline.")] = None
+    trend: Annotated[str | None, Field(description="Evaluated qualitative vector indicator.")] = None
 
 
 XAIExtension = Annotated[
@@ -248,80 +258,58 @@ class XAIOutputDTO(ReasoningTraceDTO):
         xai_report_formatted: Markdown formatted report.
     """
 
-    output_extensions: list[XAIExtension] = Field(
-        default_factory=list,
-        description="XAI extensions.",
-    )
-    comparison_data: ComparisonDataDTO | None = Field(
-        default=None,
-        description="Structured comparison data.",
-        json_schema_extra={"x-ui-label": "Comparison Data"},
-    )
+    output_extensions: Annotated[list[XAIExtension], Field(description="XAI extensions.")] = Field(default_factory=list)
+    comparison_data: Annotated[
+        ComparisonDataDTO | None,
+        Field(description="Structured comparison data.", json_schema_extra={"x-ui-label": "Comparison Data"}),
+    ] = None
 
-    executive_summary: str = Field(
-        ...,
-        min_length=1,
-        description="High-level summary.",
-        json_schema_extra={"x-ui-label": "Executive Summary"},
-    )
-    verified_facts: str = Field(
-        ...,
-        min_length=1,
-        description="Synthesis of facts.",
-        json_schema_extra={"x-ui-label": "Verified Facts"},
-    )
-    cognitive_behavior: str = Field(
-        ...,
-        min_length=1,
-        description="Synthesis of Profiler and Falsifier findings.",
-        json_schema_extra={"x-ui-label": "Cognitive Behavior"},
-    )
-    causal_chain: str = Field(
-        ...,
-        min_length=1,
-        description="Synthesis of Causal and Logician findings.",
-        json_schema_extra={"x-ui-label": "Causal Chain"},
-    )
-    analysis_strengths: str = Field(
-        ...,
-        min_length=1,
-        description="Strengths identified.",
-        json_schema_extra={"x-ui-label": "Strengths"},
-    )
-    analysis_weaknesses: str = Field(
-        ...,
-        min_length=1,
-        description="Weaknesses identified.",
-        json_schema_extra={"x-ui-label": "Weaknesses"},
-    )
-    analysis_opportunities: str = Field(
-        ...,
-        min_length=1,
-        description="Opportunities identified.",
-        json_schema_extra={"x-ui-label": "Opportunities"},
-    )
-    analysis_recommendations: str = Field(
-        ...,
-        min_length=1,
-        description="Recommendations.",
-        json_schema_extra={"x-ui-label": "Recommendations"},
-    )
-    final_verdict: str = Field(
-        ...,
-        min_length=1,
-        description="Final conclusion.",
-        json_schema_extra={"x-ui-label": "Verdict"},
-    )
-    confidence_score: float = Field(
-        ...,
-        description="Confidence score (0.0-1.0).",
-        json_schema_extra={"x-ui-label": "Confidence"},
-    )
-    xai_report_formatted: str | None = Field(
-        default=None,
-        description="Markdown formatted report.",
-        json_schema_extra={"x-ui-label": "Formatted Report"},
-    )
+    executive_summary: Annotated[
+        str,
+        Field(min_length=1, description="High-level summary.", json_schema_extra={"x-ui-label": "Executive Summary"}),
+    ]
+    verified_facts: Annotated[
+        str, Field(min_length=1, description="Synthesis of facts.", json_schema_extra={"x-ui-label": "Verified Facts"})
+    ]
+    cognitive_behavior: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Synthesis of Profiler and Falsifier findings.",
+            json_schema_extra={"x-ui-label": "Cognitive Behavior"},
+        ),
+    ]
+    causal_chain: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Synthesis of Causal and Logician findings.",
+            json_schema_extra={"x-ui-label": "Causal Chain"},
+        ),
+    ]
+    analysis_strengths: Annotated[
+        str, Field(min_length=1, description="Strengths identified.", json_schema_extra={"x-ui-label": "Strengths"})
+    ]
+    analysis_weaknesses: Annotated[
+        str, Field(min_length=1, description="Weaknesses identified.", json_schema_extra={"x-ui-label": "Weaknesses"})
+    ]
+    analysis_opportunities: Annotated[
+        str,
+        Field(min_length=1, description="Opportunities identified.", json_schema_extra={"x-ui-label": "Opportunities"}),
+    ]
+    analysis_recommendations: Annotated[
+        str, Field(min_length=1, description="Recommendations.", json_schema_extra={"x-ui-label": "Recommendations"})
+    ]
+    final_verdict: Annotated[
+        str, Field(min_length=1, description="Final conclusion.", json_schema_extra={"x-ui-label": "Verdict"})
+    ]
+    confidence_score: Annotated[
+        float, Field(description="Confidence score (0.0-1.0).", json_schema_extra={"x-ui-label": "Confidence"})
+    ]
+    xai_report_formatted: Annotated[
+        str | None,
+        Field(description="Markdown formatted report.", json_schema_extra={"x-ui-label": "Formatted Report"}),
+    ] = None
 
     @field_validator("confidence_score")
     @classmethod
@@ -355,16 +343,16 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
         flat_report: Flattened machine-readable dict report summary.
     """
 
-    score_cards: list[JudgeScoreCard] = Field(
-        default_factory=list,
-        description="Aggregated scores from all judges.",
-        json_schema_extra={"x-ui-label": "Scorecards"},
-    )
-    flat_report: dict[str, Any] | None = Field(
-        default=None,
-        description="Flattened, machine-readable report summary.",
-        json_schema_extra={"x-ui-label": "Flat Report"},
-    )
+    score_cards: Annotated[
+        list[JudgeScoreCard],
+        Field(description="Aggregated scores from all judges.", json_schema_extra={"x-ui-label": "Scorecards"}),
+    ] = Field(default_factory=list)
+    flat_report: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Flattened, machine-readable report summary.", json_schema_extra={"x-ui-label": "Flat Report"}
+        ),
+    ] = None
 
 
 class ReportResult(V2CoreBase):
@@ -376,16 +364,15 @@ class ReportResult(V2CoreBase):
         data: Structured data used to generate the report.
     """
 
-    report_content: str = Field(
-        ...,
-        min_length=1,
-        description="Generated Markdown report.",
-        json_schema_extra={"x-ui-label": "Report Content"},
+    report_content: Annotated[
+        str,
+        Field(
+            min_length=1, description="Generated Markdown report.", json_schema_extra={"x-ui-label": "Report Content"}
+        ),
+    ]
+    format: Annotated[
+        str, Field(min_length=1, description="Report format.", json_schema_extra={"x-ui-label": "Format"})
+    ] = "markdown"
+    data: Annotated[dict[str, Any] | None, Field(description="Structured data used to generate the report (SSOT).")] = (
+        None
     )
-    format: str = Field(
-        default="markdown",
-        min_length=1,
-        description="Report format.",
-        json_schema_extra={"x-ui-label": "Format"},
-    )
-    data: dict[str, Any] | None = Field(default=None, description="Structured data used to generate the report (SSOT).")

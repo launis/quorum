@@ -5,7 +5,7 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 """
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, TypeAdapter, field_validator
 
@@ -66,13 +66,13 @@ class ValidationWarningDTO(V2CoreBase):
         telemetry_code: Telemetry status or routing code.
     """
 
-    type: str = Field(..., min_length=1)
-    title: str = Field(..., min_length=1)
-    error_code: str = Field(..., min_length=1)
-    detail: str = Field(..., min_length=1)
-    meta: dict[str, Any] = Field(default_factory=dict)
-    entropy: float | None = Field(default=None, description="Shannon entropy telemetry score.")
-    telemetry_code: str | None = Field(default=None, description="Telemetry status or routing code.")
+    type: Annotated[str, Field(min_length=1, description="URI reference identifying the error type.")]
+    title: Annotated[str, Field(min_length=1, description="Short human-readable summary.")]
+    error_code: Annotated[str, Field(min_length=1, description="Application-specific error identifier.")]
+    detail: Annotated[str, Field(min_length=1, description="Human-readable explanation specific to this occurrence.")]
+    meta: Annotated[dict[str, Any], Field(description="Additional contextual metadata.")] = Field(default_factory=dict)
+    entropy: Annotated[float | None, Field(description="Shannon entropy telemetry score.")] = None
+    telemetry_code: Annotated[str | None, Field(description="Telemetry status or routing code.")] = None
 
 
 class ValidationResultDTO(V2CoreBase):
@@ -83,8 +83,8 @@ class ValidationResultDTO(V2CoreBase):
         errors: Issues accumulated during validation.
     """
 
-    is_valid: bool = Field(...)
-    errors: list[ValidationWarningDTO] = Field(...)
+    is_valid: Annotated[bool, Field(description="Whether the state passed structural validation.")]
+    errors: Annotated[list[ValidationWarningDTO], Field(description="Issues accumulated during validation.")]
 
 
 class HardeningRetryDirectiveDTO(V2CoreBase):
@@ -99,12 +99,14 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
         reason: Explanation of logic or math triggering the retry.
     """
 
-    retry_allowed: bool = Field(..., description="Whether a hardening retry is permitted.")
-    max_retries: int = Field(default=3, description="Maximum number of retries.")
-    current_retry_count: int = Field(default=0, description="Current retry iteration.")
-    target_block_ids: list[str] = Field(default_factory=list, description="Target blocks that failed verification.")
-    strictness_override: int | None = Field(default=None, description="Optional strictness override.")
-    reason: str = Field(..., description="Explanation of logic or math triggering the retry.")
+    retry_allowed: Annotated[bool, Field(description="Whether a hardening retry is permitted.")]
+    max_retries: Annotated[int, Field(description="Maximum number of retries.")] = 3
+    current_retry_count: Annotated[int, Field(description="Current retry iteration.")] = 0
+    target_block_ids: Annotated[list[str], Field(description="Target blocks that failed verification.")] = Field(
+        default_factory=list
+    )
+    strictness_override: Annotated[int | None, Field(description="Optional strictness override.")] = None
+    reason: Annotated[str, Field(description="Explanation of logic or math triggering the retry.")]
 
     @field_validator("max_retries", mode="before")
     @classmethod
@@ -141,6 +143,9 @@ class SystemWarningsStateDTO(V2CoreBase):
         system_warnings: Validation warnings captured from the execution state.
     """
 
-    system_warnings: list[ValidationWarningDTO] = Field(default_factory=list, alias="_system_warnings")
+    system_warnings: Annotated[
+        list[ValidationWarningDTO],
+        Field(alias="_system_warnings", description="Validation warnings captured from the execution state."),
+    ] = Field(default_factory=list)
 
     model_config = ConfigDict(frozen=True, extra="ignore", populate_by_name=True, strict=True)
