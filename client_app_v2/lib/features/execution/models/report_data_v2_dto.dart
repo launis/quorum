@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'dart:convert';
 import 'package:client_app/core/utils/safe_isolate.dart';
 
-import 'scorecard_dto.dart';
+import 'matrix_scorecard_dto.dart';
 import 'report_layout_dto.dart';
 import '../../../shared/models/i18n_text.dart';
 

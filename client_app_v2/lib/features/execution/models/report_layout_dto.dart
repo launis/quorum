@@ -1,7 +1,7 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'scorecard_dto.dart';
+import 'matrix_scorecard_dto.dart';
 import 'synthesis_config_dto.dart';
 import '../../../shared/models/i18n_text.dart';
 
