@@ -14,7 +14,7 @@ Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `R
   - Tiedosto: `docs\epic\tasks_EPIC_95_Testing_Pyramid\epic_95_phase_1_plan.md`
   - Kuvaus: Korjataan Pydanticin ja Dartin välinen DTO-yhteensopimattomuus.
 
-- [NOK] **Phase 2: Backend Unit & Integration Tests (Hardening)**
+- [OK] **Phase 2: Backend Unit & Integration Tests (Hardening)**
   - Tiedosto: `docs\epic\tasks_EPIC_95_Testing_Pyramid\epic_95_phase_2_plan.md`
   - Kuvaus: Korjataan/poistetaan 192 rikkinäistä testiä ja taataan DAG-moottorin integraatiotestit.
 

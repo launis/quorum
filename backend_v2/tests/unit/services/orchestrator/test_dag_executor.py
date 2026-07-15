@@ -194,3 +194,66 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         import asyncio
 
         assert isinstance(call_kwargs["semaphore"], asyncio.Semaphore)
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_compiler: Any) -> None:
+    """Test that an unhandled exception inside a step triggers ExceptionGroup cascade and DLQ routing."""
+    executor = DAGExecutor(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    from backend_v2.models.v2_core import StepRule, Workflow, WorkflowInputs
+    
+    workflow = Workflow(
+        id="wf_5555555555555555",
+        slug="wf_test_slug",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        steps=[
+            StepRule(
+                id="stp_1234567890abcdef",
+                task_blueprint="blp_1234567890abcdef",
+                input_mappings={},
+                depends_on=[],
+            )
+        ],
+    )
+
+    mock_repo.get_execution.return_value = None
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
+    ):
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "test"}})
+        )
+        # Force the node executor to raise a generic exception to trigger the TaskGroup crash
+        mock_node_execute.side_effect = Exception("System Crash")
+        
+        with pytest.raises(AppException) as exc_info:
+            await executor.execute_workflow(
+                execution_id="exe_1231231231231231",
+                workflow=workflow,
+                raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}),
+            )
+            
+        assert exc_info.value.status_code == 500
+        assert "System Crash" in exc_info.value.message
+        
+        # Verify that committer was called with FAILED status for the whole execution
+        args, kwargs = mock_repo.update_execution.call_args
+        assert args[1]["status"] == ExecutionStatus.FAILED.value
+        assert "System Crash" in args[1]["error"]
