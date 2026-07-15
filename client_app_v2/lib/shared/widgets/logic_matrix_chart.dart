@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 
 /// A 2D Scatter Plot visualizing metrics across 2 or 3 dimensions.
 class LogicMatrixChart extends StatelessWidget {

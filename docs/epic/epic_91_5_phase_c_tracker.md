@@ -19,11 +19,11 @@
 
 ## Structural Quality Gates
 
-- `[NOK]` **Proxy Sunset & Consumer Migration:** Codebase-wide search/replace old `scorecard_dto.dart` import paths. Verify no orphaned imports remain.
+- `[x]` **Proxy Sunset & Consumer Migration:** Codebase-wide search/replace old `scorecard_dto.dart` import paths. Verify no orphaned imports remain.
 - `[NOK]` **Tier 2 Hardening (Backend):** Run `/tier2-hardening-backend` on `backend_v2/models/` and `backend_v2/services/blueprint.py` after C0 is committed.
 - `[NOK]` **Tier 2 Hardening (Frontend):** Run `/tier2-hardening-frontend` on `client_app_v2/lib/features/execution/models/` after C1+C2 are committed.
 - `[NOK]` **Pre-Delete Audit:** Verify `scorecard_dto.dart`, `scorecard_provider.dart`, `async_scorecard_widget.dart` have zero consumers before deletion. Verify `ScorecardResponseDTO` and `get_scorecard_dto` have zero external callers.
-- `[NOK]` **Baseline Parity & Zero-Loss Audit:** Verify that the final test count and coverage match or exceed the `[BASELINE]` recorded at start.
+- `[x]` **Baseline Parity & Zero-Loss Audit:** Verify that the final test count and coverage match or exceed the `[BASELINE]` recorded at start.
 
 ---
 

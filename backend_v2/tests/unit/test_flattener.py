@@ -23,6 +23,7 @@ def test_flat_file_service_flatten_results() -> None:
 
     # We create a dummy ReportDataDTO
     report = ReportDataDTO(
+        execution_id=execution_id,
         workflow_id="wf_test",
         profile_id="prof_test",
         global_score=85.0,

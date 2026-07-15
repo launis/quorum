@@ -69,6 +69,7 @@ def test_map_report_to_sdui_complete():
 
     # Create dummy ReportDataDTO
     report = ReportDataDTO(
+        execution_id="exe_123",
         workflow_id="wf_123",
         profile_id="prof_123",
         global_score=90.0,
@@ -122,6 +123,7 @@ def test_map_report_to_sdui_complete():
 def test_map_report_to_sdui_empty():
     mapper = SduiMapperService()
     report = ReportDataDTO(
+        execution_id="exe_123",
         workflow_id="wf_123",
         profile_id="prof_123",
         has_warning=False,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/core/api/execution_client.dart';
 
 class HumanOverrideDialog extends ConsumerStatefulWidget {

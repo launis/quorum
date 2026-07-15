@@ -1,6 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 
 /// A Polar 3D connected Radar (Spider) chart visualizing metrics across 3+ dimensions.
 class LogicRadarChart extends StatelessWidget {

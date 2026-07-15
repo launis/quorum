@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:client_app/features/execution/views/widgets/atom_matrix_table_widget.dart';
-import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 
 /// The master entrypoint component for the Diagnostic Scorecard UI.
 class DiagnosticScorecardWidget extends StatelessWidget {

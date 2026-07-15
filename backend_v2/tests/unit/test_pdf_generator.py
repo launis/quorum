@@ -27,6 +27,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
+        execution_id="exe_aaaaaaaabbbbbbbb",
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
@@ -59,6 +60,7 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
+        execution_id="exe_aaaaaaaabbbbbbbb",
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
