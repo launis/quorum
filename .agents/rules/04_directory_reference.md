@@ -46,7 +46,7 @@
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
-        <key_domains>domain/ (SSOT DB shapes), dtos/ (API boundaries), prompts/ (LLM templates), enums.py</key_domains>
+        <key_domains>domain/ (SSOT DB shapes), dtos/ (API boundaries - legacy dtos/report eradicated), prompts/ (LLM templates), v2_core.py (Core Execution Models), enums.py</key_domains>
     </module>
     
     <module path="backend_v2/database/">
