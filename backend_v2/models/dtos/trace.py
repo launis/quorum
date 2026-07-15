@@ -1,8 +1,8 @@
 """Execution trace DTO schemas."""
 
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.dtos.base import BaseDTO
 
@@ -12,14 +12,14 @@ class TraceMatrixPayloadDTO(BaseDTO):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    raw_score: float | None = None
-    normalized_score: float | None = None
-    justification: str | None = None
-    level_breakdown: dict[str, Any] | None = None
-    extensions: dict[str, Any] | None = None
-    evaluated_atoms: dict[str, bool | str] | None = None
-    xai_log: dict[str, Any] | None = None
-    allowed_extensions: list[str] | None = None
+    raw_score: Annotated[float | None, Field(description="The raw score calculated")] = None
+    normalized_score: Annotated[float | None, Field(description="The normalized score")] = None
+    justification: Annotated[str | None, Field(description="The justification text")] = None
+    level_breakdown: Annotated[dict[str, Any] | None, Field(description="Breakdown of levels")] = None
+    extensions: Annotated[dict[str, Any] | None, Field(description="Additional extensions")] = None
+    evaluated_atoms: Annotated[dict[str, bool | str] | None, Field(description="Evaluated atoms mapping")] = None
+    xai_log: Annotated[dict[str, Any] | None, Field(description="XAI audit log")] = None
+    allowed_extensions: Annotated[list[str] | None, Field(description="List of allowed extensions")] = None
 
 
 class TraceScoringPayloadDTO(BaseDTO):
@@ -27,8 +27,8 @@ class TraceScoringPayloadDTO(BaseDTO):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    total_score: float | None = None
-    final_score: float | None = None
-    normalized_score: float | None = None
-    penalties_applied: list[Any] | None = None
-    aggregation_status: str | None = None
+    total_score: Annotated[float | None, Field(description="The total score")] = None
+    final_score: Annotated[float | None, Field(description="The final computed score")] = None
+    normalized_score: Annotated[float | None, Field(description="The normalized score projection")] = None
+    penalties_applied: Annotated[list[Any] | None, Field(description="List of applied penalties")] = None
+    aggregation_status: Annotated[str | None, Field(description="Status of aggregation")] = None

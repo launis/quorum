@@ -6,7 +6,7 @@ standards for type hint safety and runtime validation.
 
 from typing import Annotated, Any
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 
@@ -18,7 +18,9 @@ class HookListResponse(BaseResponseDTO):
         hooks: A list of registered system hooks or callback identifiers.
     """
 
-    hooks: list[str]
+    model_config = ConfigDict(frozen=True)
+
+    hooks: Annotated[list[str], Field(description="A list of registered system hooks or callback identifiers")]
 
 
 class ClientErrorPayload(BaseDTO):
@@ -34,6 +36,8 @@ class ClientErrorPayload(BaseDTO):
         severity: Severity level, usually 'error' or 'fatal'.
         context_data: Additional context or state dump.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     session_id: Annotated[str | None, Field(description="Client session or user ID if available")] = None
     app_version: Annotated[str | None, Field(description="Client application version")] = None
@@ -53,8 +57,10 @@ class StrictnessConfigDTO(BaseDTO):
         localization_key: The UI key for translation.
     """
 
-    level: int
-    localization_key: str
+    model_config = ConfigDict(frozen=True)
+
+    level: Annotated[int, Field(description="The integer level of strictness")]
+    localization_key: Annotated[str, Field(description="The UI key for translation")]
 
 
 class StrictnessConfigListResponse(BaseResponseDTO):
@@ -64,4 +70,6 @@ class StrictnessConfigListResponse(BaseResponseDTO):
         configs: The list of configs.
     """
 
-    configs: list[StrictnessConfigDTO]
+    model_config = ConfigDict(frozen=True)
+
+    configs: Annotated[list[StrictnessConfigDTO], Field(description="The list of configs")]
