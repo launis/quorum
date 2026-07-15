@@ -12,9 +12,9 @@
 - [x] [OK] Invoke the Tier 1 Planner again to generate detailed plans for Phase B5.
 - [x] [OK] Phase B5: N/A Manual Override API
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B5_manual_override_api.md`
-- [ ] [NOK] Phase B6: Tier 2 Hardening
+- [x] [OK] Phase B6: Tier 2 Hardening
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B6_tier_2_hardening.md`
-- [ ] [NOK] Phase B7: Proxy Sunset & Consumer Migration
+- [x] [OK] Phase B7: Proxy Sunset & Consumer Migration
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B7_proxy_sunset.md`
 - [ ] [NOK] Phase B8: Pre-Delete Audit
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B8_pre_delete_audit.md`
@@ -26,13 +26,13 @@ You MUST systematically execute the above tasks from top to bottom using the `/t
 
 # Session Handover Context
 **Achieved:**
-- Invoked the Tier 1 Planner to generate detailed plans for Tier 2 Hardening, Proxy Sunset, Pre-Delete Audit, and Baseline Parity (Phases B6-B9).
+- Completed Phase B7 Proxy Sunset verification. Confirmed that legacy adapters and dtos/report/ are fully purged.
 
 **Learned:**
-- Legacy legacy_dto_mapper and dtos/report/ may have already been purged, but B7 and B8 serve as the final verification of this.
+- The DTO bridge migration is structurally complete and tests pass with 80% coverage.
 
 **Remaining:**
-- Execute the remaining B6 through B9 plans using Tier 2.
+- Execute the remaining B8 and B9 plans using Tier 2.
 
 To resume execution in a new context window to perform the hardening and audit phases:
-`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B6_tier_2_hardening.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`
+`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B8_pre_delete_audit.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`
