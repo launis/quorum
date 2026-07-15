@@ -50,6 +50,8 @@
 - Red-teamed the original `implementation_plan.md` and discovered 4 critical weaknesses.
 - Generated Tier 1 micro-chunked plans for Phase C0 (backend, detailed) and C1 (Flutter, detailed).
 - Re-invoked Tier 1 Planner and generated detailed plans for C2-C5.
+- Successfully executed Phase C0 (Backend Schema Fix) adding `execution_id` to `ReportDataDTO`.
+- Successfully executed Phase C1 (Flutter DTO Rewrite) creating unified `ReportDataDto`, `ReportLayoutDto`, and `SynthesisConfigDto`.
 
 ## Learned
 - Backend `ReportDataDTO` does NOT have `execution_id` — must be added (C0).
@@ -61,11 +63,14 @@
 - Dart `export` can act as a proxy to prevent immediate import breakages during C2 relocation.
 
 ## Remaining
-- Execute C2-C5 (relocation, deletion, rewiring, controllers)
+- Execute C2: DTO Relocation (`matrix_scorecard_dto.dart`)
+- Execute C3: Scorecard Pipeline Delete (Remove `/scorecard` endpoint)
+- Execute C4: UI Rewiring (Connect widgets to unified `ReportDataDto`)
+- Execute C5: Controller Updates (`_performHeavyFetch` and `ReportController`)
 - Quality gates: Proxy sunset, Tier 2 hardening, pre-delete audit, baseline parity
 
 ---
 
 ```
-/tier5-resume --workflow=/tier2-execute --target="c:\src\quorum\docs\epic\epic_91_5_phase_c_tracker.md, c:\src\quorum\docs\epic\EPIC_91_5_DTO_Bridge.md" --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md"
+/tier5-resume --workflow="/tier2-execute" --target="c:\src\quorum\docs\epic\epic_91_5_phase_c_tracker.md, c:\src\quorum\docs\epic\EPIC_91_5_DTO_Bridge.md" --achieved="Completed Phase C0 (Backend schema fix) and C1 (Flutter DTO rewrite). Generated detailed micro-plans for C2-C5." --learned="Flutter ReportDataDto was a broken 6-field placeholder. Dart export can act as a proxy to prevent import breakages during C2 relocation." --remaining="Execute C2-C5 (DTO relocation, pipeline delete, UI rewiring, controller updates) sequentially." --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md"
 ```
