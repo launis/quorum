@@ -4,9 +4,9 @@
 Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `ReportDataDTO` vs `ReportDataV2DTO` API-ristiriita ja rakentaa testauspyramidi.
 
 ## Session Handover Context
-- **Achieved:** Tier 2 Hardening Loop completed for 5 files in `backend_v2/models/dtos/` (`__init__.py`, `lightweight_matrix.py`, `output_profile.py`, `studio.py`, `synthesis.py`).
-- **Learned:** Removed Epic 24 terminology from Output Profile descriptions and translated Finnish docstrings to English in `lightweight_matrix.py` to meet Phase 9 standards.
-- **Remaining:** Tier 2 Hardening Loop for the remaining 2 files in `backend_v2/models/dtos/` (`system.py`, `trace.py`), and then proceed to `backend_v2/services/orchestrator/`. Pre-Delete Audit and Baseline Parity Audit.
+- **Achieved:** Tier 2 Hardening Loop completed for remaining 2 files in `backend_v2/models/dtos/` (`system.py`, `trace.py`), and 3 files in `backend_v2/services/orchestrator/` (`__init__.py`, `anchor_validation_service.py`, `ast_evaluator.py`).
+- **Learned:** ConfigDict import added to `system.py`. `ast_evaluator.py` and `anchor_validation_service.py` are natively compliant with Phase 9 Fail-Fast constraints.
+- **Remaining:** Tier 2 Hardening Loop for the remaining files in `backend_v2/services/orchestrator/` (atomizer.py, chunk_accumulator.py, chunking_service.py, context_router.py, dag_compiler.py, etc.). Pre-Delete Audit and Baseline Parity Audit.
 
 ## Tehtävät (Tasks)
 
