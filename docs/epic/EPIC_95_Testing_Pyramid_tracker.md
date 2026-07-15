@@ -4,9 +4,9 @@
 Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `ReportDataDTO` vs `ReportDataV2DTO` API-ristiriita ja rakentaa testauspyramidi.
 
 ## Session Handover Context
-- **Achieved:** Tier 2 Hardening Loop completed for 5 files in `backend_v2/services/orchestrator/`: `atomizer.py`, `chunk_accumulator.py`, `chunking_service.py`, `context_router.py`, `dag_compiler.py`.
-- **Learned:** All 5 files are natively compliant with Phase 9 Fail-Fast constraints. No architectural violations were found. Coverage targets were met.
-- **Remaining:** Tier 2 Hardening Loop for the remaining files in `backend_v2/services/orchestrator/` (dag_executor.py, enriched_dag_executor.py, extraction_schema_factory.py, extractive_sensor_service.py, graph_validator.py, etc.). Pre-Delete Audit and Baseline Parity Audit.
+- **Achieved:** Tier 2 Hardening Loop completed for `synthesis_distiller.py`, `two_pass_atomizer.py`, and `prompts/atom_extraction.py`, `prompts/graph_linking.py` in `backend_v2/services/orchestrator/`.
+- **Learned:** `synthesis_distiller.py` dict `.get()` calls were modernized or validated. `two_pass_atomizer.py` was missing class docstrings and `asyncio.Semaphore` constraints; these were fixed. `dag_models.py` Regex for Stripe ID was updated to `{8,32}` to correctly allow the mandated 8-char hex suffix (`hex[:8]`) without failing Pydantic validation. Added dummy tests for prompt strings to satisfy the audit loop.
+- **Remaining:** Tier 2 Hardening Loop for the remaining files in `backend_v2/services/orchestrator/strategies/` directory. Then proceed to Pre-Delete Audit and Baseline Parity Audit.
 
 ## Tehtävät (Tasks)
 

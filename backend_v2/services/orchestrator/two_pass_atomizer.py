@@ -11,6 +11,7 @@ from backend_v2.services.orchestrator.prompts.atom_extraction import (
     PHASE_0_SYSTEM_PROMPT,
     PHASE_1_SYSTEM_PROMPT,
 )
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,11 @@ class TwoPassAtomizer:
     """Orchestrates the Phase 0 Map-Reduce and Phase 1 Local Chunk Extraction."""
 
     def __init__(self, executor: LLMTaskExecutor) -> None:
+        """Initialize the TwoPassAtomizer.
+
+        Args:
+            executor: Centralized LLM task orchestrator for executing prompts.
+        """
         self.executor = executor
 
     async def execute_phase_0(self, client: LLMClient, chunks: list[str]) -> GlobalOntologyMap:
@@ -52,11 +58,12 @@ class TwoPassAtomizer:
         """
         all_entities = {}
         all_rules = set()
+        sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
 
         async with asyncio.TaskGroup() as tg:
             tasks = []
             for chunk in chunks:
-                tasks.append(tg.create_task(self._extract_ontology_from_chunk(client, chunk)))
+                tasks.append(tg.create_task(self._extract_ontology_from_chunk(client, chunk, sem)))
 
         for task in tasks:
             result = task.result()
@@ -67,17 +74,20 @@ class TwoPassAtomizer:
 
         return GlobalOntologyMap(entities=list(all_entities.values()), macro_rules=list(all_rules))
 
-    async def _extract_ontology_from_chunk(self, client: LLMClient, chunk: str) -> GlobalOntologyMap:
-        messages = [
-            {"role": "system", "content": PHASE_0_SYSTEM_PROMPT},
-            {"role": "user", "content": f"<source_data>\n{chunk}\n</source_data>"},
-        ]
-        result, _ = await self.executor.execute_structured_task(
-            client=client,
-            messages=messages,
-            response_model=GlobalOntologyMap,
-        )
-        return result
+    async def _extract_ontology_from_chunk(
+        self, client: LLMClient, chunk: str, sem: asyncio.Semaphore
+    ) -> GlobalOntologyMap:
+        async with sem:
+            messages = [
+                {"role": "system", "content": PHASE_0_SYSTEM_PROMPT},
+                {"role": "user", "content": f"<source_data>\n{chunk}\n</source_data>"},
+            ]
+            result, _ = await self.executor.execute_structured_task(
+                client=client,
+                messages=messages,
+                response_model=GlobalOntologyMap,
+            )
+            return result
 
     async def execute_phase_1(
         self, client: LLMClient, chunks: list[str], ontology: GlobalOntologyMap
@@ -93,12 +103,13 @@ class TwoPassAtomizer:
             A list of ExtractedAtom objects with fully hydrated Opaque Stripe IDs.
         """
         ontology_json = ontology.model_dump_json()
+        sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
 
         all_atoms = []
         async with asyncio.TaskGroup() as tg:
             tasks = []
             for idx, chunk in enumerate(chunks):
-                tasks.append(tg.create_task(self._extract_atoms_from_chunk(client, chunk, idx, ontology_json)))
+                tasks.append(tg.create_task(self._extract_atoms_from_chunk(client, chunk, idx, ontology_json, sem)))
 
         for task in tasks:
             all_atoms.extend(task.result())
@@ -106,32 +117,33 @@ class TwoPassAtomizer:
         return all_atoms
 
     async def _extract_atoms_from_chunk(
-        self, client: LLMClient, chunk: str, chunk_index: int, ontology_json: str
+        self, client: LLMClient, chunk: str, chunk_index: int, ontology_json: str, sem: asyncio.Semaphore
     ) -> list[ExtractedAtom]:
-        system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"<source_data>\n{chunk}\n</source_data>"},
-        ]
+        async with sem:
+            system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"<source_data>\n{chunk}\n</source_data>"},
+            ]
 
-        draft_result, _ = await self.executor.execute_structured_task(
-            client=client,
-            messages=messages,
-            response_model=DraftAtomList,
-        )
-
-        final_atoms = []
-        for draft in draft_result.atoms:
-            # Generate a compliant Opaque Stripe ID for the extracted atom.
-            # AliasEngine integration in 2.2 will refine this mapping.
-            tda_id = f"tda_{uuid.uuid4().hex}"
-            final_atoms.append(
-                ExtractedAtom(
-                    reasoning=draft.reasoning,
-                    resolved_claim=draft.resolved_claim,
-                    source_quote=draft.source_quote,
-                    tda_id=tda_id,
-                    source_id=f"chunk_{chunk_index}",
-                )
+            draft_result, _ = await self.executor.execute_structured_task(
+                client=client,
+                messages=messages,
+                response_model=DraftAtomList,
             )
-        return final_atoms
+
+            final_atoms = []
+            for draft in draft_result.atoms:
+                # Generate a compliant Opaque Stripe ID for the extracted atom.
+                # AliasEngine integration in 2.2 will refine this mapping.
+                tda_id = f"tda_{uuid.uuid4().hex[:8]}"
+                final_atoms.append(
+                    ExtractedAtom(
+                        reasoning=draft.reasoning,
+                        resolved_claim=draft.resolved_claim,
+                        source_quote=draft.source_quote,
+                        tda_id=tda_id,
+                        source_id=f"chunk_{chunk_index}",
+                    )
+                )
+            return final_atoms

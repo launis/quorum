@@ -67,7 +67,7 @@ class ExtractedAtom(BaseModel):
         str,
         Field(
             description="The Opaque Stripe ID of this atom.",
-            pattern=r"^tda_[a-fA-F0-9]{16,32}$",
+            pattern=r"^tda_[a-fA-F0-9]{8,32}$",
         ),
     ]
     source_id: Annotated[str | None, Field(description="The spatial anchor (Chunk ID).")] = None
