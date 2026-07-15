@@ -5,7 +5,7 @@ including precedent analysis and compliance checks.
 """
 
 import logging
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -26,10 +26,10 @@ class ArchiveCase(V2CoreBase):
         summary: Summary of the past case.
     """
 
-    case_id: str = Field(..., min_length=1, description="ID of the past case.")
-    similarity_score: float = Field(..., description="Similarity to current case.")
-    verdict: str = Field(..., min_length=1, description="Verdict of the past case.")
-    summary: str = Field(..., min_length=1, description="Summary of the past case.")
+    case_id: Annotated[str, Field(min_length=1, description="ID of the past case.")]
+    similarity_score: Annotated[float, Field(description="Similarity to current case.")]
+    verdict: Annotated[str, Field(min_length=1, description="Verdict of the past case.")]
+    summary: Annotated[str, Field(min_length=1, description="Summary of the past case.")]
 
 
 class ArchivistInput(V2CoreBase):
@@ -44,13 +44,11 @@ class ArchivistInput(V2CoreBase):
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
-    chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
-    archivist_precedents: list[ArchiveCase] | None = Field(None, description="Retrieved precedents.")
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    chat_log: Annotated[str, Field(description="Mandatory chatlog to analyze.")]
+    archivist_precedents: Annotated[list[ArchiveCase] | None, Field(description="Retrieved precedents.")] = None
+    last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
-    dynamic_inputs: dict[str, Any] = Field(
-        default_factory=dict, description="Structured dictionary for dynamic inputs."
-    )
+    dynamic_inputs: Annotated[dict[str, Any], Field(description="Structured dictionary for dynamic inputs.")] = {}
 
 
 class ArchivistOutputDTO(ReasoningTraceDTO):
@@ -66,43 +64,41 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
         description: Localized description.
     """
 
-    relevant_cases: list[ArchiveCase] = Field(
-        ...,
-        min_length=1,
-        description="Relevant past cases.",
-        json_schema_extra={"x-ui-label": "Relevant Cases"},
-    )
-    consistency_analysis: str = Field(
-        ...,
-        min_length=1,
-        description="Analysis of consistency with precedents.",
-        json_schema_extra={"x-ui-label": "Consistency Analysis"},
-    )
-    stare_decisis_adherence: bool = Field(
-        ...,
-        description="Whether the decision follows precedent.",
-        json_schema_extra={"x-ui-label": "Stare Decisis"},
-    )
-    compliance_analysis: Literal["Critically Misaligned", "Misaligned", "Neutral", "Aligned", "Strongly Aligned"] = (
+    relevant_cases: Annotated[
+        list[ArchiveCase],
+        Field(min_length=1, description="Relevant past cases.", json_schema_extra={"x-ui-label": "Relevant Cases"}),
+    ]
+    consistency_analysis: Annotated[
+        str,
         Field(
-            ...,
+            min_length=1,
+            description="Analysis of consistency with precedents.",
+            json_schema_extra={"x-ui-label": "Consistency Analysis"},
+        ),
+    ]
+    stare_decisis_adherence: Annotated[
+        bool,
+        Field(description="Whether the decision follows precedent.", json_schema_extra={"x-ui-label": "Stare Decisis"}),
+    ]
+    compliance_analysis: Annotated[
+        Literal["Critically Misaligned", "Misaligned", "Neutral", "Aligned", "Strongly Aligned"],
+        Field(
             description="Analysis of consistency with goals (Compliance).",
             json_schema_extra={"x-ui-label": "Compliance Analysis"},
-        )
-    )
-    compliance_score: float = Field(
-        ...,
-        description="Numeric Compliance score (1-5).",
-        json_schema_extra={"x-ui-label": "Compliance Score"},
-    )
-    description_key: str = Field(
-        default="compliance_desc",
-        min_length=1,
-        description="Localization key.",
-    )
-    description: str = Field(
-        default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
-    )
+        ),
+    ]
+    compliance_score: Annotated[
+        float,
+        Field(description="Numeric Compliance score (1-5).", json_schema_extra={"x-ui-label": "Compliance Score"}),
+    ]
+    description_key: Annotated[
+        str,
+        Field(min_length=1, description="Localization key."),
+    ] = "compliance_desc"
+    description: Annotated[
+        str,
+        Field(description="Localized description.", json_schema_extra={"x-ui-label": "Description"}),
+    ] = ""
 
     @model_validator(mode="before")
     @classmethod
@@ -136,8 +132,8 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
                 logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-            if val and "compliance_score" not in data:
-                data["compliance_score"] = mapping[val]
+            if val:
+                data.setdefault("compliance_score", mapping[val])
 
         return data
 

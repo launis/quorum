@@ -7,6 +7,7 @@ including counterfactual testing and abductive reasoning.
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from pydantic import Field, field_validator
 
@@ -29,9 +30,11 @@ class CausalInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
     """
 
-    chat_log: str = Field(..., min_length=1, description="Mandatory chatlog to analyze.")
-    step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog to analyze.")]
+    step_analyst: Annotated[
+        AnalystOutput | LogicianOutput | None, Field(description="Analyst or Logician outputs.")
+    ] = None
+    last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
 
 class CausalAnalysisData(V2CoreBase):
@@ -42,17 +45,14 @@ class CausalAnalysisData(V2CoreBase):
         observation: General observations.
     """
 
-    timeline_valid: bool = Field(
-        ...,
-        description="Is the timeline valid?",
-        json_schema_extra={"x-ui-label": "Timeline Valid"},
-    )
-    observation: str = Field(
-        ...,
-        min_length=1,
-        description="General observations.",
-        json_schema_extra={"x-ui-label": "Observations"},
-    )
+    timeline_valid: Annotated[
+        bool,
+        Field(description="Is the timeline valid?", json_schema_extra={"x-ui-label": "Timeline Valid"}),
+    ]
+    observation: Annotated[
+        str,
+        Field(min_length=1, description="General observations.", json_schema_extra={"x-ui-label": "Observations"}),
+    ]
 
 
 class CounterfactualTest(V2CoreBase):
@@ -65,19 +65,20 @@ class CounterfactualTest(V2CoreBase):
         simulation_result: Simulation outcome.
     """
 
-    plausibility_score: LaxPlausibilityLevel = Field(
-        ...,
-        description="Plausibility score.",
-        json_schema_extra={"x-ui-label": "Plausibility Score"},
-    )
-    plausibility_numeric: float = Field(
-        ...,
-        description=(
-            "Numeric plausibility (1.0 to 3.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+    plausibility_score: Annotated[
+        LaxPlausibilityLevel,
+        Field(description="Plausibility score.", json_schema_extra={"x-ui-label": "Plausibility Score"}),
+    ]
+    plausibility_numeric: Annotated[
+        float,
+        Field(
+            description=(
+                "Numeric plausibility (1.0 to 3.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 2.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Plausibility Numeric"},
         ),
-        json_schema_extra={"x-ui-label": "Plausibility Numeric"},
-    )
+    ]
 
     @field_validator("plausibility_numeric")
     @classmethod
@@ -99,12 +100,13 @@ class CounterfactualTest(V2CoreBase):
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
-    actual_scenario: str = Field(
-        ..., min_length=1, description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"}
-    )
-    simulation_result: str = Field(
-        ..., min_length=1, description="Simulation outcome.", json_schema_extra={"x-ui-label": "Simulation Result"}
-    )
+    actual_scenario: Annotated[
+        str, Field(min_length=1, description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"})
+    ]
+    simulation_result: Annotated[
+        str,
+        Field(min_length=1, description="Simulation outcome.", json_schema_extra={"x-ui-label": "Simulation Result"}),
+    ]
 
 
 class CausalAnalysis(V2CoreBase):
@@ -118,19 +120,20 @@ class CausalAnalysis(V2CoreBase):
         hypothesis: Hypothesis.
     """
 
-    abductive_conclusion: LaxAbductiveConclusion = Field(
-        ...,
-        description="Abductive conclusion type.",
-        json_schema_extra={"x-ui-label": "Abductive Conclusion"},
-    )
-    abductive_score: float = Field(
-        ...,
-        description=(
-            "Numeric abductive score (1.0 to 3.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+    abductive_conclusion: Annotated[
+        LaxAbductiveConclusion,
+        Field(description="Abductive conclusion type.", json_schema_extra={"x-ui-label": "Abductive Conclusion"}),
+    ]
+    abductive_score: Annotated[
+        float,
+        Field(
+            description=(
+                "Numeric abductive score (1.0 to 3.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 2.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Abductive Score"},
         ),
-        json_schema_extra={"x-ui-label": "Abductive Score"},
-    )
+    ]
 
     @field_validator("abductive_score")
     @classmethod
@@ -152,17 +155,16 @@ class CausalAnalysis(V2CoreBase):
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
-    counterfactual_test: CounterfactualTest = Field(
-        ...,
-        description="Counterfactual analysis.",
-        json_schema_extra={"x-ui-label": "Counterfactual Test"},
-    )
-    observation: str = Field(
-        ..., min_length=1, description="Observation.", json_schema_extra={"x-ui-label": "Observation"}
-    )
-    hypothesis: str = Field(
-        ..., min_length=1, description="Hypothesis.", json_schema_extra={"x-ui-label": "Hypothesis"}
-    )
+    counterfactual_test: Annotated[
+        CounterfactualTest,
+        Field(description="Counterfactual analysis.", json_schema_extra={"x-ui-label": "Counterfactual Test"}),
+    ]
+    observation: Annotated[
+        str, Field(min_length=1, description="Observation.", json_schema_extra={"x-ui-label": "Observation"})
+    ]
+    hypothesis: Annotated[
+        str, Field(min_length=1, description="Hypothesis.", json_schema_extra={"x-ui-label": "Hypothesis"})
+    ]
 
 
 class CausalDTO(ReasoningTraceDTO):
@@ -172,11 +174,10 @@ class CausalDTO(ReasoningTraceDTO):
         causal_analysis: Causal audit result.
     """
 
-    causal_analysis: CausalAnalysis = Field(
-        ...,
-        description="Causal audit result.",
-        json_schema_extra={"x-ui-label": "Causal Audit"},
-    )
+    causal_analysis: Annotated[
+        CausalAnalysis,
+        Field(description="Causal audit result.", json_schema_extra={"x-ui-label": "Causal Audit"}),
+    ]
 
 
 class CausalOutput(CausalDTO, ReasoningTrace):

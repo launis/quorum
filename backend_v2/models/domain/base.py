@@ -7,7 +7,7 @@ It includes Metadata, ReasoningTrace, and UsageRecord.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field, field_validator
 
@@ -28,10 +28,10 @@ class AuditLogEntry(V2CoreBase):
         context: Additional context.
     """
 
-    timestamp: datetime = Field(..., description="Timestamp of the log entry.")
-    level: str = Field(..., min_length=1, description="Log level (INFO, WARN, ERROR).")
-    message: str = Field(..., min_length=1, description="Log message.")
-    context: dict[str, Any] | None = Field(default=None, description="Additional context.")
+    timestamp: Annotated[datetime, Field(description="Timestamp of the log entry.")]
+    level: Annotated[str, Field(min_length=1, description="Log level (INFO, WARN, ERROR).")]
+    message: Annotated[str, Field(min_length=1, description="Log message.")]
+    context: Annotated[dict[str, Any] | None, Field(description="Additional context.")] = None
 
 
 class Metadata(V2CoreBase):
@@ -57,52 +57,55 @@ class Metadata(V2CoreBase):
         provider_metadata: Raw provider specific metadata (e.g. rate limits, safety ratings, citations).
     """
 
-    luontiaika: datetime = Field(
-        ..., description="Creation timestamp.", json_schema_extra={"x-ui-label": "Creation Time"}
-    )
-    agentti: str = Field(..., min_length=1, description="Agent name.", json_schema_extra={"x-ui-label": "Agent Name"})
-    vaihe: int = Field(default=0, description="Step number.", json_schema_extra={"x-ui-label": "Step Number"})
-    versio: str = Field(default="1.0", description="Schema version.", json_schema_extra={"x-ui-label": "Version"})
-    suoritus_ymparisto: str = Field(
-        ...,
-        min_length=1,
-        description="Environment.",
-        json_schema_extra={"x-ui-label": "Environment"},
-    )
-    organization_id: str | None = Field(
-        default=None, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"}
-    )
-    user_id: str | None = Field(default=None, description="User ID.", json_schema_extra={"x-ui-label": "User ID"})
-    execution_id: str | None = Field(
-        default=None, description="Execution ID.", json_schema_extra={"x-ui-label": "Execution ID"}
-    )
-    step_id: str | None = Field(default=None, description="Step ID.", json_schema_extra={"x-ui-label": "Step ID"})
-    model: str | None = Field(default=None, description="Model used.", json_schema_extra={"x-ui-label": "Model"})
-    provider: str | None = Field(
-        default=None, description="Model provider.", json_schema_extra={"x-ui-label": "Provider"}
-    )
-    duration_ms: int | None = Field(
-        default=None,
-        description="Execution duration in milliseconds.",
-        json_schema_extra={"x-ui-label": "Duration (ms)"},
-    )
-    workflow: str | None = Field(
-        default=None, description="Workflow name.", json_schema_extra={"x-ui-label": "Workflow"}
-    )
-    audit_logs: list[AuditLogEntry] | None = Field(
-        default=None, description="Audit logs.", json_schema_extra={"x-ui-label": "Audit Logs"}
-    )
-    token_usage: TokenUsage | None = Field(default=None, description="Token usage statistics from language model.")
-    system_fingerprint: str | None = Field(
-        default=None,
-        description="System fingerprint identifying exact model weights used.",
-        json_schema_extra={"x-ui-label": "System Fingerprint"},
-    )
-    provider_metadata: dict[str, Any] | None = Field(
-        default=None,
-        description="Raw provider specific metadata (e.g. rate limits, safety ratings, citations).",
-        json_schema_extra={"x-ui-label": "Provider Metadata"},
-    )
+    luontiaika: Annotated[
+        datetime, Field(description="Creation timestamp.", json_schema_extra={"x-ui-label": "Creation Time"})
+    ]
+    agentti: Annotated[
+        str, Field(min_length=1, description="Agent name.", json_schema_extra={"x-ui-label": "Agent Name"})
+    ]
+    vaihe: Annotated[int, Field(description="Step number.", json_schema_extra={"x-ui-label": "Step Number"})] = 0
+    versio: Annotated[str, Field(description="Schema version.", json_schema_extra={"x-ui-label": "Version"})] = "1.0"
+    suoritus_ymparisto: Annotated[
+        str,
+        Field(min_length=1, description="Environment.", json_schema_extra={"x-ui-label": "Environment"}),
+    ]
+    organization_id: Annotated[
+        str | None, Field(description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"})
+    ] = None
+    user_id: Annotated[str | None, Field(description="User ID.", json_schema_extra={"x-ui-label": "User ID"})] = None
+    execution_id: Annotated[
+        str | None, Field(description="Execution ID.", json_schema_extra={"x-ui-label": "Execution ID"})
+    ] = None
+    step_id: Annotated[str | None, Field(description="Step ID.", json_schema_extra={"x-ui-label": "Step ID"})] = None
+    model: Annotated[str | None, Field(description="Model used.", json_schema_extra={"x-ui-label": "Model"})] = None
+    provider: Annotated[
+        str | None, Field(description="Model provider.", json_schema_extra={"x-ui-label": "Provider"})
+    ] = None
+    duration_ms: Annotated[
+        int | None,
+        Field(description="Execution duration in milliseconds.", json_schema_extra={"x-ui-label": "Duration (ms)"}),
+    ] = None
+    workflow: Annotated[
+        str | None, Field(description="Workflow name.", json_schema_extra={"x-ui-label": "Workflow"})
+    ] = None
+    audit_logs: Annotated[
+        list[AuditLogEntry] | None, Field(description="Audit logs.", json_schema_extra={"x-ui-label": "Audit Logs"})
+    ] = None
+    token_usage: Annotated[TokenUsage | None, Field(description="Token usage statistics from language model.")] = None
+    system_fingerprint: Annotated[
+        str | None,
+        Field(
+            description="System fingerprint identifying exact model weights used.",
+            json_schema_extra={"x-ui-label": "System Fingerprint"},
+        ),
+    ] = None
+    provider_metadata: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Raw provider specific metadata (e.g. rate limits, safety ratings, citations).",
+            json_schema_extra={"x-ui-label": "Provider Metadata"},
+        ),
+    ] = None
 
     @field_validator("luontiaika", mode="before")
     @classmethod
@@ -133,26 +136,34 @@ class ReasoningTraceDTO(V2CoreBase):
         reasoning_token: Encrypted Reasoning Blob / Thought signature from the LLM.
     """
 
-    thought_process: str = Field(
-        ...,
-        description="Step-by-step thinking process leading to the result.",
-        json_schema_extra={"x-ui-label": "Reasoning Process"},
-    )
-    conclusion: str = Field(
-        ...,
-        description="Synthesized conclusion or summary of the reasoning.",
-        json_schema_extra={"x-ui-label": "Conclusion"},
-    )
-    confidence_score: float = Field(
-        ...,
-        description="Self-assessed confidence score (0.0 - 1.0).",
-        json_schema_extra={"x-ui-label": "Confidence Score"},
-    )
-    reasoning_token: str | None = Field(
-        default=None,
-        description="Encrypted Reasoning Blob / Thought signature from the LLM.",
-        json_schema_extra={"x-ui-hidden": True},
-    )
+    thought_process: Annotated[
+        str,
+        Field(
+            description="Step-by-step thinking process leading to the result.",
+            json_schema_extra={"x-ui-label": "Reasoning Process"},
+        ),
+    ]
+    conclusion: Annotated[
+        str,
+        Field(
+            description="Synthesized conclusion or summary of the reasoning.",
+            json_schema_extra={"x-ui-label": "Conclusion"},
+        ),
+    ]
+    confidence_score: Annotated[
+        float,
+        Field(
+            description="Self-assessed confidence score (0.0 - 1.0).",
+            json_schema_extra={"x-ui-label": "Confidence Score"},
+        ),
+    ]
+    reasoning_token: Annotated[
+        str | None,
+        Field(
+            description="Encrypted Reasoning Blob / Thought signature from the LLM.",
+            json_schema_extra={"x-ui-hidden": True},
+        ),
+    ] = None
 
     @field_validator("thought_process", "conclusion")
     @classmethod
@@ -211,16 +222,14 @@ class ReasoningTrace(ReasoningTraceDTO):
         semanttinen_tarkistussumma: Semantic checksum (Calculated by Backend).
     """
 
-    metadata: Metadata | None = Field(
-        default=None,
-        description="System metadata (Injected by Backend).",
-        json_schema_extra={"x-ui-label": "Metadata"},
-    )
-    semanttinen_tarkistussumma: str | None = Field(
-        default=None,
-        description="Semantic checksum (Calculated by Backend).",
-        json_schema_extra={"x-ui-label": "Checksum"},
-    )
+    metadata: Annotated[
+        Metadata | None,
+        Field(description="System metadata (Injected by Backend).", json_schema_extra={"x-ui-label": "Metadata"}),
+    ] = None
+    semanttinen_tarkistussumma: Annotated[
+        str | None,
+        Field(description="Semantic checksum (Calculated by Backend).", json_schema_extra={"x-ui-label": "Checksum"}),
+    ] = None
 
 
 class UsageRecord(V2CoreBase):
@@ -244,55 +253,54 @@ class UsageRecord(V2CoreBase):
         timestamp: Timestamp of usage.
     """
 
-    id: str = Field(
-        default_factory=lambda: f"usg_{uuid.uuid4().hex}",
-        min_length=1,
-        description="Unique ID for the usage event.",
-        json_schema_extra={"x-ui-label": "ID"},
-    )
-    org_id: str = Field(
-        ...,
-        min_length=1,
-        description="Organization ID.",
-        json_schema_extra={"x-ui-label": "Organization ID"},
-    )
-    user_id: str = Field(..., min_length=1, description="User ID.", json_schema_extra={"x-ui-label": "User ID"})
-    model: str = Field(..., min_length=1, description="Model name.", json_schema_extra={"x-ui-label": "Model"})
-    input_tokens: int = Field(
-        ...,
-        ge=0,
-        description="Input token count.",
-        json_schema_extra={"x-ui-label": "Input Tokens"},
-    )
-    output_tokens: int = Field(
-        ..., ge=0, description="Output token count.", json_schema_extra={"x-ui-label": "Output Tokens"}
-    )
-    cached_tokens: int = Field(
-        default=0, ge=0, description="Cached tokens.", json_schema_extra={"x-ui-label": "Cached Tokens"}
-    )
-    cache_creation_input_tokens: int = Field(
-        default=0,
-        ge=0,
-        description="Tokens written to cache.",
-        json_schema_extra={"x-ui-label": "Cache Creation Tokens"},
-    )
-    reasoning_tokens: int = Field(
-        default=0, ge=0, description="Reasoning tokens.", json_schema_extra={"x-ui-label": "Reasoning Tokens"}
-    )
-    latency_ms: int | None = Field(
-        default=None, description="Request latency in ms.", json_schema_extra={"x-ui-label": "Latency (ms)"}
-    )
-    finish_reason: str | None = Field(
-        default=None, description="Finish reason.", json_schema_extra={"x-ui-label": "Finish Reason"}
-    )
-    system_fingerprint: str | None = Field(
-        default=None, description="System fingerprint.", json_schema_extra={"x-ui-label": "System Fingerprint"}
-    )
-    cost_usd: float = Field(..., description="Cost in USD.", json_schema_extra={"x-ui-label": "Cost (USD)"})
-    estimated_savings_usd: float = Field(
-        default=0.0, description="Estimated savings.", json_schema_extra={"x-ui-label": "Savings (USD)"}
-    )
-    timestamp: datetime = Field(..., description="Timestamp of usage.", json_schema_extra={"x-ui-label": "Timestamp"})
+    id: Annotated[
+        str,
+        Field(
+            default_factory=lambda: f"usg_{uuid.uuid4().hex}",
+            min_length=1,
+            description="Unique ID for the usage event.",
+            json_schema_extra={"x-ui-label": "ID"},
+        ),
+    ]
+    org_id: Annotated[
+        str,
+        Field(min_length=1, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"}),
+    ]
+    user_id: Annotated[str, Field(min_length=1, description="User ID.", json_schema_extra={"x-ui-label": "User ID"})]
+    model: Annotated[str, Field(min_length=1, description="Model name.", json_schema_extra={"x-ui-label": "Model"})]
+    input_tokens: Annotated[
+        int,
+        Field(ge=0, description="Input token count.", json_schema_extra={"x-ui-label": "Input Tokens"}),
+    ]
+    output_tokens: Annotated[
+        int, Field(ge=0, description="Output token count.", json_schema_extra={"x-ui-label": "Output Tokens"})
+    ]
+    cached_tokens: Annotated[
+        int, Field(ge=0, description="Cached tokens.", json_schema_extra={"x-ui-label": "Cached Tokens"})
+    ] = 0
+    cache_creation_input_tokens: Annotated[
+        int,
+        Field(ge=0, description="Tokens written to cache.", json_schema_extra={"x-ui-label": "Cache Creation Tokens"}),
+    ] = 0
+    reasoning_tokens: Annotated[
+        int, Field(ge=0, description="Reasoning tokens.", json_schema_extra={"x-ui-label": "Reasoning Tokens"})
+    ] = 0
+    latency_ms: Annotated[
+        int | None, Field(description="Request latency in ms.", json_schema_extra={"x-ui-label": "Latency (ms)"})
+    ] = None
+    finish_reason: Annotated[
+        str | None, Field(description="Finish reason.", json_schema_extra={"x-ui-label": "Finish Reason"})
+    ] = None
+    system_fingerprint: Annotated[
+        str | None, Field(description="System fingerprint.", json_schema_extra={"x-ui-label": "System Fingerprint"})
+    ] = None
+    cost_usd: Annotated[float, Field(description="Cost in USD.", json_schema_extra={"x-ui-label": "Cost (USD)"})]
+    estimated_savings_usd: Annotated[
+        float, Field(description="Estimated savings.", json_schema_extra={"x-ui-label": "Savings (USD)"})
+    ] = 0.0
+    timestamp: Annotated[
+        datetime, Field(description="Timestamp of usage.", json_schema_extra={"x-ui-label": "Timestamp"})
+    ]
 
     @field_validator("timestamp", mode="before")
     @classmethod

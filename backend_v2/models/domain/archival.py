@@ -5,6 +5,8 @@ This module defines the schemas for archival execution precedents.
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
@@ -20,7 +22,7 @@ class ArchivalPrecedentDTO(V2CoreBase):
         verdict: Truncated verdict from the execution.
     """
 
-    id: str = Field(..., min_length=1, description="Opaque Stripe ID of the past execution.")
-    date: str = Field(..., min_length=1, description="ISO formatted completion date.")
-    scores: str = Field(..., min_length=1, description="Formatted string of judge scores.")
-    verdict: str = Field(..., min_length=1, description="Truncated verdict from the execution.")
+    id: Annotated[str, Field(min_length=1, description="Opaque Stripe ID of the past execution.")]
+    date: Annotated[str, Field(min_length=1, description="ISO formatted completion date.")]
+    scores: Annotated[str, Field(min_length=1, description="Formatted string of judge scores.")]
+    verdict: Annotated[str, Field(min_length=1, description="Truncated verdict from the execution.")]
