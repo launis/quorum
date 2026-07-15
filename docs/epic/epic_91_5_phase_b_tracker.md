@@ -16,7 +16,7 @@
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B6_tier_2_hardening.md`
 - [x] [OK] Phase B7: Proxy Sunset & Consumer Migration
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B7_proxy_sunset.md`
-- [ ] [NOK] Phase B8: Pre-Delete Audit
+- [x] [OK] Phase B8: Pre-Delete Audit
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B8_pre_delete_audit.md`
 - [ ] [NOK] Phase B9: Baseline Parity & Zero-Loss Audit
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B9_baseline_parity.md`
