@@ -42,9 +42,10 @@ class DynamicExtractionResponseBase(BaseModel):
         # Phase 1, Milestone 2: Map cosmetic placeholders to None silently ONLY for search_context_anchor
         if isinstance(data, dict):
             placeholder_set = {"none", "n/a", "", None}
-            val = data.get("search_context_anchor")
-            if isinstance(val, str) and val.strip().lower() in placeholder_set:
-                data["search_context_anchor"] = None
+            if "search_context_anchor" in data:
+                val = data["search_context_anchor"]
+                if isinstance(val, str) and val.strip().lower() in placeholder_set:
+                    data["search_context_anchor"] = None
         return data
 
     @model_validator(mode="after")
@@ -57,17 +58,18 @@ class DynamicExtractionResponseBase(BaseModel):
                 limit = 0.80 * len(source_text)
 
                 # Check search_context_anchor
-                anchor = getattr(self, "search_context_anchor", None)
-                if isinstance(anchor, str) and len(anchor) > limit:
-                    raise ValueError(
-                        f"Lazy dumping detected for search_context_anchor: quote length "
-                        f"({len(anchor)}) exceeds 80% of source_text length ({len(source_text)})."
-                    )
+                model_dict = self.model_dump()
+                if "search_context_anchor" in model_dict:
+                    anchor = model_dict["search_context_anchor"]
+                    if isinstance(anchor, str) and len(anchor) > limit:
+                        raise ValueError(
+                            f"Lazy dumping detected for search_context_anchor: quote length "
+                            f"({len(anchor)}) exceeds 80% of source_text length ({len(source_text)})."
+                        )
 
                 # Check all fields inside extracted_facts
-                extracted_facts = getattr(self, "extracted_facts", None)
-                if extracted_facts:
-                    facts_dict = extracted_facts.model_dump()
+                if "extracted_facts" in model_dict and model_dict["extracted_facts"]:
+                    facts_dict = model_dict["extracted_facts"]
                     for key, val in facts_dict.items():
                         if isinstance(val, str) and len(val) > limit:
                             raise ValueError(

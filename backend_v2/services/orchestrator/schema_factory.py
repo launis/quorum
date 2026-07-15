@@ -421,7 +421,7 @@ class SchemaFactory:
                     for scale in crit.scales:
                         for claim in scale.claims:
                             for tda in claim.tda_assertions:
-                                if getattr(tda, "allow_contextual_override", False):
+                                if tda.allow_contextual_override:
                                     rule_allows_override = True
 
                 if strictness_level >= 100 or not rule_allows_override:

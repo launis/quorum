@@ -4,6 +4,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz
 
+from backend_v2.exceptions import AppException
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
@@ -127,6 +128,7 @@ class ExtractiveSensorService:
         Args:
             node: The LinkedAtomGraph node to evaluate.
             executor: The LLMTaskExecutor to run the query.
+            client: The LLMClient instance.
             context_text: The source document text.
 
         Returns:
@@ -136,7 +138,7 @@ class ExtractiveSensorService:
         logger = logging.getLogger(__name__)
 
         class BooleanEvaluationResult(BaseModel):
-            model_config = ConfigDict(strict=True, frozen=True)
+            model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
             reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
             is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
 
@@ -153,6 +155,6 @@ class ExtractiveSensorService:
                 response_model=BooleanEvaluationResult,
             )
             return ExecutionStatus.PASSED if result.is_true else ExecutionStatus.FAILED
-        except Exception as e:
+        except AppException as e:
             logger.error("Boolean evaluation failed for TDA %s: %s", node.atom.tda_id, str(e))
             return ExecutionStatus.SYSTEM_ERROR

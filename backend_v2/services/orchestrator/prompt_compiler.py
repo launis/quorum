@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.v2_core import ExpectedInput, PromptBlock
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 from backend_v2.services.orchestrator.schema_factory import (
     EvidenceType,
@@ -197,28 +197,23 @@ class PromptCompiler:
         input_meta_map = {}
         if expected_inputs:
             for ei in expected_inputs:
-                key = getattr(ei, "input_key", None)
+                if not isinstance(ei, ExpectedInput):
+                    continue
+
+                key = ei.input_key
                 if not key:
                     continue
 
                 # Fail-Fast Mandatory I18n extraction
-                label_obj = getattr(ei, "label", None)
-                label_dict = (
-                    label_obj.model_dump(mode="json")
-                    if label_obj is not None and hasattr(label_obj, "model_dump")
-                    else label_obj
-                )
+                label_obj = ei.label
+                label_dict = label_obj.model_dump(mode="json") if isinstance(label_obj, BaseModel) else label_obj
                 label_str = self.resolve_i18n(label_dict, target_locale) if label_dict else ""
 
-                desc_obj = getattr(ei, "description", None)
-                desc_dict = (
-                    desc_obj.model_dump(mode="json")
-                    if desc_obj is not None and hasattr(desc_obj, "model_dump")
-                    else desc_obj
-                )
+                desc_obj = ei.description
+                desc_dict = desc_obj.model_dump(mode="json") if isinstance(desc_obj, BaseModel) else desc_obj
                 desc_str = self.resolve_i18n(desc_dict, target_locale) if desc_dict else ""
 
-                ai_desc = getattr(ei, "ai_description", None) or ""
+                ai_desc = ei.ai_description or ""
 
                 input_meta_map[f"$inputs.{key}"] = {
                     "label": label_str,
@@ -235,7 +230,7 @@ class PromptCompiler:
                     alias_engine.source_document_aliases.append(alias)
                     source_id_to_use = alias
 
-                meta = input_meta_map.get(source_path)
+                meta = input_meta_map[source_path] if source_path in input_meta_map else None
                 desc_text = ""
                 if meta:
                     desc_text += "  <document_metadata>\n"
@@ -284,8 +279,8 @@ class PromptCompiler:
         for part in parts:
             if isinstance(current, dict) and part in current:
                 current = current[part]
-            elif hasattr(current, part):
-                current = getattr(current, part)
+            elif isinstance(current, BaseModel) and part in current.model_fields:
+                current = current.model_dump()[part]
             else:
                 msg = f"Path resolution failed: '{path}'. Component '{part}' is missing from state context."
                 logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -297,9 +292,8 @@ class PromptCompiler:
             # Already a string, return directly
             return current
 
-        if hasattr(current, "model_dump_json") and callable(getattr(current, "model_dump_json", None)):
-            dump_fn: Any = current.model_dump_json
-            return str(dump_fn(indent=2))
+        if isinstance(current, BaseModel):
+            return str(current.model_dump_json(indent=2))
 
         if isinstance(current, dict):
             # Epic 12: Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)

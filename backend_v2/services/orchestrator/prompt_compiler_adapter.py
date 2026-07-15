@@ -116,8 +116,8 @@ class PromptCompilerAdapter:
         in_dynamic_tail = False
 
         for msg in messages:
-            role = msg.get("role")
-            content = msg.get("content")
+            role = msg["role"] if "role" in msg else None
+            content = msg["content"] if "content" in msg else None
 
             # Preserve extra properties (like tool_calls, tool_call_id, name)
             extra_props = {k: v for k, v in msg.items() if k not in ("role", "content")}

@@ -32,8 +32,8 @@ class AnchorValidationService:
         if not text:
             return "", []
 
-        # FAST-PATH: Etsi HTML-tagien indeksit ja jätä ne huomioimatta normalisoinnissa
-        # Tämä estää esim. <br> -tagien 'b' ja 'r' kirjainten päätymisen normalisoituun tekstiin
+        # FAST-PATH: Find indices of HTML tags and ignore them during normalization.
+        # This prevents characters from tags like <br> from ending up in the normalized text.
         html_tag_indices: set[int] = set()
         for match in re.finditer(r"<[^>]+>", text):
             html_tag_indices.update(range(match.start(), match.end()))

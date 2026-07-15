@@ -5,6 +5,7 @@ from typing import Any, Literal
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixDTO, ReducedAtomDTO
+from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.v2_core import ExecutionRecord, TDAAssertion
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class MatrixReducer:
                 source_quote: str | None = None
                 if atom.exact_quotes:
                     first_quote = atom.exact_quotes[0]
-                    source_quote = first_quote.quote if hasattr(first_quote, "quote") else None
+                    source_quote = first_quote.quote if isinstance(first_quote, QuoteEvidenceDTO) else None
 
                 extracted_data: dict[str, Any] | None = atom.extracted_facts if atom.extracted_facts else None
 

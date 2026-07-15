@@ -128,13 +128,15 @@ class ASTEvaluator:
 
         match node:
             case ast.Name(id=var_name):
-                val = facts.get(var_name)
-                if val == "DLQ":
-                    return "DLQ"
-                elif val is None or val == "" or val is False:
-                    return "FALSE"
-                else:
-                    return "TRUE"
+                if var_name in facts:
+                    val = facts[var_name]
+                    if val == "DLQ":
+                        return "DLQ"
+                    elif val is None or val == "" or val is False:
+                        return "FALSE"
+                    else:
+                        return "TRUE"
+                return "FALSE"
 
             case ast.UnaryOp(op=ast.Not(), operand=operand):
                 operand_val = ASTEvaluator._eval_node(operand, facts, total_chunks, dlq_chunks)

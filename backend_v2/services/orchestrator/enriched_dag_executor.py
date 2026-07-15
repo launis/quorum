@@ -42,7 +42,14 @@ class EnrichedDagExecutor:
         """
 
         async def evaluation_callback(node: LinkedAtomGraph) -> ExecutionStatus:
-            """Callback injected into TopologicalEvaluator for node evaluation."""
+            """Callback injected into TopologicalEvaluator for node evaluation.
+
+            Args:
+                node: The atom graph node to evaluate.
+
+            Returns:
+                The evaluated ExecutionStatus.
+            """
             return await ExtractiveSensorService.evaluate_atom_boolean(
                 node=node,
                 executor=self._llm_executor,

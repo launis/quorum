@@ -61,6 +61,11 @@ class GraphValidatorService:
 
         # 2. Deterministic Cycle Isolation
         def get_cycles() -> list[list[str]]:
+            """Detect all simple cycles in the directed graph.
+
+            Returns:
+                A list of cycles, where each cycle is a list of node IDs.
+            """
             return list(nx.simple_cycles(dg))
 
         # Offload to thread to prevent blocking the async event loop for large graphs

@@ -12,7 +12,7 @@ from typing import Any
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.enums import EvaluationMandate
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.v2_core import I18nText, PromptBlock
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class LocalizationCompiler:
         if not text_obj:
             return ""
 
-        if hasattr(text_obj, "resolve"):
+        if isinstance(text_obj, I18nText):
             return str(text_obj.resolve(target_locale))
 
         if isinstance(text_obj, str) or not isinstance(text_obj, dict):
@@ -57,9 +57,11 @@ class LocalizationCompiler:
             logger.error("[LocalizationCompiler] %s", msg)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-        translations = text_obj.get("translations", {})
-        if not isinstance(translations, dict):
-            translations = {}
+        translations = {}
+        if "translations" in text_obj:
+            t = text_obj["translations"]
+            if isinstance(t, dict):
+                translations = t
 
         # 1. Try Target Locale
         if target_locale in translations and translations[target_locale]:
@@ -160,7 +162,7 @@ class LocalizationCompiler:
                                     )
 
                             # Phase 1, Step 3: Inject contrastive_example negative constraints calibration when available
-                            if getattr(assertion, "contrastive_example", None):
+                            if assertion.contrastive_example:
                                 assertion_xml.append(
                                     "    <RULE_CALIBRATION_EXAMPLES>\n"
                                     "      <WARNING>These are HYPOTHETICAL concepts. DO NOT extract quotes from this section.</WARNING>\n"

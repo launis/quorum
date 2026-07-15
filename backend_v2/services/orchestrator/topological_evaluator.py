@@ -10,6 +10,7 @@ from collections.abc import Awaitable, Callable
 
 import networkx as nx
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
 
@@ -139,7 +140,7 @@ class TopologicalEvaluator:
                 try:
                     result_status = await evaluation_callback(node)
                     states[node_id] = states[node_id].model_copy(update={"status": result_status})
-                except Exception as e:
+                except AppException as e:
                     states[node_id] = states[node_id].model_copy(
                         update={
                             "status": ExecutionStatus.SYSTEM_ERROR,
@@ -147,14 +148,6 @@ class TopologicalEvaluator:
                         }
                     )
 
-            except Exception:
-                # Catch-all DLQ equivalent for node to prevent TaskGroup failure
-                states[node_id] = states[node_id].model_copy(
-                    update={
-                        "status": ExecutionStatus.SYSTEM_ERROR,
-                        "evaluation_reasoning": "UNHANDLED_NODE_EXCEPTION",
-                    }
-                )
             finally:
                 # Critical safety net: Always set the event to unlock children
                 events[node_id].set()
