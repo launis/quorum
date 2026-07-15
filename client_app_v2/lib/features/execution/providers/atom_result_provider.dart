@@ -17,5 +17,5 @@ List<AtomResultDTO> atomResults(Ref ref, String executionId) {
     );
   }
 
-  return reportData.results;
+  return []; // TODO(Phase C4): Migrate to unified pipeline
 }

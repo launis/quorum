@@ -3,10 +3,9 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'dart:convert';
 import 'package:client_app/core/utils/safe_isolate.dart';
 
-import 'atom_result_dto.dart';
-import 'execution_metrics_dto.dart';
-import 'global_synthesis_dto.dart';
-import 'hydrated_atom_dto.dart';
+import 'scorecard_dto.dart';
+import 'report_layout_dto.dart';
+import '../../../shared/models/i18n_text.dart';
 
 part 'report_data_v2_dto.freezed.dart';
 part 'report_data_v2_dto.g.dart';
@@ -17,38 +16,57 @@ abstract class ReportDataDto with _$ReportDataDto {
   const factory ReportDataDto({
     @JsonKey(name: 'execution_id') required String executionId,
     @JsonKey(name: 'workflow_id') required String workflowId,
-    @JsonKey(name: 'global_metrics') required ExecutionMetricsDTO globalMetrics,
-    @JsonKey(name: 'global_synthesis') GlobalSynthesisDTO? globalSynthesis,
-    required List<AtomResultDTO> results,
-    @JsonKey(name: 'hydrated_references')
-    required Map<String, HydratedAtomDTO> hydratedReferences,
+    @JsonKey(name: 'scoring_strategy') String? scoringStrategy,
+    @JsonKey(name: 'user_name') String? userName,
+    @JsonKey(name: 'scoring_engine_name') String? scoringEngineName,
+    @JsonKey(name: 'strictness_level') int? strictnessLevel,
+    @JsonKey(name: 'local_time_str') String? localTimeStr,
+    @JsonKey(name: 'custom_preface_md') String? customPrefaceMd,
+    @JsonKey(name: 'profile_id') required String profileId,
+    @JsonKey(name: 'profile_name') I18nText? profileName,
+    @JsonKey(name: 'available_profiles')
+    @Default({})
+    Map<String, I18nText> availableProfiles,
+    @JsonKey(name: 'global_score') double? globalScore,
+    @JsonKey(name: 'has_warning') @Default(false) bool hasWarning,
+    @JsonKey(name: 'evaluative_matrices')
+    List<MatrixScorecardRowDto>? evaluativeMatrices,
+    @JsonKey(name: 'informational_matrices')
+    List<MatrixScorecardRowDto>? informationalMatrices,
+    @JsonKey(name: 'content_blocks') List<Map<String, dynamic>>? contentBlocks,
+    @JsonKey(name: 'visible_metadata')
+    @Default([])
+    List<String> visibleMetadata,
+    @Default([]) List<ReportLayoutDto> layouts,
+    @JsonKey(name: 'matrix_visible_columns')
+    @Default([])
+    List<String> matrixVisibleColumns,
+    @JsonKey(name: 'created_at') String? createdAt,
+    @JsonKey(name: 'org_name') String? orgName,
+    @JsonKey(name: 'cost_estimate') double? costEstimate,
+    @JsonKey(name: 'total_tokens') int? totalTokens,
+    @JsonKey(name: 'prompt_tokens') int? promptTokens,
+    @JsonKey(name: 'completion_tokens') int? completionTokens,
+    @JsonKey(name: 'reasoning_tokens') int? reasoningTokens,
+    @JsonKey(name: 'mcp_tool_audit')
+    @Default([])
+    List<McpAuditTraceDto> mcpToolAudit,
+    @JsonKey(name: 'grouped_extensions')
+    Map<String, List<dynamic>>? groupedExtensions,
+    @JsonKey(name: 'penalties_applied')
+    @Default([])
+    List<String> penaltiesApplied,
   }) = _ReportDataDto;
 
   factory ReportDataDto.fromJson(Map<String, dynamic> json) =>
       _$ReportDataDtoFromJson(json);
-
-  factory ReportDataDto.fromBackendResponse(Map<String, dynamic> json) {
-    // Tier 4 Bugfix: Strip RenderedReportResponse SDUI keys from the payload
-    // to comply with ReportDataDto's disallowUnrecognizedKeys strictness.
-    const allowedKeys = {
-      'execution_id',
-      'workflow_id',
-      'global_metrics',
-      'global_synthesis',
-      'results',
-      'hydrated_references',
-    };
-    final filtered = Map<String, dynamic>.from(json)
-      ..removeWhere((key, value) => !allowedKeys.contains(key));
-    return _$ReportDataDtoFromJson(filtered);
-  }
 
   /// Parses a heavy raw JSON string into a ReportDataDto entirely off the Main Thread.
   /// This prevents Main Thread Jank when handling large payloads.
   static Future<ReportDataDto> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
       final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
-      return ReportDataDto.fromBackendResponse(decoded);
+      return ReportDataDto.fromJson(decoded);
     });
   }
 }

@@ -17,5 +17,5 @@ HydratedAtomDTO? hydratedReference(Ref ref, String executionId, String tdaId) {
     );
   }
 
-  return reportData.hydratedReferences[tdaId];
+  return null; // TODO(Phase C4): Migrate to unified pipeline
 }
