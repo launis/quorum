@@ -172,7 +172,13 @@ class Settings(BaseSettings):
         "strict"
     )
     minimum_completeness_threshold: Annotated[
-        float, Field(description="Threshold for completeness before auto-resolve (0.0-1.0)")
+        float,
+        Field(
+            default=0.8,
+            description="The minimum percentage of items that must be completed to finalize an execution",
+            ge=0.0,
+            le=1.0,
+        ),
     ] = 0.8
 
     # Scoring Hooks

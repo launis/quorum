@@ -4,12 +4,14 @@ Provides strict models for TDA validation prompts and other systemic queries,
 replacing legacy f-strings and loosely typed dictionaries.
 """
 
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+
+from backend_v2.models.core_base import V2CoreBase
 
 
-class BasePromptModel(BaseModel):
+class BasePromptModel(V2CoreBase):
     """Base Pydantic schema for all prompt models.
 
     Enforces Strict V2 serialization and drops None fields.
@@ -29,12 +31,15 @@ class TdaValidationPrompt(BasePromptModel):
     against a specific TDA Protocol Rule.
     """
 
-    rule_alias: str = Field(
-        min_length=1,
-        description="The AliasEngine generated ID (e.g. r0) to save tokens and prevent hallucination",
-    )
-    rule_description: str = Field(min_length=10, description="The actual prompt instruction")
-    target_text: str = Field(min_length=1, description="The payload to evaluate")
+    rule_alias: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="The AliasEngine generated ID (e.g. r0) to save tokens and prevent hallucination",
+        ),
+    ]
+    rule_description: Annotated[str, Field(min_length=10, description="The actual prompt instruction")]
+    target_text: Annotated[str, Field(min_length=1, description="The payload to evaluate")]
     strictness_calibration: str | None = None
     theory_context: str | None = None
     linguistic_mandate: str | None = None

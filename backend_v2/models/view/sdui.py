@@ -68,11 +68,11 @@ class ReferenceItem(V2CoreBase):
         url: Link to the source if available.
     """
 
-    id: StrictStr = Field(..., description="Citation ID, e.g., H-1, F-1")
-    intent: ReferenceIntent = Field(..., description="Type of the reference source")
-    title: str | None = Field(default=None, description="Title of the source")
-    snippet: StrictStr = Field(..., description="Extracted content, relevance, or reasoning")
-    url: str | None = Field(default=None, description="Link to the source if available")
+    id: Annotated[StrictStr, Field(..., description="Citation ID, e.g., H-1, F-1")]
+    intent: Annotated[ReferenceIntent, Field(..., description="Type of the reference source")]
+    title: Annotated[str | None, Field(default=None, description="Title of the source")]
+    snippet: Annotated[StrictStr, Field(..., description="Extracted content, relevance, or reasoning")]
+    url: Annotated[str | None, Field(default=None, description="Link to the source if available")]
 
 
 class EvidenceItem(V2CoreBase):
@@ -113,10 +113,11 @@ class HighlightBoxDisplay(V2CoreBase):
     """
 
     content: StrictStr
-    color_theme: Literal["danger", "info", "warning", "success", "primary"] = Field(
-        default="info", description="UI background color class"
-    )
-    icon_name: str | None = Field(default=None, description="e.g. 'shield', 'warning', 'psychology'")
+    color_theme: Annotated[
+        Literal["danger", "info", "warning", "success", "primary"],
+        Field(default="info", description="UI background color class"),
+    ]
+    icon_name: Annotated[str | None, Field(default=None, description="e.g. 'shield', 'warning', 'psychology'")]
 
 
 class EvidenceList(V2CoreBase):
@@ -141,12 +142,15 @@ class UiSection(V2CoreBase):
         data: Highly flexible context payloads.
     """
 
-    id: StrictStr = Field(..., description="Unique identifier for the section (e.g. 'verdict-card')")
-    type: SectionType = Field(..., description="Determines which UI component to render")
-    title: StrictStr = Field(..., description="User-facing title of the section")
-    data: Any = Field(
-        default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)"
-    )
+    id: Annotated[StrictStr, Field(..., description="Unique identifier for the section (e.g. 'verdict-card')")]
+    type: Annotated[SectionType, Field(..., description="Determines which UI component to render")]
+    title: Annotated[StrictStr, Field(..., description="User-facing title of the section")]
+    data: Annotated[
+        Any,
+        Field(
+            default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)"
+        ),
+    ]
 
 
 class SystemNotification(V2CoreBase):
@@ -176,13 +180,21 @@ class ReportView(V2CoreBase):
         references: Structured citations matrix.
     """
 
-    view_id: StrictStr = Field(..., description="The Execution ID")
-    title: StrictStr = Field(default="Auditintiraportti", description="Page title")
-    status_theme: StrictStr = Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
-    sections: list[UiSection] = Field(default_factory=list, description="Ordered list of UI sections")
-    metrics: dict[str, Any] | None = Field(default=None, description="Global audit metrics (Word Count, etc.)")
-    system_notification: SystemNotification | None = Field(default=None, description="Global notification/warning")
-    references: list[ReferenceItem] = Field(default_factory=list, description="Global bibliography and references")
+    view_id: Annotated[StrictStr, Field(..., description="The Execution ID")]
+    title: Annotated[StrictStr, Field(default="Auditintiraportti", description="Page title")] = "Auditintiraportti"
+    status_theme: Annotated[
+        StrictStr, Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
+    ]
+    sections: Annotated[list[UiSection], Field(default_factory=list, description="Ordered list of UI sections")]
+    metrics: Annotated[
+        dict[str, Any] | None, Field(default=None, description="Global audit metrics (Word Count, etc.)")
+    ]
+    system_notification: Annotated[
+        SystemNotification | None, Field(default=None, description="Global notification/warning")
+    ] = None
+    references: Annotated[
+        list[ReferenceItem], Field(default_factory=list, description="Global bibliography and references")
+    ] = Field(default_factory=list)
 
 
 class StepProgressItem(V2CoreBase):
@@ -194,9 +206,9 @@ class StepProgressItem(V2CoreBase):
         status: Execution lifecycle state mapping.
     """
 
-    id: StrictStr = Field(..., description="Step ID (e.g. step_guard)")
-    label: StrictStr = Field(..., description="Human-readable label")
-    status: StrictStr = Field(..., description="Status: pending, running, completed, failed")
+    id: Annotated[StrictStr, Field(..., description="Step ID (e.g. step_guard)")]
+    label: Annotated[StrictStr, Field(..., description="Human-readable label")]
+    status: Annotated[StrictStr, Field(..., description="Status: pending, running, completed, failed")]
 
 
 class AssessmentView(V2CoreBase):
@@ -212,15 +224,18 @@ class AssessmentView(V2CoreBase):
         finalScore: Overall computed math scoring.
     """
 
-    sessionId: StrictStr = Field(..., description="Execution ID")
-    statusLabel: StrictStr = Field(..., description="Human-readable status")
-    uiVariant: Literal["default", "success", "warning", "error", "neutral"] = Field(
-        ..., description="UI Theme: default, success, warning, error, neutral"
-    )
-    statusMessage: StrictStr = Field(..., description="Contextual status message")
-    showWarningBanner: bool = Field(default=False, description="Whether to show warning banner")
-    steps: list[StepProgressItem] = Field(default_factory=list, description="Ordered list of steps with status")
-    finalScore: int | None = Field(default=None, description="Final score if available")
+    sessionId: Annotated[StrictStr, Field(..., description="Execution ID")]
+    statusLabel: Annotated[StrictStr, Field(..., description="Human-readable status")]
+    uiVariant: Annotated[
+        Literal["default", "success", "warning", "error", "neutral"],
+        Field(..., description="UI Theme: default, success, warning, error, neutral"),
+    ]
+    statusMessage: Annotated[StrictStr, Field(..., description="Contextual status message")]
+    showWarningBanner: Annotated[bool, Field(default=False, description="Whether to show warning banner")]
+    steps: Annotated[
+        list[StepProgressItem], Field(default_factory=list, description="Ordered list of steps with status")
+    ]
+    finalScore: Annotated[int | None, Field(default=None, description="Final score if available")]
 
 
 class ToulminDisplay(V2CoreBase):
@@ -444,7 +459,7 @@ class ScoreCardDisplay(V2CoreBase):
     min_score: int
     max_score: int
     verdict: str
-    dimensions: list[DimensionDisplay] = Field(default_factory=list)
+    dimensions: Annotated[list[DimensionDisplay], Field(default_factory=list)]
 
 
 class DriverProfileDisplay(V2CoreBase):
@@ -468,9 +483,9 @@ class HeroInsightBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="hero_insight")
     block_type: Literal["hero_insight"] = "hero_insight"
-    text: str = Field(validation_alias=AliasChoices("text", "content"), default="")
-    exact_quotes: list[str] = Field(default_factory=list)
-    citations: list[int] = Field(default_factory=list)
+    text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"), default="")]
+    exact_quotes: Annotated[list[str], Field(default_factory=list)]
+    citations: Annotated[list[int], Field(default_factory=list)]
 
 
 class ParagraphBlock(SduiBlockBase):
@@ -478,17 +493,17 @@ class ParagraphBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="paragraph")
     block_type: Literal["paragraph"] = "paragraph"
-    text: str = Field(validation_alias=AliasChoices("text", "content"))
-    exact_quotes: list[str] = Field(default_factory=list)
-    citations: list[int] = Field(default_factory=list)
+    text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
+    exact_quotes: Annotated[list[str], Field(default_factory=list)]
+    citations: Annotated[list[int], Field(default_factory=list)]
 
 
 class BulletListItem(V2CoreBase):
     """Helper model for a single item within a bullet list."""
 
-    text: str = Field(validation_alias=AliasChoices("text", "content"))
-    exact_quotes: list[str] = Field(default_factory=list)
-    citations: list[int] = Field(default_factory=list)
+    text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
+    exact_quotes: Annotated[list[str], Field(default_factory=list)]
+    citations: Annotated[list[int], Field(default_factory=list)]
 
 
 class BulletListBlock(SduiBlockBase):
@@ -504,10 +519,10 @@ class AlertBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="alert_box")
     block_type: Literal["alert_box"] = "alert_box"
-    severity: Literal["info", "warning"] = Field(default="info")
-    text: str = Field(validation_alias=AliasChoices("text", "content"))
-    exact_quotes: list[str] = Field(default_factory=list)
-    citations: list[int] = Field(default_factory=list)
+    severity: Annotated[Literal["info", "warning"], Field(default="info")]
+    text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
+    exact_quotes: Annotated[list[str], Field(default_factory=list)]
+    citations: Annotated[list[int], Field(default_factory=list)]
 
 
 class MarkdownBlock(SduiBlockBase):
@@ -519,9 +534,14 @@ class MarkdownBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="markdown")
     block_type: Literal["markdown"] = "markdown"
-    text: StrictStr = Field(
-        ..., validation_alias=AliasChoices("text", "content"), description="The exact markdown string to be rendered."
-    )
+    text: Annotated[
+        StrictStr,
+        Field(
+            ...,
+            validation_alias=AliasChoices("text", "content"),
+            description="The exact markdown string to be rendered.",
+        ),
+    ]
 
 
 class SduiQuoteCard(SduiBlockBase):
@@ -529,11 +549,16 @@ class SduiQuoteCard(SduiBlockBase):
 
     model_config = ConfigDict(title="quote_card")
     block_type: Literal["quote_card"] = "quote_card"
-    quote: str = Field(
-        ..., validation_alias=AliasChoices("quote", "text", "content"), description="The exact text of the quote."
-    )
-    source_aliases: list[str] = Field(default_factory=list, description="Resolved source aliases.")
-    citations: list[Any] = Field(default_factory=list, description="Fallback for LLM hallucinated citations field.")
+    quote: Annotated[
+        str,
+        Field(
+            ..., validation_alias=AliasChoices("quote", "text", "content"), description="The exact text of the quote."
+        ),
+    ]
+    source_aliases: Annotated[list[str], Field(default_factory=list, description="Resolved source aliases.")]
+    citations: Annotated[
+        list[Any], Field(default_factory=list, description="Fallback for LLM hallucinated citations field.")
+    ]
 
 
 class SduiWarningCard(SduiBlockBase):
@@ -541,8 +566,10 @@ class SduiWarningCard(SduiBlockBase):
 
     model_config = ConfigDict(title="warning_card")
     block_type: Literal["warning_card"] = "warning_card"
-    message: str = Field(..., description="Warning message for the user.")
-    quote_text: str | None = Field(default=None, description="The original quote text that triggered the warning.")
+    message: Annotated[str, Field(..., description="Warning message for the user.")]
+    quote_text: Annotated[
+        str | None, Field(default=None, description="The original quote text that triggered the warning.")
+    ]
 
 
 AnySduiBlock = Annotated[
