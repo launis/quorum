@@ -5,6 +5,7 @@ import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/execution/models/atom_result_dto.dart';
 import 'package:client_app/features/execution/providers/hydrated_reference_provider.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 // Phase 3, Step 1: Create SduiNodeRenderer (ConsumerWidget)
 class SduiNodeRenderer extends ConsumerWidget {
@@ -48,6 +49,7 @@ class SduiNodeRenderer extends ConsumerWidget {
       SDUIComponentType.nACard => _buildNACard(
         context,
         hydratedAtom.resolvedClaim,
+        result.shortCircuitReasonTdaIds,
       ),
       // Any other type not explicitly handled here will cause a compile-time error
       // due to Dart 3 exhaustive switch, enforcing strict alignment with the enum.
@@ -169,7 +171,11 @@ class SduiNodeRenderer extends ConsumerWidget {
     );
   }
 
-  Widget _buildNACard(BuildContext context, String claim) {
+  Widget _buildNACard(
+    BuildContext context,
+    String claim,
+    List<String> cascadeReasons,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Card(
@@ -181,10 +187,29 @@ class SduiNodeRenderer extends ConsumerWidget {
                 const Icon(Icons.block),
                 AppSpacing.w16,
                 Expanded(
-                  child: Text(
-                    claim,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontStyle: FontStyle.italic),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        claim,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontStyle: FontStyle.italic),
+                      ),
+                      if (cascadeReasons.isNotEmpty) ...[
+                        AppSpacing.h8,
+                        Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.lblNaCascadeReason(cascadeReasons.join(', ')),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

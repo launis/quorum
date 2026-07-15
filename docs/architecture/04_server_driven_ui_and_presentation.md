@@ -19,6 +19,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** The frontend must never try to "guess" missing UI components using hidden fallbacks.
 - **Enforcement:** The Server-Driven UI (SDUI) models sent from the backend are fully exhaustive. If the frontend expects a configuration block for a specific widget and it is missing, the frontend must rely on the explicit App Error Boundary (as defined in the Resilience capability) rather than silently returning a `SizedBox.shrink()`.
 
+### 2.4. SDUI Component Contracts
+- **Law:** The frontend must render SDUI components exactly as dictated by the backend enum mapping, avoiding manual UI overrides.
+- **Enforcement:** Specific SDUI components must inherently support their required domain constraints (e.g., `n_a_card` rendering `short_circuit_reason_tda_ids` directly from the context payload without separate API calls). The components defined in the backend `SDUIComponentType` (like `boolean_card`, `extracted_value_card`, `error_card`, `n_a_card`) are absolute boundaries.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

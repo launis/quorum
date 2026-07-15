@@ -22,7 +22,7 @@ Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `R
   - Tiedosto: `docs\epic\tasks_EPIC_95_Testing_Pyramid\epic_95_phase_3a_backend_e2e.md`
   - Kuvaus: Lisää `SduiNACard` SDUI-malleihin ja rakenna `test_epic_chain_e2e.py` E2E-testi N/A kaskadille.
 
-- [NOK] **Phase 3b: Frontend E2E UI Parity**
+- [OK] **Phase 3b: Frontend E2E UI Parity**
   - Tiedosto: `docs\epic\tasks_EPIC_95_Testing_Pyramid\epic_95_phase_3b_frontend_snapshot.md`
   - Kuvaus: Varmista `n_a_card` -komponentin renderoituminen Flutterissa (harmaa teema, short_circuit_reason_tda_ids näkyvyys) snapshot-testeillä.
 

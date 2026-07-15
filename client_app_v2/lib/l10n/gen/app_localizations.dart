@@ -6551,6 +6551,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Optional: Reason for rejection'**
   String get reject_quote_reason_hint;
+
+  /// No description provided for @lblNaCascadeReason.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A Cascade Reason: {reasons}'**
+  String lblNaCascadeReason(String reasons);
 }
 
 class _AppLocalizationsDelegate

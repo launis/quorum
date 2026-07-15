@@ -3590,4 +3590,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reject_quote_reason_hint => 'Optional: Reason for rejection';
+
+  @override
+  String lblNaCascadeReason(String reasons) {
+    return 'N/A Cascade Reason: $reasons';
+  }
 }

@@ -3615,4 +3615,9 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get reject_quote_reason_hint => 'Valinnainen: Hylkäyksen syy';
+
+  @override
+  String lblNaCascadeReason(String reasons) {
+    return 'N/A Kaskadisyyt: $reasons';
+  }
 }
