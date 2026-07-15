@@ -4,6 +4,7 @@ This module contains the schemas for the Retrieval Agent, focusing on facts extr
 """
 
 import logging
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -24,13 +25,17 @@ class RetrievalInput(V2CoreBase):
         product_text: Optional reference text or documents to retrieve facts from.
     """
 
-    chat_log: str = Field(
-        ...,
-        description="The mandatory conversation history.",
-        json_schema_extra={"x-ui-label": "Chatlog"},
-        min_length=1,
-    )
-    product_text: str | None = Field(None, description="Reference text/documents to retrieve from.", min_length=1)
+    chat_log: Annotated[
+        str,
+        Field(
+            description="The mandatory conversation history.",
+            json_schema_extra={"x-ui-label": "Chatlog"},
+            min_length=1,
+        ),
+    ]
+    product_text: Annotated[
+        str | None, Field(description="Reference text/documents to retrieve from.", min_length=1)
+    ] = None
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -45,22 +50,26 @@ class RetrievedFact(V2CoreBase):
         relevance_score: Integer from 1-5 assessing relevance to the objective.
     """
 
-    id: str = Field(..., description="Fact ID.", min_length=1)
-    fact_statement: str = Field(
-        ...,
-        description="The retrieved fact.",
-        json_schema_extra={"x-ui-label": "Fact Statement"},
-        min_length=1,
-    )
-    source_quote: str = Field(
-        ...,
-        description="Exact quote from the source material.",
-        json_schema_extra={"x-ui-label": "Source Quote"},
-        min_length=1,
-    )
-    relevance_score: int = Field(
-        ..., description="Relevance to the objective (1-5).", json_schema_extra={"x-ui-label": "Relevance"}
-    )
+    id: Annotated[str, Field(description="Fact ID.", min_length=1)]
+    fact_statement: Annotated[
+        str,
+        Field(
+            description="The retrieved fact.",
+            json_schema_extra={"x-ui-label": "Fact Statement"},
+            min_length=1,
+        ),
+    ]
+    source_quote: Annotated[
+        str,
+        Field(
+            description="Exact quote from the source material.",
+            json_schema_extra={"x-ui-label": "Source Quote"},
+            min_length=1,
+        ),
+    ]
+    relevance_score: Annotated[
+        int, Field(description="Relevance to the objective (1-5).", json_schema_extra={"x-ui-label": "Relevance"})
+    ]
 
     @field_validator("relevance_score")
     @classmethod
@@ -91,18 +100,22 @@ class RetrievalDTO(ReasoningTraceDTO):
         key_takeaways: High-level summary string capturing the retrieved information.
     """
 
-    retrieved_facts: list[RetrievedFact] = Field(
-        ...,
-        description="List of facts retrieved.",
-        json_schema_extra={"x-ui-label": "Retrieved Facts"},
-        min_length=1,
-    )
-    key_takeaways: str = Field(
-        ...,
-        description="High-level summary of the retrieved information.",
-        json_schema_extra={"x-ui-label": "Key Takeaways"},
-        min_length=1,
-    )
+    retrieved_facts: Annotated[
+        list[RetrievedFact],
+        Field(
+            description="List of facts retrieved.",
+            json_schema_extra={"x-ui-label": "Retrieved Facts"},
+            min_length=1,
+        ),
+    ]
+    key_takeaways: Annotated[
+        str,
+        Field(
+            description="High-level summary of the retrieved information.",
+            json_schema_extra={"x-ui-label": "Key Takeaways"},
+            min_length=1,
+        ),
+    ]
 
 
 class RetrievalOutput(RetrievalDTO, ReasoningTrace):

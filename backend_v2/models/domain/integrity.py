@@ -7,7 +7,7 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field, ValidationInfo, field_validator
 
@@ -25,8 +25,8 @@ class KnowledgeItem(V2CoreBase):
         definition: The corresponding validation reference explanation.
     """
 
-    term: str = Field(..., description="The specific vocabulary term.")
-    definition: str = Field(..., description="The corresponding validation reference explanation.")
+    term: Annotated[str, Field(description="The specific vocabulary term.")]
+    definition: Annotated[str, Field(description="The corresponding validation reference explanation.")]
 
 
 class StepContext(V2CoreBase):
@@ -37,10 +37,13 @@ class StepContext(V2CoreBase):
         knowledge_items: Collection of related domain-specific knowledge assertions.
     """
 
-    precedents: str | None = Field(default=None, description="Textual reference representation of predecessor steps.")
-    knowledge_items: list[KnowledgeItem] = Field(
-        default_factory=list, description="Collection of related domain-specific knowledge assertions."
+    precedents: Annotated[str | None, Field(description="Textual reference representation of predecessor steps.")] = (
+        None
     )
+    knowledge_items: Annotated[
+        list[KnowledgeItem],
+        Field(default_factory=list, description="Collection of related domain-specific knowledge assertions."),
+    ]
 
 
 class CitationAudit(V2CoreBase):
@@ -52,11 +55,11 @@ class CitationAudit(V2CoreBase):
         integrity_score: Ratio of verified to total citations (0.0 to 1.0).
     """
 
-    valid_citations: int = Field(default=0, description="Count of valid, verified citations.")
-    invalid_citations: list[str] = Field(
-        default_factory=list, description="List of hallucinations (citations not found in text)."
-    )
-    integrity_score: float = Field(default=1.0, description="Ratio of valid citations (0.0 - 1.0).")
+    valid_citations: Annotated[int, Field(description="Count of valid, verified citations.")] = 0
+    invalid_citations: Annotated[
+        list[str], Field(default_factory=list, description="List of hallucinations (citations not found in text).")
+    ]
+    integrity_score: Annotated[float, Field(description="Ratio of valid citations (0.0 - 1.0).")] = 1.0
 
     @field_validator("integrity_score")
     @classmethod
@@ -89,9 +92,9 @@ class IntegrityGlobalInputsDTO(V2CoreBase):
         raw_inputs: Unstructured input envelope at database boundaries.
     """
 
-    raw_inputs: dict[str, Any] | None = Field(
-        default=None, description="Unstructured input envelope at database boundaries."
-    )
+    raw_inputs: Annotated[
+        dict[str, Any] | None, Field(description="Unstructured input envelope at database boundaries.")
+    ] = None
 
     def extract_source_texts(self) -> list[str]:
         """Extracts source text securely from strictly parsed properties.

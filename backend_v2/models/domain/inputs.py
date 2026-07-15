@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field, model_validator
 
@@ -22,9 +22,9 @@ class Base64Attachment(V2CoreBase):
         content_type: Optional MIME type.
     """
 
-    filename: str = Field(..., description="The name of the uploaded file")
-    content_base64: str = Field(..., description="The base64 encoded binary content")
-    content_type: str | None = Field(default=None, description="Optional MIME type")
+    filename: Annotated[str, Field(description="The name of the uploaded file")]
+    content_base64: Annotated[str, Field(description="The base64 encoded binary content")]
+    content_type: Annotated[str | None, Field(description="Optional MIME type")] = None
 
 
 class WorkflowInputsIngress(V2CoreBase):
@@ -40,14 +40,14 @@ class WorkflowInputsIngress(V2CoreBase):
         dynamic_inputs: Structured dictionary for dynamic workflow inputs.
     """
 
-    organization_id: str | None = Field(default=None, description="Tenant ID for multi-tenancy.", min_length=1)
-    user_id: str | None = Field(default=None, description="User ID for audit trails.", min_length=1)
-    simulation_mode: bool = Field(default=False, description="If True, indicates a test/simulation run.")
-    language: str = Field(default="en", description="Target language code (e.g., 'en', 'fi').", min_length=1)
+    organization_id: Annotated[str | None, Field(min_length=1, description="Tenant ID for multi-tenancy.")] = None
+    user_id: Annotated[str | None, Field(min_length=1, description="User ID for audit trails.")] = None
+    simulation_mode: Annotated[bool, Field(description="If True, indicates a test/simulation run.")] = False
+    language: Annotated[str, Field(min_length=1, description="Target language code (e.g., 'en', 'fi').")] = "en"
 
-    dynamic_inputs: dict[str, Any] = Field(
-        default_factory=dict, description="Structured dictionary for dynamic workflow inputs."
-    )
+    dynamic_inputs: Annotated[
+        dict[str, Any], Field(description="Structured dictionary for dynamic workflow inputs.")
+    ] = Field(default_factory=dict)
 
 
 class WorkflowInputs(WorkflowInputsIngress):

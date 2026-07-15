@@ -1,6 +1,6 @@
 """Domain models for References hook."""
 
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, TypeAdapter
 
@@ -57,10 +57,10 @@ class ReferenceDTO(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    source_id: str = Field(..., min_length=1)
-    title: str = Field(..., min_length=1)
-    snippet: str = Field(..., min_length=1)
-    url: str | None = Field(default=None)
+    source_id: Annotated[str, Field(min_length=1)]
+    title: Annotated[str, Field(min_length=1)]
+    snippet: Annotated[str, Field(min_length=1)]
+    url: str | None = None
 
 
 class ReferencesContextDTO(V2CoreBase):

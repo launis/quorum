@@ -7,6 +7,7 @@ including linguistics analysis and heuristics.
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from fastapi import status
 from pydantic import Field, field_validator
@@ -32,14 +33,18 @@ class PerformativityInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
     """
 
-    chat_log: str = Field(
-        ...,
-        min_length=1,
-        description="The mandatory conversation history.",
-        json_schema_extra={"x-ui-label": "Chatlog"},
-    )
-    step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    chat_log: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="The mandatory conversation history.",
+            json_schema_extra={"x-ui-label": "Chatlog"},
+        ),
+    ]
+    step_analyst: Annotated[
+        AnalystOutput | LogicianOutput | None, Field(description="Analyst or Logician outputs.")
+    ] = None
+    last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
 
 class PerformativityHeuristic(V2CoreBase):
@@ -51,23 +56,29 @@ class PerformativityHeuristic(V2CoreBase):
         description: Description.
     """
 
-    heuristic_name: str = Field(
-        ...,
-        min_length=1,
-        description="Heuristic name.",
-        json_schema_extra={"x-ui-label": "Heuristic"},
-    )
-    flag_raised: bool = Field(
-        ...,
-        description="Flag raised?",
-        json_schema_extra={"x-ui-label": "Flag Raised"},
-    )
-    description: str = Field(
-        ...,
-        min_length=1,
-        description="Description.",
-        json_schema_extra={"x-ui-label": "Description"},
-    )
+    heuristic_name: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Heuristic name.",
+            json_schema_extra={"x-ui-label": "Heuristic"},
+        ),
+    ]
+    flag_raised: Annotated[
+        bool,
+        Field(
+            description="Flag raised?",
+            json_schema_extra={"x-ui-label": "Flag Raised"},
+        ),
+    ]
+    description: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Description.",
+            json_schema_extra={"x-ui-label": "Description"},
+        ),
+    ]
 
 
 class PreMortemAnalysis(V2CoreBase):
@@ -78,17 +89,21 @@ class PreMortemAnalysis(V2CoreBase):
         weak_signals: Detected weak signals.
     """
 
-    performed: bool = Field(
-        ...,
-        description="Was Pre-Mortem performed?",
-        json_schema_extra={"x-ui-label": "Performed"},
-    )
-    weak_signals: list[str] = Field(
-        ...,
-        min_length=1,
-        description="Detected weak signals.",
-        json_schema_extra={"x-ui-label": "Weak Signals"},
-    )
+    performed: Annotated[
+        bool,
+        Field(
+            description="Was Pre-Mortem performed?",
+            json_schema_extra={"x-ui-label": "Performed"},
+        ),
+    ]
+    weak_signals: Annotated[
+        list[str],
+        Field(
+            min_length=1,
+            description="Detected weak signals.",
+            json_schema_extra={"x-ui-label": "Weak Signals"},
+        ),
+    ]
 
 
 class PerformativityAnalysis(V2CoreBase):
@@ -105,30 +120,38 @@ class PerformativityAnalysis(V2CoreBase):
         description: Localized description.
     """
 
-    performativity_heuristics: list[PerformativityHeuristic] = Field(
-        ...,
-        min_length=1,
-        description="Heuristics check.",
-        json_schema_extra={"x-ui-label": "Heuristics"},
-    )
-    pre_mortem_analysis: PreMortemAnalysis = Field(
-        ...,
-        description="Pre-Mortem analysis.",
-        json_schema_extra={"x-ui-label": "Pre-Mortem"},
-    )
-    authenticity_assessment: LaxAuthenticityLevel = Field(
-        ...,
-        description="Authenticity assessment.",
-        json_schema_extra={"x-ui-label": "Authenticity Assessment"},
-    )
-    authenticity_score: float = Field(
-        ...,
-        description=(
-            "Numeric authenticity score (1.0 to 3.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+    performativity_heuristics: Annotated[
+        list[PerformativityHeuristic],
+        Field(
+            min_length=1,
+            description="Heuristics check.",
+            json_schema_extra={"x-ui-label": "Heuristics"},
         ),
-        json_schema_extra={"x-ui-label": "Authenticity Score"},
-    )
+    ]
+    pre_mortem_analysis: Annotated[
+        PreMortemAnalysis,
+        Field(
+            description="Pre-Mortem analysis.",
+            json_schema_extra={"x-ui-label": "Pre-Mortem"},
+        ),
+    ]
+    authenticity_assessment: Annotated[
+        LaxAuthenticityLevel,
+        Field(
+            description="Authenticity assessment.",
+            json_schema_extra={"x-ui-label": "Authenticity Assessment"},
+        ),
+    ]
+    authenticity_score: Annotated[
+        float,
+        Field(
+            description=(
+                "Numeric authenticity score (1.0 to 3.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 2.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Authenticity Score"},
+        ),
+    ]
 
     @field_validator("authenticity_score")
     @classmethod
@@ -156,16 +179,20 @@ class PerformativityAnalysis(V2CoreBase):
             )
         return v
 
-    description_key: str = Field(
-        default="authenticity_desc",
-        description="Localization key.",
-    )
-    description: str = Field(
-        default="TBD",
-        min_length=1,
-        description="Localized description.",
-        json_schema_extra={"x-ui-label": "Description"},
-    )
+    description_key: Annotated[
+        str,
+        Field(
+            description="Localization key.",
+        ),
+    ] = "authenticity_desc"
+    description: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Localized description.",
+            json_schema_extra={"x-ui-label": "Description"},
+        ),
+    ] = "TBD"
 
 
 class PerformativityDTO(ReasoningTraceDTO):
@@ -175,11 +202,13 @@ class PerformativityDTO(ReasoningTraceDTO):
         performativity_analysis: Performativity audit result.
     """
 
-    performativity_analysis: PerformativityAnalysis = Field(
-        ...,
-        description="Performativity audit result.",
-        json_schema_extra={"x-ui-label": "Performativity Audit"},
-    )
+    performativity_analysis: Annotated[
+        PerformativityAnalysis,
+        Field(
+            description="Performativity audit result.",
+            json_schema_extra={"x-ui-label": "Performativity Audit"},
+        ),
+    ]
 
 
 class PerformativityOutput(PerformativityDTO, ReasoningTrace):
@@ -199,15 +228,18 @@ class PerformativePattern(V2CoreBase):
         category: Category of the pattern.
     """
 
-    pattern_id: str = Field(
-        ..., min_length=1, description="ID of the pattern.", json_schema_extra={"x-ui-label": "Pattern ID"}
-    )
-    detected_phrase: str = Field(
-        ..., min_length=1, description="The exact phrase detected.", json_schema_extra={"x-ui-label": "Detected Phrase"}
-    )
-    category: str = Field(
-        ..., min_length=1, description="Category of the pattern.", json_schema_extra={"x-ui-label": "Category"}
-    )
+    pattern_id: Annotated[
+        str, Field(min_length=1, description="ID of the pattern.", json_schema_extra={"x-ui-label": "Pattern ID"})
+    ]
+    detected_phrase: Annotated[
+        str,
+        Field(
+            min_length=1, description="The exact phrase detected.", json_schema_extra={"x-ui-label": "Detected Phrase"}
+        ),
+    ]
+    category: Annotated[
+        str, Field(min_length=1, description="Category of the pattern.", json_schema_extra={"x-ui-label": "Category"})
+    ]
 
 
 class LinguisticsResult(V2CoreBase):
@@ -217,8 +249,10 @@ class LinguisticsResult(V2CoreBase):
         performative_patterns: Detected patterns.
     """
 
-    performative_patterns: list[PerformativePattern] = Field(
-        default_factory=list,
-        description="Detected patterns.",
-        json_schema_extra={"x-ui-label": "Performative Patterns"},
-    )
+    performative_patterns: Annotated[
+        list[PerformativePattern],
+        Field(
+            description="Detected patterns.",
+            json_schema_extra={"x-ui-label": "Performative Patterns"},
+        ),
+    ] = Field(default_factory=list)

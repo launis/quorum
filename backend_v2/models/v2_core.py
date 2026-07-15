@@ -1485,7 +1485,7 @@ class ExecutionCreate(V2CoreBase):
         ),
     )
     raw_inputs: WorkflowInputsIngress = Field(
-        default_factory=WorkflowInputsIngress, description="User provided raw inputs"
+        default_factory=lambda: WorkflowInputsIngress(), description="User provided raw inputs"
     )
 
 
@@ -1539,7 +1539,7 @@ class ExecutionRecord(ExecutionCoreFields):
     active_profile_id: str | None = Field(
         default=None, description="The ID of the output profile selected for formatting and printing."
     )
-    raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="Raw user inputs by role")
+    raw_inputs: WorkflowInputs = Field(default_factory=lambda: WorkflowInputs(), description="Raw user inputs by role")
     frozen_context: FrozenContext = Field(default_factory=FrozenContext, description="Immutable snapshot of context")
     frozen_context_storage_path: str | None = Field(
         default=None, description="Optional path to Blob Storage offloaded Frozen Context JSON"

@@ -4,7 +4,7 @@ Provides strict Pydantic V2 validation schemas for the linguistics hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
 
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -18,13 +18,15 @@ class PerformativePatternDTO(BaseModel):
         category: The categorization of the pattern (e.g., performative_filler).
     """
 
-    pattern_id: str = Field(..., min_length=1, description="Unique identifier for the detected pattern.")
-    detected_phrase: str = Field(..., min_length=1, description="The exact matched substring.")
-    category: str = Field(
-        ...,
-        min_length=1,
-        description="The categorization of the pattern (e.g., performative_filler).",
-    )
+    pattern_id: Annotated[str, Field(min_length=1, description="Unique identifier for the detected pattern.")]
+    detected_phrase: Annotated[str, Field(min_length=1, description="The exact matched substring.")]
+    category: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="The categorization of the pattern (e.g., performative_filler).",
+        ),
+    ]
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
@@ -35,7 +37,7 @@ class LinguisticsResultDTO(BaseModel):
         performative_patterns: List of detected performative patterns.
     """
 
-    performative_patterns: list[PerformativePatternDTO] = Field(default_factory=list)
+    performative_patterns: Annotated[list[PerformativePatternDTO], Field(default_factory=list)]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -50,8 +52,8 @@ class LinguisticsPayloadDTO(BaseModel):
         dynamic_inputs: Dictionary of texts to scan.
     """
 
-    language: str | None = Field(default=None, description="Optional explicit language code")
-    dynamic_inputs: dict[str, Any] = Field(default_factory=dict, description="Dictionary of texts to scan")
+    language: Annotated[str | None, Field(description="Optional explicit language code")] = None
+    dynamic_inputs: Annotated[dict[str, Any], Field(default_factory=dict, description="Dictionary of texts to scan")]
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

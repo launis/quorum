@@ -4,7 +4,7 @@ This module defines the standardized request and response structures for interac
 with Model Context Protocol (MCP) tool loops.
 """
 
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -74,12 +74,17 @@ class MCPToolLoopResult(V2CoreBase):
         usage: Cumulative token usage.
     """
 
-    result_data: dict[str, Any] = Field(description="Final structured output dict.")
-    audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Audit log of all tool invocations.")
-    usage: TokenUsage = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-        description="Cumulative token usage.",
-    )
+    result_data: Annotated[dict[str, Any], Field(description="Final structured output dict.")]
+    audit_traces: Annotated[
+        list[MCPAuditTrace], Field(default_factory=list, description="Audit log of all tool invocations.")
+    ]
+    usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Cumulative token usage.",
+        ),
+    ]
 
 
 class MCPSynthesisInstructionsDTO(V2CoreBase):
@@ -108,12 +113,12 @@ class TavilyApiResultItemDTO(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
 
-    title: str = Field(default="")
-    url: str = Field(default="")
-    content: str = Field(default="")
-    raw_content: str | None = Field(default=None)
-    score: float = Field(default=0.0)
-    published_date: str | None = Field(default=None)
+    title: str = ""
+    url: str = ""
+    content: str = ""
+    raw_content: str | None = None
+    score: float = 0.0
+    published_date: str | None = None
 
 
 class TavilyApiResponseDTO(V2CoreBase):
@@ -129,11 +134,11 @@ class TavilyApiResponseDTO(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
 
-    query: str = Field(default="")
-    answer: str | None = Field(default="")
-    response_time: float = Field(default=0.0)
-    images: list[str] = Field(default_factory=list)
-    results: list[TavilyApiResultItemDTO] = Field(description="Search results list from Tavily.")
+    query: str = ""
+    answer: str | None = ""
+    response_time: float = 0.0
+    images: Annotated[list[str], Field(default_factory=list)]
+    results: Annotated[list[TavilyApiResultItemDTO], Field(description="Search results list from Tavily.")]
 
 
 class TavilySearchResult(V2CoreBase):
@@ -147,11 +152,11 @@ class TavilySearchResult(V2CoreBase):
         duration_ms: Round-trip latency in milliseconds.
     """
 
-    query: str = Field(description="Echo of the original search query.")
-    answer: str = Field(default="", description="AI-generated summary from Tavily.")
-    source_urls: list[str] = Field(default_factory=list, description="Deduplicated source URLs.")
-    raw_content: str = Field(default="", description="Concatenated source texts (truncated).")
-    duration_ms: int = Field(default=0, description="Round-trip latency in milliseconds.")
+    query: Annotated[str, Field(description="Echo of the original search query.")]
+    answer: Annotated[str, Field(description="AI-generated summary from Tavily.")] = ""
+    source_urls: Annotated[list[str], Field(default_factory=list, description="Deduplicated source URLs.")]
+    raw_content: Annotated[str, Field(description="Concatenated source texts (truncated).")] = ""
+    duration_ms: Annotated[int, Field(description="Round-trip latency in milliseconds.")] = 0
 
 
 class CitationExtractionItemDTO(V2CoreBase):
@@ -167,13 +172,14 @@ class CitationExtractionItemDTO(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    claim_text: str = Field(description="Exact quote of the claim from the text.")
-    search_query: str = Field(description="Optimized search query for the tool to verify the claim.")
-    knowledge_gap: str = Field(default="", description="The specific knowledge gap needing resolution.")
-    search_rationale: str = Field(default="", description="The rationale mapping the query to the knowledge gap.")
-    reasoning: str = Field(
-        max_length=400, description="Max 1-2 short sentences. Briefly explain WHY you are verifying this claim."
-    )
+    claim_text: Annotated[str, Field(description="Exact quote of the claim from the text.")]
+    search_query: Annotated[str, Field(description="Optimized search query for the tool to verify the claim.")]
+    knowledge_gap: Annotated[str, Field(description="The specific knowledge gap needing resolution.")] = ""
+    search_rationale: Annotated[str, Field(description="The rationale mapping the query to the knowledge gap.")] = ""
+    reasoning: Annotated[
+        str,
+        Field(max_length=400, description="Max 1-2 short sentences. Briefly explain WHY you are verifying this claim."),
+    ]
 
     @field_validator("reasoning", mode="before")
     @classmethod
@@ -196,7 +202,7 @@ class CitationExtractionResult(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    citations: list[CitationExtractionItemDTO] = Field(..., description="List of extracted claims to verify.")
+    citations: Annotated[list[CitationExtractionItemDTO], Field(description="List of extracted claims to verify.")]
 
 
 class CitationCorrectionResult(V2CoreBase):
@@ -208,4 +214,4 @@ class CitationCorrectionResult(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    corrected_claim: str = Field(description="The verbatim corrected claim text found in the source context.")
+    corrected_claim: Annotated[str, Field(description="The verbatim corrected claim text found in the source context.")]

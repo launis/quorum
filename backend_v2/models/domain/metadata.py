@@ -1,6 +1,7 @@
 """Domain models for Metadata hook."""
 
 import logging
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -19,7 +20,7 @@ class MetadataHookPayloadDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
 
-    sys_initiator_id: str = Field(default="system", min_length=1, alias="_sys_initiator_id")
+    sys_initiator_id: Annotated[str, Field(min_length=1, alias="_sys_initiator_id")] = "system"
 
 
 class StepMetadataDTO(V2CoreBase):
@@ -37,13 +38,13 @@ class StepMetadataDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    execution_id: str = Field(min_length=1)
-    workflow_id: str = Field(min_length=1)
-    step_id: str = Field(min_length=1)
-    initiator_id: str = Field(min_length=1)
-    timestamp_isot: str = Field(min_length=1)
-    unix_time: int = Field(description="Unix timestamp")
-    v2_engine: bool = Field(default=True)
+    execution_id: Annotated[str, Field(min_length=1)]
+    workflow_id: Annotated[str, Field(min_length=1)]
+    step_id: Annotated[str, Field(min_length=1)]
+    initiator_id: Annotated[str, Field(min_length=1)]
+    timestamp_isot: Annotated[str, Field(min_length=1)]
+    unix_time: Annotated[int, Field(description="Unix timestamp")]
+    v2_engine: bool = True
 
     @field_validator("unix_time")
     @classmethod

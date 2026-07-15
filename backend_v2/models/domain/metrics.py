@@ -7,7 +7,7 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 import logging
 from typing import Any
 
-from pydantic import ConfigDict, Field, TypeAdapter, field_validator
+from pydantic import ConfigDict, TypeAdapter, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -67,12 +67,12 @@ class TextMetricsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    word_count: int = Field(default=0)
-    sentence_count: int = Field(default=0)
-    avg_sentence_length: float = Field(default=0.0)
-    lexical_diversity: float = Field(default=0.0)
-    capitalization_ratio: float = Field(default=0.0)
-    control_ratio: float = Field(default=0.0)
+    word_count: int = 0
+    sentence_count: int = 0
+    avg_sentence_length: float = 0.0
+    lexical_diversity: float = 0.0
+    capitalization_ratio: float = 0.0
+    control_ratio: float = 0.0
 
     @field_validator(
         "word_count",
@@ -114,10 +114,10 @@ class BehavioralMetricsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    say_do_gap: float = Field(default=0.0)
-    automation_bias: float = Field(default=0.0)
-    illusion_of_competence: float = Field(default=0.0)
-    imperative_command_count: int = Field(default=0)
+    say_do_gap: float = 0.0
+    automation_bias: float = 0.0
+    illusion_of_competence: float = 0.0
+    imperative_command_count: int = 0
 
     @field_validator(
         "say_do_gap",
@@ -163,16 +163,16 @@ class ProfilerMetricsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    word_count: int = Field(default=0)
-    sentence_count: int = Field(default=0)
-    avg_sentence_length: float = Field(default=0.0)
-    lexical_diversity: float = Field(default=0.0)
-    capitalization_ratio: float = Field(default=0.0)
-    control_ratio: float = Field(default=0.0)
-    say_do_gap: float = Field(default=0.0)
-    automation_bias: float = Field(default=0.0)
-    illusion_of_competence: float = Field(default=0.0)
-    imperative_command_count: int = Field(default=0)
+    word_count: int = 0
+    sentence_count: int = 0
+    avg_sentence_length: float = 0.0
+    lexical_diversity: float = 0.0
+    capitalization_ratio: float = 0.0
+    control_ratio: float = 0.0
+    say_do_gap: float = 0.0
+    automation_bias: float = 0.0
+    illusion_of_competence: float = 0.0
+    imperative_command_count: int = 0
 
     @field_validator(
         "word_count",

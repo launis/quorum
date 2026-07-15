@@ -5,7 +5,7 @@ including Toulmin argumentation analysis and Walton schemes.
 """
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field, field_validator
 
@@ -30,16 +30,18 @@ class LogicianInput(V2CoreBase):
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
-    chat_log: str = Field(
-        ...,
-        min_length=1,
-        description="The mandatory conversation history to analyze.",
-        json_schema_extra={"x-ui-label": "Chatlog"},
-    )
-    step_analyst: AnalystOutput | None = Field(default=None, description="Analyst hypotheses/timeline.")
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
-    dynamic_inputs: dict[str, Any] = Field(
-        default_factory=dict, description="Structured dictionary for dynamic inputs."
+    chat_log: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="The mandatory conversation history to analyze.",
+            json_schema_extra={"x-ui-label": "Chatlog"},
+        ),
+    ]
+    step_analyst: Annotated[AnalystOutput | None, Field(description="Analyst hypotheses/timeline.")] = None
+    last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
+    dynamic_inputs: Annotated[dict[str, Any], Field(description="Structured dictionary for dynamic inputs.")] = Field(
+        default_factory=dict
     )
 
 
@@ -56,45 +58,47 @@ class ToulminComponent(V2CoreBase):
         qualifier: Degree of certainty.
     """
 
-    id: str = Field(
-        ...,
-        min_length=1,
-        description="Reference ID.",
-        json_schema_extra={"x-ui-label": "ID"},
-    )
-    claim: str = Field(
-        ...,
-        min_length=1,
-        description="The conclusion.",
-        json_schema_extra={"x-ui-label": "Claim"},
-    )
-    data: str = Field(
-        ...,
-        min_length=1,
-        description="The evidence.",
-        json_schema_extra={"x-ui-label": "Data"},
-    )
-    warrant: str = Field(
-        ...,
-        min_length=1,
-        description="The logical bridge.",
-        json_schema_extra={"x-ui-label": "Warrant"},
-    )
-    backing: str | None = Field(
-        default=None,
-        description="Support for the warrant.",
-        json_schema_extra={"x-ui-label": "Backing"},
-    )
-    rebuttal: str | None = Field(
-        default=None,
-        description="Counter-arguments.",
-        json_schema_extra={"x-ui-label": "Rebuttal"},
-    )
-    qualifier: str | None = Field(
-        default=None,
-        description="Degree of certainty.",
-        json_schema_extra={"x-ui-label": "Qualifier"},
-    )
+    id: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Reference ID.",
+            json_schema_extra={"x-ui-label": "ID"},
+        ),
+    ]
+    claim: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="The conclusion.",
+            json_schema_extra={"x-ui-label": "Claim"},
+        ),
+    ]
+    data: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="The evidence.",
+            json_schema_extra={"x-ui-label": "Data"},
+        ),
+    ]
+    warrant: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="The logical bridge.",
+            json_schema_extra={"x-ui-label": "Warrant"},
+        ),
+    ]
+    backing: Annotated[
+        str | None, Field(description="Support for the warrant.", json_schema_extra={"x-ui-label": "Backing"})
+    ] = None
+    rebuttal: Annotated[
+        str | None, Field(description="Counter-arguments.", json_schema_extra={"x-ui-label": "Rebuttal"})
+    ] = None
+    qualifier: Annotated[
+        str | None, Field(description="Degree of certainty.", json_schema_extra={"x-ui-label": "Qualifier"})
+    ] = None
 
 
 class CognitiveLevel(V2CoreBase):
@@ -109,39 +113,44 @@ class CognitiveLevel(V2CoreBase):
         description: Localized description.
     """
 
-    bloom_level: LaxBloomLevel = Field(
-        ...,
-        description="Bloom's Taxonomy Level.",
-        json_schema_extra={"x-ui-label": "Bloom Level"},
-    )
-    strategic_depth: LaxStrategicDepth = Field(
-        ...,
-        description="Strategic depth analysis.",
-        json_schema_extra={"x-ui-label": "Strategic Depth"},
-    )
-    bloom_score: float = Field(
-        ...,
-        description=(
-            "Numeric Bloom score (0.0 to 6.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 4.5) to reflect nuance."
+    bloom_level: Annotated[
+        LaxBloomLevel,
+        Field(
+            description="Bloom's Taxonomy Level.",
+            json_schema_extra={"x-ui-label": "Bloom Level"},
         ),
-        json_schema_extra={"x-ui-label": "Bloom Score"},
-    )
-    strategic_score: float = Field(
-        ...,
-        description=(
-            "Numeric Strategic score (1.0 to 4.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+    ]
+    strategic_depth: Annotated[
+        LaxStrategicDepth,
+        Field(
+            description="Strategic depth analysis.",
+            json_schema_extra={"x-ui-label": "Strategic Depth"},
         ),
-        json_schema_extra={"x-ui-label": "Strategic Score"},
-    )
-    description_key: str = Field(
-        default="bloom_desc",
-        description="Localization key for help text.",
-    )
-    description: str = Field(
-        default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
-    )
+    ]
+    bloom_score: Annotated[
+        float,
+        Field(
+            description=(
+                "Numeric Bloom score (0.0 to 6.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 4.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Bloom Score"},
+        ),
+    ]
+    strategic_score: Annotated[
+        float,
+        Field(
+            description=(
+                "Numeric Strategic score (1.0 to 4.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 2.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Strategic Score"},
+        ),
+    ]
+    description_key: Annotated[str, Field(description="Localization key for help text.")] = "bloom_desc"
+    description: Annotated[
+        str, Field(description="Localized description.", json_schema_extra={"x-ui-label": "Description"})
+    ] = ""
 
     @field_validator("bloom_score")
     @classmethod
@@ -195,18 +204,22 @@ class WaltonScheme(V2CoreBase):
         critical_questions: Critical Questions posed.
     """
 
-    identified_scheme: str = Field(
-        ...,
-        min_length=1,
-        description="Identified Argumentation Scheme.",
-        json_schema_extra={"x-ui-label": "Identified Scheme"},
-    )
-    critical_questions: list[str] = Field(
-        ...,
-        min_length=1,
-        description="Critical Questions posed.",
-        json_schema_extra={"x-ui-label": "Critical Questions"},
-    )
+    identified_scheme: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Identified Argumentation Scheme.",
+            json_schema_extra={"x-ui-label": "Identified Scheme"},
+        ),
+    ]
+    critical_questions: Annotated[
+        list[str],
+        Field(
+            min_length=1,
+            description="Critical Questions posed.",
+            json_schema_extra={"x-ui-label": "Critical Questions"},
+        ),
+    ]
 
 
 class LogicianData(V2CoreBase):
@@ -221,37 +234,42 @@ class LogicianData(V2CoreBase):
         description: Localized description.
     """
 
-    toulmin_analysis: list[ToulminComponent] = Field(
-        ...,
-        min_length=1,
-        description="Toulmin analysis breakdown.",
-        json_schema_extra={"x-ui-label": "Toulmin Analysis"},
-    )
-    cognitive_level: CognitiveLevel = Field(
-        ...,
-        description="Cognitive level assessment.",
-        json_schema_extra={"x-ui-label": "Cognitive Level"},
-    )
-    walton_scheme: WaltonScheme = Field(
-        ...,
-        description="Argumentation scheme analysis.",
-        json_schema_extra={"x-ui-label": "Argumentation Scheme"},
-    )
-    toulmin_score: float = Field(
-        ...,
-        description=(
-            "Calculated score based on components (0.0 to 6.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 5.5) to reflect nuance."
+    toulmin_analysis: Annotated[
+        list[ToulminComponent],
+        Field(
+            min_length=1,
+            description="Toulmin analysis breakdown.",
+            json_schema_extra={"x-ui-label": "Toulmin Analysis"},
         ),
-        json_schema_extra={"x-ui-label": "Toulmin Score"},
-    )
-    description_key: str = Field(
-        default="toulmin_desc",
-        description="Localization key for help text.",
-    )
-    description: str = Field(
-        default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
-    )
+    ]
+    cognitive_level: Annotated[
+        CognitiveLevel,
+        Field(
+            description="Cognitive level assessment.",
+            json_schema_extra={"x-ui-label": "Cognitive Level"},
+        ),
+    ]
+    walton_scheme: Annotated[
+        WaltonScheme,
+        Field(
+            description="Argumentation scheme analysis.",
+            json_schema_extra={"x-ui-label": "Argumentation Scheme"},
+        ),
+    ]
+    toulmin_score: Annotated[
+        float,
+        Field(
+            description=(
+                "Calculated score based on components (0.0 to 6.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 5.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Toulmin Score"},
+        ),
+    ]
+    description_key: Annotated[str, Field(description="Localization key for help text.")] = "toulmin_desc"
+    description: Annotated[
+        str, Field(description="Localized description.", json_schema_extra={"x-ui-label": "Description"})
+    ] = ""
 
     @field_validator("toulmin_score")
     @classmethod
@@ -284,11 +302,13 @@ class LogicianOutputDTO(ReasoningTraceDTO):
         logician_data: Logic analysis results.
     """
 
-    logician_data: LogicianData = Field(
-        ...,
-        description="Logic analysis results.",
-        json_schema_extra={"x-ui-label": "Logic Analysis"},
-    )
+    logician_data: Annotated[
+        LogicianData,
+        Field(
+            description="Logic analysis results.",
+            json_schema_extra={"x-ui-label": "Logic Analysis"},
+        ),
+    ]
 
 
 class LogicianOutput(LogicianOutputDTO, ReasoningTrace):
