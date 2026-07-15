@@ -21,7 +21,7 @@ from backend_v2.hooks.linguistics import scan_report_for_slop
 from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO, LightweightMatrixOutput, ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
-from backend_v2.models.enums import SystemConfigID, SystemLocale, VirtualSystemStepID, VisualIntent
+from backend_v2.models.enums import ExecutionStatus, SystemConfigID, SystemLocale, VirtualSystemStepID, VisualIntent
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
@@ -527,7 +527,7 @@ class BlueprintTransformer:
                                                 extracted_facts={},
                                                 exact_quotes=[],
                                                 internal_logic_en=r_step,
-                                                status="FAIL",
+                                                status=ExecutionStatus.FAILED,
                                                 semantic_reasoning=re.sub(
                                                     r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]",
                                                     "",
@@ -558,7 +558,11 @@ class BlueprintTransformer:
                                                 val_data_cog.status == "PASS" or val_data_cog.evidence_found
                                             )
                                             is_dlq = evidence_found is True and not parsed_quotes
-                                            calc_status = "PASS" if (evidence_found and not is_dlq) else "FAIL"
+                                            calc_status = (
+                                                ExecutionStatus.PASSED
+                                                if (evidence_found and not is_dlq)
+                                                else ExecutionStatus.FAILED
+                                            )
 
                                             s_atom = ScorecardAtomDTO(
                                                 atom_id=atom_id,
@@ -613,7 +617,7 @@ class BlueprintTransformer:
                                         extracted_facts={},
                                         exact_quotes=[],
                                         internal_logic_en=dummy_reasoning,
-                                        status="FAIL",
+                                        status=ExecutionStatus.FAILED,
                                         semantic_reasoning="",
                                         contextual_override=False,
                                         structural_location="N/A",

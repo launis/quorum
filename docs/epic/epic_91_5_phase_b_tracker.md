@@ -10,27 +10,29 @@
 - [x] [OK] Phase B4: Excel Export Modernization
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B4_excel_export_modernization.md`
 - [x] [OK] Invoke the Tier 1 Planner again to generate detailed plans for Phase B5.
-- [ ] [NOK] Phase B5: N/A Manual Override API
+- [x] [OK] Phase B5: N/A Manual Override API
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B5_manual_override_api.md`
-- [ ] [NOK] Tier 2 Hardening
-- [ ] [NOK] Proxy Sunset & Consumer Migration
-- [ ] [NOK] Pre-Delete Audit
-- [ ] [NOK] Baseline Parity & Zero-Loss Audit
+- [ ] [NOK] Phase B6: Tier 2 Hardening
+  - Execute `docs/epic/tasks_epic_91_5_phase_b/B6_tier_2_hardening.md`
+- [ ] [NOK] Phase B7: Proxy Sunset & Consumer Migration
+  - Execute `docs/epic/tasks_epic_91_5_phase_b/B7_proxy_sunset.md`
+- [ ] [NOK] Phase B8: Pre-Delete Audit
+  - Execute `docs/epic/tasks_epic_91_5_phase_b/B8_pre_delete_audit.md`
+- [ ] [NOK] Phase B9: Baseline Parity & Zero-Loss Audit
+  - Execute `docs/epic/tasks_epic_91_5_phase_b/B9_baseline_parity.md`
 
 # Instructions for the Execution Agent
 You MUST systematically execute the above tasks from top to bottom using the `/tier2-execute` workflow. After completing a task, mark it `[x]` and commit the code using atomic commits. Do not proceed to the next phase without confirming tests pass (Universal Quality Gate). Once B1 and B2 are done, execute the planner again. Update the `/tier5-resume` command below before handing over the session.
 
 # Session Handover Context
 **Achieved:**
-- Tier 1 Planning completed for Phase B5.
+- Invoked the Tier 1 Planner to generate detailed plans for Tier 2 Hardening, Proxy Sunset, Pre-Delete Audit, and Baseline Parity (Phases B6-B9).
 
 **Learned:**
-- Atoms with an N/A status must be entirely excluded from the denominator in scoring math.
-- Pydantic models for Manual Overrides must strictly use `ExecutionStatus` or `LaxExecutionStatus` enums.
+- Legacy legacy_dto_mapper and dtos/report/ may have already been purged, but B7 and B8 serve as the final verification of this.
 
 **Remaining:**
-- Execute B5 Plan (Manual Override API).
-- Execute remaining hardening and audit phases.
+- Execute the remaining B6 through B9 plans using Tier 2.
 
-To resume execution in a new context window to execute Phase B5:
-`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B5_manual_override_api.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`
+To resume execution in a new context window to perform the hardening and audit phases:
+`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B6_tier_2_hardening.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`

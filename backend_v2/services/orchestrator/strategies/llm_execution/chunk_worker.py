@@ -11,8 +11,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationError, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, SourceDocumentContext
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, SourceDocumentContext
 from backend_v2.models.enums import EnsembleJitter, EvaluationRunCount
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock

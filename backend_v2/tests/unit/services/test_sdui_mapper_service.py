@@ -98,7 +98,7 @@ def test_map_report_to_sdui_complete():
     # Check Layout Scorecard
     assert view.sections[1].id == "layout_scorecard_0"
     assert view.sections[1].type == SectionType.SCORE_CARD
-    
+
     score_card = ScoreCardDisplay.model_validate(view.sections[1].data)
     assert score_card.dimensions[0].dimension_id == "blk_123"
     assert score_card.dimensions[0].dimension_label == "Security Policy"

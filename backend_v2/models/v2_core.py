@@ -871,7 +871,7 @@ class ExpectedInput(V2CoreBase):
 class HumanOverrideRequest(V2CoreBase):
     """Payload for human override requests."""
 
-    new_status: str = Field(description="The overridden status (e.g., TRUE, FALSE, DLQ).")
+    new_status: LaxExecutionStatus = Field(description="The overridden status (e.g., TRUE, FALSE, DLQ).")
     reason: str = Field(description="The reason for the override.")
     evidence_quotes: list[QuoteEvidenceDTO] = Field(
         default_factory=list, description="Selected quotes to support the override."
@@ -881,7 +881,7 @@ class HumanOverrideRequest(V2CoreBase):
 class HumanOverrideDTO(V2CoreBase):
     """Schema for human-initiated state override."""
 
-    new_status: str = Field(description="The overridden status (e.g., TRUE, FALSE, DLQ).")
+    new_status: ExecutionStatus = Field(description="The overridden status (e.g., TRUE, FALSE, DLQ).")
     reason: str = Field(description="The reason for the override.")
     evidence_quotes: list[QuoteEvidenceDTO] = Field(description="Selected quotes to support the override.")
     overridden_by: str = Field(description="User ID who performed the override.")
@@ -900,7 +900,7 @@ class ScorecardAtomDTO(V2CoreBase):
     extracted_facts: dict[str, str | None]
     exact_quotes: list[QuoteEvidenceDTO]
     internal_logic_en: ReasoningStepDTO
-    status: str | None
+    status: ExecutionStatus | None
     semantic_reasoning: str
     contextual_override: bool
     structural_location: str

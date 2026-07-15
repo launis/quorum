@@ -542,7 +542,7 @@ async def test_override_atom_success() -> None:
             step_3_evaluate_anti_patterns="",
             step_4_final_conclusion="",
         ),
-        status="FAIL",
+        status=ExecutionStatus.FAILED,
         semantic_reasoning="",
         contextual_override=False,
         structural_location="N/A",
@@ -565,7 +565,7 @@ async def test_override_atom_success() -> None:
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(
-        new_status="PASS",
+        new_status=ExecutionStatus.PASSED,
         reason="Override reason",
         evidence_quotes=[],
     )

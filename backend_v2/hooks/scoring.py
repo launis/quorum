@@ -1277,6 +1277,10 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
             # Phase 2 requirement: Prioritize human_override if present in the raw atom dict
             effective_status = status
 
+            # Epic 91.5: N/A items are mathematically excluded from the evaluation completely.
+            if effective_status == "N_A":
+                continue
+
             if effective_status == "DLQ":
                 stats[s_val]["dlqs"] += 1
             elif effective_status == "CONTESTED":
