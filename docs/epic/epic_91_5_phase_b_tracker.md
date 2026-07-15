@@ -26,13 +26,15 @@ You MUST systematically execute the above tasks from top to bottom using the `/t
 
 # Session Handover Context
 **Achieved:**
-- Completed Phase B7 Proxy Sunset verification. Confirmed that legacy adapters and dtos/report/ are fully purged.
+- Completed Phase B8 Pre-Delete Audit. Confirmed legacy `dtos/report` and `ResultProjector` were fully eradicated with no lingering references.
+- Completed Phase B9 Baseline Parity & Zero-Loss Audit. Confirmed 80% coverage (1086 passed tests) and verified the `v2_core` unified schema architecture across the system. 
+- Updated Architectural Directories and Knowledge Items to reflect the `blueprint.py` Universal Transformer Hub.
 
 **Learned:**
-- The DTO bridge migration is structurally complete and tests pass with 80% coverage.
+- The unified `ReportDataDTO` and the `blueprint.py` hub effectively map the dynamic Engine state to external structures without intermediate proxy layers. The Zero-Loss boundary has held.
 
 **Remaining:**
-- Execute the remaining B8 and B9 plans using Tier 2.
+- **EPIC 91.5 PHASE B IS COMPLETE.** All tasks (B1 through B9) are marked as [x].
 
-To resume execution in a new context window to perform the hardening and audit phases:
-`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B8_pre_delete_audit.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`
+To run a final architectural hardening pass, execute:
+`/tier2-hardening-backend backend_v2`
