@@ -39,12 +39,6 @@ class ReportRendererV2Widget extends StatelessWidget {
         //     child: SduiNodeRenderer(executionId: executionId, result: atom),
         //   ),
         // ),
-
-        // [BLOCKED] Phase 3, Step 2: Integrate DiagnosticScorecardWidget and XAIEvidenceBox
-        // Architectural Contradiction: Phase 1 models (ReportDataDto) do not contain
-        // evaluativeMatrices, informationalMatrices, or mcpToolAudit data, so these widgets
-        // cannot be rendered or passed the required DTOs natively without violating
-        // strict schema mapping.
       ],
     );
   }
