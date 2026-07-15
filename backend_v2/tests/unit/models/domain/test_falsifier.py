@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.falsifier import (
     FalsifierData,
     FalsifierInput,
@@ -43,7 +44,7 @@ def test_reasoning_fidelity_validation() -> None:
     assert rf.fidelity_numeric == 2.5
 
     # Test bounds (le=3.0)
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException) as exc:
         ReasoningFidelity(
             fidelity_score=FidelityLevel.HIGH,
             fidelity_numeric=4.0,  # out of bounds
@@ -52,6 +53,7 @@ def test_reasoning_fidelity_validation() -> None:
             justification="Clear logic",
             quote="Direct quote",
         )
+    assert "Score must be between 1.0 and 3.0" in str(exc.value)
 
 
 def test_falsifier_data_validation() -> None:

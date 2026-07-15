@@ -7,9 +7,11 @@ including stress tests and fidelity audits.
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -28,9 +30,11 @@ class FalsifierInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
     """
 
-    chat_log: str = Field(..., min_length=1, description="Mandatory chatlog to analyze.")
-    step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog to analyze.")]
+    step_analyst: Annotated[
+        AnalystOutput | LogicianOutput | None, Field(description="Analyst or Logician outputs.")
+    ] = None
+    last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
 
 class WaltonStressTest(V2CoreBase):
@@ -42,23 +46,29 @@ class WaltonStressTest(V2CoreBase):
         observation: Observation notes.
     """
 
-    question: str = Field(
-        ...,
-        min_length=1,
-        description="The critical question asked.",
-        json_schema_extra={"x-ui-label": "Question"},
-    )
-    evidence_held: bool = Field(
-        ...,
-        description="Did the evidence hold up?",
-        json_schema_extra={"x-ui-label": "Result"},
-    )
-    observation: str = Field(
-        ...,
-        min_length=1,
-        description="Observation notes.",
-        json_schema_extra={"x-ui-label": "Observation"},
-    )
+    question: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="The critical question asked.",
+            json_schema_extra={"x-ui-label": "Question"},
+        ),
+    ]
+    evidence_held: Annotated[
+        bool,
+        Field(
+            description="Did the evidence hold up?",
+            json_schema_extra={"x-ui-label": "Result"},
+        ),
+    ]
+    observation: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Observation notes.",
+            json_schema_extra={"x-ui-label": "Observation"},
+        ),
+    ]
 
 
 class ReasoningFidelity(V2CoreBase):
@@ -74,51 +84,75 @@ class ReasoningFidelity(V2CoreBase):
         post_hoc_rationalization: True if reasoning was constructed after the fact.
     """
 
-    fidelity_score: LaxFidelityLevel = Field(
-        ...,
-        description="Fidelity level.",
-        json_schema_extra={"x-ui-label": "Fidelity Score"},
-    )
-    fidelity_numeric: float = Field(
-        ...,
-        ge=1.0,
-        le=3.0,
-        description=(
-            "Numeric fidelity score (1.0 to 3.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+    fidelity_score: Annotated[
+        LaxFidelityLevel,
+        Field(
+            description="Fidelity level.",
+            json_schema_extra={"x-ui-label": "Fidelity Score"},
         ),
-        json_schema_extra={"x-ui-label": "Fidelity Numeric"},
-    )
-    abductive_score: float = Field(
-        ...,
-        ge=1.0,
-        le=3.0,
-        description=(
-            "Numeric abductive score (1.0 to 3.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+    ]
+    fidelity_numeric: Annotated[
+        float,
+        Field(
+            description=(
+                "Numeric fidelity score (1.0 to 3.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 2.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Fidelity Numeric"},
         ),
-        json_schema_extra={"x-ui-label": "Abductive Score"},
-    )
-    plausibility_score: float = Field(
-        ...,
-        ge=1.0,
-        le=3.0,
-        description=(
-            "Numeric plausibility score (1.0 to 3.0), required 1-decimal precision. "
-            "USE DECIMALS (e.g., 2.5) to reflect nuance."
+    ]
+    abductive_score: Annotated[
+        float,
+        Field(
+            description=(
+                "Numeric abductive score (1.0 to 3.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 2.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Abductive Score"},
         ),
-        json_schema_extra={"x-ui-label": "Plausibility Score"},
-    )
+    ]
+    plausibility_score: Annotated[
+        float,
+        Field(
+            description=(
+                "Numeric plausibility score (1.0 to 3.0), required 1-decimal precision. "
+                "USE DECIMALS (e.g., 2.5) to reflect nuance."
+            ),
+            json_schema_extra={"x-ui-label": "Plausibility Score"},
+        ),
+    ]
 
-    justification: str = Field(
-        ..., min_length=1, description="Justification.", json_schema_extra={"x-ui-label": "Justification"}
-    )
-    quote: str | None = Field(default=None, description="Direct quote.", json_schema_extra={"x-ui-label": "Quote"})
-    post_hoc_rationalization: bool = Field(
-        default=False,
-        description="Was reasoning constructed after the fact?",
-        json_schema_extra={"x-ui-label": "Post-Hoc Rationalization"},
-    )
+    justification: Annotated[
+        str, Field(min_length=1, description="Justification.", json_schema_extra={"x-ui-label": "Justification"})
+    ]
+    quote: Annotated[str | None, Field(description="Direct quote.", json_schema_extra={"x-ui-label": "Quote"})] = None
+    post_hoc_rationalization: Annotated[
+        bool,
+        Field(
+            description="Was reasoning constructed after the fact?",
+            json_schema_extra={"x-ui-label": "Post-Hoc Rationalization"},
+        ),
+    ] = False
+
+    @field_validator("fidelity_numeric", "abductive_score", "plausibility_score")
+    @classmethod
+    def validate_scores_bounds(cls, v: float) -> float:
+        """Validate that score is between 1.0 and 3.0.
+
+        Args:
+            v: Input score.
+
+        Returns:
+            Validated score.
+
+        Raises:
+            AppException: If score is out of bounds.
+        """
+        if not (1.0 <= v <= 3.0):
+            msg = "Score must be between 1.0 and 3.0"
+            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v
 
 
 class FalsifierData(V2CoreBase):
@@ -129,17 +163,21 @@ class FalsifierData(V2CoreBase):
         fidelity_audit: Comprehensive reasoning fidelity results.
     """
 
-    stress_test_findings: list[WaltonStressTest] = Field(
-        ...,
-        min_length=1,
-        description="Stress test results.",
-        json_schema_extra={"x-ui-label": "Stress Test"},
-    )
-    fidelity_audit: ReasoningFidelity = Field(
-        ...,
-        description="Fidelity audit.",
-        json_schema_extra={"x-ui-label": "Fidelity Audit"},
-    )
+    stress_test_findings: Annotated[
+        list[WaltonStressTest],
+        Field(
+            min_length=1,
+            description="Stress test results.",
+            json_schema_extra={"x-ui-label": "Stress Test"},
+        ),
+    ]
+    fidelity_audit: Annotated[
+        ReasoningFidelity,
+        Field(
+            description="Fidelity audit.",
+            json_schema_extra={"x-ui-label": "Fidelity Audit"},
+        ),
+    ]
 
 
 class FalsifierDTO(ReasoningTraceDTO):
@@ -149,11 +187,13 @@ class FalsifierDTO(ReasoningTraceDTO):
         falsifier_data: Falsification audit result containing stress tests and fidelity.
     """
 
-    falsifier_data: FalsifierData = Field(
-        ...,
-        description="Falsification audit result.",
-        json_schema_extra={"x-ui-label": "Falsification Audit"},
-    )
+    falsifier_data: Annotated[
+        FalsifierData,
+        Field(
+            description="Falsification audit result.",
+            json_schema_extra={"x-ui-label": "Falsification Audit"},
+        ),
+    ]
 
 
 class FalsifierOutput(FalsifierDTO, ReasoningTrace):
