@@ -26,7 +26,7 @@ Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `R
   - Tiedosto: `docs\epic\tasks_EPIC_95_Testing_Pyramid\epic_95_phase_3b_frontend_snapshot.md`
   - Kuvaus: Varmista `n_a_card` -komponentin renderoituminen Flutterissa (harmaa teema, short_circuit_reason_tda_ids näkyvyys) snapshot-testeillä.
 
-- [NOK] **Tier 2 Hardening**
+- [OK] **Tier 2 Hardening**
   - Ohje: Aja Tier 2 Hardening Loop (esim `/tier2-hardening-backend`) kohdistettuna `backend_v2/models/` ja `backend_v2/services/orchestrator/` -hakemistoihin varmistamaan Pydantic V2 säännökset.
 
 - [NOK] **Pre-Delete Audit**

@@ -31,7 +31,14 @@ FEATURE_FLAG_EXTRACTIVE_SENSOR = True
 
 
 def _is_transient_chunk_error(exc: BaseException) -> bool:
-    """Classify whether a chunk-level error is transient (retryable) or structural (terminal)."""
+    """Classify whether a chunk-level error is transient (retryable) or structural (terminal).
+
+    Args:
+        exc: The exception to classify.
+
+    Returns:
+        True if the error is transient, False otherwise.
+    """
     import litellm
 
     TRANSIENT_TYPES = (
@@ -55,11 +62,27 @@ def _is_transient_chunk_error(exc: BaseException) -> bool:
 
 
 class AtomIdentifier(BaseModel):
+    """Data transfer object identifying a single atom for evaluation.
+
+    Attributes:
+        atom_id: The unique identifier of the atom.
+    """
+
     model_config = ConfigDict(frozen=True, extra="ignore")
     atom_id: str
 
 
 class ConsensusVotePayload(BaseModel):
+    """Payload representing a single consensus vote from the LLM.
+
+    Attributes:
+        exact_quotes: The quotes extracted to support the vote.
+        contextual_override: Whether the cognitive engine overrode the exact quote requirement.
+        override_reason: The justification for the override if applicable.
+        reasoning_steps: The logical trace leading to the vote.
+        semantic_reasoning: The final semantic justification for the vote.
+    """
+
     model_config = ConfigDict(frozen=True, extra="ignore")
     exact_quotes: list[LLMExtractedQuote] = []
     contextual_override: bool = False
@@ -70,7 +93,14 @@ class ConsensusVotePayload(BaseModel):
 
 def evaluate_extraction(extraction: Any, source_text: str, strictness_level: int = 1) -> str:
     """Evaluates the deterministic extraction with dual-track validation.
-    Returns PASS, FAIL, or DLQ.
+
+    Args:
+        extraction: The extraction payload to validate.
+        source_text: The source text to validate against.
+        strictness_level: The strictness factor for validation.
+
+    Returns:
+        PASS, FAIL, or DLQ as a status string.
     """
     exact_quotes_raw = extraction.exact_quotes if hasattr(extraction, "exact_quotes") else []
     if not isinstance(exact_quotes_raw, list):
@@ -162,6 +192,20 @@ def resolve_majority_vote(
     strictness_level: int,
     val_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Resolves the final extraction result from a pool of ensemble votes.
+
+    Args:
+        results: The list of raw dictionary results from parallel executions.
+        has_shuffled_atoms: Flag indicating if the payload utilized blind atoms.
+        chunk_criteria: The blocks defining the extraction criteria.
+        user_payload: The context provided to the execution.
+        global_source_text: The complete textual source.
+        strictness_level: The strictness validation factor.
+        val_context: The optional validation context.
+
+    Returns:
+        A dictionary representing the reconciled majority vote result.
+    """
     if not results:
         return {}
 
@@ -305,6 +349,12 @@ def resolve_majority_vote(
 
 
 class ChunkWorker:
+    """Worker class orchestrating the processing and execution of LLM chunks.
+
+    Attributes:
+        None.
+    """
+
     @staticmethod
     async def process_chunk(
         chunk: Any,
@@ -359,6 +409,9 @@ class ChunkWorker:
                 - TokenUsage: Cumulative token counts consumed by this chunk.
                 - List: List of telemetry and self-correction audit traces.
                 - PromptContextDTO: Compiled prompt representation for logs.
+
+        Raises:
+            AppException: Triggered upon validation failure, max retries, or execution abortion.
         """
         if running_event is not None and not running_event.is_set():
             running_event.set()
@@ -413,6 +466,36 @@ class ChunkWorker:
         user_payload: str,
         output_profile: Any | None,
     ) -> tuple[dict[str, Any], TokenUsage | None, list[Any], PromptContextDTO | None]:
+        """Orchestrates chunk execution with a deterministic retry backoff loop.
+
+        Args:
+            chunk_criteria: List of PromptBlocks defining the rules.
+            compiler: The PromptCompiler instance.
+            global_source_text: The complete un-normalized source document.
+            bound_client: The configured client model endpoint.
+            target_locale: Target translation language.
+            has_shuffled_atoms: True if the atoms are randomized/blind.
+            chunk: The chunk of blind atoms or items to evaluate.
+            effective_mcp_tools: List of executable tools if permitted.
+            synthesis_instructions: Formatting rules for reporting.
+            strictness_level: Validation threshold factor.
+            sem: Semaphore for limiting concurrent LLM calls.
+            step_id: Unique string identifier for telemetry.
+            mcp_system_tools: List of system level mcp tools.
+            tool_loop_max_iterations: The max allowed loops for tools.
+            step_metadata: General execution context metadata.
+            has_search: Whether to merge search results.
+            atom_to_block_ids: Mapping of atoms to parent block criteria.
+            base_system_prompt: Pre-compiled static system guidelines.
+            user_payload: The raw text input block/chunk context.
+            output_profile: Profile mapping UI preferences.
+
+        Returns:
+            A tuple containing the output dictionary, token usage, audit traces, and context.
+
+        Raises:
+            AppException: Triggered on persistent structural failure.
+        """
         MAX_CHUNK_RETRIES = 2
         attempt = 0
 
@@ -550,6 +633,36 @@ class ChunkWorker:
         user_payload: str,
         output_profile: Any | None,
     ) -> tuple[dict[str, Any], TokenUsage | None, list[Any], PromptContextDTO | None]:
+        """Executes the foundational logic for a single chunk execution pass.
+
+        Args:
+            chunk_criteria: List of PromptBlocks defining the rules.
+            compiler: The PromptCompiler instance.
+            global_source_text: The complete un-normalized source document.
+            bound_client: The configured client model endpoint.
+            target_locale: Target translation language.
+            has_shuffled_atoms: True if the atoms are randomized/blind.
+            chunk: The chunk of blind atoms or items to evaluate.
+            effective_mcp_tools: List of executable tools if permitted.
+            synthesis_instructions: Formatting rules for reporting.
+            strictness_level: Validation threshold factor.
+            sem: Semaphore for limiting concurrent LLM calls.
+            step_id: Unique string identifier for telemetry.
+            mcp_system_tools: List of system level mcp tools.
+            tool_loop_max_iterations: The max allowed loops for tools.
+            step_metadata: General execution context metadata.
+            has_search: Whether to merge search results.
+            atom_to_block_ids: Mapping of atoms to parent block criteria.
+            base_system_prompt: Pre-compiled static system guidelines.
+            user_payload: The raw text input block/chunk context.
+            output_profile: Profile mapping UI preferences.
+
+        Returns:
+            A tuple containing the output dictionary, token usage, audit traces, and context.
+
+        Raises:
+            AppException: Triggered on failed validation or execution.
+        """
         chunk_criteria = list(chunk_criteria)
         chunk_atoms_xml: str | None = None
         pre_flight_results: dict[str, Any] = {}
