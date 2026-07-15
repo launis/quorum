@@ -4,9 +4,9 @@
 Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `ReportDataDTO` vs `ReportDataV2DTO` API-ristiriita ja rakentaa testauspyramidi.
 
 ## Session Handover Context
-- **Achieved:** Tier 0 Audit paljasti API-ristiriidan. Phase 1 yhdenmukaisti Pydantic & Dart DTO:t. Phase 2 korjasi 192 testiä ja poisti orvot testit (Backend coverage nyt 1116/1116). Tier 1 Planner ajettiin ja generoitiin suunnitelmat Phase 3:lle (Golden Master E2E & NA_CARD Parity).
-- **Learned:** Backendin SDUI-malleista puuttui `SduiNACard` (joka oli määritelty Frontin enumeissa `n_a_card`). Tämä korjataan osana Phase 3a:ta ennen Golden Master testejä.
-- **Remaining:** Phase 3a (Backend E2E) ja Phase 3b (Flutter UI Snapshot) implementointi, Tier 2 Hardening, Pre-Delete Audit ja Baseline Parity Audit.
+- **Achieved:** Tier 2 Hardening Loop completed for 5 files in `backend_v2/models/dtos/` (`__init__.py`, `lightweight_matrix.py`, `output_profile.py`, `studio.py`, `synthesis.py`).
+- **Learned:** Removed Epic 24 terminology from Output Profile descriptions and translated Finnish docstrings to English in `lightweight_matrix.py` to meet Phase 9 standards.
+- **Remaining:** Tier 2 Hardening Loop for the remaining 2 files in `backend_v2/models/dtos/` (`system.py`, `trace.py`), and then proceed to `backend_v2/services/orchestrator/`. Pre-Delete Audit and Baseline Parity Audit.
 
 ## Tehtävät (Tasks)
 

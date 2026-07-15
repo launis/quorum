@@ -577,11 +577,20 @@ class SduiNACard(SduiBlockBase):
 
     model_config = ConfigDict(title="n_a_card")
     block_type: Literal["n_a_card"] = "n_a_card"
-    short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list, description="IDs of the TDAs that triggered N/A.")]
+    short_circuit_reason_tda_ids: Annotated[
+        list[str], Field(default_factory=list, description="IDs of the TDAs that triggered N/A.")
+    ]
     message: Annotated[str, Field(..., description="Contextual message for the N/A outcome.")]
 
 
 AnySduiBlock = Annotated[
-    HeroInsightBlock | ParagraphBlock | BulletListBlock | AlertBlock | MarkdownBlock | SduiQuoteCard | SduiWarningCard | SduiNACard,
+    HeroInsightBlock
+    | ParagraphBlock
+    | BulletListBlock
+    | AlertBlock
+    | MarkdownBlock
+    | SduiQuoteCard
+    | SduiWarningCard
+    | SduiNACard,
     Field(discriminator="block_type"),
 ]

@@ -14,3 +14,23 @@
 - [x] Run global tests `uv run pytest backend_v2/tests/` (Verify pass count >= 1117)
 - [x] Update Epic 95 tracker (mark Phase 3a as `[x]`)
 - [x] Issue Handover command for Phase 3b.
+
+## Tier 2 Hardening (In Progress)
+### backend_v2/models/dtos/
+- [x] base.py
+- [x] dag_models.py
+- [x] evaluation_steps.py
+- [x] inputs.py
+- [x] prompt_context.py
+- [x] quote_evidence.py
+- [x] source_extraction_schema.py
+- [x] state.py
+- [ ] lightweight_matrix.py
+- [ ] output_profile.py
+- [ ] studio.py
+- [ ] synthesis.py
+- [ ] system.py
+- [ ] trace.py
+
+### backend_v2/services/orchestrator/
+- [ ] (Pending)
