@@ -29,9 +29,9 @@ class SourceClaimDTO(V2CoreBase):
         publication_year: The year of publication, if mentioned.
     """
 
-    claim_text: str = Field(description="The explicitly claimed source text in the document.")
-    institution_name: str | None = Field(default=None, description="The name of the institution, if mentioned.")
-    publication_year: int | None = Field(default=None, description="The year of publication, if mentioned.")
+    claim_text: Annotated[str, Field(description="The explicitly claimed source text in the document.")]
+    institution_name: Annotated[str | None, Field(description="The name of the institution, if mentioned.")] = None
+    publication_year: Annotated[int | None, Field(description="The year of publication, if mentioned.")] = None
 
 
 class VerifiedSourceDTO(V2CoreBase):
@@ -44,13 +44,14 @@ class VerifiedSourceDTO(V2CoreBase):
         tavily_answer: The textual answer/summary returned by the search API.
     """
 
-    claim_text: str = Field(description="The original claim text.")
+    claim_text: Annotated[str, Field(description="The original claim text.")]
     status: Annotated[
         SourceVerificationStatus,
         BeforeValidator(lambda v: SourceVerificationStatus(v) if isinstance(v, str) else v),
-    ] = Field(description="The verification status.")
-    source_urls: list[str] = Field(default_factory=list, description="Relevant URLs.")
-    tavily_answer: str | None = Field(default=None, description="The textual answer from the search provider.")
+        Field(description="The verification status."),
+    ]
+    source_urls: Annotated[list[str], Field(description="Relevant URLs.")] = Field(default_factory=list)
+    tavily_answer: Annotated[str | None, Field(description="The textual answer from the search provider.")] = None
 
 
 class SourceVerificationResultDTO(V2CoreBase):
@@ -64,8 +65,8 @@ class SourceVerificationResultDTO(V2CoreBase):
         hallucination_count: Count of claims marked as HALLUCINATION.
     """
 
-    claims: list[VerifiedSourceDTO] = Field(default_factory=list, description="Verified claims.")
-    verification_timestamp: str = Field(description="Timestamp when verification ran.")
-    total_claims: int = Field(description="Count of claims extracted.")
-    verified_count: int = Field(description="Count of claims marked as VERIFIED.")
-    hallucination_count: int = Field(description="Count of claims marked as HALLUCINATION.")
+    claims: Annotated[list[VerifiedSourceDTO], Field(description="Verified claims.")] = Field(default_factory=list)
+    verification_timestamp: Annotated[str, Field(description="Timestamp when verification ran.")]
+    total_claims: Annotated[int, Field(description="Count of claims extracted.")]
+    verified_count: Annotated[int, Field(description="Count of claims marked as VERIFIED.")]
+    hallucination_count: Annotated[int, Field(description="Count of claims marked as HALLUCINATION.")]

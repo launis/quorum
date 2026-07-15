@@ -4,7 +4,7 @@ Provides strict Pydantic V2 validation schemas for the security hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
 
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field, TypeAdapter
 
@@ -58,6 +58,6 @@ class SanitizationResultDTO(V2CoreBase):
         threat_detected: Flag indicating if a threat was detected.
     """
 
-    sanitized_inputs: dict[str, str] = Field(..., description="The inputs after sanitization")
-    security_status: str = Field(..., min_length=1, description="Status of the security check")
-    threat_detected: bool = Field(..., description="Whether a threat was detected")
+    sanitized_inputs: Annotated[dict[str, str], Field(description="The inputs after sanitization")]
+    security_status: Annotated[str, Field(min_length=1, description="Status of the security check")]
+    threat_detected: Annotated[bool, Field(description="Whether a threat was detected")]

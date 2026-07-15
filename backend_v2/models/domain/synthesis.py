@@ -6,7 +6,7 @@ to eliminate legacy dictionary-based parsing.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field
 
@@ -33,31 +33,31 @@ class SynthesisMetadataDTO(V2CoreBase):
         cost_estimate: Estimate representing financial metrics.
     """
 
-    target_locale: str = Field(..., min_length=1)
-    token_usage: TokenUsage = Field(
+    target_locale: Annotated[str, Field(min_length=1)]
+    token_usage: Annotated[TokenUsage, Field()] = Field(
         default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     )
-    step_results: list[StepOutputDTO] = Field(default_factory=list)
-    profile_id: str | None = Field(default=None)
-    target_profile_id: str | None = Field(default=None)
-    matrix_sampling_strategy: int | None = Field(default=None)
-    workflow_version: int | None = Field(default=None)
+    step_results: Annotated[list[StepOutputDTO], Field()] = Field(default_factory=list)
+    profile_id: Annotated[str | None, Field()] = None
+    target_profile_id: Annotated[str | None, Field()] = None
+    matrix_sampling_strategy: Annotated[int | None, Field()] = None
+    workflow_version: Annotated[int | None, Field()] = None
 
     # Injected by worker.py during execution trace iterations for token usage tracking
-    total_tokens: int | None = Field(default=None)
-    prompt_tokens: int | None = Field(default=None)
-    completion_tokens: int | None = Field(default=None)
-    cost_estimate: float | None = Field(default=None)
-    synthesis_cost_usd: float | None = Field(default=None)
-    dag_cost_usd: float | None = Field(default=None)
+    total_tokens: Annotated[int | None, Field()] = None
+    prompt_tokens: Annotated[int | None, Field()] = None
+    completion_tokens: Annotated[int | None, Field()] = None
+    cost_estimate: Annotated[float | None, Field()] = None
+    synthesis_cost_usd: Annotated[float | None, Field()] = None
+    dag_cost_usd: Annotated[float | None, Field()] = None
 
     # Injected by System 2 Reliability Tracker in worker.py
-    global_context_vars: dict[str, Any] | None = Field(default=None)
-    execution_summary: dict[str, Any] | None = Field(default=None)
-    step_metrics: dict[str, Any] | None = Field(default=None)
+    global_context_vars: Annotated[dict[str, Any] | None, Field()] = None
+    execution_summary: Annotated[dict[str, Any] | None, Field()] = None
+    step_metrics: Annotated[dict[str, Any] | None, Field()] = None
 
     # Injected by output quality scanner
-    has_slop_warning: bool | None = Field(default=None)
+    has_slop_warning: Annotated[bool | None, Field()] = None
 
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):
@@ -70,7 +70,7 @@ class SynthesisStepDataDTO(StepExecutionEnvelope):
 
     model_config = ConfigDict(extra="ignore", frozen=True, strict=True)
 
-    reasoning_trace: ReasoningTrace | None = Field(default=None)
-    token_usage: TokenUsage = Field(
+    reasoning_trace: Annotated[ReasoningTrace | None, Field()] = None
+    token_usage: Annotated[TokenUsage, Field()] = Field(
         default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     )

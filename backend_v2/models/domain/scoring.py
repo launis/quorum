@@ -4,6 +4,8 @@ Provides strict Pydantic V2 validation schemas to replace legacy dictionary
 parsing in the scoring and passivity penalty hooks.
 """
 
+from typing import Annotated
+
 from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
@@ -24,8 +26,11 @@ class StepGuardDTO(ReasoningTrace):
         tainted_data: Optional details identifying any tainted data elements encountered.
     """
 
-    security_check: SecurityCheck = Field(...)
-    tainted_data: TaintedDataContent | None = Field(default=None)
+    security_check: Annotated[SecurityCheck, Field(description="Evaluated results mapping safe execution states.")]
+    tainted_data: Annotated[
+        TaintedDataContent | None,
+        Field(description="Optional details identifying any tainted data elements encountered."),
+    ] = None
 
 
 class StepFalsifierDTO(ReasoningTrace):
@@ -35,7 +40,7 @@ class StepFalsifierDTO(ReasoningTrace):
         falsifier_data: Structure containing counter-arguments.
     """
 
-    falsifier_data: FalsifierData | None = Field(default=None)
+    falsifier_data: Annotated[FalsifierData | None, Field(description="Structure containing counter-arguments.")] = None
 
 
 class StepPanelDTO(V2CoreBase):
@@ -49,8 +54,12 @@ class StepPanelDTO(V2CoreBase):
         causal_analysis: Analysis mapping causality relationships.
     """
 
-    falsifier_data: FalsifierData | None = Field(default=None)
-    overseer_data: OverseerData | None = Field(default=None)
-    logician_data: LogicianData | None = Field(default=None)
-    performativity_analysis: PerformativityAnalysis | None = Field(default=None)
-    causal_analysis: CausalAnalysis | None = Field(default=None)
+    falsifier_data: Annotated[FalsifierData | None, Field(description="Structure containing counter-arguments.")] = None
+    overseer_data: Annotated[OverseerData | None, Field(description="Execution governance details.")] = None
+    logician_data: Annotated[LogicianData | None, Field(description="Data tracking logical deduction chains.")] = None
+    performativity_analysis: Annotated[
+        PerformativityAnalysis | None, Field(description="Analysis tracking execution fidelity.")
+    ] = None
+    causal_analysis: Annotated[
+        CausalAnalysis | None, Field(description="Analysis mapping causality relationships.")
+    ] = None
