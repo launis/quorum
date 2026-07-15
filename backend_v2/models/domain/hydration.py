@@ -6,6 +6,8 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
@@ -20,7 +22,7 @@ class HydrationInputSourceDTO(V2CoreBase):
         inputs: Nested structured inputs mapped by key.
     """
 
-    inputs: dict[str, str] = Field(description="Nested structured inputs.")
+    inputs: Annotated[dict[str, str], Field(description="Nested structured inputs.")]
 
     def is_valid_source(self) -> bool:
         """Determines if this parsed state node is indeed an InputProcessor output.
