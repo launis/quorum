@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/execution/controllers/report_controller.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
+import 'package:client_app/features/execution/views/widgets/diagnostic_scorecard_widget.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
@@ -288,9 +289,21 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
         label: const Text('Lataa Excel'),
       ),
       body: switch (reportAsync) {
-        AsyncData(:final value) => ReportRendererV2Widget(
-          payload: value,
-          executionId: widget.executionId,
+        AsyncData(:final value) => SingleChildScrollView(
+          child: Column(
+            children: [
+              ReportRendererV2Widget(
+                payload: value,
+                executionId: widget.executionId,
+              ),
+              DiagnosticScorecardWidget(
+                executionId: widget.executionId,
+                evaluativeMatrices: value.evaluativeMatrices ?? [],
+                informationalMatrices: value.informationalMatrices ?? [],
+                visibleColumns: value.matrixVisibleColumns,
+              ),
+            ],
+          ),
         ),
         AsyncError(:final error, :final stackTrace) => Builder(
           builder: (ctx) {

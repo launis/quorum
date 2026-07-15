@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
@@ -7,6 +6,7 @@ import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/core/utils/safe_isolate.dart';
 
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
@@ -189,8 +189,8 @@ class ExecutionController extends _$ExecutionController {
       }
 
       // We parse it in Isolate to guarantee no Jank.
-      final reportData = await ReportDataDto.parseInBackground(
-        jsonEncode(renderData),
+      final reportData = await safeIsolateRun(
+        () => ReportDataDto.fromJson(renderData),
       );
 
       // Guard: Provider may have been disposed during isolate parsing
