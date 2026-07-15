@@ -10,19 +10,19 @@
 
 - `[x]` **C0 — Backend Schema Fix:** Add `execution_id` to `ReportDataDTO` → [C0_backend_schema_fix.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C0_backend_schema_fix.md) *(Backend only, 2 files)*
 - `[x]` **C1 — Flutter DTO Rewrite:** Rewrite `ReportDataDto` + create `ReportLayoutDto`, `SynthesisConfigDto` → [C1_flutter_dto_rewrite.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C1_flutter_dto_rewrite.md) *(Frontend only, 3 files)*
-- `[NOK]` **C2 — DTO Relocation:** Move scorecard classes to `matrix_scorecard_dto.dart` → [C2_dto_relocation.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C2_dto_relocation.md)
-- `[NOK]` **C3 — Scorecard Pipeline Delete:** Remove `/scorecard` endpoint + frontend consumers → [C3_scorecard_pipeline_delete.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C3_scorecard_pipeline_delete.md)
-- `[NOK]` **C4 — UI Rewiring:** Connect widgets to unified `ReportDataDto` → [C4_ui_rewiring.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C4_ui_rewiring.md)
-- `[NOK]` **C5 — Controller Updates:** Fix `_performHeavyFetch` and `ReportController` → [C5_controller_updates.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C5_controller_updates.md)
+- `[x]` **C2 — DTO Relocation:** Move scorecard classes to `matrix_scorecard_dto.dart` → [C2_dto_relocation.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C2_dto_relocation.md)
+- `[x]` **C3 — Scorecard Pipeline Delete:** Remove `/scorecard` endpoint + frontend consumers → [C3_scorecard_pipeline_delete.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C3_scorecard_pipeline_delete.md)
+- `[x]` **C4 — UI Rewiring:** Connect widgets to unified `ReportDataDto` → [C4_ui_rewiring.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C4_ui_rewiring.md)
+- `[x]` **C5 — Controller Updates:** Fix `_performHeavyFetch` and `ReportController` → [C5_controller_updates.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C5_controller_updates.md)
 
 ---
 
 ## Structural Quality Gates
 
 - `[x]` **Proxy Sunset & Consumer Migration:** Codebase-wide search/replace old `scorecard_dto.dart` import paths. Verify no orphaned imports remain.
-- `[NOK]` **Tier 2 Hardening (Backend):** Run `/tier2-hardening-backend` on `backend_v2/models/` and `backend_v2/services/blueprint.py` after C0 is committed.
-- `[NOK]` **Tier 2 Hardening (Frontend):** Run `/tier2-hardening-frontend` on `client_app_v2/lib/features/execution/models/` after C1+C2 are committed.
-- `[NOK]` **Pre-Delete Audit:** Verify `scorecard_dto.dart`, `scorecard_provider.dart`, `async_scorecard_widget.dart` have zero consumers before deletion. Verify `ScorecardResponseDTO` and `get_scorecard_dto` have zero external callers.
+- `[x]` **Tier 2 Hardening (Backend):** Run `/tier2-hardening-backend` on `backend_v2/models/` and `backend_v2/services/blueprint.py` after C0 is committed.
+- `[x]` **Tier 2 Hardening (Frontend):** Run `/tier2-hardening-frontend` on `client_app_v2/lib/features/execution/models/` after C1+C2 are committed.
+- `[x]` **Pre-Delete Audit:** Verify `scorecard_dto.dart`, `scorecard_provider.dart`, `async_scorecard_widget.dart` have zero consumers before deletion. Verify `ScorecardResponseDTO` and `get_scorecard_dto` have zero external callers.
 - `[x]` **Baseline Parity & Zero-Loss Audit:** Verify that the final test count and coverage match or exceed the `[BASELINE]` recorded at start.
 
 ---
@@ -63,14 +63,10 @@
 - Dart `export` can act as a proxy to prevent immediate import breakages during C2 relocation.
 
 ## Remaining
-- Execute C2: DTO Relocation (`matrix_scorecard_dto.dart`)
-- Execute C3: Scorecard Pipeline Delete (Remove `/scorecard` endpoint)
-- Execute C4: UI Rewiring (Connect widgets to unified `ReportDataDto`)
-- Execute C5: Controller Updates (`_performHeavyFetch` and `ReportController`)
-- Quality gates: Proxy sunset, Tier 2 hardening, pre-delete audit, baseline parity
+- Epic 91.5 Phase C is fully completed. Ready to proceed to Epic 92.
 
 ---
 
 ```
-/tier5-resume --workflow="/tier2-execute" --target="c:\src\quorum\docs\epic\epic_91_5_phase_c_tracker.md, c:\src\quorum\docs\epic\EPIC_91_5_DTO_Bridge.md" --achieved="Completed Phase C0 (Backend schema fix) and C1 (Flutter DTO rewrite). Generated detailed micro-plans for C2-C5." --learned="Flutter ReportDataDto was a broken 6-field placeholder. Dart export can act as a proxy to prevent import breakages during C2 relocation." --remaining="Execute C2-C5 (DTO relocation, pipeline delete, UI rewiring, controller updates) sequentially." --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md"
+/tier5-resume --workflow="/tier0-create-plan" --target="c:\src\quorum\docs\epic\epic_92_tracker.md" --achieved="Completed all of Epic 91.5 Phase C. The DTO bridge is fully implemented and the frontend compiles flawlessly." --learned="The Universal DTO Bridge is active. Now we can proceed with Epic 92." --remaining="Plan and execute Epic 92 Phase 1." --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md"
 ```
