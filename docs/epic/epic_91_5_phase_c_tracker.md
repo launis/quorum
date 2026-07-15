@@ -39,8 +39,8 @@
 
 ## Documentation Updates
 
-- `[NOK]` Update `.agents/rules/04_directory_reference.md` with new model files (`report_layout_dto.dart`, `synthesis_config_dto.dart`, `matrix_scorecard_dto.dart`).
-- `[NOK]` Update `docs/architecture/` if any architecture docs reference the dual scorecard pipeline.
+- `[x]` Update `.agents/rules/04_directory_reference.md` with new model files (`report_layout_dto.dart`, `synthesis_config_dto.dart`, `matrix_scorecard_dto.dart`).
+- `[x]` Update `docs/architecture/` if any architecture docs reference the dual scorecard pipeline.
 
 ---
 
