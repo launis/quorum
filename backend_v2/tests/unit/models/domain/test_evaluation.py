@@ -12,16 +12,16 @@ from backend_v2.models.domain.evaluation import (
 from backend_v2.models.domain.judge import DimensionResultItem
 
 
-def test_evaluation_criterion_native_bounds() -> None:
-    """Test that EvaluationCriterion.weight uses native ge=0.0."""
+def test_evaluation_criterion_weight_bounds() -> None:
+    """Test that EvaluationCriterion.weight uses local validator due to vertex_serving_grammar_fix."""
     # Valid
     crit = EvaluationCriterion(id="crit_1", label="Criterion 1", weight=1.5)
     assert crit.weight == 1.5
 
     # Invalid
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(AppException) as exc:
         EvaluationCriterion(id="crit_1", label="Criterion 1", weight=-0.5)
-    assert "Input should be greater than or equal to 0" in str(exc.value)
+    assert "weight must be >= 0.0" in str(exc.value)
 
 
 def test_evaluation_result_scale_validation() -> None:
