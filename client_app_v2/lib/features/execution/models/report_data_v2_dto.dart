@@ -5,6 +5,10 @@ import 'package:client_app/core/utils/safe_isolate.dart';
 
 import 'matrix_scorecard_dto.dart';
 import 'report_layout_dto.dart';
+import 'atom_result_dto.dart';
+import 'execution_metrics_dto.dart';
+import 'global_synthesis_dto.dart';
+import 'hydrated_atom_dto.dart';
 import '../../../shared/models/i18n_text.dart';
 
 part 'report_data_v2_dto.freezed.dart';
@@ -29,6 +33,12 @@ abstract class ReportDataDto with _$ReportDataDto {
     Map<String, I18nText> availableProfiles,
     @JsonKey(name: 'global_score') double? globalScore,
     @JsonKey(name: 'has_warning') @Default(false) bool hasWarning,
+    @JsonKey(name: 'global_metrics') ExecutionMetricsDTO? globalMetrics,
+    @JsonKey(name: 'global_synthesis') GlobalSynthesisDTO? globalSynthesis,
+    @JsonKey(name: 'results') @Default([]) List<AtomResultDTO> results,
+    @JsonKey(name: 'hydrated_references')
+    @Default({})
+    Map<String, HydratedAtomDTO> hydratedReferences,
     @JsonKey(name: 'evaluative_matrices')
     List<MatrixScorecardRowDto>? evaluativeMatrices,
     @JsonKey(name: 'informational_matrices')

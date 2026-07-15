@@ -28,6 +28,10 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'available_profiles',
         'global_score',
         'has_warning',
+        'global_metrics',
+        'global_synthesis',
+        'results',
+        'hydrated_references',
         'evaluative_matrices',
         'informational_matrices',
         'content_blocks',
@@ -83,6 +87,37 @@ _ReportDataDto _$ReportDataDtoFromJson(
         (v) => (v as num?)?.toDouble(),
       ),
       hasWarning: $checkedConvert('has_warning', (v) => v as bool? ?? false),
+      globalMetrics: $checkedConvert(
+        'global_metrics',
+        (v) => v == null
+            ? null
+            : ExecutionMetricsDTO.fromJson(v as Map<String, dynamic>),
+      ),
+      globalSynthesis: $checkedConvert(
+        'global_synthesis',
+        (v) => v == null
+            ? null
+            : GlobalSynthesisDTO.fromJson(v as Map<String, dynamic>),
+      ),
+      results: $checkedConvert(
+        'results',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => AtomResultDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
+      hydratedReferences: $checkedConvert(
+        'hydrated_references',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(
+                k,
+                HydratedAtomDTO.fromJson(e as Map<String, dynamic>),
+              ),
+            ) ??
+            const {},
+      ),
       evaluativeMatrices: $checkedConvert(
         'evaluative_matrices',
         (v) => (v as List<dynamic>?)
@@ -182,6 +217,9 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'availableProfiles': 'available_profiles',
     'globalScore': 'global_score',
     'hasWarning': 'has_warning',
+    'globalMetrics': 'global_metrics',
+    'globalSynthesis': 'global_synthesis',
+    'hydratedReferences': 'hydrated_references',
     'evaluativeMatrices': 'evaluative_matrices',
     'informationalMatrices': 'informational_matrices',
     'contentBlocks': 'content_blocks',
@@ -217,6 +255,12 @@ Map<String, dynamic> _$ReportDataDtoToJson(_ReportDataDto instance) =>
       ),
       'global_score': instance.globalScore,
       'has_warning': instance.hasWarning,
+      'global_metrics': instance.globalMetrics?.toJson(),
+      'global_synthesis': instance.globalSynthesis?.toJson(),
+      'results': instance.results.map((e) => e.toJson()).toList(),
+      'hydrated_references': instance.hydratedReferences.map(
+        (k, e) => MapEntry(k, e.toJson()),
+      ),
       'evaluative_matrices': instance.evaluativeMatrices
           ?.map((e) => e.toJson())
           .toList(),

@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Annotated, Any, Literal, cast  # noqa: F401
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, cast  # noqa: F401
 
 if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -35,6 +35,7 @@ from backend_v2.models.enums import (
     LaxScoringStrategy,
     LaxXaiExtensionType,
     ScoringStrategy,
+    SDUIComponentType,
     StrictnessAnchor,
     VisualIntent,
 )
@@ -79,6 +80,11 @@ __all__ = [
     "HumanOverrideRequest",
     "HumanOverrideDTO",
     "ScorecardAtomDTO",
+    "ErrorDetailsDTO",
+    "HydratedAtomDTO",
+    "ExtractedValueDTO",
+    "AtomResultDTO",
+    "ExecutionMetricsDTO",
     "ReportDataDTO",
 ]
 
@@ -1035,6 +1041,80 @@ class ReportLayoutDTO(V2CoreBase):
     )
 
 
+class ErrorDetailsDTO(BaseModel):
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    error_code: Annotated[str, Field(description="Standardized error code, e.g., LLM_TIMEOUT")]
+    message: Annotated[str, Field(description="Technical error message or stack trace")]
+
+
+class HydratedAtomDTO(BaseModel):
+    """Static ontology data. Perfectly cacheable.
+    Must not contain any dynamic execution-related data.
+    """
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    sdui_component: Annotated[SDUIComponentType, Field(description="Server-Driven UI hint for frontend.")]
+    resolved_claim: Annotated[str, Field(description="Cleaned claim in human language")]
+    source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote")]
+
+
+class ExtractedValueDTO(BaseModel):
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    value: str | float | int | bool
+    unit: Annotated[str | None, Field(default=None, description="Unit of measurement, e.g., 'tCO2e' or 'EUR'")]
+
+
+class AtomResultDTO(BaseModel):
+    """Dynamic execution data (DAG node)."""
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    tda_id: Annotated[str, Field(description="Opaque ID pointing to the hydrated_references dictionary key")]
+    status: ExecutionStatus
+    extracted_data: Annotated[
+        ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result")
+    ]
+    source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote from the document")]
+    contextual_override: Annotated[
+        bool, Field(default=False, description="Allows cognitive override without a verbatim quote")
+    ]
+    evaluation_reasoning: Annotated[
+        str | None, Field(default=None, description="Strictly AI cognitive reasoning, no infra errors")
+    ]
+    error_details: Annotated[
+        ErrorDetailsDTO | None, Field(default=None, description="Populated only if status is SYSTEM_ERROR")
+    ]
+
+    depends_on_tda_ids: Annotated[list[str], Field(default_factory=list, description="DAG adjacency list")]
+    short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list)]
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_cognitive_vs_system_state(cls, data: Any) -> Any:
+        """Fail-Fast & Graceful Healing: Prevents hallucinations and incomplete data before freeze."""
+        if isinstance(data, dict):
+            if data.get("contextual_override") is True and data.get("source_quote") is not None:
+                data["source_quote"] = None
+
+            status_val = data.get("status")
+            if status_val in ("PASSED", "FAILED", ExecutionStatus.PASSED, ExecutionStatus.FAILED):
+                if not data.get("evaluation_reasoning"):
+                    raise ValueError(f"Reasoning is mandatory for cognitive status {status_val}")
+                if not data.get("contextual_override") and not data.get("source_quote"):
+                    raise ValueError("source_quote is mandatory unless contextual_override is True")
+
+            if status_val in ("SYSTEM_ERROR", ExecutionStatus.SYSTEM_ERROR) and not data.get("error_details"):
+                raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")
+        return data
+
+
+class ExecutionMetricsDTO(BaseModel):
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    total_atoms: int
+    evaluated: int
+    short_circuited_na: int
+    duration_ms: Annotated[int, Field(default=0, description="Execution duration in milliseconds for observability")]
+
+
 class GlobalSynthesisDTO(V2CoreBase):
     """Data structure for high-level synthesized reports."""
 
@@ -1062,6 +1142,21 @@ class ReportDataDTO(V2CoreBase):
     has_warning: bool = Field(
         default=False, description="Flag indicating if the report generation had non-fatal warnings."
     )
+
+    # NEW FIELDS FROM EPIC 91.5 (Strict Topological DAG Execution Model)
+    global_metrics: ExecutionMetricsDTO | None = Field(default=None)
+    global_synthesis: GlobalSynthesisDTO | None = Field(
+        default=None, description="Stores the final synthesized output of the document."
+    )
+    results: list[AtomResultDTO] = Field(
+        default_factory=list,
+        description="SDUI-RULE: Backend must return this list strictly topologically sorted. Frontend does not compute the DAG.",
+    )
+    hydrated_references: dict[str, HydratedAtomDTO] = Field(
+        default_factory=dict, description="O(1) Dictionary: tda_id -> Static text."
+    )
+
+    # LEGACY FIELDS (Deprecated but kept for UI transition compatibility)
     evaluative_matrices: list[MatrixScorecardRowDTO] | None = Field(
         default=None, description="Matrices that impact the final grade."
     )
@@ -1100,6 +1195,27 @@ class ReportDataDTO(V2CoreBase):
     penalties_applied: list[str] = Field(
         default_factory=list, description="List of penalty warnings formatted for print."
     )
+
+    @model_validator(mode="after")
+    def enforce_referential_integrity(self) -> Self:
+        """FAIL-FAST ARCHITECTURE INVARIANT:
+        Ensures that every tda_id present in the results list and dependencies
+        actually exists in the hydrated_references dictionary.
+        """
+        ref_keys = set(self.hydrated_references.keys())
+
+        # Declarative Set Logic
+        used_ids = {res.tda_id for res in self.results}
+        dep_ids = {dep for res in self.results for dep in res.depends_on_tda_ids}
+        sc_ids = {sc for res in self.results for sc in res.short_circuit_reason_tda_ids}
+
+        all_referenced_ids = used_ids | dep_ids | sc_ids
+        missing_keys = all_referenced_ids - ref_keys
+
+        if missing_keys:
+            raise ValueError(f"Referential Integrity Error: Missing keys in hydrated_references: {missing_keys}")
+
+        return self
 
 
 class OutputLayoutBlock(V2CoreBase):
