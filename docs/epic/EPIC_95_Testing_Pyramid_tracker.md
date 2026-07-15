@@ -29,10 +29,10 @@ Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `R
 - [OK] **Tier 2 Hardening**
   - Ohje: Aja Tier 2 Hardening Loop (esim `/tier2-hardening-backend`) kohdistettuna `backend_v2/models/` ja `backend_v2/services/orchestrator/` -hakemistoihin varmistamaan Pydantic V2 säännökset.
 
-- [NOK] **Pre-Delete Audit**
+- [OK] **Pre-Delete Audit**
   - Ohje: Poista vanhentuneet legacy-testit lopullisesti (Zero Behavioral Change verifioituna).
 
-- [NOK] **Baseline Parity & Zero-Loss Audit**
+- [OK] **Baseline Parity & Zero-Loss Audit**
   - Ohje: Varmista pytest coverage testin avulla, että kaikki moottorin uudet ominaisuudet ovat täysin testattuja ja testien kokonaismäärä/kattavuus vastaa odotuksia, eikä liiketoimintalogiikkaa kadonnut.
 
 ## Instructions for the Execution Agent

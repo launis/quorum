@@ -1,6 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
+
 from backend_v2.models.domain.falsifier import ReasoningFidelity
 from backend_v2.models.enums import FidelityLevel
 
@@ -19,7 +21,7 @@ def test_falsifier_fail_fast_on_corrupt_fidelity_level() -> None:
 
 
 def test_falsifier_fails_fast_on_invalid_numeric_score() -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         ReasoningFidelity(
             fidelity_score=FidelityLevel.UNCERTAIN,
             fidelity_numeric=4.0,
