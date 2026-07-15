@@ -1045,6 +1045,7 @@ class GlobalSynthesisDTO(V2CoreBase):
 
 class ReportDataDTO(V2CoreBase):
     workflow_id: str
+    execution_id: str = Field(description="The execution's opaque Stripe ID.")
     scoring_strategy: str | None = Field(
         default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL)"
     )

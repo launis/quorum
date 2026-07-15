@@ -9,6 +9,7 @@ def test_report_data_dto_strictness_level_validation() -> None:
     dto = ReportDataDTO.model_validate(
         {
             "workflow_id": "wf_1",
+            "execution_id": "exe_1",
             "profile_id": "prof_1",
         }
     )
