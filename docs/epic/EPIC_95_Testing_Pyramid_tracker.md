@@ -4,9 +4,9 @@
 Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `ReportDataDTO` vs `ReportDataV2DTO` API-ristiriita ja rakentaa testauspyramidi.
 
 ## Session Handover Context
-- **Achieved:** Tier 2 Hardening Loop completed for remaining 2 files in `backend_v2/models/dtos/` (`system.py`, `trace.py`), and 3 files in `backend_v2/services/orchestrator/` (`__init__.py`, `anchor_validation_service.py`, `ast_evaluator.py`).
-- **Learned:** ConfigDict import added to `system.py`. `ast_evaluator.py` and `anchor_validation_service.py` are natively compliant with Phase 9 Fail-Fast constraints.
-- **Remaining:** Tier 2 Hardening Loop for the remaining files in `backend_v2/services/orchestrator/` (atomizer.py, chunk_accumulator.py, chunking_service.py, context_router.py, dag_compiler.py, etc.). Pre-Delete Audit and Baseline Parity Audit.
+- **Achieved:** Tier 2 Hardening Loop completed for 5 files in `backend_v2/services/orchestrator/`: `atomizer.py`, `chunk_accumulator.py`, `chunking_service.py`, `context_router.py`, `dag_compiler.py`.
+- **Learned:** All 5 files are natively compliant with Phase 9 Fail-Fast constraints. No architectural violations were found. Coverage targets were met.
+- **Remaining:** Tier 2 Hardening Loop for the remaining files in `backend_v2/services/orchestrator/` (dag_executor.py, enriched_dag_executor.py, extraction_schema_factory.py, extractive_sensor_service.py, graph_validator.py, etc.). Pre-Delete Audit and Baseline Parity Audit.
 
 ## Tehtävät (Tasks)
 

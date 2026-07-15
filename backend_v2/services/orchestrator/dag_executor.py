@@ -37,6 +37,7 @@ from backend_v2.models.v2_core import (
 from backend_v2.services.execution import create_execution_record
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
@@ -178,7 +179,7 @@ class NodeExecutor:
             AppException: Triggered with CONFIGURATION_ERROR if step metadata or target templates are absent.
         """
         try:
-            blueprint_id = getattr(step, "task_blueprint", None)
+            blueprint_id = step.task_blueprint
             if not blueprint_id:
                 msg = f"Step {step.id} has no task_blueprint configured."
                 logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
@@ -362,7 +363,7 @@ class DAGExecutor:
         if existing_record_dict:
             exec_record = ExecutionRecord.model_validate(existing_record_dict)
             exec_record = exec_record.model_copy(update={"status": ExecutionStatus.RUNNING})
-            if not getattr(exec_record, "step_states", None) or not exec_record.step_states:
+            if not exec_record.step_states:
                 exec_record = exec_record.model_copy(update={"step_states": step_states})
 
             v_step_id = f"sys_render_{exec_record.output_profile_id or workflow.default_profile_id}"
@@ -474,7 +475,7 @@ class DAGExecutor:
                     trace=current.execution_trace,
                     status=status_override if status_override is not None else current.status,
                     step_states=current.step_states,
-                    error=error_override if error_override is not None else getattr(current, "error", None),
+                    error=error_override if error_override is not None else current.error,
                     frozen_context=current.frozen_context,
                     context_variables=current.context_variables,
                 )
@@ -491,8 +492,6 @@ class DAGExecutor:
 
             # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
             if step_obj.task_blueprint == "sp_7a8b9c0d1e2f3a4b":
-                from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
-
                 try:
                     lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
 
@@ -562,7 +561,12 @@ class DAGExecutor:
                 for evt in events:
                     exec_record.execution_trace.append(evt)
                     projector.apply_delta(evt)
-                    if evt.event_type == "decision" and evt.metadata and evt.metadata.get("is_context_update"):
+                    if (
+                        evt.event_type == "decision"
+                        and evt.metadata
+                        and "is_context_update" in evt.metadata
+                        and evt.metadata["is_context_update"]
+                    ):
                         new_cv.update(evt.content)
                         has_cv_updates = True
 
