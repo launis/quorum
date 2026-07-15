@@ -2,7 +2,8 @@ import logging
 from typing import Any
 
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.v2_core import ReportDataDTO
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.v2_core import ReportDataDTO, I18nText
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     DimensionDisplay,
@@ -10,6 +11,7 @@ from backend_v2.models.view.sdui import (
     ScoreCardDisplay,
     SduiQuoteCard,
     SduiWarningCard,
+    SduiNACard,
     SectionType,
     UiSection,
 )
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 class SduiMapperService:
     """Service to map execution DTOs to Server-Driven UI models."""
 
-    def map_evidence_to_sdui(self, evidence: QuoteEvidenceDTO) -> AnySduiBlock:
+    def map_evidence_to_sdui(self, evidence: QuoteEvidenceDTO, lang: str = "fi") -> AnySduiBlock:
         """Map QuoteEvidenceDTO to SduiQuoteCard or SduiWarningCard.
 
         Performs Dual-Reporting Telemetry logging for hallucinated aliases.
@@ -28,18 +30,19 @@ class SduiMapperService:
         # Telemetry logging for hallucinations (Dual-Reporting)
         if not evidence.is_verified or evidence.unverified_aliases:
             logger.warning("[TELEMETRY] Hallucination detected. Unverified aliases: %s", evidence.unverified_aliases)
+            warning_msg = I18nText(default_locale="fi", translations={"fi": "Hallusinoituja lainauksia havaittu:", "en": "Hallucinated citations detected:"}).resolve(lang)
             return SduiWarningCard(
-                message=f"Hallucinated citations detected: {', '.join(evidence.unverified_aliases)}",
+                message=f"{warning_msg} {', '.join(evidence.unverified_aliases)}",
                 quote_text=evidence.quote,
             )
 
         return SduiQuoteCard(quote=evidence.quote, source_aliases=evidence.verified_source_ids, citations=[])
 
-    def map_report(self, report: ReportDataDTO, execution_id: str = "") -> ReportView:
+    def map_report(self, report: ReportDataDTO, execution_id: str = "", lang: str = "fi") -> ReportView:
         """Alias for map_report_to_sdui to satisfy existing test bindings if any."""
-        return self.map_report_to_sdui(report, execution_id)
+        return self.map_report_to_sdui(report, execution_id, lang)
 
-    def map_report_to_sdui(self, report: ReportDataDTO, execution_id: str = "") -> ReportView:
+    def map_report_to_sdui(self, report: ReportDataDTO, execution_id: str = "", lang: str = "fi") -> ReportView:
         """Map ReportDataDTO to ReportView."""
         # Phase B1: Metrics & Telemetry (Capture global_score, strictness_level, has_warning)
         metrics: dict[str, Any] = {}
@@ -54,9 +57,10 @@ class SduiMapperService:
 
         # Phase B1: Map global content_blocks to MARKDOWN_BLOCK sections
         if report.content_blocks:
+            title_summary = I18nText(default_locale="fi", translations={"fi": "Yhteenveto", "en": "Summary"}).resolve(lang)
             sections.append(
                 UiSection(
-                    id="global_content", type=SectionType.MARKDOWN_BLOCK, title="Yhteenveto", data=report.content_blocks
+                    id="global_content", type=SectionType.MARKDOWN_BLOCK, title=title_summary, data=report.content_blocks
                 )
             )
 
@@ -86,7 +90,7 @@ class SduiMapperService:
                     dimensions=dimensions,
                 )
 
-                title = layout.title.resolve() if layout.title else "Analyysi"
+                title = layout.title.resolve(lang) if layout.title else I18nText(default_locale="fi", translations={"fi": "Analyysi", "en": "Analysis"}).resolve(lang)
                 sections.append(
                     UiSection(
                         id=f"layout_scorecard_{idx}",
@@ -98,7 +102,7 @@ class SduiMapperService:
 
             # Phase B1: Layout-specific synthesis_blocks
             if layout.synthesis_blocks:
-                title = layout.title.resolve() if layout.title else "Synteesi"
+                title = layout.title.resolve(lang) if layout.title else I18nText(default_locale="fi", translations={"fi": "Synteesi", "en": "Synthesis"}).resolve(lang)
                 sections.append(
                     UiSection(
                         id=f"layout_synthesis_{idx}",
@@ -110,22 +114,57 @@ class SduiMapperService:
 
         # Phase B1: XAI Transparency
         if report.mcp_tool_audit:
+            title_audit = I18nText(default_locale="fi", translations={"fi": "Auditointityökalujen käyttö", "en": "Audit Tool Usage"}).resolve(lang)
             sections.append(
                 UiSection(
                     id="xai_mcp_audit",
                     type=SectionType.USAGE_STATS,
-                    title="Auditointityökalujen käyttö",
+                    title=title_audit,
                     data=[trace.model_dump(mode="json") for trace in report.mcp_tool_audit],
                 )
             )
 
         if report.grouped_extensions:
+            title_ext = I18nText(default_locale="fi", translations={"fi": "Laajennettu Analytiikka", "en": "Extended Analytics"}).resolve(lang)
             sections.append(
                 UiSection(
                     id="xai_extensions",
                     type=SectionType.USAGE_STATS,
-                    title="Laajennettu Analytiikka",
+                    title=title_ext,
                     data=report.grouped_extensions,
+                )
+            )
+
+        # Phase 3a: Map N_A outcomes to SDUI N_A Cards
+        na_blocks = []
+        
+        na_default_msg = I18nText(default_locale="fi", translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}).resolve(lang)
+        na_rule_prefix = I18nText(default_locale="fi", translations={"fi": "Ohitettu säännön perusteella:", "en": "Skipped based on rule:"}).resolve(lang)
+        
+        for result in report.results:
+            if result.status == ExecutionStatus.N_A:
+                reason_msg = na_default_msg
+                if result.short_circuit_reason_tda_ids:
+                    tda_id = result.short_circuit_reason_tda_ids[0]
+                    if tda_id in report.hydrated_references:
+                        hydrated = report.hydrated_references[tda_id]
+                        reason_msg = f"{na_rule_prefix} {hydrated.resolved_claim}"
+                
+                na_blocks.append(
+                    SduiNACard(
+                        short_circuit_reason_tda_ids=result.short_circuit_reason_tda_ids,
+                        message=reason_msg
+                    ).model_dump(mode="json")
+                )
+        
+        if na_blocks:
+            title_na = I18nText(default_locale="fi", translations={"fi": "Ohitetut Osiot (N/A)", "en": "Skipped Sections (N/A)"}).resolve(lang)
+            sections.append(
+                UiSection(
+                    id="na_outcomes",
+                    type=SectionType.MARKDOWN_BLOCK,
+                    title=title_na,
+                    data=na_blocks,
                 )
             )
 

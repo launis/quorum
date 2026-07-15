@@ -216,3 +216,58 @@ async def test_epic_93_e2e_golden_master() -> None:
     assert dimension["dimension_id"] == block_id
     assert dimension["score"] == 85.0
     assert dimension["dimension_label"] == "Matrix 1 *"
+
+
+@pytest.mark.asyncio
+async def test_epic_95_na_cascade_e2e() -> None:
+    """Verify that N_A AtomResultDTO correctly cascades to an n_a_card SduiComponent."""
+    from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.enums import SDUIComponentType, ExecutionStatus
+
+    # Create dummy ExecutionRecord mapped as ReportDataDTO with an N_A result
+    execution_id = "exe_na1234567890"
+    tda_id = "tda_short_circuit1234567"
+    
+    dto = ReportDataDTO(
+        workflow_id="wf_na",
+        execution_id=execution_id,
+        profile_id="prf_na",
+        results=[
+            AtomResultDTO(
+                tda_id="tda_target123",
+                status=ExecutionStatus.N_A,
+                short_circuit_reason_tda_ids=[tda_id],
+                depends_on_tda_ids=[],
+                evaluation_reasoning="Skipped",
+                contextual_override=False,
+                source_quote=None,
+            )
+        ],
+        hydrated_references={
+            tda_id: HydratedAtomDTO(
+                sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="This is the NA reason claim",
+                source_quote=None
+            ),
+            "tda_target123": HydratedAtomDTO(
+                sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Target claim",
+                source_quote=None
+            )
+        }
+    )
+
+    mapper = SduiMapperService()
+    view = mapper.map_report(dto, execution_id=execution_id)
+
+    # Assertions
+    na_section = next((s for s in view.sections if getattr(s.type, "value", s.type) == "MARKDOWN_BLOCK" and s.id == "na_outcomes"), None)
+    assert na_section is not None, "N/A outcomes section missing"
+    
+    na_data = na_section.data
+    assert len(na_data) == 1
+    
+    na_card = na_data[0]
+    assert na_card["block_type"] == "n_a_card"
+    assert tda_id in na_card["short_circuit_reason_tda_ids"]
+    assert "Ohitettu säännön perusteella: This is the NA reason claim" in na_card["message"]

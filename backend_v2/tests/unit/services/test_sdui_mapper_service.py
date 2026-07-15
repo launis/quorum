@@ -33,7 +33,7 @@ def test_map_evidence_to_sdui_unverified():
         {"quote": "Unverified quote.", "source_alias": "DOC-99"},
         context={"alias_registry": {"DOC-1": "opaque_1"}},
     )
-    result = mapper.map_evidence_to_sdui(evidence)
+    result = mapper.map_evidence_to_sdui(evidence, lang="en")
     assert isinstance(result, SduiWarningCard)
     assert "Hallucinated citations detected" in result.message
 

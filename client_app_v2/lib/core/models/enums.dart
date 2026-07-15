@@ -236,6 +236,8 @@ enum SduiBlockType {
   warningCard,
   @JsonValue('quote_card')
   quoteCard,
+  @JsonValue('n_a_card')
+  nACard,
 }
 
 /// UI intent mapping for SDUI visual rendering.

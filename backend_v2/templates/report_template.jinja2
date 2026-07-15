@@ -137,6 +137,10 @@
                         <div style="margin-top: 5px; font-style: italic; color: #D32F2F; font-size: 11px;">"{{ block.quote_text }}"</div>
                     {% endif %}
                 </div>
+            {% elif block.block_type == 'n_a_card' %}
+                <div style="margin-bottom: 15px; border-left: 4px solid #9E9E9E; background-color: #F5F5F5; padding: 12px; border-radius: 6px;">
+                    <strong style="color: #757575;">N/A (Ei arvioitu):</strong> {{ block.message }}
+                </div>
             {% endif %}
         {% endfor %}
     {% endmacro %}

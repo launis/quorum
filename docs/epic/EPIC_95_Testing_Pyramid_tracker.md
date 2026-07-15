@@ -4,9 +4,9 @@
 Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `ReportDataDTO` vs `ReportDataV2DTO` API-ristiriita ja rakentaa testauspyramidi.
 
 ## Session Handover Context
-- **Achieved:** Tier 0 Audit paljasti API-ristiriidan, jossa Python Backendin `ReportDataDTO` käyttää vanhaa rakennetta, ja Flutter Frontend odottaa Epic 91.5:n mukaista litteää `results` + `hydrated_references` -rakennetta. Testaus-Epic 95 luotiin.
-- **Learned:** Vanhojen testien mockit ovat vanhentuneita ja aiheuttavat massiivisesti virheitä (192 kpl). SSOT DTO-malli on yhdenmukaistettava Backendin ja Frontendin välillä ennen E2E-testejä.
-- **Remaining:** Epic 95 implementointi alla olevien suunnitelmien mukaisesti.
+- **Achieved:** Tier 0 Audit paljasti API-ristiriidan. Phase 1 yhdenmukaisti Pydantic & Dart DTO:t. Phase 2 korjasi 192 testiä ja poisti orvot testit (Backend coverage nyt 1116/1116). Tier 1 Planner ajettiin ja generoitiin suunnitelmat Phase 3:lle (Golden Master E2E & NA_CARD Parity).
+- **Learned:** Backendin SDUI-malleista puuttui `SduiNACard` (joka oli määritelty Frontin enumeissa `n_a_card`). Tämä korjataan osana Phase 3a:ta ennen Golden Master testejä.
+- **Remaining:** Phase 3a (Backend E2E) ja Phase 3b (Flutter UI Snapshot) implementointi, Tier 2 Hardening, Pre-Delete Audit ja Baseline Parity Audit.
 
 ## Tehtävät (Tasks)
 
@@ -18,8 +18,13 @@ Saattaa Quorum V2 laatu tuotantovalmiiksi, korjata Tier 0 auditissa löytynyt `R
   - Tiedosto: `docs\epic\tasks_EPIC_95_Testing_Pyramid\epic_95_phase_2_plan.md`
   - Kuvaus: Korjataan/poistetaan 192 rikkinäistä testiä ja taataan DAG-moottorin integraatiotestit.
 
-- [NOK] **Invoke Tier 1 Planner for Phase 3**
-  - Ohje: "Invoke the Tier 1 Planner again to generate detailed plans for Phase 3 (Golden Master E2E) based on the updated codebase state."
+- [OK] **Phase 3a: Backend E2E Golden Master (NA_CARD Cascade)**
+  - Tiedosto: `docs\epic\tasks_EPIC_95_Testing_Pyramid\epic_95_phase_3a_backend_e2e.md`
+  - Kuvaus: Lisää `SduiNACard` SDUI-malleihin ja rakenna `test_epic_chain_e2e.py` E2E-testi N/A kaskadille.
+
+- [NOK] **Phase 3b: Frontend E2E UI Parity**
+  - Tiedosto: `docs\epic\tasks_EPIC_95_Testing_Pyramid\epic_95_phase_3b_frontend_snapshot.md`
+  - Kuvaus: Varmista `n_a_card` -komponentin renderoituminen Flutterissa (harmaa teema, short_circuit_reason_tda_ids näkyvyys) snapshot-testeillä.
 
 - [NOK] **Tier 2 Hardening**
   - Ohje: Aja Tier 2 Hardening Loop (esim `/tier2-hardening-backend`) kohdistettuna `backend_v2/models/` ja `backend_v2/services/orchestrator/` -hakemistoihin varmistamaan Pydantic V2 säännökset.
