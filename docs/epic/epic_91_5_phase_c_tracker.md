@@ -10,11 +10,10 @@
 
 - `[x]` **C0 — Backend Schema Fix:** Add `execution_id` to `ReportDataDTO` → [C0_backend_schema_fix.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C0_backend_schema_fix.md) *(Backend only, 2 files)*
 - `[x]` **C1 — Flutter DTO Rewrite:** Rewrite `ReportDataDto` + create `ReportLayoutDto`, `SynthesisConfigDto` → [C1_flutter_dto_rewrite.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C1_flutter_dto_rewrite.md) *(Frontend only, 3 files)*
-- `[NOK]` 🔄 **Re-invoke Tier 1 Planner:** Generate detailed plans for C2–C5 based on updated codebase state.
-- `[NOK]` **C2 — DTO Relocation:** Move scorecard classes to `matrix_scorecard_dto.dart` → [C2_dto_relocation.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C2_dto_relocation.md) *(PLACEHOLDER)*
-- `[NOK]` **C3 — Scorecard Pipeline Delete:** Remove `/scorecard` endpoint + frontend consumers → [C3_scorecard_pipeline_delete.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C3_scorecard_pipeline_delete.md) *(PLACEHOLDER)*
-- `[NOK]` **C4 — UI Rewiring:** Connect widgets to unified `ReportDataDto` → [C4_ui_rewiring.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C4_ui_rewiring.md) *(PLACEHOLDER)*
-- `[NOK]` **C5 — Controller Updates:** Fix `_performHeavyFetch` and `ReportController` → [C5_controller_updates.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C5_controller_updates.md) *(PLACEHOLDER)*
+- `[NOK]` **C2 — DTO Relocation:** Move scorecard classes to `matrix_scorecard_dto.dart` → [C2_dto_relocation.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C2_dto_relocation.md)
+- `[NOK]` **C3 — Scorecard Pipeline Delete:** Remove `/scorecard` endpoint + frontend consumers → [C3_scorecard_pipeline_delete.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C3_scorecard_pipeline_delete.md)
+- `[NOK]` **C4 — UI Rewiring:** Connect widgets to unified `ReportDataDto` → [C4_ui_rewiring.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C4_ui_rewiring.md)
+- `[NOK]` **C5 — Controller Updates:** Fix `_performHeavyFetch` and `ReportController` → [C5_controller_updates.md](file:///c:/src/quorum/docs/epic/tasks_epic_91_5_phase_c/C5_controller_updates.md)
 
 ---
 
@@ -34,7 +33,7 @@
 2. After completing each task, run the corresponding Quality Gate command from the plan.
 3. Perform an atomic `git commit` after each passing Quality Gate.
 4. **BEFORE handing over the session**, update the `/tier5-resume` command below with your progress.
-5. After C0 and C1 are committed, invoke Tier 1 Planner to generate detailed plans for C2-C5.
+5. Execute tasks C2-C5 sequentially.
 
 ---
 
@@ -50,7 +49,7 @@
 ## Achieved
 - Red-teamed the original `implementation_plan.md` and discovered 4 critical weaknesses.
 - Generated Tier 1 micro-chunked plans for Phase C0 (backend, detailed) and C1 (Flutter, detailed).
-- Created placeholder plans for C2-C5 pending codebase state after C0+C1.
+- Re-invoked Tier 1 Planner and generated detailed plans for C2-C5.
 
 ## Learned
 - Backend `ReportDataDTO` does NOT have `execution_id` — must be added (C0).
@@ -59,15 +58,14 @@
 - `SynthesisConfigDTO` has 15+ fields; use `disallowUnrecognizedKeys: false` for Flutter model.
 - Backend has no `global_synthesis` field — uses `content_blocks` instead.
 - `TDAState` Freezed union MUST be preserved (O(1) pattern matching).
+- Dart `export` can act as a proxy to prevent immediate import breakages during C2 relocation.
 
 ## Remaining
-- Execute C1 (Flutter, 3 files + build_runner) [COMPLETED]
-- Re-invoke Tier 1 Planner for C2-C5 detail
 - Execute C2-C5 (relocation, deletion, rewiring, controllers)
 - Quality gates: Proxy sunset, Tier 2 hardening, pre-delete audit, baseline parity
 
 ---
 
 ```
-/tier1-planner --target="docs/epic/epic_91_5_phase_c_tracker.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md, .agents/rules/02_flutter_desktop.md"
+/tier5-resume --workflow=/tier2-execute --target="c:\src\quorum\docs\epic\epic_91_5_phase_c_tracker.md, c:\src\quorum\docs\epic\EPIC_91_5_DTO_Bridge.md" --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md"
 ```
