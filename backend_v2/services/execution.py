@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 from arq.connections import ArqRedis
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
@@ -690,45 +690,44 @@ class ExecutionService:
 
         import pandas as pd
 
-        from backend_v2.models.state import StateProjector
-
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
-        frozen_bytes, _ = await self.get_frozen_context_bytes(initiator, execution_id)
 
-        trace_data: list[TraceEvent] = []
-        if execution.execution_trace_storage_path:
-            storage = get_storage_driver()
+        # 1. Attempt to fetch ReportDataDTO to populate the summary sheet.
+        # Fallback to an empty list if execution is not complete.
+        report_dto = None
+        if execution.status == ExecutionStatus.PASSED:
             try:
-                raw_trace = await storage.read(execution.execution_trace_storage_path)
-                trace_data = TypeAdapter(list[TraceEvent]).validate_json(raw_trace)
+                report_dto = await self.get_report_dto(initiator, execution_id)
             except Exception as e:
-                logger.error("[ExecutionService] Failed to load trace from storage", exc_info=True)
-                raise AppException(
-                    message="Failed to load execution trace for export",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                ) from e
-        else:
-            trace_data = execution.execution_trace
+                logger.warning(
+                    "[ExecutionService] Failed to generate ReportDataDTO for Excel export, skipping summary sheet: %s",
+                    e,
+                    exc_info=True,
+                )
 
-        projector = StateProjector()
-        projected_steps = projector.fold_trace(trace_data)
+        summary_rows: list[dict[str, Any]] = []
+        if report_dto:
+            matrices = []
+            if report_dto.evaluative_matrices:
+                matrices.extend(report_dto.evaluative_matrices)
+            if report_dto.informational_matrices:
+                matrices.extend(report_dto.informational_matrices)
 
-        def find_evals(obj: Any) -> list[dict[str, Any]]:
-            found: list[dict[str, Any]] = []
-            if isinstance(obj, dict):
-                if "atom_id" in obj and ("status" in obj or "decision" in obj):
-                    found.append(obj)
-                for v in obj.values():
-                    found.extend(find_evals(v))
-            elif isinstance(obj, list):
-                for item in obj:
-                    found.extend(find_evals(item))
-            return found
+            for matrix in matrices:
+                score = matrix.score
+                max_score = matrix.scale_max
+                summary_rows.append(
+                    {
+                        "Matriisi": matrix.label_i18n.resolve() if matrix.label_i18n else matrix.name,
+                        "Arvosana (Grade)": score,
+                        "Maksimipisteet": max_score,
+                    }
+                )
 
-        folded_dicts = [step.model_dump(mode="json") for step in projected_steps]
-        all_evals = find_evals(folded_dicts)
+        df_summary = pd.DataFrame(summary_rows)
 
+        # 2. Reconstruct the Raakadata directly from the ExecutionStepState's scorecard_atoms
+        # We also need AI descriptions (rules) from PromptBlocks if available.
         components = await self.comp_repo.get_all_components("prompt_block")
         blocks_by_id = {}
         for b in components:
@@ -742,75 +741,57 @@ class ExecutionService:
                     message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                 ) from e
 
-        atom_to_matrix_title = {}
-        atom_to_claim_label = {}
-        for step_state in execution.step_states.values():
-            for s_atom in step_state.scorecard_atoms.values():
-                atom_to_matrix_title[s_atom.atom_id] = step_state.label
-                atom_to_claim_label[s_atom.atom_id] = s_atom.claim_label
         rows: list[dict[str, Any]] = []
-        for ev in all_evals:
-            status_val = ev.get("status")
-            if status_val is None:
-                status_val = ev.get("decision")
-            num_status = 1 if status_val == "PASS" else 0 if status_val == "CONTESTED" else None
-            reasoning = ev.get("reasoning_steps", "")
-            word_count = len(str(reasoning).split()) if reasoning else 0
-            atom_id = ev.get("atom_id")
-            matrix_title = ""
-            claim_rule = ""
-            claim_translation = ""
+        for _step_id, step_state in execution.step_states.items():
+            for atom_id, atom in step_state.scorecard_atoms.items():
+                num_status = None
+                if atom.status == "PASS":
+                    num_status = 1
+                elif atom.status == "CONTESTED":
+                    num_status = 0
 
-            # V2 Protocol Data Fetching
-            if atom_id and not claim_translation:
-                if atom_id in atom_to_claim_label:
-                    claim_translation = atom_to_claim_label[atom_id]
-                    matrix_title = atom_to_matrix_title.get(atom_id, "")
-                elif atom_id in blocks_by_id:
-                    pb = blocks_by_id[atom_id]
-                    claim_translation = pb.label.translations.get(
-                        "fi", pb.label.translations.get(pb.label.default_locale, "Unknown")
-                    )
-                    matrix_title = pb.category_id
+                internal_logic = atom.internal_logic_en
+                word_count = len(atom.semantic_reasoning.split()) if atom.semantic_reasoning else 0
+                quotes_str = "; ".join([q.quote for q in atom.exact_quotes]) if atom.exact_quotes else ""
 
+                sources_list = []
+                for q in atom.exact_quotes:
+                    if getattr(q, "verified_source_ids", None):
+                        sources_list.extend(q.verified_source_ids)
+                    if getattr(q, "unverified_aliases", None):
+                        sources_list.extend(q.unverified_aliases)
+
+                sources = list(dict.fromkeys(sources_list))
+                sources_str = ", ".join(sources)
+
+                claim_rule = ""
                 if atom_id in blocks_by_id:
                     claim_rule = blocks_by_id[atom_id].ai_description or ""
-            quotes = ev.get("exact_quotes", [])
-            if isinstance(quotes, list):
-                quotes_str = "; ".join([q.get("text", str(q)) if isinstance(q, dict) else str(q) for q in quotes])
-            else:
-                quotes_str = str(quotes)
-            sources = ev.get("used_source_aliases", [])
-            sources_str = ", ".join(sources) if isinstance(sources, list) else str(sources)
-            rows.append(
-                {
-                    "Matriisi": matrix_title,
-                    "Kriteerin Nimi (UI)": claim_translation,
-                    "Tekoälyn Sääntö": claim_rule,
-                    "Sisäistetty Sääntö": ev.get("rule_internalization", ""),
-                    "Tulos (Status)": num_status,
-                    "Varmuusarvio": ev.get("confidence"),
-                    "Perustelun Pituus": word_count,
-                    "Löydetyt Lainaukset": quotes_str,
-                    "Käytetyt Lähteet": sources_str,
-                    "Tekoälyn Perustelu": reasoning,
-                    "Falsifiointi": ev.get("falsification_argument", ""),
-                }
-            )
+
+                internalization = ""
+                anti_patterns = ""
+                if internal_logic:
+                    internalization = getattr(internal_logic, "step_1_identify_premise", "")
+                    anti_patterns = getattr(internal_logic, "step_3_evaluate_anti_patterns", "")
+
+                rows.append(
+                    {
+                        "Matriisi": step_state.label,
+                        "Kriteerin Nimi (UI)": atom.claim_label,
+                        "Tekoälyn Sääntö": claim_rule,
+                        "Sisäistetty Sääntö": internalization,
+                        "Tulos (Status)": num_status,
+                        "Varmuusarvio": None,
+                        "Perustelun Pituus": word_count,
+                        "Löydetyt Lainaukset": quotes_str,
+                        "Käytetyt Lähteet": sources_str,
+                        "Tekoälyn Perustelu": atom.semantic_reasoning,
+                        "Falsifiointi": anti_patterns,
+                    }
+                )
 
         df_raw = pd.DataFrame(rows)
-        summary_rows: list[dict[str, Any]] = []
-        for event in trace_data:
-            content = event.content
-            if isinstance(content, dict) and "scoring_results" in content:
-                for matrix_score in content.get("scoring_results", []):
-                    m_id = matrix_score.get("matrix_id")
-                    m_title = matrix_score.get("matrix_title", m_id)
-                    score = matrix_score.get("score")
-                    max_score = matrix_score.get("max_score")
-                    summary_rows.append({"Matriisi": m_title, "Arvosana (Grade)": score, "Maksimipisteet": max_score})
 
-        df_summary = pd.DataFrame(summary_rows)
         output = io.BytesIO()
         try:
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -960,8 +941,6 @@ class ExecutionService:
         }
         await self.exec_repo.update_execution(execution_id, update_payload)
 
-        from backend_v2.models.state import TraceEvent
-
         event = TraceEvent(
             step_name="manual_override",
             event_type="evidence_override",
@@ -978,8 +957,6 @@ class ExecutionService:
         if initiator.role != "ROOT" and record.organization_id != org_id and record.created_by != initiator.id:
             msg = "You do not have permission to modify this execution."
             raise PermissionDeniedError(msg)
-
-        from backend_v2.models.state import TraceEvent
 
         dto = EvidenceOverrideDTO(
             evq_id=evq_id,

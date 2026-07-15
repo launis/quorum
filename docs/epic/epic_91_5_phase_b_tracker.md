@@ -5,11 +5,11 @@
 - [x] [OK] Execute Plan B2: PDF Generator StrictUndefined Enforcement
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B2_pdf_generator.md`
 - [x] [OK] Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state.
-- [ ] [NOK] Phase B3: Golden Master E2E Test (uusi, v2_core-pohjainen)
+- [x] **Phase B3: Golden Master E2E Pipeline Proof** (`backend_v2/tests/integration/test_epic_chain_e2e.py`)
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B3_golden_master_e2e.md`
-- [ ] [NOK] Phase B4: Excel Export Modernization
+- [x] [OK] Phase B4: Excel Export Modernization
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B4_excel_export_modernization.md`
-- [ ] [NOK] Invoke the Tier 1 Planner again to generate detailed plans for Phase B5.
+- [x] [OK] Invoke the Tier 1 Planner again to generate detailed plans for Phase B5.
 - [ ] [NOK] Phase B5: N/A Manual Override API
   - Execute `docs/epic/tasks_epic_91_5_phase_b/B5_manual_override_api.md`
 - [ ] [NOK] Tier 2 Hardening
@@ -22,18 +22,15 @@ You MUST systematically execute the above tasks from top to bottom using the `/t
 
 # Session Handover Context
 **Achieved:**
-- Tier 1 Planning completed for Phase B3 and B4.
-- B1 and B2 execution successfully completed, committed, and passing tests.
+- Tier 1 Planning completed for Phase B5.
 
 **Learned:**
-- Excel export logic in `execution.py` parses deeply nested trace data and needs to switch to using `ReportDataDTO.evaluative_matrices` and `ScorecardAtomDTO`s.
-- Existing E2E test `test_epic_chain_e2e.py` only mocks `ReportDataDTO` and must be transformed into a proper Golden Master testing the full generator pipeline.
+- Atoms with an N/A status must be entirely excluded from the denominator in scoring math.
+- Pydantic models for Manual Overrides must strictly use `ExecutionStatus` or `LaxExecutionStatus` enums.
 
 **Remaining:**
-- Execute B3 Plan (Golden Master E2E Test).
-- Execute B4 Plan (Excel Export Modernization).
-- Re-run Tier 1 Planner for B5.
-- Execute remaining phases.
+- Execute B5 Plan (Manual Override API).
+- Execute remaining hardening and audit phases.
 
-To resume execution in a new context window:
-`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B3_golden_master_e2e.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`
+To resume execution in a new context window to execute Phase B5:
+`/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_91_5_phase_b_tracker.md, docs/epic/tasks_epic_91_5_phase_b/B5_manual_override_api.md" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md"`

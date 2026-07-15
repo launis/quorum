@@ -421,7 +421,7 @@ async def test_render_execution_json() -> None:
     mock_dto.informational_matrices = []
     mock_dto.layouts = []
     mock_dto.has_warning = False
-    mock_dto.model_dump.return_value = {"json": "data"}
+    mock_dto.model_dump.return_value = {"workflow_id": "wf_1", "profile_id": "prof_1"}
 
     with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_class:
         mock_transformer = AsyncMock()
@@ -440,8 +440,8 @@ async def test_render_execution_json() -> None:
                 arq_pool=arq_pool,
             )
 
-    assert data["execution_id"] == "exe_1"
     assert data["workflow_id"] == "wf_1"
+    assert data["profile_id"] == "prof_1"
     assert mime == "application/json"
     assert filename is None
 

@@ -1,10 +1,21 @@
 """End-to-End Golden Master Test for Epic 93 SDUI Output Rendering Unification."""
 
+from typing import Any
+from unittest.mock import AsyncMock
+
 import pytest
 
-from backend_v2.models.v2_core import ReportDataDTO
+from backend_v2.models.state import TraceEvent
+from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, FrozenContext, ReportDataDTO, WorkflowInputs
 from backend_v2.models.view.sdui import ReportView
+from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.sdui_mapper_service import SduiMapperService
+
+
+def dict_to_obj(d: dict[str, Any]) -> Any:
+    from types import SimpleNamespace
+
+    return SimpleNamespace(**{k: dict_to_obj(v) if isinstance(v, dict) else v for k, v in d.items()})
 
 
 @pytest.mark.asyncio
@@ -13,19 +24,195 @@ async def test_epic_93_e2e_golden_master() -> None:
 
     ExecutionRecord -> MatrixReducer -> ReportDataDTO -> SduiMapper -> SduiComponent tree.
     """
-    # 1. Build a minimal v2_core.ReportDataDTO
-    dto = ReportDataDTO(
-        workflow_id="wor_456",
-        profile_id="prf_001",
-        global_score=85.0,
+    # 1. Mock Repositories
+    mock_exec_repo = AsyncMock()
+    mock_workflow_repo = AsyncMock()
+    mock_prompt_block_repo = AsyncMock()
+    mock_output_profile_repo = AsyncMock()
+    mock_comp_repo = AsyncMock()
+
+    # Create dummy ExecutionRecord
+    execution_id = "exe_1234abcd1234abcd"
+    wf_id = "wf_1234abcd1234abcd"
+    profile_id = "prf_1234abcd1234abcd"
+    block_id = "blk_1234abcd1234abcd"
+
+    frozen = FrozenContext(ui_hints_snapshot={})
+
+    mock_exec_repo.get_execution.return_value = ExecutionRecord(
+        id=execution_id,
+        workflow_id=wf_id,
+        status=ExecutionStatus.PASSED,
+        raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
+        frozen_context=frozen,
+        metadata={"target_locale": "en"},
+        execution_trace=[
+            TraceEvent(
+                step_name="step_analyst",
+                event_type="output",
+                content={
+                    block_id: {
+                        "raw_score": 85.0,
+                        "normalized_score": 85.0,
+                        "justification": "Checked with sources.",
+                    }
+                },
+            ),
+            TraceEvent(
+                step_name="step_scoring",
+                event_type="output",
+                content={
+                    "scoring_result": {
+                        "total_score": 85.0,
+                        "final_score": 85.0,
+                        "penalties_applied": [],
+                        "aggregation_status": "V2 Commensurate Average",
+                    }
+                },
+            ),
+            TraceEvent(
+                step_name="step_synthesis",
+                event_type="output",
+                content={
+                    "_evaluative_matrices": {block_id: 85.0},
+                    "synthesized_markdown": "We need to leverage our robust synergy and drive disruption.",
+                },
+            ),
+        ],
+        active_profile_id=profile_id,
     )
 
-    # 2. Map the DTO to SDUI view model using the SduiMapperService
-    mapper = SduiMapperService()
-    view = mapper.map_report(dto, execution_id="exe_123")
+    # Workflow Mock
+    mock_workflow = {
+        "id": wf_id,
+        "slug": "wf_1",
+        "name": {"default_locale": "en", "translations": {"en": "Mock Workflow"}},
+        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "status": "published",
+        "version": 1,
+        "organization_id": "root",
+        "default_profile_id": profile_id,
+        "default_scoring_strategy": {"value": "WATERFALL"},
+        "default_strictness_level": 85,
+        "expected_inputs": [],
+        "steps": [],
+        "output_profiles": [profile_id],
+    }
+    mock_workflow_repo.get_workflow.return_value = dict_to_obj(mock_workflow)
 
-    # 3. Assertions
+    # Profile Mock
+    mock_profile = {
+        "id": profile_id,
+        "slug": "mock-profile-slug",
+        "workflow_id": wf_id,
+        "organization_id": "root",
+        "name": {"default_locale": "en", "translations": {"en": "Mock Profile"}},
+        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "layouts": [
+            {
+                "preset_view": "1d_metrics",
+                "target_blocks": [block_id],
+                "title": {"default_locale": "en", "translations": {"en": "Axis Title"}},
+            }
+        ],
+    }
+    mock_output_profile_repo.get_all_output_profiles.return_value = [mock_profile]
+
+    # Prompt Block Mock
+    mock_pb = {
+        "id": block_id,
+        "slug": "block_1",
+        "category_id": "matrix",
+        "is_evaluative": True,
+        "type": "float",
+        "label": {"default_locale": "en", "translations": {"en": "Matrix 1"}},
+        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "ai_description": "ai desc",
+        "scales": [
+            {
+                "name": {"default_locale": "en", "translations": {"en": "FAIL"}},
+                "score": 0,
+                "ai_label": "FAIL",
+                "claims": [
+                    {
+                        "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                        "ai_description": "desc",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_00000000000000000000000000000000",
+                                "concept_description": "concept",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "name": {"default_locale": "en", "translations": {"en": "PASS"}},
+                "score": 100,
+                "ai_label": "PASS",
+                "claims": [
+                    {
+                        "label": {"default_locale": "en", "translations": {"en": "claim 2"}},
+                        "ai_description": "desc 2",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_11111111111111111111111111111111",
+                                "concept_description": "concept 2",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ],
+                    }
+                ],
+            },
+        ],
+        "computed_min": 0,
+        "computed_max": 100,
+        "scale_min": 0,
+        "scale_max": 100,
+    }
+    mock_prompt_block_repo.get_all_prompt_blocks.return_value = [mock_pb]
+    mock_comp_repo.get_all_components.return_value = [mock_pb]
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_exec_repo,
+        workflow_repo=mock_workflow_repo,
+        comp_repo=mock_comp_repo,
+        prompt_block_repo=mock_prompt_block_repo,
+        output_profile_repo=mock_output_profile_repo,
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+
+    # 2. Map Execution to ReportDataDTO
+    dto = await transformer.build_report_dto(execution_id, profile_id)
+
+    # 3. Map ReportDataDTO to SDUI ReportView
+    mapper = SduiMapperService()
+    view = mapper.map_report(dto, execution_id=execution_id)
+
+    # 4. Deep Assertions
+    assert isinstance(dto, ReportDataDTO)
     assert isinstance(view, ReportView)
-    assert view.view_id == "exe_123"
+    assert view.view_id == execution_id
     assert view.metrics is not None
     assert view.metrics["global_score"] == 85.0
+
+    # Verify that ReportDataDTO.layouts are successfully mapped to ReportView.sections
+    assert len(view.sections) > 0
+
+    scorecard_section = next((s for s in view.sections if getattr(s.type, "value", s.type) == "SCORE_CARD"), None)
+    assert scorecard_section is not None
+    assert scorecard_section.title == "Axis Title"
+
+    # Check that dimensions are populated from the layout axis
+    score_card_data = scorecard_section.data
+    assert score_card_data["total_score"] == 85.0
+    assert len(score_card_data["dimensions"]) == 1
+
+    dimension = score_card_data["dimensions"][0]
+    assert dimension["dimension_id"] == block_id
+    assert dimension["score"] == 85.0
+    assert dimension["dimension_label"] == "Matrix 1 *"
