@@ -4,7 +4,7 @@ This module contains the schemas for the Coach Agent,
 including coaching plans and bibliography.
 """
 
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field
 
@@ -28,25 +28,28 @@ class CoachInput(V2CoreBase):
         step_causal_analyst: Causal Analyst post-hoc and counterfactual data.
     """
 
-    chat_log: str = Field(..., min_length=1, description="Mandatory chatlog.")
-    step_judge: JudgeOutput | None = Field(
-        default=None, description="The Verdict from Judge Agent.", json_schema_extra={"x-ui-label": "Judge Verdict"}
-    )
-    step_judge_cognitive: JudgeOutput | None = Field(
-        default=None,
-        description="The Verdict from Cognitive Judge Agent.",
-        json_schema_extra={"x-ui-label": "Cognitive Verdict"},
-    )
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog.")]
+    step_judge: Annotated[
+        JudgeOutput | None,
+        Field(description="The Verdict from Judge Agent.", json_schema_extra={"x-ui-label": "Judge Verdict"}),
+    ] = None
+    step_judge_cognitive: Annotated[
+        JudgeOutput | None,
+        Field(
+            description="The Verdict from Cognitive Judge Agent.",
+            json_schema_extra={"x-ui-label": "Cognitive Verdict"},
+        ),
+    ] = None
+    last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
     # --- Universal Routing Inputs ---
-    step_analyst: Any | None = Field(default=None, description="Analyst hypotheses and RAG data.")
-    step_profiler: Any | None = Field(default=None, description="Profiler cognitive bias data.")
-    step_falsifier: Any | None = Field(default=None, description="Falsifier critical distance data.")
-    step_logician: Any | None = Field(default=None, description="Logician Toulmin analysis data.")
-    step_causal_analyst: Any | None = Field(
-        default=None, description="Causal Analyst post-hoc and counterfactual data."
-    )
+    step_analyst: Annotated[Any | None, Field(description="Analyst hypotheses and RAG data.")] = None
+    step_profiler: Annotated[Any | None, Field(description="Profiler cognitive bias data.")] = None
+    step_falsifier: Annotated[Any | None, Field(description="Falsifier critical distance data.")] = None
+    step_logician: Annotated[Any | None, Field(description="Logician Toulmin analysis data.")] = None
+    step_causal_analyst: Annotated[
+        Any | None, Field(description="Causal Analyst post-hoc and counterfactual data.")
+    ] = None
 
 
 class BibliographyItem(V2CoreBase):
@@ -59,14 +62,16 @@ class BibliographyItem(V2CoreBase):
         snippet: Extracted relevant text segment.
     """
 
-    source_id: str = Field(
-        ..., min_length=1, description="Unique source ID.", json_schema_extra={"x-ui-label": "Source ID"}
-    )
-    title: str = Field(..., min_length=1, description="Title of the source.", json_schema_extra={"x-ui-label": "Title"})
-    url: str | None = Field(default=None, description="URL if available.", json_schema_extra={"x-ui-label": "URL"})
-    snippet: str | None = Field(
-        default=None, description="Relevant snippet.", json_schema_extra={"x-ui-label": "Snippet"}
-    )
+    source_id: Annotated[
+        str, Field(min_length=1, description="Unique source ID.", json_schema_extra={"x-ui-label": "Source ID"})
+    ]
+    title: Annotated[
+        str, Field(min_length=1, description="Title of the source.", json_schema_extra={"x-ui-label": "Title"})
+    ]
+    url: Annotated[str | None, Field(description="URL if available.", json_schema_extra={"x-ui-label": "URL"})] = None
+    snippet: Annotated[
+        str | None, Field(description="Relevant snippet.", json_schema_extra={"x-ui-label": "Snippet"})
+    ] = None
 
 
 class BibliographyResult(V2CoreBase):
@@ -76,9 +81,10 @@ class BibliographyResult(V2CoreBase):
         references: List of reference objects.
     """
 
-    references: list[BibliographyItem] = Field(
-        ..., min_length=1, description="List of references.", json_schema_extra={"x-ui-label": "References"}
-    )
+    references: Annotated[
+        list[BibliographyItem],
+        Field(min_length=1, description="List of references.", json_schema_extra={"x-ui-label": "References"}),
+    ]
 
 
 class CoachingPlanDTO(ReasoningTraceDTO):
@@ -90,24 +96,30 @@ class CoachingPlanDTO(ReasoningTraceDTO):
         focus_areas: Critical areas highlighted for growth.
     """
 
-    actionable_steps: list[str] = Field(
-        ...,
-        min_length=1,
-        description="Concrete steps for improvement.",
-        json_schema_extra={"x-ui-label": "Actionable Steps"},
-    )
-    bibliography: list[BibliographyItem] = Field(
-        ...,
-        min_length=1,
-        description="Recommended reading.",
-        json_schema_extra={"x-ui-label": "References"},
-    )
-    focus_areas: list[str] = Field(
-        ...,
-        min_length=1,
-        description="Key areas to focus on.",
-        json_schema_extra={"x-ui-label": "Focus Areas"},
-    )
+    actionable_steps: Annotated[
+        list[str],
+        Field(
+            min_length=1,
+            description="Concrete steps for improvement.",
+            json_schema_extra={"x-ui-label": "Actionable Steps"},
+        ),
+    ]
+    bibliography: Annotated[
+        list[BibliographyItem],
+        Field(
+            min_length=1,
+            description="Recommended reading.",
+            json_schema_extra={"x-ui-label": "References"},
+        ),
+    ]
+    focus_areas: Annotated[
+        list[str],
+        Field(
+            min_length=1,
+            description="Key areas to focus on.",
+            json_schema_extra={"x-ui-label": "Focus Areas"},
+        ),
+    ]
 
 
 class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
