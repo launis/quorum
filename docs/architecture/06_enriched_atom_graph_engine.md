@@ -20,6 +20,10 @@ The absolute SSOT for Directed Acyclic Graph (DAG) state evaluation. It uses a n
 **Path:** `backend_v2/services/orchestrator/result_projector.py`
 Implements the `ResultProjector` abstraction. `EnrichedResultProjector` uses Python's `graphlib.TopologicalSorter` to enforce a stable topological iteration order over the evaluated nodes. 
 
+### 4. Sliding Window Linker
+**Path:** `backend_v2/services/orchestrator/sliding_window_linker.py`
+Connects extracted atoms into a causal graph using an output-aware sliding window strategy. To prevent LLM output truncation (8192 token ceiling), windows are dynamically bounded by the `LINKER_MAX_ATOMS_PER_WINDOW` limit (default 20), pre-subdividing oversized chunks and maintaining deterministic edge mapping.
+
 ## DTO Lifecycle & Output Boundary
 
 Following the Universal DTO Bridge (Epic 91.5), the engine must strictly decouple logical graph execution from server-driven UI elements.

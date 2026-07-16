@@ -98,6 +98,9 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
 
     # --- System Concurrency (Migrated from Enums) ---
+    linker_max_atoms_per_window: Annotated[
+        int, Field(description="Max atoms per LLM sliding window to prevent output truncation")
+    ] = 20
     max_concurrent_workflows: Annotated[int, Field(description="Max parallel workflow chunks")] = 10
     max_concurrent_llm_steps: Annotated[int, Field(description="Max parallel LLM calls in dag_executor")] = 10
     llm_max_schema_retries: Annotated[int, Field(description="Max retries for schema validation failures")] = 2

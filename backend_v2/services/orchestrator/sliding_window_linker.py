@@ -23,6 +23,7 @@ from backend_v2.services.orchestrator.prompts.graph_linking import (
     LINKER_SYSTEM_PROMPT,
     LINKER_USER_PROMPT,
 )
+from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 
@@ -77,18 +78,46 @@ class SlidingWindowLinker:
         windows: list[list[list[ExtractedAtom]]] = []
         if not chunks:
             return windows
-        if len(chunks) <= self.window_size:
-            return [chunks]
 
-        step = self.window_size - self.overlap
-        if step <= 0:
-            step = 1
+        max_atoms = get_settings().linker_max_atoms_per_window
 
-        for i in range(0, len(chunks), step):
-            window = chunks[i : i + self.window_size]
+        # 1. Pre-subdivide Oversized Chunks
+        subdivided_chunks: list[list[ExtractedAtom]] = []
+        for chunk in chunks:
+            if len(chunk) > max_atoms:
+                for j in range(0, len(chunk), max_atoms):
+                    subdivided_chunks.append(chunk[j : j + max_atoms])
+            else:
+                subdivided_chunks.append(chunk)
+
+        if not subdivided_chunks:
+            return windows
+
+        # 2. Dynamic Overlap While-Loop
+        i = 0
+        while i < len(subdivided_chunks):
+            window: list[list[ExtractedAtom]] = []
+            current_atoms = 0
+            chunks_taken = 0
+
+            for j in range(i, len(subdivided_chunks)):
+                next_chunk = subdivided_chunks[j]
+                if len(window) == self.window_size:
+                    break
+                if current_atoms + len(next_chunk) > max_atoms and window:
+                    break
+
+                window.append(next_chunk)
+                current_atoms += len(next_chunk)
+                chunks_taken += 1
+
             windows.append(window)
-            if i + self.window_size >= len(chunks):
+
+            if i + chunks_taken >= len(subdivided_chunks):
                 break
+
+            step = max(1, chunks_taken - self.overlap)
+            i += step
 
         return windows
 
