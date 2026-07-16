@@ -1,8 +1,9 @@
 """Unit tests for EnrichedDagExecutor."""
 
-import pytest
 from typing import Any
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
@@ -30,7 +31,9 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
     dummy_result: dict[str, Any] = {}
     captured_callback = None
 
-    async def fake_evaluate_graph(self_obj: Any, nodes: list[LinkedAtomGraph], evaluation_callback: Any) -> dict[str, Any]:
+    async def fake_evaluate_graph(
+        self_obj: Any, nodes: list[LinkedAtomGraph], evaluation_callback: Any
+    ) -> dict[str, Any]:
         nonlocal captured_callback
         captured_callback = evaluation_callback
         return dummy_result

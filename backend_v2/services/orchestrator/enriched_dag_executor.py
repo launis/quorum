@@ -41,7 +41,7 @@ class EnrichedDagExecutor:
             A dictionary mapping tda_id to its final AtomExecutionState.
         """
 
-        async def evaluation_callback(node: LinkedAtomGraph) -> ExecutionStatus:
+        async def evaluation_callback(node: LinkedAtomGraph) -> tuple[ExecutionStatus, str | None, dict[str, str]]:
             """Callback injected into TopologicalEvaluator for node evaluation.
 
             Args:

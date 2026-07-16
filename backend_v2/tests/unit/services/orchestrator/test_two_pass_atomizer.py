@@ -1,8 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer, DraftAtomList, DraftExtractedAtom
-from backend_v2.models.dtos.dag_models import GlobalOntologyMap, ExtractedAtom, OntologyEntity
+import pytest
+
+from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
+from backend_v2.services.orchestrator.two_pass_atomizer import DraftAtomList, DraftExtractedAtom, TwoPassAtomizer
+
 
 @pytest.fixture
 def mock_executor():
@@ -10,9 +12,11 @@ def mock_executor():
     executor.execute_structured_task = AsyncMock()
     return executor
 
+
 @pytest.fixture
 def mock_client():
     return MagicMock()
+
 
 @pytest.fixture
 def settings_mock(monkeypatch):
@@ -21,18 +25,21 @@ def settings_mock(monkeypatch):
     monkeypatch.setattr("backend_v2.services.orchestrator.two_pass_atomizer.get_settings", lambda: mock)
     return mock
 
+
 @pytest.mark.asyncio
 async def test_execute_phase_0(mock_executor, mock_client, settings_mock):
     """Test phase 0 extraction of ontology map from chunks."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
-    
+
     # Mock return value for executor.execute_structured_task
-    mock_ontology = GlobalOntologyMap(entities=[OntologyEntity(name="Entity1", description="Test")], macro_rules=["Rule1"])
+    mock_ontology = GlobalOntologyMap(
+        entities=[OntologyEntity(name="Entity1", description="Test")], macro_rules=["Rule1"]
+    )
     mock_executor.execute_structured_task.return_value = (mock_ontology, None)
-    
+
     # Execute
     result = await atomizer.execute_phase_0(client=mock_client, chunks=["chunk1", "chunk2"])
-    
+
     # Assert
     assert isinstance(result, GlobalOntologyMap)
     assert len(result.entities) == 1
@@ -41,29 +48,25 @@ async def test_execute_phase_0(mock_executor, mock_client, settings_mock):
     assert "Rule1" in result.macro_rules
     assert mock_executor.execute_structured_task.call_count == 2
 
+
 @pytest.mark.asyncio
 async def test_execute_phase_1(mock_executor, mock_client, settings_mock):
     """Test phase 1 atomic claims extraction using ontology."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
-    
+
     # Mock dependencies
     mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
-    
+
     mock_draft_list = DraftAtomList(
         atoms=[
-            DraftExtractedAtom(
-                reasoning="Reasoning1",
-                resolved_claim="Claim1",
-                source_quote="Quote1",
-                draft_id="a1"
-            )
+            DraftExtractedAtom(reasoning="Reasoning1", resolved_claim="Claim1", source_quote="Quote1", draft_id="a1")
         ]
     )
     mock_executor.execute_structured_task.return_value = (mock_draft_list, None)
-    
+
     # Execute
     result = await atomizer.execute_phase_1(client=mock_client, chunks=["chunk1"], ontology=mock_ontology)
-    
+
     # Assert
     assert len(result) == 1
     assert isinstance(result[0], ExtractedAtom)

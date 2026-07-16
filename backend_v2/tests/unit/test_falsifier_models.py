@@ -2,7 +2,6 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
-
 from backend_v2.models.domain.falsifier import ReasoningFidelity
 from backend_v2.models.enums import FidelityLevel
 

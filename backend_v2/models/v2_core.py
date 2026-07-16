@@ -1083,6 +1083,7 @@ class AtomResultDTO(BaseModel):
     error_details: Annotated[
         ErrorDetailsDTO | None, Field(default=None, description="Populated only if status is SYSTEM_ERROR")
     ]
+    extensions: Annotated[dict[str, str], Field(default_factory=dict, description="Requested XAI extensions mapping")]
 
     depends_on_tda_ids: Annotated[list[str], Field(default_factory=list, description="DAG adjacency list")]
     short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list)]

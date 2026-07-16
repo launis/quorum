@@ -35,12 +35,10 @@ from backend_v2.models.v2_core import (
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
-from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import normalize_score_to_100
-from backend_v2.utils.redis_patcher import ASYNC_ACCUMULATOR_LUA
 from backend_v2.utils.scoring import get_scoring_engine
 
 # Initialize settings
@@ -51,142 +49,7 @@ logger = logging.getLogger(__name__)
 # --- Worker Job Tasks ---
 
 
-async def evaluate_chunk_job(
-    ctx: Any,
-    execution_id: str,
-    step_id: str,
-    chunk_index: int,
-    total_chunks: int,
-    file_path: str | None,
-    chunk_items: list[Any],
-    criteria_blocks_dump: list[dict[str, Any]],
-    base_system_prompt: str,
-    has_search: bool,
-    has_shuffled_atoms: bool,
-    atom_to_block_ids: dict[str, list[str]],
-    effective_mcp_tools: list[str],
-    target_locale: str,
-    synthesis_instructions: dict[str, Any] | None,
-    strictness_level: int,
-    step_metadata: dict[str, Any] | None = None,
-) -> None:
-    """Asynchronous Arq worker job to evaluate a single text chunk.
-
-    Args:
-        ctx: Context provided by the Arq worker containing services.
-        execution_id: ID of the execution.
-        step_id: ID of the current execution step.
-        chunk_index: Index of the chunk being processed.
-        total_chunks: Total number of chunks in this step.
-        file_path: Optional path to the raw file.
-        chunk_items: List of items in this chunk.
-        criteria_blocks_dump: Serialized prompt blocks.
-        base_system_prompt: System prompt for generation.
-        has_search: Boolean indicating if search is enabled.
-        has_shuffled_atoms: Boolean indicating shuffled parsing.
-        atom_to_block_ids: Mapping from atoms to blocks.
-        effective_mcp_tools: List of enabled MCP tools.
-        target_locale: Locale for output formatting.
-        synthesis_instructions: Instructions for synthesis.
-        strictness_level: Level of strictness applied.
-        step_metadata: Additional metadata for the step.
-
-    Raises:
-        AppException: If chunk execution fails and is routed to DLQ.
-    """
-    logger.info(f"[Job] evaluate_chunk_job started for {execution_id}:{step_id} chunk {chunk_index}")
-
-    # 1. Fetch raw PDF if file_path is provided to leverage OS Page Cache
-    user_payload = ""
-    if file_path:
-        storage = get_storage_driver()
-        # Mock reading file for now, typically returns parsed text
-        try:
-            content = await storage.read(file_path)
-            user_payload = content.decode("utf-8") if isinstance(content, bytes) else str(content)
-        except Exception as e:
-            logger.error(f"Failed to fetch file_path {file_path}: {e}")
-            user_payload = f"Error reading file: {e}"
-
-    # Reconstruct primitives into objects
-    compiler = PromptCompilerAdapter()
-    criteria_blocks = [PromptBlock.model_validate(cb) for cb in criteria_blocks_dump]
-
-    # Mock a chunk object matching what ChunkWorker expects
-    class DummyChunk:
-        def __init__(self, items: list[Any]) -> None:
-            self.items = items
-
-    chunk_obj = DummyChunk(chunk_items)
-    atom_mapping = {k: set(v) for k, v in atom_to_block_ids.items()}
-
-    llm_client = LLMClient()
-    sem = asyncio.Semaphore(1)
-
-    # Run chunk processing
-    c_final, c_usage, c_traces, c_prompt_context = await ChunkWorker.process_chunk(
-        chunk=chunk_obj,
-        sem=sem,
-        compiler=compiler,
-        criteria_blocks=criteria_blocks,
-        user_payload=user_payload,
-        global_source_text=user_payload,
-        base_system_prompt=base_system_prompt,
-        has_search=has_search,
-        has_shuffled_atoms=has_shuffled_atoms,
-        atom_to_block_ids=atom_mapping,
-        effective_mcp_tools=effective_mcp_tools,
-        bound_client=llm_client,
-        step_id=step_id,
-        target_locale=target_locale,
-        synthesis_instructions=synthesis_instructions,
-        output_profile=None,
-        strictness_level=strictness_level,
-        step_metadata=step_metadata,
-    )
-
-    if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
-        reason = c_final.get("reason", "Unknown DLQ Failure")
-        logger.error(
-            f"[Job] Chunk execution failed and routed to DLQ. Aborting worker task. Reason: {reason}",
-            extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
-        )
-        raise AppException(
-            message=f"Chunk execution failed and routed to DLQ. Reason: {reason}",
-            status_code=500,
-            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
-        )
-
-    # 2. Redis Lua Script to update State without Race Conditions
-    redis = ctx.get("redis")
-    if not redis:
-        logger.warning("Redis not found in context. Chunk state cannot be accumulated.")
-        return
-
-    hkey = f"exec:{execution_id}:step:{step_id}"
-
-    payload_dict = {
-        "final": c_final,
-        "usage": c_usage.model_dump() if c_usage else None,
-        "traces": [t.model_dump() for t in c_traces] if c_traces else [],
-        "prompt_context": c_prompt_context.model_dump() if c_prompt_context else None,
-    }
-
-    payload_str = json.dumps(payload_dict)
-
-    # Execute atomic Lua script
-    is_done = await redis.eval(
-        ASYNC_ACCUMULATOR_LUA,
-        1,  # Number of keys
-        hkey,
-        str(total_chunks),
-        payload_str,
-        str(chunk_index),
-    )
-
-    if is_done == 1:
-        logger.info(f"Chunk {chunk_index} finished. All {total_chunks} chunks completed for {step_id}.")
-        # The main orchestrator loop polling Redis will now pick this up and execute MatrixReducer
+# The main orchestrator loop polling Redis will now pick this up and execute MatrixReducer
 
 
 async def execute_workflow_job(
@@ -1146,7 +1009,7 @@ async def health_check(ctx: Any) -> str:
 class WorkerSettings:
     """Configuration for the Arq worker."""
 
-    functions = [health_check, evaluate_chunk_job, execute_workflow_job, generate_pdf_job, render_profile_job]
+    functions = [health_check, execute_workflow_job, generate_pdf_job, render_profile_job]
     on_startup = startup
     on_shutdown = shutdown
 

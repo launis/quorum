@@ -221,13 +221,13 @@ async def test_epic_93_e2e_golden_master() -> None:
 @pytest.mark.asyncio
 async def test_epic_95_na_cascade_e2e() -> None:
     """Verify that N_A AtomResultDTO correctly cascades to an n_a_card SduiComponent."""
+    from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
     from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO
-    from backend_v2.models.enums import SDUIComponentType, ExecutionStatus
 
     # Create dummy ExecutionRecord mapped as ReportDataDTO with an N_A result
     execution_id = "exe_na1234567890"
     tda_id = "tda_short_circuit1234567"
-    
+
     dto = ReportDataDTO(
         workflow_id="wf_na",
         execution_id=execution_id,
@@ -247,26 +247,27 @@ async def test_epic_95_na_cascade_e2e() -> None:
             tda_id: HydratedAtomDTO(
                 sdui_component=SDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="This is the NA reason claim",
-                source_quote=None
+                source_quote=None,
             ),
             "tda_target123": HydratedAtomDTO(
-                sdui_component=SDUIComponentType.BOOLEAN_CARD,
-                resolved_claim="Target claim",
-                source_quote=None
-            )
-        }
+                sdui_component=SDUIComponentType.BOOLEAN_CARD, resolved_claim="Target claim", source_quote=None
+            ),
+        },
     )
 
     mapper = SduiMapperService()
     view = mapper.map_report(dto, execution_id=execution_id)
 
     # Assertions
-    na_section = next((s for s in view.sections if getattr(s.type, "value", s.type) == "MARKDOWN_BLOCK" and s.id == "na_outcomes"), None)
+    na_section = next(
+        (s for s in view.sections if getattr(s.type, "value", s.type) == "MARKDOWN_BLOCK" and s.id == "na_outcomes"),
+        None,
+    )
     assert na_section is not None, "N/A outcomes section missing"
-    
+
     na_data = na_section.data
     assert len(na_data) == 1
-    
+
     na_card = na_data[0]
     assert na_card["block_type"] == "n_a_card"
     assert tda_id in na_card["short_circuit_reason_tda_ids"]

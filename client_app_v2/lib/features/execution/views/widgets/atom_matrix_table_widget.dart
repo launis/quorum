@@ -474,12 +474,14 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                   color: Colors.amber,
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  "👨‍⚖️ Ihmisen päätös (EU AI Act)",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.amber.shade900,
-                                    fontSize: 12,
+                                Expanded(
+                                  child: Text(
+                                    "👨‍⚖️ Ihmisen päätös (EU AI Act)",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.amber.shade900,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
                               ],

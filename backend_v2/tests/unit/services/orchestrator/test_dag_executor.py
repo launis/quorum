@@ -212,7 +212,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
     )
 
     from backend_v2.models.v2_core import StepRule, Workflow, WorkflowInputs
-    
+
     workflow = Workflow(
         id="wf_5555555555555555",
         slug="wf_test_slug",
@@ -242,17 +242,17 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         )
         # Force the node executor to raise a generic exception to trigger the TaskGroup crash
         mock_node_execute.side_effect = Exception("System Crash")
-        
+
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
                 execution_id="exe_1231231231231231",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}),
             )
-            
+
         assert exc_info.value.status_code == 500
         assert "System Crash" in exc_info.value.message
-        
+
         # Verify that committer was called with FAILED status for the whole execution
         args, kwargs = mock_repo.update_execution.call_args
         assert args[1]["status"] == ExecutionStatus.FAILED.value

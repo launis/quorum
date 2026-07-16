@@ -852,7 +852,6 @@ class BlueprintTransformer:
             available_profiles_map[resolved_pid] = profile.name
 
         profile_name_dict = profile.name
-        layout_defs = profile.layouts
 
         block_ext_values = (
             [v.value for v in profile.visible_block_extensions] if profile.visible_block_extensions else []
@@ -870,8 +869,6 @@ class BlueprintTransformer:
             b = PromptBlock.model_validate(b_dict, strict=False)
             if b.id:
                 blocks_by_id[b.id] = b
-
-        workflow_steps = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
 
         has_warning = False
         synthesis_md = None
@@ -894,8 +891,6 @@ class BlueprintTransformer:
         profile_cache = execution.profile_syntheses.get(resolved_pid)
         original_synthesis_md = synthesis_md
         section_syntheses: dict[str, list[dict[str, Any]]] = {}
-        row_explanations_cache: dict[str, str] = {}
-        row_curated_quotes_cache: dict[str, list[str]] = {}
         xai_highlights_cache: list[Any] = []
         content_blocks: list[dict[str, Any]] = (
             [b.copy() for b in profile.content_blocks] if profile.content_blocks else []
@@ -908,8 +903,6 @@ class BlueprintTransformer:
             if not content_blocks and profile_cache.content_blocks:
                 content_blocks = [b.copy() for b in profile_cache.content_blocks]
             synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
-            row_explanations_cache = profile_cache.row_explanations or {}
-            row_curated_quotes_cache = profile_cache.row_curated_quotes or {}
             xai_highlights_cache = profile_cache.xai_highlights or []
         else:
             synthesis_md = original_synthesis_md
@@ -1109,24 +1102,24 @@ class BlueprintTransformer:
                 if trace.id:
                     mcp_audit_map[trace.id] = trace
 
-        evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms = (
-            self._extract_matrices_and_extensions(
-                results,
-                locale,
-                blocks_by_id,
-                workflow_steps,
-                grouped_extensions,
-                profile,
-                row_explanations_cache,
-                workflow_ext_values,
-                row_curated_quotes_cache,
-                has_synthesis_cache=profile_cache is not None,
-                rejected_evq_ids=rejected_evq_ids,
-                mcp_audit_map=mcp_audit_map,
-                source_identity_manifest=execution.source_identity_manifest,
-                execution=execution,
-            )
-        )
+        v2_results: list[Any] = []
+        v2_hydrated_refs: dict[str, Any] = {}
+
+        from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO
+
+        for dto in results:
+            if isinstance(dto.payload, dict):
+                if "results" in dto.payload and isinstance(dto.payload["results"], list):
+                    for r_dict in dto.payload["results"]:
+                        v2_results.append(AtomResultDTO.model_validate(r_dict))
+                if "hydrated_references" in dto.payload and isinstance(dto.payload["hydrated_references"], dict):
+                    for k, v_dict in dto.payload["hydrated_references"].items():
+                        v2_hydrated_refs[k] = HydratedAtomDTO.model_validate(v_dict)
+
+        evaluative_matrices: list[Any] = []
+        informational_matrices: list[Any] = []
+        all_parsed_matrices: dict[str, Any] = {}
+        step_scorecard_atoms: dict[str, Any] = {}
 
         modified_step_states = False
         new_step_states = dict(execution.step_states)
@@ -1151,16 +1144,7 @@ class BlueprintTransformer:
             )
 
         try:
-            layouts_list = self._build_layouts(layout_defs, all_parsed_matrices, section_syntheses)
-
-            if profile.synthesis and profile.synthesis.omit_empty_sections:
-                filtered_layouts = []
-                for layout in layouts_list:
-                    has_synth_content = bool(layout.synthesis_blocks)
-                    has_matrices = bool(layout.axes)
-                    if has_synth_content or has_matrices:
-                        filtered_layouts.append(layout)
-                layouts_list = filtered_layouts
+            layouts_list: list[Any] = []
 
             injected = False
             if synthesis_block_id and content_blocks:
@@ -1406,7 +1390,9 @@ class BlueprintTransformer:
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
 
             # Run dynamic performative AI jargon (slop) scanning if enabled
-            should_scan_slop = any(inp.scan_for_performative_patterns for inp in (workflow_obj.expected_inputs or []))
+            should_scan_slop = any(
+                bool(inp.scan_for_performative_patterns) for inp in (workflow_obj.expected_inputs or [])
+            )
 
             if should_scan_slop:
                 lang = locale or "en"
@@ -1465,6 +1451,8 @@ class BlueprintTransformer:
                     evaluative_matrices=evaluative_matrices,
                     informational_matrices=informational_matrices,
                     matrix_visible_columns=matrix_visible_cols,
+                    results=v2_results,
+                    hydrated_references=v2_hydrated_refs,
                 )
                 slop_phrases = scan_report_for_slop(temp_dto, lexicon, fuzz_threshold)
 
@@ -1540,6 +1528,8 @@ class BlueprintTransformer:
                 evaluative_matrices=evaluative_matrices,
                 informational_matrices=informational_matrices,
                 matrix_visible_columns=matrix_visible_cols,
+                results=v2_results,
+                hydrated_references=v2_hydrated_refs,
             )
             return report_dto
         except Exception as e:

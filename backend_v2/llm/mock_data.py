@@ -291,7 +291,12 @@ MOCK_GUARD_OUTPUT = GuardOutput(
     conclusion="Safe to proceed.",
     confidence_score=1.0,
     security_check=SecurityCheck(
-        threat_detected=False, risk_level=RiskLevel.LOW, risk_score=1.0, simulation_score=1.0, anonymized=True, pii_findings=[]
+        threat_detected=False,
+        risk_level=RiskLevel.LOW,
+        risk_score=1.0,
+        simulation_score=1.0,
+        anonymized=True,
+        pii_findings=[],
     ),
     tainted_data=TaintedDataContent(
         chat_history="History", product_text="Product", reflection_text="Reflection", safe_data="Safe"

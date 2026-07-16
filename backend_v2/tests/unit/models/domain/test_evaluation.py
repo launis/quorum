@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import pytest
-from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.evaluation import (

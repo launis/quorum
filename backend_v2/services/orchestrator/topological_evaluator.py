@@ -25,14 +25,14 @@ class TopologicalEvaluator:
     async def evaluate_graph(
         self,
         nodes: list[LinkedAtomGraph],
-        evaluation_callback: Callable[[LinkedAtomGraph], Awaitable[ExecutionStatus]],
+        evaluation_callback: Callable[[LinkedAtomGraph], Awaitable[tuple[ExecutionStatus, str | None, dict[str, str]]]],
     ) -> dict[str, AtomExecutionState]:
         """Evaluates a graph of atoms deterministically.
 
         Args:
             nodes: The list of atom graph nodes to evaluate.
             evaluation_callback: An asynchronous callback that evaluates a single node
-                and returns its ExecutionStatus (PASSED, FAILED, etc.). This is only
+                and returns a tuple of (ExecutionStatus, reasoning, extensions). This is only
                 called if the node is not short-circuited or blocked by its parents.
 
         Returns:
@@ -138,8 +138,14 @@ class TopologicalEvaluator:
 
                 # Perform actual evaluation
                 try:
-                    result_status = await evaluation_callback(node)
-                    states[node_id] = states[node_id].model_copy(update={"status": result_status})
+                    result_status, reasoning, extensions = await evaluation_callback(node)
+                    states[node_id] = states[node_id].model_copy(
+                        update={
+                            "status": result_status,
+                            "evaluation_reasoning": reasoning,
+                            "extensions": extensions,
+                        }
+                    )
                 except AppException as e:
                     states[node_id] = states[node_id].model_copy(
                         update={

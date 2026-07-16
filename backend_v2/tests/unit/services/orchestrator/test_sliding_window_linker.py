@@ -1,5 +1,3 @@
-import pytest
-
 from backend_v2.models.dtos.dag_models import ExtractedAtom
 from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
 
@@ -10,11 +8,31 @@ def test_sliding_window_linker_get_windows() -> None:
 
     # Create dummy chunks (each list is one chunk containing atoms from a source)
     chunks = [
-        [ExtractedAtom(tda_id="tda_0123456789abcdef", resolved_claim="claim 1", reasoning="reason 1", source_quote="quote 1")],
-        [ExtractedAtom(tda_id="tda_0123456789abcde0", resolved_claim="claim 2", reasoning="reason 2", source_quote="quote 2")],
-        [ExtractedAtom(tda_id="tda_0123456789abcde1", resolved_claim="claim 3", reasoning="reason 3", source_quote="quote 3")],
-        [ExtractedAtom(tda_id="tda_0123456789abcde2", resolved_claim="claim 4", reasoning="reason 4", source_quote="quote 4")],
-        [ExtractedAtom(tda_id="tda_0123456789abcde3", resolved_claim="claim 5", reasoning="reason 5", source_quote="quote 5")],
+        [
+            ExtractedAtom(
+                tda_id="tda_0123456789abcdef", resolved_claim="claim 1", reasoning="reason 1", source_quote="quote 1"
+            )
+        ],
+        [
+            ExtractedAtom(
+                tda_id="tda_0123456789abcde0", resolved_claim="claim 2", reasoning="reason 2", source_quote="quote 2"
+            )
+        ],
+        [
+            ExtractedAtom(
+                tda_id="tda_0123456789abcde1", resolved_claim="claim 3", reasoning="reason 3", source_quote="quote 3"
+            )
+        ],
+        [
+            ExtractedAtom(
+                tda_id="tda_0123456789abcde2", resolved_claim="claim 4", reasoning="reason 4", source_quote="quote 4"
+            )
+        ],
+        [
+            ExtractedAtom(
+                tda_id="tda_0123456789abcde3", resolved_claim="claim 5", reasoning="reason 5", source_quote="quote 5"
+            )
+        ],
     ]
 
     windows = linker._get_sliding_windows(chunks)
@@ -46,8 +64,16 @@ def test_sliding_window_linker_get_windows_small() -> None:
     """Test sliding window with chunks less than window size."""
     linker = SlidingWindowLinker(window_size=3, overlap=1)
     chunks = [
-        [ExtractedAtom(tda_id="tda_0123456789abcdef", resolved_claim="claim 1", reasoning="reason 1", source_quote="quote 1")],
-        [ExtractedAtom(tda_id="tda_0123456789abcde0", resolved_claim="claim 2", reasoning="reason 2", source_quote="quote 2")],
+        [
+            ExtractedAtom(
+                tda_id="tda_0123456789abcdef", resolved_claim="claim 1", reasoning="reason 1", source_quote="quote 1"
+            )
+        ],
+        [
+            ExtractedAtom(
+                tda_id="tda_0123456789abcde0", resolved_claim="claim 2", reasoning="reason 2", source_quote="quote 2"
+            )
+        ],
     ]
     windows = linker._get_sliding_windows(chunks)
     assert len(windows) == 1

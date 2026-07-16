@@ -132,14 +132,16 @@ class SlidingWindowLinker:
                 claims_window=claims_text.strip(),
             )
 
-            messages = [
+            static_messages = [
                 {"role": "system", "content": LINKER_SYSTEM_PROMPT},
+            ]
+            dynamic_messages = [
                 {"role": "user", "content": user_prompt},
             ]
 
             compiled_prompt = CompiledPrompt(
-                static_messages=messages,
-                dynamic_messages=[],
+                static_messages=static_messages,
+                dynamic_messages=dynamic_messages,
                 metadata={"strictness_level": "high"},
             )
 

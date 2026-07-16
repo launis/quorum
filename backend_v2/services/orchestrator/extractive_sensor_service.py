@@ -122,7 +122,7 @@ class ExtractiveSensorService:
         executor: LLMTaskExecutor,
         client: LLMClient,
         context_text: str,
-    ) -> ExecutionStatus:
+    ) -> tuple[ExecutionStatus, str | None, dict[str, str]]:
         """Evaluates an atom's claim against the source text using an LLM.
 
         Args:
@@ -141,6 +141,15 @@ class ExtractiveSensorService:
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
             reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
             is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
+            coaching: Annotated[
+                str | None, Field(description="Provide a coaching tip if the claim failed.", default=None)
+            ] = None
+            falsification: Annotated[
+                str | None, Field(description="Provide a falsification argument if the claim failed.", default=None)
+            ] = None
+            remediation_steps: Annotated[
+                list[str] | None, Field(description="Step-by-step remediation if the claim failed.", default=None)
+            ] = None
 
         prompt = (
             "Evaluate if the following claim is true based strictly on the provided context.\n\n"
@@ -154,7 +163,17 @@ class ExtractiveSensorService:
                 messages=[{"role": "user", "content": prompt}],
                 response_model=BooleanEvaluationResult,
             )
-            return ExecutionStatus.PASSED if result.is_true else ExecutionStatus.FAILED
+
+            extensions: dict[str, str] = {}
+            if result.coaching:
+                extensions["coaching"] = result.coaching
+            if result.falsification:
+                extensions["falsification"] = result.falsification
+            if result.remediation_steps:
+                extensions["remediation_steps"] = "\n".join(f"- {step}" for step in result.remediation_steps)
+
+            status = ExecutionStatus.PASSED if result.is_true else ExecutionStatus.FAILED
+            return status, result.reasoning, extensions
         except AppException as e:
             logger.error("Boolean evaluation failed for TDA %s: %s", node.atom.tda_id, str(e))
-            return ExecutionStatus.SYSTEM_ERROR
+            return ExecutionStatus.SYSTEM_ERROR, f"EVALUATION_CRASH: {str(e)}", {}

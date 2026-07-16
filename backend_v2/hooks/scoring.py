@@ -605,6 +605,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # Epic 47 Phase 2: Dynamic Orchestration & Scoring Resolution
         strictness_level = None
         scoring_strategy = None
+        visible_block_extensions = []
         locale = (
             execution_data.metadata.get("target_locale", "fi")
             if execution_data.metadata and isinstance(execution_data.metadata, dict)
@@ -618,6 +619,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 profile_model = OutputProfileResponseDTO.model_validate(profile_dict, strict=False)
                 strictness_level = profile_model.strictness_level
                 scoring_strategy = profile_model.scoring_strategy
+                visible_block_extensions = profile_model.visible_block_extensions
 
         if strictness_level is None or scoring_strategy is None:
             msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
@@ -627,7 +629,14 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             )
 
         content_payload = state.inputs
-        if "evaluations" not in content_payload:
+
+        is_dag_mode = False
+        if "results" in content_payload:
+            evaluations = content_payload["results"]
+            is_dag_mode = True
+        elif "evaluations" in content_payload:
+            evaluations = content_payload["evaluations"]
+        else:
             msg = (
                 f"Strict Fail-Fast Enforced: 'evaluations' array is completely missing from state.inputs "
                 f"for step '{blueprint_id}'. Upstream atomization payload failed."
@@ -638,8 +647,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
-
-        evaluations = content_payload["evaluations"]
 
         if not isinstance(evaluations, list):
             msg = f"Strict Fail-Fast Enforced: 'evaluations' array is not a list for step '{blueprint_id}'."
@@ -729,7 +736,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     infra_dlqs += 1
 
         # Get merged facts dictionary from dynamic MergedFactsDTO context
-        merged_facts = content_payload["extracted_facts"]
+        merged_facts = content_payload.get("extracted_facts", {})
         if hasattr(merged_facts, "model_dump"):
             merged_facts = merged_facts.model_dump(mode="json")
         if not isinstance(merged_facts, dict):
@@ -796,89 +803,169 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         )
 
                                         val_context = state.global_context_vars or {}
-                                        try:
-                                            # Try heavy protocol first by stripping dynamic fields (e.g. premise_1_quote injected by chunk_worker)
-                                            heavy_payload = {
-                                                k: v
-                                                for k, v in ev_dict.items()
-                                                if k in AtomEvaluationItemDTO.model_fields
-                                            }
-                                            ev_dto = AtomEvaluationItemDTO.model_validate(
-                                                heavy_payload, context=val_context
-                                            )
-                                        except ValidationError:
+                                        ev_dto: Any = None
+
+                                        if is_dag_mode:
+                                            from backend_v2.models.v2_core import AtomResultDTO
+
                                             try:
-                                                # Fallback to lightweight protocol by stripping ALL heavy cognitive fields
-                                                light_payload = {
-                                                    k: v
-                                                    for k, v in ev_dict.items()
-                                                    if k in LightweightExtractionAtom.model_fields
-                                                }
-                                                ev_dto = LightweightExtractionAtom.model_validate(
-                                                    light_payload, context=val_context
-                                                )  # type: ignore
+                                                ev_dto = AtomResultDTO.model_validate(ev_dict)
                                             except ValidationError as e:
-                                                logger.error(
-                                                    "[ScoringHook] %s: Invalid evaluation item format (both heavy and light failed): %s",
-                                                    ErrorCodes.VALIDATION_FAILED.name,
-                                                    e,
-                                                    exc_info=True,
-                                                )
+                                                logger.error(f"[ScoringHook] Invalid DAG AtomResultDTO: {e}")
                                                 raise AppException(
-                                                    message=f"Strict Fail-Fast: Invalid evaluation item format: {e}",
+                                                    message=f"Strict Fail-Fast: Invalid AtomResultDTO: {e}",
                                                     status_code=500,
                                                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                                                 ) from e
-                                        if ev_dto.atom_id == aid:
+                                        else:
+                                            try:
+                                                # Try heavy protocol first by stripping dynamic fields (e.g. premise_1_quote injected by chunk_worker)
+                                                heavy_payload = {
+                                                    k: v
+                                                    for k, v in ev_dict.items()
+                                                    if k in AtomEvaluationItemDTO.model_fields
+                                                }
+                                                ev_dto = AtomEvaluationItemDTO.model_validate(
+                                                    heavy_payload, context=val_context
+                                                )
+                                            except ValidationError:
+                                                try:
+                                                    # Fallback to lightweight protocol by stripping ALL heavy cognitive fields
+                                                    light_payload = {
+                                                        k: v
+                                                        for k, v in ev_dict.items()
+                                                        if k in LightweightExtractionAtom.model_fields
+                                                    }
+                                                    ev_dto = LightweightExtractionAtom.model_validate(
+                                                        light_payload, context=val_context
+                                                    )
+                                                except ValidationError as e:
+                                                    logger.error(
+                                                        "[ScoringHook] %s: Invalid evaluation item format (both heavy and light failed): %s",
+                                                        ErrorCodes.VALIDATION_FAILED.name,
+                                                        e,
+                                                        exc_info=True,
+                                                    )
+                                                    raise AppException(
+                                                        message=f"Strict Fail-Fast: Invalid evaluation item format: {e}",
+                                                        status_code=500,
+                                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                                    ) from e
+
+                                        ev_atom_id = ev_dto.tda_id if is_dag_mode else ev_dto.atom_id
+
+                                        if ev_atom_id == aid:
                                             allow_override = tda.allow_contextual_override
                                             effective_override = enable_contextual_overrides and allow_override
-                                            is_satisfied = ev_dto.calculate_rule_satisfied(
-                                                inverse_evidence=tda.inverse_evidence,
-                                                allow_contextual_override=effective_override,
-                                            )
-                                            if is_satisfied == "DLQ":
-                                                final_state = "DLQ"
-                                            else:
-                                                if getattr(ev_dto, "status", None) == "CONTESTED":
+
+                                            if is_dag_mode:
+                                                # In DAG mode, AtomResultDTO has status Enum
+                                                status_str = (
+                                                    ev_dto.status.name
+                                                    if hasattr(ev_dto.status, "name")
+                                                    else str(ev_dto.status)
+                                                )
+
+                                                if status_str == "DLQ":
+                                                    final_state = "DLQ"
+                                                elif status_str == "CONTESTED":
                                                     final_state = "CONTESTED"
                                                 else:
+                                                    if status_str == "PASSED":
+                                                        is_satisfied = not tda.inverse_evidence
+                                                    elif status_str == "FAILED":
+                                                        is_satisfied = bool(tda.inverse_evidence)
+                                                    else:
+                                                        is_satisfied = False
+
+                                                    # Apply override logic
+                                                    if (
+                                                        (not is_satisfied)
+                                                        and effective_override
+                                                        and ev_dto.contextual_override
+                                                    ):
+                                                        is_satisfied = True
+
                                                     final_state = "TRUE" if is_satisfied else "FALSE"
 
-                                                if ev_dto.exact_quotes:
-                                                    for qt in ev_dto.exact_quotes:
-                                                        quote_text = ""
-                                                        opaque_id = None
-                                                        if isinstance(qt, dict):
-                                                            quote_text = qt.get("text", "")
-                                                            opaque_id = qt.get("source_id")
-                                                        else:
-                                                            quote_text = getattr(qt, "text", "")
-                                                            opaque_id = getattr(qt, "source_id", None)
+                                                quotes_to_process = []
+                                                if ev_dto.source_quote:
+                                                    quotes_to_process = [
+                                                        {"text": ev_dto.source_quote, "source_id": None}
+                                                    ]
 
-                                                        eq_dto = QuoteEvidenceDTO.model_validate(
-                                                            {
-                                                                "quote": quote_text,
-                                                                "source_alias": [opaque_id] if opaque_id else [],
-                                                            },
-                                                            context=val_context,
-                                                        ).model_dump(mode="json")
+                                            else:
+                                                is_satisfied = ev_dto.calculate_rule_satisfied(
+                                                    inverse_evidence=tda.inverse_evidence,
+                                                    allow_contextual_override=effective_override,
+                                                )
+                                                if is_satisfied == "DLQ":
+                                                    final_state = "DLQ"
+                                                else:
+                                                    if getattr(ev_dto, "status", None) == "CONTESTED":
+                                                        final_state = "CONTESTED"
+                                                    else:
+                                                        final_state = "TRUE" if is_satisfied else "FALSE"
 
+                                                quotes_to_process = ev_dto.exact_quotes if ev_dto.exact_quotes else []
+
+                                            if quotes_to_process:
+                                                for qt in quotes_to_process:
+                                                    quote_text = ""
+                                                    opaque_id = None
+                                                    if isinstance(qt, dict):
+                                                        quote_text = qt.get("text", "")
+                                                        opaque_id = qt.get("source_id")
+                                                    else:
+                                                        quote_text = getattr(qt, "text", "")
+                                                        opaque_id = getattr(qt, "source_id", None)
+
+                                                    eq_dto = QuoteEvidenceDTO.model_validate(
+                                                        {
+                                                            "quote": quote_text,
+                                                            "source_alias": [opaque_id] if opaque_id else [],
+                                                        },
+                                                        context=val_context,
+                                                    ).model_dump(mode="json")
+
+                                                    atom_quotes_by_block[pb_id].append(
+                                                        {
+                                                            "level": s_val,
+                                                            "level_name": s_name,
+                                                            "quote": eq_dto,
+                                                        }
+                                                    )
+
+                                            elif getattr(ev_dto, "contextual_override", False) and effective_override:
+                                                l_raw = getattr(ev_dto, "structural_location", None)
+                                                loc = l_raw if l_raw and l_raw != "N/A" else "Tuntematon sijainti"
+                                                r_raw = (
+                                                    getattr(ev_dto, "semantic_reasoning", None)
+                                                    if not is_dag_mode
+                                                    else getattr(ev_dto, "evaluation_reasoning", None)
+                                                )
+                                                rsn = r_raw if r_raw else "Ei perustelua"
+                                                atom_quotes_by_block[pb_id].append(f"📍 {loc}: {rsn}")
+
+                                            extensions_dict = getattr(ev_dto, "extensions", {})
+                                            if extensions_dict:
+                                                allowed_exts = {
+                                                    e.value if hasattr(e, "value") else str(e)
+                                                    for e in visible_block_extensions
+                                                }
+                                                for ext_k, ext_v in extensions_dict.items():
+                                                    if ext_k in allowed_exts and ext_v:
+                                                        prefix = (
+                                                            "💡"
+                                                            if ext_k == "coaching"
+                                                            else "⚠️"
+                                                            if ext_k == "falsification"
+                                                            else "🛠️"
+                                                        )
                                                         atom_quotes_by_block[pb_id].append(
-                                                            {
-                                                                "level": s_val,
-                                                                "level_name": s_name,
-                                                                "quote": eq_dto,
-                                                            }
+                                                            f"{prefix} {ext_k.upper()}: {ext_v}"
                                                         )
 
-                                                elif (
-                                                    getattr(ev_dto, "contextual_override", False) and effective_override
-                                                ):
-                                                    l_raw = getattr(ev_dto, "structural_location", None)
-                                                    loc = l_raw if l_raw and l_raw != "N/A" else "Tuntematon sijainti"
-                                                    r_raw = getattr(ev_dto, "semantic_reasoning", None)
-                                                    rsn = r_raw if r_raw else "Ei perustelua"
-                                                    atom_quotes_by_block[pb_id].append(f"📍 {loc}: {rsn}")
                                             break
 
                             # Record the logic outcomes

@@ -19,27 +19,21 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
     ExecutionRecord,
-    ExecutionStatus,
     FrozenContext,
-    MCPAuditTrace,
     PromptBlock,
     StepRule,
     Workflow,
 )
 from backend_v2.models.v2_core import Step as V2Step
-from backend_v2.services.orchestrator.chunk_accumulator import ChunkAccumulator
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
-from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
-from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
 from backend_v2.utils.alias_engine import AliasEngine
 from backend_v2.utils.llm_debug_logger import write_debug_prompt_log
 
@@ -90,19 +84,19 @@ class LLMNodeStrategy(NodeStrategy):
         inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
         raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
 
-        texts: list[str] = []
-        inputs_dict = inputs_payload
-        if isinstance(inputs_dict, dict):
-            for v in inputs_dict.values():
-                if isinstance(v, str):
-                    texts.append(v)
-        elif isinstance(inputs_dict, str):
-            texts.append(inputs_dict)
-
-        global_source_text = "\n\n".join(texts)
         inputs_unwrapped = (
             inputs_payload.get("inputs", inputs_payload) if isinstance(inputs_payload, dict) else inputs_payload
         )
+
+        texts: list[str] = []
+        if isinstance(inputs_unwrapped, dict):
+            for v in inputs_unwrapped.values():
+                if isinstance(v, str):
+                    texts.append(v)
+        elif isinstance(inputs_unwrapped, str):
+            texts.append(inputs_unwrapped)
+
+        global_source_text = "\n\n".join(texts)
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,
             "inputs": inputs_unwrapped,
@@ -386,7 +380,6 @@ class LLMNodeStrategy(NodeStrategy):
 
         user_payload = prompt_payload.user_payload
         base_system_prompt = prompt_payload.base_system_prompt
-        atom_to_block_ids = prompt_payload.atom_to_block_ids
 
         if get_settings().environment == "development":
             try:
@@ -494,9 +487,7 @@ class LLMNodeStrategy(NodeStrategy):
             except Exception:
                 pass
 
-        has_search = any("search_result" in v for v in state_data.values() if type(v) is dict) or bool(
-            getattr(step, "mcp_tools", None)
-        )
+        pass
 
         if frozen_ctx:
             allowed_dynamic_keys = [e.input_key for e in context.expected_inputs] if context.expected_inputs else []
@@ -543,8 +534,6 @@ class LLMNodeStrategy(NodeStrategy):
             )
         bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo, pipeline_name="chunk_worker")
 
-        sem = semaphore
-
         MAX_RETRIES = get_settings().llm_max_retries
         retry_count = 0
         final_dict: dict[str, Any] = {}
@@ -563,203 +552,37 @@ class LLMNodeStrategy(NodeStrategy):
                 retry_count + 1,
             )
 
-            if "synthesis_instructions" in state_data:
-                syn_instr = state_data["synthesis_instructions"]
-            else:
-                syn_instr = None
+            from backend_v2.services.llm_task_executor import LLMTaskExecutor
+            from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
+            from backend_v2.services.orchestrator.result_projector import ResultProjector
+            from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
+            from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
-            redis = None
-            hkey = f"exec:{context.execution_id}:step:{step.id}"
+            llm_executor = LLMTaskExecutor(self.compiler)
+            atomizer = TwoPassAtomizer(llm_executor)
+            linker = SlidingWindowLinker(window_size=4, overlap=2)
+            dag_executor = EnrichedDagExecutor(llm_executor, bound_client)
 
-            if redis:
-                await redis.delete(hkey)
+            chunk_size = 12000
+            text_chunks = [
+                global_source_text[i : i + chunk_size] for i in range(0, max(len(global_source_text), 1), chunk_size)
+            ]
 
-            if redis:
-                for i, c in enumerate(chunks_list):
-                    await redis.enqueue_job(
-                        "evaluate_chunk_job",
-                        context.execution_id,
-                        step.id,
-                        i,
-                        len(chunks_list),
-                        None,
-                        c.items,
-                        [b.model_dump() for b in criteria_blocks],
-                        base_system_prompt,
-                        has_search,
-                        has_shuffled_atoms,
-                        atom_to_block_ids,
-                        effective_mcp_tools,
-                        target_locale,
-                        syn_instr,
-                        context.strictness_level,
-                        hook_state.metadata,
-                    )
+            ontology = await atomizer.execute_phase_0(bound_client, text_chunks)
+            atoms = await atomizer.execute_phase_1(bound_client, text_chunks, ontology)
+            nodes = await linker.link_graph(llm_executor, bound_client, atoms, ontology)
+            states = await dag_executor.execute_graph(nodes, global_source_text)
 
-                while True:
-                    completed = await redis.hget(hkey, "completed")
-                    if int(completed or 0) == len(chunks_list):
-                        break
-                    await asyncio.sleep(1)
-            else:
-                evaluator = TopologicalEvaluator()
-                task_results_map: dict[str, Any] = {}
-                nodes: list[LinkedAtomGraph] = []
+            results_dto, hydrated_refs = ResultProjector.project(nodes, states)
 
-                for i, _c in enumerate(chunks_list):
-                    tda_id = f"tda_{hex(i)[2:].zfill(16)}"
-                    atom = ExtractedAtom(
-                        reasoning=f"Legacy Chunk Wrapper {i}",
-                        resolved_claim=f"Legacy Chunk Evaluation {i}",
-                        source_quote="N/A",
-                        tda_id=tda_id,
-                        source_id=f"chunk_{i}",
-                    )
-                    nodes.append(LinkedAtomGraph(atom=atom, depends_on=[]))
-
-                async def eval_callback(
-                    node: LinkedAtomGraph,
-                    _syn_instr: dict[str, Any] | None = syn_instr,
-                    _task_results_map: dict[str, Any] = task_results_map,
-                ) -> ExecutionStatus:
-                    if not node.atom.source_id:
-                        return ExecutionStatus.SYSTEM_ERROR
-                    idx = int(node.atom.source_id.split("_")[1])
-                    c = chunks_list[idx]
-
-                    try:
-                        res = await ChunkWorker.process_chunk(
-                            chunk=c,
-                            sem=sem,
-                            compiler=self.compiler,
-                            criteria_blocks=criteria_blocks,
-                            user_payload=user_payload,
-                            global_source_text=global_source_text,
-                            base_system_prompt=base_system_prompt,
-                            has_search=has_search,
-                            has_shuffled_atoms=has_shuffled_atoms,
-                            atom_to_block_ids=atom_to_block_ids,
-                            effective_mcp_tools=effective_mcp_tools,
-                            bound_client=bound_client,
-                            step_id=step.id,
-                            target_locale=target_locale,
-                            synthesis_instructions=_syn_instr,
-                            output_profile=output_profile,
-                            strictness_level=context.strictness_level,
-                            running_event=running_event,
-                            step_metadata=hook_state.metadata,
-                        )
-                        _task_results_map[node.atom.tda_id] = res
-                        return ExecutionStatus.PASSED
-                    except Exception as e:
-                        logger.error(f"[LLMNodeStrategy] ChunkWorker fallback failed: {e}", exc_info=True)
-                        return ExecutionStatus.SYSTEM_ERROR
-
-                await evaluator.evaluate_graph(nodes, eval_callback)
-
-                # Task results parsed sequentially matching chunks_list
-                task_results = []
-                for i in range(len(chunks_list)):
-                    tda_id = f"tda_{hex(i)[2:].zfill(16)}"
-                    if tda_id in task_results_map:
-                        task_results.append(task_results_map[tda_id])
-                    else:
-                        task_results.append(
-                            ({"_dlq_status": "FAILED/DLQ", "reason": "Graph Evaluator Dropped Chunk"}, None, [], None)
-                        )
+            final_dict = {
+                "results": [r.model_dump() for r in results_dto],
+                "hydrated_references": {k: v.model_dump() for k, v in hydrated_refs.items()},
+            }
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
-
-            accumulator = ChunkAccumulator()
             usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
             all_prompt_contexts: list[dict[str, Any]] = []
-
-            if redis:
-                all_chunks = await redis.hgetall(hkey)
-                for i in range(len(chunks_list)):
-                    chunk_key = f"chunk_{i}".encode()
-                    chunk_data_str = all_chunks[chunk_key] if chunk_key in all_chunks else b"{}"
-                    chunk_data = json.loads(chunk_data_str)
-
-                    c_final = chunk_data["final"] if "final" in chunk_data else {}
-                    c_usage_dict = chunk_data["usage"] if "usage" in chunk_data else None
-                    c_traces_dict = chunk_data["traces"] if "traces" in chunk_data else []
-                    c_prompt_context_dict = chunk_data.get("prompt_context")
-
-                    if isinstance(c_final, dict):
-                        if c_final.get("_dlq_status") == "FAILED/DLQ":
-                            reason = c_final["reason"] if "reason" in c_final else "Unknown DLQ Failure"
-                            logger.warning(
-                                f"[Orchestrator] Step execution failed in chunk {i} and routed to DLQ. "
-                                f"Continuing orchestrator run with degraded data. Reason: {reason}",
-                                extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
-                            )
-                            # Phase 4, Step 2: Allow accumulator to proceed instead of raising AppException
-                        elif c_final.get("_dlq_retry_count", 0) > 0:
-                            logger.info(
-                                "[Orchestrator] Chunk recovered after %d transient retries.",
-                                c_final["_dlq_retry_count"],
-                            )
-                    accumulator.add(c_final)
-
-                    if c_usage_dict:
-                        c_usage = TokenUsage.model_validate(c_usage_dict)
-                        usage_agg = usage_agg + c_usage
-                        retries = c_final.get("_dlq_retry_count", 0) if isinstance(c_final, dict) else 0
-                        logger.info(
-                            f"[Chunk Success] Step {step.id} | Prompt tokens: {c_usage.prompt_tokens} | Completion tokens: {c_usage.completion_tokens} | Cached: {c_usage.cached_tokens} | Cost: ${c_usage.cost_usd:.4f} | Retries: {retries}",
-                            extra={"error_code": "CHUNK_SUCCESS"},
-                        )
-
-                    if c_prompt_context_dict:
-                        all_prompt_contexts.append(c_prompt_context_dict)
-
-                    if frozen_ctx and c_traces_dict:
-                        existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
-                        for tr_dict in c_traces_dict:
-                            t_trace = MCPAuditTrace.model_validate(tr_dict)
-                            thash = f"{t_trace.tool_id}::{t_trace.query}"
-                            if thash not in existing_hashes:
-                                frozen_ctx.mcp_tool_audit.append(t_trace)
-                                existing_hashes.add(thash)
-            else:
-                for c_final, c_usage, c_traces, c_prompt_context in task_results:
-                    if isinstance(c_final, dict):
-                        if c_final.get("_dlq_status") == "FAILED/DLQ":
-                            reason = c_final["reason"] if "reason" in c_final else "Unknown DLQ Failure"
-                            logger.warning(
-                                "[Orchestrator] Step execution failed in task chunk and routed to DLQ. "
-                                f"Continuing orchestrator run with degraded data. Reason: {reason}",
-                                extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
-                            )
-                            # Phase 4, Step 2: Allow accumulator to proceed instead of raising AppException
-                        elif c_final.get("_dlq_retry_count", 0) > 0:
-                            logger.info(
-                                "[Orchestrator] Chunk recovered after %d transient retries.",
-                                c_final["_dlq_retry_count"],
-                            )
-                    accumulator.add(c_final)
-
-                    if c_usage is not None:
-                        usage_agg = usage_agg + c_usage
-                        retries = c_final.get("_dlq_retry_count", 0) if isinstance(c_final, dict) else 0
-                        logger.info(
-                            f"[Chunk Success] Step {step.id} | Prompt tokens: {c_usage.prompt_tokens} | Completion tokens: {c_usage.completion_tokens} | Cached: {c_usage.cached_tokens} | Cost: ${c_usage.cost_usd:.4f} | Retries: {retries}",
-                            extra={"error_code": "CHUNK_SUCCESS"},
-                        )
-
-                    if c_prompt_context:
-                        all_prompt_contexts.append(c_prompt_context.model_dump())
-
-                    if frozen_ctx and c_traces:
-                        existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
-                        for t_trace in c_traces:
-                            thash = f"{t_trace.tool_id}::{t_trace.query}"
-                            if thash not in existing_hashes:
-                                frozen_ctx.mcp_tool_audit.append(t_trace)
-                                existing_hashes.add(thash)
-
-            final_dict = accumulator.get_final_result()
             safe_context: dict[str, Any] = {**hook_state.global_context_vars, "steps": projector.snapshot}
 
             post_hook_state = hook_state.model_copy(
