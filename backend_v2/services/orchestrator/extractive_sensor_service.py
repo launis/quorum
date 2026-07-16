@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Annotated
 
@@ -5,12 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz
 
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.dtos.dag_models import LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import ExecutionStatus, get_lexical_fuzz_threshold
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.settings import get_lexical_fuzz_threshold
 from backend_v2.utils.alias_engine import AliasEngine
 
 
@@ -52,7 +54,7 @@ class ExtractiveSensorService:
         return fuzz.partial_ratio(anchor.lower(), source_text.lower()) >= threshold
 
     @staticmethod
-    def pre_evaluate(tda: TDAAssertion, source_text: str, locale: str | None = None) -> PreFlightResult:
+    def pre_evaluate(tda: TDAAssertion | ExtractedAtom, source_text: str, locale: str | None = None) -> PreFlightResult:
         """Evaluates TDA against source text without LLM if pre-flight is enabled.
 
         Acts as an EARLY EXIT:
@@ -70,6 +72,20 @@ class ExtractiveSensorService:
             A PreFlightResult indicating if the decision was resolved early.
         """
         logger = logging.getLogger(__name__)
+
+        if isinstance(tda, ExtractedAtom):
+            quote = tda.source_quote
+            if not quote or quote.lower() in ["none", "n/a", "null", ""]:
+                return PreFlightResult(decided=False)
+
+            if ExtractiveSensorService._fuzzy_match(source_text, quote, locale):
+                return PreFlightResult(decided=False)
+
+            return PreFlightResult(
+                decided=True,
+                result="FAIL",
+                exact_quotes=None,
+            )
 
         if not tda.enforce_pre_flight or not tda.syntactic_anchors:
             return PreFlightResult(decided=False)
@@ -115,6 +131,41 @@ class ExtractiveSensorService:
         # Anchors WERE found. We MUST delegate to LLM to evaluate contextual conditions.
         logger.info("[ExtractiveSensor] TDA %s | Anchors found, delegating to LLM for context evaluation", tda.tda_id)
         return PreFlightResult(decided=False)
+
+    @staticmethod
+    def _batch_fuzzy_match(
+        nodes: list[LinkedAtomGraph], source_text: str, locale: str | None = None
+    ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], list[LinkedAtomGraph]]:
+        """Synchronous batch fuzzy matching to determine pre-flight status."""
+        decided_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+        undecided_nodes: list[LinkedAtomGraph] = []
+
+        for node in nodes:
+            pre_result = ExtractiveSensorService.pre_evaluate(node.atom, source_text, locale)
+            if pre_result.decided:
+                if pre_result.result == "PASS":
+                    decided_results[node.atom.tda_id] = (
+                        ExecutionStatus.PASSED,
+                        "PRE_FLIGHT_DETERMINISTIC_PASS",
+                        {},
+                    )
+                else:
+                    decided_results[node.atom.tda_id] = (
+                        ExecutionStatus.FAILED,
+                        "PRE_FLIGHT_DETERMINISTIC_REJECT",
+                        {},
+                    )
+            else:
+                undecided_nodes.append(node)
+
+        return decided_results, undecided_nodes
+
+    @staticmethod
+    async def batch_pre_evaluate(
+        nodes: list[LinkedAtomGraph], source_text: str, locale: str | None = None
+    ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], list[LinkedAtomGraph]]:
+        """Asynchronous wrapper that offloads CPU-bound batch fuzzy matching to a thread."""
+        return await asyncio.to_thread(ExtractiveSensorService._batch_fuzzy_match, nodes, source_text, locale)
 
     @staticmethod
     async def evaluate_atom_boolean_batch(

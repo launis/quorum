@@ -4,9 +4,9 @@ from pydantic import ConfigDict, Field, ValidationInfo, field_validator, model_v
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import LaxVisualIntent, LaxXaiExtensionType, get_lexical_fuzz_threshold
+from backend_v2.models.enums import LaxVisualIntent, LaxXaiExtensionType
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
-from backend_v2.settings import get_settings
+from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 _settings = get_settings()
@@ -552,6 +552,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
                     if len(q_text) < 10:
                         return False
                     base_threshold = get_lexical_fuzz_threshold(locale)
+
                     if strictness_level >= 100:
                         modifier = 15.0
                     elif strictness_level >= 85:
@@ -638,6 +639,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
                     # Normalize both source and quote using the same exact logic as the orchestrator
                     norm_source, _ = AnchorValidationService.normalize_text_with_mapping(source_text)
                     locale = context.get("system_locale") if context else None
+
                     threshold = get_lexical_fuzz_threshold(locale)
                     max_len = _schema_max_quote_length
 

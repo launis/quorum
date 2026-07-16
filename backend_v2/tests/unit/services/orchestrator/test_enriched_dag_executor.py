@@ -46,7 +46,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom
     mock_node = LinkedAtomGraph(
-        atom=ExtractedAtom(tda_id="tda_11111111111111111111111111111111", reasoning="reason", resolved_claim="claim", source_quote="quote", source_id="src"),
+        atom=ExtractedAtom(tda_id="tda_11111111111111111111111111111111", reasoning="reason", resolved_claim="claim", source_quote="test text", source_id="src"),
         depends_on=[]
     )
     

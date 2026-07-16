@@ -571,7 +571,7 @@ class LLMNodeStrategy(NodeStrategy):
             ontology = await atomizer.execute_phase_0(bound_client, text_chunks)
             atoms = await atomizer.execute_phase_1(bound_client, text_chunks, ontology)
             nodes = await linker.link_graph(llm_executor, bound_client, atoms, ontology)
-            states = await dag_executor.execute_graph(nodes, global_source_text)
+            states = await dag_executor.execute_graph(nodes, global_source_text, target_locale)
 
             results_dto, hydrated_refs = ResultProjector.project(nodes, states)
 

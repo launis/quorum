@@ -14,7 +14,6 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.integrity import CitationAudit, StepContext
-from backend_v2.models.enums import get_lexical_fuzz_threshold
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
@@ -242,6 +241,8 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         return HookResult(success=True, state_delta=delta)
 
     system_locale = state.global_context_vars.get("system_locale") if state.global_context_vars else None
+    from backend_v2.settings import get_lexical_fuzz_threshold
+
     threshold = get_lexical_fuzz_threshold(system_locale)
 
     parsed_payload, total_count, valid_count, invalid_citations = _verify_payload_citations(

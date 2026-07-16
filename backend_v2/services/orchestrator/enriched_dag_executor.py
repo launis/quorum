@@ -37,12 +37,15 @@ class EnrichedDagExecutor:
         self._llm_client = llm_client
         self._topological_evaluator = TopologicalEvaluator()
 
-    async def execute_graph(self, nodes: list[LinkedAtomGraph], source_text: str) -> dict[str, AtomExecutionState]:
+    async def execute_graph(
+        self, nodes: list[LinkedAtomGraph], source_text: str, locale: str | None = None
+    ) -> dict[str, AtomExecutionState]:
         """Executes the complete DAG of atoms.
 
         Args:
             nodes: The list of validated LinkedAtomGraphs.
             source_text: The original document text for contextual evaluation.
+            locale: Optional target locale/language code.
 
         Returns:
             A dictionary mapping tda_id to its final AtomExecutionState.
@@ -52,12 +55,20 @@ class EnrichedDagExecutor:
             chunk: list[LinkedAtomGraph],
         ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
             try:
-                return await ExtractiveSensorService.evaluate_atom_boolean_batch(
-                    nodes=chunk,
+                pre_flight_results, undecided_nodes = await ExtractiveSensorService.batch_pre_evaluate(
+                    chunk, source_text, locale
+                )
+
+                if not undecided_nodes:
+                    return pre_flight_results
+
+                llm_results = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+                    nodes=undecided_nodes,
                     executor=self._llm_executor,
                     client=self._llm_client,
                     context_text=source_text,
                 )
+                return {**pre_flight_results, **llm_results}
             except Exception as e:
                 cause = e.__cause__ or e
                 if _is_transient_llm_error(cause):

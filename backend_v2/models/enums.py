@@ -298,38 +298,6 @@ class ValidationThresholdRatio(float, Enum):
 # --- Restored V1 Enums ---
 
 
-class FuzzThresholdConfig(float, Enum):
-    """Kielityyppikohtaiset kynnysarvot fuzzy-mätsäykseen."""
-
-    AGGLUTINATIVE = 85.0  # Suomi, unkari, turkki
-    ANALYTIC = 92.0  # Englanti, ruotsi, saksa, ranska, espanja
-    ISOLATING = 98.0  # Kiina, japani, korea
-    DEFAULT = 90.0  # Turvallinen kompromissi tuntemattomille kielille
-
-
-def get_lexical_fuzz_threshold(locale: str | None) -> float:
-    """Ratkaisee oikean kynnyksen lokaalin perusteella.
-
-    Args:
-        locale: The system locale string (e.g., 'fi', 'en').
-
-    Returns:
-        float: The fuzzy matching threshold percentage.
-    """
-    if not locale:
-        return FuzzThresholdConfig.DEFAULT.value
-
-    match locale.lower():
-        case "fi" | "hu" | "tr":
-            return FuzzThresholdConfig.AGGLUTINATIVE.value
-        case "en" | "sv" | "de" | "fr" | "es":
-            return FuzzThresholdConfig.ANALYTIC.value
-        case "zh" | "ja" | "ko":
-            return FuzzThresholdConfig.ISOLATING.value
-        case _:
-            return FuzzThresholdConfig.DEFAULT.value
-
-
 class StrictnessAnchor(IntEnum):
     """UI:n kiinteät Strictness-tasot. Määrittää pehmeyden (forgiveness) ankkuripisteet."""
 

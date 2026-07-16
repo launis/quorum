@@ -172,6 +172,12 @@ class Settings(BaseSettings):
 
     # --- Integrity Thresholds (Integrity, Scoring, Linguistics) ---
     citation_integrity_threshold: Annotated[float, Field(description="Minimum integrity score (0.0-1.0)")] = 0.0
+    pre_flight_fuzz_agglutinative: Annotated[
+        float, Field(description="Fuzzy threshold for Finnish/Hungarian/Turkish")
+    ] = 85.0
+    pre_flight_fuzz_analytic: Annotated[float, Field(description="Fuzzy threshold for English/Swedish/German")] = 92.0
+    pre_flight_fuzz_isolating: Annotated[float, Field(description="Fuzzy threshold for Chinese/Japanese")] = 98.0
+    pre_flight_fuzz_default: Annotated[float, Field(description="Fallback threshold")] = 90.0
 
     # --- Epic 91.5 Global DTO Policies ---
     auto_resolve_policy: Annotated[str, Field(description="Policy for automatic resolution of execution nodes")] = (
@@ -589,3 +595,27 @@ def get_settings() -> Settings:
         The cached system-wide environment variables instantiation.
     """
     return Settings()
+
+
+def get_lexical_fuzz_threshold(locale: str | None = None) -> float:
+    """Centralized helper for fetching the correct fuzzy threshold based on locale.
+    
+    Args:
+        locale: Optional language code.
+        
+    Returns:
+        The fuzzy matching threshold percentage as a float.
+    """
+    settings = get_settings()
+    if not locale:
+        return settings.pre_flight_fuzz_default
+        
+    match locale.lower():
+        case "fi" | "hu" | "tr":
+            return settings.pre_flight_fuzz_agglutinative
+        case "en" | "sv" | "de" | "fr" | "es":
+            return settings.pre_flight_fuzz_analytic
+        case "zh" | "ja" | "ko":
+            return settings.pre_flight_fuzz_isolating
+        case _:
+            return settings.pre_flight_fuzz_default

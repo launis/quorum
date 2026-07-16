@@ -6,7 +6,8 @@ import unicodedata
 from rapidfuzz import fuzz
 
 from backend_v2.exceptions import SemanticEvidenceError
-from backend_v2.models.enums import ValidationThresholdRatio, get_lexical_fuzz_threshold
+from backend_v2.models.enums import ValidationThresholdRatio
+from backend_v2.settings import get_lexical_fuzz_threshold
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +205,7 @@ class AnchorValidationService:
 
                 # Deterministic Tiers based on locale and strictness modifier
                 base_threshold = get_lexical_fuzz_threshold(locale)
+
                 if strictness_level >= 100:
                     modifier = 15.0
                 elif strictness_level >= 85:

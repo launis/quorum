@@ -5,7 +5,7 @@
 - `[x]` [OK] Phase 1: SlidingWindowLinker Output-Aware Windowing (`docs\epic\tasks_epic_100\implementation_plan_phase_1.md`)
 - `[x]` [OK] Phase 2: Micro-Prompt Batching & Wave Evaluation (`docs\epic\tasks_epic_100\implementation_plan_phase_2.md`)
 - `[x]` [OK] Invoke Tier 1 Planner to generate detailed plans for Phase 3, Phase 4, and Phase 5 based on the updated codebase state.
-- `[ ]` [NOK] Phase 3: Aggressive Pre-Flight Tuning & Thread Starvation Prevention (`docs\epic\tasks_epic_100\implementation_plan_phase_3.md`)
+- `[x]` [OK] Phase 3: Aggressive Pre-Flight Tuning & Thread Starvation Prevention (`docs\epic\tasks_epic_100\implementation_plan_phase_3.md`)
 - `[x]` [OK] Phase 4: Unit Test Mock Migration — RESOLVED during Phase 2 (all 16 tests pass)
 - `[ ]` [NOK] Phase 5: Validation & Audit (`docs\epic\tasks_epic_100\implementation_plan_phase_5.md`)
 - `[ ]` [NOK] Proxy Sunset & Consumer Migration
@@ -34,7 +34,7 @@
 - Phase 4 was already resolved during Phase 2 — all 16 tests pass.
 
 **Remaining:**
-- Execute Phase 3 (`implementation_plan_phase_3.md`) — includes `enriched_dag_executor.py` wiring.
+- Execute Phase 5 (`implementation_plan_phase_5.md`).
 - Execute Phase 5 (`implementation_plan_phase_5.md`).
 - Complete Proxy Sunset, Hardening Loop, and Final Audits.
 
