@@ -1,8 +1,8 @@
 """Topological Evaluator.
 
 Executes a Directed Acyclic Graph (DAG) of Enriched Atoms using a
-TaskGroup-based asynchronous cascade, preventing deadlocks and enforcing
-deterministic short-circuit logic for unmet dependencies.
+deterministic wave-based topological sort (Kahn's Algorithm),
+preventing deadlocks and enabling bulk micro-prompt batching.
 """
 
 import asyncio
@@ -16,7 +16,7 @@ from backend_v2.models.enums import ExecutionStatus
 
 
 class TopologicalEvaluator:
-    """Evaluates a DAG of LinkedAtomGraphs deterministically.
+    """Evaluates a DAG of LinkedAtomGraphs deterministically via Kahn's Algorithm.
 
     Attributes:
         None
@@ -25,142 +25,153 @@ class TopologicalEvaluator:
     async def evaluate_graph(
         self,
         nodes: list[LinkedAtomGraph],
-        evaluation_callback: Callable[[LinkedAtomGraph], Awaitable[tuple[ExecutionStatus, str | None, dict[str, str]]]],
+        batch_evaluation_callback: Callable[
+            [list[LinkedAtomGraph]], Awaitable[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]]
+        ],
     ) -> dict[str, AtomExecutionState]:
-        """Evaluates a graph of atoms deterministically.
+        """Evaluates a graph of atoms deterministically using Kahn's Algorithm.
 
         Args:
             nodes: The list of atom graph nodes to evaluate.
-            evaluation_callback: An asynchronous callback that evaluates a single node
-                and returns a tuple of (ExecutionStatus, reasoning, extensions). This is only
-                called if the node is not short-circuited or blocked by its parents.
+            batch_evaluation_callback: An asynchronous callback that evaluates a batch
+                of nodes simultaneously and returns a dictionary mapping tda_id to a
+                tuple of (ExecutionStatus, reasoning, extensions).
 
         Returns:
             A dictionary mapping tda_id to its final AtomExecutionState.
         """
         states: dict[str, AtomExecutionState] = {}
-        events: dict[str, asyncio.Event] = {}
         node_map: dict[str, LinkedAtomGraph] = {n.atom.tda_id: n for n in nodes}
 
-        # Initialize states and events
+        in_degree: dict[str, int] = {}
+        adj: dict[str, list[str]] = {}
+
+        # Initialize states, in-degree, and adjacency list
         for node in nodes:
-            states[node.atom.tda_id] = AtomExecutionState(
-                tda_id=node.atom.tda_id,
+            tda_id = node.atom.tda_id
+            states[tda_id] = AtomExecutionState(
+                tda_id=tda_id,
                 status=ExecutionStatus.PENDING,
             )
-            events[node.atom.tda_id] = asyncio.Event()
+            in_degree[tda_id] = 0
+            adj[tda_id] = []
 
         # Step 1: Structural Integrity (Phantom Edges & Cycles)
         g = nx.DiGraph()
 
         for node in nodes:
-            g.add_node(node.atom.tda_id)
+            child_id = node.atom.tda_id
+            g.add_node(child_id)
             for edge in node.depends_on:
-                if edge.tda_id not in node_map:
+                parent_id = edge.tda_id
+                if parent_id not in node_map:
                     # Phantom edge detected: Isolate child node immediately
-                    states[node.atom.tda_id] = states[node.atom.tda_id].model_copy(
+                    states[child_id] = states[child_id].model_copy(
                         update={
                             "status": ExecutionStatus.SYSTEM_ERROR,
                             "evaluation_reasoning": "UNRESOLVED_DEPENDENCY",
                         }
                     )
-                    events[node.atom.tda_id].set()
                 else:
                     # Directed edge from Parent -> Child
-                    g.add_edge(edge.tda_id, node.atom.tda_id)
+                    g.add_edge(parent_id, child_id)
+                    adj[parent_id].append(child_id)
+                    in_degree[child_id] += 1
 
         # Detect cycles in thread pool to prevent Event Loop freezing
         cycles = await asyncio.to_thread(list, nx.simple_cycles(g))
         if cycles:
             for cycle in cycles:
-                for node_id in cycle:
+                for cycle_node_id in cycle:
                     # Isolate cycle nodes
-                    if states[node_id].status != ExecutionStatus.SYSTEM_ERROR:
-                        states[node_id] = states[node_id].model_copy(
+                    if states[cycle_node_id].status != ExecutionStatus.SYSTEM_ERROR:
+                        states[cycle_node_id] = states[cycle_node_id].model_copy(
                             update={
                                 "status": ExecutionStatus.SYSTEM_ERROR,
                                 "evaluation_reasoning": "CYCLIC_DEPENDENCY_DETECTED",
                             }
                         )
-                        events[node_id].set()
 
-        # Step 2: TaskGroup Execution
-        async def evaluate_node(node_id: str) -> None:
-            """Evaluates a single node following priority cascade rules.
+        # Step 2: Kahn's Algorithm (Wave-Based Evaluation)
+        # Seed the initial queue with all nodes having in-degree 0
+        queue = [tda_id for tda_id, deg in in_degree.items() if deg == 0]
 
-            Args:
-                node_id: The TDA ID of the node to evaluate.
-            """
-            try:
-                # If already resolved (phantom/cycle), short-circuit
-                if events[node_id].is_set():
-                    return
+        while queue:
+            # Filter the current wave for nodes that are strictly PENDING
+            pending_nodes = [node_map[tda_id] for tda_id in queue if states[tda_id].status == ExecutionStatus.PENDING]
 
-                node = node_map[node_id]
+            if pending_nodes:
+                try:
+                    results = await batch_evaluation_callback(pending_nodes)
+                    for node in pending_nodes:
+                        res = results.get(node.atom.tda_id)
+                        if res:
+                            status, reasoning, extensions = res
+                            states[node.atom.tda_id] = states[node.atom.tda_id].model_copy(
+                                update={
+                                    "status": status,
+                                    "evaluation_reasoning": reasoning,
+                                    "extensions": extensions,
+                                }
+                            )
+                        else:
+                            states[node.atom.tda_id] = states[node.atom.tda_id].model_copy(
+                                update={
+                                    "status": ExecutionStatus.SYSTEM_ERROR,
+                                    "evaluation_reasoning": "Missing from batch response",
+                                }
+                            )
+                except AppException as e:
+                    for node in pending_nodes:
+                        states[node.atom.tda_id] = states[node.atom.tda_id].model_copy(
+                            update={
+                                "status": ExecutionStatus.SYSTEM_ERROR,
+                                "evaluation_reasoning": f"EVALUATION_CRASH: {str(e)}",
+                            }
+                        )
 
-                # Wait for all parents deterministically
-                for edge in node.depends_on:
-                    if edge.tda_id in events:
-                        await events[edge.tda_id].wait()
+            next_queue = []
 
-                # Re-check state just in case it was mutated
-                if states[node_id].status != ExecutionStatus.PENDING:
-                    return
+            # Propagate state to children and populate next wave
+            for parent_id in queue:
+                parent_state = states[parent_id]
+                for child_id in adj[parent_id]:
+                    child_node = node_map[child_id]
+                    from backend_v2.models.dtos.dag_models import CausalEdge
 
-                # Evaluate dependencies (Priority Matrix)
-                is_blocked = False
-                short_circuit_reasons: list[str] = []
-
-                for edge in node.depends_on:
-                    parent_state = states.get(edge.tda_id)
-                    if not parent_state:
-                        continue
+                    parent_edge: CausalEdge | None = next(
+                        (e for e in child_node.depends_on if e.tda_id == parent_id), None
+                    )
 
                     if parent_state.status in (ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED):
-                        is_blocked = True
-                        break
+                        states[child_id] = states[child_id].model_copy(update={"status": ExecutionStatus.BLOCKED})
+                    elif parent_edge and parent_state.status != parent_edge.expected_status:
+                        # Short-circuit logic
+                        reasons = states[child_id].short_circuit_reason_tda_ids or []
+                        if parent_id not in reasons:
+                            reasons.append(parent_id)
+                        states[child_id] = states[child_id].model_copy(
+                            update={
+                                "status": ExecutionStatus.N_A,
+                                "short_circuit_reason_tda_ids": reasons,
+                            }
+                        )
 
-                    if parent_state.status != edge.expected_status:
-                        short_circuit_reasons.append(edge.tda_id)
+                    in_degree[child_id] -= 1
+                    if in_degree[child_id] == 0:
+                        next_queue.append(child_id)
 
-                if is_blocked:
-                    states[node_id] = states[node_id].model_copy(update={"status": ExecutionStatus.BLOCKED})
-                    return
+            queue = next_queue
 
-                if short_circuit_reasons:
-                    states[node_id] = states[node_id].model_copy(
-                        update={
-                            "status": ExecutionStatus.N_A,
-                            "short_circuit_reason_tda_ids": short_circuit_reasons,
-                        }
-                    )
-                    return
-
-                # Perform actual evaluation
-                try:
-                    result_status, reasoning, extensions = await evaluation_callback(node)
-                    states[node_id] = states[node_id].model_copy(
-                        update={
-                            "status": result_status,
-                            "evaluation_reasoning": reasoning,
-                            "extensions": extensions,
-                        }
-                    )
-                except AppException as e:
-                    states[node_id] = states[node_id].model_copy(
-                        update={
-                            "status": ExecutionStatus.SYSTEM_ERROR,
-                            "evaluation_reasoning": f"EVALUATION_CRASH: {str(e)}",
-                        }
-                    )
-
-            finally:
-                # Critical safety net: Always set the event to unlock children
-                events[node_id].set()
-
-        async with asyncio.TaskGroup() as tg:
-            for node in nodes:
-                if not events[node.atom.tda_id].is_set():
-                    tg.create_task(evaluate_node(node.atom.tda_id))
+        # Safety net: Any nodes remaining PENDING after wave evaluation must be
+        # blocked by unresolved cycles.
+        for tda_id, state in states.items():
+            if state.status == ExecutionStatus.PENDING:
+                states[tda_id] = state.model_copy(
+                    update={
+                        "status": ExecutionStatus.BLOCKED,
+                        "evaluation_reasoning": "BLOCKED_BY_CYCLE_OR_UNRESOLVED_PARENT",
+                    }
+                )
 
         return states

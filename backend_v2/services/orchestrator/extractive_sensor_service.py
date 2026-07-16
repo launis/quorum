@@ -4,7 +4,6 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz
 
-from backend_v2.exceptions import AppException
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
@@ -12,6 +11,7 @@ from backend_v2.models.enums import ExecutionStatus, get_lexical_fuzz_threshold
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.utils.alias_engine import AliasEngine
 
 
 class PreFlightResult(BaseModel):
@@ -117,28 +117,29 @@ class ExtractiveSensorService:
         return PreFlightResult(decided=False)
 
     @staticmethod
-    async def evaluate_atom_boolean(
-        node: LinkedAtomGraph,
+    async def evaluate_atom_boolean_batch(
+        nodes: list[LinkedAtomGraph],
         executor: LLMTaskExecutor,
         client: LLMClient,
         context_text: str,
-    ) -> tuple[ExecutionStatus, str | None, dict[str, str]]:
-        """Evaluates an atom's claim against the source text using an LLM.
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+        """Evaluates a batch of atom claims against the source text using an LLM.
 
         Args:
-            node: The LinkedAtomGraph node to evaluate.
+            nodes: The list of LinkedAtomGraph nodes to evaluate.
             executor: The LLMTaskExecutor to run the query.
             client: The LLMClient instance.
             context_text: The source document text.
 
         Returns:
-            ExecutionStatus.PASSED if the claim is verified, FAILED otherwise.
-            ExecutionStatus.SYSTEM_ERROR if the evaluation crashes.
+            A dictionary mapping tda_id to a tuple of ExecutionStatus, reasoning, and extensions.
+            Raises AppException on validation or network errors (to be handled by caller).
         """
         logger = logging.getLogger(__name__)
 
         class BooleanEvaluationResult(BaseModel):
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+            alias: Annotated[str, Field(description="The alias assigned to the claim (e.g., 'a0', 'a1').")]
             reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
             is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
             coaching: Annotated[
@@ -151,29 +152,66 @@ class ExtractiveSensorService:
                 list[str] | None, Field(description="Step-by-step remediation if the claim failed.", default=None)
             ] = None
 
+        class BatchEvaluationResponse(BaseModel):
+            model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+            results: list[BooleanEvaluationResult]
+
+        alias_engine = AliasEngine()
+        requested_aliases: set[str] = set()
+        alias_to_tda_id: dict[str, str] = {}
+        claims_xml: list[str] = []
+
+        for node in nodes:
+            tda_id = node.atom.tda_id
+            alias = alias_engine.register(tda_id, prefix="a")
+            requested_aliases.add(alias)
+            alias_to_tda_id[alias] = tda_id
+            claims_xml.append(f'<claim alias="{alias}">\\n{node.atom.resolved_claim}\\n</claim>')
+
+        claims_str = "\\n".join(claims_xml)
+
+        # Heavy context MUST be at the top for Cache Survival Strategy
         prompt = (
-            "Evaluate if the following claim is true based strictly on the provided context.\n\n"
-            f"<claim>\n{node.atom.resolved_claim}\n</claim>\n\n"
-            f"<context>\n{context_text}\n</context>"
+            "Evaluate if the following claims are true based strictly on the provided context.\\n"
+            "Return the results matching each claim's alias.\\n\\n"
+            f"<context>\\n{context_text}\\n</context>\\n\\n"
+            f"{claims_str}"
         )
 
-        try:
-            result, _ = await executor.execute_structured_task(
-                client=client,
-                messages=[{"role": "user", "content": prompt}],
-                response_model=BooleanEvaluationResult,
-            )
+        result, _ = await executor.execute_structured_task(
+            client=client,
+            messages=[{"role": "user", "content": prompt}],
+            response_model=BatchEvaluationResponse,
+        )
+
+        final_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+        returned_aliases: set[str] = set()
+
+        for eval_result in result.results:
+            alias = eval_result.alias
+            if alias not in requested_aliases:
+                # Ignore hallucinated aliases
+                continue
+
+            returned_aliases.add(alias)
+            tda_id = alias_engine.resolve_alias(alias)
 
             extensions: dict[str, str] = {}
-            if result.coaching:
-                extensions["coaching"] = result.coaching
-            if result.falsification:
-                extensions["falsification"] = result.falsification
-            if result.remediation_steps:
-                extensions["remediation_steps"] = "\n".join(f"- {step}" for step in result.remediation_steps)
+            if eval_result.coaching:
+                extensions["coaching"] = eval_result.coaching
+            if eval_result.falsification:
+                extensions["falsification"] = eval_result.falsification
+            if eval_result.remediation_steps:
+                extensions["remediation_steps"] = "\\n".join(f"- {step}" for step in eval_result.remediation_steps)
 
-            status = ExecutionStatus.PASSED if result.is_true else ExecutionStatus.FAILED
-            return status, result.reasoning, extensions
-        except AppException as e:
-            logger.error("Boolean evaluation failed for TDA %s: %s", node.atom.tda_id, str(e))
-            return ExecutionStatus.SYSTEM_ERROR, f"EVALUATION_CRASH: {str(e)}", {}
+            status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
+            final_results[tda_id] = (status, eval_result.reasoning, extensions)
+
+        # Handle missing aliases
+        missing_aliases = requested_aliases - returned_aliases
+        for alias in missing_aliases:
+            tda_id = alias_to_tda_id[alias]
+            logger.error("Boolean evaluation failed for TDA %s: Missing from batch response", tda_id)
+            final_results[tda_id] = (ExecutionStatus.SYSTEM_ERROR, "EVALUATION_CRASH: Missing from batch response", {})
+
+        return final_results

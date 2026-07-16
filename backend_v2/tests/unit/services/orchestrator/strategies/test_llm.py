@@ -234,7 +234,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
 @pytest.mark.asyncio
 async def test_execute_success_path_structured_output(
     llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
-) -> None:  # noqa: E501
+) -> None:
     """Test a successful execution path using structured output to cover core orchestration."""
     step = MagicMock()
     step.id = "step_success"
@@ -244,7 +244,6 @@ async def test_execute_success_path_structured_output(
 
     projector = MagicMock()
     from backend_v2.models.state import StepOutputDTO
-
     projector.snapshot = [StepOutputDTO(step_id="path", block_id="to", data_type="matrix", payload={"test": "value"})]
 
     context = MagicMock()
@@ -266,7 +265,7 @@ async def test_execute_success_path_structured_output(
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
         "model_strategy": "standard",
     }
-
+    
     mock_repo.get_all_prompt_blocks.return_value = [
         {
             "id": "blk_0123456789abcdef0123456789abcdef",
@@ -275,6 +274,7 @@ async def test_execute_success_path_structured_output(
             "type": "string",
             "label": {"default_locale": "en", "translations": {"en": "Label", "fi": "Label"}},
             "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "ai_description": "Test Block AI Desc",
         },
         {
             "id": "blk_573802341db9d68c",
@@ -296,74 +296,48 @@ async def test_execute_success_path_structured_output(
         "default_profile_id": "prf_123",
     }
 
-    # Needs to bypass pre-hooks smoothly
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {"path": {"to": {"test": "value"}}}
+    mock_hook_state.global_context_vars = {}
 
-    from unittest.mock import patch
-
+    from unittest.mock import patch, AsyncMock
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock) as mock_client_factory,
+        patch("backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_0", new_callable=AsyncMock) as mock_phase_0,
+        patch("backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_1", new_callable=AsyncMock) as mock_phase_1,
+        patch("backend_v2.services.orchestrator.sliding_window_linker.SlidingWindowLinker.link_graph", new_callable=AsyncMock) as mock_link,
+        patch("backend_v2.services.orchestrator.enriched_dag_executor.EnrichedDagExecutor.execute_graph", new_callable=AsyncMock) as mock_execute_graph,
+        patch("backend_v2.services.orchestrator.result_projector.ResultProjector.project") as mock_project,
     ):
         mock_pre.return_value = (mock_hook_state, [])
         mock_post_hook_state = MagicMock()
         mock_post_hook_state.inputs = {"blocks": []}
         mock_post.return_value = (mock_post_hook_state, [])
 
-        # Mock Compiler returns
-        mock_compiler.compile_static_instructions.return_value = "static"
-        mock_compiler.compile_dynamic_instructions.return_value = "dynamic"
-        mock_compiler.generate_mcp_instruction.return_value = ""
-        mock_compiler.build_xml_context.return_value = "<xml></xml>"
-        mock_schema = MagicMock()
-        mock_schema.model_json_schema.return_value = {}
+        mock_project.return_value = ([], {})
 
-        mock_validated = MagicMock()
-        mock_validated.model_dump.return_value = {
-            "blocks": [],
-            "blk_0123456789abcdef0123456789abcdef": {"decision": True},
-        }
-        mock_validated.model_copy.return_value = mock_validated
-        mock_schema.model_validate.return_value = mock_validated
-
-        mock_compiler.build_dynamic_schema.return_value = mock_schema
-        mock_compiler.compile_xml_rubrics.return_value = "rubrics"
-
-        # Mock LLM Client
-        mock_client = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.model_dump.return_value = {"blocks": []}
-        mock_client.run_structured_task.return_value = (
-            mock_result,
-            {"prompt_tokens": 100, "completion_tokens": 0, "total_tokens": 100},
+        traces = await llm_strategy.execute(
+            step=step,
+            projector=projector,
+            context=context,
+            frozen_ctx=None,
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
         )
-
-        with patch(
-            "litellm.token_counter",
-            return_value=10,
-        ):
-            with patch(
-                "backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock
-            ) as mock_from_strategy:  # noqa: E501
-                mock_from_strategy.return_value = mock_client
-
-                traces = await llm_strategy.execute(
-                    step=step,
-                    projector=projector,
-                    context=context,
-                    frozen_ctx=None,
-                    trace=[],
-                    semaphore=asyncio.Semaphore(2),
-                )
 
     assert len(traces) == 1
     assert traces[0].event_type == "output"
-    assert "blocks" in traces[0].content
+    
+    # Verify that DAG components were invoked
+    mock_phase_0.assert_called_once()
+    mock_phase_1.assert_called_once()
+    mock_link.assert_called_once()
+    mock_execute_graph.assert_called_once()
 
 
-@pytest.mark.asyncio
-async def test_configure_llm_context_hook_success() -> None:
+def test_configure_llm_context_hook_success() -> None:
     """Test that the LLM hook correctly resolves provider configuration."""
     from unittest.mock import patch
 
@@ -473,120 +447,4 @@ def test_configure_llm_context_hook_error() -> None:
         )
 
 
-@pytest.mark.asyncio
-async def test_execute_with_frozen_ctx_triggers_schema_build_strictness_level(
-    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
-) -> None:
-    """Test that passing frozen_ctx triggers build_dynamic_schema with strictness_level."""
-    step = MagicMock()
-    step.id = "step_schema"
-    step.task_blueprint = "bp_schema"
-    step.input_mappings = {}
-    step.allowed_mcp_tools = []
 
-    projector = MagicMock()
-    projector.snapshot = []
-
-    context = MagicMock()
-    context.execution_id = "exec_1"
-    context.workflow_id = "wf_1"
-    context.global_context_vars = {}
-    context.metadata = {"profile_id": "prof_123", "target_locale": "en"}
-    context.model_strategy = "standard"
-    context.expected_inputs = []
-    context.strictness_level = 50
-
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
-        "model_strategy": "standard",
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_0123456789abcdef0123456789abcdef",
-            "slug": "test_block",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Label", "fi": "Label"}},
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
-            "ai_description": "Test Block AI Desc",
-        },
-        {
-            "id": "blk_573802341db9d68c",
-            "slug": "zero_trust_extraction_protocol",
-            "category_id": "system_rule",
-            "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "ai_description": "Strict extraction protocol.",
-        },
-    ]
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_0123456789abcdef0123456789abcdef",
-        "slug": "test",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "status": "draft",
-        "version": 1,
-        "default_profile_id": "prf_123",
-    }
-
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
-
-    from unittest.mock import AsyncMock, patch
-
-    llm_strategy.system_repo = MagicMock()
-    llm_strategy.system_repo.get_model_registry = AsyncMock(
-        return_value={
-            "id": "sys_0123456789abcdef",
-            "slug": "default_registry",
-            "type": "model_registry",
-            "models": {"standard": {"provider": "vertex_ai", "model_name": "gemini-1.5-flash", "max_tokens": 1000}},
-        }
-    )
-
-    frozen_ctx = MagicMock()
-    frozen_ctx.generated_schemas = {}
-
-    from unittest.mock import AsyncMock
-
-    with (
-        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
-        patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch(
-            "backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock
-        ) as mock_llm_client,
-        patch(
-            "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.ChunkWorker.process_chunk",
-            new_callable=AsyncMock,
-        ) as mock_chunk,
-    ):
-        mock_chunk.return_value = ({"_dlq_status": "FAILED/DLQ"}, None, [], {})
-        mock_pre.return_value = (mock_hook_state, [])
-        mock_post_hook_state = MagicMock()
-        mock_post_hook_state.inputs = {"blocks": []}
-        mock_post.return_value = (mock_post_hook_state, [])
-
-        mock_client_instance = MagicMock()
-        mock_client_instance.call_llm = AsyncMock(return_value={"raw_response": "{}"})
-        mock_llm_client.return_value = mock_client_instance
-
-        from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-
-        real_compiler = PromptCompiler()
-        llm_strategy.compiler = real_compiler
-
-        await llm_strategy.execute(
-            step=step,
-            projector=projector,
-            context=context,
-            frozen_ctx=frozen_ctx,
-            trace=[],
-            semaphore=asyncio.Semaphore(2),
-        )

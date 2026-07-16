@@ -42,9 +42,9 @@ async def test_topological_evaluator_successful_run(evaluator: TopologicalEvalua
         ),
     ]
 
-    async def mock_callback(node: LinkedAtomGraph) -> ExecutionStatus:
+    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         await asyncio.sleep(0.01)
-        return ExecutionStatus.PASSED
+        return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
     results = await evaluator.evaluate_graph(nodes, mock_callback)
 
@@ -71,10 +71,14 @@ async def test_topological_evaluator_short_circuit(evaluator: TopologicalEvaluat
         ),
     ]
 
-    async def mock_callback(node: LinkedAtomGraph) -> ExecutionStatus:
-        if node.atom.tda_id == "tda_11111111111111111111111111111111":
-            return ExecutionStatus.FAILED
-        return ExecutionStatus.PASSED
+    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+        results = {}
+        for node in batch_nodes:
+            if node.atom.tda_id == "tda_11111111111111111111111111111111":
+                results[node.atom.tda_id] = (ExecutionStatus.FAILED, "FAILED", {})
+            else:
+                results[node.atom.tda_id] = (ExecutionStatus.PASSED, "PASSED", {})
+        return results
 
     results = await evaluator.evaluate_graph(nodes, mock_callback)
 
@@ -104,10 +108,14 @@ async def test_topological_evaluator_blocked_cascade(evaluator: TopologicalEvalu
         ),
     ]
 
-    async def mock_callback(node: LinkedAtomGraph) -> ExecutionStatus:
-        if node.atom.tda_id == "tda_11111111111111111111111111111111":
-            return ExecutionStatus.SYSTEM_ERROR
-        return ExecutionStatus.PASSED
+    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+        results = {}
+        for node in batch_nodes:
+            if node.atom.tda_id == "tda_11111111111111111111111111111111":
+                results[node.atom.tda_id] = (ExecutionStatus.SYSTEM_ERROR, "SYSTEM_ERROR", {})
+            else:
+                results[node.atom.tda_id] = (ExecutionStatus.PASSED, "PASSED", {})
+        return results
 
     results = await evaluator.evaluate_graph(nodes, mock_callback)
 
@@ -143,9 +151,9 @@ async def test_topological_evaluator_cycle_breaker(evaluator: TopologicalEvaluat
         ),
     ]
 
-    async def mock_callback(node: LinkedAtomGraph) -> ExecutionStatus:
+    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         # Should not be called due to cycle isolation
-        return ExecutionStatus.PASSED
+        return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
     results = await evaluator.evaluate_graph(nodes, mock_callback)
 

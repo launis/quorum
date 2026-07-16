@@ -91,8 +91,13 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
         # Given it's a hook, let's adapt it safely:
 
         # In a perfect refactor, hooks would be async. However, since they might be sync:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
+        try:
+            loop = asyncio.get_running_loop()
+            is_running = loop.is_running()
+        except RuntimeError:
+            is_running = False
+
+        if is_running:
             # Standard async runtime (e.g., FastAPI) - this hook should theoretically be async.
             # If the engine wraps this synchronously, this will fail. We'll use a direct fetch
             # avoiding the async API if we are inside a sync hook execution.

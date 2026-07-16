@@ -32,10 +32,10 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
     captured_callback = None
 
     async def fake_evaluate_graph(
-        self_obj: Any, nodes: list[LinkedAtomGraph], evaluation_callback: Any
+        self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
     ) -> dict[str, Any]:
         nonlocal captured_callback
-        captured_callback = evaluation_callback
+        captured_callback = batch_evaluation_callback
         return dummy_result
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph):
@@ -44,16 +44,22 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
 
     assert captured_callback is not None
 
-    mock_node = AsyncMock(spec=LinkedAtomGraph)
+    from backend_v2.models.dtos.dag_models import ExtractedAtom
+    mock_node = LinkedAtomGraph(
+        atom=ExtractedAtom(tda_id="tda_11111111111111111111111111111111", reasoning="reason", resolved_claim="claim", source_quote="quote", source_id="src"),
+        depends_on=[]
+    )
+    
     with patch(
-        "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.evaluate_atom_boolean",
+        "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.evaluate_atom_boolean_batch",
         new_callable=AsyncMock,
     ) as mock_sensor:
-        mock_sensor.return_value = ExecutionStatus.PASSED
-        status = await captured_callback(mock_node)
-        assert status == ExecutionStatus.PASSED
+        mock_sensor.return_value = {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})}
+        status_dict = await captured_callback([mock_node])
+        
+        assert status_dict["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
         mock_sensor.assert_called_once_with(
-            node=mock_node,
+            nodes=[mock_node],
             executor=mock_llm_executor,
             client=mock_llm_client,
             context_text="test text",

@@ -4,12 +4,19 @@ Combines the TopologicalEvaluator with the ExtractiveSensorService to evaluate
 a complete Enriched Atom Graph asynchronously.
 """
 
+import asyncio
+import logging
+
 from backend_v2.llm.client import LLMClient
+from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
+from backend_v2.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class EnrichedDagExecutor:
@@ -41,23 +48,62 @@ class EnrichedDagExecutor:
             A dictionary mapping tda_id to its final AtomExecutionState.
         """
 
-        async def evaluation_callback(node: LinkedAtomGraph) -> tuple[ExecutionStatus, str | None, dict[str, str]]:
-            """Callback injected into TopologicalEvaluator for node evaluation.
+        async def process_chunk(
+            chunk: list[LinkedAtomGraph],
+        ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+            try:
+                return await ExtractiveSensorService.evaluate_atom_boolean_batch(
+                    nodes=chunk,
+                    executor=self._llm_executor,
+                    client=self._llm_client,
+                    context_text=source_text,
+                )
+            except Exception as e:
+                cause = e.__cause__ or e
+                if _is_transient_llm_error(cause):
+                    # Bubble up transient network errors for Arq retry.
+                    # This raises out of the TaskGroup, throwing an ExceptionGroup
+                    # which bypasses TopologicalEvaluator's AppException handler.
+                    logger.warning("Transient error detected in chunk, bubbling up: %s", str(cause))
+                    raise e
+
+                # Persistent schema extraction failure (ValidationError, etc.)
+                # Mark all requested atoms in the batch as SYSTEM_ERROR.
+                logger.error("Persistent error in chunk evaluation: %s", str(e))
+                return {
+                    node.atom.tda_id: (ExecutionStatus.SYSTEM_ERROR, f"EVALUATION_CRASH: {str(e)}", {})
+                    for node in chunk
+                }
+
+        async def batch_evaluation_callback(
+            wave_nodes: list[LinkedAtomGraph],
+        ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+            """Callback injected into TopologicalEvaluator for wave-based evaluation.
+
+            Slices the topological wave into batches of sensor_batch_size to
+            avoid rate limits, evaluating them concurrently via a TaskGroup.
 
             Args:
-                node: The atom graph node to evaluate.
+                wave_nodes: A list of nodes from a single topological wave.
 
             Returns:
-                The evaluated ExecutionStatus.
+                A dictionary mapping tda_id to its evaluated ExecutionStatus, reasoning, and extensions.
             """
-            return await ExtractiveSensorService.evaluate_atom_boolean(
-                node=node,
-                executor=self._llm_executor,
-                client=self._llm_client,
-                context_text=source_text,
-            )
+            settings = get_settings()
+            batch_size = settings.sensor_batch_size
+            chunks = [wave_nodes[i : i + batch_size] for i in range(0, len(wave_nodes), batch_size)]
+
+            merged_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+
+            async with asyncio.TaskGroup() as tg:
+                tasks = [tg.create_task(process_chunk(chunk)) for chunk in chunks]
+
+            for task in tasks:
+                merged_results.update(task.result())
+
+            return merged_results
 
         return await self._topological_evaluator.evaluate_graph(
             nodes=nodes,
-            evaluation_callback=evaluation_callback,
+            batch_evaluation_callback=batch_evaluation_callback,
         )
