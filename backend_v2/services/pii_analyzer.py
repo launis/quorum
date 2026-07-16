@@ -1,4 +1,5 @@
 import logging
+import threading
 from functools import lru_cache
 from typing import Any
 
@@ -17,6 +18,7 @@ class PIIAnalyzerService:
         self._analyzer: Any | None = None
         self._anonymizer: Any | None = None
         self._nlp_models: dict[str, Any] = {}
+        self._lock = threading.Lock()
 
     def _ensure_initialized(self) -> None:
         """Initializes Presidio NLP and Anonymizer engines if not already loaded.
@@ -27,56 +29,60 @@ class PIIAnalyzerService:
         Raises:
             AppException: If the required SpaCy models cannot be found or loaded.
         """
-        if self._analyzer is None or self._anonymizer is None:
-            logger.info("Initializing Microsoft Presidio and loading SpaCy model into memory...")
-            try:
-                # Silence internal verbose Presidio loggers (e.g. "Loaded recognizer ...")
-                logging.getLogger("presidio-analyzer").setLevel(logging.ERROR)
-                logging.getLogger("presidio_analyzer").setLevel(logging.ERROR)
-                logging.getLogger("presidio-anonymizer").setLevel(logging.ERROR)
-                logging.getLogger("presidio_anonymizer").setLevel(logging.ERROR)
+        if self._analyzer is not None and self._anonymizer is not None:
+            return
 
-                from presidio_analyzer import AnalyzerEngine
-                from presidio_analyzer.nlp_engine import NlpEngineProvider
-                from presidio_anonymizer import AnonymizerEngine
+        with self._lock:
+            if self._analyzer is None or self._anonymizer is None:
+                logger.info("Initializing Microsoft Presidio and loading SpaCy model into memory...")
+                try:
+                    # Silence internal verbose Presidio loggers (e.g. "Loaded recognizer ...")
+                    logging.getLogger("presidio-analyzer").setLevel(logging.ERROR)
+                    logging.getLogger("presidio_analyzer").setLevel(logging.ERROR)
+                    logging.getLogger("presidio-anonymizer").setLevel(logging.ERROR)
+                    logging.getLogger("presidio_anonymizer").setLevel(logging.ERROR)
 
-                configuration = {
-                    "nlp_engine_name": "spacy",
-                    "models": [
-                        {"lang_code": "en", "model_name": "en_core_web_lg"},
-                        {"lang_code": "fi", "model_name": "fi_core_news_lg"},
-                    ],
-                    "ner_model_configuration": {
-                        "labels_to_ignore": [
-                            "CARDINAL",
-                            "MONEY",
-                            "FAC",
-                            "PRODUCT",
-                            "WORK_OF_ART",
-                            "LAW",
-                            "PERCENT",
-                            "QUANTITY",
-                            "ORDINAL",
-                            "LANGUAGE",
-                            "EVENT",
-                            "LOC",
-                            "NORP",
-                        ]
-                    },
-                }
-                provider = NlpEngineProvider(nlp_configuration=configuration)
-                nlp_engine = provider.create_engine()
+                    from presidio_analyzer import AnalyzerEngine
+                    from presidio_analyzer.nlp_engine import NlpEngineProvider
+                    from presidio_anonymizer import AnonymizerEngine
 
-                self._analyzer = AnalyzerEngine(nlp_engine=nlp_engine, supported_languages=["en", "fi"])
-                AnonymizerClass: Any = AnonymizerEngine
-                self._anonymizer = AnonymizerClass()
-                logger.info("Presidio initialized successfully.")
-            except OSError as e:
-                msg = "Presidio model 'en_core_web_lg' or 'fi_core_news_lg' not found. Please install the model via spacy download."
-                logger.error("[PIIAnalyzerService] %s: %s - Error: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
-                ) from e
+                    configuration = {
+                        "nlp_engine_name": "spacy",
+                        "models": [
+                            {"lang_code": "en", "model_name": "en_core_web_lg"},
+                            {"lang_code": "fi", "model_name": "fi_core_news_lg"},
+                        ],
+                        "ner_model_configuration": {
+                            "labels_to_ignore": [
+                                "CARDINAL",
+                                "MONEY",
+                                "FAC",
+                                "PRODUCT",
+                                "WORK_OF_ART",
+                                "LAW",
+                                "PERCENT",
+                                "QUANTITY",
+                                "ORDINAL",
+                                "LANGUAGE",
+                                "EVENT",
+                                "LOC",
+                                "NORP",
+                            ]
+                        },
+                    }
+                    provider = NlpEngineProvider(nlp_configuration=configuration)
+                    nlp_engine = provider.create_engine()
+
+                    self._analyzer = AnalyzerEngine(nlp_engine=nlp_engine, supported_languages=["en", "fi"])
+                    AnonymizerClass: Any = AnonymizerEngine
+                    self._anonymizer = AnonymizerClass()
+                    logger.info("Presidio initialized successfully.")
+                except OSError as e:
+                    msg = "Presidio model 'en_core_web_lg' or 'fi_core_news_lg' not found. Please install the model via spacy download."
+                    logger.error("[PIIAnalyzerService] %s: %s - Error: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                    ) from e
 
     def _get_spacy_model(self, language: str) -> Any:
         """Retrieves and lazily loads the SpaCy model for the specified language.
@@ -90,20 +96,24 @@ class PIIAnalyzerService:
         Raises:
             AppException: If the requested SpaCy model cannot be found.
         """
-        if language not in self._nlp_models:
-            import spacy
+        if language in self._nlp_models:
+            return self._nlp_models[language]
 
-            logger.info("Loading SpaCy model for language '%s'...", language)
-            model_name = "fi_core_news_lg" if language == "fi" else "en_core_web_lg"
-            try:
-                self._nlp_models[language] = spacy.load(model_name)
-            except OSError as e:
-                msg = f"SpaCy model '{model_name}' not found. Please install it."
-                logger.error("[PIIAnalyzerService] %s: %s - Error: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
-                ) from e
-        return self._nlp_models[language]
+        with self._lock:
+            if language not in self._nlp_models:
+                import spacy
+
+                logger.info("Loading SpaCy model for language '%s'...", language)
+                model_name = "fi_core_news_lg" if language == "fi" else "en_core_web_lg"
+                try:
+                    self._nlp_models[language] = spacy.load(model_name)
+                except OSError as e:
+                    msg = f"SpaCy model '{model_name}' not found. Please install it."
+                    logger.error("[PIIAnalyzerService] %s: %s - Error: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                    ) from e
+            return self._nlp_models[language]
 
     def smooth_text(self, text: str, language: str) -> str:
         """Runs raw text through SpaCy to merge hyphenations and broken PDF lines.

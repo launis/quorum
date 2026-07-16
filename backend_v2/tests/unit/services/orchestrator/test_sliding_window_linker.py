@@ -78,3 +78,34 @@ def test_sliding_window_linker_get_windows_small() -> None:
     windows = linker._get_sliding_windows(chunks)
     assert len(windows) == 1
     assert len(windows[0]) == 2
+
+
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.services.orchestrator.sliding_window_linker import LinkerResponseDTO
+
+
+def test_linker_response_dto_schema_no_dicts() -> None:
+    payload = {
+        "dependencies": [
+            {
+                "child_alias": "a1",
+                "parent_dependencies": [
+                    {
+                        "edge_reasoning": "Logical dependency",
+                        "tda_id": "a0",
+                        "expected_status": ExecutionStatus.PASSED,
+                    }
+                ],
+            }
+        ]
+    }
+
+    model = LinkerResponseDTO.model_validate(payload)
+
+    assert len(model.dependencies) == 1
+    assert model.dependencies[0].child_alias == "a1"
+    assert len(model.dependencies[0].parent_dependencies) == 1
+    assert model.dependencies[0].parent_dependencies[0].tda_id == "a0"
+
+    schema = LinkerResponseDTO.model_json_schema()
+    assert schema["properties"]["dependencies"]["type"] == "array"

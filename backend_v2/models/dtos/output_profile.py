@@ -112,6 +112,10 @@ class OutputProfileCreateDTO(V2CoreBase):
         list[dict[str, Any]],
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
     ]
+    matrix_column_labels: Annotated[
+        dict[str, I18nText] | None,
+        Field(default=None, description="SDUI control of the matrix table headers."),
+    ]
 
 
 class OutputProfileUpdateDTO(V2CoreBase):
@@ -200,6 +204,10 @@ class OutputProfileUpdateDTO(V2CoreBase):
         list[dict[str, Any]] | None,
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
     ]
+    matrix_column_labels: Annotated[
+        dict[str, I18nText] | None,
+        Field(default=None, description="SDUI control of the matrix table headers."),
+    ]
 
 
 class OutputProfileResponseDTO(BaseResponseDTO):
@@ -249,3 +257,4 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     scoring_strategy: LaxScoringStrategy | None = None
     layouts: list[OutputLayoutBlock]
     content_blocks: list[dict[str, Any]] = Field(default_factory=list)
+    matrix_column_labels: dict[str, I18nText] | None = None

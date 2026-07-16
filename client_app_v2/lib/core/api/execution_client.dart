@@ -5,7 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'execution_client.g.dart';
 
 /// Execution API Client Provider
-@riverpod
+@Riverpod(keepAlive: true)
 ExecutionClient executionClient(Ref ref) {
   return ExecutionClient(ref.watch(apiClientProvider));
 }

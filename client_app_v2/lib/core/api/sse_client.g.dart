@@ -25,7 +25,7 @@ final class SseClientProvider
         argument: null,
         retry: null,
         name: r'sseClientProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -52,4 +52,4 @@ final class SseClientProvider
   }
 }
 
-String _$sseClientHash() => r'652cbc0f5b8db900ea207917da0a5e5aa659ef15';
+String _$sseClientHash() => r'9fd305b8466aa78ee97aaf5c6fe50b711cdd77ba';

@@ -79,6 +79,17 @@
         <mandatory_pattern>All internal codebase documentation, inline comments, and description fields MUST be written exclusively in English. The word "Epic" MUST NOT be used anywhere in the codebase to describe tasks or fields.</mandatory_pattern>
         <catastrophic_reason>Hardcoding non-English terminology or agile tracking terms like 'Epic' pollutes the codebase with ephemeral/localized metadata that degrades over time and confuses cross-functional developers.</catastrophic_reason>
     </rule_block>
+    <rule_block id="dio_duration_zero_ban">
+        <banned_pattern>Setting Dio network timeouts (e.g., `receiveTimeout`, `connectTimeout`) to `Duration.zero` to disable them.</banned_pattern>
+        <mandatory_pattern>If you need to disable a timeout in Dio 5.0+, you MUST set it to `null`. Setting it to `Duration.zero` causes an immediate 0-millisecond timeout that silently aborts the socket without throwing an exception.</mandatory_pattern>
+        <catastrophic_reason>A 0ms timeout creates a "Fail-Silent" bug where long-running streams (like SSE) drop instantly but trigger `onDone` instead of `onError`, permanently freezing the UI.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="riverpod_autodispose_read_ban">
+        <banned_pattern>Using `ref.read` on an `autoDispose` provider (the default `@riverpod` without keepAlive) inside a method where no active UI component is `watch`ing it.</banned_pattern>
+        <mandatory_pattern>If a stateless service or client (e.g. `SseClient`) is instantiated via a Provider and needs to be imperatively accessed via `ref.read` in a controller method, its Provider MUST be explicitly marked with `@Riverpod(keepAlive: true)`. Otherwise, you must pass the injected dependency explicitly or use `ref.watch` inside the Provider's build method.</mandatory_pattern>
+        <catastrophic_reason>In Riverpod 3.3, reading an `autoDispose` provider that has no active listeners creates the instance and immediately destroys it on the same millisecond, causing catastrophic state loss and silent connection failures.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

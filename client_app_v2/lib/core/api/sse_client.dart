@@ -4,12 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'sse_client.g.dart';
 
 /// SSE API Client Provider
-@riverpod
+@Riverpod(keepAlive: true)
 SseClient sseClient(Ref ref) {
   return SseClient(
     ref.watch(apiClientProvider),
@@ -36,8 +37,9 @@ class SseClient {
       options: Options(
         responseType: ResponseType.stream,
         headers: {'Accept': 'text/event-stream', 'Cache-Control': 'no-cache'},
-        receiveTimeout: Duration
-            .zero, // Disable Dio 5-min timeout for long-running AI tasks
+        receiveTimeout: Duration(
+          seconds: SystemConcurrency.sseTimeoutSeconds.value,
+        ),
       ),
     );
 

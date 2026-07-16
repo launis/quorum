@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -27,17 +28,22 @@ class I18nTextField extends StatefulWidget {
 
 class _I18nTextFieldState extends State<I18nTextField> {
   late TextEditingController _defaultController;
+  late FocusNode _defaultFocusNode;
   late Map<String, String> _translations;
   late String _defaultLocale;
+  Timer? _debounceTimer;
 
   // Controllers for active inline translations
   late Map<String, TextEditingController> _translationControllers;
+  late Map<String, FocusNode> _translationFocusNodes;
 
   @override
   void initState() {
     super.initState();
     _translations = {};
     _translationControllers = {};
+    _translationFocusNodes = {};
+    _defaultFocusNode = FocusNode();
 
     if (widget.initialData != null) {
       _defaultLocale = widget.initialData!.defaultLocale;
@@ -48,9 +54,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
         _translations[langCode] = text;
 
         if (langCode != _defaultLocale) {
-          final ctrl = TextEditingController(text: text);
-          ctrl.addListener(() => _onTranslationChanged(langCode, ctrl.text));
-          _translationControllers[langCode] = ctrl;
+          _setupTranslationController(langCode, text);
         }
       });
     } else {
@@ -61,7 +65,25 @@ class _I18nTextFieldState extends State<I18nTextField> {
       text: _translations[_defaultLocale] ?? '',
     );
 
-    _defaultController.addListener(_emitChanges);
+    _defaultController.addListener(_onDefaultControllerChanged);
+    _defaultFocusNode.addListener(() {
+      if (!_defaultFocusNode.hasFocus) _forceEmit();
+    });
+  }
+
+  void _setupTranslationController(String langCode, String text) {
+    final ctrl = TextEditingController(text: text);
+    final fn = FocusNode();
+    ctrl.addListener(() => _onTranslationChanged(langCode, ctrl.text));
+    fn.addListener(() {
+      if (!fn.hasFocus) _forceEmit();
+    });
+    _translationControllers[langCode] = ctrl;
+    _translationFocusNodes[langCode] = fn;
+  }
+
+  void _onDefaultControllerChanged() {
+    _scheduleEmit();
   }
 
   void _onTranslationChanged(String langCode, String newText) {
@@ -71,7 +93,19 @@ class _I18nTextFieldState extends State<I18nTextField> {
     } else {
       _translations[langCode] = newText;
     }
-    _emitChangesSilent(); // Emit up DAG tree without resetting inputs
+    _scheduleEmit();
+  }
+
+  void _scheduleEmit() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 600), () {
+      _emitChangesSilent();
+    });
+  }
+
+  void _forceEmit() {
+    _debounceTimer?.cancel();
+    _emitChangesSilent();
   }
 
   void _emitChangesSilent() {
@@ -109,9 +143,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
         if (entry.key != _defaultLocale) {
           _translations[entry.key] = entry.value;
           if (!_translationControllers.containsKey(entry.key)) {
-            final ctrl = TextEditingController(text: entry.value);
-            ctrl.addListener(() => _onTranslationChanged(entry.key, ctrl.text));
-            _translationControllers[entry.key] = ctrl;
+            _setupTranslationController(entry.key, entry.value);
           } else if (_translationControllers[entry.key]!.text != entry.value) {
             _translationControllers[entry.key]!
                 .value = _translationControllers[entry.key]!.value.copyWith(
@@ -128,6 +160,8 @@ class _I18nTextFieldState extends State<I18nTextField> {
       for (final k in keysToRemove) {
         _translationControllers[k]?.dispose();
         _translationControllers.remove(k);
+        _translationFocusNodes[k]?.dispose();
+        _translationFocusNodes.remove(k);
         _translations.remove(k);
       }
 
@@ -142,18 +176,19 @@ class _I18nTextFieldState extends State<I18nTextField> {
 
   @override
   void dispose() {
-    _defaultController.removeListener(_emitChanges);
+    _debounceTimer?.cancel();
+    _defaultController.removeListener(_onDefaultControllerChanged);
     _defaultController.dispose();
+    _defaultFocusNode.dispose();
 
     for (final ctrl in _translationControllers.values) {
       ctrl.dispose();
     }
+    for (final fn in _translationFocusNodes.values) {
+      fn.dispose();
+    }
 
     super.dispose();
-  }
-
-  void _emitChanges() {
-    _emitChangesSilent();
   }
 
   void _addTranslation(String langCode, String text) {
@@ -163,14 +198,12 @@ class _I18nTextFieldState extends State<I18nTextField> {
       setState(() {
         _translations[langCode] = text;
         if (!_translationControllers.containsKey(langCode)) {
-          final ctrl = TextEditingController(text: text);
-          ctrl.addListener(() => _onTranslationChanged(langCode, ctrl.text));
-          _translationControllers[langCode] = ctrl;
+          _setupTranslationController(langCode, text);
         } else {
           _translationControllers[langCode]!.text = text;
         }
       });
-      _emitChanges();
+      _forceEmit();
     }
   }
 
@@ -179,8 +212,10 @@ class _I18nTextFieldState extends State<I18nTextField> {
       _translations.remove(langCode);
       _translationControllers[langCode]?.dispose();
       _translationControllers.remove(langCode);
+      _translationFocusNodes[langCode]?.dispose();
+      _translationFocusNodes.remove(langCode);
     });
-    _emitChanges();
+    _forceEmit();
   }
 
   void _showAddTranslationDialog() {
@@ -268,6 +303,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
             const SizedBox(height: 12),
             TextField(
               controller: _defaultController,
+              focusNode: _defaultFocusNode,
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(
                   context,
@@ -345,6 +381,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
                         const SizedBox(height: 8),
                         TextField(
                           controller: entry.value,
+                          focusNode: _translationFocusNodes[entry.key],
                           decoration: InputDecoration(
                             hintText: AppLocalizations.of(context)!
                                 .i18nTranslateToPlaceholder(

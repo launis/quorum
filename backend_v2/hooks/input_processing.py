@@ -8,6 +8,7 @@ and unstructured `reflection_text` strings into a unified text format for downst
 import asyncio
 import logging
 import re
+import time
 from typing import Any
 
 from fastapi import status
@@ -297,13 +298,19 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         if workflow.enable_semantic_smoothing and resolved_text:
             pii_service = get_pii_service()
             logger.info("[InputProcessingHook] Running Semantic Smoothing for %s", key)
+            start_time = time.perf_counter()
             resolved_text = await asyncio.to_thread(pii_service.smooth_text, resolved_text, language)
+            duration = time.perf_counter() - start_time
+            logger.info("[InputProcessingHook] Semantic Smoothing for %s completed in %.2fs", key, duration)
 
         # --- 2. EAGER ANONYMIZATION (Presidio - IN BACKGROUND THREAD) ---
         if workflow.enable_eager_anonymization and resolved_text:
             pii_service = get_pii_service()
             logger.info("[InputProcessingHook] Running Eager Anonymization for %s", key)
+            start_time = time.perf_counter()
             resolved_text = await asyncio.to_thread(pii_service.mask_pii, resolved_text, language)
+            duration = time.perf_counter() - start_time
+            logger.info("[InputProcessingHook] Eager Anonymization for %s completed in %.2fs", key, duration)
 
         # 4. Inject `ai_description` (The English-Only Mandate)
         if expected_input.ai_description is not None:

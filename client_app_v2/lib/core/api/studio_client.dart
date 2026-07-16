@@ -5,7 +5,7 @@ import 'package:client_app/core/network/api_client.dart';
 part 'studio_client.g.dart';
 
 /// Studio API Client Provider
-@riverpod
+@Riverpod(keepAlive: true)
 StudioClient studioClient(Ref ref) {
   return StudioClient(ref.watch(apiClientProvider));
 }

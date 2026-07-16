@@ -23,6 +23,8 @@ class ExpectedInputEditorBox extends StatefulWidget {
 class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
   late TextEditingController _keyController;
   late TextEditingController _aiDescController;
+  late FocusNode _keyFocusNode;
+  late FocusNode _aiDescFocusNode;
 
   @override
   void initState() {
@@ -31,6 +33,22 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
     _aiDescController = TextEditingController(
       text: widget.inputDef.aiDescription ?? '',
     );
+    _keyFocusNode = FocusNode()..addListener(_onKeyFocusChange);
+    _aiDescFocusNode = FocusNode()..addListener(_onAiDescFocusChange);
+  }
+
+  void _onKeyFocusChange() {
+    if (!_keyFocusNode.hasFocus) {
+      _update(widget.inputDef.copyWith(inputKey: _keyController.text.trim()));
+    }
+  }
+
+  void _onAiDescFocusChange() {
+    if (!_aiDescFocusNode.hasFocus) {
+      _update(
+        widget.inputDef.copyWith(aiDescription: _aiDescController.text.trim()),
+      );
+    }
   }
 
   @override
@@ -46,6 +64,10 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
 
   @override
   void dispose() {
+    _keyFocusNode.removeListener(_onKeyFocusChange);
+    _aiDescFocusNode.removeListener(_onAiDescFocusChange);
+    _keyFocusNode.dispose();
+    _aiDescFocusNode.dispose();
     _keyController.dispose();
     _aiDescController.dispose();
     super.dispose();
@@ -77,20 +99,12 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Focus(
-                    onFocusChange: (f) {
-                      if (!f) {
-                        _update(
-                          def.copyWith(inputKey: _keyController.text.trim()),
-                        );
-                      }
-                    },
-                    child: TextField(
-                      controller: _keyController,
-                      decoration: InputDecoration(
-                        labelText: l10n.workflowInputKeyLabel,
-                        border: const OutlineInputBorder(),
-                      ),
+                  child: TextField(
+                    controller: _keyController,
+                    focusNode: _keyFocusNode,
+                    decoration: InputDecoration(
+                      labelText: l10n.workflowInputKeyLabel,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -210,22 +224,14 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               },
             ),
             const SizedBox(height: 16),
-            Focus(
-              onFocusChange: (f) {
-                if (!f) {
-                  _update(
-                    def.copyWith(aiDescription: _aiDescController.text.trim()),
-                  );
-                }
-              },
-              child: TextField(
-                controller: _aiDescController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: l10n.workflowInputAiDescriptionTitle,
-                  border: const OutlineInputBorder(),
-                  hintText: 'Always write prompt logic in English',
-                ),
+            TextField(
+              controller: _aiDescController,
+              focusNode: _aiDescFocusNode,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: l10n.workflowInputAiDescriptionTitle,
+                border: const OutlineInputBorder(),
+                hintText: 'Always write prompt logic in English',
               ),
             ),
             Padding(
@@ -302,21 +308,27 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                     Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
-                            initialValue: qDef.questionId,
-                            decoration: InputDecoration(
-                              labelText: l10n.workflowInputQuestionIdLabel,
-                            ),
-                            onChanged: (val) {
-                              questions[idx] = qDef.copyWith(
-                                questionId: val.trim(),
-                              );
-                              _update(
-                                def.copyWith(
-                                  questionnaireDefinition: questions,
-                                ),
-                              );
+                          child: Focus(
+                            onFocusChange: (hasFocus) {
+                              if (!hasFocus) {
+                                _update(
+                                  def.copyWith(
+                                    questionnaireDefinition: questions,
+                                  ),
+                                );
+                              }
                             },
+                            child: TextFormField(
+                              initialValue: qDef.questionId,
+                              decoration: InputDecoration(
+                                labelText: l10n.workflowInputQuestionIdLabel,
+                              ),
+                              onChanged: (val) {
+                                questions[idx] = qDef.copyWith(
+                                  questionId: val.trim(),
+                                );
+                              },
+                            ),
                           ),
                         ),
                         IconButton(

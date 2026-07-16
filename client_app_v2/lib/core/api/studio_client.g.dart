@@ -25,7 +25,7 @@ final class StudioClientProvider
         argument: null,
         retry: null,
         name: r'studioClientProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -52,4 +52,4 @@ final class StudioClientProvider
   }
 }
 
-String _$studioClientHash() => r'07e97f313de3e64ce0b6553bd5e8e534ebf6d109';
+String _$studioClientHash() => r'e1a37783d61e279b0fa80fee6d4e41fd316d21a9';

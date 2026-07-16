@@ -36,14 +36,26 @@ class LinkerEdgeDTO(BaseModel):
     expected_status: ExecutionStatus = Field(default=ExecutionStatus.PASSED)
 
 
+class LinkerDependencyDTO(BaseModel):
+    """Mapping between a child alias and its parent dependencies."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    child_alias: str = Field(description="The alias of the child claim (e.g., 'a1').")
+    parent_dependencies: list[LinkerEdgeDTO] = Field(
+        default_factory=list,
+        description="List of parent dependencies for this child.",
+    )
+
+
 class LinkerResponseDTO(BaseModel):
     """Temporary DTO for LLM structured output before hydration."""
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
-    dependencies: dict[str, list[LinkerEdgeDTO]] = Field(
-        default_factory=dict,
-        description="Map where key is the child alias, and value is a list of its parent dependencies.",
+    dependencies: list[LinkerDependencyDTO] = Field(
+        default_factory=list,
+        description="List of dependencies mapping child aliases to parent aliases.",
     )
 
 
@@ -160,7 +172,10 @@ class SlidingWindowLinker:
                 ) from e
 
             # Hydrate and merge edges
-            for child_alias, deps in response.dependencies.items():
+            for dep_mapping in response.dependencies:
+                child_alias = dep_mapping.child_alias
+                deps = dep_mapping.parent_dependencies
+
                 child_tda_id = alias_engine.resolve_alias(child_alias)
                 child_atom = next((a for a in window_atoms if a.tda_id == child_tda_id), None)
                 if not child_atom:

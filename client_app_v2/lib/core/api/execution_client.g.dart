@@ -26,7 +26,7 @@ final class ExecutionClientProvider
         argument: null,
         retry: null,
         name: r'executionClientProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -53,4 +53,4 @@ final class ExecutionClientProvider
   }
 }
 
-String _$executionClientHash() => r'11494c07a1dfb1e741d769640219fe8a90c694aa';
+String _$executionClientHash() => r'4a525361bde7e206b0c9864764d0a0188e63a9b5';
