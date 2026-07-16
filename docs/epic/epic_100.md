@@ -22,9 +22,14 @@ The system will exclusively use the primary strategy model (resolved via `LLMCli
 
 **Addressing Root-JSON Truncation:** To ensure the returned JSON array never truncates and causes a root-level `JSONDecodeError`, the batch size must be mathematically strictly bounded. A single evaluation requires at most ~300 tokens (chain-of-thought + boolean). By capping the batch size strictly at 15 atoms per request, the maximum theoretical output is ~4500 tokens, completely insulating the request from the 8192 token ceiling. 
 
-Inside this safe boundary, we will implement **Resilient Batch Parsing**. The backend will validate the results atom-by-atom in a loop, ensuring that if one atom fails Pydantic validation due to a syntax hallucination, only that specific atom is marked as failed (`ExecutionStatus.SYSTEM_ERROR`), salvaging the rest of the batch. The batch size MUST be defined in `settings.py` as `SENSOR_BATCH_SIZE` (Global Config Sovereignty mandate).
+**Atomic Batch Failure (Fail-Fast):** Because we use `execute_structured_task()` with a strict Pydantic `List[BooleanEvaluationResult]` response model, Pydantic will evaluate the entire array at once. If the LLM hallucinates a missing key or type error in even a single atom, Pydantic will raise a `ValidationError` for the *entire list*. We will NOT attempt to "salvage" the batch using custom JSON parsing loops, as that violates the `llm_structured_execution_mandate`. Instead, we enforce **Atomic Batch Failure**: if the batch schema fails, all 15 atoms in that batch are immediately marked as `ExecutionStatus.SYSTEM_ERROR` in the `TopologicalEvaluator`. Because we use Native Structured Outputs, the probability of schema violations is statistically near zero, making this aggressive Fail-Fast approach highly efficient.
 
-**Structured Output Compliance:** The batched response MUST use `LLMTaskExecutor.execute_structured_task()` with a Pydantic `response_model`. Manual `json.loads()` parsing is strictly forbidden (rule `llm_structured_execution_mandate`).
+**Dynamic Batch Dispatch (Topological Deadlock Prevention):** The batching queue MUST NOT block indefinitely waiting for exactly 15 atoms. Because the DAG releases atoms layer-by-layer, a specific topological layer might only have 6 independent atoms. If the batcher waits for 15, the DAG will deadlock forever (since the next layer cannot start until the first 6 finish). The `EnrichedDagExecutor` MUST implement a **Debounce/Timeout Flush** (e.g., waiting `0.1s` for new atoms). The batch is dispatched to the LLM immediately if either the capacity (15) is reached, OR the debounce timeout expires, ensuring partial layers execute without delay.
+
+**Alias-Mapped Determinism & Deadlock Prevention:** If the LLM suffers from Attention Dilution and returns only 13 atoms instead of the requested 15, relying on index-based mapping will corrupt the data, and the 2 missing atoms will cause the `TopologicalEvaluator` to deadlock forever. To solve this:
+1. The batched Pydantic response MUST include the `alias` (e.g., `a0`) for each evaluation.
+2. The `EnrichedDagExecutor` MUST iterate over the *requested* batch (the 15 sent aliases), not the *returned* batch.
+3. Any requested alias missing from the LLM's response MUST be explicitly caught and marked as `ExecutionStatus.SYSTEM_ERROR`. This guarantees the DAG's `asyncio.Event` is set, completely eliminating the deadlock risk.
 
 **Cache Survival Strategy (Prefix-Aware Batching):** Naive batching poses a risk to cache hit rates if dynamic variables alter the prompt. To guarantee Vertex AI Context Cache survival (as per the KI rules), the heavy `source_text` MUST be anchored at the absolute beginning of the prompt. The batched atoms must be placed at the absolute end. Because Vertex AI caches based on precise prefix matching, the 2-million token document prefix will score a 100% cache hit, and only the lightweight batched atoms at the tail end will be processed dynamically.
 
@@ -49,8 +54,8 @@ The current `TopologicalEvaluator` evaluates atoms **one-by-one** via an `evalua
 - **Action:** Add `SENSOR_BATCH_SIZE` to `settings.py`. Create a new `evaluate_atoms_batch()` method using `execute_structured_task()`. Modify `EnrichedDagExecutor` to collect ready nodes and dispatch them in batches, while preserving the `TopologicalEvaluator` SSOT contract.
 
 ### Phase 3: Aggressive Pre-Flight Tuning
-- **Target:** `backend_v2/services/orchestrator/extractive_sensor_service.py`
-- **Action:** Wrap `_fuzzy_match` in `asyncio.to_thread()` for event loop safety. Fine-tune the syntactic anchor checking to fail assertions deterministically before LLM invocation.
+- **Target:** `backend_v2/services/orchestrator/extractive_sensor_service.py`, `backend_v2/settings.py`
+- **Action:** Add `PRE_FLIGHT_FUZZY_THRESHOLD` (e.g., 90) to `settings.py` (Config Sovereignty). Wrap `_fuzzy_match` in `asyncio.to_thread()` for event loop safety. Fine-tune the syntactic anchor checking to fail assertions deterministically using this centralized threshold before LLM invocation.
 
 ### Phase 4: Validation & Audit
 - Run the universal quality gate `scripts/backend_audit_loop.py` to enforce strict coverage and typing.
