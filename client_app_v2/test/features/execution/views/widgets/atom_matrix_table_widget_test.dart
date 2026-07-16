@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/features/execution/views/widgets/atom_matrix_table_widget.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/i18n_text.dart';

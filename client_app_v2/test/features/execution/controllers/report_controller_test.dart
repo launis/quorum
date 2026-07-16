@@ -50,7 +50,6 @@ class MockExecutionClientPending implements ExecutionClient {
   Future<Map<String, dynamic>> getExecutionStatus(String executionId) async =>
       {};
 
-  @override
   Future<Map<String, dynamic>> getScorecard(String executionId) async => {};
 
   @override

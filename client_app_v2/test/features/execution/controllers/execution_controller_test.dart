@@ -46,7 +46,6 @@ class MockExecutionClient implements ExecutionClient {
     return {'id': executionId, 'workflow_id': 'test_wf', 'status': 'passed'};
   }
 
-  @override
   Future<Map<String, dynamic>> getScorecard(String executionId) async {
     return {};
   }

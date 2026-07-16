@@ -26,6 +26,7 @@ void main() {
     final mockReportData = ReportDataDto(
       executionId: 'exec_123',
       workflowId: 'wf_abc',
+      profileId: 'prof_123',
       globalMetrics: const ExecutionMetricsDTO(
         totalAtoms: 10,
         evaluated: 8,

@@ -9,55 +9,69 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/models/enums.dart';
 
 void main() {
-  testWidgets('SduiNodeRenderer renders NACard correctly with grey theme and short circuit reasons', (WidgetTester tester) async {
-    const executionId = 'test_execution';
-    const tdaId = 'tda_123';
+  testWidgets(
+    'SduiNodeRenderer renders NACard correctly with grey theme and short circuit reasons',
+    (WidgetTester tester) async {
+      const executionId = 'test_execution';
+      const tdaId = 'tda_123';
 
-    // Mock AtomResultDTO
-    const result = AtomResultDTO(
-      tdaId: tdaId,
-      status: ExecutionStatus.nA,
-      shortCircuitReasonTdaIds: ['reason_1', 'reason_2'],
-    );
+      // Mock AtomResultDTO
+      const result = AtomResultDTO(
+        tdaId: tdaId,
+        status: ExecutionStatus.nA,
+        shortCircuitReasonTdaIds: ['reason_1', 'reason_2'],
+      );
 
-    // Mock HydratedAtomDTO for nACard
-    const hydratedAtom = HydratedAtomDTO(
-      sduiComponent: SDUIComponentType.nACard,
-      resolvedClaim: 'This step was skipped because of previous failures.',
-    );
+      // Mock HydratedAtomDTO for nACard
+      const hydratedAtom = HydratedAtomDTO(
+        sduiComponent: SDUIComponentType.nACard,
+        resolvedClaim: 'This step was skipped because of previous failures.',
+      );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          hydratedReferenceProvider(executionId, tdaId).overrideWithValue(hydratedAtom),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('en'),
-          home: Scaffold(
-            body: SduiNodeRenderer(
-              executionId: executionId,
-              result: result,
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            hydratedReferenceProvider(
+              executionId,
+              tdaId,
+            ).overrideWithValue(hydratedAtom),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: Scaffold(
+              body: SduiNodeRenderer(executionId: executionId, result: result),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Verify it renders the claim in italic
-    final claimFinder = find.text('This step was skipped because of previous failures.');
-    expect(claimFinder, findsOneWidget);
-    
-    final textWidget = tester.widget<Text>(claimFinder);
-    expect(textWidget.style?.fontStyle, FontStyle.italic);
+      // Verify it renders the claim in italic
+      final claimFinder = find.text(
+        'This step was skipped because of previous failures.',
+      );
+      expect(claimFinder, findsOneWidget);
 
-    // Verify it renders the short circuit reasons text
-    expect(find.text('N/A Cascade Reason: reason_1, reason_2'), findsOneWidget);
+      final textWidget = tester.widget<Text>(claimFinder);
+      expect(textWidget.style?.fontStyle, FontStyle.italic);
 
-    // Verify the block icon is present
-    expect(find.byIcon(Icons.block), findsOneWidget);
-  });
+      // Verify it renders the short circuit reasons text
+      expect(
+        find.text('N/A Cascade Reason: reason_1, reason_2'),
+        findsOneWidget,
+      );
+
+      // Verify the block icon is present
+      expect(find.byIcon(Icons.block), findsOneWidget);
+
+      // Golden Master UI Parity verification
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/n_a_card_snapshot.png'),
+      );
+    },
+  );
 }

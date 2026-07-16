@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 
 void main() {
   group('ScorecardAtomDto', () {

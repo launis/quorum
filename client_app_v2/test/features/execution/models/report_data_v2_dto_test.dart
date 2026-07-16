@@ -44,7 +44,7 @@ void main() {
 
       expect(dto.executionId, 'exec_123');
       expect(dto.workflowId, 'wf_abc');
-      expect(dto.globalMetrics.totalAtoms, 10);
+      expect(dto.globalMetrics?.totalAtoms, 10);
       expect(dto.globalSynthesis?.executiveSummary, 'All good');
       expect(dto.results.length, 1);
       expect(dto.results.first.status, ExecutionStatus.passed);
@@ -76,7 +76,7 @@ void main() {
         };
 
         // It should no longer crash, but successfully parse the allowed keys
-        final dto = ReportDataDto.fromBackendResponse(json);
+        final dto = ReportDataDto.fromJson(json);
 
         expect(dto.executionId, 'exec_123');
       },
@@ -104,7 +104,7 @@ void main() {
 
         expect(dto.executionId, 'exec_isolate');
         expect(dto.workflowId, 'wf_isolate');
-        expect(dto.globalMetrics.totalAtoms, 5);
+        expect(dto.globalMetrics?.totalAtoms, 5);
       },
     );
   });
