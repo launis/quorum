@@ -206,17 +206,19 @@ class AnchorValidationService:
                 # Deterministic Tiers based on locale and strictness modifier
                 base_threshold = get_lexical_fuzz_threshold(locale)
 
-                if strictness_level >= 100:
-                    modifier = 15.0
-                elif strictness_level >= 85:
-                    modifier = 10.0
-                elif strictness_level >= 50:
-                    modifier = -5.0
-                elif strictness_level >= 30:
-                    modifier = -20.0
-                else:
-                    modifier = -35.0
-                tier_threshold = min(100.0, base_threshold + modifier)
+                match strictness_level:
+                    case level if level >= 100:
+                        multiplier = 1.05
+                    case level if level >= 85:
+                        multiplier = 1.02
+                    case level if level >= 50:
+                        multiplier = 1.0
+                    case level if level >= 30:
+                        multiplier = 0.90
+                    case _:
+                        multiplier = 0.80
+
+                tier_threshold = min(100.0, base_threshold * multiplier)
 
                 if tier_threshold >= 100.0:
                     raise SemanticEvidenceError(
