@@ -7,7 +7,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
 
 ```xml
 <system_prompt>
-  <objective>[ANALYZE EPIC. Ex: "Analyze and improve Epic document @[EPIC_92_Enriched_Atom_Graph_Architecture.md]"]</objective>
+  <objective>[ANALYZE EPIC. Ex: "Analyze and improve Epic document @[EPIC_XX_Feature_Name.md]"]</objective>
   <role>Principal Enterprise Architect & System Red Team</role>
   <context_rules>
     <rule_block id="core_rules_routing">
