@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
+from backend_v2.models.domain.blackboard import LLMDraftAtom, LLMDraftAtomList
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
 
@@ -22,16 +22,16 @@ async def test_two_pass_atomizer_dlq_routing(mock_llm_executor: MagicMock, mock_
     atomizer = TwoPassAtomizer(mock_llm_executor)
 
     atoms = [
-        DraftExtractedAtom(reasoning="1", resolved_claim="1", draft_id="a1", is_logical_deduction=True),
-        DraftExtractedAtom(
-            reasoning="2", resolved_claim="2", draft_id="a2", is_logical_deduction=False, source_quote=None
+        LLMDraftAtom(reasoning="1", resolved_claim="1", draft_id="a1", is_logical_deduction=True),
+        LLMDraftAtom(
+            reasoning="2", resolved_claim="2", draft_id="a2", is_logical_deduction=False, source_block_id=None
         ),
-        DraftExtractedAtom(
-            reasoning="3", resolved_claim="3", draft_id="a3", is_logical_deduction=False, source_quote="does not exist"
+        LLMDraftAtom(
+            reasoning="3", resolved_claim="3", draft_id="a3", is_logical_deduction=False, source_block_id="B99"
         ),
     ]
 
-    mock_llm_executor.execute_structured_task = AsyncMock(return_value=(DraftAtomList(atoms=atoms), None))
+    mock_llm_executor.execute_structured_task = AsyncMock(return_value=(LLMDraftAtomList(atoms=atoms), None))
 
     chunk = "This chunk has some text but not the fake quote."
     sem = asyncio.Semaphore(1)

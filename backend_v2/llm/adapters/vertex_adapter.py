@@ -433,14 +433,16 @@ class VertexCacheAdapter(BaseLLMAdapter):
         config_location = getattr(config, "vertex_location", None) if config else None
 
         # 1.5 Reasoning Parameter Extraction
-        if config and hasattr(config, "additional_params"):
+        if config and getattr(config, "additional_params", None):
             thinking_budget = config.additional_params.get("thinking_budget_tokens")
             if thinking_budget:
                 if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
                     call_kwargs["extra_body"] = {}
-                if "thinkingConfig" not in call_kwargs["extra_body"]:
-                    call_kwargs["extra_body"]["thinkingConfig"] = {}
-                call_kwargs["extra_body"]["thinkingConfig"]["thinkingBudgetTokens"] = int(thinking_budget)
+                if "generationConfig" not in call_kwargs["extra_body"]:
+                    call_kwargs["extra_body"]["generationConfig"] = {}
+                if "thinkingConfig" not in call_kwargs["extra_body"]["generationConfig"]:
+                    call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"] = {}
+                call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] = int(thinking_budget)
         settings_location = getattr(settings, "vertex_location", None) if settings else None
         env_location = os.getenv("HARDENING_VERTEX_LOCATION")
         active_location = (

@@ -159,3 +159,74 @@ def test_linker_response_dto_schema_no_dicts() -> None:
 
     schema = LinkerResponseDTO.model_json_schema()
     assert schema["properties"]["dependencies"]["type"] == "array"
+
+
+@pytest.mark.asyncio
+async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that a hallucinated alias from the LLM is gracefully dropped without crashing."""
+    from unittest.mock import AsyncMock
+
+    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
+    from backend_v2.services.orchestrator.sliding_window_linker import LinkerDependencyDTO, LinkerEdgeDTO
+
+    class MockSettings:
+        linker_max_atoms_per_window = 20
+
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
+
+    linker = SlidingWindowLinker(window_size=3, overlap=1)
+
+    # Two valid atoms
+    atoms = [
+        ExtractedAtom(
+            tda_id="tda_00000000", resolved_claim="claim 0", reasoning="r0", source_quote="q0", source_id="chunk_0"
+        ),
+        ExtractedAtom(
+            tda_id="tda_11111111", resolved_claim="claim 1", reasoning="r1", source_quote="q1", source_id="chunk_0"
+        ),
+    ]
+
+    ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+
+    # The LLM hallucinates an 'a99' parent alias, and an 'a98' child alias
+    mock_response = LinkerResponseDTO(
+        dependencies=[
+            LinkerDependencyDTO(
+                child_alias="a1",  # Maps to tda_11111111
+                parent_dependencies=[
+                    LinkerEdgeDTO(
+                        edge_reasoning="Valid edge", tda_id="a0", expected_status=ExecutionStatus.PASSED
+                    ),  # Valid
+                    LinkerEdgeDTO(
+                        edge_reasoning="Hallucinated parent", tda_id="a99", expected_status=ExecutionStatus.PASSED
+                    ),  # Hallucinated Parent
+                ],
+            ),
+            LinkerDependencyDTO(
+                child_alias="a98",  # Hallucinated Child
+                parent_dependencies=[
+                    LinkerEdgeDTO(
+                        edge_reasoning="Edge for hallucinated child",
+                        tda_id="a0",
+                        expected_status=ExecutionStatus.PASSED,
+                    ),
+                ],
+            ),
+        ]
+    )
+
+    mock_executor = AsyncMock()
+    mock_executor.execute_structured_task.return_value = (mock_response, {})
+    mock_client = AsyncMock()
+
+    results = await linker.link_graph(executor=mock_executor, client=mock_client, atoms=atoms, ontology_map=ontology)
+
+    assert len(results) == 2
+    # Verify tda_00000000 has no dependencies
+    node0 = next(n for n in results if n.atom.tda_id == "tda_00000000")
+    assert len(node0.depends_on) == 0
+
+    # Verify tda_11111111 has exactly 1 dependency (the valid a0 one), and the hallucinated a99 was dropped
+    node1 = next(n for n in results if n.atom.tda_id == "tda_11111111")
+    assert len(node1.depends_on) == 1
+    assert node1.depends_on[0].tda_id == "tda_00000000"

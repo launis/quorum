@@ -345,8 +345,8 @@
         <mandatory_pattern>Parallel async LLM steps must use `asyncio.TaskGroup` constrained by `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS)`.</mandatory_pattern>
     </rule_block>
     <rule_block id="strict_physical_anchoring_mandate">
-        <banned_pattern>Fuzzy string matching for evidence extraction.</banned_pattern>
-        <mandatory_pattern>All evidence extractions must be validated using deterministic O(N) physical anchoring via `str.find` on normalized strings. If not found, raise `SemanticEvidenceError` immediately.</mandatory_pattern>
+        <banned_pattern>Using fuzzy string matching as the PRIMARY validation gate for evidence extraction, OR applying fuzzy matching to quotes under 10 characters (Entropy Gate), OR skipping the mandatory `str.find` first-pass.</banned_pattern>
+        <mandatory_pattern>Enforce Tiered Lexical Validation: 1) Primary Gate: `str.find` on normalized strings (MANDATORY first step). 2) Entropy Gate: quotes under 10 chars require 100% exact match. 3) Fuzzy Fallback: RapidFuzz permitted only when Primary Gate fails, quote > 10 chars, and strictness < 100. 4) Pre-flight/Linguistic uses: RapidFuzz unrestricted for non-forensic optimization.</mandatory_pattern>
     </rule_block>
     <rule_block id="ensemble_parallel_evaluation_mandate">
         <mandatory_pattern>Execute high-entropy or negative validation steps using a single-pass 'Best-of-3' voting ensemble across parallel LLM calls wrapped in `asyncio.TaskGroup`.</mandatory_pattern>

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -108,6 +109,7 @@ class NodeStrategy(ABC):
         trace: list[TraceEvent] | None,
         semaphore: asyncio.Semaphore,
         running_event: asyncio.Event | None = None,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[TraceEvent]:
         """Executes the specific strategy implementation cleanly.
 

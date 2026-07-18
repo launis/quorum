@@ -7,8 +7,36 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 
 
+class LLMDraftAtom(V2CoreBase):
+    """Schema for LLM to extract atoms using Anchor Hydration."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    reasoning: Annotated[str, Field(description="Chain-of-thought logic.")]
+    resolved_claim: Annotated[str, Field(description="The cleaned claim.")]
+    is_logical_deduction: Annotated[
+        bool,
+        Field(
+            default=False, description="Set to True if the claim is deduced purely via logic, allowing a null quote."
+        ),
+    ] = False
+    source_block_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="The block ID (e.g. B1, B2) where the quote resides. Must be None if is_logical_deduction is True.",
+        ),
+    ] = None
+    draft_id: Annotated[str, Field(description="A short temporary ID assigned by LLM, e.g. a0, a1.")]
+
+
+class LLMDraftAtomList(V2CoreBase):
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    atoms: Annotated[list[LLMDraftAtom], Field(description="List of extracted draft atoms.")]
+
+
 class DraftExtractedAtom(V2CoreBase):
-    """Draft representation of an atom before AliasEngine hydration."""
+    """Draft representation of an atom after AliasEngine hydration."""
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 

@@ -73,3 +73,86 @@ def test_mask_pii_succeeds_on_supported_language_fi(pii_service: PIIAnalyzerServ
     # but the key is that it NO LONGER raises a ValueError for missing language registry.
     result = pii_service.mask_pii("Matti Meikäläinen", language="fi")
     assert isinstance(result, str)
+
+
+def test_chunk_text_splits_on_newline(pii_service: PIIAnalyzerService) -> None:
+    """Test chunking logic prioritizes newlines within margin."""
+    text = "A" * 50 + "\n" + "B" * 60
+    # max_chars = 100, margin = 50. newline at index 50
+    chunks = pii_service._chunk_text(text, 100)
+    assert len(chunks) == 2
+    assert chunks[0] == "A" * 50 + "\n"
+    assert chunks[1] == "B" * 60
+
+
+def test_chunk_text_hard_fallback(pii_service: PIIAnalyzerService) -> None:
+    """Test chunking falls back to exact max_chars if no space or newline."""
+    text = "A" * 150
+    chunks = pii_service._chunk_text(text, 100)
+    assert len(chunks) == 2
+    assert chunks[0] == "A" * 100
+    assert chunks[1] == "A" * 50
+
+
+@patch("backend_v2.services.pii_analyzer.get_settings")
+@patch("presidio_analyzer.AnalyzerEngine")
+@patch("presidio_anonymizer.AnonymizerEngine")
+def test_mask_pii_exceeds_spacy_limit(
+    mock_anonymizer_class: MagicMock,
+    mock_analyzer_class: MagicMock,
+    mock_get_settings: MagicMock,
+    pii_service: PIIAnalyzerService,
+) -> None:
+    """Test mask_pii chunks text gracefully when exceeding limit."""
+    mock_settings = MagicMock()
+    mock_settings.pii_spacy_max_chunk_chars = 10
+    mock_get_settings.return_value = mock_settings
+
+    mock_analyzer = MagicMock()
+    mock_analyzer_class.return_value = mock_analyzer
+    mock_analyzer.analyze.return_value = ["mocked_result"]
+
+    mock_anonymizer = MagicMock()
+    mock_anonymizer_class.return_value = mock_anonymizer
+
+    def side_effect_anonymize(*args, **kwargs):
+        res = MagicMock()
+        res.text = kwargs["text"] + "_X"
+        return res
+
+    mock_anonymizer.anonymize.side_effect = side_effect_anonymize
+
+    res = pii_service.mask_pii("A" * 15, language="en")
+
+    assert mock_analyzer.analyze.call_count == 2
+    assert mock_anonymizer.anonymize.call_count == 2
+    assert res == "AAAAAAAAAA_XAAAAA_X"
+
+
+@patch("backend_v2.services.pii_analyzer.get_settings")
+def test_smooth_text_exceeds_spacy_limit(
+    mock_get_settings: MagicMock,
+    pii_service: PIIAnalyzerService,
+) -> None:
+    """Test smooth_text chunks text when exceeding limit."""
+    mock_settings = MagicMock()
+    mock_settings.pii_spacy_max_chunk_chars = 20
+    mock_get_settings.return_value = mock_settings
+
+    text = "Hello world! This is a test."
+
+    mock_nlp = MagicMock()
+
+    def nlp_side_effect(chunk):
+        doc = MagicMock()
+        sent = MagicMock()
+        sent.text = chunk
+        doc.sents = [sent]
+        return doc
+
+    mock_nlp.side_effect = nlp_side_effect
+
+    with patch.object(pii_service, "_get_spacy_model", return_value=mock_nlp):
+        res = pii_service.smooth_text(text, language="en")
+        assert mock_nlp.call_count >= 2
+        assert res.replace(" ", "") == text.replace(" ", "")

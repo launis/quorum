@@ -4,6 +4,7 @@ from functools import lru_cache
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,50 @@ class PIIAnalyzerService:
                     ) from e
             return self._nlp_models[language]
 
+    def _chunk_text(self, text: str, max_chars: int) -> list[str]:
+        """Splits a large string into smaller chunks safely to prevent NLP out-of-memory errors.
+
+        Args:
+            text: The raw text string to split.
+            max_chars: The maximum length of each chunk.
+
+        Returns:
+            list[str]: The text divided into manageable chunks.
+        """
+        if len(text) <= max_chars:
+            return [text]
+
+        chunks = []
+        start = 0
+        text_len = len(text)
+        margin = min(10000, max_chars // 2)
+
+        while start < text_len:
+            if text_len - start <= max_chars:
+                chunks.append(text[start:])
+                break
+
+            end = start + max_chars
+            search_window = text[end - margin : end]
+
+            # Try splitting on the last newline within the margin
+            split_idx = search_window.rfind("\n")
+            if split_idx != -1:
+                actual_end = end - margin + split_idx + 1
+            else:
+                # Try splitting on the last space
+                split_idx = search_window.rfind(" ")
+                if split_idx != -1:
+                    actual_end = end - margin + split_idx + 1
+                else:
+                    # Hard fallback: split exactly at max_chars
+                    actual_end = end
+
+            chunks.append(text[start:actual_end])
+            start = actual_end
+
+        return chunks
+
     def smooth_text(self, text: str, language: str) -> str:
         """Runs raw text through SpaCy to merge hyphenations and broken PDF lines.
 
@@ -134,18 +179,21 @@ class PIIAnalyzerService:
         import re
 
         nlp = self._get_spacy_model(language)
+        settings = get_settings()
 
         text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
 
-        doc = nlp(text)
+        chunks = self._chunk_text(text, settings.pii_spacy_max_chunk_chars)
         smoothed_sentences = []
 
-        for sent in doc.sents:
-            sent_text = sent.text
-            sent_text = re.sub(r"-\s*\n\s*", "", sent_text)
-            sent_text = re.sub(r"\s*\n\s*", " ", sent_text)
-            if sent_text.strip():
-                smoothed_sentences.append(sent_text.strip())
+        for chunk in chunks:
+            doc = nlp(chunk)
+            for sent in doc.sents:
+                sent_text = sent.text
+                sent_text = re.sub(r"-\s*\n\s*", "", sent_text)
+                sent_text = re.sub(r"\s*\n\s*", " ", sent_text)
+                if sent_text.strip():
+                    smoothed_sentences.append(sent_text.strip())
 
         return " ".join(smoothed_sentences)
 
@@ -170,12 +218,19 @@ class PIIAnalyzerService:
         assert self._analyzer is not None
         assert self._anonymizer is not None
 
-        # 1. Analyze
-        results = self._analyzer.analyze(text=text, entities=[], language=language)
+        settings = get_settings()
+        chunks = self._chunk_text(text, settings.pii_spacy_max_chunk_chars)
 
-        # 2. Anonymize
-        anonymized_result = self._anonymizer.anonymize(text=text, analyzer_results=results)
-        return str(anonymized_result.text)
+        anonymized_chunks = []
+        for chunk in chunks:
+            # 1. Analyze
+            results = self._analyzer.analyze(text=chunk, entities=[], language=language)
+
+            # 2. Anonymize
+            anonymized_result = self._anonymizer.anonymize(text=chunk, analyzer_results=results)
+            anonymized_chunks.append(str(anonymized_result.text))
+
+        return "".join(anonymized_chunks)
 
 
 @lru_cache

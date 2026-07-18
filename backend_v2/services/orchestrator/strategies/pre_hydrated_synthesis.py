@@ -6,6 +6,7 @@ large document bodies, minimizing Context Window and avoiding Attention Dilution
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
@@ -33,6 +34,7 @@ class PreHydratedSynthesisStrategy(NodeStrategy):
         trace: list[TraceEvent] | None,
         semaphore: asyncio.Semaphore,
         running_event: asyncio.Event | None = None,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[TraceEvent]:
         # Epic 101: Rule 1 - Extract Blackboard (Dependency Fail-Fast)
         raw_blackboard = context.context_variables.get("__GLOBAL_ATOM_BLACKBOARD__")

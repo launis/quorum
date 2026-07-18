@@ -25,11 +25,11 @@ from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
-    EngineOverrideStrategy,
     ExecutionStatus,
     HistoricalContextMode,
     LaxBlockDataType,
     LaxComponentType,
+    LaxEngineOverrideStrategy,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
     LaxPromptBlockCategory,
@@ -778,7 +778,7 @@ class StepRule(V2CoreBase):
         description='Maps upstream results to LLM inputs. e.g. {"context": "$inputs.document"}',
     )
     engine_override: Annotated[
-        EngineOverrideStrategy | None,
+        LaxEngineOverrideStrategy | None,
         Field(description="Optional override to route this step to a non-default execution strategy."),
     ] = None
 

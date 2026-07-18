@@ -11,6 +11,7 @@ import inspect
 import json
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 from backend_v2.core.hook_registry import HookDependencies, HookState
@@ -62,6 +63,7 @@ class LLMNodeStrategy(NodeStrategy):
         trace: list[TraceEvent] | None,
         semaphore: asyncio.Semaphore,
         running_event: asyncio.Event | None = None,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[TraceEvent]:
         """Executes the node's workflow sequence matching system rules.
 
@@ -83,6 +85,9 @@ class LLMNodeStrategy(NodeStrategy):
         """
         inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
         raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
+
+        if running_event:
+            running_event.set()
 
         inputs_unwrapped = (
             inputs_payload.get("inputs", inputs_payload) if isinstance(inputs_payload, dict) else inputs_payload
@@ -563,15 +568,41 @@ class LLMNodeStrategy(NodeStrategy):
             linker = SlidingWindowLinker(window_size=4, overlap=2)
             dag_executor = EnrichedDagExecutor(llm_executor, bound_client)
 
-            chunk_size = 12000
+            chunk_size = get_settings().rag_preflight_chunk_size
             text_chunks = [
                 global_source_text[i : i + chunk_size] for i in range(0, max(len(global_source_text), 1), chunk_size)
             ]
 
-            ontology = await atomizer.execute_phase_0(bound_client, text_chunks)
-            atoms = await atomizer.execute_phase_1(bound_client, text_chunks, ontology)
-            nodes = await linker.link_graph(llm_executor, bound_client, atoms, ontology)
-            states = await dag_executor.execute_graph(nodes, global_source_text, target_locale)
+            async def phase_0_progress(completed: int, total: int) -> None:
+                if progress_callback:
+                    prog = int((completed / total) * 15)
+                    await progress_callback(prog, 100)
+
+            async def phase_1_progress(completed: int, total: int) -> None:
+                if progress_callback:
+                    prog = 15 + int((completed / total) * 20)
+                    await progress_callback(prog, 100)
+
+            async def linker_progress(completed: int, total: int) -> None:
+                if progress_callback:
+                    prog = 35 + int((completed / total) * 25)
+                    await progress_callback(prog, 100)
+
+            async def dag_progress(completed: int, total: int) -> None:
+                if progress_callback:
+                    prog = 60 + int((completed / total) * 40)
+                    await progress_callback(prog, 100)
+
+            ontology = await atomizer.execute_phase_0(bound_client, text_chunks, progress_callback=phase_0_progress)
+            atoms = await atomizer.execute_phase_1(
+                bound_client, text_chunks, ontology, progress_callback=phase_1_progress
+            )
+            nodes = await linker.link_graph(
+                llm_executor, bound_client, atoms, ontology, progress_callback=linker_progress
+            )
+            states = await dag_executor.execute_graph(
+                nodes, global_source_text, target_locale, progress_callback=dag_progress
+            )
 
             results_dto, hydrated_refs = ResultProjector.project(nodes, states)
 

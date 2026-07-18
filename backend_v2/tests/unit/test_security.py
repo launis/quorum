@@ -100,3 +100,42 @@ def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_reposi
     assert "sanitization_result" in result.state_delta
     assert result.state_delta["sanitization_result"]["security_status"] == "DATA_CHECKED_AND_SECURED"
     assert "test_field" in result.state_delta["sanitization_result"]["sanitized_inputs"]
+
+
+@patch("backend_v2.hooks.security.get_pii_service")
+def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, mock_repository: AsyncMock) -> None:
+    """Test that non-string values like dicts or lists in inputs are ignored."""
+    mock_service = MagicMock()
+    mock_service.mask_pii.return_value = "This is a safe string."
+    mock_get_pii_service.return_value = mock_service
+
+    state = HookState(
+        execution_id="exe_123",
+        workflow_id="wf_123",
+        inputs={
+            "string_field": "This is a safe string.",
+            "dict_field": {"some": "data"},
+            "list_field": ["some", "data"],
+        },
+        metadata={},
+        global_context_vars={"language": "fi"},
+    )
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+
+    result = cast(HookResult, sanitize_text_hook(state, deps))
+
+    assert result.success is True
+    # mask_pii should only be called once, for the string field.
+    assert mock_service.mask_pii.call_count == 1
+    assert "string_field" in result.state_delta["sanitization_result"]["sanitized_inputs"]
+    assert "dict_field" not in result.state_delta["sanitization_result"]["sanitized_inputs"]
+    assert "list_field" not in result.state_delta["sanitization_result"]["sanitized_inputs"]

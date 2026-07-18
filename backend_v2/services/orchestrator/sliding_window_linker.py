@@ -4,7 +4,9 @@ Uses a sliding window approach over extracted atoms to resolve cross-chunk causa
 dependencies without exceeding LLM context windows or losing attention on middle chunks.
 """
 
+import logging
 from collections import defaultdict
+from collections.abc import Awaitable, Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,6 +27,8 @@ from backend_v2.services.orchestrator.prompts.graph_linking import (
 )
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
+
+logger = logging.getLogger(__name__)
 
 
 class LinkerEdgeDTO(BaseModel):
@@ -127,6 +131,7 @@ class SlidingWindowLinker:
         client: LLMClient,
         atoms: list[ExtractedAtom],
         ontology_map: GlobalOntologyMap,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[LinkedAtomGraph]:
         """Link atoms together into a causal graph.
 
@@ -154,7 +159,10 @@ class SlidingWindowLinker:
 
         ontology_text = ontology_map.model_dump_json(indent=2)
 
-        for window_chunks in windows:
+        for i, window_chunks in enumerate(windows):
+            if progress_callback:
+                await progress_callback(i, len(windows))
+
             # Flatten atoms in the current window
             window_atoms = [atom for chunk in window_chunks for atom in chunk]
             if not window_atoms:
@@ -205,13 +213,32 @@ class SlidingWindowLinker:
                 child_alias = dep_mapping.child_alias
                 deps = dep_mapping.parent_dependencies
 
-                child_tda_id = alias_engine.resolve_alias(child_alias)
+                try:
+                    child_tda_id = alias_engine.resolve_alias(child_alias)
+                except AppException as exc:
+                    logger.warning(
+                        "Hallucinated child alias dropped: %s. Error: %s",
+                        child_alias,
+                        exc.message,
+                    )
+                    continue
+
                 child_atom = next((a for a in window_atoms if a.tda_id == child_tda_id), None)
                 if not child_atom:
                     continue
 
                 for dep in deps:
-                    parent_tda_id = alias_engine.resolve_alias(dep.tda_id)
+                    try:
+                        parent_tda_id = alias_engine.resolve_alias(dep.tda_id)
+                    except AppException as exc:
+                        logger.warning(
+                            "Hallucinated parent alias dropped: %s (child: %s). Error: %s",
+                            dep.tda_id,
+                            child_alias,
+                            exc.message,
+                        )
+                        continue
+
                     # Self-dependency check to prevent immediate loops
                     if parent_tda_id == child_tda_id:
                         continue

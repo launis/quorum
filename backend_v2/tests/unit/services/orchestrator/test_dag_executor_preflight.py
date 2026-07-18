@@ -168,3 +168,85 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
         virtual_steps = [s for k, s in record.step_states.items() if s.label == "system.rag.preflight"]
         assert len(virtual_steps) == 1
         assert virtual_steps[0].status == ExecutionStatus.PASSED
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
+    executor = DAGExecutor(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    from backend_v2.models.v2_core import ExecutionRecord
+
+    workflow = Workflow(
+        id="wf_1234567890abcdef",
+        slug="test",
+        status="draft",
+        version=1,
+        default_profile_id="prof_1234567890abcde",
+        name=I18nText(default_locale="en", translations={"en": "test"}),
+        description=I18nText(default_locale="en", translations={"en": "test"}),
+        steps=[
+            StepRule(
+                id="stp_1234567890abcdef",
+                task_blueprint="blp_1234567890abcdef",
+                input_mappings={},
+                depends_on=[],
+                engine_override=EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS,
+            )
+        ],
+    )
+
+    mock_repo.get_execution.return_value = None
+    mock_repo.get_step_by_id = AsyncMock(
+        return_value={
+            "id": "stp_1234567890abcdef",
+            "slug": "blp_test",
+            "name": {"default_locale": "en", "translations": {"en": "blp_test"}},
+            "model_strategy": "fast",
+            "criteria_block_ids": ["blk_1234567890abcdef"],
+            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "type": "llm",
+        }
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wf_1234567890abcdef",
+        raw_inputs=WorkflowInputs(language="en", dynamic_inputs={"product_text": "This is valid document text."}),
+    )
+
+    from backend_v2.models.domain.blackboard import DraftAtomList
+
+    with (
+        patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer") as mock_atomizer_cls,
+    ):
+        mock_atomizer = mock_atomizer_cls.return_value
+        mock_atomizer.execute_phase_0 = AsyncMock(return_value={})
+        mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=[]))
+
+        await executor._execute_rag_preflight(
+            workflow=workflow,
+            exec_record=exec_record,
+            projector=MagicMock(),
+            virtual_step_id="stp_1234567890abcdef",
+            _emit_progress=AsyncMock(),
+        )
+
+        # It should ONLY process dynamic_inputs, not system keys like 'language'
+        # Currently, it processes 'en' and then crashes.
+        calls = mock_atomizer.execute_phase_0.call_args_list
+        # Extract the text chunks passed to execute_phase_0
+        processed_chunks = [call.args[1] for call in calls]
+
+        assert len(processed_chunks) == 1
+        assert processed_chunks[0] == ["This is valid document text."]

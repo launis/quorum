@@ -59,16 +59,21 @@ async def test_litellm_provider_injects_wrapped_httpx_client(mock_settings, mock
         ):
             mock_response = MagicMock()
             mock_response.choices = [MagicMock(message=MagicMock(content="Mock"))]
-            mock_response.usage.prompt_tokens = 10
-            mock_response.usage.completion_tokens = 10
-            mock_response.usage.total_tokens = 20
-            mock_response.usage.model_extra = {"cached_content_token_count": 0, "reasoning_token_count": 0}
+
+            class MockUsage:
+                prompt_tokens = 10
+                completion_tokens = 10
+                total_tokens = 20
+                model_extra = {"cached_content_token_count": 0, "reasoning_token_count": 0}
+                prompt_tokens_details = None
+                completion_tokens_details = None
+
+            mock_response.model_dump = MagicMock(return_value={})
+            mock_response.system_fingerprint = None
+            mock_response.usage = MockUsage()
             mock_acompletion.return_value = mock_response
 
-            try:
-                await provider.generate(prompt="Test prompt", temperature=0.5, max_tokens=100)
-            except Exception:
-                pass
+            await provider.generate(prompt="Test prompt", temperature=0.5, max_tokens=100)
 
             # Extract the client passed to litellm.acompletion
             mock_acompletion.assert_called_once()

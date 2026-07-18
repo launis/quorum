@@ -81,7 +81,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         ) from e
 
     for field, val in payload.root.items():
-        if not val:
+        if not val or not isinstance(val, str):
             continue
 
         original = str(val)

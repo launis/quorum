@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
@@ -27,6 +28,7 @@ class LogicNodeStrategy(NodeStrategy):
         trace: list[TraceEvent] | None,
         semaphore: asyncio.Semaphore,
         running_event: asyncio.Event | None = None,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[TraceEvent]:
         """Executes a Native/Logic Step, delegating CPU-bound work to the Hook Registry.
 

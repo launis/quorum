@@ -122,57 +122,91 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
               color: _getStatusColor(context, status),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (status == 'running' ||
-                        status == 'pending' ||
-                        status == 'queued' ||
-                        resumeMutation.isLoading)
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: status == 'failed'
-                              ? Theme.of(context).colorScheme.onError
-                              : null,
-                        ),
-                      )
-                    else if (status == 'passed' || status == 'completed')
-                      Icon(
-                        Icons.check_circle,
-                        color: Theme.of(context).colorScheme.primary,
-                      )
-                    else if (status == 'failed')
-                      Icon(
-                        Icons.error,
-                        color: Theme.of(context).colorScheme.onError,
-                      ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.statusLabel(status.toUpperCase()),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
+                    Row(
+                      children: [
+                        if (status == 'running' ||
+                            status == 'pending' ||
+                            status == 'queued' ||
+                            resumeMutation.isLoading)
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
                               color: status == 'failed'
                                   ? Theme.of(context).colorScheme.onError
                                   : null,
                             ),
-                      ),
+                          )
+                        else if (status == 'passed' || status == 'completed')
+                          Icon(
+                            Icons.check_circle,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        else if (status == 'failed')
+                          Icon(
+                            Icons.error,
+                            color: Theme.of(context).colorScheme.onError,
+                          ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.statusLabel(status.toUpperCase()),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: status == 'failed'
+                                      ? Theme.of(context).colorScheme.onError
+                                      : null,
+                                ),
+                          ),
+                        ),
+                        if (status == 'failed' && isRecoverable)
+                          MutationButton<void>(
+                            mutation: resumeMutation,
+                            label: AppLocalizations.of(
+                              context,
+                            )!.resumeActionableHint,
+                            icon: Icons.refresh,
+                            action: () => ref
+                                .read(executionControllerProvider.notifier)
+                                .submitRehydration(widget.executionId),
+                          ),
+                      ],
                     ),
-                    if (status == 'failed' && isRecoverable)
-                      MutationButton<void>(
-                        mutation: resumeMutation,
-                        label: AppLocalizations.of(
-                          context,
-                        )!.resumeActionableHint,
-                        icon: Icons.refresh,
-                        action: () => ref
-                            .read(executionControllerProvider.notifier)
-                            .submitRehydration(widget.executionId),
+                    if (status == 'running' || status == 'pending' || status == 'queued') ...[
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(
+                        value: (record.progress ?? 0) / 100.0,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
                       ),
+                      if (record.statusMessage != null && record.statusMessage!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                record.statusMessage!,
+                                style: Theme.of(context).textTheme.bodySmall,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              '${record.progress ?? 0}%',
+                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ],
                 ),
               ),

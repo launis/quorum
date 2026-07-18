@@ -106,7 +106,7 @@ class Settings(BaseSettings):
     ] = 15
     max_extracted_atoms_per_document: Annotated[
         int, Field(description="Global limit on number of extracted atoms per document to prevent DB bloat")
-    ] = 100
+    ] = 1000
     max_concurrent_workflows: Annotated[int, Field(description="Max parallel workflow chunks")] = 10
     max_concurrent_llm_steps: Annotated[int, Field(description="Max parallel LLM calls in dag_executor")] = 10
     llm_max_schema_retries: Annotated[int, Field(description="Max retries for schema validation failures")] = 2
@@ -139,6 +139,9 @@ class Settings(BaseSettings):
     pacing_delay_mock_seconds: Annotated[int, Field(description="Forced delay between Mock responses")] = 0
     redis_connection_timeout_seconds: Annotated[int, Field(description="Timeout for Redis connection in seconds")] = 10
     content_cache_enabled: Annotated[int, Field(description="Toggle for internal system response caching")] = 0
+    pii_spacy_max_chunk_chars: Annotated[
+        int, Field(description="Max characters per SpaCy NLP chunk to prevent E088 OOM")
+    ] = 800000
 
     @computed_field  # type: ignore[prop-decorator]
     @property

@@ -101,7 +101,7 @@ class ResultProjector:
                 status=status,
                 extracted_data=None,
                 source_quote=node.atom.source_quote,
-                contextual_override=False,
+                contextual_override=node.atom.is_logical_deduction,
                 evaluation_reasoning=reasoning,
                 extensions=extensions,
                 error_details=error_details,

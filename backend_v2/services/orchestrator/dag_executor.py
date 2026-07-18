@@ -8,6 +8,7 @@ God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
@@ -156,6 +157,7 @@ class NodeExecutor:
         arq_pool: Any | None = None,
         running_event: asyncio.Event | None = None,
         context_variables: dict[str, Any] | None = None,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[TraceEvent]:
         """Executes a pipeline node strategy with static parameters.
 
@@ -234,12 +236,25 @@ class NodeExecutor:
                     self.compiler,
                     arq_pool=arq_pool,
                 )
-            elif step_def.model_strategy == "synthesis":
+            elif step_def.model_strategy == "synthesis" or step.engine_override == "PRE_HYDRATED_SYNTHESIS":
                 from backend_v2.services.orchestrator.strategies.pre_hydrated_synthesis import (
                     PreHydratedSynthesisStrategy,
                 )
 
                 strategy_impl = PreHydratedSynthesisStrategy(
+                    self.exec_repo,
+                    self.workflow_repo,
+                    self.comp_repo,
+                    self.prompt_block_repo,
+                    self.output_profile_repo,
+                    self.identity_repo,
+                    self.audit_repo,
+                    self.system_repo,
+                    self.compiler,
+                    arq_pool=arq_pool,
+                )
+            elif step_def.model_strategy == "reasoning":
+                strategy_impl = LLMNodeStrategy(
                     self.exec_repo,
                     self.workflow_repo,
                     self.comp_repo,
@@ -268,7 +283,7 @@ class NodeExecutor:
             org_id = metadata["organization_id"] if "organization_id" in metadata else None
             await strategy_impl.assert_quota(org_id=org_id)
 
-            emitted_events = await strategy_impl.execute(
+            return await strategy_impl.execute(
                 step=step,
                 projector=projector,
                 context=context,
@@ -276,8 +291,8 @@ class NodeExecutor:
                 trace=trace,
                 semaphore=semaphore,
                 running_event=running_event,
+                progress_callback=progress_callback,
             )
-            return emitted_events
 
         except AppException as ae:
             logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae), exc_info=True)
@@ -558,6 +573,25 @@ class DAGExecutor:
 
                 watcher_task = asyncio.create_task(watch_running())
 
+                async def progress_callback(completed: int, total: int) -> None:
+                    nonlocal exec_record
+
+                    if total == 100:
+                        prog = completed
+                        label = f"Processing... {prog}%"
+                    else:
+                        prog = int((completed / total) * 100) if total > 0 else 0
+                        label = f"Evaluating batch {completed}/{total}..."
+
+                    async with _update_lock:
+                        new_state = exec_record.step_states[step_id].model_copy(update={"label": label})
+                        new_states = {**exec_record.step_states, step_id: new_state}
+                        exec_record = exec_record.model_copy(
+                            update={"step_states": new_states, "progress": prog, "status_message": label}
+                        )
+                    await _safe_commit()
+                    logger.info("Progress updated for step %s: %s", step_id, label)
+
                 try:
                     events = await self.node_executor.execute(
                         step=step_obj,
@@ -572,6 +606,7 @@ class DAGExecutor:
                         semaphore=semaphore,
                         running_event=running_event,
                         context_variables=exec_record.context_variables,
+                        progress_callback=progress_callback,
                     )
                 finally:
                     watcher_task.cancel()
@@ -808,12 +843,13 @@ class DAGExecutor:
         atomizer = TwoPassAtomizer(llm_executor)
 
         inputs_payload = exec_record.raw_inputs.model_dump(mode="json")
+        dynamic_inputs = inputs_payload.get("dynamic_inputs", {})
         atoms_by_input = {}
 
-        total_files = len([k for k, v in inputs_payload.items() if isinstance(v, str)])
+        total_files = len([k for k, v in dynamic_inputs.items() if isinstance(v, str)])
         processed_files = 0
 
-        for key, text_content in inputs_payload.items():
+        for key, text_content in dynamic_inputs.items():
             if not isinstance(text_content, str):
                 continue
 
@@ -825,8 +861,36 @@ class DAGExecutor:
             chunk_size = get_settings().rag_preflight_chunk_size
             text_chunks = [text_content[i : i + chunk_size] for i in range(0, max(len(text_content), 1), chunk_size)]
 
-            ontology = await atomizer.execute_phase_0(bound_client, text_chunks)
-            draft_list = await atomizer.execute_phase_1_drafts(bound_client, text_chunks, ontology)
+            base_progress = (processed_files / total_files) * 100
+            local_slice = 100 / total_files
+
+            async def phase_0_progress(
+                completed: int,
+                total: int,
+                pf: int = processed_files,
+                tf: int = total_files,
+                bp: float = base_progress,
+                ls: float = local_slice,
+            ) -> None:
+                prog = int(bp + ((completed / total) * 0.3 * ls))
+                await _emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Mapping)", prog)
+
+            ontology = await atomizer.execute_phase_0(bound_client, text_chunks, progress_callback=phase_0_progress)
+
+            async def phase_1_progress(
+                completed: int,
+                total: int,
+                pf: int = processed_files,
+                tf: int = total_files,
+                bp: float = base_progress,
+                ls: float = local_slice,
+            ) -> None:
+                prog = int(bp + (0.3 * ls) + ((completed / total) * 0.7 * ls))
+                await _emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Reducing)", prog)
+
+            draft_list = await atomizer.execute_phase_1_drafts(
+                bound_client, text_chunks, ontology, progress_callback=phase_1_progress
+            )
 
             if len(draft_list.atoms) > get_settings().max_extracted_atoms_per_document:
                 raise AppException(

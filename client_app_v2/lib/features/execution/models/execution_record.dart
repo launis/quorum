@@ -34,6 +34,8 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,
     @JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,
     @JsonKey(name: 'results') Map<String, dynamic>? results,
+    @JsonKey(name: 'progress') int? progress,
+    @JsonKey(name: 'status_message') String? statusMessage,
 
     /// The strictly typed DTO containing the presentation flat data.
     /// Replaces the legacy `results` Map.

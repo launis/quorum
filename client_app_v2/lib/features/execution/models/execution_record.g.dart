@@ -28,6 +28,8 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'frozen_context',
         'step_states',
         'results',
+        'progress',
+        'status_message',
         'report_data',
       ],
     );
@@ -60,6 +62,8 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         (v) => v as Map<String, dynamic>?,
       ),
       results: $checkedConvert('results', (v) => v as Map<String, dynamic>?),
+      progress: $checkedConvert('progress', (v) => (v as num?)?.toInt()),
+      statusMessage: $checkedConvert('status_message', (v) => v as String?),
       reportData: $checkedConvert(
         'report_data',
         (v) => v == null
@@ -78,6 +82,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     'isResumable': 'is_resumable',
     'frozenContext': 'frozen_context',
     'stepStates': 'step_states',
+    'statusMessage': 'status_message',
     'reportData': 'report_data',
   },
 );
@@ -97,5 +102,7 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'frozen_context': instance.frozenContext,
       'step_states': instance.stepStates,
       'results': instance.results,
+      'progress': instance.progress,
+      'status_message': instance.statusMessage,
       'report_data': instance.reportData?.toJson(),
     };

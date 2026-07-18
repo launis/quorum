@@ -6,6 +6,7 @@ a complete Enriched Atom Graph asynchronously.
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
@@ -38,7 +39,11 @@ class EnrichedDagExecutor:
         self._topological_evaluator = TopologicalEvaluator()
 
     async def execute_graph(
-        self, nodes: list[LinkedAtomGraph], source_text: str, locale: str | None = None
+        self,
+        nodes: list[LinkedAtomGraph],
+        source_text: str,
+        locale: str | None = None,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> dict[str, AtomExecutionState]:
         """Executes the complete DAG of atoms.
 
@@ -50,10 +55,14 @@ class EnrichedDagExecutor:
         Returns:
             A dictionary mapping tda_id to its final AtomExecutionState.
         """
+        total_atoms = len(nodes)
+        completed_atoms = 0
+        progress_lock = asyncio.Lock()
 
         async def process_chunk(
             chunk: list[LinkedAtomGraph],
         ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+            nonlocal completed_atoms
             try:
                 pre_flight_results, undecided_nodes = await ExtractiveSensorService.batch_pre_evaluate(
                     chunk, source_text, locale
@@ -68,7 +77,12 @@ class EnrichedDagExecutor:
                     client=self._llm_client,
                     context_text=source_text,
                 )
-                return {**pre_flight_results, **llm_results}
+                res = {**pre_flight_results, **llm_results}
+                if progress_callback:
+                    async with progress_lock:
+                        completed_atoms += len(chunk)
+                        await progress_callback(completed_atoms, total_atoms)
+                return res
             except Exception as e:
                 cause = e.__cause__ or e
                 if _is_transient_llm_error(cause):
@@ -81,10 +95,15 @@ class EnrichedDagExecutor:
                 # Persistent schema extraction failure (ValidationError, etc.)
                 # Mark all requested atoms in the batch as SYSTEM_ERROR.
                 logger.error("Persistent error in chunk evaluation: %s", str(e))
-                return {
+                res = {
                     node.atom.tda_id: (ExecutionStatus.SYSTEM_ERROR, f"EVALUATION_CRASH: {str(e)}", {})
                     for node in chunk
                 }
+                if progress_callback:
+                    async with progress_lock:
+                        completed_atoms += len(chunk)
+                        await progress_callback(completed_atoms, total_atoms)
+                return res
 
         async def batch_evaluation_callback(
             wave_nodes: list[LinkedAtomGraph],

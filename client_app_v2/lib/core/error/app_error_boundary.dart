@@ -77,8 +77,10 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
             l10n?.errorDataMapping(key, error.message ?? 'null') ??
             '[Mapping Error in field "$key"]\n${error.message}';
       }
-    } else if (displayError.contains('stp_') || displayError.toLowerCase().contains('missing rule')) {
-      displayError = '[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: $displayError';
+    } else if (displayError.contains('stp_') ||
+        displayError.toLowerCase().contains('missing rule')) {
+      displayError =
+          '[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: $displayError';
     }
 
     return Container(

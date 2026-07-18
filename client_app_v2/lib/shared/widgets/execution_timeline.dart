@@ -61,6 +61,7 @@ class ExecutionTimeline extends StatelessWidget {
 
           final lastError = step['last_error']?.toString();
           final messageCode = step['message_code']?.toString();
+          final progress = step['progress'] as num?;
 
           Widget? subtitleWidget;
           if (isFailed && lastError != null && lastError.isNotEmpty) {
@@ -70,6 +71,49 @@ class ExecutionTimeline extends StatelessWidget {
                 color: Theme.of(context).colorScheme.error,
                 fontSize: 12,
               ),
+            );
+          } else if ((isRunning || stepStatus == 'processing') &&
+              progress != null) {
+            subtitleWidget = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: progress / 100.0,
+                          backgroundColor: Theme.of(context).disabledColor.withValues(alpha: 0.2),
+                          minHeight: 6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${progress.toInt()}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                if (messageCode == 'event_llm_anomaly_retry') ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    AppLocalizations.of(context)!.eventLlmAnomalyRetry,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 4),
+              ],
             );
           } else if ((isRunning || stepStatus == 'processing') &&
               messageCode == 'event_llm_anomaly_retry') {

@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
+from backend_v2.models.domain.blackboard import LLMDraftAtom, LLMDraftAtomList
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -130,12 +130,8 @@ async def test_two_pass_atomizer_phase_1() -> None:
     mock_executor = AsyncMock(spec=LLMTaskExecutor)
 
     # Mock return value for Phase 1
-    mock_draft_list = DraftAtomList(
-        atoms=[
-            DraftExtractedAtom(
-                reasoning="Test logic", resolved_claim="Test claim", source_quote="Test quote", draft_id="a1"
-            )
-        ]
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[LLMDraftAtom(reasoning="Test logic", resolved_claim="Test claim", source_block_id="B1", draft_id="a1")]
     )
     mock_executor.execute_structured_task.return_value = (mock_draft_list, None)
 

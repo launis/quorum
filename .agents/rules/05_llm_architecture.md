@@ -141,9 +141,13 @@
         <catastrophic_reason>Pure linear multiplication decays probabilities exponentially, artificially crushing all real-world variance into absolute 0. This forces bad architectural practices like arbitrary UX 'leniency floors', corrupting the integrity of the math.</catastrophic_reason>
     </rule_block>
     <rule_block id="strict_physical_anchoring_mandate">
-        <banned_pattern>Using fuzzy string matching (e.g., `RapidFuzz` or `fuzz.partial_ratio`) to validate LLM evidence extraction.</banned_pattern>
-        <mandatory_pattern>Enforce strict, deterministic `O(N)` physical anchoring using `str.find` on normalized strings. If an exact lexical match is not found in the original source document, the extraction MUST immediately trigger a Fail-Fast `SemanticEvidenceError`.</mandatory_pattern>
-        <catastrophic_reason>Fuzzy matching introduces unacceptable variance and allows the LLM to successfully hallucinate pseudo-quotes that sound similar but do not physically exist in the source, destroying the Single Source of Truth (SSOT) guarantee.</catastrophic_reason>
+        <banned_pattern>Using fuzzy string matching as the PRIMARY validation gate for LLM evidence extraction, OR applying fuzzy matching to quotes under 10 characters (Entropy Gate), OR skipping the mandatory `str.find` first-pass entirely.</banned_pattern>
+        <mandatory_pattern>Enforce Tiered Lexical Validation for forensic evidence:
+        1. **Primary Gate (MANDATORY):** `str.find` on normalized strings. If an exact O(N) match is found, accept immediately.
+        2. **Entropy Gate:** Quotes under 10 characters MUST pass the Primary Gate — fuzzy fallback is forbidden for short strings.
+        3. **Fuzzy Fallback (CONTROLLED):** If the Primary Gate fails AND the quote exceeds 10 chars AND `strictness_level < 100`, RapidFuzz `partial_ratio` / `token_set_ratio` may be used with a locale-dependent threshold (e.g., 85% for Finnish). If the fuzzy score is below the threshold, raise `SemanticEvidenceError`.
+        4. **Pre-flight and Linguistic uses:** RapidFuzz is UNRESTRICTED for non-forensic purposes such as deterministic pre-flight atom evaluation (`ExtractiveSensorService`) and performative pattern detection (`linguistics.py`), where the goal is optimization, not forensic proof.</mandatory_pattern>
+        <catastrophic_reason>A flat ban on fuzzy matching ignores morphologically rich languages (Finnish) and OCR artifacts where strict `str.find` produces false negatives. The tiered model preserves forensic integrity via the mandatory Primary Gate while preventing legitimate evidence from being discarded due to minor surface-level discrepancies.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="ensemble_parallel_evaluation_mandate">

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
+from backend_v2.models.domain.blackboard import LLMDraftAtom, LLMDraftAtomList
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
@@ -58,10 +58,8 @@ async def test_execute_phase_1(mock_executor, mock_client, settings_mock):
     # Mock dependencies
     mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
 
-    mock_draft_list = DraftAtomList(
-        atoms=[
-            DraftExtractedAtom(reasoning="Reasoning1", resolved_claim="Claim1", source_quote="Quote1", draft_id="a1")
-        ]
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[LLMDraftAtom(reasoning="Reasoning1", resolved_claim="Claim1", source_block_id="B0", draft_id="a1")]
     )
     mock_executor.execute_structured_task.return_value = (mock_draft_list, None)
 
@@ -72,7 +70,7 @@ async def test_execute_phase_1(mock_executor, mock_client, settings_mock):
     assert len(result) == 1
     assert isinstance(result[0], ExtractedAtom)
     assert result[0].resolved_claim == "Claim1"
-    assert result[0].source_quote == "Quote1"
+    assert result[0].source_quote == "chunk1"
     assert result[0].source_id == "chunk_0"
     assert result[0].tda_id.startswith("tda_")
     # UUID hex sliced to 16 chars (or 8 chars, dag_models currently requires 16-32)
