@@ -17,7 +17,7 @@ from pydantic import TypeAdapter, ValidationError
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
-from backend_v2.models.v2_core import ExpectedInput, Workflow
+from backend_v2.models.v2_core import ChatHistoryDTO, ExpectedInput, Workflow
 from backend_v2.services.chat_parser import ChatParserService
 from backend_v2.services.pii_analyzer import get_pii_service
 from backend_v2.services.storage import get_storage_driver
@@ -111,13 +111,23 @@ def _process_questionnaire(raw_val: dict[str, Any], key: str, expected_input: Ex
         ) from e
 
 
-async def _process_chat_history(resolved_text: str, key: str, system_repo: Any) -> dict[str, str]:
+async def _process_chat_history(
+    resolved_text: str,
+    key: str,
+    system_repo: Any,
+    enable_semantic_smoothing: bool,
+    enable_eager_anonymization: bool,
+    language: str,
+) -> dict[str, str]:
     """Parses raw unstructured chat logs into strict JSON via ChatParserService and formats to Markdown.
 
     Args:
         resolved_text: The raw, unstructured chat text.
         key: The input key (e.g., 'chat_log').
         system_repo: The system configuration repository.
+        enable_semantic_smoothing: Whether to run SpaCy smoothing on raw text.
+        enable_eager_anonymization: Whether to run Presidio masking on raw text.
+        language: The language of the text.
 
     Returns:
         dict: A dictionary containing 'combined', 'user_only', and 'ai_only' Markdown formatted strings.
@@ -129,42 +139,72 @@ async def _process_chat_history(resolved_text: str, key: str, system_repo: Any) 
     except ImportError:
         logger.warning("[InputProcessingHook] ftfy is not installed, proceeding without text fixing.")
 
-    logger.info("[InputProcessingHook] Unstructured chat detected for %s. Invoking ChatParserLLM...", key)
-    try:
-        chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)
+    chat_dto = None
+    stripped_text = resolved_text.strip()
+    if stripped_text.startswith("{") or stripped_text.startswith("["):
+        try:
+            chat_dto = ChatHistoryDTO.model_validate_json(stripped_text)
+            logger.info("[InputProcessingHook] Valid JSON chat detected for %s. Bypassing NLP.", key)
+        except ValidationError, ValueError:
+            logger.warning(
+                "[InputProcessingHook] Malformed JSON chat detected for %s. Falling back to raw text parsing.", key
+            )
 
-        # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
-        combined_lines = []
-        user_lines = []
-        ai_lines = []
-        for turn in chat_dto.conversation:
-            # Deterministic Normalization: Crush all whitespace/newlines into single spaces
-            cleaned_content = re.sub(r"\s+", " ", turn.content).strip()
-            combined_lines.append(f"**{turn.role}**: {cleaned_content}")
-            if turn.role == "user":
-                user_lines.append(cleaned_content)
-            else:
-                ai_lines.append(cleaned_content)
+    if chat_dto is None:
+        logger.info("[InputProcessingHook] Unstructured chat detected for %s. Running NLP & ChatParserLLM...", key)
 
-        logger.info("[InputProcessingHook] Successfully structured %s via ChatParser (Markdown).", key)
-        return {
-            "combined": "\n\n".join(combined_lines),
-            "user_only": "\n\n".join(user_lines),
-            "ai_only": "\n\n".join(ai_lines),
-        }
-    except Exception as e:
-        if isinstance(e, AppException):
-            raise e
-        logger.error(
-            "Chat parsing failed.",
-            extra={"error_code": "CHAT_PARSING_FAILED", "input_key": key, "detail": str(e)},
-            exc_info=True,
-        )
-        raise AppException(
-            message=f"Failed to parse unstructured chat for {key} using AI.",
-            status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": "CHAT_PARSING_FAILED"},
-        ) from e
+        if enable_semantic_smoothing:
+            pii_service = get_pii_service()
+            logger.info("[InputProcessingHook] Running Semantic Smoothing for unstructured chat %s", key)
+            start_time = time.perf_counter()
+            resolved_text = await asyncio.to_thread(pii_service.smooth_text, resolved_text, language)
+            duration = time.perf_counter() - start_time
+            logger.info("[InputProcessingHook] Semantic Smoothing for chat %s completed in %.2fs", key, duration)
+
+        if enable_eager_anonymization:
+            pii_service = get_pii_service()
+            logger.info("[InputProcessingHook] Running Eager Anonymization for unstructured chat %s", key)
+            start_time = time.perf_counter()
+            resolved_text = await asyncio.to_thread(pii_service.mask_pii, resolved_text, language)
+            duration = time.perf_counter() - start_time
+            logger.info("[InputProcessingHook] Eager Anonymization for chat %s completed in %.2fs", key, duration)
+
+        try:
+            chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)
+        except Exception as e:
+            if isinstance(e, AppException):
+                raise e
+            logger.error(
+                "Chat parsing failed.",
+                extra={"error_code": "CHAT_PARSING_FAILED", "input_key": key, "detail": str(e)},
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Failed to parse unstructured chat for {key} using AI.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": "CHAT_PARSING_FAILED"},
+            ) from e
+
+    # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
+    combined_lines = []
+    user_lines = []
+    ai_lines = []
+    for turn in chat_dto.conversation:
+        # Deterministic Normalization: Crush all whitespace/newlines into single spaces
+        cleaned_content = re.sub(r"\s+", " ", turn.content).strip()
+        if turn.role == "user":
+            combined_lines.append(f"<user_payload>\n{cleaned_content}\n</user_payload>")
+            user_lines.append(cleaned_content)
+        else:
+            combined_lines.append(f"<ai_draft_context>\n{cleaned_content}\n</ai_draft_context>")
+            ai_lines.append(cleaned_content)
+
+    logger.info("[InputProcessingHook] Successfully structured %s (XML Segregated).", key)
+    return {
+        "combined": "\n\n".join(combined_lines),
+        "user_only": "\n\n".join(user_lines),
+        "ai_only": "\n\n".join(ai_lines),
+    }
 
 
 async def _save_forensic_input(execution_id: str, key: str, resolved_text: str) -> None:
@@ -288,14 +328,22 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             )
 
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
-        if expected_input.is_chat_history and resolved_text and not resolved_text.strip().startswith("{"):
-            chat_result = await _process_chat_history(resolved_text, key, system_repo)
+        is_chat = expected_input.is_chat_history
+        if is_chat and resolved_text:
+            chat_result = await _process_chat_history(
+                resolved_text=resolved_text,
+                key=key,
+                system_repo=system_repo,
+                enable_semantic_smoothing=workflow.enable_semantic_smoothing,
+                enable_eager_anonymization=workflow.enable_eager_anonymization,
+                language=language,
+            )
             resolved_text = chat_result["combined"]
             output_dict[f"{key}_user_only"] = chat_result["user_only"]
             output_dict[f"{key}_ai_only"] = chat_result["ai_only"]
 
         # --- 1. SEMANTIC SMOOTHING (SpaCy - IN BACKGROUND THREAD) ---
-        if workflow.enable_semantic_smoothing and resolved_text:
+        if not is_chat and workflow.enable_semantic_smoothing and resolved_text:
             pii_service = get_pii_service()
             logger.info("[InputProcessingHook] Running Semantic Smoothing for %s", key)
             start_time = time.perf_counter()
@@ -304,7 +352,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             logger.info("[InputProcessingHook] Semantic Smoothing for %s completed in %.2fs", key, duration)
 
         # --- 2. EAGER ANONYMIZATION (Presidio - IN BACKGROUND THREAD) ---
-        if workflow.enable_eager_anonymization and resolved_text:
+        if not is_chat and workflow.enable_eager_anonymization and resolved_text:
             pii_service = get_pii_service()
             logger.info("[InputProcessingHook] Running Eager Anonymization for %s", key)
             start_time = time.perf_counter()

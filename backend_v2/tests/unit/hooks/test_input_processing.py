@@ -17,11 +17,45 @@ async def test_process_chat_history_separates_speakers(mock_parse):
         ]
     )
 
-    result = await _process_chat_history("some text", "chat_log", None)
+    with patch("backend_v2.hooks.input_processing.get_pii_service") as mock_pii:
+        result = await _process_chat_history(
+            resolved_text="some text",
+            key="chat_log",
+            system_repo=None,
+            enable_semantic_smoothing=False,
+            enable_eager_anonymization=False,
+            language="en"
+        )
 
-    assert result["combined"] == "**user**: Hello AI!\n\n**ai**: Hello User!\n\n**user**: What is 2+2?"
+    assert result["combined"] == "<user_payload>\nHello AI!\n</user_payload>\n\n<ai_draft_context>\nHello User!\n</ai_draft_context>\n\n<user_payload>\nWhat is 2+2?\n</user_payload>"
     assert result["user_only"] == "Hello AI!\n\nWhat is 2+2?"
     assert result["ai_only"] == "Hello User!"
+
+@pytest.mark.asyncio
+async def test_process_chat_history_bypasses_nlp_for_json():
+    json_input = '''
+    {
+        "conversation": [
+            {"role": "user", "content": "Hello"}
+        ]
+    }
+    '''
+    with patch("backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat") as mock_parse:
+        with patch("backend_v2.hooks.input_processing.get_pii_service") as mock_get_pii:
+            result = await _process_chat_history(
+                resolved_text=json_input,
+                key="chat_log",
+                system_repo=None,
+                enable_semantic_smoothing=True,
+                enable_eager_anonymization=True,
+                language="en",
+            )
+            
+            mock_get_pii.assert_not_called()
+            mock_parse.assert_not_called()
+            
+            assert result["combined"] == "<user_payload>\nHello\n</user_payload>"
+            assert result["user_only"] == "Hello"
 
 
 @pytest.mark.asyncio

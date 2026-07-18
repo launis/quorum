@@ -5,7 +5,7 @@
 - Before handing over the session, you MUST update the `/tier5-resume` command in the `# Session Handover Context` block at the bottom of this file.
 
 ## Execution Tracker
-- [NOK] Phase 1: Execute `docs\epic\tasks_EPIC_102_structured_provenance\01_intra_chat_segregation.md`
+- [OK] Phase 1: Execute `docs\epic\tasks_EPIC_102_structured_provenance\01_intra_chat_segregation.md`
 - [NOK] Run `/tier0-research-plan` on Phase 2's plan in a fresh context window to Red-Team the architecture before execution.
 - [NOK] Phase 2: Execute `docs\epic\tasks_EPIC_102_structured_provenance\02_inter_source_segregation.md`
 - [NOK] Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state.
@@ -30,6 +30,7 @@
 - Broken down Epic 102 into micro-chunked execution plans focusing on structural separation of LLM context.
 - Analyzed existing inputs processor and compiler mechanisms.
 - Established Phase 1 and Phase 2 implementation plans.
+- Executed Phase 1 (Intra-Chat Segregation) in `input_processing.py`.
 
 ### Learned
 - `ChatHistoryDTO` is already stable and handles processing inside `input_processing.py`.
@@ -37,7 +38,6 @@
 - The `global_mandates.py` and `localization_compiler.py` can cleanly integrate the `CONTEXT_SEGREGATION_MANDATE`.
 
 ### Remaining
-- Execute Phase 1 (Intra-Chat Segregation)
 - Red-Team and Execute Phase 2 (Inter-Source Segregation & Directives)
 - Detail and Execute Phase 3 (Physical Anchoring)
 - Final Audits
