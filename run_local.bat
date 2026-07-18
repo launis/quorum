@@ -76,7 +76,7 @@ echo       Mode: LOCAL
 echo       Config: LOCAL DB (db_v2.json), REAL LLM, MOCK AUTH
 echo       FastDev: ENABLED BY DEFAULT (Flash models, 5-word limit, 0 delays).
 echo                To bypass for full LLM quality (Pro models, full length), run:
-echo                $env:FAST_DEV_MODE="false"; .\run_local.bat
+echo                $env:DEV_EXECUTION_MODE="full"; .\run_local.bat
 
 set USE_FIREBASE_AUTH=false
 set DISABLE_VERTEX_CACHE=false
