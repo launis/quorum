@@ -21,13 +21,28 @@ Complete the cross-boundary `StepRule.engine_override` field synchronization bet
 
 ---
 
-## Milestone 2B.1: Flutter StepRule Freezed Update
+## Milestone 2B.1: Flutter StepRule Freezed Update & Enum Parity
 
 **Source: Epic Phase 3, Step 2 — Cross-Boundary MANDATORY Sub-Step**
 
+### TARGET (Modify): [enums.dart](file:///c:/src/quorum/client_app_v2/lib/core/models/enums.dart)
+
+First, define the `EngineOverrideStrategy` enum to satisfy the **cross_language_enum_parity** rule:
+
+```dart
+/// Execution strategy overrides for the engine.
+@JsonEnum()
+enum EngineOverrideStrategy {
+  @JsonValue('PRE_HYDRATED_SYNTHESIS')
+  preHydratedSynthesis,
+  @JsonValue('DYNAMIC_TOOL_AGENT')
+  dynamicToolAgent,
+}
+```
+
 ### TARGET (Modify): [workflow.dart](file:///c:/src/quorum/client_app_v2/lib/features/studio/models/workflow.dart)
 
-Add `engine_override` field to the `StepRule` Freezed factory:
+Add `engine_override` field to the `StepRule` Freezed factory using the new enum:
 
 ```dart
 @Freezed(equal: false)
@@ -40,9 +55,9 @@ abstract class StepRule with _$StepRule {
     @StrictOpaqueIdConverter() required String taskBlueprint,
     @Default([]) List<String> dependsOn,
     @Default({}) Map<String, String> inputMappings,
+    @JsonKey(name: 'engine_override') EngineOverrideStrategy? engineOverride,  // NEW — strict enum mapping
     @Default(0.0) double uiPosX,
     @Default(0.0) double uiPosY,
-    @JsonKey(name: 'engine_override') String? engineOverride,  // NEW — nullable to preserve backward compat
   }) = _StepRule;
 
   factory StepRule.fromJson(Map<String, dynamic> json) =>
@@ -70,22 +85,13 @@ cd client_app_v2; dart run build_runner build -d;
 
 ### TARGET (Modify): [app_error_boundary.dart](file:///c:/src/quorum/client_app_v2/lib/core/error/app_error_boundary.dart)
 
-Update `AppExceptionBoundary` to intercept rendering errors caused by the dynamically injected Virtual Step. Because the Virtual Step has no corresponding definition in the Freezed model, it will throw an exception during rendering.
+Update `AppExceptionBoundary` to safely intercept rendering errors caused by dynamically injected Virtual Steps. Because the Virtual Step has no corresponding definition in the Freezed model, it will throw an exception during rendering.
 
-1. Modify `_buildDiagnosticNode` (or `build` method) to check if `error.toString()` indicates a missing step definition (e.g., contains the dynamic `stp_` prefix, or explicitly mentions missing rules).
-2. If it matches a Virtual Step error, return a `SduiLoadingSkeleton()` (you may need to import it or build a simple `CircularProgressIndicator` fallback) instead of the red `Diagnostic Node`.
+**CRITICAL RULE ENFORCEMENT**: According to the **Absolute Death / Diagnostic Node** mandate (Rule 02_flutter_desktop.md), we must **NOT** hide these errors with `SizedBox.shrink()` or a loading skeleton. 
 
-```dart
-    if (error.toString().contains('stp_') || error.toString().contains('No element')) {
-      // Graceful fallback for Virtual Steps
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32.0),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-```
+1. Ensure that if `error.toString()` indicates a missing step definition (e.g., contains the dynamic `stp_` prefix, or explicitly mentions missing rules), it explicitly renders a localized red `Diagnostic Node`. Do not hide the error.
+2. The UI must explicitly inform the user that a Virtual Step parsing failure occurred.
+
 
 ### CONTEXT (Read-Only):
 - `client_app_v2/lib/core/error/app_error_boundary.dart` — Target file
@@ -178,15 +184,15 @@ In the adapter's request preparation logic, implement dynamic extraction of reas
 2. If present, extract the value and inject it into the `call_kwargs` dictionary for LiteLLM.
    > **CRITICAL ARCHITECTURE RULE**: Do NOT attempt to assign `generation_config.thinking_config`! `vertex_adapter.py` only modifies the `call_kwargs` dictionary sent to `litellm.acompletion`. There is no `generation_config` Python object.
    ```python
-   if config and config.additional_params and "thinking_budget_tokens" in config.additional_params:
+   if config and hasattr(config, "additional_params") and "thinking_budget_tokens" in config.additional_params:
        budget = config.additional_params.get("thinking_budget_tokens")
        if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
            call_kwargs["extra_body"] = {}
        
        # Use extra_body so Litellm passes it natively to Vertex SDK
-       call_kwargs["extra_body"]["generationConfig"] = {
-           "thinkingConfig": {"thinkingBudget": int(budget)}
-       }
+       if "thinkingConfig" not in call_kwargs["extra_body"]:
+           call_kwargs["extra_body"]["thinkingConfig"] = {}
+       call_kwargs["extra_body"]["thinkingConfig"]["thinkingBudgetTokens"] = int(budget)
    ```
 3. **Provider Abstraction Mandate**: This logic MUST live exclusively in `vertex_adapter.py`. The global `LiteLLMProvider` / `provider.py` MUST NOT contain any Gemini-specific parameter mapping.
 
