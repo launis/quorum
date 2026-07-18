@@ -11,10 +11,10 @@
 - [OK] Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state.
 - [OK] Run `/tier0-research-plan` on Phase 3's plan to Red-Team and fix Pre-Flight Provenance fuzzy bypass.
 - [OK] Phase 3: Execute `docs\epic\tasks_EPIC_102_structured_provenance\03_physical_anchoring.md`
-- [NOK] Proxy Sunset & Consumer Migration
-- [NOK] Tier 2 Hardening
-- [NOK] Pre-Delete Audit
-- [NOK] Semantic Coverage & Zero-Loss Audit
+- [OK] Proxy Sunset & Consumer Migration
+- [OK] Tier 2 Hardening
+- [OK] Pre-Delete Audit
+- [OK] Semantic Coverage & Zero-Loss Audit
 
 ## Requirements Traceability Matrix
 | Requirement | Addressed In |
