@@ -64,6 +64,34 @@ cd client_app_v2; dart run build_runner build -d;
 
 ---
 
+## Milestone 2B.1.5: UI Fallback Guarantee (AppExceptionBoundary)
+
+**Source: Epic Phase 4 — System 2 Safeguards**
+
+### TARGET (Modify): [app_error_boundary.dart](file:///c:/src/quorum/client_app_v2/lib/core/error/app_error_boundary.dart)
+
+Update `AppExceptionBoundary` to intercept rendering errors caused by the dynamically injected Virtual Step. Because the Virtual Step has no corresponding definition in the Freezed model, it will throw an exception during rendering.
+
+1. Modify `_buildDiagnosticNode` (or `build` method) to check if `error.toString()` indicates a missing step definition (e.g., contains the dynamic `stp_` prefix, or explicitly mentions missing rules).
+2. If it matches a Virtual Step error, return a `SduiLoadingSkeleton()` (you may need to import it or build a simple `CircularProgressIndicator` fallback) instead of the red `Diagnostic Node`.
+
+```dart
+    if (error.toString().contains('stp_') || error.toString().contains('No element')) {
+      // Graceful fallback for Virtual Steps
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+```
+
+### CONTEXT (Read-Only):
+- `client_app_v2/lib/core/error/app_error_boundary.dart` — Target file
+
+---
+
 ## Milestone 2B.2: Seed Data — Map `engine_override` to Existing Steps
 
 **Source: Epic Phase 3, Steps 4-5**

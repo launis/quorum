@@ -148,6 +148,24 @@ Add the new strategy to the module exports.
 
 ---
 
+## Milestone 2A.4: Structural Test for Ephemeral Caching Topology
+
+**Source: Epic Section 4 — Cache-Busting Prevention (Topology Verification)**
+
+### TARGET (New): [test_cache_busting_prevention.py](file:///c:/src/quorum/backend_v2/tests/unit/services/orchestrator/test_cache_busting_prevention.py)
+
+Create a structural unit test to verify that the `PromptCompiler` outputs an identical `System Message` when compiling the exact same Matrix Block across two different executions (different dynamic context variables). 
+
+This is an architectural requirement to enforce the Ephemeral Caching Topology. If the hash differs, it means dynamic data has leaked into the static block, preventing Vertex AI from reusing the context cache. 
+
+1. Setup two dummy `GlobalAtomBlackboard` payloads with completely different atoms.
+2. Compile a mock `StepRule` with a `PromptBlock` using `PromptCompiler` with the first payload, extract the System Message, and hash it.
+3. Compile the same `StepRule` with the second payload, extract the System Message, and hash it.
+4. `assert hash1 == hash2`, "Dynamic data leaked into the static system prompt!"
+5. Assert that the dynamic atoms were injected exclusively into the trailing User Message.
+
+---
+
 ## Bidirectional Integration Check
 
 | Consumer | Producer | Verified? |

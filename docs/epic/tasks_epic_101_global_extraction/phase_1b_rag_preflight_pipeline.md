@@ -80,15 +80,22 @@ Logic flow:
    client = await LLMClient.from_strategy("fast", self.system_repo)
    ```
 
-2. **Collect Input Files**: Inspect `workflow.expected_inputs` (if accessible through the workflow object) or inspect `exec_record.raw_inputs` to enumerate all input file keys (e.g., `product_text`, `chat_log`). For EACH input file:
+2. **Collect Input Files & Sequential File Orchestration**: Inspect `workflow.expected_inputs` (if accessible through the workflow object) or inspect `exec_record.raw_inputs` to enumerate all input file keys (e.g., `product_text`, `chat_log`). For EACH input file:
    - Extract the text payload from the execution trace projector (`projector.snapshot`)
    - Chunk it via `ChunkingService.chunk_payload()`
-   - Run `TwoPassAtomizer(executor).execute_phase_0()` + `TwoPassAtomizer(executor).execute_phase_1()` per file
+   - Run `TwoPassAtomizer(executor).execute_phase_0()` + `TwoPassAtomizer(executor).execute_phase_1()` per file sequentially.
+   > **CONCURRENCY CLARIFICATION:** Do NOT implement `asyncio.TaskGroup` or `Semaphore` inside `DAGExecutor`. The `TwoPassAtomizer` ALREADY implements `TaskGroup` and `Semaphore(settings.max_concurrent_llm_steps)` internally to process all chunks of a single file concurrently. `DAGExecutor` only loops over the files sequentially.
 
-3. **DLQ Interception (Inside TwoPassAtomizer)**: 
-   Update `TwoPassAtomizer._extract_atoms_from_chunk()` to wrap the LLM execution in `try-except`. On exhausted retries, catch the error and instantiate the fallback sentinel: `DraftAtomList(atoms=[], dlq_status="FAILED/DLQ")`. Inside the loop, check `if draft_result.dlq_status:` and emit `logger.warning("dlq_chunk_detected", extra={"chunk_index": chunk_index})`. Do NOT attempt to do this Try-Except block inside `DAGExecutor`.
+3. **DLQ Interception & Tenacity Retry (Inside TwoPassAtomizer)**: 
+   Update `TwoPassAtomizer._extract_atoms_from_chunk()`:
+   - Add a Tenacity retry decorator (`@retry(stop=stop_after_attempt(3), wait=wait_exponential())`) to handle transient 503/429 errors.
+   - Wrap the internal execution in a `try-except Exception` block. 
+   - If retries are exhausted and an exception is caught, return the fallback sentinel: `DraftAtomList(atoms=[], dlq_status="FAILED/DLQ")`. 
+   - Inside the TaskGroup result collector loop in `execute_phase_1`, check `if draft_result.dlq_status:` and emit `logger.warning("dlq_chunk_detected", extra={"chunk_index": chunk_index})`. Do NOT attempt to do this Try-Except block inside `DAGExecutor`.
 
-4. **Anti-Corruption Layer**: Before aggregating into the blackboard, validate each `DraftExtractedAtom` individually. Drop corrupted atoms with `logger.warning("corrupted_atom_dropped", extra={"raw_payload": ...})` — **Dual-Reporting Mandate**. Silent drops are banned.
+4. **Anti-Corruption Layer & Quote Normalization**: Before aggregating into the blackboard, validate each `DraftExtractedAtom` individually.
+   - **Quote Normalization**: Apply `AnchorValidationService.normalize_text_with_mapping()` to BOTH the source chunk text and the LLM generated `source_quote` BEFORE executing the `str.find` physical anchoring check. This prevents false-negative hallucination rejections caused by minor whitespace discrepancies (`\r\n` vs `\n`). If `is_logical_deduction == True` is supported by the atom format, bypass the `str.find` check.
+   - **Corrupt Atom Dropping**: Drop corrupted atoms (or those failing `str.find`) with `logger.warning("corrupted_atom_dropped", extra={"raw_payload": ...})` — **Dual-Reporting Mandate**. Silent drops are banned.
 
 5. **Atom Ceiling Enforcement**: After aggregation per file, check `len(atoms) > settings.max_extracted_atoms_per_document`. If exceeded, Fail-Fast with `AppException`.
 
