@@ -48,6 +48,7 @@ class StrategyContext(BaseModel):
     model_strategy: str | None = None
     strictness_level: int = StrictnessAnchor.STANDARD.value
     global_context_vars: dict[str, Any] = Field(default_factory=dict)
+    context_variables: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 

@@ -155,6 +155,7 @@ class NodeExecutor:
         strictness_level: int = StrictnessAnchor.STANDARD.value,
         arq_pool: Any | None = None,
         running_event: asyncio.Event | None = None,
+        context_variables: dict[str, Any] | None = None,
     ) -> list[TraceEvent]:
         """Executes a pipeline node strategy with static parameters.
 
@@ -216,11 +217,29 @@ class NodeExecutor:
                 model_strategy=step_def.model_strategy,
                 strictness_level=strictness_level,
                 global_context_vars=metadata["global_context_vars"] if "global_context_vars" in metadata else {},
+                context_variables=context_variables or {},
             )
 
             strategy_impl: NodeStrategy
             if step_def.type == "logic":
                 strategy_impl = LogicNodeStrategy(
+                    self.exec_repo,
+                    self.workflow_repo,
+                    self.comp_repo,
+                    self.prompt_block_repo,
+                    self.output_profile_repo,
+                    self.identity_repo,
+                    self.audit_repo,
+                    self.system_repo,
+                    self.compiler,
+                    arq_pool=arq_pool,
+                )
+            elif step_def.model_strategy == "synthesis":
+                from backend_v2.services.orchestrator.strategies.pre_hydrated_synthesis import (
+                    PreHydratedSynthesisStrategy,
+                )
+
+                strategy_impl = PreHydratedSynthesisStrategy(
                     self.exec_repo,
                     self.workflow_repo,
                     self.comp_repo,
@@ -552,6 +571,7 @@ class DAGExecutor:
                         strictness_level=strictness_level,
                         semaphore=semaphore,
                         running_event=running_event,
+                        context_variables=exec_record.context_variables,
                     )
                 finally:
                     watcher_task.cancel()

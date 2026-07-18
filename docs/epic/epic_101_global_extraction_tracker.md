@@ -19,7 +19,7 @@
   - `max_extracted_atoms_per_document` setting
   - Physical Anchoring Null Hypothesis (`is_logical_deduction`)
 
-- [ ] `[NOK]` **Phase 1B — RAG Pre-Flight Pipeline**: Execute [phase_1b_rag_preflight_pipeline.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_1b_rag_preflight_pipeline.md)
+- [x] `[OK]` **Phase 1B — RAG Pre-Flight Pipeline**: Execute [phase_1b_rag_preflight_pipeline.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_1b_rag_preflight_pipeline.md)
   - Virtual Step injection in `DAGExecutor`
   - Map-Reduce atomization with DLQ routing
   - Blackboard projection to `context_variables["global_atoms"]`
@@ -30,9 +30,9 @@
 
 ### Phase 2: Pre-Hydrated Synthesis Strategy & SDUI Routing
 
-- [ ] `[NOK]` **Tier 0 Red-Team**: Run `/tier0-research-plan` on [phase_2a_pre_hydrated_synthesis_strategy.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2a_pre_hydrated_synthesis_strategy.md) in a fresh context window. This plan introduces a new SSOT strategy component and modifies the `NodeExecutor` routing cascade.
+- [x] `[OK]` **Tier 0 Red-Team**: Run `/tier0-research-plan` on [phase_2a_pre_hydrated_synthesis_strategy.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2a_pre_hydrated_synthesis_strategy.md) in a fresh context window. This plan introduces a new SSOT strategy component and modifies the `NodeExecutor` routing cascade.
 
-- [ ] `[NOK]` **Phase 2A — Pre-Hydrated Synthesis Strategy**: Execute [phase_2a_pre_hydrated_synthesis_strategy.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2a_pre_hydrated_synthesis_strategy.md)
+- [x] `[OK]` **Phase 2A — Pre-Hydrated Synthesis Strategy**: Execute [phase_2a_pre_hydrated_synthesis_strategy.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2a_pre_hydrated_synthesis_strategy.md)
   - `PreHydratedSynthesisStrategy` class creation
   - AliasEngine integration (inject & reverse hydrate)
   - Single-Call Mandate enforcement
@@ -117,42 +117,42 @@
 
 | Epic Requirement | Phase/Plan | Status |
 |---|---|---|
-| **§2.1** RAG Pre-Flight Pipeline (run atomizer ONCE before steps) | Phase 1B | `[NOK]` |
-| **§2.2** Virtual Step Injection (ephemeral UI step during RAG) | Phase 1B | `[NOK]` |
-| **§2.3** Pre-Hydrated Synthesis Strategy (single-call fast path) | Phase 2A | `[NOK]` |
-| **§2.5** Dual-Input Synthesis Model (Map + Encyclopedia) | Phase 2A | `[NOK]` |
-| **§3.1** Pre-Condition Scan (skip preflight if no PRE_HYDRATED steps) | Phase 1B | `[NOK]` |
-| **§3.1.2** Virtual StepRule injection with model_copy | Phase 1B | `[NOK]` |
-| **§3.1.3** ChunkingService + TwoPassAtomizer per input file | Phase 1B | `[NOK]` |
-| **§3.1.4** TaskGroup + Semaphore + DLQ routing | Phase 1B | `[NOK]` |
-| **§3.1.5** Progress TraceEvents during map-reduce | Phase 1B (+ Phase 1A `"progress"` literal) | `[NOK]` |
-| **§3.1.6** GlobalAtomBlackboard model + context_variables projection | Phase 1A + Phase 1B | `[NOK]` |
-| **§3.2.1** Hydrate facts + AliasEngine isolation | Phase 2A | `[NOK]` |
-| **§3.2.2** PromptCompiler preservation (XML sovereignty) | Phase 2A | `[NOK]` |
-| **§3.2.3** Ephemeral Caching Topology (static system prompt) | Phase 2A | `[NOK]` |
-| **§3.2.4** Single-Call Synthesis via execute_structured_task | Phase 2A | `[NOK]` |
-| **§3.1** EngineOverrideStrategy enum | Phase 1A | `[NOK]` |
-| **§3.2** StepRule.engine_override field | Phase 1A (backend) + Phase 2B (Flutter) | `[NOK]` |
-| **§3.2** NodeExecutor routing priority cascade | Phase 2A | `[NOK]` |
+| **§2.1** RAG Pre-Flight Pipeline (run atomizer ONCE before steps) | Phase 1B | `[OK]` |
+| **§2.2** Virtual Step Injection (ephemeral UI step during RAG) | Phase 1B | `[OK]` |
+| **§2.3** Pre-Hydrated Synthesis Strategy (single-call fast path) | Phase 2A | `[OK]` |
+| **§2.5** Dual-Input Synthesis Model (Map + Encyclopedia) | Phase 2A | `[OK]` |
+| **§3.1** Pre-Condition Scan (skip preflight if no PRE_HYDRATED steps) | Phase 1B | `[OK]` |
+| **§3.1.2** Virtual StepRule injection with model_copy | Phase 1B | `[OK]` |
+| **§3.1.3** ChunkingService + TwoPassAtomizer per input file | Phase 1B | `[OK]` |
+| **§3.1.4** TaskGroup + Semaphore + DLQ routing | Phase 1B | `[OK]` |
+| **§3.1.5** Progress TraceEvents during map-reduce | Phase 1B (+ Phase 1A `"progress"` literal) | `[OK]` |
+| **§3.1.6** GlobalAtomBlackboard model + context_variables projection | Phase 1A + Phase 1B | `[OK]` |
+| **§3.2.1** Hydrate facts + AliasEngine isolation | Phase 2A | `[OK]` |
+| **§3.2.2** PromptCompiler preservation (XML sovereignty) | Phase 2A | `[OK]` |
+| **§3.2.3** Ephemeral Caching Topology (static system prompt) | Phase 2A | `[OK]` |
+| **§3.2.4** Single-Call Synthesis via execute_structured_task | Phase 2A | `[OK]` |
+| **§3.1** EngineOverrideStrategy enum | Phase 1A | `[OK]` |
+| **§3.2** StepRule.engine_override field | Phase 1A (backend) + Phase 2B (Flutter) | `[PARTIAL]` |
+| **§3.2** NodeExecutor routing priority cascade | Phase 2A | `[OK]` |
 | **§3.4** seed_data.json engine_override mappings | Phase 2B | `[NOK]` |
 | **§3.5** Reasoning strategy in model_registry | Phase 2B | `[NOK]` |
 | **§3.5** Vertex adapter reasoning parameter extraction | Phase 2B | `[NOK]` |
 | **§3.6** Apply reasoning to critical nodes | Phase 2B | `[NOK]` |
 | **§4** UI Fallback (Virtual Injection Risk) — AppErrorBoundary | Phase 2C (validation) | `[NOK]` |
-| **§4** TaskGroup Cascade Isolation — DLQ routing | Phase 1B | `[NOK]` |
-| **§4** Blackboard Anti-Corruption Layer | Phase 1B | `[NOK]` |
-| **§4** Alias Hallucination Resilience | Phase 2A | `[NOK]` |
-| **§4** Payload Bloat Risk — Atom Ceiling | Phase 1A (setting) + Phase 1B (enforcement) | `[NOK]` |
-| **§4** Cache-Busting Prevention (hash test) | Phase 2A (test) | `[NOK]` |
-| **§4** Quote Normalization (AnchorValidationService) | Phase 2A | `[NOK]` |
-| **§4** State Sovereignty (no raw dicts) | Phase 1B | `[NOK]` |
-| **§4** Fail-Fast Hydration (DependencyError) | Phase 2A | `[NOK]` |
-| **§4** Single-Call Mandate (no hidden loops) | Phase 2A | `[NOK]` |
-| **§4** Rogue SDK Ban | Phase 2A | `[NOK]` |
-| **§4** FinOps Cascading Routing (override Bo3) | Phase 2A | `[NOK]` |
-| **§4** Tripartite Configuration Architecture | Phase 1A (enums/settings split) | `[NOK]` |
-| **DraftAtomList/DraftExtractedAtom** SSOT migration | Phase 1A | `[NOK]` |
-| **DraftAtomList.dlq_status** sentinel field | Phase 1A | `[NOK]` |
+| **§4** TaskGroup Cascade Isolation — DLQ routing | Phase 1B | `[OK]` |
+| **§4** Blackboard Anti-Corruption Layer | Phase 1B | `[OK]` |
+| **§4** Alias Hallucination Resilience | Phase 2A | `[OK]` |
+| **§4** Payload Bloat Risk — Atom Ceiling | Phase 1A (setting) + Phase 1B (enforcement) | `[OK]` |
+| **§4** Cache-Busting Prevention (hash test) | Phase 2A (test) | `[OK]` |
+| **§4** Quote Normalization (AnchorValidationService) | Phase 2A | `[OK]` |
+| **§4** State Sovereignty (no raw dicts) | Phase 1B | `[OK]` |
+| **§4** Fail-Fast Hydration (DependencyError) | Phase 2A | `[OK]` |
+| **§4** Single-Call Mandate (no hidden loops) | Phase 2A | `[OK]` |
+| **§4** Rogue SDK Ban | Phase 2A | `[OK]` |
+| **§4** FinOps Cascading Routing (override Bo3) | Phase 2A | `[OK]` |
+| **§4** Tripartite Configuration Architecture | Phase 1A (enums/settings split) | `[OK]` |
+| **DraftAtomList/DraftExtractedAtom** SSOT migration | Phase 1A | `[OK]` |
+| **DraftAtomList.dlq_status** sentinel field | Phase 1A | `[OK]` |
 | Proxy sunset for two_pass_atomizer re-exports | Hardening pipeline | `[NOK]` |
 | Architecture docs update | Documentation phase | `[NOK]` |
 | KI creation for GlobalAtomBlackboard | Documentation phase | `[NOK]` |
@@ -162,29 +162,22 @@
 ## Session Handover Context
 
 ### Achieved
-- Comprehensive Tier 1 Epic decomposition of Epic 101 into 6 micro-chunked plans (1A, 1B, 2A, 2B, 2C, Integration)
-- Strict architectural invariant injection from `.agents/rules/`
-- Complete Requirements Traceability Matrix mapping all 35+ Epic requirements
-- Dynamic codebase investigation confirming: current state of `dag_executor.py`, `two_pass_atomizer.py`, `state.py`, `v2_core.py`, `enums.py`, `execution_core.py`, `workflow.dart`, `seed_data.json`
-- Destructive Operation Inventory for `DraftAtomList`/`DraftExtractedAtom` migration
+- Phase 1A (Backend Models & Enums) completely implemented and validated.
+- Phase 1B (RAG Pre-Flight Pipeline) completely implemented and validated.
+- Phase 2A (Pre-Hydrated Synthesis Strategy) completely implemented and validated. 100% backend test pass and 79.12% coverage.
 
 ### Learned
-- `EngineOverrideStrategy` enum and `engine_override` field do NOT yet exist anywhere in the codebase — confirmed via grep
-- `context_variables` is defined in `execution_core.py` as `dict[str, Any]` — suitable for blackboard projection
-- `TraceEvent.event_type` currently has 7 literals, needs `"progress"` added
-- Flutter `StepRule` uses `disallowUnrecognizedKeys: true` — MUST add `engine_override` field before backend change
-- Virtual step injection pattern (`sys_render_*`) already exists in `dag_executor.py` lines 369-392
-- `TwoPassAtomizer` has 3 external consumers for its model exports (2 test files + `llm.py`)
+- Mocking classes imported directly inside local methods (e.g. `TwoPassAtomizer`) requires patching their source module path, not the consumer module.
+- Retries using `@retry` must be configured to fetch variables dynamically (`get_settings()`) at import time to preserve Configuration Sovereignty.
+- Pydantic reverse-MRO iteration requires careful base class ordering in dynamic schemas.
 
 ### Remaining
-- Execute all `[NOK]` phases sequentially
-- After Phase 2C, re-invoke Tier 1 for remaining hardening phases
-- Complete documentation and KI creation
+- Execute Phase 2B (Flutter StepRule & Seed Data).
 
 ---
 
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier0-research-plan --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/tasks_epic_101_global_extraction/phase_1b_rag_preflight_pipeline.md" --rules="00-antigravity-core.md, 01-python-backend.md" --achieved="Phase 1A (Backend Models & Enums) completely implemented and validated. Epic 93 Golden Master Test failure resolved (restored BlueprintTransformer layout generation logic). 100% backend test pass." --learned="BlueprintTransformer requires _extract_matrices_and_extensions and _build_layouts to populate layouts_list. Phase 1A models (EngineOverrideStrategy, GlobalAtomBlackboard) successfully integrated." --remaining="Run Tier 0 Red-Team on Phase 1B (RAG Pre-Flight Pipeline) plan, then execute Phase 1B."
+/tier5-resume --workflow=/tier0-research-plan --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/tasks_epic_101_global_extraction/phase_2b_flutter_seed_data_routing.md" --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md, 03_seed_vault.md" --achieved="Phase 1B and Phase 2A completely implemented and validated. NodeExecutor now correctly routes synthesis steps to PreHydratedSynthesisStrategy. 100% backend test pass and 79.12% coverage." --learned="AliasEngine hydrate_and_filter_aliases recurses to drop invalid UUIDs. Pydantic reverse-MRO requires careful base class ordering." --remaining="Run Tier 0 Red-Team on Phase 2B (Flutter StepRule & Seed Data) plan, then execute Phase 2B."
 ```

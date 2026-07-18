@@ -52,3 +52,27 @@ class GlobalAtomBlackboard(V2CoreBase):
         dict[str, DraftAtomList],
         Field(description="Extracted atoms keyed by their source input file key (e.g. 'product_text')."),
     ]
+
+    def get_all_atom_ids(self) -> list[str]:
+        """Returns a flat list of all draft_id strings across all inputs."""
+        ids = []
+        for v in self.atoms_by_input.values():
+            for atom in v.atoms:
+                ids.append(atom.draft_id)
+        return list(set(ids))
+
+    def to_markdown_synthesis_injection(self) -> str:
+        """Serializes the blackboard into a structured Markdown payload for LLM injection."""
+        lines = []
+        for input_key, atom_list in self.atoms_by_input.items():
+            lines.append(f"## SOURCE: {input_key}")
+            for atom in atom_list.atoms:
+                lines.append(f"### ATOM: {atom.draft_id}")
+                lines.append(f"**Claim**: {atom.resolved_claim}")
+                if atom.is_logical_deduction:
+                    lines.append("**Quote**: [Logical Deduction]")
+                else:
+                    lines.append(f"**Quote**: {atom.source_quote}")
+                lines.append(f"**Reasoning**: {atom.reasoning}")
+                lines.append("")
+        return "\n".join(lines)

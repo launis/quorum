@@ -295,3 +295,44 @@ class AliasEngine:
         target = template.format(id=real_id)
         replacement = template.format(id=alias)
         return text.replace(target, replacement)
+
+    def hydrate_and_filter_aliases(self, data: Any, field_names: set[str]) -> None:
+        """Hydrate valid aliases and strictly DROP invalid ones in-place.
+
+        Recursively traverses dicts/lists.
+        For lists: strictly drop invalid aliases.
+        For scalars: set field to None if alias is invalid.
+        """
+
+        def _recurse(node: Any) -> None:
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    if key in field_names:
+                        if isinstance(value, list):
+                            new_list = []
+                            for alias in value:
+                                if isinstance(alias, str):
+                                    if alias in self.alias_map:
+                                        new_list.append(self.alias_map[alias])
+                                    elif alias in DEFAULT_ALIAS_LITERALS:
+                                        new_list.append(alias)
+                                    else:
+                                        logger.warning("hallucinated_alias_dropped", extra={"alias": alias})
+                                else:
+                                    new_list.append(alias)
+                            node[key] = new_list
+                        elif isinstance(value, str):
+                            if value in self.alias_map:
+                                node[key] = self.alias_map[value]
+                            elif value in DEFAULT_ALIAS_LITERALS:
+                                pass
+                            else:
+                                logger.warning("hallucinated_alias_dropped", extra={"alias": value})
+                                node[key] = None
+                    else:
+                        _recurse(value)
+            elif isinstance(node, list):
+                for item in node:
+                    _recurse(item)
+
+        _recurse(data)
