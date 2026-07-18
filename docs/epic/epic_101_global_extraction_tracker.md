@@ -17,12 +17,14 @@
   - `GlobalAtomBlackboard` + `DraftAtomList` migration to domain models
   - `"progress"` added to `TraceEvent.event_type`
   - `max_extracted_atoms_per_document` setting
+  - Physical Anchoring Null Hypothesis (`is_logical_deduction`)
 
 - [ ] `[NOK]` **Phase 1B — RAG Pre-Flight Pipeline**: Execute [phase_1b_rag_preflight_pipeline.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_1b_rag_preflight_pipeline.md)
   - Virtual Step injection in `DAGExecutor`
   - Map-Reduce atomization with DLQ routing
   - Blackboard projection to `context_variables["global_atoms"]`
   - Progress events for SSE liveness
+  - Quote Normalization Strategy (`AnchorValidationService`)
 
 ---
 
@@ -35,6 +37,7 @@
   - AliasEngine integration (inject & reverse hydrate)
   - Single-Call Mandate enforcement
   - `NodeExecutor.execute()` routing cascade
+  - Cache-Busting structural unit test
   
 - [ ] `[NOK]` **Phase 2B — Flutter StepRule & Seed Data**: Execute [phase_2b_flutter_seed_data_routing.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2b_flutter_seed_data_routing.md)
   - Flutter `StepRule` Freezed update + `build_runner`
@@ -183,5 +186,5 @@
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/EPIC_101_Global_Extraction_Node.md" --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md"
+/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/tasks_epic_101_global_extraction/phase_1a_backend_models_and_enums.md" --rules="00-antigravity-core.md, 01-python-backend.md" --achieved="Tier 0 System 2 Red-Teaming completed for all phases. Architecture holes (Null Hypothesis, Quote Normalization, FinOps Cascading Escalation, DependencyError, Scalar Alias Hallucination) fixed in plans." --learned="TwoPassAtomizer natively handles TaskGroup chunk concurrency. DraftExtractedAtom uses is_logical_deduction to allow None quotes. PreHydratedSynthesis must use Cascading Routing fallback on ValidationError, and AliasEngine must handle scalar strings." --remaining="Start executing Phase 1A (Backend Models & Enums)."
 ```

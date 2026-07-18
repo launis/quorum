@@ -123,9 +123,15 @@ class DraftExtractedAtom(V2CoreBase):
 
     reasoning: Annotated[str, Field(description="Chain-of-thought logic.")]
     resolved_claim: Annotated[str, Field(description="The cleaned claim.")]
-    source_quote: Annotated[str, Field(description="The exact quote from text.")]
+    is_logical_deduction: Annotated[
+        bool,
+        Field(default=False, description="Set to True if the claim is deduced purely via logic, allowing a null quote."),
+    ] = False
+    source_quote: Annotated[
+        str | None, 
+        Field(default=None, description="The exact verbatim quote. Must be None if is_logical_deduction is True.")
+    ] = None
     draft_id: Annotated[str, Field(description="A short temporary ID assigned by LLM, e.g. a0, a1.")]
-
 
 class DraftAtomList(V2CoreBase):
     """Wrapper for a list of draft atoms returned by structured task execution."""
@@ -189,6 +195,33 @@ max_extracted_atoms_per_document: Annotated[
     int,
     Field(description="Fail-Fast ceiling for extracted atoms per document. Prevents TinyDB bloat.")
 ] = 500
+```
+
+### CONTEXT (Read-Only): None.
+
+---
+
+## Milestone 1.7: Physical Anchoring Null Hypothesis (`ExtractedAtom`)
+
+**Source: Epic Section 4 — Physical Anchoring & Null Hypothesis**
+
+### TARGET (Modify): [dag_models.py](file:///c:/src/quorum/backend_v2/models/dtos/dag_models.py)
+
+Update `ExtractedAtom` (line ~46) to support the Null Hypothesis (logical deductions).
+
+1. Change `source_quote` to be optional:
+```python
+    source_quote: Annotated[
+        str | None, 
+        Field(default=None, description="The exact verbatim quote from the original text. Immutable evidence. Null if logical deduction.")
+    ] = None
+```
+2. Add `is_logical_deduction` flag:
+```python
+    is_logical_deduction: Annotated[
+        bool,
+        Field(default=False, description="Set to True if the claim is deduced purely via logic, allowing a null quote.")
+    ] = False
 ```
 
 ### CONTEXT (Read-Only): None.

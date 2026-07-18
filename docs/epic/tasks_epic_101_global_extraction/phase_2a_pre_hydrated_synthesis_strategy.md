@@ -53,10 +53,11 @@ class PreHydratedSynthesisStrategy(NodeStrategy):
    raw_blackboard = context.context_variables.get("global_atoms")
    if raw_blackboard is None:
        logger.error("preflight_blackboard_missing", extra={"execution_id": context.execution_id})
+       # Note: You MUST add DEPENDENCY_ERROR to ErrorCodes in exceptions.py
        raise AppException(
            status_code=500,
            message="global_atoms missing from context_variables",
-           details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+           details={"error_code": "DEPENDENCY_ERROR"}
        )
    blackboard = GlobalAtomBlackboard.model_validate(raw_blackboard)
    ```
@@ -77,15 +78,18 @@ class PreHydratedSynthesisStrategy(NodeStrategy):
    - User payload: Dynamic atoms injected at the absolute END inside `<user_payload>` XML fence
    - Raw source documents are passed as context cache entries via the LLM client's native caching mechanism
 
-5. **Single-Call Synthesis** (Epic Phase 2, Step 4):
-   - Execute exactly ONE call: `executor.execute_structured_task()` or `executor.execute_chat_task()`
-   - Use `LLMClient.from_strategy(step_def.model_strategy, repo)` — the strategy is the step's native model_strategy from `seed_data.json` (e.g., `"synthesis"`, `"deep"`, `"strict"`)
-   - **NO LOOPS. NO MAP-REDUCE.** If the LLM fails, let it Fail-Fast.
+5. **Single-Call Synthesis & Cascading Escalation** (Epic Phase 2, Step 4 & Epic §4 FinOps):
+   - Use `LLMClient.from_strategy(step_def.model_strategy, repo)` — the strategy is the step's native model_strategy from `seed_data.json` (e.g., `"fast"`, `"synthesis"`).
+   - Execute the call exclusively via `executor.execute_structured_task()`. (`execute_chat_task()` is STRICTLY BANNED because synthesis must produce strict SDUI DTOs).
+   - **Cascading Routing**: Wrap the execution in a `try-except ValidationError` block. If Pydantic validation fails with the initial strategy, you MUST catch the error, log a warning, and dynamically escalate by making exactly ONE retry using `LLMClient.from_strategy("reasoning", repo)`. 
+   - **NO HIDDEN LOOPS**: Other than the single reasoning escalation fallback, there are NO LOOPS. Do not use Best-of-Three. If the reasoning fallback also fails, let it Fail-Fast.
 
 6. **Alias Reverse Hydration & Safe Dropping** (Epic §4 — Alias Hallucination Resilience):
-   > **CRITICAL ARCHITECTURE RULE:** `AliasEngine.hydrate_dict_list()` is broken for arrays of strings and does NOT drop invalid aliases (it ignores them, which causes Pydantic to crash the step).
+   > **CRITICAL ARCHITECTURE RULE:** `AliasEngine.hydrate_dict_list()` is broken for both arrays and scalars: it does NOT drop invalid aliases, which causes Pydantic to crash the step.
    - You MUST add a new method to `AliasEngine` called `hydrate_and_filter_aliases(data: Any, field_names: set[str])` that recursively traverses dicts/lists.
-   - If it encounters a list under a `field_name` (e.g. `depends_on: ["a0", "a99"]`), it must map valid aliases and strictly DROP invalid aliases from the list, emitting `logger.warning("hallucinated_alias_dropped", extra={"alias": "a99"})`.
+   - **List Handling**: If it encounters a list under a `field_name` (e.g. `depends_on: ["a0", "a99"]`), it must map valid aliases and strictly DROP invalid aliases from the list.
+   - **Scalar Handling**: If it encounters a single scalar string under a `field_name` (e.g. `primary_source: "a99"`), and the alias is invalid, it MUST set the field to `None`.
+   - In both cases, emit `logger.warning("hallucinated_alias_dropped", extra={"alias": "a99"})` for each dropped alias.
    - Call this new method on the raw JSON dict returned by `LLMClient` BEFORE instantiating the final Pydantic response model to prevent validation crashes.
 
 ### CONTEXT (Read-Only):

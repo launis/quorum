@@ -85,19 +85,19 @@ Logic flow:
    - Chunk it via `ChunkingService.chunk_payload()`
    - Run `TwoPassAtomizer(executor).execute_phase_0()` + `TwoPassAtomizer(executor).execute_phase_1()` per file sequentially.
    > **CONCURRENCY CLARIFICATION:** Do NOT implement `asyncio.TaskGroup` or `Semaphore` inside `DAGExecutor`. The `TwoPassAtomizer` ALREADY implements `TaskGroup` and `Semaphore(settings.max_concurrent_llm_steps)` internally to process all chunks of a single file concurrently. `DAGExecutor` only loops over the files sequentially.
+   > **LINKER OMISSION CLARIFICATION:** Although Epic 101 Chapter 3 mentions running `SlidingWindowLinker`, this is a legacy architectural artifact. Because `GlobalAtomBlackboard` explicitly requires `DraftAtomList`, the topological causal edges from the linker are discarded. Do NOT run `SlidingWindowLinker` in the RAG Pre-Flight to save tokens and latency.
 
-3. **DLQ Interception & Tenacity Retry (Inside TwoPassAtomizer)**: 
-   Update `TwoPassAtomizer._extract_atoms_from_chunk()`:
-   - Add a Tenacity retry decorator (`@retry(stop=stop_after_attempt(3), wait=wait_exponential())`) to handle transient 503/429 errors.
-   - Wrap the internal execution in a `try-except Exception` block. 
-   - If retries are exhausted and an exception is caught, return the fallback sentinel: `DraftAtomList(atoms=[], dlq_status="FAILED/DLQ")`. 
-   - Inside the TaskGroup result collector loop in `execute_phase_1`, check `if draft_result.dlq_status:` and emit `logger.warning("dlq_chunk_detected", extra={"chunk_index": chunk_index})`. Do NOT attempt to do this Try-Except block inside `DAGExecutor`.
+3. **TwoPassAtomizer Modifications (DLQ & Anti-Corruption Layer)**: 
+   Update `TwoPassAtomizer._extract_atoms_from_chunk()` to handle both Retry and Physical Anchoring:
+   - **Tenacity Retry**: Add a Tenacity retry decorator (`@retry(stop=stop_after_attempt(3), wait=wait_exponential())`) to handle transient 503/429 errors.
+   - **DLQ Wrapper**: Wrap the internal execution in a `try-except Exception` block. If retries are exhausted and an exception is caught, return the fallback sentinel: `DraftAtomList(atoms=[], dlq_status="FAILED/DLQ")`. 
+   - **Anti-Corruption Layer & Quote Normalization**: Inside the `for draft in draft_result.atoms:` loop, BEFORE appending to `final_atoms`, validate each atom individually against the `chunk` text. 
+     - Apply `AnchorValidationService.normalize_text_with_mapping()` to BOTH the `chunk` text and the `draft.source_quote` BEFORE executing `str.find`.
+     - If `draft.is_logical_deduction` is `True`, bypass the `str.find` check entirely and force `source_quote = None`.
+     - If the quote is not found, drop the atom and log: `logger.warning("corrupted_atom_dropped", extra={"raw_payload": ...})` — **Dual-Reporting Mandate**. Silent drops are banned.
+   - **TaskGroup Collector (execute_phase_1)**: Inside the TaskGroup result collector loop in `execute_phase_1`, check `if draft_result.dlq_status:` and emit `logger.warning("dlq_chunk_detected", extra={"chunk_index": chunk_index})`.
 
-4. **Anti-Corruption Layer & Quote Normalization**: Before aggregating into the blackboard, validate each `DraftExtractedAtom` individually.
-   - **Quote Normalization**: Apply `AnchorValidationService.normalize_text_with_mapping()` to BOTH the source chunk text and the LLM generated `source_quote` BEFORE executing the `str.find` physical anchoring check. This prevents false-negative hallucination rejections caused by minor whitespace discrepancies (`\r\n` vs `\n`). If `is_logical_deduction == True` is supported by the atom format, bypass the `str.find` check.
-   - **Corrupt Atom Dropping**: Drop corrupted atoms (or those failing `str.find`) with `logger.warning("corrupted_atom_dropped", extra={"raw_payload": ...})` — **Dual-Reporting Mandate**. Silent drops are banned.
-
-5. **Atom Ceiling Enforcement**: After aggregation per file, check `len(atoms) > settings.max_extracted_atoms_per_document`. If exceeded, Fail-Fast with `AppException`.
+4. **Atom Ceiling Enforcement (Inside DAGExecutor)**: After retrieving the atoms for a file, check `len(atoms) > settings.max_extracted_atoms_per_document`. If exceeded, Fail-Fast with `AppException`. Do NOT attempt to do the `str.find` Try-Except block inside `DAGExecutor`.
 
 6. **Construct Blackboard**:
    ```python
