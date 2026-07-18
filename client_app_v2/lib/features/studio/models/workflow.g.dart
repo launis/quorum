@@ -122,6 +122,7 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'task_blueprint',
         'depends_on',
         'input_mappings',
+        'engine_override',
         'ui_pos_x',
         'ui_pos_y',
       ],
@@ -148,6 +149,10 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
             ) ??
             const {},
       ),
+      engineOverride: $checkedConvert(
+        'engine_override',
+        (v) => $enumDecodeNullable(_$EngineOverrideStrategyEnumMap, v),
+      ),
       uiPosX: $checkedConvert(
         'ui_pos_x',
         (v) => (v as num?)?.toDouble() ?? 0.0,
@@ -163,6 +168,7 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
     'taskBlueprint': 'task_blueprint',
     'dependsOn': 'depends_on',
     'inputMappings': 'input_mappings',
+    'engineOverride': 'engine_override',
     'uiPosX': 'ui_pos_x',
     'uiPosY': 'ui_pos_y',
   },
@@ -175,8 +181,14 @@ Map<String, dynamic> _$StepRuleToJson(_StepRule instance) => <String, dynamic>{
   ),
   'depends_on': instance.dependsOn,
   'input_mappings': instance.inputMappings,
+  'engine_override': _$EngineOverrideStrategyEnumMap[instance.engineOverride],
   'ui_pos_x': instance.uiPosX,
   'ui_pos_y': instance.uiPosY,
+};
+
+const _$EngineOverrideStrategyEnumMap = {
+  EngineOverrideStrategy.preHydratedSynthesis: 'PRE_HYDRATED_SYNTHESIS',
+  EngineOverrideStrategy.dynamicToolAgent: 'DYNAMIC_TOOL_AGENT',
 };
 
 NodeStrategyLlm _$NodeStrategyLlmFromJson(

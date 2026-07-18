@@ -21,6 +21,15 @@ enum SystemConcurrency {
   const SystemConcurrency(this.value);
 }
 
+/// Execution strategy overrides for the engine.
+@JsonEnum()
+enum EngineOverrideStrategy {
+  @JsonValue('PRE_HYDRATED_SYNTHESIS')
+  preHydratedSynthesis,
+  @JsonValue('DYNAMIC_TOOL_AGENT')
+  dynamicToolAgent,
+}
+
 /// Supported XAI Output Extensions for global visibility.
 enum XaiExtensionType {
   @JsonValue('citation')

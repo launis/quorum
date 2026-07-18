@@ -578,6 +578,7 @@ class Settings(BaseSettings):
                 "strict": "fast",
                 "deep": "fast",
                 "synthesis": "fast",
+                "reasoning": "fast",
             }
         return {}
 

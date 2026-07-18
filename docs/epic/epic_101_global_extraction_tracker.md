@@ -39,7 +39,7 @@
   - `NodeExecutor.execute()` routing cascade
   - Cache-Busting structural unit test
   
-- [ ] `[NOK]` **Phase 2B — Flutter StepRule & Seed Data**: Execute [phase_2b_flutter_seed_data_routing.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2b_flutter_seed_data_routing.md)
+- [x] `[OK]` **Phase 2B — Flutter StepRule & Seed Data**: Execute [phase_2b_flutter_seed_data_routing.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2b_flutter_seed_data_routing.md)
   - Flutter `StepRule` Freezed update + `build_runner`
   - `seed_data.json` engine_override mappings
   - `"reasoning"` strategy in model_registry
@@ -132,12 +132,12 @@
 | **§3.2.3** Ephemeral Caching Topology (static system prompt) | Phase 2A | `[OK]` |
 | **§3.2.4** Single-Call Synthesis via execute_structured_task | Phase 2A | `[OK]` |
 | **§3.1** EngineOverrideStrategy enum | Phase 1A | `[OK]` |
-| **§3.2** StepRule.engine_override field | Phase 1A (backend) + Phase 2B (Flutter) | `[PARTIAL]` |
+| **§3.2** StepRule.engine_override field | Phase 1A (backend) + Phase 2B (Flutter) | `[OK]` |
 | **§3.2** NodeExecutor routing priority cascade | Phase 2A | `[OK]` |
-| **§3.4** seed_data.json engine_override mappings | Phase 2B | `[NOK]` |
-| **§3.5** Reasoning strategy in model_registry | Phase 2B | `[NOK]` |
-| **§3.5** Vertex adapter reasoning parameter extraction | Phase 2B | `[NOK]` |
-| **§3.6** Apply reasoning to critical nodes | Phase 2B | `[NOK]` |
+| **§3.4** seed_data.json engine_override mappings | Phase 2B | `[OK]` |
+| **§3.5** Reasoning strategy in model_registry | Phase 2B | `[OK]` |
+| **§3.5** Vertex adapter reasoning parameter extraction | Phase 2B | `[OK]` |
+| **§3.6** Apply reasoning to critical nodes | Phase 2B | `[OK]` |
 | **§4** UI Fallback (Virtual Injection Risk) — AppErrorBoundary | Phase 2C (validation) | `[NOK]` |
 | **§4** TaskGroup Cascade Isolation — DLQ routing | Phase 1B | `[OK]` |
 | **§4** Blackboard Anti-Corruption Layer | Phase 1B | `[OK]` |
@@ -165,19 +165,21 @@
 - Phase 1A (Backend Models & Enums) completely implemented and validated.
 - Phase 1B (RAG Pre-Flight Pipeline) completely implemented and validated.
 - Phase 2A (Pre-Hydrated Synthesis Strategy) completely implemented and validated. 100% backend test pass and 79.12% coverage.
+- Phase 2B (Flutter StepRule & Seed Data routing) completely implemented and validated. Seed data nodes mapped and Vertex adapter configured for thinking budget.
 
 ### Learned
 - Mocking classes imported directly inside local methods (e.g. `TwoPassAtomizer`) requires patching their source module path, not the consumer module.
 - Retries using `@retry` must be configured to fetch variables dynamically (`get_settings()`) at import time to preserve Configuration Sovereignty.
 - Pydantic reverse-MRO iteration requires careful base class ordering in dynamic schemas.
+- Vertex AI native thinking parameters must be passed directly into `extra_body` when bypassing LiteLLM abstractions.
 
 ### Remaining
-- Execute Phase 2B (Flutter StepRule & Seed Data).
+- Execute Phase 2C (Integration Checkpoint).
 
 ---
 
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier0-research-plan --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/tasks_epic_101_global_extraction/phase_2b_flutter_seed_data_routing.md" --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md, 03_seed_vault.md" --achieved="Phase 1A, Phase 1B and Phase 2A completely implemented and validated. NodeExecutor now correctly routes synthesis steps to PreHydratedSynthesisStrategy. 100% backend test pass and 79.12% coverage." --learned="AliasEngine hydrate_and_filter_aliases recurses to drop invalid UUIDs. Pydantic reverse-MRO requires careful base class ordering." --remaining="Run Tier 0 Red-Team on Phase 2B (Flutter StepRule & Seed Data) plan, then execute Phase 2B."
+/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/tasks_epic_101_global_extraction/phase_2c_integration_checkpoint.md" --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md, 03_seed_vault.md" --achieved="Phase 1A, Phase 1B, Phase 2A, and Phase 2B completely implemented and validated. NodeExecutor correctly routes synthesis steps to PreHydratedSynthesisStrategy. Flutter StepRule parity ensured and Vertex adapter supports reasoning budgets." --learned="Vertex AI thinking parameters map to extra_body." --remaining="Execute Phase 2C (Integration Checkpoint)."
 ```
