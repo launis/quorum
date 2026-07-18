@@ -168,6 +168,60 @@ class ExtractiveSensorService:
         return await asyncio.to_thread(ExtractiveSensorService._batch_fuzzy_match, nodes, source_text, locale)
 
     @staticmethod
+    def resolve_majority_vote(
+        expected_tda_ids: list[str], results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None]
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+        """Resolves Best-of-Three ensemble voting.
+
+        Args:
+            expected_tda_ids: The full list of expected atom IDs for this batch.
+            results: The list of response dictionaries from the ensemble calls. None if a call failed transiently.
+
+        Returns:
+            The consolidated dictionary mapping TDA IDs to their majority status.
+        """
+        from backend_v2.exceptions import AgentExecutionError
+        from backend_v2.settings import get_settings
+
+        settings = get_settings()
+        min_consensus = settings.ensemble_min_consensus
+
+        valid_results = [r for r in results if r is not None]
+
+        if len(valid_results) < min_consensus:
+            # Transient API failure split (< 2 valid results total)
+            raise AgentExecutionError(
+                detail=f"Insufficient valid Bo3 results ({len(valid_results)} < {min_consensus}) due to transient API failures."
+            )
+
+        final_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+
+        for tda_id in expected_tda_ids:
+            tally: dict[ExecutionStatus, int] = {}
+            first_seen: dict[ExecutionStatus, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+
+            for res in valid_results:
+                if tda_id in res:
+                    vote_tuple = res[tda_id]
+                    status = vote_tuple[0]
+                    tally[status] = tally.get(status, 0) + 1
+                    if status not in first_seen:
+                        first_seen[status] = vote_tuple
+
+            elected = False
+            for status, count in tally.items():
+                if count >= min_consensus:
+                    final_results[tda_id] = first_seen[status]
+                    elected = True
+                    break
+
+            if not elected:
+                # Semantic split or hallucinated drop
+                final_results[tda_id] = (ExecutionStatus.SYSTEM_ERROR, "INSUFFICIENT_CONSENSUS", {})
+
+        return final_results
+
+    @staticmethod
     async def evaluate_atom_boolean_batch(
         nodes: list[LinkedAtomGraph],
         executor: LLMTaskExecutor,
@@ -187,6 +241,12 @@ class ExtractiveSensorService:
             Raises AppException on validation or network errors (to be handled by caller).
         """
         logger = logging.getLogger(__name__)
+        from backend_v2.exceptions import AgentExecutionError
+        from backend_v2.llm.provider import _is_transient_llm_error
+        from backend_v2.settings import get_settings
+
+        settings = get_settings()
+        parallelism = settings.ensemble_parallelism
 
         class BooleanEvaluationResult(BaseModel):
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
@@ -217,52 +277,68 @@ class ExtractiveSensorService:
             alias = alias_engine.register(tda_id, prefix="a")
             requested_aliases.add(alias)
             alias_to_tda_id[alias] = tda_id
-            claims_xml.append(f'<claim alias="{alias}">\\n{node.atom.resolved_claim}\\n</claim>')
+            claims_xml.append(f'<claim alias="{alias}">\n{node.atom.resolved_claim}\n</claim>')
 
-        claims_str = "\\n".join(claims_xml)
+        claims_str = "\n".join(claims_xml)
 
         # Heavy context MUST be at the top for Cache Survival Strategy
         prompt = (
-            "Evaluate if the following claims are true based strictly on the provided context.\\n"
-            "Return the results matching each claim's alias.\\n\\n"
-            f"<context>\\n{context_text}\\n</context>\\n\\n"
+            "Evaluate if the following claims are true based strictly on the provided context.\n"
+            "Return the results matching each claim's alias.\n\n"
+            f"<context>\n{context_text}\n</context>\n\n"
             f"{claims_str}"
         )
 
-        result, _ = await executor.execute_structured_task(
-            client=client,
-            messages=[{"role": "user", "content": prompt}],
-            response_model=BatchEvaluationResponse,
-        )
+        semaphore = asyncio.Semaphore(parallelism)
 
-        final_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
-        returned_aliases: set[str] = set()
+        async def _single_ensemble_call() -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None:
+            async with semaphore:
+                try:
+                    result, _ = await executor.execute_structured_task(
+                        client=client,
+                        messages=[{"role": "user", "content": prompt}],
+                        response_model=BatchEvaluationResponse,
+                    )
 
-        for eval_result in result.results:
-            alias = eval_result.alias
-            if alias not in requested_aliases:
-                # Ignore hallucinated aliases
-                continue
+                    call_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+                    returned_aliases: set[str] = set()
 
-            returned_aliases.add(alias)
-            tda_id = alias_engine.resolve_alias(alias)
+                    for eval_result in result.results:
+                        alias = eval_result.alias
+                        if alias not in requested_aliases:
+                            continue
 
-            extensions: dict[str, str] = {}
-            if eval_result.coaching:
-                extensions["coaching"] = eval_result.coaching
-            if eval_result.falsification:
-                extensions["falsification"] = eval_result.falsification
-            if eval_result.remediation_steps:
-                extensions["remediation_steps"] = "\\n".join(f"- {step}" for step in eval_result.remediation_steps)
+                        returned_aliases.add(alias)
+                        call_tda_id = alias_engine.resolve_alias(alias)
 
-            status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
-            final_results[tda_id] = (status, eval_result.reasoning, extensions)
+                        extensions: dict[str, str] = {}
+                        if eval_result.coaching:
+                            extensions["coaching"] = eval_result.coaching
+                        if eval_result.falsification:
+                            extensions["falsification"] = eval_result.falsification
+                        if eval_result.remediation_steps:
+                            extensions["remediation_steps"] = "\n".join(
+                                f"- {step}" for step in eval_result.remediation_steps
+                            )
 
-        # Handle missing aliases
-        missing_aliases = requested_aliases - returned_aliases
-        for alias in missing_aliases:
-            tda_id = alias_to_tda_id[alias]
-            logger.error("Boolean evaluation failed for TDA %s: Missing from batch response", tda_id)
-            final_results[tda_id] = (ExecutionStatus.SYSTEM_ERROR, "EVALUATION_CRASH: Missing from batch response", {})
+                        status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
+                        call_results[call_tda_id] = (status, eval_result.reasoning, extensions)
 
-        return final_results
+                    return call_results
+                except Exception as e:
+                    if isinstance(e, AgentExecutionError) or _is_transient_llm_error(e):
+                        logger.warning("Transient error in Bo3 ensemble call: %s", e)
+                        return None
+                    raise
+
+        results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None] = []
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tasks = [tg.create_task(_single_ensemble_call()) for _ in range(parallelism)]
+
+            results = [t.result() for t in tasks]
+        except ExceptionGroup as eg:
+            raise eg.exceptions[0] from eg
+
+        expected_tda_ids = [node.atom.tda_id for node in nodes]
+        return ExtractiveSensorService.resolve_majority_vote(expected_tda_ids, results)

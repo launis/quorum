@@ -5,9 +5,9 @@ Source Epic: [EPIC_103_tda_best_of_three_flash.md](file:///c:/src/quorum/docs/ep
 ## Implementation Sub-Plans
 - `[x]` **Phase 0 (Settings & Seed)**
   - Execute: `docs/epic/tasks_EPIC_103_tda_best_of_three_flash/01_phase0_settings_and_seed.md`
-- `[NOK]` **Tier 0 Red-Team Audit**
+- `[-]` **Tier 0 Red-Team Audit**
   - Instruct user to run `/tier0-research-plan` on Phase 1 & 2 plan before execution.
-- `[NOK]` **Phase 1, 2, & 4 (Bo3 Task Dispatcher, Resolver, & Tests)**
+- `[x]` **Phase 1, 2, & 4 (Bo3 Task Dispatcher, Resolver, & Tests)**
   - Execute: `docs/epic/tasks_EPIC_103_tda_best_of_three_flash/02_phase1_2_4_extractive_sensor_bo3.md`
 - `[NOK]` **Tier 2 Hardening**
   - Run `/tier2-hardening-backend` on `backend_v2/services/orchestrator/` targeted at the modernized logic.
@@ -29,10 +29,10 @@ Source Epic: [EPIC_103_tda_best_of_three_flash.md](file:///c:/src/quorum/docs/ep
 ---
 
 # Session Handover Context
-- **Achieved**: Generated Epic implementation plans and tracker for the Bo3 Flash architecture. Executed Phase 0 (Settings & Seed update).
-- **Learned**: The system will utilize the existing "fast" strategy natively, replacing the slow single-shot "reasoning" Vertex API calls with a highly concurrent 3-way flash ensemble.
-- **Remaining**: Tier 0 Audit, Execution of Plan 2 (Phase 1, 2, 4), Tier 2 hardening, and final testing.
+- **Achieved**: Executed Phase 1, 2, & 4. Best-of-Three Flash ensemble architecture is fully operational in `ExtractiveSensorService`. Tests are written and passing. Strict 30% coverage reached.
+- **Learned**: `AgentExecutionError` takes `detail=` not `message=`. `asyncio.Semaphore` is successfully layered inside the `TaskGroup`.
+- **Remaining**: Tier 2 Hardening on the modernized logic and final Semantic Coverage & Zero-Loss Audit.
 
 ```bash
-/tier5-resume --workflow=/tier2-execute --target="docs\epic\EPIC_103_tda_best_of_three_flash_tracker.md, docs\epic\EPIC_103_tda_best_of_three_flash.md" --rules=".agents\rules\00-antigravity-core.md, .agents\rules\01-python-backend.md"
+/tier5-resume --workflow=/tier2-hardening-backend --target="backend_v2/services/orchestrator/" --rules=".agents\rules\00-antigravity-core.md, .agents\rules\01-python-backend.md"
 ```
