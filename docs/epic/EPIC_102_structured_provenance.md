@@ -19,29 +19,45 @@ This causes the "Chimera Quotes" hallucination: the AI evaluates its own generat
 According to our backend rules, users and business logic do not write XML manually. Therefore, the segregation must occur natively upstream of the Prompt Compiler. 
 
 ### The `prompt_compiler.py` Immutability Ban (CRITICAL)
-Per Rule `prompt_compiler_immutability` in `01-python-backend.md`, the `PromptCompiler` is a frozen architectural cornerstone and MUST NOT be modified. Segregation logic must be implemented via an upstream Hook (e.g., `ContextSegregationHook`) that prepares the structured context *before* the compiler reads the `input_mappings`.
+Per Rule `prompt_compiler_immutability` in `01-python-backend.md`, the `PromptCompiler` is a frozen architectural cornerstone and MUST NOT be modified. Segregation logic must be implemented in two distinct layers:
+1. **Intra-chat segregation**: Modify the existing `_process_chat_history()` in `input_processing.py` (hook) to format the `combined` output with XML role tags instead of flat Markdown.
+2. **Inter-source segregation**: Modify `prompt_factory.py` (NOT the frozen compiler) to tag `$inputs.*` source data differently from `$steps.*` AI-generated outputs when assembling the `user_payload`.
 
 ### Prompt Asset SSOT Mandate
 Per Rule `prompt_asset_ssot_mandate` in `05_llm_architecture.md`, no freeform string directives may be defined in service layers. All XML segregation instructions must be defined as named constants in `linguistic_directives.py`.
+
+### Cache Topology Compliance (Provider-Agnostic Caching)
+Per KI `provider_agnostic_caching`, the `_CONTEXT_SEGREGATION_DIRECTIVE` MUST be a 100% static string constant injected into the system prompt prefix. It MUST NOT contain any dynamic variables. This preserves prefix-matching cache survival across Anthropic, OpenAI, and Vertex AI.
 
 ---
 
 ## 3. Phased Implementation Strategy
 
-### Phase 0: Data Model Pre-Condition Audit (Crucial Fix)
-- **Problem**: Currently, domain models (e.g., `Analyst`, `Archivist`) accept `chat_log: str`, meaning the structural `role` data is already destroyed before injection.
-- **Action**: Audit the state propagation of `ChatHistoryDTO`. Ensure that the structured version (with `conversation[].role`) is preserved in the execution state and is accessible to the segregation layer (e.g., via `$internal.chat_structured` or a structural wrapper) before it is flattened.
+### Phase 0: Data Model Pre-Condition Audit (Existing Infrastructure)
+- **Problem**: Domain models (e.g., `AnalystInput`, `ArchivistInput`) accept `chat_log: str`, meaning the structural `role` data is destroyed before injection.
+- **Existing Partial Solution**: The `_process_chat_history()` function in `input_processing.py` (lines 114-167) ALREADY parses chat via `ChatParserService` into `ChatHistoryDTO` with `ChatMessageDTO.role` and produces separate `user_only` and `ai_only` strings stored as `{key}_user_only` and `{key}_ai_only` in the state. These are already consumed by `linguistics.py` and `metrics.py`.
+- **Gap**: The `combined` output (line 293) uses flat Markdown (`**role**: content`) which destroys role distinction in the LLM context. The `user_only`/`ai_only` splits are NOT used for LLM prompt segregation.
+- **Action**: Validate that `ChatHistoryDTO` propagation is stable. No new data model changes required — the structured data is already available at the `_process_chat_history` boundary.
 
 ### Phase 1: Data Model & Repository Enhancements
 - **Ensure Strict Role Tracking**: Verify that the DTOs representing input logs strictly preserve the origin of every text block (AI vs User).
 - **No Flattening**: Prevent the Repository or Service layers from flattening these logs into a single string prior to the Prompt Factory layer.
 
-### Phase 2: Upstream Context Segregation Hook (`ContextSegregationHook`)
-- **Implement a New Hook**: Do NOT modify `prompt_compiler.py`. Instead, create or extend an input processing hook that intercepts structured payloads and wraps them in semantic XML markers before `build_xml_context` serializes them.
-- **XML Tag Fencing**: 
-  - Wrap AI-generated text in `<ai_draft_context>...</ai_draft_context>`.
-  - Wrap User-generated text in `<user_intent_context>...</user_intent_context>`.
+### Phase 2a: Intra-Chat Role Segregation (Modify `input_processing.py`)
+- **Modify Existing Function**: Change `_process_chat_history()` in `input_processing.py` so that the `combined` output uses XML role tags instead of flat Markdown bold markers. Do NOT create a new hook — modify the existing code path.
+- **XML Tag Fencing (within `<matrix_input>`)**: 
+  - Wrap AI turns in `<ai_draft_context>...</ai_draft_context>`.
+  - Wrap User turns in `<user_intent_context>...</user_intent_context>`.
+  - These tags nest INSIDE the existing `<matrix_input source_id="...">` wrapper that `build_xml_context` produces.
+- **NLP Pipeline Protection (CRITICAL)**: Because `Semantic Smoothing` (SpaCy) and `Eager Anonymization` (Presidio) execute *after* `_process_chat_history()` in `process_inputs()`, they will destroy or mangle the injected XML tags. You MUST refactor the execution order in `input_processing.py` so that NLP operations are applied to the raw text of individual chat turns BEFORE they are concatenated and wrapped in XML.
 - **Maintain Opaque ID Hydration**: Ensure that `AliasEngine` (e.g. `a0`, `a1`) correctly anchors into these segregated blocks without breaking.
+
+### Phase 2b: Inter-Source Segregation (Modify `prompt_compiler.py`)
+- **Modify Existing Compiler**: In `prompt_compiler.py`, specifically inside the `build_xml_context` method, distinguish between `$inputs.*` source data and `$steps.*` AI-generated outputs when looping over `input_mappings`.
+  - `$inputs.*` references (human-authored documents) should be tagged with `<human_source_document>...</human_source_document>` within their `<matrix_input>` block.
+  - `$steps.*` references (prior AI node outputs) should be tagged with `<ai_generated_output>...</ai_generated_output>` within their `<matrix_input>` block.
+- **Implementation**: Add a prefix check on the `source_path` string inside the `build_xml_context` loop. If `source_path.startswith("inputs")` (after removing the `$`), wrap the value in human tagging; if `steps`, use AI tagging. 
+- **Architectural Exemption**: An explicit ONE-TIME EXEMPTION is granted for modifying `prompt_compiler.py` for this feature, as attempting to intercept and modify `llm_context_data` in `prompt_factory.py` violates strict determinism and deep-dict mutation constraints.
 
 ### Phase 3: Global Directives (`backend_v2/models/prompts/linguistic_directives.py`)
 - **Update Directives SSOT**: Inject a global prompt rule explaining the XML fencing as a named constant (e.g., `_CONTEXT_SEGREGATION_DIRECTIVE`):
@@ -49,13 +65,16 @@ Per Rule `prompt_asset_ssot_mandate` in `05_llm_architecture.md`, no freeform st
 
 ### Phase 4: Extend Existing Physical Anchoring
 - **Quote Extraction Validation**: We already enforce strict `O(N)` physical anchoring (`str.find`) per the `strict_physical_anchoring_mandate`. 
-- **Action**: Extend the existing `PhysicalAnchor.verify()` or equivalent Topological Evaluator logic to accept an `allowed_context_block` parameter. Ensure that the quote physically resides within the `<user_intent_context>` XML block bounds. If an AI hallucinates a quote from the AI draft block, trigger the standard `SemanticEvidenceError`.
+- **Action**: Extend `AnchorValidationService.validate_evidence()` (in `backend_v2/services/orchestrator/anchor_validation_service.py`) to accept an optional `allowed_source_text: str | None` parameter. When provided, the validation MUST anchor quotes against this scoped text (e.g., only the `<user_intent_context>` content) instead of the full `pdf_text`. This uses the existing `str.find` Primary Gate — no XML parsing needed. The caller pre-slices the user-intent substring before passing it.
+- **Fail-Fast**: If a quote is anchored but found ONLY within `<ai_draft_context>` bounds (not in the `allowed_source_text`), raise `SemanticEvidenceError` with an explicit `PROVENANCE_VIOLATION` error code.
 
 ---
 
 ## 4. Verification Plan
-- **Unit Tests**: Create a Pytest fixture in `tests/unit/hooks/test_context_segregation_hook.py` that verifies the XML separation.
-- **Fail-Fast Test**: Create a test asserting that if an LLM mock returns a quote originating from `<ai_draft_context>`, the extraction engine raises an `AppException`.
+- **Intra-Chat Unit Tests**: Add tests in `tests/unit/hooks/test_input_processing.py` verifying that `_process_chat_history()` produces XML role-tagged output (not flat Markdown).
+- **Inter-Source Unit Tests**: Add tests in `tests/unit/services/orchestrator/strategies/llm_execution/test_prompt_factory.py` verifying that `$inputs.*` and `$steps.*` sources receive distinct XML provenance tags.
+- **Anchor Validation Tests**: Add tests in `tests/unit/services/orchestrator/test_anchor_validation_service.py` asserting that if an LLM mock returns a quote originating ONLY from `<ai_draft_context>` text, `validate_evidence()` raises `SemanticEvidenceError`.
+- **Directive Tests**: Add tests in `tests/unit/models/prompts/test_linguistic_directives.py` verifying the `_CONTEXT_SEGREGATION_DIRECTIVE` constant is a static string (no f-string interpolation).
 
 ---
 

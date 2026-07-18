@@ -6,43 +6,51 @@ The current Quorum Phase 3 execution (specifically downstream TDA and Fact-check
 **Objective**: Eliminate the Pacing Lock bottleneck by shifting the downstream matrix evaluation to `gemini-2.5-flash` and executing 3 parallel evaluations per atom using `asyncio.TaskGroup`. The final truth state will be determined by a deterministic 2/3 Majority Vote (`resolve_majority_vote`), achieving massive concurrency, >98% consistency, and zero-crash fault tolerance.
 
 ## 2. Architectural Impact & Safeguards
-- **Data Flow (Producer -> Consumer)**: The `AtomFlatteningHook` (Producer) flattens semantic atoms. The `EnrichedDagExecutor` (Consumer) routes these atoms to the `ExtractiveSensorService` for boolean evaluation. Instead of one API call per atom batch, the sensor service will dispatch 3 parallel calls per batch.
-- **Fail-Fast & Resilience**: The `asyncio.TaskGroup` must catch and tolerate up to one network timeout (`503` or `429`) per chunk. If two calls succeed, the consensus can still be formed.
-- **Lexical Anchoring**: Before a `PASS` vote is accepted, any extracted `source_quote` MUST be physically verified against the source text using `str.find` (NOT fuzzy matching — `RapidFuzz` is architecturally banned per `strict_physical_anchoring_mandate`). Hallucinated quotes cast an immediate `FAIL` vote.
+- **Data Flow (Producer -> Consumer)**: The `AtomFlatteningHook` (Producer) flattens semantic atoms. The `EnrichedDagExecutor` (Consumer) routes these atoms to the `ExtractiveSensorService` for boolean evaluation. Currently, `evaluate_atom_boolean_batch()` fires **one** `executor.execute_structured_task()` call per batch of up to `sensor_batch_size=15` atoms. The Bo3 architecture wraps this **entire batch call** — firing 3 identical batch prompts and voting on the merged results per `tda_id`.
+- **Fail-Fast & Resilience**: Individual Bo3 tasks MUST NOT raise exceptions into the `asyncio.TaskGroup`. Each task MUST be wrapped in an internal `try/except` that catches transient errors (`_is_transient_llm_error`) and returns a `None` sentinel instead. The TaskGroup only sees successful results or sentinels. If ≥2 valid results exist, consensus is formed. If <2 valid results exist, the atoms are marked `SYSTEM_ERROR` (DLQ routing), NOT `AppException` — to prevent crashing the entire execution tree.
+- **Lexical Anchoring**: Before a `PASS` vote is accepted, any extracted `source_quote` MUST pass the Tiered Lexical Validation per `strict_physical_anchoring_mandate`: (1) Primary Gate: `str.find` on normalized strings (MANDATORY), (2) Entropy Gate: quotes <10 chars require 100% exact match, (3) Fuzzy Fallback: RapidFuzz permitted ONLY when Primary Gate fails, quote >10 chars, and strictness <100. Note: RapidFuzz is UNRESTRICTED for non-forensic pre-flight evaluation in `ExtractiveSensorService._fuzzy_match()`. Hallucinated quotes cast an immediate `FAIL` vote.
 - **No Legacy Constraints**: We do not maintain fallback support for single-shot processing in this pipeline. The Best-of-Three Flash pipeline is the absolute Single Source of Truth for TDA analysis.
 
 ## 3. Implementation Phases
 
 ### Phase 0: Model Registry & Pacing Lock Resolution (CRITICAL PRE-CONDITION)
 - **Problem**: The current `pacing_delay_vertex_seconds = 12` in `settings.py` enforces a Redis-backed lock between ALL Vertex AI calls. Firing 3 Flash calls in parallel would serialize them (12s + 24s = 36s per atom), defeating the entire purpose.
-- **Solution**: Define a new Flash strategy in the Model Registry (`seed_data.json` → `model_registry.strategies`) with a high `rpm_limit` (e.g., 1000 RPM for Flash). The existing `base_adapter.py` already supports RPM-driven dynamic pacing (`delay = 60.0 / float(rpm_limit)`), which calculates to ~0.06s delay — effectively eliminating the bottleneck without code changes to the adapter.
-- **Required Config**:
-  - Strategy name: e.g., `"flash-ensemble"` or `"fast-ensemble"`
-  - Model: `vertex_ai/gemini-2.5-flash`
-  - `rpm_limit`: 1000 (or per actual Google Cloud quota)
-  - `tpm_limit`: as per quota
-  - Context Caching: ENABLED (the prompt is identical across all 3 calls — perfect cache candidate)
+- **Existing Infrastructure**: A `"fast"` strategy already exists in `seed_data.json` using `vertex_ai/gemini-2.5-flash` with `rpm_limit: 100`. The `apply_provider_pacing()` function in `base_adapter.py` already supports `rpm_limit`-driven dynamic pacing (`delay = 60.0 / float(rpm_limit)`).
+- **Decision (RESOLVED)**: We will exclusively reuse the existing `"fast"` strategy (`vertex_ai/gemini-2.5-flash` with `rpm_limit: 100`). No new strategy is needed. The `apply_provider_pacing()` function in `base_adapter.py` will dynamically pace the ensemble calls.
+- **Config Sovereignty**: Add the following settings to `backend_v2/settings.py`:
+  - `ensemble_parallelism: Annotated[int, Field(description="Number of parallel Bo3 calls")] = 3`
+  - `ensemble_min_consensus: Annotated[int, Field(description="Minimum agreeing votes for consensus")] = 2`
+  - `ensemble_strategy_name: Annotated[str, Field(description="Model Registry strategy for ensemble")] = "fast"`
 
 ### Phase 1: Parallel Task Dispatcher (`ExtractiveSensorService`)
-- **Target File**: `backend_v2/services/orchestrator/extractive_sensor_service.py` — specifically the `evaluate_atom_boolean_batch()` method (NOT `dag_executor.py`, which handles macro-level workflow orchestration).
-- Replace the single `executor.execute_structured_task()` call with an `asyncio.TaskGroup` that dispatches three identical prompts targeting the Flash strategy.
-- **Micro-Semaphore Exemption** (per `ensemble_parallel_evaluation_mandate` in `05_llm_architecture.md`): The Best-of-Three ensemble MUST use a **local** `asyncio.Semaphore(3)` independent of the global `max_concurrent_llm_steps = 10` macro semaphore. Without this, firing 3 calls per atom within a batch of 15 atoms would require 45 simultaneous semaphore slots — causing **deadlock** against the global limit of 10.
-- Suppress single-node API timeouts (Dead Letter Queue routing for individual failed threads) without crashing the entire TaskGroup.
+- **Target File**: `backend_v2/services/orchestrator/extractive_sensor_service.py` — specifically the `evaluate_atom_boolean_batch()` method (NOT `dag_executor.py` or `enriched_dag_executor.py`, which handle macro-level workflow orchestration).
+- **Bo3 Wrapping Level**: The Bo3 wraps the **entire batch call**. The same `prompt` (containing all N atom claims) is sent 3 times to the Flash model. The 3 returned `BatchEvaluationResponse` objects are then merged per-`tda_id` by `resolve_majority_vote`.
+- Replace the single `executor.execute_structured_task()` call with an `asyncio.TaskGroup` that dispatches `settings.ensemble_parallelism` (default: 3) identical prompts targeting the ensemble strategy.
+- **Internal Exception Suppression (CRITICAL)**: Each individual Bo3 task MUST be wrapped in a helper function (`_single_ensemble_call`) that catches transient errors (`_is_transient_llm_error`) and returns `None` instead of raising. The TaskGroup MUST NOT see individual task exceptions — `asyncio.TaskGroup` propagates ExceptionGroups which cancel sibling tasks.
+- **Micro-Semaphore Exemption** (per `ensemble_parallel_evaluation_mandate` in `05_llm_architecture.md`): The Best-of-Three ensemble MUST use a **local** `asyncio.Semaphore(settings.ensemble_parallelism)` independent of the global `max_concurrent_llm_steps = 10` macro semaphore. Without this, firing 3 calls per atom within a batch of `sensor_batch_size=15` atoms would require 45 simultaneous semaphore slots — causing **deadlock** against the global limit of 10.
+- **Ensemble LLM Client**: The Bo3 MUST initialize a separate `LLMClient` via `LLMClient.from_strategy(settings.ensemble_strategy_name, repo)` inside `evaluate_atom_boolean_batch()`. It MUST NOT reuse the `client` parameter, which is bound to the macro-level step strategy (potentially Pro).
 
 ### Phase 2: Consensus Resolver (`resolve_majority_vote`)
-- Implement a deterministic `resolve_majority_vote(results: list[DTO]) -> DTO` function in the evaluation service layer.
-- The logic must compare the boolean outcomes (e.g., `PASS`/`FAIL` or `contextual_override`).
-- If at least 2 out of 3 models agree on the core assertion, that result is elected as the final state.
-- Handle tie-breakers or complete failures (e.g., 2 API timeouts = 1 successful response = insufficient consensus -> trigger `AppException` or DLQ).
+- **Location**: Implement as a `@staticmethod` on `ExtractiveSensorService` in `extractive_sensor_service.py` (co-located with the evaluation logic).
+- **Signature**: `resolve_majority_vote(expected_tda_ids: list[str], results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]`
+- **Logic**: For each `tda_id` in `expected_tda_ids`, count `PASSED` vs `FAILED` votes across the valid (non-None) result dicts. If ≥ `settings.ensemble_min_consensus` (default: 2) agree, elect that status. Use the reasoning from the first agreeing vote. (CRITICAL RED-TEAM FINDING: You MUST iterate over `expected_tda_ids`, not just the keys present in `results`, to ensure that if an LLM hallucinates and silently drops an atom, it is correctly flagged as missing rather than silently bypassed).
+- **Insufficient Consensus & Missing Atoms**: If fewer than `settings.ensemble_min_consensus` valid results exist for a `tda_id` (e.g., 2 API timeouts, 1 success, or the LLM dropped the atom from its JSON output), mark the atom as `ExecutionStatus.SYSTEM_ERROR` with reasoning `"INSUFFICIENT_CONSENSUS"`. This follows `dlq_arq_fallback_routing` — atoms get DLQ status, NOT `AppException` which would crash the entire execution tree.
 
 ### Phase 3: Strict Lexical Gatekeeping
-- Extend the existing physical anchoring logic (per `strict_physical_anchoring_mandate`) in the `TopologicalEvaluator` or Matrix Hooks to enforce `str.find` validation on the elected consensus result.
-- If the elected consensus contains a hallucinated quote, it must instantly fail validation (`SemanticEvidenceError`) to preserve empirical audit integrity.
+- The existing `AnchorValidationService.validate_evidence()` already enforces Tiered Lexical Validation per `strict_physical_anchoring_mandate`. No new validation logic is needed.
+- **Integration Point**: After `resolve_majority_vote` elects a consensus, any `source_quote` fields in the elected result MUST pass through `AnchorValidationService.validate_evidence()` before being accepted. This is already handled downstream by the existing `scoring.py` hooks. No changes required here unless the Bo3 introduces a new quote extraction path.
+- If the elected consensus contains a hallucinated quote, the existing `SemanticEvidenceError` mechanism preserves empirical audit integrity.
 
 ### Phase 4: Audit & Testing
-- **Automated Tests**: Write Pytest cases mocking the `gemini-2.5-flash` responses using `backend_v2/llm/mock.py`. Test the 2/3 consensus logic, the 1-fail resilience, and the 2-fail crash scenario.
-- **Performance Profiling**: Ensure the RPM-driven dynamic pacing is correctly applied for the Flash strategy, effectively bypassing the 12-second static Pacing Lock.
+- **Automated Tests**: Write Pytest cases in `tests/unit/services/orchestrator/test_extractive_sensor_service.py` mocking the `gemini-2.5-flash` responses using `backend_v2/llm/mock.py`.
+  - Test the 2/3 consensus logic (3 valid results, 2 agree → elect majority).
+  - Test the 1-fail resilience (1 transient timeout → 2 valid results → consensus still formed).
+  - Test the 2-fail crash scenario (2 transient timeouts → only 1 valid result → `SYSTEM_ERROR` per tda_id).
+  - Test all-3-fail scenario (3 transient timeouts → all atoms marked `SYSTEM_ERROR`).
+- **Performance Profiling**: Ensure the RPM-driven dynamic pacing is correctly applied for the ensemble strategy, effectively bypassing the 12-second static Pacing Lock.
 
 ## 4. Required User Review
-- Are there specific matrices or blocks that should *still* use the `gemini-2.5-pro` model, or can all TDA/Falsifier downstream tasks be migrated to Flash?
-- What is the actual Google Cloud RPM quota for `gemini-2.5-flash`? This determines the `rpm_limit` for Phase 0.
+- **Strategy Reuse**: (RESOLVED) The existing `"fast"` strategy will be reused exclusively.
+- **Pro vs Flash Scope**: (RESOLVED) All Phase 3 TDA/Falsifier downstream tasks (e.g., Analyst, Falsifier, Fact Checker) MUST have their `model_strategy` updated to `"fast"` in `seed_data.json` (lines 8019-8972).
+  - **Architectural Justification**: Although the architecture natively supports running the macro-level step on Pro while executing the micro-level Best-of-Three ensemble on Flash (via two completely separate `LLMClient` instances), keeping the macro-level on Pro (`"reasoning"` or `"strict"`) triggers the global 12-second Vertex AI Pacing Lock for the step's primary execution. To truly eliminate the pacing bottleneck as mandated by this Epic, both macro and micro levels must utilize Flash.
+- **Actual RPM Quota**: (RESOLVED) The existing quota is sufficient to reuse the `"fast"` strategy at `rpm_limit: 100`.
