@@ -60,9 +60,16 @@ class ExtractedAtom(BaseModel):
         str, Field(description="Chain-of-thought: reasoning for anaphora resolution and claim extraction.")
     ]
     resolved_claim: Annotated[str, Field(description="The cleaned, standalone claim with all anaphora resolved.")]
+    is_logical_deduction: Annotated[
+        bool,
+        Field(
+            default=False, description="Set to True if the claim is deduced purely via logic, allowing a null quote."
+        ),
+    ] = False
     source_quote: Annotated[
-        str, Field(description="The exact verbatim quote from the original text. Immutable evidence.")
-    ]
+        str | None,
+        Field(default=None, description="The exact verbatim quote from the original text. Immutable evidence."),
+    ] = None
     tda_id: Annotated[
         str,
         Field(

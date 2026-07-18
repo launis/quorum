@@ -2,8 +2,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
-from backend_v2.services.orchestrator.two_pass_atomizer import DraftAtomList, DraftExtractedAtom, TwoPassAtomizer
+from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
 
 @pytest.fixture

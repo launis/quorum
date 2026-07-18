@@ -244,6 +244,7 @@ async def test_execute_success_path_structured_output(
 
     projector = MagicMock()
     from backend_v2.models.state import StepOutputDTO
+
     projector.snapshot = [StepOutputDTO(step_id="path", block_id="to", data_type="matrix", payload={"test": "value"})]
 
     context = MagicMock()
@@ -265,7 +266,7 @@ async def test_execute_success_path_structured_output(
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
         "model_strategy": "standard",
     }
-    
+
     mock_repo.get_all_prompt_blocks.return_value = [
         {
             "id": "blk_0123456789abcdef0123456789abcdef",
@@ -300,15 +301,26 @@ async def test_execute_success_path_structured_output(
     mock_hook_state.inputs = {"path": {"to": {"test": "value"}}}
     mock_hook_state.global_context_vars = {}
 
-    from unittest.mock import patch, AsyncMock
+    from unittest.mock import AsyncMock, patch
+
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock) as mock_client_factory,
-        patch("backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_0", new_callable=AsyncMock) as mock_phase_0,
-        patch("backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_1", new_callable=AsyncMock) as mock_phase_1,
-        patch("backend_v2.services.orchestrator.sliding_window_linker.SlidingWindowLinker.link_graph", new_callable=AsyncMock) as mock_link,
-        patch("backend_v2.services.orchestrator.enriched_dag_executor.EnrichedDagExecutor.execute_graph", new_callable=AsyncMock) as mock_execute_graph,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch(
+            "backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_0", new_callable=AsyncMock
+        ) as mock_phase_0,
+        patch(
+            "backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_1", new_callable=AsyncMock
+        ) as mock_phase_1,
+        patch(
+            "backend_v2.services.orchestrator.sliding_window_linker.SlidingWindowLinker.link_graph",
+            new_callable=AsyncMock,
+        ) as mock_link,
+        patch(
+            "backend_v2.services.orchestrator.enriched_dag_executor.EnrichedDagExecutor.execute_graph",
+            new_callable=AsyncMock,
+        ) as mock_execute_graph,
         patch("backend_v2.services.orchestrator.result_projector.ResultProjector.project") as mock_project,
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -329,7 +341,7 @@ async def test_execute_success_path_structured_output(
 
     assert len(traces) == 1
     assert traces[0].event_type == "output"
-    
+
     # Verify that DAG components were invoked
     mock_phase_0.assert_called_once()
     mock_phase_1.assert_called_once()
@@ -445,6 +457,3 @@ def test_configure_llm_context_hook_error() -> None:
                 system_repo=MagicMock(),
             ),
         )
-
-
-

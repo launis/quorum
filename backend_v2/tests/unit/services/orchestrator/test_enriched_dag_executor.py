@@ -45,18 +45,25 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
     assert captured_callback is not None
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom
+
     mock_node = LinkedAtomGraph(
-        atom=ExtractedAtom(tda_id="tda_11111111111111111111111111111111", reasoning="reason", resolved_claim="claim", source_quote="test text", source_id="src"),
-        depends_on=[]
+        atom=ExtractedAtom(
+            tda_id="tda_11111111111111111111111111111111",
+            reasoning="reason",
+            resolved_claim="claim",
+            source_quote="test text",
+            source_id="src",
+        ),
+        depends_on=[],
     )
-    
+
     with patch(
         "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.evaluate_atom_boolean_batch",
         new_callable=AsyncMock,
     ) as mock_sensor:
         mock_sensor.return_value = {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})}
         status_dict = await captured_callback([mock_node])
-        
+
         assert status_dict["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
         mock_sensor.assert_called_once_with(
             nodes=[mock_node],

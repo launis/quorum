@@ -111,6 +111,7 @@ async def test_epic_93_e2e_golden_master() -> None:
         "layouts": [
             {
                 "preset_view": "1d_metrics",
+                "steps": ["step_analyst"],
                 "target_blocks": [block_id],
                 "title": {"default_locale": "en", "translations": {"en": "Axis Title"}},
             }

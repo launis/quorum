@@ -42,7 +42,9 @@ async def test_topological_evaluator_successful_run(evaluator: TopologicalEvalua
         ),
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         await asyncio.sleep(0.01)
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
@@ -71,7 +73,9 @@ async def test_topological_evaluator_short_circuit(evaluator: TopologicalEvaluat
         ),
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         results = {}
         for node in batch_nodes:
             if node.atom.tda_id == "tda_11111111111111111111111111111111":
@@ -108,7 +112,9 @@ async def test_topological_evaluator_blocked_cascade(evaluator: TopologicalEvalu
         ),
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         results = {}
         for node in batch_nodes:
             if node.atom.tda_id == "tda_11111111111111111111111111111111":
@@ -151,7 +157,9 @@ async def test_topological_evaluator_cycle_breaker(evaluator: TopologicalEvaluat
         ),
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         # Should not be called due to cycle isolation
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 

@@ -25,6 +25,7 @@ from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
+    EngineOverrideStrategy,
     ExecutionStatus,
     HistoricalContextMode,
     LaxBlockDataType,
@@ -776,6 +777,10 @@ class StepRule(V2CoreBase):
         default_factory=dict,
         description='Maps upstream results to LLM inputs. e.g. {"context": "$inputs.document"}',
     )
+    engine_override: Annotated[
+        EngineOverrideStrategy | None,
+        Field(description="Optional override to route this step to a non-default execution strategy."),
+    ] = None
 
     ui_pos_x: float = Field(default=0.0, description="X coordinate on the 2D DAG canvas.")
     ui_pos_y: float = Field(default=0.0, description="Y coordinate on the 2D DAG canvas.")

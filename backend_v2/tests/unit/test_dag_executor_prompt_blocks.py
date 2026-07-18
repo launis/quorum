@@ -131,46 +131,79 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     )
 
     # Execute
-    # We mock LLMClient.from_strategy to avoid actual LLM calls
     with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy:
         mock_bound_client = AsyncMock()
-        mock_payload = {
-            "exact_quotes": [""],
-            "contextual_override": True,
-            "semantic_reasoning": "Because",
-            "localized_anchors_found": ["mock anchor"],
-            "status": "PASS",
-        }
+        mock_bound_client._config = MagicMock()
+        mock_bound_client._config.provider = "mock_llm_99"
+
         from backend_v2.models.domain.usage import TokenUsage
 
         mock_bound_client.run_structured_task.return_value = (
-            MagicMock(model_dump=lambda **kwargs: {"blk_0123456789abcdef0123456789ab": mock_payload}),
+            MagicMock(),
             TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
-        mock_bound_client._config = MagicMock()
-        mock_bound_client._config.provider = "mock_llm_99"
+
         mock_strategy.return_value = mock_bound_client
 
-        mock_repo.get_execution.return_value = {
-            "id": "exe_1231231231231231",
-            "workflow_id": "wf_5555555555555555",
-            "status": ExecutionStatus.PENDING,
-            "active_profile_id": "prof_dddd1111dddd1111",
-            "raw_inputs": {"dynamic_inputs": {"chat_log": "dGVzdA=="}},
-            "metadata": {"target_locale": "fi", "profile_id": "prof_dddd1111dddd1111"},
-        }
+        with (
+            patch(
+                "backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_0",
+                new_callable=AsyncMock,
+            ) as mock_phase_0,
+            patch(
+                "backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_1",
+                new_callable=AsyncMock,
+            ) as mock_phase_1,
+            patch(
+                "backend_v2.services.orchestrator.sliding_window_linker.SlidingWindowLinker.link_graph",
+                new_callable=AsyncMock,
+            ) as mock_link,
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.EnrichedDagExecutor.execute_graph",
+                new_callable=AsyncMock,
+            ) as mock_execute_graph,
+            patch("backend_v2.services.orchestrator.result_projector.ResultProjector.project") as mock_project,
+        ):
+            mock_phase_0.return_value = MagicMock()
+            mock_phase_1.return_value = MagicMock()
+            mock_link.return_value = MagicMock()
+            mock_execute_graph.return_value = MagicMock()
 
-        # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
-        with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(
-                return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "dGVzdA=="}})
-            )
+            class MockResultDTO:
+                def model_dump(self) -> dict[str, Any]:
+                    return {"id": "blk_0123456789abcdef0123456789ab", "contextual_override": True}
 
-            record = await executor.execute_workflow(
-                execution_id="exe_1231231231231231",
-                workflow=workflow,
-                raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"chat_log": "dGVzdA=="}}),
-            )
+            mock_project.return_value = ([MockResultDTO()], {})
+
+            mock_hook_state = MagicMock()
+            mock_hook_state.inputs = {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}
+            mock_hook_state.global_context_vars = {}
+
+            mock_repo.get_execution.return_value = {
+                "id": "exe_1231231231231231",
+                "workflow_id": "wf_5555555555555555",
+                "status": ExecutionStatus.PENDING,
+                "active_profile_id": "prof_dddd1111dddd1111",
+                "raw_inputs": {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
+                "metadata": {"target_locale": "fi", "profile_id": "prof_dddd1111dddd1111"},
+            }
+
+            # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
+            with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
+                mock_hooks.execute = AsyncMock(
+                    return_value=HookResult(
+                        success=True,
+                        state_delta={"inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
+                    )
+                )
+
+                record = await executor.execute_workflow(
+                    execution_id="exe_1231231231231231",
+                    workflow=workflow,
+                    raw_inputs=WorkflowInputs.model_validate(
+                        {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}}
+                    ),
+                )
 
     # Assert repo called new method instead of get_all_matrices
     mock_repo.get_all_prompt_blocks.assert_called_once()
@@ -183,11 +216,15 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     results = projector.fold_trace(record.execution_trace)
     print(f"DEBUG RESULTS: {results}")
 
-    # We check that the payload is a dict and has the mocked values
     found = False
     for dto in results:
-        if dto.step_id == "step_1111111111111111" and dto.block_id == "blk_0123456789abcdef0123456789ab":
-            if isinstance(dto.payload, dict) and dto.payload.get("contextual_override") is True:
-                found = True
-                break
+        if dto.step_id == "step_1111111111111111" and dto.block_id == "results":
+            if isinstance(dto.payload, list) and len(dto.payload) > 0:
+                first_res = dto.payload[0]
+                if (
+                    first_res.get("id") == "blk_0123456789abcdef0123456789ab"
+                    and first_res.get("contextual_override") is True
+                ):
+                    found = True
+                    break
     assert found

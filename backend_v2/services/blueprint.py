@@ -1116,10 +1116,31 @@ class BlueprintTransformer:
                     for k, v_dict in dto.payload["hydrated_references"].items():
                         v2_hydrated_refs[k] = HydratedAtomDTO.model_validate(v_dict)
 
-        evaluative_matrices: list[Any] = []
-        informational_matrices: list[Any] = []
-        all_parsed_matrices: dict[str, Any] = {}
-        step_scorecard_atoms: dict[str, Any] = {}
+        workflow_steps_map = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
+        row_explanations_cache: dict[str, str] = {}
+        row_curated_quotes_cache: dict[str, list[str]] = {}
+        
+        if profile_cache and profile_cache.row_explanations:
+            row_explanations_cache = profile_cache.row_explanations
+        if profile_cache and profile_cache.row_curated_quotes:
+            row_curated_quotes_cache = profile_cache.row_curated_quotes
+            
+        evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms = self._extract_matrices_and_extensions(
+            results=results,
+            locale=locale,
+            blocks_by_id=blocks_by_id,
+            workflow_steps=workflow_steps_map,
+            grouped_extensions=grouped_extensions,
+            profile=profile,
+            row_explanations_cache=row_explanations_cache,
+            workflow_ext_values=workflow_ext_values,
+            row_curated_quotes_cache=row_curated_quotes_cache,
+            has_synthesis_cache=bool(profile_cache),
+            rejected_evq_ids=rejected_evq_ids,
+            mcp_audit_map=mcp_audit_map,
+            source_identity_manifest=None,
+            execution=execution,
+        )
 
         modified_step_states = False
         new_step_states = dict(execution.step_states)
@@ -1144,7 +1165,7 @@ class BlueprintTransformer:
             )
 
         try:
-            layouts_list: list[Any] = []
+            layouts_list = self._build_layouts(profile.layouts, all_parsed_matrices, section_syntheses)
 
             injected = False
             if synthesis_block_id and content_blocks:

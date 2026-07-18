@@ -6,8 +6,10 @@ from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindow
 
 def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that the sliding window correctly batches atoms with overlap."""
+
     class MockSettings:
         linker_max_atoms_per_window = 20
+
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
 
     linker = SlidingWindowLinker(window_size=3, overlap=1)
@@ -61,8 +63,10 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_sliding_window_linker_get_windows_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test sliding window with empty chunks."""
+
     class MockSettings:
         linker_max_atoms_per_window = 20
+
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
     linker = SlidingWindowLinker(window_size=3, overlap=1)
     windows = linker._get_sliding_windows([])
@@ -71,8 +75,10 @@ def test_sliding_window_linker_get_windows_empty(monkeypatch: pytest.MonkeyPatch
 
 def test_sliding_window_linker_get_windows_small(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test sliding window with chunks less than window size."""
+
     class MockSettings:
         linker_max_atoms_per_window = 20
+
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
     linker = SlidingWindowLinker(window_size=3, overlap=1)
     chunks = [
@@ -94,27 +100,31 @@ def test_sliding_window_linker_get_windows_small(monkeypatch: pytest.MonkeyPatch
 
 def test_sliding_window_linker_subdivides_oversized_chunks(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that chunks exceeding max_atoms are subdivided."""
+
     class MockSettings:
         linker_max_atoms_per_window = 2
+
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
-    
+
     linker = SlidingWindowLinker(window_size=3, overlap=1)
     chunk = [
-        ExtractedAtom(tda_id=f"tda_0000000{i}", resolved_claim=f"claim {i}", reasoning=f"reason {i}", source_quote=f"quote {i}")
+        ExtractedAtom(
+            tda_id=f"tda_0000000{i}", resolved_claim=f"claim {i}", reasoning=f"reason {i}", source_quote=f"quote {i}"
+        )
         for i in range(5)
     ]
-    
+
     windows = linker._get_sliding_windows([chunk])
-    
+
     assert len(windows) == 3
     assert len(windows[0]) == 1
     assert len(windows[0][0]) == 2
     assert windows[0][0][0].tda_id == "tda_00000000"
-    
+
     assert len(windows[1]) == 1
     assert len(windows[1][0]) == 2
     assert windows[1][0][0].tda_id == "tda_00000002"
-    
+
     assert len(windows[2]) == 1
     assert len(windows[2][0]) == 1
     assert windows[2][0][0].tda_id == "tda_00000004"

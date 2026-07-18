@@ -9,9 +9,9 @@
 
 ### Phase 1: RAG Pre-Flight Pipeline & Virtual Step Injection
 
-- [ ] `[NOK]` **Tier 0 Red-Team**: Run `/tier0-research-plan` on [phase_1a_backend_models_and_enums.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_1a_backend_models_and_enums.md) in a fresh context window. This plan introduces a new SSOT component (`GlobalAtomBlackboard`) and modifies core domain models.
+- [x] `[OK]` **Tier 0 Red-Team**: Run `/tier0-research-plan` on [phase_1a_backend_models_and_enums.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_1a_backend_models_and_enums.md) in a fresh context window. This plan introduces a new SSOT component (`GlobalAtomBlackboard`) and modifies core domain models.
 
-- [ ] `[NOK]` **Phase 1A — Backend Models, Enums & Settings**: Execute [phase_1a_backend_models_and_enums.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_1a_backend_models_and_enums.md)
+- [x] `[OK]` **Phase 1A — Backend Models, Enums & Settings**: Execute [phase_1a_backend_models_and_enums.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_1a_backend_models_and_enums.md)
   - New `EngineOverrideStrategy` enum
   - `engine_override` field on `StepRule`
   - `GlobalAtomBlackboard` + `DraftAtomList` migration to domain models
@@ -186,5 +186,5 @@
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/tasks_epic_101_global_extraction/phase_1a_backend_models_and_enums.md" --rules="00-antigravity-core.md, 01-python-backend.md" --achieved="Tier 0 System 2 Red-Teaming completed for all phases. Architecture holes (Null Hypothesis, Quote Normalization, FinOps Cascading Escalation, DependencyError, Scalar Alias Hallucination) fixed in plans." --learned="TwoPassAtomizer natively handles TaskGroup chunk concurrency. DraftExtractedAtom uses is_logical_deduction to allow None quotes. PreHydratedSynthesis must use Cascading Routing fallback on ValidationError, and AliasEngine must handle scalar strings." --remaining="Start executing Phase 1A (Backend Models & Enums)."
+/tier5-resume --workflow=/tier0-research-plan --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/tasks_epic_101_global_extraction/phase_1b_rag_preflight_pipeline.md" --rules="00-antigravity-core.md, 01-python-backend.md" --achieved="Phase 1A (Backend Models & Enums) completely implemented and validated. Epic 93 Golden Master Test failure resolved (restored BlueprintTransformer layout generation logic). 100% backend test pass." --learned="BlueprintTransformer requires _extract_matrices_and_extensions and _build_layouts to populate layouts_list. Phase 1A models (EngineOverrideStrategy, GlobalAtomBlackboard) successfully integrated." --remaining="Run Tier 0 Red-Team on Phase 1B (RAG Pre-Flight Pipeline) plan, then execute Phase 1B."
 ```

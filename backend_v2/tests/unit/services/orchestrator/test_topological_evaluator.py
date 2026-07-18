@@ -42,7 +42,9 @@ async def test_successful_evaluation() -> None:
         ),
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
@@ -70,7 +72,9 @@ async def test_phantom_edge_isolation() -> None:
         ),
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
@@ -110,7 +114,9 @@ async def test_cyclic_dependency_detected() -> None:
         LinkedAtomGraph(atom=create_atom("tda_3333333333333333")),  # Unrelated
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
@@ -154,7 +160,9 @@ async def test_blocked_cascade() -> None:
         ),
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
@@ -194,7 +202,9 @@ async def test_na_short_circuit_cascade() -> None:
         ),
     ]
 
-    async def mock_callback(batch_nodes: list[LinkedAtomGraph]) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    async def mock_callback(
+        batch_nodes: list[LinkedAtomGraph],
+    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         results = {}
         for node in batch_nodes:
             # Parent fails, so child should short-circuit to N_A

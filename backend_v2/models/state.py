@@ -119,9 +119,9 @@ class TraceEvent(V2CoreBase):
         json_schema_extra={"x-ui-label": "Step Name"},
     )
 
-    event_type: Literal["input", "reasoning", "decision", "error", "output", "tombstone", "evidence_override"] = Field(
-        ..., description="Type of the event.", json_schema_extra={"x-ui-label": "Event Type"}
-    )
+    event_type: Literal[
+        "input", "reasoning", "decision", "error", "output", "tombstone", "evidence_override", "progress"
+    ] = Field(..., description="Type of the event.", json_schema_extra={"x-ui-label": "Event Type"})
 
     content: dict[str, Any] = Field(default_factory=dict, description="Structured content of the event.")
     reasoning: ReasoningTrace | None = Field(default=None, description="Associated reasoning trace.")

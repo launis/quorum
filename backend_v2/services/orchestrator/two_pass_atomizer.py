@@ -2,8 +2,6 @@ import asyncio
 import logging
 import uuid
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -16,23 +14,8 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 
-class DraftExtractedAtom(BaseModel):
-    """Draft representation of an atom before AliasEngine hydration."""
-
-    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-
-    reasoning: str = Field(description="Chain-of-thought logic.")
-    resolved_claim: str = Field(description="The cleaned claim.")
-    source_quote: str = Field(description="The exact quote from text.")
-    draft_id: str = Field(description="A short temporary ID assigned by LLM, e.g. a0, a1.")
-
-
-class DraftAtomList(BaseModel):
-    """Wrapper for a list of draft atoms returned by structured task execution."""
-
-    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-
-    atoms: list[DraftExtractedAtom]
+# @deprecated — Import from backend_v2.models.domain.blackboard instead.
+from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom  # noqa: F401
 
 
 class TwoPassAtomizer:

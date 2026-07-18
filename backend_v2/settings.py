@@ -104,6 +104,9 @@ class Settings(BaseSettings):
     sensor_batch_size: Annotated[
         int, Field(description="Max atoms per Boolean evaluation batch to avoid rate limits")
     ] = 15
+    max_extracted_atoms_per_document: Annotated[
+        int, Field(description="Global limit on number of extracted atoms per document to prevent DB bloat")
+    ] = 100
     max_concurrent_workflows: Annotated[int, Field(description="Max parallel workflow chunks")] = 10
     max_concurrent_llm_steps: Annotated[int, Field(description="Max parallel LLM calls in dag_executor")] = 10
     llm_max_schema_retries: Annotated[int, Field(description="Max retries for schema validation failures")] = 2
@@ -599,17 +602,17 @@ def get_settings() -> Settings:
 
 def get_lexical_fuzz_threshold(locale: str | None = None) -> float:
     """Centralized helper for fetching the correct fuzzy threshold based on locale.
-    
+
     Args:
         locale: Optional language code.
-        
+
     Returns:
         The fuzzy matching threshold percentage as a float.
     """
     settings = get_settings()
     if not locale:
         return settings.pre_flight_fuzz_default
-        
+
     match locale.lower():
         case "fi" | "hu" | "tr":
             return settings.pre_flight_fuzz_agglutinative
