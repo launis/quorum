@@ -22,7 +22,7 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
-from backend_v2.models.enums import ScoringStrategy, StrictnessAnchor
+from backend_v2.models.enums import EngineOverrideStrategy, ScoringStrategy, StrictnessAnchor
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -606,6 +606,68 @@ class DAGExecutor:
                 raise WorkflowExecutionError(step_id=step_id, task_key=step_obj.task_blueprint, original_error=e) from e
 
         try:
+            # Epic 101 Phase 1B: RAG Pre-Flight Pipeline Injection
+            has_prehydrated = any(
+                step.engine_override == EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS for step in workflow.steps
+            )
+            if has_prehydrated:
+                import uuid
+
+                virtual_step_id = f"stp_{uuid.uuid4().hex[:16]}"
+
+                async with _update_lock:
+                    new_state = ExecutionStepState(
+                        id=virtual_step_id, label="system.rag.preflight", status=ExecutionStatus.RUNNING
+                    )
+                    new_states = {**exec_record.step_states, virtual_step_id: new_state}
+                    exec_record = exec_record.model_copy(update={"step_states": new_states})
+
+                await _safe_commit()
+
+                async def _emit_preflight_progress(message: str, pct: int) -> None:
+                    nonlocal exec_record
+                    evt = TraceEvent(
+                        step_name=virtual_step_id,
+                        event_type="progress",
+                        content={"message": message, "progress_pct": pct},
+                    )
+                    async with _update_lock:
+                        exec_record.execution_trace.append(evt)
+                        projector.apply_delta(evt)
+                    await _safe_commit()
+
+                try:
+                    blackboard_payload = await self._execute_rag_preflight(
+                        workflow=workflow,
+                        exec_record=exec_record,
+                        projector=projector,
+                        virtual_step_id=virtual_step_id,
+                        _emit_progress=_emit_preflight_progress,
+                    )
+
+                    async with _update_lock:
+                        pass_state = exec_record.step_states[virtual_step_id].model_copy(
+                            update={"status": ExecutionStatus.PASSED}
+                        )
+                        new_states = {**exec_record.step_states, virtual_step_id: pass_state}
+                        new_cv = dict(exec_record.context_variables)
+                        new_cv["__GLOBAL_ATOM_BLACKBOARD__"] = blackboard_payload
+                        exec_record = exec_record.model_copy(
+                            update={"step_states": new_states, "context_variables": new_cv}
+                        )
+                    await _safe_commit()
+                except Exception as e:
+                    async with _update_lock:
+                        fail_state = exec_record.step_states[virtual_step_id].model_copy(
+                            update={"status": ExecutionStatus.FAILED}
+                        )
+                        new_states = {**exec_record.step_states, virtual_step_id: fail_state}
+                        exec_record = exec_record.model_copy(update={"step_states": new_states})
+                    await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
+                    raise WorkflowExecutionError(
+                        step_id=virtual_step_id, task_key="system.rag.preflight", original_error=e
+                    ) from e
+
             async with asyncio.TaskGroup() as tg:
                 for step in workflow.steps:
                     tg.create_task(run_step_wrapper(step.id))
@@ -673,3 +735,90 @@ class DAGExecutor:
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                 status_code=500,
             ) from unexpected_err
+
+    async def _execute_rag_preflight(
+        self,
+        workflow: Workflow,
+        exec_record: ExecutionRecord,
+        projector: StateProjector,
+        virtual_step_id: str,
+        _emit_progress: Any,
+    ) -> dict[str, Any]:
+        """Phase 1B RAG Pre-flight Pipeline execution.
+
+        Args:
+            workflow: The current workflow containing the PRE_HYDRATED_SYNTHESIS step.
+            exec_record: Current execution record to extract inputs from.
+            projector: Transient state projector.
+            virtual_step_id: Trace correlation ID.
+            _emit_progress: Callback to push progress events.
+
+        Returns:
+            The serialized GlobalAtomBlackboard payload.
+        """
+        from backend_v2.llm.client import LLMClient
+        from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
+        from backend_v2.services.llm_task_executor import LLMTaskExecutor
+        from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
+
+        target_step = next(
+            s for s in workflow.steps if s.engine_override == EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS
+        )
+
+        step_def_data = await self.workflow_repo.get_step_by_id(target_step.task_blueprint)
+        if not step_def_data:
+            raise AppException(
+                message=f"Blueprint {target_step.task_blueprint} not found.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                status_code=500,
+            )
+        from backend_v2.models.v2_core import Step
+
+        step_def = Step.model_validate(step_def_data)
+        strategy_name = step_def.model_strategy
+        if not strategy_name:
+            raise AppException(
+                message=f"Blueprint {target_step.task_blueprint} has no model_strategy.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                status_code=500,
+            )
+
+        bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo, pipeline_name="chunk_worker")
+        llm_executor = LLMTaskExecutor(self.compiler)
+        atomizer = TwoPassAtomizer(llm_executor)
+
+        inputs_payload = exec_record.raw_inputs.model_dump(mode="json")
+        atoms_by_input = {}
+
+        total_files = len([k for k, v in inputs_payload.items() if isinstance(v, str)])
+        processed_files = 0
+
+        for key, text_content in inputs_payload.items():
+            if not isinstance(text_content, str):
+                continue
+
+            await _emit_progress(
+                f"Extracting knowledge from file {processed_files + 1}/{total_files}...",
+                int(processed_files / total_files * 100),
+            )
+
+            chunk_size = get_settings().rag_preflight_chunk_size
+            text_chunks = [text_content[i : i + chunk_size] for i in range(0, max(len(text_content), 1), chunk_size)]
+
+            ontology = await atomizer.execute_phase_0(bound_client, text_chunks)
+            draft_list = await atomizer.execute_phase_1_drafts(bound_client, text_chunks, ontology)
+
+            if len(draft_list.atoms) > get_settings().max_extracted_atoms_per_document:
+                raise AppException(
+                    message=f"Atom ceiling exceeded for file {key}. Extracted {len(draft_list.atoms)} atoms.",
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    status_code=400,
+                )
+
+            atoms_by_input[key] = draft_list
+            processed_files += 1
+
+        await _emit_progress("Knowledge extraction complete.", 100)
+
+        blackboard = GlobalAtomBlackboard(atoms_by_input=atoms_by_input)
+        return blackboard.model_dump(mode="json")

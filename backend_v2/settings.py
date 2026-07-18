@@ -117,6 +117,9 @@ class Settings(BaseSettings):
     llm_retry_jitter_initial_seconds: Annotated[int, Field(description="Initial jitter delay in seconds")] = 2
     llm_retry_jitter_exp_base: Annotated[int, Field(description="Exponential base for jitter")] = 2
     llm_max_chunk_size: Annotated[int, Field(description="Max documents per schema extraction chunk")] = 8
+    rag_preflight_chunk_size: Annotated[
+        int, Field(description="Chunk size in characters for RAG preflight document extraction")
+    ] = 12000
     llm_min_payload_length: Annotated[int, Field(description="Minimum chars for LLM payload before fail-fast")] = 10
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10

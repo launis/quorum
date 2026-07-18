@@ -41,7 +41,8 @@ Inside `execute_workflow()`, BEFORE the step iteration loop (line ~608), impleme
    ```
    > **CRITICAL ARCHITECTURE RULE:** Do NOT inject this step into the `workflow.steps` list! The `workflow` is an immutable database record and modifying it will contaminate the main `asyncio.TaskGroup` executor loop causing a fatal `ConfigurationError` when it tries to run `sys_rag_preflight`.
 
-3. **Virtual StepState Injection**: Add `ExecutionStepState` with `RUNNING` status for the virtual step into `exec_record.step_states`. This is the ONLY injection needed for the UI to organically discover and render the step.
+3. **Virtual StepState Injection & Pre-Commit**: Add `ExecutionStepState` with `RUNNING` status for the virtual step into `exec_record.step_states`. This is the ONLY injection needed for the UI to organically discover and render the step.
+   > **CRITICAL DB COMMIT:** You MUST explicitly call `await _safe_commit()` immediately AFTER injecting this `RUNNING` state and BEFORE launching the heavy `_execute_rag_preflight()`. If you fail to commit here, the frontend SSE will freeze and never show the virtual step until the extraction is entirely finished.
 
 4. **Emit Progress TraceEvent**: Create helper method `_emit_preflight_progress()` that emits `TraceEvent(step_name=virtual_step_id, event_type="progress", content={"message": "...", "progress_pct": N})` and commits via `_safe_commit()`.
 
@@ -83,21 +84,22 @@ Logic flow:
 2. **Collect Input Files & Sequential File Orchestration**: Inspect `workflow.expected_inputs` (if accessible through the workflow object) or inspect `exec_record.raw_inputs` to enumerate all input file keys (e.g., `product_text`, `chat_log`). For EACH input file:
    - Extract the text payload from the execution trace projector (`projector.snapshot`)
    - Chunk it via `ChunkingService.chunk_payload()`
-   - Run `TwoPassAtomizer(executor).execute_phase_0()` + `TwoPassAtomizer(executor).execute_phase_1()` per file sequentially.
+   - Run `TwoPassAtomizer(executor).execute_phase_0()` + `TwoPassAtomizer(executor).execute_phase_1_drafts()` per file sequentially.
    > **CONCURRENCY CLARIFICATION:** Do NOT implement `asyncio.TaskGroup` or `Semaphore` inside `DAGExecutor`. The `TwoPassAtomizer` ALREADY implements `TaskGroup` and `Semaphore(settings.max_concurrent_llm_steps)` internally to process all chunks of a single file concurrently. `DAGExecutor` only loops over the files sequentially.
    > **LINKER OMISSION CLARIFICATION:** Although Epic 101 Chapter 3 mentions running `SlidingWindowLinker`, this is a legacy architectural artifact. Because `GlobalAtomBlackboard` explicitly requires `DraftAtomList`, the topological causal edges from the linker are discarded. Do NOT run `SlidingWindowLinker` in the RAG Pre-Flight to save tokens and latency.
 
-3. **TwoPassAtomizer Modifications (DLQ & Anti-Corruption Layer)**: 
-   Update `TwoPassAtomizer._extract_atoms_from_chunk()` to handle both Retry and Physical Anchoring:
-   - **Tenacity Retry**: Add a Tenacity retry decorator (`@retry(stop=stop_after_attempt(3), wait=wait_exponential())`) to handle transient 503/429 errors.
-   - **DLQ Wrapper**: Wrap the internal execution in a `try-except Exception` block. If retries are exhausted and an exception is caught, return the fallback sentinel: `DraftAtomList(atoms=[], dlq_status="FAILED/DLQ")`. 
-   - **Anti-Corruption Layer & Quote Normalization**: Inside the `for draft in draft_result.atoms:` loop, BEFORE appending to `final_atoms`, validate each atom individually against the `chunk` text. 
-     - Apply `AnchorValidationService.normalize_text_with_mapping()` to BOTH the `chunk` text and the `draft.source_quote` BEFORE executing `str.find`.
-     - If `draft.is_logical_deduction` is `True`, bypass the `str.find` check entirely and force `source_quote = None`.
-     - If the quote is not found, drop the atom and log: `logger.warning("corrupted_atom_dropped", extra={"raw_payload": ...})` — **Dual-Reporting Mandate**. Silent drops are banned.
-   - **TaskGroup Collector (execute_phase_1)**: Inside the TaskGroup result collector loop in `execute_phase_1`, check `if draft_result.dlq_status:` and emit `logger.warning("dlq_chunk_detected", extra={"chunk_index": chunk_index})`.
+3. **TwoPassAtomizer Modifications (DLQ, Anti-Corruption, and Draft Methods)**: 
+   - **New Blackboard Methods**: Do NOT modify the return type of `execute_phase_1`. Instead, create `execute_phase_1_drafts()` and `_extract_drafts_from_chunk()` which return `DraftAtomList` (preserving `DraftExtractedAtom` models without mapping them to `ExtractedAtom`). This prevents breaking the legacy consumer in `llm.py` while natively supporting the `GlobalAtomBlackboard` which strictly requires `DraftAtomList`.
+   - Update `_extract_drafts_from_chunk()` to handle both Retry and Physical Anchoring:
+     - **Tenacity Retry**: Add a Tenacity retry decorator (`@retry(stop=stop_after_attempt(3), wait=wait_exponential())`) to handle transient 503/429 errors.
+     - **DLQ Wrapper**: Wrap the internal execution in a `try-except Exception` block. If retries are exhausted and an exception is caught, return the fallback sentinel: `DraftAtomList(atoms=[], dlq_status="FAILED/DLQ")`. 
+     - **Anti-Corruption Layer & Quote Normalization**: Inside the `for draft in draft_result.atoms:` loop, BEFORE appending to the final validated drafts list, validate each atom individually against the `chunk` text. 
+       - Apply `AnchorValidationService.normalize_text_with_mapping()` to BOTH the `chunk` text and the `draft.source_quote` BEFORE executing `str.find`.
+       - If `draft.is_logical_deduction` is `True`, bypass the `str.find` check entirely and force `source_quote = None`.
+       - If the quote is not found, drop the atom and log: `logger.warning("corrupted_atom_dropped", extra={"raw_payload": ...})` — **Dual-Reporting Mandate**. Silent drops are banned.
+   - **TaskGroup Collector (execute_phase_1_drafts)**: Inside the TaskGroup result collector loop, check `if result.dlq_status:` on the returned draft lists. If any chunk failed, set `has_dlq = True` and emit `logger.warning("dlq_chunk_detected", ...)`. Finally, return a merged `DraftAtomList(atoms=all_atoms, dlq_status="FAILED/DLQ" if has_dlq else None)`.
 
-4. **Atom Ceiling Enforcement (Inside DAGExecutor)**: After retrieving the atoms for a file, check `len(atoms) > settings.max_extracted_atoms_per_document`. If exceeded, Fail-Fast with `AppException`. Do NOT attempt to do the `str.find` Try-Except block inside `DAGExecutor`.
+4. **Atom Ceiling Enforcement (Inside DAGExecutor)**: After retrieving the `DraftAtomList` for a file, check `len(atoms.atoms) > settings.max_extracted_atoms_per_document`. If exceeded, Fail-Fast with `AppException(..., details={"error_code": ErrorCodes.VALIDATION_FAILED})`. Do NOT attempt to do the `str.find` Try-Except block inside `DAGExecutor`.
 
 6. **Construct Blackboard**:
    ```python
