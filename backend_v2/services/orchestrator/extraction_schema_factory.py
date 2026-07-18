@@ -85,12 +85,14 @@ def create_extraction_model(
 ) -> type[BaseModel]:
     """Create a strict Pydantic model for a given list of facts.
 
-    The function sorts ``facts`` alphabetically to ensure a deterministic field order,
+    The function sorts facts alphabetically to ensure a deterministic field order,
     enforcing prompt caching stability.
 
+    Args:
+        facts: List of facts to extract.
+        track: The extraction track to use.
+
     Returns:
-    -------
-    Type[BaseModel]
         A dynamically generated subclass of BaseModel ready for model_validate.
     """
     # 1. Deduplicate and sort for deterministic schema generation (caching-friendly)

@@ -51,6 +51,7 @@ class EnrichedDagExecutor:
             nodes: The list of validated LinkedAtomGraphs.
             source_text: The original document text for contextual evaluation.
             locale: Optional target locale/language code.
+            progress_callback: Optional progress reporter callback function.
 
         Returns:
             A dictionary mapping tda_id to its final AtomExecutionState.

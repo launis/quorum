@@ -76,6 +76,7 @@ class ExecutionCommitter:
             step_states: Execution state dictionary mapping per-step states.
             error: Optional execution failure message to record.
             frozen_context: Serialized snapshot state if provided.
+            context_variables: Execution level global variables.
 
         Raises:
             AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction fails.
@@ -174,6 +175,8 @@ class NodeExecutor:
             strictness_level: Tolerance boundary configuration limits.
             arq_pool: Worker delegation dispatcher parameters.
             running_event: Coordinator signal emitter.
+            context_variables: Execution level global variables.
+            progress_callback: Optional progress reporter callback function.
 
         Returns:
             List of events generated during step evaluation.

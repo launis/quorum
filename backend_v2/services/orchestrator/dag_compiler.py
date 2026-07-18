@@ -90,7 +90,7 @@ class DAGCompilerService:
             ref_str: The full reference string (e.g., $steps.my_step.value).
 
         Returns:
-            str: The root node dependency path.
+            The root node dependency path.
         """
         parts = ref_str.split(".")
         if len(parts) >= 2 and parts[0] == "$steps":
@@ -147,7 +147,7 @@ class DAGCompilerService:
             steps: The list of workflow steps to sort.
 
         Returns:
-            list[StepRule]: The topologically sorted list of steps.
+            The topologically sorted list of steps.
 
         Raises:
             WorkflowCompilationError: If a declared dependency does not exist in the workflow.
