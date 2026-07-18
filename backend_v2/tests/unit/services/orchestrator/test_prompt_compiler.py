@@ -385,13 +385,56 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
 
 
 def test_build_xml_context() -> None:
+    from backend_v2.models.v2_core import ExpectedInput, I18nText
+
     compiler = PromptCompiler()
-    state = {"a": "value_a", "b": {"c": "value_c"}}
-    xml = compiler.build_xml_context({"src_1": "a", "src_2": "b.c"}, state, "en")
+    state = {
+        "inputs": {
+            "normal_input": "user data",
+            "chat_input": "chat data",
+        },
+        "steps": {"step_1": "ai drafted this"},
+    }
+
+    expected_inputs = [
+        ExpectedInput(
+            input_key="normal_input",
+            label=I18nText(default_locale="en", translations={"en": "Normal"}),
+            description=I18nText(default_locale="en", translations={"en": "Desc"}),
+            is_chat_history=False,
+            input_modes=["text"],
+            required=True,
+        ),
+        ExpectedInput(
+            input_key="chat_input",
+            label=I18nText(default_locale="en", translations={"en": "Chat"}),
+            description=I18nText(default_locale="en", translations={"en": "Desc"}),
+            is_chat_history=True,
+            input_modes=["text"],
+            required=True,
+        ),
+    ]
+
+    input_mappings = {
+        "src_1": "$inputs.normal_input",
+        "src_2": "$inputs.chat_input",
+        "src_3": "$steps.step_1",
+    }
+
+    xml = compiler.build_xml_context(input_mappings, state, "en", expected_inputs=expected_inputs)
+
+    # src_1: normal input -> <user_payload> wrapper
     assert '<matrix_input source_id="src_1">' in xml
-    assert "value_a" in xml
+    assert "<user_payload>\n<![CDATA[user data]]>\n</user_payload>" in xml
+
+    # src_2: chat input -> NO wrapper
     assert '<matrix_input source_id="src_2">' in xml
-    assert "value_c" in xml
+    assert "<user_payload>" not in xml.split('source_id="src_2"')[1].split("</matrix_input>")[0]
+    assert "<![CDATA[chat data]]>" in xml
+
+    # src_3: step output -> <ai_draft_context> wrapper
+    assert '<matrix_input source_id="src_3">' in xml
+    assert "<ai_draft_context>\n<![CDATA[ai drafted this]]>\n</ai_draft_context>" in xml
 
 
 def test_extract_value_from_state() -> None:

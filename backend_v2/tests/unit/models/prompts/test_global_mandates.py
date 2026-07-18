@@ -1,6 +1,7 @@
 from backend_v2.models.prompts.global_mandates import (
     ANTI_ID_MANDATE,
     ANTI_SCORE_MANDATE,
+    CONTEXT_SEGREGATION_MANDATE,
     EPISTEMIC_GLOSSARY_MANDATE,
     EXTENSION_ANCHORING_MANDATE,
     GLOBAL_MANDATES_XML,
@@ -37,5 +38,9 @@ def test_global_mandates_constants() -> None:
     assert isinstance(EXTENSION_ANCHORING_MANDATE, str)
     assert "<extension_anchoring_mandate>" in EXTENSION_ANCHORING_MANDATE
 
+    assert isinstance(CONTEXT_SEGREGATION_MANDATE, str)
+    assert "<context_segregation_mandate>" in CONTEXT_SEGREGATION_MANDATE
+
     assert isinstance(GLOBAL_MANDATES_XML, str)
     assert "<language_mandate>" in GLOBAL_MANDATES_XML
+    assert "<context_segregation_mandate>" in GLOBAL_MANDATES_XML

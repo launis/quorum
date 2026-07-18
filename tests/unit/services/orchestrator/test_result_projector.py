@@ -1,4 +1,5 @@
 import pytest
+from backend_v2.models.dtos.report.root import ReportDataDto
 
 from backend_v2.models.dtos.dag_models import (
     AtomExecutionState,
@@ -6,7 +7,6 @@ from backend_v2.models.dtos.dag_models import (
     ExtractedAtom,
     LinkedAtomGraph,
 )
-from backend_v2.models.dtos.report.root import ReportDataDto
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
 from backend_v2.services.orchestrator.result_projector import EnrichedResultProjector
 

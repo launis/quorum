@@ -9,9 +9,10 @@ from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 def resolve_i18n(label, locale):
     return label
 
+
 def test_schema_factory_max_length_vertex_ai_bug():
     """Regression test for Vertex AI 400 'too many states for serving'.
-    
+
     Ensures that when dynamically generating Pydantic schemas using SchemaFactory,
     the resulting JSON Schema does NOT contain 'maxItems' or 'maxLength' for lists,
     as nested array limits multiply the Vertex AI JSON parser state machine exponentially,
@@ -28,7 +29,7 @@ def test_schema_factory_max_length_vertex_ai_bug():
             label="Matrix Block",
             output_extensions=["confidence", "risk_flag", "justification"],
             scales=[],
-            ai_description="Test matrix block."
+            ai_description="Test matrix block.",
         ),
         SimpleNamespace(
             id="blk_eval_1",
@@ -36,8 +37,8 @@ def test_schema_factory_max_length_vertex_ai_bug():
             category_id=SimpleNamespace(value="criteria"),
             label="Evaluation Block",
             output_extensions=[],
-            scales=[]
-        )
+            scales=[],
+        ),
     ]
 
     Model = factory.build_dynamic_schema(
@@ -49,7 +50,7 @@ def test_schema_factory_max_length_vertex_ai_bug():
         source_document_ids=["doc_1", "doc_2"],
         allowed_atom_ids=["a1", "a2"],
         allowed_dynamic_keys=["k1"],
-        max_evaluations=7
+        max_evaluations=7,
     )
 
     _, schema = models_json_schema([(Model, "validation")])

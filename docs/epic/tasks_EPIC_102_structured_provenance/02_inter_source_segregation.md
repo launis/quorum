@@ -19,10 +19,9 @@ This plan implements Epic 102 Phase 2b and Phase 3. It dynamically wraps source 
 ```python
 CONTEXT_SEGREGATION_MANDATE = (
     "<context_segregation_mandate>\n"
-    "You are evaluating the HUMAN USER's intent. Text enclosed in <ai_draft_context> is for "
-    "background reference ONLY (Read-Only). You MUST NOT extract quotes or derive user intent "
-    "from the AI context. You MUST ONLY extract evidence and evaluate intent from the <user_payload> "
-    "(Write-Intent).\n"
+    "CRITICAL PROVENANCE RULE: You must clearly distinguish between human text and AI-generated text to avoid misattribution.\n"
+    "- <user_payload>: Contains the original human input. When evaluating the human's behavior, intent, or claims, your EXACT evidence quotes MUST ONLY be extracted from within this tag.\n"
+    "- <ai_draft_context>: Contains AI-generated text (e.g., previous chat responses, intermediate drafts). You MUST read this to understand the conversational context surrounding the human's input. However, unless your specific rubric instructs you to critique the AI, you MUST NOT extract evidence quotes from this tag.\n"
     "</context_segregation_mandate>"
 )
 ```

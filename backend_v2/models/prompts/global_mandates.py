@@ -123,6 +123,15 @@ SCHEMA_PURITY_MANDATE = (
 )
 
 
+CONTEXT_SEGREGATION_MANDATE = (
+    "<context_segregation_mandate>\n"
+    "CRITICAL PROVENANCE RULE: You must clearly distinguish between human text and AI-generated text to avoid misattribution.\n"
+    "- <user_payload>: Contains the original human input. When evaluating the human's behavior, intent, or claims, your EXACT evidence quotes MUST ONLY be extracted from within this tag.\n"
+    "- <ai_draft_context>: Contains AI-generated text (e.g., previous chat responses, intermediate drafts). You MUST read this to understand the conversational context surrounding the human's input. However, unless your specific rubric instructs you to critique the AI, you MUST NOT extract evidence quotes from this tag.\n"
+    "</context_segregation_mandate>"
+)
+
+
 GLOBAL_MANDATES_XML = f"""
 <global_system_mandates>
 {LANGUAGE_MANDATE.strip()}
@@ -144,5 +153,7 @@ GLOBAL_MANDATES_XML = f"""
 {TONE_MANDATE.strip()}
 
 {SCHEMA_PURITY_MANDATE.strip()}
+
+{CONTEXT_SEGREGATION_MANDATE.strip()}
 </global_system_mandates>
 """

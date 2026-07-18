@@ -219,6 +219,7 @@ class PromptCompiler:
                     "label": label_str,
                     "desc": desc_str,
                     "ai_desc": ai_desc,
+                    "is_chat_history": getattr(ei, "is_chat_history", False),
                 }
 
         for logical_name, source_path in input_mappings.items():
@@ -230,7 +231,9 @@ class PromptCompiler:
                     alias_engine.source_document_aliases.append(alias)
                     source_id_to_use = alias
 
-                meta = input_meta_map[source_path] if source_path in input_meta_map else None
+                base_path = ".".join(source_path.split(".")[:2]) if source_path.startswith("$") else source_path
+                meta = input_meta_map.get(base_path)
+
                 desc_text = ""
                 if meta:
                     desc_text += "  <document_metadata>\n"
@@ -243,8 +246,21 @@ class PromptCompiler:
                         desc_text += f"    <ai_context_mandate>{meta['ai_desc']}</ai_context_mandate>\n"
                     desc_text += "  </document_metadata>\n"
 
+                is_chat_history = meta.get("is_chat_history", False) if meta else False
+                encapsulated_val = TemplateProcessor.encapsulate_payload(value)
+
+                if source_path.startswith("$inputs"):
+                    if not is_chat_history:
+                        wrapped_val = f"<user_payload>\n{encapsulated_val}\n</user_payload>"
+                    else:
+                        wrapped_val = encapsulated_val
+                elif source_path.startswith("$steps"):
+                    wrapped_val = f"<ai_draft_context>\n{encapsulated_val}\n</ai_draft_context>"
+                else:
+                    wrapped_val = encapsulated_val
+
                 xml_blocks.append(
-                    f'<matrix_input source_id="{source_id_to_use}">\n{desc_text}{TemplateProcessor.encapsulate_payload(value)}\n</matrix_input>'
+                    f'<matrix_input source_id="{source_id_to_use}">\n{desc_text}{wrapped_val}\n</matrix_input>'
                 )
 
         compiled = "\n\n".join(xml_blocks)
