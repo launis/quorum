@@ -8,8 +8,9 @@
 - [OK] Phase 1: Execute `docs\epic\tasks_EPIC_102_structured_provenance\01_intra_chat_segregation.md`
 - [OK] Run `/tier0-research-plan` on Phase 2's plan in a fresh context window to Red-Team the architecture before execution.
 - [OK] Phase 2: Execute `docs\epic\tasks_EPIC_102_structured_provenance\02_inter_source_segregation.md`
-- [NOK] Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state.
-- [NOK] Phase 3: Execute `docs\epic\tasks_EPIC_102_structured_provenance\03_physical_anchoring.md`
+- [OK] Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state.
+- [OK] Run `/tier0-research-plan` on Phase 3's plan to Red-Team and fix Pre-Flight Provenance fuzzy bypass.
+- [OK] Phase 3: Execute `docs\epic\tasks_EPIC_102_structured_provenance\03_physical_anchoring.md`
 - [NOK] Proxy Sunset & Consumer Migration
 - [NOK] Tier 2 Hardening
 - [NOK] Pre-Delete Audit
@@ -33,6 +34,9 @@
 - Executed Phase 1 (Intra-Chat Segregation) in `input_processing.py`.
 - Executed Tier 0 (Research & Analysis) on Phase 2 plan to Red-Team architecture, removing SSOT violations and enforcing testing.
 - Executed Phase 2 (Inter-Source Segregation & Global Directives) in `global_mandates.py` and `prompt_compiler.py`.
+- Invoked Tier 1 Planner to generate the detailed plan for Phase 3 (Physical Anchoring).
+- Executed Tier 0 (Research & Analysis) on Phase 3 plan, fixing critical Pre-Flight fuzzy matching bypass and SSOT duplication.
+- Executed Phase 3 (Physical Anchoring) using Tier 2. Added Pre-Flight Provenance check to `AnchorValidationService` preventing quotes from escaping the `<user_payload>` tags.
 
 ### Learned
 - `ChatHistoryDTO` is already stable and handles processing inside `input_processing.py`.
@@ -40,11 +44,15 @@
 - `global_mandates.py` is injected globally via `prompt_compiler_adapter.py`. We must modify `GLOBAL_MANDATES_XML` directly to enforce SSOT, bypassing `localization_compiler.py`.
 - CDATA encapsulation is done by `TemplateProcessor.encapsulate_payload(value)`. The structural tags `<user_payload>` must wrap this output, not sit inside it.
 - `ExpectedInput` supports `is_chat_history`, allowing dynamic provenance segregation in the `prompt_compiler` `build_xml_context`.
+- `AnchorValidationService.validate_evidence` requires a Pre-Flight Provenance check to preserve `index_map` offsets for exact physical highlighting on PDFs.
+- Fuzzy matching allows skipping validation if strictness allows it. We moved fuzzy matching to a static helper to keep the provenance gate fully unified.
 
 ### Remaining
-- Detail and Execute Phase 3 (Physical Anchoring)
-- Final Audits
+- Proxy Sunset & Consumer Migration
+- Tier 2 Hardening
+- Pre-Delete Audit
+- Semantic Coverage & Zero-Loss Audit
 
 To execute this Epic iteratively, start a NEW chat session and run the following command:
 
-`/tier5-resume --workflow=/tier1-planner --target="docs\epic\EPIC_102_structured_provenance_tracker.md" --rules=".agents\rules\00-antigravity-core.md, .agents\rules\01-python-backend.md, .agents\rules\05_llm_architecture.md"`
+`/tier1-planner --target="docs\epic\EPIC_102_structured_provenance.md, docs\epic\EPIC_102_structured_provenance_tracker.md" --rules=".agents\rules\00-antigravity-core.md, .agents\rules\01-python-backend.md"`

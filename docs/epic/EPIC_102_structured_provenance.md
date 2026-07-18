@@ -76,10 +76,10 @@ Per KI `provider_agnostic_caching`, the `_CONTEXT_SEGREGATION_DIRECTIVE` MUST be
 ### Phase 4: Extend Existing Physical Anchoring
 - **Quote Extraction Validation**: We enforce strict Tiered Lexical Validation (Primary Gate `str.find`) per KI `structured_forensic_quotes`.
 - **Pre-Flight Provenance Check (Action)**: Modify `AnchorValidationService.validate_evidence()` (in `backend_v2/services/orchestrator/anchor_validation_service.py`) to perform a provenance check BEFORE the main extraction logic.
-  - Use regex (`re.findall(r"<user_payload>(.*?)</user_payload>", pdf_text, re.DOTALL)`) on the incoming `pdf_text`. 
-  - If `<user_payload>` tags exist, concatenate their contents into a local `allowed_source_text` variable. Normalize it via `normalize_text_with_mapping`, and verify that `norm_quote` exists within `norm_allowed_source`.
-  - If the quote does NOT exist in the allowed source text, raise `SemanticEvidenceError` with an explicit `PROVENANCE_VIOLATION` error message indicating it breached the structured provenance boundary (e.g. it was an AI-generated Chimera quote).
-  - If the quote DOES exist in the allowed source text (or if no tags exist in the document), proceed with the standard `validate_evidence` execution on the ORIGINAL `pdf_text`.
+  - Use regex (`re.findall(r"<user_payload>(.*?)</user_payload>", pdf_text, re.DOTALL)`) on the incoming `pdf_text`. This must happen **BEFORE** the trace validation blocks and main extraction loops.
+  - If `<user_payload>` tags exist, concatenate their contents into a local `allowed_source_text` variable. Normalize it via `normalize_text_with_mapping(allowed_source_text)` (disregarding the mapping), and verify that `norm_quote` exists within `norm_allowed_source`.
+  - If the quote does NOT exist in the allowed source text, raise `SemanticEvidenceError` with an explicit message containing "PROVENANCE_VIOLATION: Quote breached structured provenance boundary" indicating it was an AI-generated Chimera quote.
+  - If the quote DOES exist in the allowed source text (or if no tags exist in the document, ensuring fallback safety), proceed with the standard `validate_evidence` execution on the ORIGINAL `pdf_text`.
 - **Architectural Safety**: This two-step approach is mandatory. Modifying `pdf_text` directly for the main extraction would offset the `index_map` arrays returned by `normalize_text_with_mapping`, causing the final highlighted string indices to mismatch the original document. The Pre-Flight check ensures provenance without corrupting the downstream index mappings.
 - **Caller Integration**: NO signature changes to `validate_evidence()` are permitted. `ExtractiveSensorService` does not have access to `state.inputs` and MUST NOT be coupled to it. The tags are already baked into the `pdf_text` via Phase 2a, so internal regex extraction maintains perfect encapsulation.
 
@@ -88,7 +88,10 @@ Per KI `provider_agnostic_caching`, the `_CONTEXT_SEGREGATION_DIRECTIVE` MUST be
 ## 4. Verification Plan
 - **Intra-Chat Unit Tests**: Add tests in `tests/unit/hooks/test_input_processing.py` verifying that `_process_chat_history()` produces XML role-tagged output (not flat Markdown).
 - **Inter-Source Unit Tests**: Add tests in `tests/unit/services/orchestrator/strategies/llm_execution/test_prompt_factory.py` verifying that `$inputs.*` and `$steps.*` sources receive distinct XML provenance tags.
-- **Anchor Validation Tests**: Add tests in `tests/unit/services/orchestrator/test_anchor_validation_service.py` asserting that if an LLM mock returns a quote originating ONLY from `<ai_draft_context>` text, `validate_evidence()` raises `SemanticEvidenceError`.
+- **Anchor Validation Tests**: Add tests in `tests/unit/services/orchestrator/test_anchor_validation_service.py` to ensure fallback and provenance safety:
+  - `test_anchor_validation_provenance_violation`: Asserts that if a quote originates ONLY from `<ai_draft_context>` text, `validate_evidence()` raises `SemanticEvidenceError` with `"PROVENANCE_VIOLATION"`.
+  - `test_anchor_validation_provenance_success`: Asserts that valid quotes within `<user_payload>` are extracted.
+  - `test_anchor_validation_no_tags_fallback`: Asserts that a normal document without `<user_payload>` tags proceeds correctly without crashing.
 - **Directive Tests**: Add tests in `tests/unit/models/prompts/test_linguistic_directives.py` verifying the `_CONTEXT_SEGREGATION_DIRECTIVE` constant is a static string (no f-string interpolation).
 
 ---

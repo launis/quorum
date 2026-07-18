@@ -110,6 +110,85 @@ class AnchorValidationService:
             return float(fuzz.token_set_ratio(norm_quote, norm_text))
 
     @staticmethod
+    def _is_lexically_valid(
+        quote: str, norm_quote: str, norm_text: str, strictness_level: int, locale: str | None
+    ) -> bool:
+        """Helper to determine if a quote is lexically valid against a normalized source text."""
+        start_norm_idx = norm_text.find(norm_quote)
+        if start_norm_idx != -1:
+            return True
+
+        if len(quote) < 10:
+            logger.warning(
+                f"Entropy Gate Failure: Quote '{quote}' is under 10 chars. Fuzzy match is forbidden. 100% exact match required."
+            )
+            return False
+
+        base_threshold = get_lexical_fuzz_threshold(locale)
+
+        match strictness_level:
+            case level if level >= 100:
+                multiplier = 1.05
+            case level if level >= 85:
+                multiplier = 1.02
+            case level if level >= 50:
+                multiplier = 1.0
+            case level if level >= 30:
+                multiplier = 0.90
+            case _:
+                multiplier = 0.80
+
+        tier_threshold = min(100.0, base_threshold * multiplier)
+
+        if tier_threshold >= 100.0:
+            logger.warning(
+                f"Lexical validation failed: strictness is ABSOLUTE. 100% exact match required for '{quote[:50]}...'."
+            )
+            return False
+
+        score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_text)
+        if score >= tier_threshold:
+            logger.warning(
+                f"Lexical Verifier used Fuzzy Fallback for '{quote[:50]}...'. Score {score:.1f}% >= threshold {tier_threshold}%",
+                extra={
+                    "exact_quote_snippet": quote[:50],
+                    "rapidfuzz_score": score,
+                    "strictness_level": strictness_level,
+                },
+            )
+            return True
+
+        safety_net = ValidationThresholdRatio.COVERAGE_SAFETY_NET.value
+        matcher = difflib.SequenceMatcher(None, norm_quote, norm_text)
+        match = matcher.find_longest_match(0, len(norm_quote), 0, len(norm_text))
+
+        coverage_pct = match.size / len(norm_quote) if len(norm_quote) > 0 else 0.0
+
+        if coverage_pct >= safety_net:
+            logger.warning(
+                f"[AnchorValidation] Coverage-based match: {coverage_pct:.0%} of quote anchored",
+                extra={
+                    "exact_quote_snippet": quote[:50],
+                    "coverage_pct": coverage_pct,
+                    "matched_fragment": norm_quote[match.a : match.a + match.size],
+                },
+            )
+            return True
+
+        logger.warning(
+            f"Backend Lexical Verifier failed: exact_quote '{quote[:50]}...' not found in source text. "
+            f"RapidFuzz best match: {score:.1f}% < threshold {tier_threshold}%. "
+            f"Coverage match: {coverage_pct:.0%} < safety net {safety_net * 100:.0%}%",
+            extra={
+                "exact_quote_snippet": quote[:50],
+                "rapidfuzz_score": score,
+                "tier_threshold": tier_threshold,
+                "coverage_pct": coverage_pct,
+            },
+        )
+        return False
+
+    @staticmethod
     def validate_evidence(
         pdf_text: str,
         exact_quotes: list[str] | None,
@@ -145,6 +224,20 @@ class AnchorValidationService:
         for quote in exact_quotes:
             if quote and len(quote) > 1000:
                 raise SemanticEvidenceError(message=f"Quote length exceeds safety limit ({len(quote)} > 1000 chars).")
+
+        # Pre-Flight Provenance Check
+        user_payload_matches = re.findall(r"<user_payload>(.*?)</user_payload>", pdf_text, re.IGNORECASE | re.DOTALL)
+        if user_payload_matches:
+            allowed_source_text = " \n\n ".join(user_payload_matches)
+            norm_allowed_source, _ = AnchorValidationService.normalize_text_with_mapping(allowed_source_text)
+            for quote in exact_quotes:
+                norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
+                if not AnchorValidationService._is_lexically_valid(
+                    quote, norm_quote, norm_allowed_source, strictness_level, locale
+                ):
+                    raise SemanticEvidenceError(
+                        message="PROVENANCE_VIOLATION: Quote breached structured provenance boundary"
+                    )
 
         if reasoning_trace:
             trace_lower = reasoning_trace.lower()
@@ -197,78 +290,14 @@ class AnchorValidationService:
                 extracted = pdf_text[start_idx : end_idx + 1]
                 extracted_quotes.append(extracted)
             else:
-                # Entropy Gate: If quote < 10 chars, fuzzy match is forbidden.
-                if len(quote) < 10:
-                    raise SemanticEvidenceError(
-                        message=f"Entropy Gate Failure: Quote '{quote}' is under 10 chars. Fuzzy match is forbidden. 100% exact match required."
-                    )
-
-                # Deterministic Tiers based on locale and strictness modifier
-                base_threshold = get_lexical_fuzz_threshold(locale)
-
-                match strictness_level:
-                    case level if level >= 100:
-                        multiplier = 1.05
-                    case level if level >= 85:
-                        multiplier = 1.02
-                    case level if level >= 50:
-                        multiplier = 1.0
-                    case level if level >= 30:
-                        multiplier = 0.90
-                    case _:
-                        multiplier = 0.80
-
-                tier_threshold = min(100.0, base_threshold * multiplier)
-
-                if tier_threshold >= 100.0:
-                    raise SemanticEvidenceError(
-                        message=f"Lexical validation failed: strictness is ABSOLUTE. 100% exact match required for '{quote[:50]}...'."
-                    )
-
-                # Phase 4: Component: Anchor Validation Service
-                score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_pdf)
-                if score >= tier_threshold:
-                    logger.warning(
-                        f"Lexical Verifier used Fuzzy Fallback for '{quote[:50]}...'. Score {score:.1f}% >= threshold {tier_threshold}%",
-                        extra={
-                            "exact_quote_snippet": quote[:50],
-                            "rapidfuzz_score": score,
-                            "strictness_level": strictness_level,
-                        },
-                    )
+                is_valid = AnchorValidationService._is_lexically_valid(
+                    quote, norm_quote, norm_pdf, strictness_level, locale
+                )
+                if is_valid:
                     extracted_quotes.append(quote)
                 else:
-                    # Phase 2.5: Coverage-based safety net (BP-2)
-                    safety_net = ValidationThresholdRatio.COVERAGE_SAFETY_NET.value
-                    matcher = difflib.SequenceMatcher(None, norm_quote, norm_pdf)
-                    match = matcher.find_longest_match(0, len(norm_quote), 0, len(norm_pdf))
-
-                    coverage_pct = match.size / len(norm_quote) if len(norm_quote) > 0 else 0.0
-
-                    if coverage_pct >= safety_net:
-                        logger.warning(
-                            f"[AnchorValidation] Coverage-based match: {coverage_pct:.0%} of quote anchored",
-                            extra={
-                                "exact_quote_snippet": quote[:50],
-                                "coverage_pct": coverage_pct,
-                                "matched_fragment": norm_quote[match.a : match.a + match.size],
-                            },
-                        )
-                        extracted_quotes.append(quote)
-                    else:
-                        logger.warning(
-                            f"Backend Lexical Verifier failed: exact_quote '{quote[:50]}...' not found in source text. "
-                            f"RapidFuzz best match: {score:.1f}% < threshold {tier_threshold}%. "
-                            f"Coverage match: {coverage_pct:.0%} < safety net {safety_net * 100:.0%}%",
-                            extra={
-                                "exact_quote_snippet": quote[:50],
-                                "rapidfuzz_score": score,
-                                "tier_threshold": tier_threshold,
-                                "coverage_pct": coverage_pct,
-                            },
-                        )
-                        raise SemanticEvidenceError(
-                            message=f"Lexical validation failed: exact_quote '{quote[:50]}...' not found. Best match {score:.1f}% < threshold {tier_threshold}%."
-                        )
+                    raise SemanticEvidenceError(
+                        message=f"Lexical validation failed: exact_quote '{quote[:50]}...' not found. See logs for detailed fuzzy scores."
+                    )
 
         return extracted_quotes
