@@ -1,5 +1,3 @@
-from backend_v2.settings import get_settings
-
 """Adapter for PromptCompiler to natively support structured static/dynamic prompt segregation."""
 
 import re
@@ -9,6 +7,7 @@ from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.settings import get_settings
 
 
 class PromptCompilerAdapter:
@@ -19,7 +18,14 @@ class PromptCompilerAdapter:
         self._compiler = PromptCompiler()
 
     def __getattr__(self, name: str) -> Any:
-        """Delegate all other standard attributes and methods to the wrapped PromptCompiler."""
+        """Delegate all other standard attributes and methods to the wrapped PromptCompiler.
+
+        Args:
+            name: The name of the attribute to access.
+
+        Returns:
+            The delegated attribute from the underlying PromptCompiler.
+        """
         return getattr(self._compiler, name)
 
     def compile_chunk_prompt(
@@ -45,10 +51,25 @@ class PromptCompilerAdapter:
         When CONTENT_CACHE_ENABLED is active, the system prompt moves to user role
         to allow Vertex AI to cache only the PDF. This trades evaluation quality
         (~29% degradation) for token cost savings.
+
+        Args:
+            base_system_prompt: The base system instructions.
+            chunk_criteria: PromptBlocks to evaluate in this chunk.
+            base_payload: The source document text.
+            strictness_level: Strictness level (0-100).
+            target_locale: Requested language code.
+            chunk_atoms_xml: Serialized atom graphs.
+            task_instruction: The execution task instruction.
+            previous_errors: List of previous validation errors for self-healing.
+            allowed_atom_ids: Filter list for allowed atoms.
+            atom_alias_map: Mapping of atom IDs to aliases.
+
+        Returns:
+            A CompiledPrompt containing static and dynamic message tiers.
         """
         content_cache_enabled = bool(get_settings().content_cache_enabled)
         if content_cache_enabled:
-            # Epic 80 Mode: Static tier = ONLY the source document (for max cache hit rate).
+            # Mode: Static tier = ONLY the source document (for max cache hit rate).
             # System prompt is demoted to user role in the dynamic tier.
             static_messages = [
                 {"role": "user", "content": base_payload.strip()},
@@ -64,7 +85,7 @@ class PromptCompilerAdapter:
         # Dynamic Tier: Everything that varies per chunk, retry, or matrix
         dynamic_parts = []
 
-        # Epic 80: Move system instructions to dynamic tier as user content
+        # Move system instructions to dynamic tier as user content
         if content_cache_enabled:
             dynamic_parts.append(f"<system_instructions>\n{base_system_prompt.strip()}\n</system_instructions>")
 
@@ -110,6 +131,12 @@ class PromptCompilerAdapter:
 
         Acts as a robust fallback for general inputs by extracting dynamic blocks (execution
         parameters and error blocks) from user messages and placing them in the dynamic tail.
+
+        Args:
+            messages: The flat list of conversation messages.
+
+        Returns:
+            A CompiledPrompt object with separated static and dynamic messages.
         """
         static_msgs: list[dict[str, Any]] = []
         dynamic_msgs: list[dict[str, Any]] = []

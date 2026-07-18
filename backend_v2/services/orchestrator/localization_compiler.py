@@ -46,34 +46,33 @@ class LocalizationCompiler:
         if not text_obj:
             return ""
 
-        if isinstance(text_obj, I18nText):
-            return str(text_obj.resolve(target_locale))
+        if isinstance(text_obj, dict):
+            try:
+                text_obj = I18nText.model_validate(text_obj)
+            except Exception as e:
+                msg = f"Failed to hydrate I18nText from dictionary: {e}"
+                logger.error("[LocalizationCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
 
-        if isinstance(text_obj, str) or not isinstance(text_obj, dict):
+        if not isinstance(text_obj, I18nText):
             msg = (
-                f"Legacy string fallback detected or invalid type: '{text_obj}'. "
+                f"Legacy string fallback detected or invalid type: '{type(text_obj).__name__}'. "
                 "All text MUST be valid I18nText dictionaries."
             )
             logger.error("[LocalizationCompiler] %s", msg)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-        translations = {}
-        if "translations" in text_obj:
-            t = text_obj["translations"]
-            if isinstance(t, dict):
-                translations = t
-
-        # 1. Try Target Locale
-        if target_locale in translations and translations[target_locale]:
-            return str(translations[target_locale])
-
         # V2 MANDATE: NO FALLBACKS. If a translation is requested, it MUST exist.
-        msg = f"Translation missing for required locale '{target_locale}'. Fallbacks are strictly forbidden."
-        logger.error(
-            "Translation missing for required locale.",
-            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "target_locale": target_locale},
-        )
-        raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        target_lang = target_locale.split("-")[0].lower()
+        if target_lang not in text_obj.translations or not text_obj.translations[target_lang]:
+            msg = f"Translation missing for required locale '{target_locale}'. Fallbacks are strictly forbidden."
+            logger.error(
+                "Translation missing for required locale.",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "target_locale": target_locale},
+            )
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+        return str(text_obj.resolve(target_locale))
 
     def compile_xml_rubrics(
         self,
@@ -83,7 +82,7 @@ class LocalizationCompiler:
         allowed_atom_ids: set[str] | None = None,
         atom_alias_map: dict[str, str] | None = None,
     ) -> str:
-        """Epic 12/55: Generates Thick XML/Markdown rubrics for the System Prompt with Persona SSOT.
+        """Generates Thick XML/Markdown rubrics for the System Prompt with Persona SSOT.
 
         Args:
             criteria: List of PromptBlock definitions to compile into rubrics.
@@ -172,7 +171,7 @@ class LocalizationCompiler:
 
                             mandate_text = mandate_str
 
-                            # Epic 85 / System 2 Variance: Removed inverse_evidence 'Vice' logic
+                            # System 2 Variance: Removed inverse_evidence 'Vice' logic
                             # to eliminate the double-inversion trap. The LLM acts purely as an objective sensor.
 
                             if assertion.allow_contextual_override:

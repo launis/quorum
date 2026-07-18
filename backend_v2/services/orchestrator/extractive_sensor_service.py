@@ -5,14 +5,16 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz
 
+from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
+from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
-from backend_v2.settings import get_lexical_fuzz_threshold
+from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 
@@ -136,7 +138,16 @@ class ExtractiveSensorService:
     def _batch_fuzzy_match(
         nodes: list[LinkedAtomGraph], source_text: str, locale: str | None = None
     ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], list[LinkedAtomGraph]]:
-        """Synchronous batch fuzzy matching to determine pre-flight status."""
+        """Synchronous batch fuzzy matching to determine pre-flight status.
+
+        Args:
+            nodes: The list of LinkedAtomGraph nodes.
+            source_text: The source document text.
+            locale: Optional target locale.
+
+        Returns:
+            Tuple containing decided results and undecided nodes.
+        """
         decided_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
         undecided_nodes: list[LinkedAtomGraph] = []
 
@@ -164,7 +175,16 @@ class ExtractiveSensorService:
     async def batch_pre_evaluate(
         nodes: list[LinkedAtomGraph], source_text: str, locale: str | None = None
     ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], list[LinkedAtomGraph]]:
-        """Asynchronous wrapper that offloads CPU-bound batch fuzzy matching to a thread."""
+        """Asynchronous wrapper that offloads CPU-bound batch fuzzy matching to a thread.
+
+        Args:
+            nodes: The list of LinkedAtomGraph nodes.
+            source_text: The source document text.
+            locale: Optional target locale.
+
+        Returns:
+            Tuple containing decided results and undecided nodes.
+        """
         return await asyncio.to_thread(ExtractiveSensorService._batch_fuzzy_match, nodes, source_text, locale)
 
     @staticmethod
@@ -179,10 +199,10 @@ class ExtractiveSensorService:
 
         Returns:
             The consolidated dictionary mapping TDA IDs to their majority status.
-        """
-        from backend_v2.exceptions import AgentExecutionError
-        from backend_v2.settings import get_settings
 
+        Raises:
+            AgentExecutionError: If insufficient valid Bo3 results.
+        """
         settings = get_settings()
         min_consensus = settings.ensemble_min_consensus
 
@@ -238,13 +258,11 @@ class ExtractiveSensorService:
 
         Returns:
             A dictionary mapping tda_id to a tuple of ExecutionStatus, reasoning, and extensions.
-            Raises AppException on validation or network errors (to be handled by caller).
+
+        Raises:
+            AgentExecutionError: If insufficient valid Bo3 results or LLM failure.
         """
         logger = logging.getLogger(__name__)
-        from backend_v2.exceptions import AgentExecutionError
-        from backend_v2.llm.provider import _is_transient_llm_error
-        from backend_v2.settings import get_settings
-
         settings = get_settings()
         parallelism = settings.ensemble_parallelism
 

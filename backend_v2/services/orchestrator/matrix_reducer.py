@@ -22,7 +22,14 @@ class MatrixReducer:
 
     @staticmethod
     def reduce_exists(states: list[State]) -> State:
-        """ANY(Passed) -> Passed. ALL(Failed) -> Failed. Else DLQ."""
+        """ANY(Passed) -> Passed. ALL(Failed) -> Failed. Else DLQ.
+
+        Args:
+            states: A list of evaluated chunk states.
+
+        Returns:
+            The reduced three-state logic result (PASSED, FAILED, or DLQ).
+        """
         if not states:
             return "DLQ"
         if "PASSED" in states:
@@ -33,7 +40,14 @@ class MatrixReducer:
 
     @staticmethod
     def reduce_all_must_comply(states: list[State]) -> State:
-        """1. ANY(Failed) -> Failed. 2. ANY(DLQ) -> DLQ. 3. ALL(Passed) -> Passed."""
+        """1. ANY(Failed) -> Failed. 2. ANY(DLQ) -> DLQ. 3. ALL(Passed) -> Passed.
+
+        Args:
+            states: A list of evaluated chunk states.
+
+        Returns:
+            The reduced three-state logic result (PASSED, FAILED, or DLQ).
+        """
         if not states:
             return "DLQ"
         if "FAILED" in states:
@@ -44,17 +58,29 @@ class MatrixReducer:
 
     @classmethod
     def reduce(cls, assertion: TDAAssertion, states: list[State]) -> State:
-        """Reduces states according to the assertion's aggregation_mode."""
-        if assertion.aggregation_mode == "EXISTS":
-            return cls.reduce_exists(states)
-        elif assertion.aggregation_mode == "ALL_MUST_COMPLY":
-            return cls.reduce_all_must_comply(states)
+        """Reduces states according to the assertion's aggregation_mode.
 
-        raise AppException(
-            message=f"Unknown aggregation mode: {assertion.aggregation_mode}",
-            status_code=500,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED},
-        )
+        Args:
+            assertion: The TDAAssertion definition.
+            states: A list of evaluated chunk states.
+
+        Returns:
+            The reduced three-state logic result.
+
+        Raises:
+            AppException: If the aggregation mode is unknown.
+        """
+        match assertion.aggregation_mode:
+            case "EXISTS":
+                return cls.reduce_exists(states)
+            case "ALL_MUST_COMPLY":
+                return cls.reduce_all_must_comply(states)
+            case _:
+                raise AppException(
+                    message=f"Unknown aggregation mode: {assertion.aggregation_mode}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
 
     @staticmethod
     def reduce_matrix(record: ExecutionRecord) -> LightweightMatrixDTO:
