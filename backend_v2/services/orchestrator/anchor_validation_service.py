@@ -1,3 +1,5 @@
+"""Service for validating evidence using strict lexical anchoring and fuzzy fallbacks."""
+
 import difflib
 import logging
 import re
@@ -113,7 +115,18 @@ class AnchorValidationService:
     def _is_lexically_valid(
         quote: str, norm_quote: str, norm_text: str, strictness_level: int, locale: str | None
     ) -> bool:
-        """Helper to determine if a quote is lexically valid against a normalized source text."""
+        """Helper to determine if a quote is lexically valid against a normalized source text.
+
+        Args:
+            quote: The exact quote to validate.
+            norm_quote: The normalized quote string.
+            norm_text: The normalized source text context.
+            strictness_level: Validation strictness level constraint.
+            locale: Optional locale definition.
+
+        Returns:
+            True if lexically valid against the text, False otherwise.
+        """
         start_norm_idx = norm_text.find(norm_quote)
         if start_norm_idx != -1:
             return True

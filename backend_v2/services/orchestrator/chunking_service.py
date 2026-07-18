@@ -1,3 +1,5 @@
+"""Service for splitting arrays of prompt blocks into deterministic chunks."""
+
 from __future__ import annotations
 
 import logging

@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """Module for AST logical evaluation engine in 3-state boolean networks.
 
 Provides standard and inverse evaluation rules handling DLQ state and tolerance parameters.
 """
+
+from __future__ import annotations
 
 import ast
 import logging
