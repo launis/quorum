@@ -26,22 +26,27 @@ CONTEXT_SEGREGATION_MANDATE = (
     "</context_segregation_mandate>"
 )
 ```
-
-#### [MODIFY] [localization_compiler.py](file:///c:/src/quorum/backend_v2/services/orchestrator/localization_compiler.py)
-**Changes:**
-1. Import `CONTEXT_SEGREGATION_MANDATE` from `backend_v2.models.prompts.global_mandates`.
-2. In `compile_static_instructions()`, explicitly append `CONTEXT_SEGREGATION_MANDATE.strip()` to the final compiled string list so it is included as a static directive.
+2. Append `{CONTEXT_SEGREGATION_MANDATE.strip()}` inside the `GLOBAL_MANDATES_XML` f-string definition so it is automatically included in all LLM executions. (Do NOT modify `localization_compiler.py`).
 
 #### [MODIFY] [prompt_compiler.py](file:///c:/src/quorum/backend_v2/services/orchestrator/prompt_compiler.py)
 **Changes:**
 1. In `build_xml_context`, populate `input_meta_map` with a new key `is_chat_history: bool` derived from `ei.is_chat_history`.
 2. When iterating over `input_mappings` and extracting `value`:
    - Identify if `source_path` originated from `$inputs` or `$steps`.
-   - **CRITICAL**: To prevent the Nested Provenance Trap for deep paths (e.g., `$inputs.chat_log.turns`), extract the base key (e.g., `$inputs.chat_log`) from `source_path` to correctly resolve `is_chat_history` from `input_meta_map`.
-   - If from `$inputs` and `is_chat_history` is False: wrap `value` in `<user_payload>...</user_payload>`.
-   - If from `$inputs` and `is_chat_history` is True: do NOT wrap `value` (it already contains intra-chat tags).
-   - If from `$steps`: wrap `value` in `<ai_draft_context>...</ai_draft_context>`.
+   - **CRITICAL**: To prevent the Nested Provenance Trap for deep paths (e.g., `$inputs.chat_log.turns`), extract the base key (e.g., `$inputs.chat_log`) from `source_path` by splitting on `.` and taking the first two parts to correctly resolve `is_chat_history` from `input_meta_map`.
+   - Execute `encapsulated_val = TemplateProcessor.encapsulate_payload(value)`.
+   - If from `$inputs` and `is_chat_history` is False: wrap in `<user_payload>\n{encapsulated_val}\n</user_payload>`.
+   - If from `$inputs` and `is_chat_history` is True: do NOT wrap `encapsulated_val` (it already contains intra-chat tags).
+   - If from `$steps`: wrap in `<ai_draft_context>\n{encapsulated_val}\n</ai_draft_context>`.
    - Ensure these wrapped values are placed cleanly inside the encapsulating `<matrix_input>` block.
+
+#### [MODIFY] [test_global_mandates.py](file:///c:/src/quorum/backend_v2/tests/unit/models/prompts/test_global_mandates.py)
+**Changes:**
+1. Update assertions to ensure `<context_segregation_mandate>` is verified as present in `GLOBAL_MANDATES_XML`.
+
+#### [MODIFY] [test_prompt_compiler.py](file:///c:/src/quorum/backend_v2/tests/unit/services/orchestrator/test_prompt_compiler.py)
+**Changes:**
+1. Add tests for `build_xml_context` to verify that `$inputs` are wrapped in `<user_payload>`, `$steps` are wrapped in `<ai_draft_context>`, and `$inputs` with `is_chat_history=True` are NOT wrapped.
 
 ## Destructive Operation Inventory
 N/A
