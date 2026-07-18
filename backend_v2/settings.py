@@ -98,6 +98,8 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
 
     # --- System Concurrency (Migrated from Enums) ---
+    ensemble_parallelism: Annotated[int, Field(description="Number of parallel Bo3 calls")] = 3
+    ensemble_min_consensus: Annotated[int, Field(description="Minimum agreeing votes for consensus")] = 2
     linker_max_atoms_per_window: Annotated[
         int, Field(description="Max atoms per LLM sliding window to prevent output truncation")
     ] = 20
