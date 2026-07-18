@@ -22,14 +22,21 @@ from backend_v2.models.prompts.field_prompts import (
     DESC_EXACT_QUOTES,
     DESC_REASONING_TRACE,
 )
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.v2_core import GlobalSynthesisDTO, PromptBlock
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
 
 def _coerce_bool(v: Any) -> Any:
-    """Coerces strings like 'true'/'false' into actual booleans for Vertex AI type safety."""
+    """Coerces strings like 'true'/'false' into actual booleans for Vertex AI type safety.
+
+    Args:
+        v: The value to coerce.
+
+    Returns:
+        The coerced boolean or the original value if unchanged.
+    """
     if isinstance(v, str):
         v_lower = v.strip().lower()
         if v_lower in {"true", "1", "yes"}:
@@ -51,7 +58,11 @@ class EvidenceType(StrEnum):
 
 
 class StrippedBaseMatrixXAI(BaseModel):
-    """Pydantic model for matrix XAI qualitative extensions with stripped descriptions."""
+    """Pydantic model for matrix XAI qualitative extensions with stripped descriptions.
+
+    Attributes:
+        semantic_reasoning: Extensive analytical reasoning trace.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -61,7 +72,13 @@ class StrippedBaseMatrixXAI(BaseModel):
 
 
 class StrippedBaseTDAExtraction(BaseModel):
-    """Stripped core Pydantic model for Micro-CoT extraction without localized anchors to save tokens."""
+    """Stripped core Pydantic model for Micro-CoT extraction without localized anchors to save tokens.
+
+    Attributes:
+        exact_quotes: List of extracted exact quotes.
+        contextual_override: Boolean indicating if a rule is contextually overridden.
+        semantic_reasoning: Extensive analytical reasoning trace.
+    """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -118,9 +135,16 @@ class SchemaFactory:
             target_locale: Target language code for label resolution.
             strictness_level: Strictness level to control field leniency.
             source_document_ids: Dynamic literals corresponding to available documents.
+            allowed_atom_ids: Optional list of specific atom IDs to allow.
+            allowed_dynamic_keys: Optional list of dynamic keys allowed.
+            max_evaluations: Maximum number of evaluations allowed.
 
         Returns:
             A dynamically generated Pydantic model class.
+
+        Raises:
+            AppException: If dynamic schema compilation fails.
+            ConfigurationError: If a PromptBlock is structurally invalid.
         """
         # P4: Prevent Pydantic compilation explosion on 200+ step DAGs by hashing criteria
         # and delegating to an LRU cached private method.
@@ -164,10 +188,27 @@ class SchemaFactory:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
         Radically stripped to enforce BaseTDAExtraction determinism and prevent Vertex AI state limits.
+
+        Args:
+            schema_name: Name for the generated Pydantic model class.
+            has_shuffled_atoms: Whether to include shuffled atom evaluation fields.
+            target_locale: Target language code for label resolution.
+            strictness_level: Strictness level to control field leniency.
+            criteria: List of PromptBlock definitions driving schema fields.
+            cache_key: The cache key under which this schema will be stored.
+            source_document_ids: Dynamic literals corresponding to available documents.
+            allowed_atom_ids: Optional list of specific atom IDs to allow.
+            allowed_dynamic_keys: Optional list of dynamic keys allowed.
+            max_evaluations: Maximum number of evaluations allowed.
+
+        Returns:
+            A dynamically generated Pydantic model class.
+
+        Raises:
+            AppException: If dynamic schema compilation fails.
+            ConfigurationError: If a PromptBlock is structurally invalid.
         """
         if "sp_7a8b9c0d1e2f3a4b" in schema_name:
-            from backend_v2.models.v2_core import GlobalSynthesisDTO
-
             return GlobalSynthesisDTO
 
         # Resolve target base classes, overriding source_document_ids if requested

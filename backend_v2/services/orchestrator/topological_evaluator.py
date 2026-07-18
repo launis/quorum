@@ -11,7 +11,7 @@ from collections.abc import Awaitable, Callable
 import networkx as nx
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import AtomExecutionState, CausalEdge, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
 
 
@@ -137,8 +137,6 @@ class TopologicalEvaluator:
                 parent_state = states[parent_id]
                 for child_id in adj[parent_id]:
                     child_node = node_map[child_id]
-                    from backend_v2.models.dtos.dag_models import CausalEdge
-
                     parent_edge: CausalEdge | None = next(
                         (e for e in child_node.depends_on if e.tda_id == parent_id), None
                     )

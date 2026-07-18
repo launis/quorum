@@ -6,6 +6,7 @@ required by the frontend (AtomResultDTO and HydratedAtomDTO).
 
 import logging
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
 from backend_v2.models.v2_core import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
@@ -14,7 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class ResultProjector:
-    """Projects internal DAG state into presentation DTOs."""
+    """Projects internal DAG state into presentation DTOs.
+
+    Attributes:
+        None
+    """
 
     @staticmethod
     def project(
@@ -28,6 +33,9 @@ class ResultProjector:
 
         Returns:
             A tuple of (results list, hydrated_references dict).
+
+        Raises:
+            AppException: If a node has a PASSED or FAILED status but is missing mandatory reasoning.
         """
         results: list[AtomResultDTO] = []
         hydrated_references: dict[str, HydratedAtomDTO] = {}
@@ -94,7 +102,10 @@ class ResultProjector:
 
             # For PASSED/FAILED, reasoning is mandatory. Make sure we never pass None.
             if status in (ExecutionStatus.PASSED, ExecutionStatus.FAILED) and not reasoning:
-                reasoning = "Evaluation completed without explicit reasoning."
+                raise AppException(
+                    message=f"Node {tda_id} has status {status.value} but lacks mandatory evaluation_reasoning.",
+                    details={"error_code": "MISSING_EVALUATION_REASONING"},
+                )
 
             res = AtomResultDTO(
                 tda_id=tda_id,

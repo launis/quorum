@@ -78,7 +78,14 @@ class SlidingWindowLinker:
         self.overlap = overlap
 
     def _get_sliding_windows(self, chunks: list[list[ExtractedAtom]]) -> list[list[list[ExtractedAtom]]]:
-        """Yield sliding windows of chunks."""
+        """Yield sliding windows of chunks.
+
+        Args:
+            chunks: A list of atom chunks to be windowed.
+
+        Returns:
+            A list of sliding windows, where each window is a list of chunks.
+        """
         windows: list[list[list[ExtractedAtom]]] = []
         if not chunks:
             return windows
@@ -140,9 +147,13 @@ class SlidingWindowLinker:
             client: The LLM client.
             atoms: Flat list of extracted atoms.
             ontology_map: The global ontology map for anaphora resolution.
+            progress_callback: Optional asynchronous callback for reporting progress.
 
         Returns:
             A list of LinkedAtomGraph objects with populated depends_on.
+
+        Raises:
+            AppException: If LLM execution fails critically.
         """
         if not atoms:
             return []
