@@ -11,6 +11,8 @@ This causes the "Chimera Quotes" hallucination: the AI evaluates its own generat
 1. **Intra-chat Role Segregation**: Segregating User turns from Assistant (AI Coach) turns within a single `$inputs.chat_log` stream.
 2. **Inter-source Segregation**: Differentiating human-authored base documents (`$inputs.*`) from AI-generated node outputs (`$steps.*`).
 
+*Architectural Mandate Note*: To comply with the `role_segregation_and_fencing` rule in `05_llm_architecture.md`, we MUST use the `<user_payload>` tag for all human-generated text to maintain the Prompt Injection firewall. We will use `<ai_draft_context>` for AI-generated text.
+
 ---
 
 ## 2. Architectural Analysis & Constraints
@@ -19,9 +21,10 @@ This causes the "Chimera Quotes" hallucination: the AI evaluates its own generat
 According to our backend rules, users and business logic do not write XML manually. Therefore, the segregation must occur natively upstream of the Prompt Compiler. 
 
 ### The `prompt_compiler.py` Immutability Ban (CRITICAL)
-Per Rule `prompt_compiler_immutability` in `01-python-backend.md`, the `PromptCompiler` is a frozen architectural cornerstone and MUST NOT be modified. Segregation logic must be implemented in two distinct layers:
+Per Rule `prompt_compiler_immutability` in `01-python-backend.md`, the `PromptCompiler` is a frozen architectural cornerstone and MUST NOT be modified without explicit USER CONFIRMATION.
+Segregation logic must be implemented in two distinct layers:
 1. **Intra-chat segregation**: Modify the existing `_process_chat_history()` in `input_processing.py` (hook) to format the `combined` output with XML role tags instead of flat Markdown.
-2. **Inter-source segregation**: Modify `prompt_factory.py` (NOT the frozen compiler) to tag `$inputs.*` source data differently from `$steps.*` AI-generated outputs when assembling the `user_payload`.
+2. **Inter-source segregation**: Modify `prompt_compiler.py` `build_xml_context` to dynamically tag source origins. Because this violates the immutability ban, the execution tier MUST seek explicit user approval before modifying this file.
 
 ### Prompt Asset SSOT Mandate
 Per Rule `prompt_asset_ssot_mandate` in `05_llm_architecture.md`, no freeform string directives may be defined in service layers. All XML segregation instructions must be defined as named constants in `linguistic_directives.py`.
@@ -47,26 +50,38 @@ Per KI `provider_agnostic_caching`, the `_CONTEXT_SEGREGATION_DIRECTIVE` MUST be
 - **Modify Existing Function**: Change `_process_chat_history()` in `input_processing.py` so that the `combined` output uses XML role tags instead of flat Markdown bold markers. Do NOT create a new hook — modify the existing code path.
 - **XML Tag Fencing (within `<matrix_input>`)**: 
   - Wrap AI turns in `<ai_draft_context>...</ai_draft_context>`.
-  - Wrap User turns in `<user_intent_context>...</user_intent_context>`.
+  - Wrap User turns in `<user_payload>...</user_payload>`.
   - These tags nest INSIDE the existing `<matrix_input source_id="...">` wrapper that `build_xml_context` produces.
-- **NLP Pipeline Protection (CRITICAL)**: Because `Semantic Smoothing` (SpaCy) and `Eager Anonymization` (Presidio) execute *after* `_process_chat_history()` in `process_inputs()`, they will destroy or mangle the injected XML tags. You MUST refactor the execution order in `input_processing.py` so that NLP operations are applied to the raw text of individual chat turns BEFORE they are concatenated and wrapped in XML.
+- **Hybrid NLP & JSON Parsing Architecture (CRITICAL)**: Currently, NLP executes after chat processing (mangling XML tags), and `process_inputs()` incorrectly bypasses JSON inputs (preventing pipeline chaining outputs from getting XML tags). You MUST refactor `_process_chat_history()` to handle the entire NLP and parsing flow internally:
+  1. Remove the JSON check (`and not resolved_text.strip().startswith("{")`) and the global `smooth_text`/`mask_pii` steps from `process_inputs()` for chat inputs. Pass `enable_semantic_smoothing`, `enable_eager_anonymization`, and `language` directly into `_process_chat_history()`.
+  2. **If input IS JSON (Pipeline Chained Output):** Use `ChatHistoryDTO.model_validate_json()`. **DO NOT run NLP.** Since the data was already smoothed and anonymized when it originally entered the pipeline as raw text, running it again is a redundant waste of resources. Skip straight to XML wrapping.
+  3. **If input IS RAW TEXT (Human Upload):** Run NLP (SpaCy/Presidio) on the **entire raw string** BEFORE sending it to `ChatParserService`. This protects PII from hitting the LLM (Eager Anonymization) and runs instantly in a single thread dispatch.
+  4. Finally, wrap the processed contents in the XML tags for the `combined` output.
 - **Maintain Opaque ID Hydration**: Ensure that `AliasEngine` (e.g. `a0`, `a1`) correctly anchors into these segregated blocks without breaking.
 
 ### Phase 2b: Inter-Source Segregation (Modify `prompt_compiler.py`)
 - **Modify Existing Compiler**: In `prompt_compiler.py`, specifically inside the `build_xml_context` method, distinguish between `$inputs.*` source data and `$steps.*` AI-generated outputs when looping over `input_mappings`.
-  - `$inputs.*` references (human-authored documents) should be tagged with `<human_source_document>...</human_source_document>` within their `<matrix_input>` block.
-  - `$steps.*` references (prior AI node outputs) should be tagged with `<ai_generated_output>...</ai_generated_output>` within their `<matrix_input>` block.
-- **Implementation**: Add a prefix check on the `source_path` string inside the `build_xml_context` loop. If `source_path.startswith("inputs")` (after removing the `$`), wrap the value in human tagging; if `steps`, use AI tagging. 
-- **Architectural Exemption**: An explicit ONE-TIME EXEMPTION is granted for modifying `prompt_compiler.py` for this feature, as attempting to intercept and modify `llm_context_data` in `prompt_factory.py` violates strict determinism and deep-dict mutation constraints.
+  - `$inputs.*` references (human-authored documents) should be tagged with `<user_payload>...</user_payload>` within their `<matrix_input>` block to maintain SSOT vocabulary with intra-chat segregation.
+  - `$steps.*` references (prior AI node outputs) should be tagged with `<ai_draft_context>...</ai_draft_context>` within their `<matrix_input>` block.
+- **Nested Provenance Trap (CRITICAL)**: You MUST extract `is_chat = ei.is_chat_history` into the `input_meta_map`. If an input is a chat log (`is_chat == True`), it already contains interleaved `<user_payload>` and `<ai_draft_context>` tags. You MUST NOT wrap it in an outer `<user_payload>` tag, as this would override the inner AI tags and cause the LLM to treat the entire chat history as human intent.
+- **Implementation**: Add conditional logic on the `source_path` string (checking for `$inputs` vs `$steps`) inside the `build_xml_context` loop.
+- **Architectural Exemption (USER CONFIRMATION REQUIRED)**: Modifying `prompt_compiler.py` violates the `prompt_compiler_immutability` rule. The execution tier MUST seek explicit user approval before modifying this file to add the origin-based XML tagging.
 
 ### Phase 3: Global Directives (`backend_v2/models/prompts/linguistic_directives.py`)
-- **Update Directives SSOT**: Inject a global prompt rule explaining the XML fencing as a named constant (e.g., `_CONTEXT_SEGREGATION_DIRECTIVE`):
-  > "You are evaluating the HUMAN USER's intent. Text enclosed in `<ai_draft_context>` is for background reference ONLY (Read-Only). You MUST NOT extract quotes or derive user intent from the AI context. You MUST ONLY extract evidence and evaluate intent from the `<user_intent_context>` (Write-Intent)."
+- **Update Directives SSOT**: Inject a global prompt rule explaining the XML fencing as a named constant (e.g., `CONTEXT_SEGREGATION_MANDATE`) in `global_mandates.py` or `linguistic_directives.py`. Ensure it complies with the "XML Structural Sovereignty" rule (Rule 8) by wrapping it in `<context_segregation_mandate>...</context_segregation_mandate>`.
+  > "You are evaluating the HUMAN USER's intent. Text enclosed in `<ai_draft_context>` is for background reference ONLY (Read-Only). You MUST NOT extract quotes or derive user intent from the AI context. You MUST ONLY extract evidence and evaluate intent from the `<user_payload>` (Write-Intent)."
+- **Injection Point**: Ensure this directive is appended to the system instructions in `LocalizationCompiler.compile_static_instructions()` so it is actively passed to the LLM.
+- **Directive Completeness**: Because both Phase 2a and Phase 2b use this unified tag pair (`<ai_draft_context>` / `<user_payload>`), this single directive successfully governs both Intra-chat logs and Inter-source documents.
 
 ### Phase 4: Extend Existing Physical Anchoring
-- **Quote Extraction Validation**: We already enforce strict `O(N)` physical anchoring (`str.find`) per the `strict_physical_anchoring_mandate`. 
-- **Action**: Extend `AnchorValidationService.validate_evidence()` (in `backend_v2/services/orchestrator/anchor_validation_service.py`) to accept an optional `allowed_source_text: str | None` parameter. When provided, the validation MUST anchor quotes against this scoped text (e.g., only the `<user_intent_context>` content) instead of the full `pdf_text`. This uses the existing `str.find` Primary Gate — no XML parsing needed. The caller pre-slices the user-intent substring before passing it.
-- **Fail-Fast**: If a quote is anchored but found ONLY within `<ai_draft_context>` bounds (not in the `allowed_source_text`), raise `SemanticEvidenceError` with an explicit `PROVENANCE_VIOLATION` error code.
+- **Quote Extraction Validation**: We enforce strict Tiered Lexical Validation (Primary Gate `str.find`) per KI `structured_forensic_quotes`.
+- **Pre-Flight Provenance Check (Action)**: Modify `AnchorValidationService.validate_evidence()` (in `backend_v2/services/orchestrator/anchor_validation_service.py`) to perform a provenance check BEFORE the main extraction logic.
+  - Use regex (`re.findall(r"<user_payload>(.*?)</user_payload>", pdf_text, re.DOTALL)`) on the incoming `pdf_text`. 
+  - If `<user_payload>` tags exist, concatenate their contents into a local `allowed_source_text` variable. Normalize it via `normalize_text_with_mapping`, and verify that `norm_quote` exists within `norm_allowed_source`.
+  - If the quote does NOT exist in the allowed source text, raise `SemanticEvidenceError` with an explicit `PROVENANCE_VIOLATION` error message indicating it breached the structured provenance boundary (e.g. it was an AI-generated Chimera quote).
+  - If the quote DOES exist in the allowed source text (or if no tags exist in the document), proceed with the standard `validate_evidence` execution on the ORIGINAL `pdf_text`.
+- **Architectural Safety**: This two-step approach is mandatory. Modifying `pdf_text` directly for the main extraction would offset the `index_map` arrays returned by `normalize_text_with_mapping`, causing the final highlighted string indices to mismatch the original document. The Pre-Flight check ensures provenance without corrupting the downstream index mappings.
+- **Caller Integration**: NO signature changes to `validate_evidence()` are permitted. `ExtractiveSensorService` does not have access to `state.inputs` and MUST NOT be coupled to it. The tags are already baked into the `pdf_text` via Phase 2a, so internal regex extraction maintains perfect encapsulation.
 
 ---
 
@@ -80,3 +95,12 @@ Per KI `provider_agnostic_caching`, the `_CONTEXT_SEGREGATION_DIRECTIVE` MUST be
 
 ## 5. Next Steps
 Once this Epic is approved, the developer should execute the `/tier1-planner` workflow to break this down into specific `implementation_plan.md` tasks targeting the Python backend.
+
+## 6. Tier 0 Architectural Learnings (Red-Team Analysis)
+During the formal System 2 validation of the implementation plans, the following critical architectural findings were discovered and patched into the execution plans to prevent catastrophic failures:
+
+1. **Fatal Exception on Arbitrary JSON**: Bypassing NLP on JSON inputs by strictly casting `ChatHistoryDTO.model_validate_json()` is a Fail-Fast risk. If a user pastes broken JSON, it triggers a Pydantic `ValidationError` or Python `ValueError`. **Fix**: The system must catch these exceptions and fall back to treating the input as raw text (running NLP and LLM parser) instead of crashing with a 500 status code.
+2. **Event Loop Blocking (Catastrophic Risk)**: Moving the heavy SpaCy NLP operations into the `async def _process_chat_history()` without explicitly using `await asyncio.to_thread()` would block the FastAPI event loop, severely degrading Quorum's concurrent capacity. **Fix**: Explicitly mandated thread offloading for NLP.
+3. **The `user_only` Python Purity (XML Avoidance)**: While the LLM context requires XML fencing for the `combined` text string, the isolated `user_only` and `ai_only` strings are strictly used by internal Python hooks (e.g., `metrics.py` for Word Count and `linguistics.py` for phrase detection). If these strings contained `<user_payload>` tags, the tags would artificially inflate word count metrics. **Fix**: XML tags are only injected into the `combined` string destined for the LLM; the separated strings remain purely naked text for the Python hooks.
+4. **Nested Provenance Trap (Deep Dot-Notation)**: Relying strictly on `$inputs.{key}` to resolve `is_chat_history` fails when the origin path is nested (e.g. `$inputs.chat_log.turns`). This would cause the compiler to falsely assume it is NOT chat history, double-wrapping the chat inside `<user_payload>` tags. **Fix**: The compiler must extract the base key string before resolving metadata.
+5. **Double-Injection Bug**: Sourcing the `CONTEXT_SEGREGATION_MANDATE` dynamically from `GLOBAL_MANDATES_XML` while simultaneously explicitly injecting it via `compile_static_instructions()` would cause duplicate token injection. **Fix**: Strict single-point injection mandated via `LocalizationCompiler`.
