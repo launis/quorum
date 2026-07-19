@@ -1,0 +1,211 @@
+[
+  {
+    "id": "sp_6f40b964895c426b",
+    "slug": "sp_d948cb51bed3454c",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Falsifier",
+        "en": "Falsifier"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Critical Loop Audit",
+        "en": "Critical Loop Audit"
+      }
+    },
+    "pre_hooks": [
+      "inject_step_metadata",
+      "atom_flattening_hook"
+    ],
+    "post_hooks": [
+      "verify_citation_integrity",
+      "matrix_scoring_hook",
+      "normalize_matrix_scores"
+    ],
+    "allowed_mcp_tools": [
+      "mcp_tavily_search"
+    ],
+    "safety": "safe",
+    "type": "llm",
+    "model_strategy": "strict",
+    "expected_inputs": [
+      "prior_analysis",
+      "product_text",
+      "chat_log",
+      "reflection_text"
+    ],
+    "output_schema": null,
+    "organization_id": "SYSTEM",
+    "role_block_id": null,
+    "extraction_protocol_block_id": "blk_573802341db9d68c",
+    "criteria_block_ids": [
+      "blk_04544fa8b5ca408f",
+      "blk_ab65a936bca34bf1",
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_c1cc56f65f6a47e1",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_90d0dd098757433e",
+      "blk_b476f89fb732448c"
+    ]
+  },
+  {
+    "id": "sp_48974af1fc584407",
+    "slug": "sp_282a7b15f76d4c9e",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Judge",
+        "en": "Judge"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Imported from sequential_audit_chain"
+      }
+    },
+    "pre_hooks": [
+      "inject_step_metadata",
+      "atom_flattening_hook"
+    ],
+    "post_hooks": [
+      "verify_citation_integrity",
+      "matrix_scoring_hook",
+      "enforce_passivity_penalty",
+      "normalize_matrix_scores"
+    ],
+    "allowed_mcp_tools": [],
+    "safety": "safe",
+    "type": "llm",
+    "model_strategy": "strict",
+    "expected_inputs": [
+      "prior_analysis",
+      "product_text",
+      "chat_log",
+      "reflection_text"
+    ],
+    "output_schema": null,
+    "organization_id": "SYSTEM",
+    "role_block_id": null,
+    "extraction_protocol_block_id": "blk_573802341db9d68c",
+    "criteria_block_ids": [
+      "blk_a93c517915f94e09",
+      "blk_6a02268ad79542de",
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_9d68ceff695b4196",
+      "blk_23ca73cf267d4078",
+      "blk_2cbe96bffde04571",
+      "blk_2c13f67014094f3b",
+      "blk_fb0b98da76e046dd",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_f971def5b3864ba4",
+      "blk_2305f4ac865a4815",
+      "blk_ff72c2d79edb4ebf"
+    ]
+  },
+  {
+    "id": "sp_6a45d484ad5b497c",
+    "slug": "sp_d86aaa8a2756481b",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Profiler",
+        "en": "Profiler"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Imported from sequential_audit_chain"
+      }
+    },
+    "pre_hooks": [
+      "calculate_text_metrics",
+      "calculate_control_ratio",
+      "inject_step_metadata",
+      "atom_flattening_hook"
+    ],
+    "post_hooks": [
+      "matrix_scoring_hook",
+      "normalize_matrix_scores"
+    ],
+    "allowed_mcp_tools": [],
+    "safety": "safe",
+    "type": "llm",
+    "model_strategy": "strict",
+    "expected_inputs": [
+      "prior_analysis",
+      "product_text",
+      "chat_log",
+      "reflection_text"
+    ],
+    "output_schema": null,
+    "organization_id": "SYSTEM",
+    "role_block_id": null,
+    "extraction_protocol_block_id": "blk_573802341db9d68c",
+    "criteria_block_ids": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_9d68ceff695b4196",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_c1cc56f65f6a47e1",
+      "blk_3568312503964aec",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_cb6217bccc974cca",
+      "blk_9c0c7c46568648c4",
+      "blk_c3bc5f3eb8e74110"
+    ]
+  },
+  {
+    "id": "sp_fb1b8e908bf24c1f",
+    "slug": "sp_row_explanations",
+    "type": "llm",
+    "model_strategy": "strict",
+    "name": {
+      "default_locale": "en",
+      "translations": {
+        "en": "Row Explanations",
+        "fi": "Riviselitykset"
+      }
+    },
+    "description": {
+      "default_locale": "en",
+      "translations": {
+        "en": "Explains individual matrix rows",
+        "fi": "Selitt\u00e4\u00e4 yksitt\u00e4iset matriisirivit"
+      }
+    },
+    "allowed_mcp_tools": [],
+    "safety": "safe",
+    "pre_hooks": [],
+    "post_hooks": [],
+    "expected_inputs": [
+      "matrices_to_explain",
+      "language"
+    ],
+    "output_schema": null,
+    "organization_id": "SYSTEM",
+    "role_block_id": "blk_ad303690b26b413d",
+    "extraction_protocol_block_id": "blk_ad303690b26b413d",
+    "criteria_block_ids": [
+      "blk_ad303690b26b413d"
+    ]
+  }
+]
