@@ -17,6 +17,7 @@ The Quorum Phase 3 architecture orchestrates LLM executions through `LLMNodeStra
 - **Dependency Starvation Prevention**: The engine MUST NOT be starved of Repositories. The Orchestrator MUST pass the necessary Database/Repository interfaces (e.g. via a `RepositoryDependencies` DTO) into the `ExecutionEngine` constructor so that sub-graphs (like `EnrichedDagExecutor`) can function without requiring forbidden global singletons.
 - **Concurrency & Cancellation Integrity**: The `execute()` method MUST explicitly accept and respect the orchestrator's `semaphore: asyncio.Semaphore` and `running_event: asyncio.Event | None`. Dropping these tokens would cause the engine to blindly violate rate limits (429) and become immune to DAG cancellation mid-flight.
 - **Parameter Object Pattern (Anti-Creep)**: The `execute()` signature MUST NOT suffer from a "Long Parameter List" (Parameter Creep). All runtime variables MUST be encapsulated within a single `EngineExecutionRequest` DTO. This prevents the `ExecutionEngine` Protocol from becoming brittle when future orchestration features are added.
+- **Append-Only Law & Seed Data Validation**: Executions (results) MUST NOT and do not need to be migrated during refactoring. **Historical execution data has zero structural value and is considered entirely disposable during migrations.** Historical payload data is append-only and mutation is strictly prohibited. ONLY `seed_data.json` is updated for configuration changes. Any modifications to `seed_data.json` MUST strictly follow the *Vault Mutation Protocol* (e.g., re-seeding via `run_seed.py`).
 
 ## 3. Implementation Phases
 
@@ -31,7 +32,7 @@ The Quorum Phase 3 architecture orchestrates LLM executions through `LLMNodeStra
 - **Explicit Delegation**: Replace the 50-line inline TDA pipeline with a single `await self._engine.execute(...)` delegation. The strategy will not instantiate the engine itself. `llm.py` strictly retains ownership of telemetry, schema compilation, and trace event generation.
 
 ### Phase 3: DAG Executor Wiring
-- **Explicit DI Injection (`dag_executor.py`)**: Update the `NodeExecutor.execute()` step routing logic. When instantiating `LLMNodeStrategy` (e.g., in the `"reasoning"` branch and default `else` branch), explicitly inject the engine with full dependencies: `TDAEngine(compiler=self.compiler, repos=self._get_repository_dto(), arq_pool=self.arq_pool)`.
+- **Explicit DI Injection (`dag_executor.py`)**: Update the `NodeExecutor.execute()` step routing logic. When instantiating `LLMNodeStrategy` (e.g., strictly in the `"reasoning"` branch), explicitly inject the engine with full dependencies: `TDAEngine(compiler=self.compiler, repos=self._get_repository_dto(), arq_pool=self.arq_pool)`. **NO DEFAULT FALLBACKS**: The default `else` branch MUST NOT route to `TDAEngine`. It MUST immediately raise a Fail-Fast exception (e.g., `UnknownStrategyError`) if the step's `model_strategy` is unrecognized, ensuring strict compliance with the "No Fallbacks" rule.
 - **Lazy DI Import**: Perform the `from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine` inline within the conditional branches, exactly matching the existing resilient pattern used for `PreHydratedSynthesisStrategy`.
 
 ### Phase 4: Automated Testing
