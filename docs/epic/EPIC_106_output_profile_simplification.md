@@ -9,16 +9,25 @@ Currently, the `OutputProfile` data model (and consequently, the Admin User Inte
 
 ### A. What We Will REMOVE from `OutputProfile` (Deprecation)
 These fields clutter the UI and violate the Single Source of Truth, as they attempt to control things the `PromptCompiler` or SDUI should handle natively:
-- `layouts` & `content_blocks`: Legacy properties trying to manually control UI layout. Replaced entirely by SDUI dynamic JSON (`HeroInsightBlock`, `DataGridBlock`, `MarkdownBlock`).
-- `formatting_directives`: LLM formatting rules do not belong in the profile. They belong in the `PromptBlock` (e.g., as part of the `EXECUTION_PERSONA`).
-- `synthesis`: Nested synthesis configuration objects are a symptom of the old standalone Synthesis strategy. Epic 105 unifies synthesis, making this redundant.
+- `layouts`: Legacy property trying to manually control UI layout. No active backend `.layouts` access exists. **Safe to remove.**
+- `content_blocks` (ON `OutputProfile` ONLY): The `content_blocks` field on the `OutputProfile` model acts as a **static configuration template**. This is distinct from `content_blocks` as rendered SDUI output data (used in `blueprint.py`, `sdui_mapper_service.py`, `execution.py`, `synthesis_distiller.py`). Only the `OutputProfile` configuration-side `content_blocks` is deprecated. The rendered SDUI `content_blocks` data flow remains intact and will be populated by the DAG engine + `SchemaFactory` instead of being statically pre-defined on the profile.
+- `formatting_directives`: LLM formatting rules do not belong in the profile. They belong in the `PromptBlock` (e.g., as part of the `EXECUTION_PERSONA`). **Active usage** in `llm.py:L410` and `worker.py:L792` must be migrated to read from `PromptBlock` configuration.
+- `synthesis` (`SynthesisConfigDTO`): Nested synthesis configuration objects are a symptom of the old standalone Synthesis strategy. Epic 105 unifies synthesis, making this redundant. **Active usage** in `worker.py:L770-798` must be migrated (see Phase 2.5 below). Sub-fields require explicit relocation:
+  - `SynthesisConfigDTO.allowed_exports` → Relocate to `Workflow`-level configuration (export formats are a workflow concern, not a profile concern).
+  - `SynthesisConfigDTO.allowed_mcp_tools` → Relocate to `StepRule`-level configuration (MCP tool availability is a per-step execution concern).
+  - `SynthesisConfigDTO.length_constraint` → Relocate to `PromptBlock` configuration (this is a cognitive instruction, not a profile setting).
+  - `SynthesisConfigDTO.historical_context_mode` → Relocate to `Workflow`-level configuration.
+  - `SynthesisConfigDTO.matrix_visible_columns` → Relocate to `StepRule`-level (this controls SDUI rendering per step).
 - `visible_block_extensions` / `visible_workflow_extensions`: Over-engineered. Can be collapsed into simple boolean toggles or handled EXPLICITLY by the workflow definition. Any form of implicit fallback behavior is strictly forbidden.
+- `display_scale`: This field controls score presentation format. Relocate to `StepRule`-level configuration, as different DAG steps may require different scaling (e.g., a summary step vs. a matrix step).
+- `matrix_column_labels`: SDUI rendering control. Relocate to `StepRule`-level or to the `PromptBlock` associated with the matrix step.
 
 ### B. What `OutputProfile` WILL KEEP (The "Clean UI")
 The UI will only present high-level, human-understandable settings:
-1. **Identity**: `name`, `description` (What is this profile?).
+1. **Identity**: `name`, `description`, `custom_preface` (What is this profile?).
 2. **Localization & Tone**: `language`, `tone_instruction` (How should it sound?).
 3. **Presentation Toggles**: `visible_metadata` (e.g., checkboxes for "Show Date", "Show Organization") and `include_diagnostic_scorecard`.
+4. **Overrides**: `strictness_level`, `scoring_strategy` (profile-level overrides that remain valid at this scope).
 
 ### C. Unification of "Row Outputs" vs "Summaries" (Deterministic Schema Binding)
 Instead of defining "Row outputs" and "Summaries" as complex configurations inside the `OutputProfile`, they will be defined purely as **Steps in the DAG workflow**, utilizing specific **PromptBlocks**.
@@ -40,8 +49,19 @@ Instead of defining "Row outputs" and "Summaries" as complex configurations insi
 - *Append-Only Law*: Executions (results) MUST NOT and do not need to be migrated. **Historical execution data has zero structural value and is considered entirely disposable during migrations.** Historical payload data is append-only and mutation is strictly prohibited.
 
 ### Phase 2: PromptCompiler Updates
+- **`prompt_compiler_immutability` Exception (USER APPROVED)**: This phase modifies `prompt_compiler.py`, which is protected by the `prompt_compiler_immutability` architecture rule. The user has explicitly granted permission to modify this file as part of Epic 106.
 - **Eradicate Split Brain (SSOT Enforcement)**: Ensure `PromptCompiler` relies strictly on `StepRule.expected_sdui_type` to inject the correct textual formatting instructions into the prompt. It MUST NOT try to guess or infer structural expectations from `PromptBlocks`. `PromptBlocks` are strictly reserved for cognitive instructions (e.g., tone, persona, constraints), while `expected_sdui_type` is the absolute Single Source of Truth for both the `SchemaFactory` (Pydantic validation) and the `PromptCompiler` (LLM instructions).
+- **Remove `formatting_directives` Dependency in `llm.py`**: The current `LLMNodeStrategy` reads `output_profile.formatting_directives` at line 410-412 of `llm.py` and injects them into the system prompt. This logic must be removed. Formatting directives are now sourced from the `PromptBlock` (e.g., `EXECUTION_PERSONA` category) by the `PromptCompiler`.
 - Ensure the `OutputProfile`'s `tone_instruction` is correctly injected into the final system prompt.
+
+### Phase 2.5: Worker Rendering Pipeline Migration (`backend_v2/worker.py`)
+- **Root Cause**: `worker.py` lines 770-798 directly read `SynthesisConfigDTO` fields (`system_prompt`, `length_constraint`, `tone_instruction`) and `OutputProfile.formatting_directives` to construct synthesis prompts. Removing these fields without updating `worker.py` will cause immediate `AttributeError` crashes.
+- **Migration Strategy**: The worker's rendering pipeline must be refactored to source its synthesis instructions from the DAG-produced data:
+  1. The synthesis system prompt MUST be sourced from the `PromptBlock` associated with the synthesis step (retrieved via `StepRule.task_blueprint` → `Step.criteria_block_ids`).
+  2. `length_constraint` and `tone_instruction` MUST be sourced from the `PromptBlock` configuration.
+  3. `formatting_directives` MUST be removed from the worker's prompt construction. The `PromptCompiler` (Phase 2) handles this via `PromptBlock` injection.
+  4. `allowed_exports` MUST be read from the `Workflow`-level configuration (new field).
+- **Fail-Fast Mandate**: After migration, the worker MUST NOT contain any `.get()` or `hasattr()` fallbacks for the removed fields. If a required configuration is missing from the `PromptBlock` or `Workflow`, the system MUST crash with an explicit `AppException(ErrorCodes.CONFIGURATION_ERROR)`.
 
 ### Phase 3: Flutter Admin UI Cleanup & Freezed Synchronization (Client App V2)
 - **Model Synchronization (CRITICAL)**: Because Flutter uses strict JSON parsing (`disallow_unrecognized_keys`), removing fields from the backend Pydantic model WILL crash the Flutter app if the Dart model is not updated simultaneously. You MUST update the `OutputProfile` Freezed class in `client_app_v2` to remove the deprecated fields, then run `dart run build_runner build -d`.
@@ -50,3 +70,9 @@ Instead of defining "Row outputs" and "Summaries" as complex configurations insi
 
 ## 4. Required User Review
 - **Data Migration**: Deleting legacy fields like `layouts` from `seed_data.json` is a destructive action (though safe if they are obsolete). Do we need to preserve any historical layouts, or can we confidently wipe them and rely entirely on the new dynamic SDUI generation?
+- **`SynthesisConfigDTO` Sub-Field Relocation**: Confirm the proposed relocation targets for `allowed_exports` (→ Workflow), `allowed_mcp_tools` (→ StepRule), `length_constraint` (→ PromptBlock), `historical_context_mode` (→ Workflow), `matrix_visible_columns` (→ StepRule).
+- **`display_scale` & `matrix_column_labels` Relocation**: Confirm relocation to `StepRule`-level configuration.
+
+## 5. Cross-Epic Synchronization (Epic 104 & 105)
+- **Execution Order**: This Epic MUST be executed **LAST** (after Epic 104 and 105). You cannot safely delete the `synthesis` object from `OutputProfile` or `seed_data.json` until Epic 105 has completely eliminated the `PreHydratedSynthesisStrategy` (which currently reads those fields).
+- **Synergy with "Dumb" Engines**: Epic 105 ensures that the engines no longer parse schemas. This perfectly delegates the schema responsibility to the `PromptCompiler` and `SchemaFactory`, which this Epic (106) explicitly controls via the new `StepRule.expected_sdui_type`.

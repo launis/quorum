@@ -26,6 +26,7 @@ The Quorum Phase 3 architecture orchestrates LLM executions through `LLMNodeStra
 - **EngineExecutionRequest Schema**: This request object MUST encapsulate all cognitive data (`compiled_schema`, `system_prompt` / `prompt_context`), orchestration constraints (`step: StepRule`, `context: StrategyContext`), standard payload (`bound_client`, `global_source_text`, `target_locale`), concurrency tokens (`semaphore: asyncio.Semaphore`, `running_event: asyncio.Event | None`), and live observability hooks (`progress_callback`, `trace_callback: Callable[[TraceEvent], Awaitable[None]]`).
 - **TDA Engine Implementation (`engines/tda_engine.py`)**: Move the entire inline block from `llm.py` into this engine. 
 - **Top-Level Standard Imports**: Import the 5 sub-services (`LLMTaskExecutor`, `TwoPassAtomizer`, `SlidingWindowLinker`, `EnrichedDagExecutor`, `ResultProjector`) globally at the top of `tda_engine.py`. These are standard modules (not native ML extensions), meaning they belong at the top level to adhere to Quorum's strict `inline_imports_ban`.
+- **Configuration Segregation (`strict_configuration_segregation` Compliance)**: The current inline code hardcodes `SlidingWindowLinker(window_size=4, overlap=2)`. When moving to `TDAEngine`, these values MUST be sourced from `backend_v2/settings.py` (e.g., `get_settings().tda_linker_window_size`, `get_settings().tda_linker_overlap`). Hardcoding configuration values inside the engine violates the Global Config Sovereignty rule.
 
 ### Phase 2: LLMNodeStrategy Refactoring
 - **Constructor Override (`strategies/llm.py`)**: Override `LLMNodeStrategy.__init__` to accept all `NodeStrategy` positional arguments plus a mandatory `engine` parameter implementing the `ExecutionEngine` Protocol. Use `from typing import TYPE_CHECKING` at the top of the file to type hint the engine parameter without triggering a runtime import.
@@ -45,3 +46,7 @@ The Quorum Phase 3 architecture orchestrates LLM executions through `LLMNodeStra
 
 ## 5. Synthesis & Architectural Alignment
 TDA-suoritusputken eristäminen on loistava veto SRP- ja OCP-periaatteiden kannalta. Se on kuitenkin toteutettava ehdottoman tyyppiturvallisesti. Poistamalla "laiskat" fallbackit ja pakottamalla Pydantic-mallien käyttö `ExecutionEngine`-rajapinnassa saavutamme arkkitehtuurin, johon on helppo lisätä myöhemmin uusia malleja (kuten MCP-työkalujen kutsumoottoreita) turvallisesti.
+
+## 6. Cross-Epic Synchronization (Epic 105 & 106)
+- **DAG Routing Compatibility**: When removing the default fallback in `dag_executor.py` (Phase 3), you MUST explicitly preserve the `elif step_def.model_strategy == "synthesis"` branch pointing to the legacy `PreHydratedSynthesisStrategy`. Do not break Synthesis routing. Epic 105 will later take ownership of rewriting this branch.
+- **Execution Order**: Epic 104 MUST be implemented **FIRST** to establish the `ExecutionEngine` Protocol and DTOs.
