@@ -9,18 +9,20 @@ Following the extraction of the `TDAEngine` (Epic 104), the system now possesses
 - **DRY Compliance (SSOT)**: We eliminate ~150 lines of duplicated code. `LLMNodeStrategy` becomes the absolute Single Source of Truth (SSOT) for ALL AI step lifecycles, guaranteeing that any future telemetry or retry enhancements automatically apply to both Reasoning and Synthesis.
 - **Strict Separation of Concerns**: By implementing the Synthesis logic as an `ExecutionEngine`, it remains completely isolated from the `TDAEngine`. The DAG will execute them as separate nodes; they just share the same lifecycle manager.
 - **Fail-Fast Safety**: The extraction must ensure that the `GlobalAtomBlackboard` validation (Epic 101 Rule 1) and dynamic schema mapping tailored for Synthesis are perfectly preserved inside the `SynthesisEngine.execute()` method.
+- **Absolute Engine Statelessness**: Just like `TDAEngine`, the `SynthesisEngine` MUST be strictly stateless. It must NOT store any runtime variables, extraction results, or context in `self`. All data must flow immutably through the `execute()` signature to prevent race conditions during highly concurrent DAG invocations.
+- **Strict DTO Location & Circular Import Prevention**: The engine must return the exact same `EngineExecutionResult` DTO defined in Epic 104. This DTO must be centrally located (e.g., `backend_v2/models/dtos/engine.py`) to prevent `synthesis_engine.py` from creating circular dependencies with `llm.py` or other heavy ML modules.
 
 ## 3. Implementation Phases
 
 ### Phase 1: ExecutionEngine Protocol Expansion & Engine Extraction
-- **Protocol Expansion (`engines/base.py`)**: The original `ExecutionEngine` protocol (Epic 104) is too narrow. You MUST expand its `execute()` signature to accept `step: StepRule` and `context: StrategyContext`. Without this, the `SynthesisEngine` cannot access the `__GLOBAL_ATOM_BLACKBOARD__`.
+- **Protocol Expansion (`engines/base.py`)**: To truly achieve OCP, the `ExecutionEngine` protocol from Epic 104 MUST be expanded to accept `step: StepRule` and `context: StrategyContext` natively. Without this, the `SynthesisEngine` cannot access the `__GLOBAL_ATOM_BLACKBOARD__`. The return type MUST strictly remain the `EngineExecutionResult` DTO.
 - **Target File**: `backend_v2/services/orchestrator/engines/synthesis_engine.py`
 - Create `SynthesisEngine` implementing the updated `ExecutionEngine` Protocol.
 - Move the core execution logic from `PreHydratedSynthesisStrategy` into `SynthesisEngine.execute()`. This includes:
   1. Validating the `__GLOBAL_ATOM_BLACKBOARD__` from `context.context_variables`.
   2. Compiling the system prompt and payload block using `self.compiler` (passed via constructor).
-  3. Executing the task via `LLMTaskExecutor.execute_structured_task()`.
-  4. Packaging the response into the standard `dict[str, Any]` format.
+  3. Executing the task via `LLMTaskExecutor.execute_structured_task()`, strictly passing down `semaphore` and `running_event` to prevent Concurrency Leaks.
+  4. Packaging the response strictly into the `EngineExecutionResult` DTO (no raw dictionaries).
 
 ### Phase 2: DAG Executor Wiring
 - **Target File**: `backend_v2/services/orchestrator/dag_executor.py`
@@ -30,7 +32,7 @@ Following the extraction of the `TDAEngine` (Epic 104), the system now possesses
   from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
   strategy_impl = LLMNodeStrategy(
       ...,
-      engine=SynthesisEngine(self.compiler)
+      engine=SynthesisEngine(compiler=self.compiler, repos=self._get_repository_dto(), arq_pool=self.arq_pool)
   )
   ```
 

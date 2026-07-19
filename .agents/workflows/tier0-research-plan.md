@@ -18,6 +18,10 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI (e.g., regarding caching, LLM execution, or error handling), you MUST read the artifact file before proceeding.</mandatory_pattern>
       <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
     </rule_block>
+    <rule_block id="root_cause_justification_mandate">
+      <mandatory_pattern>You MUST always actively search for the true Root Cause of any problem or architectural flaw. For EVERY modification you make or propose, you MUST explicitly write down the Root Cause that necessitated the change and provide a detailed architectural Justification for why your specific solution is the correct one.</mandatory_pattern>
+      <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="0">
     <step id="1">DYNAMIC CONTEXT ACQUISITION: Read and internalize the provided `[implementation_plan]`. Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely target the files in `backend_v2/` referenced by the plan, as well as the database state in `backend_v2/seed/seed_data.json`.</step>

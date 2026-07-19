@@ -18,6 +18,10 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
       <mandatory_pattern>Before writing or modifying tests to reproduce the bug, you MUST explicitly read the corresponding `models.domain` or `models.dtos` schema definitions.</mandatory_pattern>
       <catastrophic_reason>Guessing the schema shapes during RCA causes you to write invalid tests that fail for the wrong reasons.</catastrophic_reason>
     </rule_block>
+    <rule_block id="root_cause_justification_mandate">
+      <mandatory_pattern>You MUST always actively search for the true Root Cause of any problem or architectural flaw. For EVERY modification you make or propose, you MUST explicitly write down the Root Cause that necessitated the change and provide a detailed architectural Justification for why your specific solution is the correct one.</mandatory_pattern>
+      <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="4">
     <step id="1">OBSERVABILITY FIRST &amp; IDENTIFY (Root Cause Analysis): Do NOT start by blindly guessing the bug from static code. You MUST first analyze runtime telemetry to understand the exact state of the crash. If the user did not provide a specific Execution ID, use `grep_search` or `view_file` on `backend_debug.log` to extract the latest `execution_id`. Use this ID to proactively analyze the `data/files/executions/<execution_id>` artifacts. You MUST ALWAYS read `llm_debug_prompts.md` as your primary source of truth for LLM behavior, along with `frozen_context.json`, as instructed in the core rules. ONLY AFTER understanding the runtime trace should you use `grep_search` to precisely trace the data flow in the codebase. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.</step>
@@ -26,7 +30,7 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
     
     <step id="3">PROOF OF FAILURE (AI EXECUTION): You MUST run the test YOURSELF using the `run_command` tool via the Universal Quality Gate as defined in `AGENTS.md`. DO NOT instruct the user to run it. Wait for your background task to finish and read the trace.</step>
     
-    <step id="4">BLAST RADIUS ANALYSIS &amp; PLAN: Explain the Root Cause of the bug briefly based on the failed test trace. Before proposing a fix, you MUST use `grep_search` to find all downstream consumers of the function you intend to modify. Propose an atomic code fix that solves the bug without side effects to those consumers.</step>
+    <step id="4">BLAST RADIUS ANALYSIS &amp; PLAN: Detail the Root Cause of the bug based on the failed test trace and provide your architectural Justification (per the root_cause_justification_mandate). Before proposing a fix, you MUST use `grep_search` to find all downstream consumers of the function you intend to modify. Propose an atomic code fix that solves the bug without side effects to those consumers.</step>
     
     <step id="5">FIX &amp; VERIFY (GREEN): Wait for "PERMISSION GRANTED" from the user. Once granted, use your structural editing tools to write the final logic fix (if not already handled by the Atomic Interface Exception). You MUST then run the tests YOURSELF again via the Quality Gate to verify the fix passes.</step>
     

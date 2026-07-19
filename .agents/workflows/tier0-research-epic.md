@@ -25,6 +25,10 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the Epic proposes mechanisms related to existing KIs (e.g., caching, LLM orchestration, Error Boundaries), you MUST read the KI artifact file to prevent reinventing the wheel or regressing patterns.</mandatory_pattern>
       <catastrophic_reason>Epics that ignore the Knowledge Base result in redundant systems and broken architectural contracts.</catastrophic_reason>
     </rule_block>
+    <rule_block id="root_cause_justification_mandate">
+      <mandatory_pattern>You MUST always actively search for the true Root Cause of any problem or architectural flaw. For EVERY modification you make or propose, you MUST explicitly write down the Root Cause that necessitated the change and provide a detailed architectural Justification for why your specific solution is the correct one.</mandatory_pattern>
+      <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="0">
     <step id="1">DYNAMIC CONTEXT ACQUISITION: Read and internalize the provided `[epic_document]`. Actively use search tools (`grep_search`, `view_file`) to check the current state of the global architecture (`backend_v2/`, `client_app_v2/`, and `backend_v2/seed/seed_data.json`) to understand the baseline the Epic is modifying.</step>
