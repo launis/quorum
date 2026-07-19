@@ -9,7 +9,7 @@ Following the extraction of the `TDAEngine` (Epic 104), the system now possesses
 - **DRY Compliance (SSOT)**: We eliminate ~150 lines of duplicated code. `LLMNodeStrategy` becomes the absolute Single Source of Truth (SSOT) for ALL AI step lifecycles, guaranteeing that any future telemetry or retry enhancements automatically apply to both Reasoning and Synthesis.
 - **Strict Separation of Concerns**: By implementing the Synthesis logic as an `ExecutionEngine`, it remains completely isolated from the `TDAEngine`. The DAG will execute them as separate nodes; they just share the same lifecycle manager.
 - **Fail-Fast Safety & Dumb Engine Enforcement**: The extraction must ensure that the `GlobalAtomBlackboard` validation (Epic 101 Rule 1) is preserved inside the `SynthesisEngine.execute()` method. However, the engine MUST remain cognitively "dumb" regarding schemas. It MUST NOT perform any dynamic schema mapping itself; instead, it must strictly pass the pre-compiled `request.compiled_schema` down to the `LLMTaskExecutor`.
-- **Schema Pre-Compilation Responsibility Chain (CRITICAL)**: Currently, `PreHydratedSynthesisStrategy` directly calls `self.compiler.build_dynamic_schema()` and `self.compiler.compile_static_instructions()` (lines 87-98 of `pre_hydrated_synthesis.py`). Since the `SynthesisEngine` MUST NOT use a `compiler` injection, this compilation responsibility MUST be lifted into `LLMNodeStrategy`'s existing pre-compilation pipeline. Specifically, `LLMNodeStrategy.execute()` must detect the engine type (or use the step's `model_strategy`) and invoke the appropriate schema compilation BEFORE constructing the `EngineExecutionRequest` DTO. The compiled schema, static instructions, and prompt context are then passed into the request DTO. This ensures absolute separation: `LLMNodeStrategy` = compilation + lifecycle, `SynthesisEngine` = execution only.
+- **Schema Pre-Compilation Responsibility Chain (CRITICAL)**: Currently, `PreHydratedSynthesisStrategy` directly calls `self.compiler.build_dynamic_schema()` and `self.compiler.compile_static_instructions()` (lines 87-98 of `pre_hydrated_synthesis.py`). Since the `SynthesisEngine` MUST NOT use a `compiler` injection, this compilation responsibility MUST be lifted into `LLMNodeStrategy`'s existing pre-compilation pipeline. Specifically, `LLMNodeStrategy.execute()` MUST delegate the schema definition purely to the `StepRule.expected_sdui_type` property introduced in **Epic 106**. The orchestrator will invoke the appropriate schema compilation BEFORE constructing the `EngineExecutionRequest` DTO, passing the compiled schema into the request. This ensures absolute separation: `LLMNodeStrategy` = compilation + lifecycle, `SynthesisEngine` = execution only.
 - **Absolute Engine Statelessness**: Just like `TDAEngine`, the `SynthesisEngine` MUST be strictly stateless. It must NOT store any runtime variables, extraction results, or context in `self`. All data must flow immutably through the `execute()` signature to prevent race conditions during highly concurrent DAG invocations.
 - **Strict DTO Location & Circular Import Prevention**: The engine must return the exact same `EngineExecutionResult` DTO defined in Epic 104. This DTO must be centrally located (e.g., `backend_v2/models/dtos/engine.py`) to prevent `synthesis_engine.py` from creating circular dependencies with `llm.py` or other heavy ML modules.
 - **Anti-Corruption Layer (Epic 104 Compliance)**: The new engine MUST wrap all execution failures (e.g., Pydantic parsing errors, LLM crashes) inside an `EngineExecutionException`. This guarantees that `LLMNodeStrategy`'s Dead Letter Queue (DLQ) routing can deterministically catch and process them.
@@ -32,12 +32,13 @@ Following the extraction of the `TDAEngine` (Epic 104), the system now possesses
 ### Phase 2: DAG Executor Wiring
 - **Target File**: `backend_v2/services/orchestrator/dag_executor.py`
 - Modify the routing logic for `step_def.model_strategy == "synthesis"`.
+- Since `SynthesisEngine` is "dumb" and MUST NOT take `self.compiler`, it MUST accept an instantiated `LLMTaskExecutor` via its constructor. `dag_executor.py` already instantiates `llm_executor = LLMTaskExecutor(self.compiler)` in this scope.
 - Instead of instantiating `PreHydratedSynthesisStrategy`, explicitly instantiate `LLMNodeStrategy` and inject the newly created lightweight `SynthesisEngine`:
   ```python
   from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
   strategy_impl = LLMNodeStrategy(
       ...,
-      engine=SynthesisEngine()
+      engine=SynthesisEngine(executor=llm_executor)
   )
   ```
 
@@ -46,14 +47,9 @@ Following the extraction of the `TDAEngine` (Epic 104), the system now possesses
 - Completely delete this file, as its logic is now governed by `LLMNodeStrategy` + `SynthesisEngine`.
 - Remove references from `backend_v2/services/orchestrator/strategies/__init__.py`.
 
-### Phase 4: Observability Logger Refactoring (AI Forensic Readiness)
-- **Target File**: `backend_v2/utils/llm_debug_logger.py`
-- Refactor the monolithic `write_debug_prompt_log` to support the "Dumb Engine" paradigm while avoiding both Observability Black Holes and Asynchronous Log Spaghetti.
-- **Memory Buffering + Atomic Write**: Instead of writing to 50 separate files (which breaks the global AI audit rule), the logger must use an in-memory trace object to collect chronological events for a specific step.
-  1. `strategy.pre_hook` logs selected blocks to the memory buffer.
-  2. `engine` logs the exact hydrated payload to the memory buffer.
-  3. `executor` logs the raw text response to the memory buffer.
-- **Fail-Safe Flushing (`try...finally`)**: To ensure the memory buffer is not lost during a software crash (e.g., LLM network timeout or Pydantic parsing error), the `LLMNodeStrategy` MUST wrap the entire execution in a strict `try...finally` block. The `finally` block calls `write_atomic_step_log(buffer)`, guaranteeing that the full forensic story is atomically appended to `llm_debug_prompts.md` during the stack unwind, even if the node fatally crashes.
+### Phase 4: Observability Logger Refactoring (DEFERRED TO EPIC 107)
+- **Status: DEFERRED**. The proposed "Memory Buffering + Atomic Write" refactoring of `llm_debug_logger.py` is a "Big Bang" architectural change that risks corrupting existing TDA forensic logs. It MUST NOT be performed during Epic 105.
+- Epic 105 MUST rely on the existing logging mechanism. The `SynthesisEngine` should just pass necessary information to the existing logger or rely on `LLMNodeStrategy`'s existing telemetry. Atomic logging hardening is formally moved to Epic 107.
 
 ### Phase 5: Automated Testing
 - **New Tests**: Create `tests/unit/services/orchestrator/engines/test_synthesis_engine.py` to test the new engine in isolation (mocking `LLMTaskExecutor` and the blackboard).

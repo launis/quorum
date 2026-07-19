@@ -21,12 +21,21 @@ The Quorum Phase 3 architecture orchestrates LLM executions through `LLMNodeStra
 
 ## 3. Implementation Phases
 
+### Phase 0: Protocol Prerequisites & Directory Structure
+- **Target Folder**: Create the `backend_v2/services/orchestrator/engines/` directory with an `__init__.py` file. This folder will house all extracted execution engines.
+- **DTO Definition (`models/dtos/engine.py`)**: Define the `EngineExecutionRequest` and `EngineExecutionResult` Pydantic DTOs here to prevent circular imports before building the protocol.
+
+### Phase 0.5: StepRule Schema Pre-Condition (Epic 105/106 Blocker)
+- **Target File**: `backend_v2/models/v2_core.py` (specifically `StepRule`)
+- **Add Field**: Add `expected_sdui_type: str | None = Field(default=None)` to `StepRule`. This is a strict prerequisite because Epic 105's `SynthesisEngine` relies on this field existing for schema compilation. (Epic 106 will later make it mandatory and handle the migration).
+
 ### Phase 1: ExecutionEngine Protocol & TDA Engine Extraction
 - **Protocol Definition (`engines/base.py`)**: Define the `ExecutionEngine` Protocol. To prevent "Parameter Creep" and ensure future-proofing, the `execute()` signature MUST accept exactly one parameter: an `EngineExecutionRequest` Pydantic DTO (or dataclass), and return an `EngineExecutionResult` Pydantic DTO. 
-- **EngineExecutionRequest Schema**: This request object MUST encapsulate all cognitive data (`compiled_schema`, `system_prompt` / `prompt_context`), orchestration constraints (`step: StepRule`, `context: StrategyContext`), standard payload (`bound_client`, `global_source_text`, `target_locale`), concurrency tokens (`semaphore: asyncio.Semaphore`, `running_event: asyncio.Event | None`), and live observability hooks (`progress_callback`, `trace_callback: Callable[[TraceEvent], Awaitable[None]]`).
+- **EngineExecutionRequest Schema**: This request object MUST encapsulate all cognitive data (`compiled_schema`, `system_prompt` / `prompt_context`), orchestration constraints (`step: StepRule`, `context: StrategyContext`), standard payload (`bound_client`, `global_source_text`, `target_locale`), concurrency tokens (`semaphore: asyncio.Semaphore`, `running_event: asyncio.Event | None`), and live observability hooks (`progress_callback`, `trace_callback: Callable[[TraceEvent], Awaitable[None]]`). 
+- **Context Contract (CRITICAL)**: `context: StrategyContext` MUST reliably transport the `GlobalAtomBlackboard`. **Contract**: When `TDAEngine` writes to `context.context_variables`, it MUST use the exact key `"__GLOBAL_ATOM_BLACKBOARD__"` and the value MUST be the serialized JSON representation of the blackboard (`blackboard.model_dump(mode='json')`). This ensures downstream engines (Epic 105) can hydrate it deterministically using Pydantic's `.model_validate()`.
 - **TDA Engine Implementation (`engines/tda_engine.py`)**: Move the entire inline block from `llm.py` into this engine. 
 - **Top-Level Standard Imports**: Import the 5 sub-services (`LLMTaskExecutor`, `TwoPassAtomizer`, `SlidingWindowLinker`, `EnrichedDagExecutor`, `ResultProjector`) globally at the top of `tda_engine.py`. These are standard modules (not native ML extensions), meaning they belong at the top level to adhere to Quorum's strict `inline_imports_ban`.
-- **Configuration Segregation (`strict_configuration_segregation` Compliance)**: The current inline code hardcodes `SlidingWindowLinker(window_size=4, overlap=2)`. When moving to `TDAEngine`, these values MUST be sourced from `backend_v2/settings.py` (e.g., `get_settings().tda_linker_window_size`, `get_settings().tda_linker_overlap`). Hardcoding configuration values inside the engine violates the Global Config Sovereignty rule.
+- **Configuration Segregation (`strict_configuration_segregation` Compliance)**: The current inline code hardcodes `SlidingWindowLinker(window_size=4, overlap=2)`. When moving to `TDAEngine`, these values MUST be sourced from `backend_v2/settings.py` (e.g., `get_settings().tda_linker_window_size`, `get_settings().tda_linker_overlap`). You MUST add these fields to `GlobalSettings` in `settings.py` if they do not exist. Hardcoding configuration values inside the engine violates the Global Config Sovereignty rule.
 
 ### Phase 2: LLMNodeStrategy Refactoring
 - **Constructor Override (`strategies/llm.py`)**: Override `LLMNodeStrategy.__init__` to accept all `NodeStrategy` positional arguments plus a mandatory `engine` parameter implementing the `ExecutionEngine` Protocol. Use `from typing import TYPE_CHECKING` at the top of the file to type hint the engine parameter without triggering a runtime import.

@@ -240,8 +240,7 @@ class PromptCompiler:
                     desc_text += f"    <document_id>{source_id_to_use}</document_id>\n"
                     if meta["label"]:
                         desc_text += f"    <document_name>{meta['label']}</document_name>\n"
-                    if meta["desc"]:
-                        desc_text += f"    <document_description>{meta['desc']}</document_description>\n"
+
                     if meta["ai_desc"]:
                         desc_text += f"    <ai_context_mandate>{meta['ai_desc']}</ai_context_mandate>\n"
                     desc_text += "  </document_metadata>\n"

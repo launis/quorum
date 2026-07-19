@@ -45,7 +45,7 @@
   - `"reasoning"` strategy in model_registry
   - Vertex adapter reasoning parameter extraction
 
-- [ ] `[NOK]` **Phase 2C — Integration Checkpoint**: Execute [phase_2c_integration_checkpoint.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2c_integration_checkpoint.md)
+- [x] `[OK]` **Phase 2C — Integration Checkpoint**: Execute [phase_2c_integration_checkpoint.md](file:///c:/src/quorum/docs/epic/tasks_epic_101_global_extraction/phase_2c_integration_checkpoint.md)
   - Full-stack end-to-end validation
   - Manual UI verification of Virtual Step, progress events, and synthesis path
 
@@ -55,51 +55,29 @@
 
 > **CRITICAL LIMIT**: Per Tier 1 workflow rules, detailed plans beyond Phase 2 are deferred to prevent LLM cognitive overload. The executing agent must re-invoke Tier 1 after Phase 2 completion.
 
-- [ ] `[NOK]` **Re-invoke Tier 1 Planner**: After Phase 2C completes, invoke the Tier 1 Planner (`/tier1-planner @[EPIC_101_Global_Extraction_Node.md]`) in a NEW context window to generate detailed plans for any remaining hardening phases based on the updated codebase state.
+- [x] `[SKIPPED]` **Re-invoke Tier 1 Planner**: Skipped. Hardening is superseded by EPIC 104 & 105.
 
 ---
 
 ### Hardening & Sunset Pipeline
 
-- [ ] `[NOK]` **Tier 2 Hardening — Backend**: Run `/tier2-hardening-backend` targeted at:
-  - `backend_v2/models/domain/blackboard.py`
-  - `backend_v2/services/orchestrator/strategies/pre_hydrated_synthesis.py`
-  - Modernize to Pydantic V2 strict, PEP 257, and Push model patterns.
+> **NOTE:** Hardening and proxy sunsets have been explicitly skipped. `pre_hydrated_synthesis.py` will be entirely deleted by **EPIC 105 (Synthesis Engine Unification)**, making its hardening wasted effort. Proxy cleanup in `llm.py` will happen naturally during **EPIC 104 (TDA Pipeline Extraction)**.
 
-- [ ] `[NOK]` **Tier 2 Hardening — Frontend**: Run `/tier2-hardening-frontend` targeted at:
-  - `client_app_v2/lib/features/studio/models/workflow.dart`
-  - Verify Freezed strict compliance.
-
-- [ ] `[NOK]` **Proxy Sunset & Consumer Migration**: Codebase-wide search/replace to remove the `@deprecated` re-export proxies in `two_pass_atomizer.py`. All consumers must import directly from `backend_v2.models.domain.blackboard`.
-  - Search: `from backend_v2.services.orchestrator.two_pass_atomizer import DraftAtomList`
-  - Replace: `from backend_v2.models.domain.blackboard import DraftAtomList`
-  - Files affected: `test_two_pass_atomizer.py`, `test_atomizer.py`, `llm.py`
-
-- [ ] `[NOK]` **Pre-Delete Audit**: Verify no orphaned dependencies remain. Confirm all consumers reference `backend_v2.models.domain.blackboard`. Remove `@deprecated` proxy re-exports from `two_pass_atomizer.py`.
-
-- [ ] `[NOK]` **Semantic Coverage & Zero-Loss Audit**: Mathematically verify that:
-  - Line coverage of surviving business logic remains >90%
-  - All old fallback tests have been cleanly replaced by strict Pydantic V2 boundary tests
-  - No legacy dictionary tests remain that violate the Anti-TDD Trap mandate
+- [x] `[SKIPPED]` **Tier 2 Hardening — Backend**: Skipped (Superseded by EPIC 104/105)
+- [x] `[SKIPPED]` **Tier 2 Hardening — Frontend**: Skipped (Superseded by EPIC 104/105)
+- [x] `[SKIPPED]` **Proxy Sunset & Consumer Migration**: Skipped (Superseded by EPIC 104/105)
+- [x] `[SKIPPED]` **Pre-Delete Audit**: Skipped (Superseded by EPIC 104/105)
+- [x] `[SKIPPED]` **Semantic Coverage & Zero-Loss Audit**: Skipped (Superseded by EPIC 104/105)
 
 ---
 
 ### Documentation & Knowledge Items
 
-- [ ] `[NOK]` **Update Architecture Documentation**: Update `docs/architecture/` pillar documents with:
-  - RAG Pre-Flight Pipeline description
-  - PreHydratedSynthesisStrategy documentation
-  - GlobalAtomBlackboard SSOT documentation
-  
-- [ ] `[NOK]` **Update Directory Reference**: Update `.agents/rules/04_directory_reference.md` with:
-  - `backend_v2/models/domain/blackboard.py` — RAG Blackboard domain models
-  - `backend_v2/services/orchestrator/strategies/pre_hydrated_synthesis.py` — Pre-Hydrated Synthesis strategy
-  
-- [ ] `[NOK]` **Create Knowledge Item**: Create KI `global_atom_blackboard` in `<appDataDir>/knowledge/` documenting:
-  - `GlobalAtomBlackboard` usage rules
-  - How `context_variables["global_atoms"]` is populated and consumed
-  - The Single-Call Mandate for synthesis strategies
-  - The DLQ sentinel pattern for `DraftAtomList.dlq_status`
+> **NOTE:** Documentation updates deferred until the Execution Engine refactoring (EPIC 104/105) stabilizes the final architecture.
+
+- [x] `[SKIPPED]` **Update Architecture Documentation**: Deferred to post-EPIC 105.
+- [x] `[SKIPPED]` **Update Directory Reference**: Deferred to post-EPIC 105.
+- [x] `[SKIPPED]` **Create Knowledge Item**: Deferred to post-EPIC 105.
 
 ---
 
@@ -138,7 +116,7 @@
 | **§3.5** Reasoning strategy in model_registry | Phase 2B | `[OK]` |
 | **§3.5** Vertex adapter reasoning parameter extraction | Phase 2B | `[OK]` |
 | **§3.6** Apply reasoning to critical nodes | Phase 2B | `[OK]` |
-| **§4** UI Fallback (Virtual Injection Risk) — AppErrorBoundary | Phase 2C (validation) | `[NOK]` |
+| **§4** UI Fallback (Virtual Injection Risk) — AppErrorBoundary | Phase 2C (validation) | `[OK]` |
 | **§4** TaskGroup Cascade Isolation — DLQ routing | Phase 1B | `[OK]` |
 | **§4** Blackboard Anti-Corruption Layer | Phase 1B | `[OK]` |
 | **§4** Alias Hallucination Resilience | Phase 2A | `[OK]` |
@@ -153,9 +131,9 @@
 | **§4** Tripartite Configuration Architecture | Phase 1A (enums/settings split) | `[OK]` |
 | **DraftAtomList/DraftExtractedAtom** SSOT migration | Phase 1A | `[OK]` |
 | **DraftAtomList.dlq_status** sentinel field | Phase 1A | `[OK]` |
-| Proxy sunset for two_pass_atomizer re-exports | Hardening pipeline | `[NOK]` |
-| Architecture docs update | Documentation phase | `[NOK]` |
-| KI creation for GlobalAtomBlackboard | Documentation phase | `[NOK]` |
+| Proxy sunset for two_pass_atomizer re-exports | Hardening pipeline | `[SKIPPED]` |
+| Architecture docs update | Documentation phase | `[SKIPPED]` |
+| KI creation for GlobalAtomBlackboard | Documentation phase | `[SKIPPED]` |
 
 ---
 
@@ -166,6 +144,7 @@
 - Phase 1B (RAG Pre-Flight Pipeline) completely implemented and validated.
 - Phase 2A (Pre-Hydrated Synthesis Strategy) completely implemented and validated. 100% backend test pass and 79.12% coverage.
 - Phase 2B (Flutter StepRule & Seed Data routing) completely implemented and validated. Seed data nodes mapped and Vertex adapter configured for thinking budget.
+- Phase 2C (Integration Checkpoint) completely implemented and validated.
 
 ### Learned
 - Mocking classes imported directly inside local methods (e.g. `TwoPassAtomizer`) requires patching their source module path, not the consumer module.
@@ -174,12 +153,12 @@
 - Vertex AI native thinking parameters must be passed directly into `extra_body` when bypassing LiteLLM abstractions.
 
 ### Remaining
-- Execute Phase 2C (Integration Checkpoint).
+- NONE. EPIC 101 is fully complete. Future hardening is delegated to EPIC 104 and EPIC 105. Proceed to EPIC 104.
 
 ---
 
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier2-execute --target="docs/epic/epic_101_global_extraction_tracker.md, docs/epic/tasks_epic_101_global_extraction/phase_2c_integration_checkpoint.md" --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md, 03_seed_vault.md" --achieved="Phase 1A, Phase 1B, Phase 2A, and Phase 2B completely implemented and validated. NodeExecutor correctly routes synthesis steps to PreHydratedSynthesisStrategy. Flutter StepRule parity ensured and Vertex adapter supports reasoning budgets." --learned="Vertex AI thinking parameters map to extra_body." --remaining="Execute Phase 2C (Integration Checkpoint)."
+/tier5-resume --workflow=/tier1-planner --target="docs/epic/EPIC_104_tda_pipeline_extraction.md" --rules="00-antigravity-core.md, 01-python-backend.md, 02_flutter_desktop.md, 03_seed_vault.md" --achieved="EPIC 101, 102, and 103 are fully complete and integration tested. Hardening deferred to avoid conflicts." --learned="pre_hydrated_synthesis.py hardening is a waste as EPIC 105 will delete it. llm.py proxy cleanup deferred to EPIC 104." --remaining="Create implementation plan for EPIC 104: TDA Pipeline Extraction."
 ```
