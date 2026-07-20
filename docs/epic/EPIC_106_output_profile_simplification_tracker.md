@@ -119,6 +119,8 @@
 - **Phase 2 Complete**: Successfully refactored `SchemaFactory` into a registry pattern, threaded `expected_sdui_type`, passed all tests, and created the `sdui_schema_registry` Knowledge Item.
 - **Phase 2.5 Complete**: Migrated `worker.py` to extract runtime `sdui_type` via the `expected_sdui_type` attribute and handle schema construction independently of the OutputProfile.
 - **Phase 3 Complete**: Successfully pruned the Flutter `OutputProfile` model, updated fromJson/toJson factories, and purged obsolete UI components (`output_format_view.dart`, `synthesis_controls_view.dart`).
+- **Proxy Sunset Complete**: Destroyed lingering proxy references across the codebase and updated import paths.
+- **Tier 2 Hardening (Backend) Complete**: Enforced Phase 9 strictness across the new SSOT components (`registry.py`, `schema_factory.py`, `v2_core.py`). Specifically hoisted all standard inline imports to global scope and eliminated `extra="ignore"` legacy duck-typing in dynamic token shields. Passed Pytest, Mypy, and Ruff cleanly.
 
 ## Learned
 - `SynthesisConfigDTO` is still needed for `OutputLayoutBlock.synthesis` and `ReportLayoutDTO.synthesis` — only the profile-level `synthesis` field is removed.
@@ -129,6 +131,7 @@
 - The `Workflow` model does NOT yet have `allowed_exports` or `historical_context_mode` — Phase 0/1 adds them.
 - Flutter `output_profile.dart` has `SynthesisConfigDTO` imported from `synthesis_config_dto.dart` in `execution/models/`. This is also used by `OutputLayoutBlock.synthesis` in the same file, so it CANNOT be deleted — only the profile-level field is removed.
 - **Worker Schema Resolution**: Worker tasks must now resolve `sdui_type` using `profile.get("expected_sdui_type", "markdown")` instead of checking schema types directly, as the profile schema has been fully delegated to the Registry.
+- **Backend Token Shield Rigidity**: Pydantic dynamic models constructed via `create_model()` (e.g. `DynamicLLMExtractedQuote`) MUST use `ConfigDict(extra="forbid", strict=True, frozen=True)` instead of `extra="ignore"` unless they are an explicit data projection model.
 
 ## Remaining
 - **Tier 2 Hardening (Frontend)**: Hardening for Flutter models and views.
