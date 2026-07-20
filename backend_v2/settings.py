@@ -103,12 +103,8 @@ class Settings(BaseSettings):
     linker_max_atoms_per_window: Annotated[
         int, Field(description="Max atoms per LLM sliding window to prevent output truncation")
     ] = 20
-    tda_linker_window_size: Annotated[
-        int, Field(description="Sliding window size for TDA linker.")
-    ] = 4
-    tda_linker_overlap: Annotated[
-        int, Field(description="Overlap between sliding windows in TDA linker.")
-    ] = 2
+    tda_linker_window_size: Annotated[int, Field(description="Sliding window size for TDA linker.")] = 4
+    tda_linker_overlap: Annotated[int, Field(description="Overlap between sliding windows in TDA linker.")] = 2
     sensor_batch_size: Annotated[
         int, Field(description="Max atoms per Boolean evaluation batch to avoid rate limits")
     ] = 15

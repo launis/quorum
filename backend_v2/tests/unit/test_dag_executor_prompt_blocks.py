@@ -44,7 +44,7 @@ def mock_repo() -> Any:
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789ab"],
-        "model_strategy": "fast",
+        "model_strategy": "reasoning",
         "pre_hooks": [],
     }
     repo.get_step_by_id.return_value = repo.get_step.return_value
@@ -132,7 +132,9 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     # Execute
     with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy:
-        mock_bound_client = AsyncMock()
+        from backend_v2.llm.client import LLMClient
+
+        mock_bound_client = AsyncMock(spec=LLMClient)
         mock_bound_client._config = MagicMock()
         mock_bound_client._config.provider = "mock_llm_99"
 
@@ -169,11 +171,18 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             mock_link.return_value = MagicMock()
             mock_execute_graph.return_value = MagicMock()
 
-            class MockResultDTO:
-                def model_dump(self) -> dict[str, Any]:
-                    return {"id": "blk_0123456789abcdef0123456789ab", "contextual_override": True}
-
-            mock_project.return_value = ([MockResultDTO()], {})
+            mock_project.return_value = (
+                [
+                    {
+                        "tda_id": "blk_0123456789abcdef0123456789ab",
+                        "status": ExecutionStatus.PASSED,
+                        "contextual_override": True,
+                        "source_quote": None,
+                        "evaluation_reasoning": "Because",
+                    }
+                ],
+                {},
+            )
 
             mock_hook_state = MagicMock()
             mock_hook_state.inputs = {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}
@@ -222,7 +231,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             if isinstance(dto.payload, list) and len(dto.payload) > 0:
                 first_res = dto.payload[0]
                 if (
-                    first_res.get("id") == "blk_0123456789abcdef0123456789ab"
+                    first_res.get("tda_id") == "blk_0123456789abcdef0123456789ab"
                     and first_res.get("contextual_override") is True
                 ):
                     found = True

@@ -35,33 +35,33 @@
 - [x] Atomic `git commit` after quality gate passes.
 
 ### Phase 4: Engine Unit Tests & Strategy Test Modernization
-- [ ] **[NOK]** Execute [phase_4_testing.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_4_testing.md) via `/tier2-execute`
-- [ ] Atomic `git commit` after quality gate passes.
+- [x] **[OK]** Execute [phase_4_testing.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_4_testing.md) via `/tier2-execute`
+- [x] Atomic `git commit` after quality gate passes (attempted, user denied).
 
 ---
 
 ## Post-Extraction Pipeline
 
 ### Tier 2 Hardening
-- [ ] **[NOK]** Run `/tier2-hardening-backend` targeted at `backend_v2/services/orchestrator/engines/` and `backend_v2/models/dtos/engine.py`. After structural extraction (Zero Behavioral Change), modernize the new code's architecture to strict Pydantic V2, Push models, and PEP 257 docstrings via the Tier 2 Hardening Loop.
+- [x] **[OK]** Run `/tier2-hardening-backend` targeted at `backend_v2/services/orchestrator/engines/` and `backend_v2/models/dtos/engine.py`. After structural extraction (Zero Behavioral Change), modernize the new code's architecture to strict Pydantic V2, Push models, and PEP 257 docstrings via the Tier 2 Hardening Loop.
 
 ### Proxy Sunset & Consumer Migration
-- [ ] **[NOK]** Codebase-wide search for any remaining direct references to the old inline TDA pipeline pattern in `llm.py`. Verify no orphaned imports reference the 5 sub-services from within `llm.py`. Remove any deprecated proxy imports.
+- [x] **[OK]** Codebase-wide search for any remaining direct references to the old inline TDA pipeline pattern in `llm.py`. Verify no orphaned imports reference the 5 sub-services from within `llm.py`. Remove any deprecated proxy imports.
 
 ### Pre-Delete Audit
-- [ ] **[NOK]** Verify no orphaned dependencies remain from the old inline pipeline.
-- [ ] **[NOK]** Confirm `llm.py` no longer contains any inline `from backend_v2.services.orchestrator.two_pass_atomizer import` or similar.
-- [ ] **[NOK]** Confirm all consumers route through `TDAEngine`.
+- [x] **[OK]** Verify no orphaned dependencies remain from the old inline pipeline.
+- [x] **[OK]** Confirm `llm.py` no longer contains any inline `from backend_v2.services.orchestrator.two_pass_atomizer import` or similar.
+- [x] **[OK]** Confirm all consumers route through `TDAEngine`.
 
 ### Semantic Coverage & Zero-Loss Audit
-- [ ] **[NOK]** Mathematically verify that line coverage of the *surviving business logic* remains >90%.
-- [ ] **[NOK]** Verify all old inline pipeline tests have been replaced by strict `EngineExecutionResult` Pydantic V2 boundary tests.
-- [ ] **[NOK]** Compare final passing test count against `[BASELINE]`.
+- [x] **[OK]** Mathematically verify that line coverage of the *surviving business logic* remains >90%.
+- [x] **[OK]** Verify all old inline pipeline tests have been replaced by strict `EngineExecutionResult` Pydantic V2 boundary tests.
+- [x] **[OK]** Compare final passing test count against `[BASELINE]`.
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Update `docs/architecture/` with the new `ExecutionEngine` Protocol and `engines/` directory.
-- [ ] **[NOK]** Update `.agents/rules/04_directory_reference.md` to include the `engines/` subdirectory under the orchestrator module.
-- [ ] **[NOK]** Create a Knowledge Item (KI) for the `ExecutionEngine` Protocol SSOT in `<appDataDir>/knowledge/`.
+- [x] **[OK]** Update `docs/architecture/` with the new `ExecutionEngine` Protocol and `engines/` directory.
+- [x] **[OK]** Update `.agents/rules/04_directory_reference.md` to include the `engines/` subdirectory under the orchestrator module.
+- [x] **[OK]** Create a Knowledge Item (KI) for the `ExecutionEngine` Protocol SSOT in `<appDataDir>/knowledge/`.
 
 ---
 
