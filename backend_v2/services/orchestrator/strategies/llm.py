@@ -12,7 +12,10 @@ import json
 import logging
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
@@ -53,6 +56,49 @@ class LLMNodeStrategy(NodeStrategy):
     for token context explosion, and routes through either a standard structured prediction
     task or an autonomous MCP Tool Loop depending on step configuration.
     """
+
+    def __init__(
+        self,
+        exec_repo: Any,
+        workflow_repo: Any,
+        comp_repo: Any,
+        prompt_block_repo: Any,
+        output_profile_repo: Any,
+        identity_repo: Any,
+        audit_repo: Any,
+        system_repo: Any,
+        prompt_compiler: Any,
+        engine: ExecutionEngine,
+        arq_pool: Any | None = None,
+    ) -> None:
+        """Initialize the LLM strategy with a mandatory execution engine.
+
+        Args:
+            exec_repo: Execution repository.
+            workflow_repo: Workflow repository.
+            comp_repo: Component repository.
+            prompt_block_repo: Prompt block repository.
+            output_profile_repo: Output profile repository.
+            identity_repo: Identity repository.
+            audit_repo: Audit repository.
+            system_repo: System repository.
+            prompt_compiler: Prompt compiler.
+            engine: Mandatory execution engine instance.
+            arq_pool: Optional arq pool.
+        """
+        super().__init__(
+            exec_repo,
+            workflow_repo,
+            comp_repo,
+            prompt_block_repo,
+            output_profile_repo,
+            identity_repo,
+            audit_repo,
+            system_repo,
+            prompt_compiler,
+            arq_pool,
+        )
+        self._engine = engine
 
     async def execute(
         self,
@@ -557,60 +603,28 @@ class LLMNodeStrategy(NodeStrategy):
                 retry_count + 1,
             )
 
-            from backend_v2.services.llm_task_executor import LLMTaskExecutor
-            from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
-            from backend_v2.services.orchestrator.result_projector import ResultProjector
-            from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
-            from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
+            from backend_v2.models.dtos.engine import EngineExecutionRequest
 
-            llm_executor = LLMTaskExecutor(
-                self.compiler, default_validation_context={"execution_id": context.execution_id, "step_id": step.id}
+            engine_request = EngineExecutionRequest(
+                bound_client=bound_client,
+                compiled_schema=None,  # Epic 105 forward compatibility
+                hydrated_messages=None,  # Epic 105 forward compatibility
+                system_prompt=user_payload,
+                step=step,
+                context=context,
+                global_source_text=global_source_text,
+                target_locale=target_locale,
+                semaphore=semaphore,
+                running_event=running_event,
+                progress_callback=progress_callback,
+                trace_callback=None,  # Phase 2+ telemetry
+                prompt_compiler=self.compiler,
             )
-            atomizer = TwoPassAtomizer(llm_executor)
-            linker = SlidingWindowLinker(window_size=4, overlap=2)
-            dag_executor = EnrichedDagExecutor(llm_executor, bound_client)
-
-            chunk_size = get_settings().rag_preflight_chunk_size
-            text_chunks = [
-                global_source_text[i : i + chunk_size] for i in range(0, max(len(global_source_text), 1), chunk_size)
-            ]
-
-            async def phase_0_progress(completed: int, total: int) -> None:
-                if progress_callback:
-                    prog = int((completed / total) * 15)
-                    await progress_callback(prog, 100)
-
-            async def phase_1_progress(completed: int, total: int) -> None:
-                if progress_callback:
-                    prog = 15 + int((completed / total) * 20)
-                    await progress_callback(prog, 100)
-
-            async def linker_progress(completed: int, total: int) -> None:
-                if progress_callback:
-                    prog = 35 + int((completed / total) * 25)
-                    await progress_callback(prog, 100)
-
-            async def dag_progress(completed: int, total: int) -> None:
-                if progress_callback:
-                    prog = 60 + int((completed / total) * 40)
-                    await progress_callback(prog, 100)
-
-            ontology = await atomizer.execute_phase_0(bound_client, text_chunks, progress_callback=phase_0_progress)
-            atoms = await atomizer.execute_phase_1(
-                bound_client, text_chunks, ontology, progress_callback=phase_1_progress
-            )
-            nodes = await linker.link_graph(
-                llm_executor, bound_client, atoms, ontology, progress_callback=linker_progress
-            )
-            states = await dag_executor.execute_graph(
-                nodes, global_source_text, target_locale, progress_callback=dag_progress
-            )
-
-            results_dto, hydrated_refs = ResultProjector.project(nodes, states)
+            engine_result = await self._engine.execute(engine_request)
 
             final_dict = {
-                "results": [r.model_dump() for r in results_dto],
-                "hydrated_references": {k: v.model_dump() for k, v in hydrated_refs.items()},
+                "results": [r.model_dump() for r in engine_result.results],
+                "hydrated_references": {k: v.model_dump() for k, v in engine_result.hydrated_references.items()},
             }
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)

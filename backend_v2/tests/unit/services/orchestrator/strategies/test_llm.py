@@ -42,7 +42,14 @@ def mock_compiler() -> MagicMock:
 
 
 @pytest.fixture
-def llm_strategy(mock_repo: MagicMock, mock_compiler: MagicMock) -> LLMNodeStrategy:
+def mock_engine() -> MagicMock:
+    engine = AsyncMock()
+    engine.execute = AsyncMock()
+    return engine
+
+
+@pytest.fixture
+def llm_strategy(mock_repo: MagicMock, mock_compiler: MagicMock, mock_engine: MagicMock) -> LLMNodeStrategy:
     return LLMNodeStrategy(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
@@ -53,6 +60,7 @@ def llm_strategy(mock_repo: MagicMock, mock_compiler: MagicMock) -> LLMNodeStrat
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
+        engine=mock_engine,
     )  # noqa: E501
 
 
@@ -303,32 +311,22 @@ async def test_execute_success_path_structured_output(
 
     from unittest.mock import AsyncMock, patch
 
+    from backend_v2.models.dtos.engine import EngineExecutionResult
+
+    llm_strategy._engine.execute.return_value = EngineExecutionResult(  # type: ignore
+        results=[], hydrated_references={}
+    )
+
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
         patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
-        patch(
-            "backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_0", new_callable=AsyncMock
-        ) as mock_phase_0,
-        patch(
-            "backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer.execute_phase_1", new_callable=AsyncMock
-        ) as mock_phase_1,
-        patch(
-            "backend_v2.services.orchestrator.sliding_window_linker.SlidingWindowLinker.link_graph",
-            new_callable=AsyncMock,
-        ) as mock_link,
-        patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.EnrichedDagExecutor.execute_graph",
-            new_callable=AsyncMock,
-        ) as mock_execute_graph,
-        patch("backend_v2.services.orchestrator.result_projector.ResultProjector.project") as mock_project,
+        patch("backend_v2.models.dtos.engine.EngineExecutionRequest"),
     ):
         mock_pre.return_value = (mock_hook_state, [])
         mock_post_hook_state = MagicMock()
         mock_post_hook_state.inputs = {"blocks": []}
         mock_post.return_value = (mock_post_hook_state, [])
-
-        mock_project.return_value = ([], {})
 
         traces = await llm_strategy.execute(
             step=step,
@@ -343,10 +341,7 @@ async def test_execute_success_path_structured_output(
     assert traces[0].event_type == "output"
 
     # Verify that DAG components were invoked
-    mock_phase_0.assert_called_once()
-    mock_phase_1.assert_called_once()
-    mock_link.assert_called_once()
-    mock_execute_graph.assert_called_once()
+    llm_strategy._engine.execute.assert_called_once()  # type: ignore
 
 
 def test_configure_llm_context_hook_success() -> None:

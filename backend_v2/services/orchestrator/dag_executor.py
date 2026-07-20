@@ -257,6 +257,8 @@ class NodeExecutor:
                     arq_pool=arq_pool,
                 )
             elif step_def.model_strategy == "reasoning":
+                from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
+
                 strategy_impl = LLMNodeStrategy(
                     self.exec_repo,
                     self.workflow_repo,
@@ -267,20 +269,16 @@ class NodeExecutor:
                     self.audit_repo,
                     self.system_repo,
                     self.compiler,
+                    engine=TDAEngine(self.compiler),
                     arq_pool=arq_pool,
                 )
             else:
-                strategy_impl = LLMNodeStrategy(
-                    self.exec_repo,
-                    self.workflow_repo,
-                    self.comp_repo,
-                    self.prompt_block_repo,
-                    self.output_profile_repo,
-                    self.identity_repo,
-                    self.audit_repo,
-                    self.system_repo,
-                    self.compiler,
-                    arq_pool=arq_pool,
+                msg = f"Unknown model strategy '{step_def.model_strategy}' for step {step.id}."
+                logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
             org_id = metadata["organization_id"] if "organization_id" in metadata else None

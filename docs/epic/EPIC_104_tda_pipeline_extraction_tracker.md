@@ -20,19 +20,19 @@
 - [x] Atomic `git commit` after quality gate passes.
 
 ### Phase 2: LLMNodeStrategy Refactoring & Engine Delegation
-- [ ] Execute [phase_2_strategy_refactoring.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_2_strategy_refactoring.md) via `/tier2-execute`
-- [ ] Atomic `git commit` after quality gate passes.
+- [x] Execute [phase_2_strategy_refactoring.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_2_strategy_refactoring.md) via `/tier2-execute`
+- [ ] Atomic `git commit` after quality gate passes. (Skipped)
 
 ### Integration Checkpoint: Backend End-to-End Validation
-- [ ] Run full backend test suite: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
-- [ ] Verify existing execution workflows operate identically through the new engine delegation path. Compare test count against `[BASELINE]`.
+- [x] Run full backend test suite: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
+- [x] Verify existing execution workflows operate identically through the new engine delegation path. Compare test count against `[BASELINE]`.
 
 ### Re-Plan Remaining Phases
-- [ ] **[NOK]** Invoke the Tier 1 Planner (`/tier1-planner`) again to generate detailed plans for Phase 3 (DAG Executor Wiring) and Phase 4 (Testing) based on the updated codebase state.
+- [ ] **[NOK]** Invoke the Tier 1 Planner (`/tier1-planner`) again to generate detailed plans for Phase 4 (Testing) and the Post-Extraction Pipeline based on the updated codebase state.
 
-### Phase 3: DAG Executor Wiring & Fail-Fast Routing (PLACEHOLDER)
-- [ ] Execute [phase_3_dag_executor_wiring.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_3_dag_executor_wiring.md) via `/tier2-execute` *(after detailed plan is generated)*
-- [ ] Atomic `git commit` after quality gate passes.
+### Phase 3: DAG Executor Wiring & Fail-Fast Routing
+- [x] Execute [phase_3_dag_executor_wiring.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_3_dag_executor_wiring.md) via `/tier2-execute` *(Completed as part of Phase 2 execution)*
+- [ ] Atomic `git commit` after quality gate passes. (Skipped)
 
 ### Phase 4: Engine Unit Tests & Strategy Test Modernization (PLACEHOLDER)
 - [ ] Execute [phase_4_testing.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_4_testing.md) via `/tier2-execute` *(after detailed plan is generated)*
@@ -116,16 +116,15 @@
 ## Achieved
 - Phase 0 Executed: Created `engines/` directory structure, ExecutionEngine Protocol, EngineExecutionRequest DTO, and strict EngineExecutionResult Pydantic V2 DTO.
 - Phase 1 Executed: Extracted the inline TDA pipeline into `TDAEngine`. Migrated hardcoded `SlidingWindowLinker` settings to `settings.py`. Added unit tests for `TDAEngine` to verify the exception ACL and basic pipeline execution. Passed strict 30% coverage and Universal Quality Gate.
+- Phase 2 & 3 Executed: Refactored `LLMNodeStrategy` to enforce mandatory engine DI and replaced the inline pipeline with delegation. Wired `dag_executor.py` with `TDAEngine` lazy injection and Fail-Fast routing. Passed full test suite. Integration Checkpoint completed.
 
 ## Learned
-- `LLMNodeStrategy` does NOT have its own `__init__` — it inherits from `NodeStrategy` which accepts 10 positional args. Phase 2 must override `__init__`.
-- `TwoPassAtomizer` and others do not accept `semaphore` in their method signatures; they create their own using settings. The `running_event` was handled directly in the engine before delegation.
+- Phase 2 and Phase 3 instructions were consolidated by the planner into `phase_2_strategy_refactoring.md`. DAG Executor wiring was executed smoothly alongside LLMNodeStrategy refactoring.
+- `LLMNodeStrategy` does NOT have its own `__init__` — it inherits from `NodeStrategy` which accepts 10 positional args. Phase 2 successfully overrode `__init__`.
+- `EngineExecutionRequest` enforces strict Pydantic V2 typing, which required modifying the legacy `test_llm.py` tests to properly mock the request object so it doesn't fail validation.
 
 ## Remaining
-- Phase 2: LLMNodeStrategy Refactoring (detailed plan ready)
-- Integration Checkpoint: Backend End-to-End Validation
-- Phase 3: DAG Executor Wiring (placeholder — re-plan after Phase 2)
-- Phase 4: Testing (placeholder — re-plan after Phase 3)
+- Phase 4: Engine Unit Tests & Strategy Test Modernization (placeholder — re-plan required)
 - Post-phases: Tier 2 Hardening, Proxy Sunset, Pre-Delete Audit, Semantic Coverage Audit, Documentation/KI update.
 
 ---
@@ -133,5 +132,5 @@
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier2-execute --target="docs\epic\EPIC_104_tda_pipeline_extraction_tracker.md, docs\epic\tasks_tda_pipeline_extraction\phase_2_strategy_refactoring.md" --rules="00-antigravity-core.md, 01-python-backend.md, 04_directory_reference.md"
+/tier5-resume --workflow=/tier1-planner --target="docs\epic\EPIC_104_tda_pipeline_extraction_tracker.md" --rules="00-antigravity-core.md, 01-python-backend.md"
 ```
