@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -69,13 +70,17 @@ class LLMTaskExecutor:
     managing Self-Healing retries and strict FinOps token accumulation.
     """
 
-    def __init__(self, prompt_compiler: PromptCompiler) -> None:
+    def __init__(
+        self, prompt_compiler: PromptCompiler, default_validation_context: dict[str, Any] | None = None
+    ) -> None:
         """Initialize the executor.
 
         Args:
             prompt_compiler: The centralized compiler used for self-healing prompts.
+            default_validation_context: A fallback context containing execution_id and step_id.
         """
         self.prompt_compiler = prompt_compiler
+        self.default_validation_context = default_validation_context
 
     async def execute_structured_task[T: BaseModel](
         self,
@@ -112,6 +117,8 @@ class LLMTaskExecutor:
         """
         cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
+        effective_validation_context = validation_context or self.default_validation_context
+
         prompt_adapter = PromptCompilerAdapter()
 
         if isinstance(messages, CompiledPrompt):
@@ -119,8 +126,8 @@ class LLMTaskExecutor:
         else:
             compiled_prompt = prompt_adapter.compile_prompt(messages)
 
-        if validation_context:
-            compiled_prompt = compiled_prompt.model_copy(update={"metadata": validation_context})
+        if effective_validation_context:
+            compiled_prompt = compiled_prompt.model_copy(update={"metadata": effective_validation_context})
 
         base_compiled_prompt = compiled_prompt.model_copy(deep=True)
 
@@ -145,12 +152,50 @@ class LLMTaskExecutor:
         try:
             for attempt in range(max_total_attempts):
                 try:
+                    telemetry_start_time = time.time()
                     validated_model, usage = await client.run_structured_task(
                         messages=compiled_prompt,
                         response_model=response_model,
                         mock_identity=mock_identity,
-                        validation_context=validation_context,
+                        validation_context=effective_validation_context,
                     )
+                    duration_ms = int((time.time() - telemetry_start_time) * 1000)
+
+                    try:
+                        exec_id = (
+                            effective_validation_context.get("execution_id", "global")
+                            if effective_validation_context
+                            else "global"
+                        )
+                        step_id = (
+                            effective_validation_context.get("step_id", "unknown_step")
+                            if effective_validation_context
+                            else "unknown_step"
+                        )
+                        cache_hit = (
+                            getattr(usage, "cached_tokens", 0) > 0
+                            if not isinstance(usage, dict)
+                            else usage.get("cached_tokens", 0) > 0
+                        )
+                        tokens = (
+                            getattr(usage, "total_tokens", 0)
+                            if not isinstance(usage, dict)
+                            else usage.get("total_tokens", 0)
+                        )
+                        trigger_reason = "initial" if attempt == 0 else "self_healing_retry"
+
+                        from backend_v2.utils.llm_debug_logger import write_llm_telemetry_log
+
+                        write_llm_telemetry_log(
+                            execution_id=exec_id,
+                            step_id=step_id,
+                            duration_ms=duration_ms,
+                            cache_hit=cache_hit,
+                            tokens=tokens,
+                            trigger_reason=trigger_reason,
+                        )
+                    except Exception as t_err:
+                        logger.warning(f"Telemetry logging failed: {t_err}")
 
                     # FinOps Accumulation
                     cumulative_usage = cumulative_usage + TokenUsage.model_validate(usage)
@@ -228,7 +273,9 @@ class LLMTaskExecutor:
                         error_msg=error_msg,
                         is_logical_error=False,
                         is_eof=is_eof,
-                        strictness_level=validation_context.get("strictness_level") if validation_context else None,
+                        strictness_level=effective_validation_context.get("strictness_level")
+                        if effective_validation_context
+                        else None,
                     )
 
                     healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
@@ -287,7 +334,9 @@ class LLMTaskExecutor:
                         error_msg=error_msg,
                         is_logical_error=True,
                         is_eof=False,
-                        strictness_level=validation_context.get("strictness_level") if validation_context else None,
+                        strictness_level=effective_validation_context.get("strictness_level")
+                        if effective_validation_context
+                        else None,
                     )
 
                     failed_json = validated_model.model_dump_json() if validated_model else "{}"
@@ -332,8 +381,8 @@ class LLMTaskExecutor:
         finally:
             if client._config and client._config.caching_strategy:
                 workflow_run_id = "default_run"
-                if validation_context and "workflow_run_id" in validation_context:
-                    workflow_run_id = validation_context["workflow_run_id"]
+                if effective_validation_context and "workflow_run_id" in effective_validation_context:
+                    workflow_run_id = effective_validation_context["workflow_run_id"]
 
                 try:
                     await LLMCachingService.teardown_workflow_caches(

@@ -110,7 +110,10 @@ class ChatParserService:
         try:
             # V2 Strict Output Generation
             parsed_data, _ = await executor.execute_structured_task(
-                client=llm_client, messages=messages, response_model=ChatHistoryDTO
+                client=llm_client,
+                messages=messages,
+                response_model=ChatHistoryDTO,
+                validation_context={"execution_id": "global", "step_id": "chat_parser"},
             )
 
             if not parsed_data.conversation:

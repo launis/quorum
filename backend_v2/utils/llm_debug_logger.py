@@ -115,8 +115,7 @@ def write_llm_telemetry_log(
         return
 
     target_dir = Path("data") / "files" / "executions" / execution_id
-    if not target_dir.exists():
-        return
+    target_dir.mkdir(parents=True, exist_ok=True)
 
     telemetry_file = target_dir / "llm_telemetry.jsonl"
 

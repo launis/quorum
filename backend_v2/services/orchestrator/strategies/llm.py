@@ -563,7 +563,9 @@ class LLMNodeStrategy(NodeStrategy):
             from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
             from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
-            llm_executor = LLMTaskExecutor(self.compiler)
+            llm_executor = LLMTaskExecutor(
+                self.compiler, default_validation_context={"execution_id": context.execution_id, "step_id": step.id}
+            )
             atomizer = TwoPassAtomizer(llm_executor)
             linker = SlidingWindowLinker(window_size=4, overlap=2)
             dag_executor = EnrichedDagExecutor(llm_executor, bound_client)
