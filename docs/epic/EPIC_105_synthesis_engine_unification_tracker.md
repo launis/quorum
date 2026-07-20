@@ -24,20 +24,20 @@
 ### Phase 1: SynthesisEngine Extraction (Backend — New SSOT Component)
 - [x] Red-Team**: Run `/tier0-research-plan` on [phase_1_synthesis_engine_extraction.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_1_synthesis_engine_extraction.md) in a fresh context window. This phase introduces a NEW SSOT component (`SynthesisEngine`) and modifies core `EngineExecutionResult` DTO — high-risk.
 - [x] Execute Phase 1**: Run `/tier2-execute` on [phase_1_synthesis_engine_extraction.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_1_synthesis_engine_extraction.md)
-  - [ ] Milestone 1.1: Extend `EngineExecutionResult` with `synthesis_output` and `trace_events` fields
-  - [ ] Milestone 1.2: Create `synthesis_engine.py` implementing `ExecutionEngine` Protocol
-  - [ ] Milestone 1.3: Register in `engines/__init__.py`
-  - [ ] Create unit tests in `tests/unit/services/orchestrator/engines/test_synthesis_engine.py`
-  - [ ] Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` — full backend audit pass
+  - [x] Milestone 1.1: Extend `EngineExecutionResult` with `synthesis_output` and `trace_events` fields
+  - [x] Milestone 1.2: Create `synthesis_engine.py` implementing `ExecutionEngine` Protocol
+  - [x] Milestone 1.3: Register in `engines/__init__.py`
+  - [x] Create unit tests in `tests/unit/services/orchestrator/engines/test_synthesis_engine.py`
+  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` — full backend audit pass
 
 ---
 
 ### Phase 2: DAG Executor Wiring & Synthesis Compilation Branch (Backend — God Object Mutation)
 - [x] Red-Team**: Run `/tier0-research-plan` on [phase_2_dag_wiring_and_synthesis_branch.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_2_dag_wiring_and_synthesis_branch.md) in a fresh context window. This phase mutates `dag_executor.py` (God Object ecosystem) — high-risk.
 - [x] Execute Phase 2**: Run `/tier2-execute` on [phase_2_dag_wiring_and_synthesis_branch.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_2_dag_wiring_and_synthesis_branch.md)
-  - [ ] Milestone 2.1: Replace if/elif/else routing with Factory-Based Strategy Registry in `dag_executor.py`
-  - [ ] Milestone 2.2: Add synthesis-specific pre-compilation branch to `LLMNodeStrategy.execute()` in `llm.py`
-  - [ ] Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` — full backend audit pass
+  - [x] Milestone 2.1: Replace if/elif/else routing with Factory-Based Strategy Registry in `dag_executor.py`
+  - [x] Milestone 2.2: Add synthesis-specific pre-compilation branch to `LLMNodeStrategy.execute()` in `llm.py`
+  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` — full backend audit pass
 
 ---
 
@@ -129,12 +129,10 @@
 - `strategies/__init__.py` does NOT export `PreHydratedSynthesisStrategy` (it uses a lazy inline import in `dag_executor.py`).
 
 ## Remaining
-- Execute Phase 0 → Phase 1 → Phase 2 (detailed plans ready).
-- After Phase 2, invoke Tier 1 Planner again for remaining phases.
-- Phases 3-4 + Post-Extraction Pipeline + Documentation.
+- **EPIC 105 is complete.** You are ready for the next Epic assignment.
 
 ---
 
-```
-/tier5-resume --workflow=/tier2-execute --target="docs\epic\EPIC_105_synthesis_engine_unification_tracker.md, docs\epic\EPIC_105_synthesis_engine_unification.md" --rules="00-antigravity-core.md, 01-python-backend.md, 03_seed_vault.md"
+```bash
+/tier0-create-plan --target="[Next Epic Path]" --instruction="Epic 105 is complete. Proceed to the next objective."
 ```

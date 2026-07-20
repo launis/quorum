@@ -98,8 +98,6 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
 
     # --- System Concurrency (Migrated from Enums) ---
-    ensemble_parallelism: Annotated[int, Field(description="Number of parallel Bo3 calls")] = 3
-    ensemble_min_consensus: Annotated[int, Field(description="Minimum agreeing votes for consensus")] = 2
     linker_max_atoms_per_window: Annotated[
         int, Field(description="Max atoms per LLM sliding window to prevent output truncation")
     ] = 20
@@ -131,7 +129,7 @@ class Settings(BaseSettings):
     semaphore_low_rpm_limit: Annotated[int, Field(description="Concurrency limit for low RPM environments")] = 2
     semaphore_max_concurrency: Annotated[int, Field(description="Max simultaneous active LLM connections")] = 10
     semaphore_rpm_divisor: Annotated[int, Field(description="Divisor applied to requested RPM constraint")] = 10
-    max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 1000000
+    max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
     schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
     context_cache_lock_ttl_seconds: Annotated[int, Field(description="Time-to-live for Vertex caching lock")] = 300
     context_cache_passive_ttl_seconds: Annotated[int, Field(description="Lifespan of Vertex context cache")] = 3600
@@ -152,6 +150,18 @@ class Settings(BaseSettings):
     def llm_max_retries(self) -> int:
         """Dynamic retries based on execution mode."""
         return 0 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 2
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def ensemble_parallelism(self) -> int:
+        """Dynamic parallel BoX calls based on execution mode."""
+        return 1 if self.environment.lower() == "development" else 3
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def ensemble_min_consensus(self) -> int:
+        """Dynamic consensus votes based on execution mode."""
+        return 1 if self.environment.lower() == "development" else 2
 
     # --- Logging ---
     use_json_logging: Annotated[

@@ -7610,7 +7610,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7624,7 +7623,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7653,7 +7651,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7667,7 +7664,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7681,7 +7677,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7709,7 +7704,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7723,7 +7717,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7737,7 +7730,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7751,7 +7743,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7766,7 +7757,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7780,7 +7770,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7801,7 +7790,6 @@
                     "input_mappings": {
                         "prior_analysis": "$steps"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 },
                 {
@@ -7825,7 +7813,6 @@
                         "results": "$steps.sr_2fa56dc36614469a",
                         "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
                     },
-                    "engine_override": "SYNTHESIS",
                     "expected_sdui_type": "markdown"
                 }
             ],
