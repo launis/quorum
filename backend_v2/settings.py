@@ -5,9 +5,9 @@ import os
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import AliasChoices, BeforeValidator, Field, computed_field
+from pydantic import AliasChoices, BeforeValidator, Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -144,6 +144,13 @@ class Settings(BaseSettings):
     pii_spacy_max_chunk_chars: Annotated[
         int, Field(description="Max characters per SpaCy NLP chunk to prevent E088 OOM")
     ] = 800000
+
+    max_tool_calls_per_step: Annotated[int, Field(description="Limits external searches")] = 3
+    max_development_chunks: Annotated[int, Field(description="Limits chunks in dev")] = 0
+    matrix_sampling_limit: Annotated[int, Field(description="Limits V2 Matrix items")] = 0
+    schema_max_localized_anchors: Annotated[int, Field(description="Max localized anchors")] = 15
+    schema_max_quotes_target: Annotated[int, Field(description="Target quotes count")] = 5
+    schema_max_quote_length: Annotated[int, Field(description="Target quote length")] = 150
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -498,6 +505,26 @@ class Settings(BaseSettings):
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
+    @model_validator(mode="after")
+    def _enforce_fast_mode_limits(self) -> Self:
+        """Aggressively clamp heavy configurations during 'fast' development mode."""
+        if self.environment.lower() == "development" and self.dev_execution_mode == "fast":
+
+            self.max_tool_calls_per_step = 1
+            self.max_development_chunks = 1
+            self.matrix_sampling_limit = 2
+            self.schema_max_localized_anchors = 2
+            self.schema_max_quotes_target = 1
+            self.schema_max_quote_length = 50
+            self.schema_max_evaluations = 1
+            self.tavily_max_results = 1
+            self.max_precedent_scan_depth = 0
+            self.max_precedent_return_count = 0
+            self.tda_linker_window_size = 2
+            self.tda_linker_overlap = 0
+
+        return self
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def enabled_providers(self) -> list[str]:
@@ -543,45 +570,15 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def max_tool_calls_per_step(self) -> int:
-        """Limits external searches (Tavily) in dev to save API quota."""
-        return 1 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 3
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
     def schema_max_chunk_records(self) -> int:
         """Maximum number of records (main + context) the LLM is expected to parse in a single chunk."""
         return self.llm_max_chunk_size + 5
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def matrix_sampling_limit(self) -> int:
-        """Limits items processed in V2 Matrix Execution."""
-        return 2 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 0
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def schema_max_localized_anchors(self) -> int:
-        """Strict limits for LLM token stability (localized context blocks)."""
-        return 2 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 15
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
     def schema_max_source_aliases(self) -> int:
         """Target limits for source document array (logically bound to quote limit, capped by chunk size)."""
         return min(self.schema_max_quotes_target, self.schema_max_chunk_records)
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def schema_max_quotes_target(self) -> int:
-        """Target limits for JSON response quote counts."""
-        return 1 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 5
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def schema_max_quote_length(self) -> int:
-        """Target limits for JSON response quote lengths."""
-        return 50 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 150
 
     @computed_field  # type: ignore[prop-decorator]
     @property

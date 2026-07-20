@@ -871,6 +871,14 @@ class DAGExecutor:
             chunk_size = get_settings().rag_preflight_chunk_size
             text_chunks = [text_content[i : i + chunk_size] for i in range(0, max(len(text_content), 1), chunk_size)]
 
+            # Check from Epic tracker limit: Limit chunks in dev mode
+            max_dev_chunks = get_settings().max_development_chunks
+            if max_dev_chunks > 0 and len(text_chunks) > max_dev_chunks:
+                logger.warning(
+                    "[DEV MODE] Slicing text_chunks from %d to %d to save tokens.", len(text_chunks), max_dev_chunks
+                )
+                text_chunks = text_chunks[:max_dev_chunks]
+
             base_progress = (processed_files / total_files) * 100
             local_slice = 100 / total_files
 

@@ -110,6 +110,8 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         mock_settings.return_value.max_extracted_atoms_per_document = 2
         mock_settings.return_value.schema_max_evaluations = 100
         mock_settings.return_value.max_concurrent_llm_steps = 5
+        mock_settings.return_value.rag_preflight_chunk_size = 12000
+        mock_settings.return_value.max_development_chunks = 0
 
         mock_atomizer = mock_atomizer_class.return_value
         mock_atomizer.execute_phase_0 = AsyncMock()
