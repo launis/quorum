@@ -64,11 +64,23 @@ class SchemaBuilderStrategy(ABC):
     """Abstract base for SDUI schema builder strategies."""
 
     @abstractmethod
-    def build_schema(self, **kwargs: Any) -> type[BaseModel]:
+    def build_schema(
+        self,
+        step: "StepRule",
+        target_locale: str,
+        output_profile: "EmbeddedOutputProfile | None" = None,
+        workflow_def: dict[str, Any] | None = None,
+        criteria_blocks: list["PromptBlock"] | None = None,
+        block_map: dict[str, "PromptBlock"] | None = None,
+        state_data: dict[str, Any] | None = None,
+        input_mappings: list["InputMapping"] | None = None,
+    ) -> type[BaseModel]:
         """Build and return the Pydantic model for this SDUI type.
 
         Args:
-            **kwargs: Strategy-specific parameters (criteria, locale, etc.).
+            step: The current StepRule.
+            target_locale: The locale for resolving labels.
+            ... (other explicit arguments instead of kwargs)
 
         Returns:
             A dynamically constructed Pydantic V2 model class.
@@ -103,6 +115,7 @@ def get_schema_strategy(sdui_type: str) -> type[SchemaBuilderStrategy]:
 
 1. **`MarkdownSchemaStrategy`**: Returns the static `GlobalSynthesisDTO` — eliminates unnecessary `create_model()` overhead for synthesis/markdown steps.
 2. **`GridSchemaStrategy`**: Encapsulates the dynamic column generation logic currently inside `SchemaFactory.build_dynamic_schema()`.
+3. **`HeroInsightSchemaStrategy`**: [RED TEAM ADDITION] Returns `GlobalSynthesisDTO` (similar to Markdown) to prevent Fail-Fast crashes when the `"hero_insight"` literal is encountered in seed data.
 
 ---
 
@@ -119,11 +132,17 @@ def get_schema_strategy(sdui_type: str) -> type[SchemaBuilderStrategy]:
   ```python
   match expected_sdui_type:
       case "markdown":
-          strategy = get_schema_strategy("markdown")
-          return strategy.build_schema(...)
+          strategy_cls = get_schema_strategy("markdown")
+          strategy = strategy_cls(resolve_i18n=self._resolve_i18n)  # [RED TEAM ADDITION: Inject DI dependency]
+          return strategy.build_schema(step=step, target_locale=target_locale, ...)
       case "grid":
-          strategy = get_schema_strategy("grid")
-          return strategy.build_schema(criteria=criteria, ...)
+          strategy_cls = get_schema_strategy("grid")
+          strategy = strategy_cls(resolve_i18n=self._resolve_i18n)
+          return strategy.build_schema(step=step, target_locale=target_locale, ...)
+      case "hero_insight":
+          strategy_cls = get_schema_strategy("hero_insight")
+          strategy = strategy_cls(resolve_i18n=self._resolve_i18n)
+          return strategy.build_schema(step=step, target_locale=target_locale, ...)
       case _:
           raise AppException(
               message=f"Fail-Fast: Unknown expected_sdui_type '{expected_sdui_type}'",
@@ -159,10 +178,10 @@ def get_schema_strategy(sdui_type: str) -> type[SchemaBuilderStrategy]:
 
 ### TARGET (Modify): [llm.py](file:///c:/src/quorum/backend_v2/services/orchestrator/strategies/llm.py)
 
-- **DELETE** lines 336 and 456-458 that read `output_profile.formatting_directives` and inject them into `exec_params`.
+- **[RED TEAM DELETION / CORRECTION]**: Phase 1 has *ALREADY* completely removed `formatting_directives` from `llm.py`. A live code check confirms lines 336 and 456-458 are no longer present.
+- **ACTION**: No destructive edits are required in `llm.py` for `formatting_directives`. Verify it doesn't exist, and proceed.
 - Formatting directives are now exclusively sourced from `PromptBlock` (e.g., `EXECUTION_PERSONA` category) by the `PromptCompiler`.
 - Ensure `tone_instruction` is still correctly sourced from `OutputProfile` (it is retained).
-- **CRITICAL**: This deletion MUST be committed atomically with Phase 2.5 (worker.py cleanup). If Phase 2.5 is not ready, this milestone MUST wait.
 
 ### CONTEXT (Read-Only):
 - [worker.py](file:///c:/src/quorum/backend_v2/worker.py) — Lines 795-797. Phase 2.5 handles this file.
@@ -180,8 +199,8 @@ def get_schema_strategy(sdui_type: str) -> type[SchemaBuilderStrategy]:
 
 | Symbol | Location Before | Location After | Status |
 |--------|----------------|----------------|--------|
-| `formatting_directives=list(p.formatting_directives)` | `llm.py:336` | REMOVED | **INTENTIONALLY DROPPED** — Formatting is now sourced from PromptBlock via PromptCompiler |
-| `if output_profile.formatting_directives:` block | `llm.py:456-458` | REMOVED | **INTENTIONALLY DROPPED** — Same reason |
+| `formatting_directives=list(p.formatting_directives)` | `llm.py` | ALREADY REMOVED | **COMPLETED IN PHASE 1** — Verified by Red Team during Tier 0. |
+| `if output_profile.formatting_directives:` block | `llm.py` | ALREADY REMOVED | **COMPLETED IN PHASE 1** — Verified by Red Team during Tier 0. |
 
 ---
 
