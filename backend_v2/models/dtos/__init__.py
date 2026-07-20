@@ -3,6 +3,7 @@
 __all__ = [
     "base",
     "dag_models",
+    "engine",
     "evaluation_steps",
     "inputs",
     "lightweight_matrix",

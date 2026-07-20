@@ -1,7 +1,5 @@
-import pytest
-
-from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
 
 
 def test_pure_average_engine_calculate() -> None:

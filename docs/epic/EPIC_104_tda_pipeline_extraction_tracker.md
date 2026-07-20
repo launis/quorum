@@ -11,8 +11,8 @@
 
 ### Phase 0: Protocol Prerequisites & Directory Structure
 - [ ] **[Tier 0 Red-Team]** Run `/tier0-research-plan` on [phase_0_protocol_prerequisites.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_0_protocol_prerequisites.md) in a fresh context window. *(High-risk: new SSOT Protocol + DTOs)*
-- [ ] **[BASELINE]** Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` and record passing test count.
-- [ ] Execute [phase_0_protocol_prerequisites.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_0_protocol_prerequisites.md) via `/tier2-execute`
+- [x] **[BASELINE]** Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` and record passing test count: 1110 tests passed.
+- [x] Execute [phase_0_protocol_prerequisites.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_0_protocol_prerequisites.md) via `/tier2-execute`
 - [ ] Atomic `git commit` after quality gate passes.
 
 ### Phase 1: TDA Engine Extraction & Settings Migration

@@ -18,7 +18,7 @@ def mock_auth_service() -> AsyncMock:
 
 @pytest.mark.asyncio
 async def test_get_all_organizations(mock_current_user: TokenData, mock_auth_service: AsyncMock) -> None:
-    mock_auth_service.org_repo.list_all.return_value = []
+    mock_auth_service.list_organizations.return_value = []
     res = await get_all_organizations(current_user=mock_current_user, auth_service=mock_auth_service)
     assert res == []
 

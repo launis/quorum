@@ -1,0 +1,72 @@
+"""Engine Data Transfer Objects.
+
+Provides the strict Pydantic V2 schemas for engine execution.
+"""
+
+import asyncio
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any
+
+from pydantic import BaseModel, ConfigDict
+
+from backend_v2.llm.client import LLMClient
+from backend_v2.models.state import TraceEvent
+from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule
+from backend_v2.services.orchestrator.strategies.base import StrategyContext
+
+if TYPE_CHECKING:
+    pass
+
+
+class EngineExecutionRequest(BaseModel):
+    """Request DTO for execution engines.
+
+    Carries all required context, rules, and telemetry hooks for engine evaluation.
+
+    Attributes:
+        bound_client: The initialized LLM client.
+        compiled_schema: Forward compatibility for SynthesisEngine schema.
+        hydrated_messages: Forward compatibility for SynthesisEngine messages.
+        system_prompt: The compiled system prompt.
+        step: The step configuration.
+        context: Immutable strategy context.
+        global_source_text: The full source document text.
+        target_locale: The target locale for the evaluation.
+        semaphore: Concurrency limiter.
+        running_event: Cancellation trigger.
+        progress_callback: Progress reporting callback.
+        trace_callback: Live telemetry flush callback.
+        prompt_compiler: The prompt compiler instance.
+    """
+
+    bound_client: LLMClient
+    compiled_schema: type[BaseModel] | None
+    hydrated_messages: list[dict[str, str]] | None
+    system_prompt: str
+    step: StepRule
+    context: StrategyContext
+    global_source_text: str
+    target_locale: str | None
+    semaphore: asyncio.Semaphore
+    running_event: asyncio.Event | None
+    progress_callback: Callable[[int, int], Awaitable[None]] | None
+    trace_callback: Callable[[TraceEvent], Awaitable[None]] | None
+    prompt_compiler: Any
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)
+
+
+class EngineExecutionResult(BaseModel):
+    """Result DTO for execution engines.
+
+    Carries the final projected atom results and their hydrated references.
+
+    Attributes:
+        results: Projected atom results.
+        hydrated_references: Hydrated atom references.
+    """
+
+    results: list[AtomResultDTO]
+    hydrated_references: dict[str, HydratedAtomDTO]
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)

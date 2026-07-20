@@ -1,6 +1,7 @@
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.utils.math_utils import (
     calculate_scaled_score,
     calculate_soft_waterfall_score,
@@ -8,8 +9,6 @@ from backend_v2.utils.math_utils import (
     normalize_score_to_100,
     scale_to_custom_range,
 )
-from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
-
 
 
 def test_normalize_score_to_100() -> None:
