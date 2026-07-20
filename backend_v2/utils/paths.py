@@ -9,7 +9,7 @@ def get_forensic_input_path(execution_id: str, input_key: str) -> str:
         input_key: The key of the input to store.
 
     Returns:
-        str: The deterministic relative file path.
+        The deterministic relative file path.
     """
     safe_key = "".join(c for c in input_key if c.isalnum() or c in ("_", "-"))
     return f"executions/{execution_id}/inputs/input_{safe_key}.md"

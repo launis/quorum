@@ -141,7 +141,7 @@ def get_patched_fakeredis_pool() -> ArqRedis:
     all necessary monkey-patches to ensure Arq runs smoothly in in-memory mode.
 
     Returns:
-        ArqRedis: An Arq-compatible wrapper around a patched FakeRedis instance.
+        An Arq-compatible wrapper around a patched FakeRedis instance.
     """
     fake_redis = FakeRedis()
     fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}  # type: ignore[attr-defined]
