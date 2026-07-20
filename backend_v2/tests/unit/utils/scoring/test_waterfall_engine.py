@@ -1,4 +1,5 @@
 from backend_v2.utils.scoring.waterfall_engine import WaterfallScoringEngine
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 
 
 def test_waterfall_monotonicity() -> None:
@@ -6,14 +7,14 @@ def test_waterfall_monotonicity() -> None:
     engine = WaterfallScoringEngine()
 
     stats = {
-        1.0: {"hits": 0, "total": 10},
-        2.0: {"hits": 0, "total": 10},
+        1.0: LevelStatsDTO(hits=0, total=10),
+        2.0: LevelStatsDTO(hits=0, total=10),
     }
 
     prev_score = -1.0
     for hit_rate in range(0, 101, 5):  # 0.0 to 1.0
-        stats[1.0]["hits"] = int(hit_rate / 100 * 10)
-        stats[2.0]["hits"] = int(hit_rate / 100 * 10)
+        stats[1.0] = LevelStatsDTO(hits=int(hit_rate / 100 * 10), total=10)
+        stats[2.0] = LevelStatsDTO(hits=int(hit_rate / 100 * 10), total=10)
         score, log, bd = engine.calculate(
             stats,
             1.0,
@@ -28,9 +29,9 @@ def test_waterfall_sliding_penalty_cascade() -> None:
     engine = WaterfallScoringEngine()
 
     stats = {
-        1.0: {"hits": 5, "total": 10},  # Level 1: 50%
-        2.0: {"hits": 10, "total": 10},  # Level 2: 100%
-        3.0: {"hits": 10, "total": 10},  # Level 3: 100%
+        1.0: LevelStatsDTO(hits=5, total=10),  # Level 1: 50%
+        2.0: LevelStatsDTO(hits=10, total=10),  # Level 2: 100%
+        3.0: LevelStatsDTO(hits=10, total=10),  # Level 3: 100%
     }
 
     score, log, bd = engine.calculate(
@@ -54,8 +55,8 @@ def test_waterfall_sliding_penalty_cascade() -> None:
 def test_waterfall_all_zeros() -> None:
     engine = WaterfallScoringEngine()
     stats = {
-        1.0: {"hits": 0, "total": 10},
-        2.0: {"hits": 0, "total": 10},
+        1.0: LevelStatsDTO(hits=0, total=10),
+        2.0: LevelStatsDTO(hits=0, total=10),
     }
     score, _, _ = engine.calculate(
         stats,
@@ -68,8 +69,8 @@ def test_waterfall_all_zeros() -> None:
 def test_waterfall_all_perfect() -> None:
     engine = WaterfallScoringEngine()
     stats = {
-        1.0: {"hits": 10, "total": 10},
-        2.0: {"hits": 10, "total": 10},
+        1.0: LevelStatsDTO(hits=10, total=10),
+        2.0: LevelStatsDTO(hits=10, total=10),
     }
     score, _, _ = engine.calculate(
         stats,

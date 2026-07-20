@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.lightweight_matrix import XAILogDto
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, XAILogDto
 from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
 from backend_v2.utils.math_utils import calculate_soft_waterfall_score, get_strictness_config
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
@@ -26,7 +26,7 @@ class WaterfallScoringEngine(ScoringEngineBase):
 
     def calculate(
         self,
-        stats: dict[float, dict[str, int]],
+        stats: dict[float, LevelStatsDTO],
         math_min: float,
         math_max: float,
         strictness_level: int = StrictnessAnchor.STRICT.value,
@@ -66,8 +66,8 @@ class WaterfallScoringEngine(ScoringEngineBase):
 
             for s_level in sorted_levels:
                 level_data = stats[s_level]
-                t_hits = level_data.get("hits", 0)
-                t_total = level_data.get("total", 0) - level_data.get("dlqs", 0)
+                t_hits = level_data.hits
+                t_total = level_data.total - (level_data.dlqs or 0)
 
                 hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
                 pct = int(hit_rate * 100)
@@ -110,13 +110,12 @@ class WaterfallScoringEngine(ScoringEngineBase):
                     current_multiplier = next_multiplier
 
             level_breakdown: dict[str, dict[str, int]] = {
-                str(k): {"hits": v.get("hits", 0), "total": v.get("total", 0), "dlqs": v.get("dlqs", 0)}
-                for k, v in stats.items()
+                str(k): {"hits": int(v.hits), "total": int(v.total), "dlqs": int(v.dlqs or 0)} for k, v in stats.items()
             }
 
             engine_debug_trace: dict[str, Any] = {
                 "engine": "waterfall",
-                "stats": stats,
+                "stats": {k: v.model_dump() for k, v in stats.items()},
                 "strictness_level": strictness_level,
                 "target_threshold": target_threshold,
                 "base_forgiveness": base_forgiveness,

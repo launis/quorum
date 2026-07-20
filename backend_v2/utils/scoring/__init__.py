@@ -9,6 +9,8 @@ from backend_v2.utils.scoring.base_engine import ScoringEngineBase
 from backend_v2.utils.scoring.pure_math_engine import PureMathScoringEngine
 from backend_v2.utils.scoring.waterfall_engine import WaterfallScoringEngine
 
+__all__ = ["get_scoring_engine"]
+
 
 def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
     """Strategy Pattern Factory. Returns the correct mathematical engine based on the execution strategy.

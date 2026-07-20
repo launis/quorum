@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from backend_v2.models.dtos.lightweight_matrix import XAILogDto
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, XAILogDto
 from backend_v2.models.enums import StrictnessAnchor
 
 
@@ -16,7 +16,7 @@ class ScoringEngineBase(ABC):
     @abstractmethod
     def calculate(
         self,
-        stats: dict[float, dict[str, int]],
+        stats: dict[float, LevelStatsDTO],
         math_min: float,
         math_max: float,
         strictness_level: int = StrictnessAnchor.STANDARD.value,

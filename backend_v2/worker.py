@@ -20,7 +20,7 @@ from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
 from backend_v2.models.state import StateProjector
@@ -663,7 +663,10 @@ async def generate_profile_synthesis_and_pdf_task(
                     mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(data)
                     lw_matrix = LightweightMatrixOutput.model_validate(mapped_data, strict=False)
                     if lw_matrix.level_breakdown:
-                        stats = {float(k): v for k, v in lw_matrix.level_breakdown.items()}
+                        stats = {
+                            float(k): LevelStatsDTO(hits=v["hits"], total=v["total"], dlqs=v.get("dlqs"))
+                            for k, v in lw_matrix.level_breakdown.items()
+                        }
                         b_meta = blocks_meta.get(pb_id)
                         if b_meta:
                             math_min = b_meta["math_min"]

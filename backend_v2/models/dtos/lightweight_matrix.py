@@ -133,6 +133,20 @@ class LightweightMatrixOutput(V2CoreBase):
         return mapped_data
 
 
+class LevelStatsDTO(V2CoreBase):
+    """Strict execution stats per scale level (Phase 1, Step 1: Define DTO).
+
+    Attributes:
+        hits: Number of passing criteria at this level.
+        total: Total number of criteria at this level.
+        dlqs: Number of items that hit the dead letter queue (defaults to None).
+    """
+
+    hits: int | float
+    total: int | float
+    dlqs: int | None = None
+
+
 class MergedFactsDTO(V2CoreBase):
     """Holds global aggregation results safely with ConfigDict(extra='allow').
 

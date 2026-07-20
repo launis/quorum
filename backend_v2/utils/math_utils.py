@@ -10,6 +10,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
 
 logger = logging.getLogger(__name__)
@@ -224,7 +225,7 @@ def convert_strictness_to_forgiveness(strictness_level: int) -> float:
 
 
 def calculate_soft_waterfall_score(
-    level_stats: dict[float, dict[str, int]],
+    level_stats: dict[float, LevelStatsDTO],
     math_min: float,
     math_max: float,
     threshold: float = WaterfallThreshold.STANDARD.value,
@@ -265,10 +266,8 @@ def calculate_soft_waterfall_score(
     sorted_levels = sorted(level_stats.keys())
     for level in sorted_levels:
         stats = level_stats[level]
-        raw_total = stats["total"] if "total" in stats else 0
-        dlqs = stats["dlqs"] if "dlqs" in stats else 0
-        total = raw_total - dlqs
-        hits = stats["hits"] if "hits" in stats else 0
+        total = stats.total - (stats.dlqs or 0)
+        hits = stats.hits
 
         hit_rate = (hits / total) if total > 0 else 0.0
         step_value = level - prev_level
@@ -292,7 +291,7 @@ def calculate_soft_waterfall_score(
 
 
 def calculate_linear_ratio_score(
-    level_stats: dict[float, dict[str, float | int]], math_min: float, math_max: float, exponent: float = 1.0
+    level_stats: dict[float, LevelStatsDTO], math_min: float, math_max: float, exponent: float = 1.0
 ) -> float:
     """Calculate the global weighted average of all matrix atoms.
 
@@ -325,8 +324,8 @@ def calculate_linear_ratio_score(
     max_weights = 0.0
 
     for level, stats in level_stats.items():
-        total = stats.get("total", 0) - stats.get("dlqs", 0)
-        hits = stats.get("hits", 0)
+        total = stats.total - (stats.dlqs or 0)
+        hits = stats.hits
 
         # Painotettu matematiikka
         achieved_weights += hits * level

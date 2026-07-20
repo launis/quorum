@@ -1,14 +1,14 @@
 import pytest
 
 from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_pure_average_engine_calculate() -> None:
     engine = PureAverageScoringEngine()
     stats = {
-        1.0: {"hits": 1, "total": 1},
-        2.0: {"hits": 0, "total": 1},
+        1.0: LevelStatsDTO(hits=1, total=1),
+        2.0: LevelStatsDTO(hits=0, total=1),
     }
     # Strictness 50 -> Forgiveness 0.30 -> Exponent 1.70
     score, log, breakdown = engine.calculate(
@@ -22,12 +22,11 @@ def test_pure_average_engine_calculate() -> None:
     assert "Mapped to scale 1.0-3.0 with exponent 1.70 based on strictness 50" in log_str
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_weighted_average_engine_calculate() -> None:
     engine = WeightedAverageScoringEngine()
     stats = {
-        1.0: {"hits": 1, "total": 1},
-        2.0: {"hits": 0, "total": 1},
+        1.0: LevelStatsDTO(hits=1, total=1),
+        2.0: LevelStatsDTO(hits=0, total=1),
     }
     # Strictness 85 -> Forgiveness 0.10 -> Exponent 1.90
     score, log, breakdown = engine.calculate(
@@ -42,15 +41,14 @@ def test_weighted_average_engine_calculate() -> None:
     assert "Weighted Points Achieved" in log_str
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_pure_average_engine_outlier_rejection() -> None:
     engine = PureAverageScoringEngine()
     # [1.0, 1.0, 0.0, 1.0] hit rates
     stats = {
-        1.0: {"hits": 1, "total": 1},
-        2.0: {"hits": 1, "total": 1},
-        3.0: {"hits": 0, "total": 1},  # This is the outlier (hit rate 0.0)
-        4.0: {"hits": 1, "total": 1},
+        1.0: LevelStatsDTO(hits=1, total=1),
+        2.0: LevelStatsDTO(hits=1, total=1),
+        3.0: LevelStatsDTO(hits=0, total=1),  # This is the outlier (hit rate 0.0)
+        4.0: LevelStatsDTO(hits=1, total=1),
     }
 
     score, log, _ = engine.calculate(stats, 1.0, 5.0, 50)
@@ -70,7 +68,6 @@ def test_pure_average_engine_outlier_rejection() -> None:
     assert "0.25x" in log_str
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_weighted_average_engine_linear_monotonicity() -> None:
     engine = WeightedAverageScoringEngine()
 
@@ -78,8 +75,8 @@ def test_weighted_average_engine_linear_monotonicity() -> None:
     for i in range(101):
         hit_rate = i / 100.0
         stats = {
-            1.0: {"hits": int(hit_rate * 100), "total": 100},
-            2.0: {"hits": int(hit_rate * 100), "total": 100},
+            1.0: LevelStatsDTO(hits=int(hit_rate * 100), total=100),
+            2.0: LevelStatsDTO(hits=int(hit_rate * 100), total=100),
         }
         score, log, _ = engine.calculate(
             stats,

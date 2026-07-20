@@ -13,6 +13,7 @@ from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
+    LevelStatsDTO,
     LightweightExtractionAtom,
     LightweightMatrixOutput,
 )
@@ -1350,7 +1351,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
                     atom_to_scale[tda.tda_id] = s_val
 
         # Re-aggregate stats from existing evaluated_atoms
-        stats = {s_val: {"hits": 0, "total": 0, "dlqs": 0} for s_val in scale_values}
+        raw_stats = {s_val: {"hits": 0, "total": 0, "dlqs": 0} for s_val in scale_values}
         n_contested = 0
         infra_dlqs = 0  # Re-deriving infra_dlqs is impossible purely from atoms dict if they didn't even make it to evaluated_atoms, but we will count what we have.
 
@@ -1359,7 +1360,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
             if atom_id not in atom_to_scale:
                 continue
             s_val = atom_to_scale[atom_id]
-            stats[s_val]["total"] += 1
+            raw_stats[s_val]["total"] += 1
 
             # Phase 2 requirement: Prioritize human_override if present in the raw atom dict
             effective_status = status
@@ -1369,16 +1370,16 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
                 continue
 
             if effective_status == "DLQ":
-                stats[s_val]["dlqs"] += 1
+                raw_stats[s_val]["dlqs"] += 1
             elif effective_status == "CONTESTED":
-                stats[s_val]["hits"] += 1
+                raw_stats[s_val]["hits"] += 1
                 n_contested += 1
             elif effective_status is True:
-                stats[s_val]["hits"] += 1
+                raw_stats[s_val]["hits"] += 1
 
-        global_total = sum(level_data["total"] for level_data in stats.values())
-        global_hits = sum(level_data["hits"] for level_data in stats.values())
-        global_dlqs = sum(level_data["dlqs"] for level_data in stats.values())
+        global_total = sum(level_data["total"] for level_data in raw_stats.values())
+        global_hits = sum(level_data["hits"] for level_data in raw_stats.values())
+        global_dlqs = sum(level_data["dlqs"] for level_data in raw_stats.values())
 
         cognitive_collapse = n_contested > 3 or (global_total > 0 and (n_contested / global_total) > 0.5)
         is_indeterminate = global_total > 0 and (infra_dlqs / global_total) > 0.10
@@ -1406,6 +1407,9 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
                 )
         else:
             engine = get_scoring_engine(scoring_strategy)
+            stats = {
+                float(k): LevelStatsDTO(hits=v["hits"], total=v["total"], dlqs=v["dlqs"]) for k, v in raw_stats.items()
+            }
             raw_score, xai_log, formatted_breakdown = engine.calculate(
                 stats=stats,
                 math_min=math_min,

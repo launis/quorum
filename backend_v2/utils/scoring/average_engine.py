@@ -5,9 +5,8 @@ and weighted sigmoid average scoring engines.
 """
 
 import statistics
-from typing import Any, cast
 
-from backend_v2.models.dtos.lightweight_matrix import XAILogDto
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, XAILogDto
 from backend_v2.models.enums import StrictnessAnchor
 from backend_v2.utils.math_utils import (
     calculate_linear_ratio_score,
@@ -25,7 +24,7 @@ class PureAverageScoringEngine(ScoringEngineBase):
 
     def calculate(
         self,
-        stats: dict[float, dict[str, int]],
+        stats: dict[float, LevelStatsDTO],
         math_min: float,
         math_max: float,
         strictness_level: int = StrictnessAnchor.STANDARD.value,
@@ -48,9 +47,9 @@ class PureAverageScoringEngine(ScoringEngineBase):
 
         hit_rates: list[float] = []
         for v in stats.values():
-            eff_total = v["total"] - v.setdefault("dlqs", 0)
+            eff_total = v.total - (v.dlqs or 0)
             if eff_total > 0:
-                hit_rates.append(v["hits"] / eff_total)
+                hit_rates.append(v.hits / eff_total)
             else:
                 hit_rates.append(0.0)
 
@@ -70,8 +69,8 @@ class PureAverageScoringEngine(ScoringEngineBase):
         flattened_total = 0.0
 
         for level, v in stats.items():
-            eff_total = v["total"] - v.setdefault("dlqs", 0)
-            hr = (v["hits"] / eff_total) if eff_total > 0 else 0.0
+            eff_total = v.total - (v.dlqs or 0)
+            hr = (v.hits / eff_total) if eff_total > 0 else 0.0
 
             if hr < outlier_threshold and hr < 0.30:
                 log_lines.append(
@@ -79,13 +78,13 @@ class PureAverageScoringEngine(ScoringEngineBase):
                     f"{outlier_threshold:.2f} (Median {median_hr:.2f}, MAD {mad:.2f}). "
                     f"Weight reduced to 0.25x."
                 )
-                flattened_hits += v["hits"] * 0.25
+                flattened_hits += v.hits * 0.25
                 flattened_total += eff_total * 0.25
             else:
-                flattened_hits += v["hits"]
+                flattened_hits += v.hits
                 flattened_total += eff_total
 
-        flattened_stats: dict[float, Any] = {1.0: {"hits": flattened_hits, "total": flattened_total}}
+        flattened_stats: dict[float, LevelStatsDTO] = {1.0: LevelStatsDTO(hits=flattened_hits, total=flattened_total)}
 
         base_forgiveness = convert_strictness_to_forgiveness(strictness_level)
         exponent = 1.0 + (1.0 - base_forgiveness)
@@ -104,13 +103,12 @@ class PureAverageScoringEngine(ScoringEngineBase):
         )
 
         level_breakdown = {
-            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.setdefault("dlqs", 0))}
-            for k, v in stats.items()
+            str(k): {"hits": int(v.hits), "total": int(v.total), "dlqs": int(v.dlqs or 0)} for k, v in stats.items()
         }
 
         engine_debug_trace = {
             "engine": "pure_average",
-            "stats": stats,
+            "stats": {k: v.model_dump() for k, v in stats.items()},
             "strictness_level": strictness_level,
             "outlier_threshold": outlier_threshold,
             "exponent": exponent,
@@ -134,7 +132,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
 
     def calculate(
         self,
-        stats: dict[float, dict[str, int]],
+        stats: dict[float, LevelStatsDTO],
         math_min: float,
         math_max: float,
         strictness_level: int = StrictnessAnchor.STANDARD.value,
@@ -155,8 +153,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
         """
         base_forgiveness = convert_strictness_to_forgiveness(strictness_level)
         exponent = 1.0 + (1.0 - base_forgiveness)
-        stats_casted = cast(dict[float, dict[str, float | int]], stats)
-        weighted_score = calculate_linear_ratio_score(stats_casted, math_min, math_max, exponent)
+        weighted_score = calculate_linear_ratio_score(stats, math_min, math_max, exponent)
 
         log_lines: list[str] = ["Weighted Average Breakdown:"]
         sorted_levels = sorted(stats.keys())
@@ -166,8 +163,8 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
 
         for s_level in sorted_levels:
             level_data = stats[s_level]
-            t_hits = level_data["hits"]
-            eff_total = level_data["total"] - level_data.setdefault("dlqs", 0)
+            t_hits = level_data.hits
+            eff_total = level_data.total - (level_data.dlqs or 0)
 
             achieved_weights += t_hits * s_level
             max_weights += eff_total * s_level
@@ -184,13 +181,12 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
         )
 
         level_breakdown = {
-            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.setdefault("dlqs", 0))}
-            for k, v in stats.items()
+            str(k): {"hits": int(v.hits), "total": int(v.total), "dlqs": int(v.dlqs or 0)} for k, v in stats.items()
         }
 
         engine_debug_trace = {
             "engine": "weighted_average",
-            "stats": stats,
+            "stats": {k: v.model_dump() for k, v in stats.items()},
             "strictness_level": strictness_level,
             "exponent": exponent,
             "log_trace": log_lines,
