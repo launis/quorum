@@ -51,6 +51,8 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
     )  # noqa: E501
 
     workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
         id="wf_4444444444444444",
         slug="wf_tg",
         status="draft",

@@ -13,7 +13,6 @@ from backend_v2.models.enums import LaxScoringStrategy, LaxXaiExtensionType
 from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,
-    SynthesisConfigDTO,
 )
 
 
@@ -58,9 +57,6 @@ class OutputProfileCreateDTO(V2CoreBase):
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
     language: Annotated[str | None, Field(default=None, description="Target output language.")]
-    formatting_directives: Annotated[
-        list[str], Field(default_factory=list, description="List of LLM formatting mandates.")
-    ]
 
     visible_metadata: Annotated[
         list[str],
@@ -95,9 +91,6 @@ class OutputProfileCreateDTO(V2CoreBase):
         Literal["original", "custom", "normalized_100"],
         Field(default="original", description="UI rendering scale instruction."),
     ]
-    synthesis: Annotated[
-        SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
-    ]
     include_diagnostic_scorecard: Annotated[
         bool, Field(default=False, description="Enable appending the independent diagnostic scorecard.")
     ]
@@ -111,10 +104,6 @@ class OutputProfileCreateDTO(V2CoreBase):
     content_blocks: Annotated[
         list[dict[str, Any]],
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
-    ]
-    matrix_column_labels: Annotated[
-        dict[str, I18nText] | None,
-        Field(default=None, description="SDUI control of the matrix table headers."),
     ]
 
 
@@ -149,9 +138,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
     language: Annotated[str | None, Field(default=None, description="Target output language.")]
-    formatting_directives: Annotated[
-        list[str] | None, Field(default=None, description="List of LLM formatting mandates.")
-    ]
 
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
     visible_metadata: Annotated[
@@ -187,9 +173,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
         Literal["original", "custom", "normalized_100"] | None,
         Field(default=None, description="UI rendering scale instruction."),
     ]
-    synthesis: Annotated[
-        SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
-    ]
     include_diagnostic_scorecard: Annotated[
         bool | None, Field(default=None, description="Enable appending the independent diagnostic scorecard.")
     ]
@@ -203,10 +186,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
     content_blocks: Annotated[
         list[dict[str, Any]] | None,
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
-    ]
-    matrix_column_labels: Annotated[
-        dict[str, I18nText] | None,
-        Field(default=None, description="SDUI control of the matrix table headers."),
     ]
 
 
@@ -240,7 +219,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     custom_preface: I18nText | None = None
     tone_instruction: I18nText | None = None
     language: str | None = None
-    formatting_directives: Annotated[list[str], Field(default_factory=list)]
 
     visible_metadata: Annotated[
         list[str], Field(default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"])
@@ -249,7 +227,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     visible_workflow_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]
     max_extension_items: int | None = None
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
-    synthesis: SynthesisConfigDTO | None = None
     include_diagnostic_scorecard: Annotated[
         bool, Field(default=False, description="Enable appending the independent diagnostic scorecard.")
     ]
@@ -257,4 +234,3 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     scoring_strategy: LaxScoringStrategy | None = None
     layouts: list[OutputLayoutBlock]
     content_blocks: list[dict[str, Any]] = Field(default_factory=list)
-    matrix_column_labels: dict[str, I18nText] | None = None

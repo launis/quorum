@@ -74,7 +74,6 @@ class StudioWorkflowService:
                         visible_workflow_extensions=list(p.visible_workflow_extensions),
                         max_extension_items=p.max_extension_items,
                         display_scale=p.display_scale,
-                        synthesis=p.synthesis,
                         include_diagnostic_scorecard=p.include_diagnostic_scorecard,
                         strictness_level=p.strictness_level,
                         scoring_strategy=p.scoring_strategy,
@@ -267,6 +266,8 @@ class StudioWorkflowService:
             ),
             "expected_inputs": [],
             "steps": [],
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "default_profile_id": "prof_0000000000000000",
         }
         draft = Workflow.model_validate(draft_dict, strict=False)

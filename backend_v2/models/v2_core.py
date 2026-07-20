@@ -1271,7 +1271,6 @@ class OutputProfile(V2CoreBase):
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
     language: str | None = Field(default=None, description="Target output language.")
-    formatting_directives: list[str] = Field(default_factory=list, description="List of LLM formatting mandates.")
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 
     visible_metadata: list[str] = Field(
@@ -1297,9 +1296,6 @@ class OutputProfile(V2CoreBase):
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
     )
-    synthesis: SynthesisConfigDTO | None = Field(
-        default=None, description="Nested definition for synthesis configurations."
-    )
     include_diagnostic_scorecard: bool = Field(
         default=False, description="Enable appending the independent diagnostic scorecard."
     )
@@ -1308,9 +1304,6 @@ class OutputProfile(V2CoreBase):
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[dict[str, Any]] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
-    )
-    matrix_column_labels: dict[str, I18nText] | None = Field(
-        default=None, description="SDUI control of the matrix table headers."
     )
 
 
@@ -1323,7 +1316,6 @@ class EmbeddedOutputProfile(V2CoreBase):
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
     language: str | None = Field(default=None, description="Target output language.")
-    formatting_directives: list[str] = Field(default_factory=list, description="List of LLM formatting mandates.")
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 
     visible_metadata: list[str] = Field(
@@ -1347,9 +1339,6 @@ class EmbeddedOutputProfile(V2CoreBase):
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
     )
-    synthesis: SynthesisConfigDTO | None = Field(
-        default=None, description="Nested definition for synthesis configurations."
-    )
     include_diagnostic_scorecard: bool = Field(
         default=False, description="Enable appending the independent diagnostic scorecard."
     )
@@ -1358,9 +1347,6 @@ class EmbeddedOutputProfile(V2CoreBase):
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[dict[str, Any]] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
-    )
-    matrix_column_labels: dict[str, I18nText] | None = Field(
-        default=None, description="SDUI control of the matrix table headers."
     )
 
 
@@ -1407,6 +1393,14 @@ class Workflow(V2CoreBase):
         description="List of dynamic expected inputs required by the workflow",
     )
     steps: list[StepRule] = Field(default_factory=list)
+    allowed_exports: Annotated[
+        list[Literal["pdf", "docx", "raw_json"]],
+        Field(description="Supported export file formats for this workflow."),
+    ]
+    historical_context_mode: Annotated[
+        LaxHistoricalContextMode,
+        Field(description="Mode for fetching historical context at workflow level."),
+    ]
 
     @model_validator(mode="after")
     def validate_dag_integrity(self) -> Workflow:

@@ -18,7 +18,6 @@ from fastapi import status
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import SynthesisStepDataDTO
-from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, Step, Workflow
@@ -368,19 +367,11 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
 
-    active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict)
-
-    synthesis_cfg = active_profile_dto.synthesis
-    if not synthesis_cfg:
-        msg = f"Strict Fail-Fast Enforced: 'synthesis' missing from active profile '{output_profile_id}'."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-
     language = "en"
     if state.metadata and "target_locale" in state.metadata:
         language = str(state.metadata["target_locale"]).strip().lower()
 
-    historical_mode = synthesis_cfg.historical_context_mode
+    historical_mode = workflow_data.historical_context_mode
 
     # Phase 2, Milestone 1.3: Fetch historical context inside distiller
     historical_context_text = await _fetch_historical_context(

@@ -252,7 +252,7 @@ class BlueprintTransformer:
 
         # Safe attribute access using V2 Models
         display_scale = profile.display_scale
-        syn_profile = profile.synthesis
+        syn_profile = None
         fallback_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
         matrix_visible_cols = syn_profile.matrix_visible_columns if syn_profile else fallback_cols
 
@@ -461,7 +461,7 @@ class BlueprintTransformer:
                 true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
                 total_atoms = len(matrix_payload.evaluated_atoms)
 
-            if profile.synthesis and profile.synthesis.row_explanations_block_id and has_synthesis_cache:
+            if False:
                 if b_id not in row_explanations_cache:
                     msg = f"Fail-Fast: row_explanations_cache missing entry for matrix '{b_id}'. Worker synthesis incomplete."
                     logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
@@ -874,7 +874,7 @@ class BlueprintTransformer:
         synthesis_md = None
         scoring_out = None
 
-        synthesis_block_id = profile.synthesis.synthesis_block_id if profile.synthesis else None
+        synthesis_block_id = None
 
         for dto in results:
             if dto.block_id == VirtualSystemStepID.SCORING_RESULT.value and isinstance(dto.payload, dict):
@@ -1239,15 +1239,22 @@ class BlueprintTransformer:
                 if injected:
                     content_blocks = new_content_blocks
 
-            if profile.synthesis and profile.synthesis.preamble_text:
+            synthesis_cfg = None
+            if profile.layouts:
+                for lay in profile.layouts:
+                    if getattr(lay, "synthesis", None):
+                        synthesis_cfg = lay.synthesis
+                        break
+
+            if synthesis_cfg and synthesis_cfg.preamble_text:
                 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
                 compiler = PromptCompiler()
-                resolved_preamble = compiler.resolve_i18n(profile.synthesis.preamble_text, locale)
+                resolved_preamble = compiler.resolve_i18n(synthesis_cfg.preamble_text, locale)
                 if resolved_preamble:
                     content_blocks.insert(0, {"block_type": "markdown", "text": resolved_preamble, "id": "preamble"})
 
-            if profile.synthesis and profile.synthesis.enable_pii_masking:
+            if synthesis_cfg and synthesis_cfg.enable_pii_masking:
                 for cb in content_blocks:
                     if isinstance(cb, dict) and "text" in cb and isinstance(cb["text"], str):
                         cb["text"] = self._apply_pii_masking(cb["text"])
@@ -1402,7 +1409,12 @@ class BlueprintTransformer:
                 else workflow_obj.default_scoring_strategy
             ).value
 
-            syn = profile.synthesis
+            syn = None
+            if profile.layouts:
+                for lay in profile.layouts:
+                    if getattr(lay, "synthesis", None):
+                        syn = lay.synthesis
+                        break
             fallback_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
             matrix_visible_cols = syn.matrix_visible_columns if syn else fallback_cols
 

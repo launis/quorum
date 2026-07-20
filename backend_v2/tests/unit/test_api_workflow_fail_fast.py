@@ -51,6 +51,8 @@ def test_workflow_api_fails_fast_on_invalid_model_strategy(client_admin: Any) ->
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "slug": "valid_wf",
         "model_strategy": "super_mega_brain_5000",  # INVALID ENUM!
         "steps": [],
@@ -73,6 +75,8 @@ def test_workflow_api_fails_fast_on_invalid_step_id(client_admin: Any) -> None:
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "slug": "valid_wf",
         "steps": [
             {
@@ -102,6 +106,8 @@ def test_workflow_api_strips_illegal_step_attributes(client_admin: Any, mock_stu
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "slug": "valid_wf",
         "steps": [
             {
@@ -182,6 +188,8 @@ def test_workflow_api_fails_fast_on_orphan_dependency(client_admin: Any) -> None
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "slug": "valid_wf",
         "steps": [
             {
@@ -208,6 +216,8 @@ def test_workflow_api_fails_fast_on_cyclic_dependency(client_admin: Any) -> None
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "slug": "valid_wf",
         "steps": [
             {
@@ -239,6 +249,8 @@ def test_workflow_api_succeeds_with_valid_data(client_admin: Any, mock_studio_se
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "slug": "happy_path_wf",
         "steps": [
             {

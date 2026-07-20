@@ -15,12 +15,11 @@ from backend_v2.api.dependencies import (
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import (
     I18nText,
     PromptBlock,
     Step,
-    SynthesisConfigDTO,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
     Workflow,
@@ -50,13 +49,15 @@ def mock_studio_service() -> AsyncMock:
     service = AsyncMock()
     # Configure mock returns for cloning
     service.clone_workflow.return_value = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
         id="wf_3333333333333333",
         slug="test_wf_3333333333333333",
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
         name=I18nText(default_locale="en", translations={"en": "Workflow (Copy)", "fi": "Workflow (Copy)"}),
-        description="test",
+        description=I18nText(default_locale="en", translations={"en": "test"}),
     )
     service.clone_step.return_value = Step(
         id="step_1111111111111112",
@@ -94,10 +95,6 @@ def mock_studio_service() -> AsyncMock:
         workflow_id="wf_3333333333333333",
         name=I18nText(default_locale="en", translations={"en": "Profile (Copy)", "fi": "Profile (Copy)"}),
         layouts=[],
-        synthesis=SynthesisConfigDTO(
-            system_prompt="Global test prompt",
-            historical_context_mode=HistoricalContextMode.DISABLED,
-        ),
     )
     return service
 

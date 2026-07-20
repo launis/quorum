@@ -333,14 +333,12 @@ class LLMNodeStrategy(NodeStrategy):
                 description=p.description,
                 custom_preface=p.custom_preface,
                 language=p.language,
-                formatting_directives=list(p.formatting_directives),
                 tone_instruction=p.tone_instruction,
                 visible_metadata=list(p.visible_metadata),
                 visible_block_extensions=list(p.visible_block_extensions),
                 visible_workflow_extensions=list(p.visible_workflow_extensions),
                 max_extension_items=p.max_extension_items,
                 display_scale=p.display_scale,
-                synthesis=p.synthesis,
                 include_diagnostic_scorecard=p.include_diagnostic_scorecard,
                 strictness_level=p.strictness_level,
                 scoring_strategy=p.scoring_strategy,
@@ -453,9 +451,6 @@ class LLMNodeStrategy(NodeStrategy):
                 tone = output_profile.tone_instruction.get(target_locale, output_profile.tone_instruction.get("en", ""))
                 if tone:
                     exec_params.append(f"  <tone_instruction>{tone}</tone_instruction>")
-            if output_profile.formatting_directives:
-                dirs = "\n".join(f"    <directive>{d}</directive>" for d in output_profile.formatting_directives)
-                exec_params.append(f"  <formatting_directives>\n{dirs}\n  </formatting_directives>")
             if output_profile.layouts:
                 try:
                     layouts_json = json.dumps(

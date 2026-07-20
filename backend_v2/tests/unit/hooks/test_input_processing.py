@@ -93,6 +93,8 @@ async def test_process_inputs_missing_language():
     mock_workflow_repo.get_workflow_by_id = AsyncMock(
         return_value={
             "id": "wor_1234567890123456",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "slug": "test_workflow",
             "name": "Test Workflow",
             "description": "desc",

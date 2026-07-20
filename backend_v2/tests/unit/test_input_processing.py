@@ -16,6 +16,8 @@ class MockRepository:
             return None
         return {
             "id": "wor_1234567890abcdef12",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "slug": "test-wf",
             "name": {"translations": {"en": "Test WF", "fi": "Test WF"}, "default_locale": "en"},
             "description": {"translations": {"en": "Desc", "fi": "Desc"}, "default_locale": "en"},
@@ -211,6 +213,8 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
         async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
             return {
                 "id": "wor_1234567890abcdef12",
+                "allowed_exports": ["pdf"],
+                "historical_context_mode": "DISABLED",
                 "slug": "test-wf-features",
                 "name": {"translations": {"en": "WF", "fi": "WF"}, "default_locale": "en"},
                 "description": {"translations": {"en": "Desc", "fi": "Desc"}, "default_locale": "en"},

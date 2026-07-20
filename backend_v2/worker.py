@@ -717,16 +717,15 @@ async def generate_profile_synthesis_and_pdf_task(
         # Extract Synthesis from DAG Execution Trace (Phase 3/4)
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
 
-        synthesis_block_id = (
-            active_profile_dto.synthesis.synthesis_block_id
-            if active_profile_dto and active_profile_dto.synthesis
-            else None
-        )
-        row_explanations_block_id = (
-            active_profile_dto.synthesis.row_explanations_block_id
-            if active_profile_dto and active_profile_dto.synthesis
-            else None
-        )
+        synthesis_cfg = None
+        if active_profile_dto and active_profile_dto.layouts:
+            for layout in active_profile_dto.layouts:
+                if getattr(layout, "synthesis", None):
+                    synthesis_cfg = layout.synthesis
+                    break
+
+        synthesis_block_id = synthesis_cfg.synthesis_block_id if synthesis_cfg else None
+        row_explanations_block_id = synthesis_cfg.row_explanations_block_id if synthesis_cfg else None
 
         from backend_v2.core.hook_registry import HookDependencies, HookState
         from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
@@ -755,11 +754,7 @@ async def generate_profile_synthesis_and_pdf_task(
         distilled_inputs = distilled_data.get("distilled_inputs", "")
         matrices_to_explain = distilled_data.get("matrices_to_explain", [])
 
-        synthesis_model_strategy = (
-            active_profile_dto.synthesis.model_strategy
-            if active_profile_dto and active_profile_dto.synthesis
-            else "synthesis"
-        )
+        synthesis_model_strategy = synthesis_cfg.model_strategy if synthesis_cfg else "synthesis"
 
         synthesis_res = None
         row_expl_res = None
@@ -769,7 +764,6 @@ async def generate_profile_synthesis_and_pdf_task(
             t_row = None
 
             if synthesis_block_id:
-                synthesis_cfg = active_profile_dto.synthesis if active_profile_dto else None
                 if not synthesis_cfg or not synthesis_cfg.system_prompt:
                     msg = f"Fail-Fast: OutputProfile '{profile_id}' missing mandatory synthesis.system_prompt."
                     logger.error("[Task] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
@@ -791,10 +785,6 @@ async def generate_profile_synthesis_and_pdf_task(
                     tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language or "en")
                     if tone:
                         sys_prompt += f"\n<tone_instruction>{tone}</tone_instruction>"
-
-                if active_profile_dto and active_profile_dto.formatting_directives:
-                    dirs = "\n".join(f"  <directive>{d}</directive>" for d in active_profile_dto.formatting_directives)
-                    sys_prompt += f"\n<formatting_directives>\n{dirs}\n</formatting_directives>"
 
                 if synthesis_cfg.omit_empty_sections:
                     sys_prompt += "\n<omit_empty_sections>true</omit_empty_sections>"

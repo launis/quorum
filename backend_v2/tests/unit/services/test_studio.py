@@ -134,6 +134,8 @@ async def test_list_workflows_with_data(
         "expected_inputs": [],
         "steps": [],
         "default_profile_id": "prof_1234567890abcdef12",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
     }
     mock_workflow_repo.get_all_workflows.return_value = [wf_data]
     mock_component_repo.get_all_output_profiles.return_value = []
@@ -163,6 +165,8 @@ async def test_delete_workflow(workflow_service: Any, admin_token: Any, mock_wor
         "expected_inputs": [],
         "steps": [],
         "default_profile_id": "prof_1234567890abcdef12",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
     }
     mock_workflow_repo.get_workflow_by_id.return_value = wf_data
     await workflow_service.delete_workflow(admin_token, "wf_1234567890abcdef12")
@@ -181,6 +185,8 @@ async def test_create_workflow_draft(workflow_service: Any, admin_token: Any, mo
         "expected_inputs": [],
         "steps": [],
         "default_profile_id": "prof_1234567890abcdef12",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
     }
     res = await workflow_service.create_workflow_draft(admin_token)
     assert res.status == "draft"
@@ -334,6 +340,8 @@ async def test_save_workflow(workflow_service: Any, admin_token: Any, mock_workf
         "expected_inputs": [],
         "steps": [],
         "default_profile_id": "prof_1234567890abcdef12",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
     }
     mock_workflow_repo.get_workflow_by_id.return_value = wf_data
     res = await workflow_service.save_workflow(admin_token, "wf_1234567890abcdef12", Workflow.model_validate(wf_data))

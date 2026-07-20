@@ -54,6 +54,8 @@ def mock_repo() -> Any:
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_dddd1111dddd1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
@@ -120,6 +122,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     # Setup basic valid workflow
     workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
         status="draft",

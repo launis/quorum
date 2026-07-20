@@ -36,6 +36,8 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     )
 
     workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
         status="draft",
@@ -84,6 +86,8 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
     )
 
     workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
         status="draft",
@@ -145,6 +149,8 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
     )
 
     workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
         status="draft",
@@ -214,6 +220,8 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
     from backend_v2.models.v2_core import StepRule, Workflow, WorkflowInputs
 
     workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
         status="draft",

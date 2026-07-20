@@ -30,6 +30,8 @@ def mock_repo() -> MagicMock:
             "status": "draft",
             "version": 1,
             "default_profile_id": "prof",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "steps": [],
         }
     )
@@ -303,6 +305,8 @@ async def test_execute_success_path_structured_output(
         "status": "draft",
         "version": 1,
         "default_profile_id": "prf_123",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
     }
 
     mock_hook_state = MagicMock()

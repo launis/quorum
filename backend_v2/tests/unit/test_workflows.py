@@ -58,6 +58,8 @@ def test_workflow_rbac_save_member_forbidden(client_member: Any) -> None:
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "organization_id": "org_testorg123",
         "slug": "new_wf",
     }

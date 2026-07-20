@@ -46,7 +46,6 @@ def test_embedded_output_profile_description_parsing() -> None:
             "translations": {"en": "A valid description", "fi": "A valid description"},
         },
         "display_scale": "original",
-        "synthesis": None,
         "layouts": [],
     }
     profile_success = EmbeddedOutputProfile.model_validate(valid_data)

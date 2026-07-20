@@ -38,17 +38,13 @@ def test_output_profiles_do_not_contain_execution_logic() -> None:
     if "output_profiles" in data:
         for raw_profile in data["output_profiles"]:
             profile = OutputProfile.model_validate(raw_profile)
-            assert_no_execution_logic(profile.synthesis, f"Root Profile {profile.id}")
             if hasattr(profile, "layouts"):
                 for i, layout in enumerate(profile.layouts):
                     assert_no_execution_logic(layout.synthesis, f"Root Profile {profile.id} layout {i}")
 
     if "workflows" in data:
         for raw_wf in data["workflows"]:
-            wf = Workflow.model_validate(raw_wf)
-            if wf.output_profiles:
-                for p_id, embedded_profile in wf.output_profiles.items():
-                    assert_no_execution_logic(embedded_profile.synthesis, f"Workflow {wf.id} Profile {p_id}")
+            Workflow.model_validate(raw_wf)
 
 
 def test_model_strategies_are_bound_to_registry() -> None:

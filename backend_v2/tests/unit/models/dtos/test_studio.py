@@ -84,6 +84,8 @@ def test_core_response_dto_strictness() -> None:
             "version": 1,
             "status": "draft",
             "default_profile_id": valid_id_prf,
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "organization_id": valid_id_org,
         }
     )

@@ -89,6 +89,8 @@ async def test_epic_93_e2e_golden_master() -> None:
         "name": {"default_locale": "en", "translations": {"en": "Mock Workflow"}},
         "description": {"default_locale": "en", "translations": {"en": "desc"}},
         "status": "published",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "version": 1,
         "organization_id": "root",
         "default_profile_id": profile_id,

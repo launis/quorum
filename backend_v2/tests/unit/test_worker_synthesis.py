@@ -43,6 +43,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "version": 1,
         "default_profile_id": "default",
         "expected_inputs": [],
@@ -103,10 +105,6 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "max_extension_items": 3,
         "layouts": [],
         "display_scale": "original",
-        "synthesis": {
-            "historical_context_mode": "DISABLED",
-            "system_prompt": "You are a synthesizer",
-        },
     }
 
     await generate_profile_synthesis_and_pdf_task(

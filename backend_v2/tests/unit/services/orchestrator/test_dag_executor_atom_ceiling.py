@@ -49,6 +49,8 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
     )
 
     workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
         id="wf_1234567890abcdef",
         slug="test",
         status="draft",

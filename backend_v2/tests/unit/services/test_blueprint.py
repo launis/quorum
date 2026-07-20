@@ -83,20 +83,20 @@ def mock_repo_transformer() -> Any:
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
             "output_profiles": {
                 "prf_dddd1111dddd1111": {
                     "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
-                    "synthesis": None,
                     "layouts": [
                         {
                             "preset_view": "1d_metrics",
                             "text_delivery_mode": "full",
                             "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
                             "target_blocks": ["*"],
-                            "synthesis": None,
                         }
                     ],
                 }
@@ -110,14 +110,12 @@ def mock_repo_transformer() -> Any:
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
-                "synthesis": None,
                 "layouts": [
                     {
                         "preset_view": "1d_metrics",
                         "text_delivery_mode": "full",
                         "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
                         "target_blocks": ["*"],
-                        "synthesis": None,
                         "description": None,
                     }
                 ],
@@ -276,6 +274,8 @@ def mock_repo_microcot() -> Any:
             "version": 1,
             "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Mock Workflow"}},
             "default_profile_id": "prf_1234567890abcdef",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
@@ -285,7 +285,6 @@ def mock_repo_microcot() -> Any:
                         "default_locale": "en",
                         "translations": {"en": "Default Profile", "fi": "Default Profile"},
                     },
-                    "synthesis": None,
                     "layouts": [
                         {
                             "preset_view": "2d_compare",
@@ -295,7 +294,6 @@ def mock_repo_microcot() -> Any:
                                 "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
                             },
                             "target_blocks": ["*"],
-                            "synthesis": None,
                             "description": None,
                         }
                     ],
@@ -310,7 +308,6 @@ def mock_repo_microcot() -> Any:
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default Profile", "fi": "Default Profile"}},
                 "workflow_id": "wf_1234567890abcdef",
-                "synthesis": None,
                 "layouts": [
                     {
                         "preset_view": "2d_compare",
@@ -320,7 +317,6 @@ def mock_repo_microcot() -> Any:
                             "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
                         },
                         "target_blocks": ["*"],
-                        "synthesis": None,
                         "description": None,
                     }
                 ],
@@ -428,6 +424,8 @@ def mock_repo_sdui() -> AsyncMock:
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
@@ -440,7 +438,6 @@ def mock_repo_sdui() -> AsyncMock:
                 "slug": "default",
                 "workflow_id": "wf_1234abcd1234abcd",
                 "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
-                "synthesis": None,
                 "layouts": [
                     {
                         "preset_view": "1d_metrics",
@@ -448,7 +445,6 @@ def mock_repo_sdui() -> AsyncMock:
                         "title": {"default_locale": "en", "translations": {"en": "Metrics", "fi": "Metrics"}},
                         "steps": [],
                         "target_blocks": ["*"],
-                        "synthesis": None,
                         "description": None,
                     }
                 ],
@@ -544,6 +540,8 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
     mock_repo_sdui.get_workflow.return_value = dict_to_obj(
         {
             "id": "wor_1234abcd1234abcd",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "slug": "mock-workflow",
             "name": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
             "description": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
@@ -719,7 +717,6 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
-                "synthesis": None,
                 "layouts": [],
                 "display_scale": "original",
                 "visible_block_extensions": [],
@@ -775,7 +772,6 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
-                "synthesis": None,
                 "layouts": [],
                 "display_scale": "original",
                 "visible_block_extensions": [],
@@ -845,6 +841,8 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [
@@ -900,7 +898,6 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
-                "synthesis": None,
                 "layouts": [],
                 "display_scale": "original",
                 "visible_block_extensions": [],
@@ -1075,6 +1072,8 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
                 }
             ],
             "default_profile_id": "prf_dddd1111dddd1111",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
             "default_scoring_strategy": ScoringStrategy.AVERAGE,
             "steps": [],

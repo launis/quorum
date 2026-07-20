@@ -404,6 +404,8 @@ async def test_render_execution_json() -> None:
     repo_mock.get_workflow_by_id.return_value = {
         "id": "wf_1",
         "default_profile_id": "prof_1",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "slug": "test",
         "version": 1,
         "name": {},

@@ -55,6 +55,8 @@ def get_audit_workflow() -> Any:
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "slug": "valid_wf",
         "expected_inputs": [],
         "steps": [

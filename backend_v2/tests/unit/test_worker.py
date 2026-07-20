@@ -54,6 +54,8 @@ async def test_execute_workflow_job_success() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
         "default_scoring_strategy": "AVERAGE",
     }

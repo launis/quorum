@@ -112,6 +112,8 @@ class MockRepository:
             "status": "active",
             "version": 1,
             "default_profile_id": "prof_123",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
         }
 
@@ -195,6 +197,8 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
                 "status": "active",
                 "version": 1,
                 "default_profile_id": "prof_123",
+                "allowed_exports": ["pdf"],
+                "historical_context_mode": "DISABLED",
                 "enable_contextual_overrides": True,
             }
 
@@ -295,6 +299,8 @@ class MockRepoWaterfall:
             "status": "active",
             "version": 1,
             "default_profile_id": "prof_123",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
         }
 
@@ -343,6 +349,8 @@ class MockRepoWaterfallMixed:
             "status": "active",
             "version": 1,
             "default_profile_id": "prof_123",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
         }
 
@@ -584,6 +592,8 @@ class MockRepoWaterfallSimulation:
             "status": "active",
             "version": 1,
             "default_profile_id": "prof_123",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
         }
 

@@ -9,7 +9,6 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from backend_v2.settings import get_settings
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.interfaces import (
     IAuditRepository,
@@ -41,6 +40,7 @@ from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 

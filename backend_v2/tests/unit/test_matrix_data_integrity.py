@@ -81,25 +81,6 @@ def test_blueprints_have_normalization_hook(db: dict[str, Any]) -> None:
                 )
 
 
-def test_output_profiles_sdui_content_blocks(db: dict[str, Any]) -> None:
-    """Ensure that any OutputProfile defining a synthesis_block_id also defines it in content_blocks."""
-    for profile in db.get("output_profiles", []):
-        synthesis = profile.get("synthesis")
-        if not synthesis:
-            continue
-        synthesis_block_id = synthesis.get("synthesis_block_id")
-        if synthesis_block_id:
-            content_blocks = profile.get("content_blocks", [])
-            assert content_blocks, (
-                f"Profile {profile.get('id')} defines synthesis_block_id '{synthesis_block_id}' but has no content_blocks array."
-            )
-
-            found = any(cb.get("id") == synthesis_block_id for cb in content_blocks)
-            assert found, (
-                f"Profile {profile.get('id')} is missing ContentBlock '{synthesis_block_id}' in its content_blocks."
-            )
-
-
 @pytest.mark.skip(reason="Legacy epic 51 MECE checks fail due to P2 seed cleanup.")
 def test_all_ok_matrices_have_exactly_three_claims(db: dict[str, Any]) -> None:
     """Ensure that all matrices marked as [OK] in the epic tracker have EXACTLY 3 claims per scale."""
