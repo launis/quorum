@@ -21,7 +21,7 @@
 
 ### Phase 2: LLMNodeStrategy Refactoring & Engine Delegation
 - [x] Execute [phase_2_strategy_refactoring.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_2_strategy_refactoring.md) via `/tier2-execute`
-- [ ] Atomic `git commit` after quality gate passes. (Skipped)
+- [x] Atomic `git commit` after quality gate passes.
 
 ### Integration Checkpoint: Backend End-to-End Validation
 - [x] Run full backend test suite: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
