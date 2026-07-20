@@ -8,6 +8,8 @@ from backend_v2.utils.math_utils import (
     normalize_score_to_100,
     scale_to_custom_range,
 )
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+
 
 
 def test_normalize_score_to_100() -> None:
@@ -51,9 +53,9 @@ def test_convert_strictness_to_forgiveness_all_branches() -> None:
 def test_soft_waterfall_scaling_deterministic_differences() -> None:
     """Mathematically prove that yields a higher score than 85 for identical 0-hit rate stats."""
     level_stats = {
-        1.0: {"hits": 1, "total": 1},
-        2.0: {"hits": 0, "total": 1},
-        3.0: {"hits": 1, "total": 1},
+        1.0: LevelStatsDTO(hits=1, total=1),
+        2.0: LevelStatsDTO(hits=0, total=1),
+        3.0: LevelStatsDTO(hits=1, total=1),
     }
 
     score_85 = calculate_soft_waterfall_score(level_stats, 1.0, 3.0, 0.75, 0.10)
@@ -79,8 +81,8 @@ def test_calculate_linear_ratio_score() -> None:
     from backend_v2.utils.math_utils import calculate_linear_ratio_score
 
     stats = {
-        1.0: {"hits": 100, "total": 100},
-        2.0: {"hits": 50, "total": 100},
+        1.0: LevelStatsDTO(hits=100, total=100),
+        2.0: LevelStatsDTO(hits=50, total=100),
     }
     score = calculate_linear_ratio_score(stats, 1.0, 5.0)
     assert score > 1.0
@@ -90,13 +92,13 @@ def test_calculate_linear_ratio_score() -> None:
 
     # 0 max weights
     stats_empty = {
-        1.0: {"hits": 0, "total": 0},
+        1.0: LevelStatsDTO(hits=0, total=0),
     }
     assert calculate_linear_ratio_score(stats_empty, 1.0, 5.0) == 1.0
 
 
 def test_soft_waterfall_threshold_zero() -> None:
-    stats = {1.0: {"hits": 0, "total": 100}}
+    stats = {1.0: LevelStatsDTO(hits=0, total=100)}
     # threshold = 0.0 -> fallback branch
     score = calculate_soft_waterfall_score(stats, 1.0, 5.0, 0.0, 0.5)
     assert score == 1.0
