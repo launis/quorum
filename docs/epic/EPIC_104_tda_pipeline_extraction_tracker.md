@@ -13,11 +13,11 @@
 - [ ] **[Tier 0 Red-Team]** Run `/tier0-research-plan` on [phase_0_protocol_prerequisites.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_0_protocol_prerequisites.md) in a fresh context window. *(High-risk: new SSOT Protocol + DTOs)*
 - [x] **[BASELINE]** Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` and record passing test count: 1110 tests passed.
 - [x] Execute [phase_0_protocol_prerequisites.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_0_protocol_prerequisites.md) via `/tier2-execute`
-- [ ] Atomic `git commit` after quality gate passes.
+- [x] Atomic `git commit` after quality gate passes.
 
 ### Phase 1: TDA Engine Extraction & Settings Migration
-- [ ] Execute [phase_1_tda_engine_extraction.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_1_tda_engine_extraction.md) via `/tier2-execute`
-- [ ] Atomic `git commit` after quality gate passes.
+- [x] Execute [phase_1_tda_engine_extraction.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_1_tda_engine_extraction.md) via `/tier2-execute`
+- [x] Atomic `git commit` after quality gate passes.
 
 ### Phase 2: LLMNodeStrategy Refactoring & Engine Delegation
 - [ ] Execute [phase_2_strategy_refactoring.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_2_strategy_refactoring.md) via `/tier2-execute`
@@ -114,22 +114,16 @@
 # Session Handover Context
 
 ## Achieved
-- Generated micro-chunked implementation plans for Epic 104 Phases 0-2 (detailed) and Phases 3-4 (placeholder).
-- Performed comprehensive codebase analysis of `llm.py` (695 lines, inline TDA pipeline at L560-614), `dag_executor.py` (912 lines, routing at L228-284), `base.py` (NodeStrategy ABC, StrategyContext), and existing test fixtures.
-- Identified exact line ranges for extraction, routing branches (logic/synthesis/reasoning/else), and `EngineOverrideStrategy` enum values (`PRE_HYDRATED_SYNTHESIS`, `DYNAMIC_TOOL_AGENT`).
-- Confirmed `engines/` directory does not yet exist. Confirmed no existing tracker for Epic 104.
+- Phase 0 Executed: Created `engines/` directory structure, ExecutionEngine Protocol, EngineExecutionRequest DTO, and strict EngineExecutionResult Pydantic V2 DTO.
+- Phase 1 Executed: Extracted the inline TDA pipeline into `TDAEngine`. Migrated hardcoded `SlidingWindowLinker` settings to `settings.py`. Added unit tests for `TDAEngine` to verify the exception ACL and basic pipeline execution. Passed strict 30% coverage and Universal Quality Gate.
 
 ## Learned
 - `LLMNodeStrategy` does NOT have its own `__init__` — it inherits from `NodeStrategy` which accepts 10 positional args. Phase 2 must override `__init__`.
-- The `else` branch in `dag_executor.py:272-284` currently falls back to `LLMNodeStrategy` — Epic 104 mandates replacing this with Fail-Fast.
-- `SlidingWindowLinker(window_size=4, overlap=2)` is hardcoded at `llm.py:570`. No `tda_linker_*` fields exist in `settings.py` yet.
-- `StrategyContext` is `frozen=True` with `context_variables` and `global_context_vars` fields.
-- Existing `test_llm.py` (460 lines, 16KB) creates `LLMNodeStrategy` without an `engine` parameter in fixtures.
+- `TwoPassAtomizer` and others do not accept `semaphore` in their method signatures; they create their own using settings. The `running_event` was handled directly in the engine before delegation.
 
 ## Remaining
-- Phase 0: Protocol Prerequisites & Directory Structure (detailed plan ready)
-- Phase 1: TDA Engine Extraction (detailed plan ready)
 - Phase 2: LLMNodeStrategy Refactoring (detailed plan ready)
+- Integration Checkpoint: Backend End-to-End Validation
 - Phase 3: DAG Executor Wiring (placeholder — re-plan after Phase 2)
 - Phase 4: Testing (placeholder — re-plan after Phase 3)
 - Post-phases: Tier 2 Hardening, Proxy Sunset, Pre-Delete Audit, Semantic Coverage Audit, Documentation/KI update.
@@ -139,5 +133,5 @@
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier2-execute --target="docs\epic\EPIC_104_tda_pipeline_extraction_tracker.md, docs\epic\EPIC_104_tda_pipeline_extraction.md" --rules="00-antigravity-core.md, 01-python-backend.md, 04_directory_reference.md"
+/tier5-resume --workflow=/tier2-execute --target="docs\epic\EPIC_104_tda_pipeline_extraction_tracker.md, docs\epic\tasks_tda_pipeline_extraction\phase_2_strategy_refactoring.md" --rules="00-antigravity-core.md, 01-python-backend.md, 04_directory_reference.md"
 ```

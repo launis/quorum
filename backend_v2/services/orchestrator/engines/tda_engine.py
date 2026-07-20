@@ -1,0 +1,128 @@
+"""Topological Data Analysis Engine.
+
+Extracts the raw TDA pipeline into a standalone strategy engine.
+"""
+
+import logging
+from typing import TYPE_CHECKING, Any
+
+from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.engines.base import ExecutionEngine
+from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
+from backend_v2.services.orchestrator.result_projector import ResultProjector
+from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
+from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
+from backend_v2.settings import get_settings
+
+if TYPE_CHECKING:
+    pass
+
+logger = logging.getLogger(__name__)
+
+
+class TDAEngine(ExecutionEngine):
+    """Execution engine for Topological Data Analysis.
+
+    Executes the multi-pass atomizer, sliding window linker, and enriched
+    DAG execution over the extracted ontology atoms.
+    """
+
+    def __init__(self, prompt_compiler: Any) -> None:
+        """Initializes the TDA Engine.
+
+        Args:
+            prompt_compiler: The global PromptCompiler instance.
+        """
+        self._compiler = prompt_compiler
+
+    async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
+        """Executes the TDA pipeline.
+
+        Args:
+            request: The EngineExecutionRequest containing runtime context.
+
+        Returns:
+            The EngineExecutionResult containing projected results and references.
+
+        Raises:
+            AppException: If engine execution fails catastrophically.
+        """
+        if request.running_event:
+            request.running_event.set()
+
+        try:
+            llm_executor = LLMTaskExecutor(
+                self._compiler,
+                default_validation_context={
+                    "execution_id": request.context.execution_id,
+                    "step_id": request.step.id,
+                },
+            )
+            atomizer = TwoPassAtomizer(llm_executor)
+            linker = SlidingWindowLinker(
+                window_size=get_settings().tda_linker_window_size,
+                overlap=get_settings().tda_linker_overlap,
+            )
+            dag_executor = EnrichedDagExecutor(llm_executor, request.bound_client)
+
+            chunk_size = get_settings().rag_preflight_chunk_size
+            global_source_text = request.global_source_text
+            text_chunks = [
+                global_source_text[i : i + chunk_size] for i in range(0, max(len(global_source_text), 1), chunk_size)
+            ]
+
+            async def phase_0_progress(completed: int, total: int) -> None:
+                if request.progress_callback:
+                    prog = int((completed / total) * 15)
+                    await request.progress_callback(prog, 100)
+
+            async def phase_1_progress(completed: int, total: int) -> None:
+                if request.progress_callback:
+                    prog = 15 + int((completed / total) * 20)
+                    await request.progress_callback(prog, 100)
+
+            async def linker_progress(completed: int, total: int) -> None:
+                if request.progress_callback:
+                    prog = 35 + int((completed / total) * 25)
+                    await request.progress_callback(prog, 100)
+
+            async def dag_progress(completed: int, total: int) -> None:
+                if request.progress_callback:
+                    prog = 60 + int((completed / total) * 40)
+                    await request.progress_callback(prog, 100)
+
+            ontology = await atomizer.execute_phase_0(
+                request.bound_client, text_chunks, progress_callback=phase_0_progress
+            )
+            atoms = await atomizer.execute_phase_1(
+                request.bound_client, text_chunks, ontology, progress_callback=phase_1_progress
+            )
+            nodes = await linker.link_graph(
+                llm_executor, request.bound_client, atoms, ontology, progress_callback=linker_progress
+            )
+            states = await dag_executor.execute_graph(
+                nodes, global_source_text, request.target_locale, progress_callback=dag_progress
+            )
+
+            results_dto, hydrated_refs = ResultProjector.project(nodes, states)
+
+            return EngineExecutionResult(
+                results=results_dto,
+                hydrated_references=hydrated_refs,
+            )
+        except AppException:
+            # Re-raise AppException directly to avoid double-wrapping
+            raise
+        except Exception as e:
+            logger.error(
+                "TDA Engine failed catastrophically during execution.",
+                exc_info=True,
+                extra={"error_code": "TDA_ENGINE_ERROR"},
+            )
+            raise AppException(
+                message=str(e),
+                status_code=500,
+                details={"error_code": "TDA_ENGINE_ERROR"},
+            ) from e
