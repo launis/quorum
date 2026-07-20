@@ -28,14 +28,14 @@
 - [x] Verify existing execution workflows operate identically through the new engine delegation path. Compare test count against `[BASELINE]`.
 
 ### Re-Plan Remaining Phases
-- [ ] **[NOK]** Invoke the Tier 1 Planner (`/tier1-planner`) again to generate detailed plans for Phase 4 (Testing) and the Post-Extraction Pipeline based on the updated codebase state.
+- [x] **[NOK]** Invoke the Tier 1 Planner (`/tier1-planner`) again to generate detailed plans for Phase 4 (Testing) and the Post-Extraction Pipeline based on the updated codebase state.
 
 ### Phase 3: DAG Executor Wiring & Fail-Fast Routing
 - [x] Execute [phase_3_dag_executor_wiring.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_3_dag_executor_wiring.md) via `/tier2-execute` *(Completed as part of Phase 2 execution)*
 - [x] Atomic `git commit` after quality gate passes.
 
-### Phase 4: Engine Unit Tests & Strategy Test Modernization (PLACEHOLDER)
-- [ ] Execute [phase_4_testing.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_4_testing.md) via `/tier2-execute` *(after detailed plan is generated)*
+### Phase 4: Engine Unit Tests & Strategy Test Modernization
+- [ ] **[NOK]** Execute [phase_4_testing.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_4_testing.md) via `/tier2-execute`
 - [ ] Atomic `git commit` after quality gate passes.
 
 ---
@@ -43,25 +43,25 @@
 ## Post-Extraction Pipeline
 
 ### Tier 2 Hardening
-- [ ] Run `/tier2-hardening-backend` targeted at `backend_v2/services/orchestrator/engines/` and `backend_v2/models/dtos/engine.py`. After structural extraction (Zero Behavioral Change), modernize the new code's architecture to strict Pydantic V2, Push models, and PEP 257 docstrings via the Tier 2 Hardening Loop.
+- [ ] **[NOK]** Run `/tier2-hardening-backend` targeted at `backend_v2/services/orchestrator/engines/` and `backend_v2/models/dtos/engine.py`. After structural extraction (Zero Behavioral Change), modernize the new code's architecture to strict Pydantic V2, Push models, and PEP 257 docstrings via the Tier 2 Hardening Loop.
 
 ### Proxy Sunset & Consumer Migration
-- [ ] Codebase-wide search for any remaining direct references to the old inline TDA pipeline pattern in `llm.py`. Verify no orphaned imports reference the 5 sub-services from within `llm.py`. Remove any deprecated proxy imports.
+- [ ] **[NOK]** Codebase-wide search for any remaining direct references to the old inline TDA pipeline pattern in `llm.py`. Verify no orphaned imports reference the 5 sub-services from within `llm.py`. Remove any deprecated proxy imports.
 
 ### Pre-Delete Audit
-- [ ] Verify no orphaned dependencies remain from the old inline pipeline.
-- [ ] Confirm `llm.py` no longer contains any inline `from backend_v2.services.orchestrator.two_pass_atomizer import` or similar.
-- [ ] Confirm all consumers route through `TDAEngine`.
+- [ ] **[NOK]** Verify no orphaned dependencies remain from the old inline pipeline.
+- [ ] **[NOK]** Confirm `llm.py` no longer contains any inline `from backend_v2.services.orchestrator.two_pass_atomizer import` or similar.
+- [ ] **[NOK]** Confirm all consumers route through `TDAEngine`.
 
 ### Semantic Coverage & Zero-Loss Audit
-- [ ] Mathematically verify that line coverage of the *surviving business logic* remains >90%.
-- [ ] Verify all old inline pipeline tests have been replaced by strict `EngineExecutionResult` Pydantic V2 boundary tests.
-- [ ] Compare final passing test count against `[BASELINE]`.
+- [ ] **[NOK]** Mathematically verify that line coverage of the *surviving business logic* remains >90%.
+- [ ] **[NOK]** Verify all old inline pipeline tests have been replaced by strict `EngineExecutionResult` Pydantic V2 boundary tests.
+- [ ] **[NOK]** Compare final passing test count against `[BASELINE]`.
 
 ### Documentation & Knowledge Item Update
-- [ ] Update `docs/architecture/` with the new `ExecutionEngine` Protocol and `engines/` directory.
-- [ ] Update `.agents/rules/04_directory_reference.md` to include the `engines/` subdirectory under the orchestrator module.
-- [ ] Create a Knowledge Item (KI) for the `ExecutionEngine` Protocol SSOT in `<appDataDir>/knowledge/`.
+- [ ] **[NOK]** Update `docs/architecture/` with the new `ExecutionEngine` Protocol and `engines/` directory.
+- [ ] **[NOK]** Update `.agents/rules/04_directory_reference.md` to include the `engines/` subdirectory under the orchestrator module.
+- [ ] **[NOK]** Create a Knowledge Item (KI) for the `ExecutionEngine` Protocol SSOT in `<appDataDir>/knowledge/`.
 
 ---
 
@@ -117,6 +117,7 @@
 - Phase 0 Executed: Created `engines/` directory structure, ExecutionEngine Protocol, EngineExecutionRequest DTO, and strict EngineExecutionResult Pydantic V2 DTO.
 - Phase 1 Executed: Extracted the inline TDA pipeline into `TDAEngine`. Migrated hardcoded `SlidingWindowLinker` settings to `settings.py`. Added unit tests for `TDAEngine` to verify the exception ACL and basic pipeline execution. Passed strict 30% coverage and Universal Quality Gate.
 - Phase 2 & 3 Executed: Refactored `LLMNodeStrategy` to enforce mandatory engine DI and replaced the inline pipeline with delegation. Wired `dag_executor.py` with `TDAEngine` lazy injection and Fail-Fast routing. Passed full test suite. Integration Checkpoint completed.
+- Re-Plan Completed: Invoked `/tier1-planner` to generate the detailed implementation plan for Phase 4 (Testing) and Post-Extraction Pipeline tasks.
 
 ## Learned
 - Phase 2 and Phase 3 instructions were consolidated by the planner into `phase_2_strategy_refactoring.md`. DAG Executor wiring was executed smoothly alongside LLMNodeStrategy refactoring.
@@ -124,13 +125,17 @@
 - `EngineExecutionRequest` enforces strict Pydantic V2 typing, which required modifying the legacy `test_llm.py` tests to properly mock the request object so it doesn't fail validation.
 
 ## Remaining
-- Phase 4: Engine Unit Tests & Strategy Test Modernization (placeholder — re-plan required)
-- Post-phases: Tier 2 Hardening, Proxy Sunset, Pre-Delete Audit, Semantic Coverage Audit, Documentation/KI update.
+- Phase 4: Engine Unit Tests & Post-Extraction Hardening (ready for execution).
+- Tier 2 Hardening target at `backend_v2/services/orchestrator/engines/` and `backend_v2/models/dtos/engine.py`.
+- Proxy Sunset & Consumer Migration
+- Pre-Delete Audit
+- Semantic Coverage & Zero-Loss Audit
+- Documentation & Knowledge Item Update
 
 ---
 
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier1-planner --target="docs\epic\EPIC_104_tda_pipeline_extraction_tracker.md" --rules="00-antigravity-core.md, 01-python-backend.md"
+/tier5-resume --workflow=/tier2-execute --target="docs\epic\EPIC_104_tda_pipeline_extraction_tracker.md, docs\epic\EPIC_104_tda_pipeline_extraction.md" --rules="00-antigravity-core.md, 01-python-backend.md"
 ```
