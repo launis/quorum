@@ -15,6 +15,16 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+from backend_v2.models.prompts.field_prompts import (
+    DESC_CONTEXTUAL_OVERRIDE,
+    DESC_EVALUATION_NOTES,
+    DESC_EXACT_QUOTES,
+    DESC_REASONING_TRACE,
+)
+from backend_v2.models.v2_core import GlobalSynthesisDTO, PromptBlock
+from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -129,17 +139,6 @@ class TaskRegistry:
 
 
 # --- SDUI Schema Builder Registry ---
-
-from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
-from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.prompts.field_prompts import (
-    DESC_CONTEXTUAL_OVERRIDE,
-    DESC_EVALUATION_NOTES,
-    DESC_EXACT_QUOTES,
-    DESC_REASONING_TRACE,
-)
-from backend_v2.models.v2_core import GlobalSynthesisDTO, PromptBlock
-from backend_v2.utils.alias_engine import AliasEngine
 
 
 class SchemaBuilderStrategy(ABC):
@@ -330,7 +329,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                     ),
                 ),
                 text=(str, Field(..., description="Tarkka lainaus tekstistä")),
-                __config__=ConfigDict(extra="ignore"),
+                __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             )
 
             step_strict_class = create_model(

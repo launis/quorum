@@ -50,7 +50,7 @@
 
 - [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide `grep_search` for any remaining references to `OutputProfile.synthesis`, `OutputProfile.formatting_directives`, or `OutputProfile.matrix_column_labels`. Replace old import paths. Delete any deprecated proxy methods.
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` targeted at:
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` targeted at:
   - `backend_v2/core/registry.py` (new SSOT component)
   - `backend_v2/services/orchestrator/schema_factory.py` (refactored)
   - `backend_v2/models/v2_core.py` (pruned models)
@@ -131,8 +131,6 @@
 - **Worker Schema Resolution**: Worker tasks must now resolve `sdui_type` using `profile.get("expected_sdui_type", "markdown")` instead of checking schema types directly, as the profile schema has been fully delegated to the Registry.
 
 ## Remaining
-- **Proxy Sunset & Consumer Migration**: Search and destroy any lingering legacy proxy references.
-- **Tier 2 Hardening (Backend)**: Apply backend strictness to updated code.
 - **Tier 2 Hardening (Frontend)**: Hardening for Flutter models and views.
 - **Pre-Delete Audit**: Verify no orphaned dependencies.
 - **Semantic Coverage Audit**: Confirm coverage remains >90%.
@@ -141,5 +139,5 @@
 ---
 
 ```bash
-/tier5-resume --workflow=/tier2-execute --target="docs/epic/EPIC_106_output_profile_simplification_tracker.md" --instruction="Proceed to Tier 2 Hardening (Backend)"
+/tier5-resume --workflow=/tier2-hardening-frontend --target="docs/epic/EPIC_106_output_profile_simplification_tracker.md" --instruction="Proceed to Tier 2 Hardening (Frontend)"
 ```
