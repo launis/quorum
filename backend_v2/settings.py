@@ -152,23 +152,9 @@ class Settings(BaseSettings):
     schema_max_quotes_target: Annotated[int, Field(description="Target quotes count")] = 5
     schema_max_quote_length: Annotated[int, Field(description="Target quote length")] = 150
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def llm_max_retries(self) -> int:
-        """Dynamic retries based on execution mode."""
-        return 0 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 2
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def ensemble_parallelism(self) -> int:
-        """Dynamic parallel BoX calls based on execution mode."""
-        return 1 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 3
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def ensemble_min_consensus(self) -> int:
-        """Dynamic consensus votes based on execution mode."""
-        return 1 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 2
+    llm_max_retries: Annotated[int, Field(description="Dynamic retries based on execution mode")] = 2
+    ensemble_parallelism: Annotated[int, Field(description="Dynamic parallel BoX calls based on execution mode")] = 3
+    ensemble_min_consensus: Annotated[int, Field(description="Dynamic consensus votes based on execution mode")] = 2
 
     # --- Logging ---
     use_json_logging: Annotated[
@@ -190,6 +176,7 @@ class Settings(BaseSettings):
     ] = None
 
     # --- LLM Configuration ---
+    strategy_aliases: Annotated[dict[str, str], Field(description="Neutral map for strategy rerouting")] = {}
     default_model_strategy: Annotated[
         str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
     ] = None
@@ -509,6 +496,7 @@ class Settings(BaseSettings):
     def _enforce_fast_mode_limits(self) -> Self:
         """Aggressively clamp heavy configurations during 'fast' development mode."""
         if self.environment.lower() == "development" and self.dev_execution_mode == "fast":
+            logger.info("⚡ Fast execution mode active: Clamping LLM bounds and limits to save API tokens.")
 
             self.max_tool_calls_per_step = 1
             self.max_development_chunks = 1
@@ -522,6 +510,22 @@ class Settings(BaseSettings):
             self.max_precedent_return_count = 0
             self.tda_linker_window_size = 2
             self.tda_linker_overlap = 0
+
+            # Ensembles and Retries Overrides
+            self.llm_max_retries = 0
+            self.ensemble_parallelism = 1
+            self.ensemble_min_consensus = 1
+
+            # Strategy Aliasing
+            self.strategy_aliases = {
+                "strict_strategy": "fast",
+                "evaluation_strategy": "fast",
+                "test_strategy": "fast",
+                "strict": "fast",
+                "deep": "fast",
+                "synthesis": "fast",
+                "reasoning": "fast",
+            }
 
         return self
 
@@ -579,22 +583,6 @@ class Settings(BaseSettings):
     def schema_max_source_aliases(self) -> int:
         """Target limits for source document array (logically bound to quote limit, capped by chunk size)."""
         return min(self.schema_max_quotes_target, self.schema_max_chunk_records)
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def strategy_aliases(self) -> dict[str, str]:
-        """Neutral map for strategy rerouting in development."""
-        if self.environment.lower() == "development" and self.dev_execution_mode == "fast":
-            return {
-                "strict_strategy": "fast",
-                "evaluation_strategy": "fast",
-                "test_strategy": "fast",
-                "strict": "fast",
-                "deep": "fast",
-                "synthesis": "fast",
-                "reasoning": "fast",
-            }
-        return {}
 
     # Epic 13 M3: Centralized Mock Token IDs for testing
     mock_admin_user_id: str = Field(
