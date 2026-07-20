@@ -88,6 +88,7 @@ Instead of defining "Row outputs" and "Summaries" as complex configurations insi
 - **Flutter Parity Gate**: Backend `output_profile.py` Pydantic deletions MUST NOT be deployed to any non-local environment until `dart run build_runner build -d` has completed successfully AND `test_enum_parity.py` passes.
 - **API Payload Scrubbing**: You MUST clean up the frontend Repository classes. All outgoing API payloads must be scrubbed of deprecated fields to prevent 422 errors. Since this is a development environment, thick client backward compatibility (version gates) is NOT required. We rely on a clean slate.
 - **UI Update**: Update the Flutter Admin Dashboard to reflect the pruned model. Replace the cluttered configuration screens with a clean, single-column settings card containing only the essential fields (Identity, Tone, Metadata Checkboxes).
+- **Freezed `SynthesisConfigDTO` Scope Audit**: The `synthesis_config_dto.dart` Freezed model in `client_app_v2/lib/features/execution/models/` MUST be audited. If it is ONLY consumed via `OutputProfile`, it MUST be deleted. If it is also consumed via `OutputLayoutBlock.synthesis` or `ReportLayoutDTO.synthesis`, update the import path accordingly. Do NOT leave orphaned Freezed models.
 
 ## 4. Required User Review
 - **`SynthesisConfigDTO` Sub-Field Relocation**: Confirm the proposed relocation targets for `allowed_exports` (→ Workflow), `allowed_mcp_tools` (→ StepRule), `length_constraint` (→ OutputLayoutBlock.synthesis, NOT PromptBlock), `historical_context_mode` (→ Workflow), `matrix_visible_columns` (→ StepRule).

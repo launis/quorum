@@ -29,8 +29,9 @@ Following the extraction of the `TDAEngine` (Epic 104), the system now possesses
 ### Phase 0: `expected_sdui_type` Field Addition (Prerequisite)
 - **Ownership Declaration**: This field was deferred by Epic 104 (Phase 0.5: "REMOVED. Deferred to Epic 105"). Epic 105 MUST add it here to resolve the dependency chain.
 - **Target File**: `backend_v2/models/v2_core.py` (specifically `StepRule` class)
-- **Action**: Add `expected_sdui_type: Literal["markdown", "grid", "hero", "unknown"] = Field(...)` to `StepRule`. This field explicitly declares the expected SDUI output schema for each step, used by the `SchemaFactory` and `PromptCompiler` for deterministic Pydantic validation.
-- **Seed Data Update**: Update `backend_v2/seed/seed_data.json` to add `expected_sdui_type` to all `StepRule` definitions within the `workflows` array. Synthesis steps MUST use `"markdown"`.
+- **Action**: Add `expected_sdui_type: Literal["markdown", "grid", "hero"] = Field(...)` to `StepRule`. This field explicitly declares the expected SDUI output schema for each step, used by the `SchemaFactory` and `PromptCompiler` for deterministic Pydantic validation. **The `"unknown"` value is STRICTLY PROHIBITED** — it would violate the `zero_compromise_pledge` by silently accepting unconfigured steps instead of crashing Fail-Fast.
+- **Enum Rename (Atomic)**: Rename `EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS` → `EngineOverrideStrategy.SYNTHESIS` to reflect the unified engine architecture. The old enum value becomes semantically misleading after the legacy strategy deletion. Update ALL references in `dag_executor.py`, `seed_data.json`, and test fixtures simultaneously.
+- **Seed Data Update**: Update `backend_v2/seed/seed_data.json` to: (1) add `expected_sdui_type` to all `StepRule` definitions within the `workflows` array (synthesis steps MUST use `"markdown"`), (2) rename all `"engine_override": "PRE_HYDRATED_SYNTHESIS"` values to `"engine_override": "SYNTHESIS"`.
 - **Database Wipe**: After modifying the seed data, developers MUST run `uv run python backend_v2/seed/run_seed.py local` to flush old data.
 
 ### Phase 1: Engine Extraction & Parameter Object Utilization
