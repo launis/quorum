@@ -13,7 +13,7 @@ from pathlib import Path
 
 # Read source directly from disk to avoid .pyc cache issues with inspect.getsource
 _LLM_PY_PATH = Path(__file__).resolve().parents[5] / "services" / "orchestrator" / "strategies" / "llm.py"
-_SCHEMA_FACTORY_PATH = Path(__file__).resolve().parents[5] / "services" / "orchestrator" / "schema_factory.py"
+_REGISTRY_PATH = Path(__file__).resolve().parents[5] / "core" / "registry.py"
 
 
 def test_no_parallel_alias_system_in_llm_strategy() -> None:
@@ -67,9 +67,9 @@ def test_alias_engine_initialized_clean() -> None:
     )
 
 
-def test_schema_factory_excludes_source_id_from_matrix_extensions() -> None:
+def test_registry_excludes_source_id_from_matrix_extensions() -> None:
     """Verify source_id is in core_aliases set for both matrix and criteria extensions."""
-    source = _SCHEMA_FACTORY_PATH.read_text(encoding="utf-8")
+    source = _REGISTRY_PATH.read_text(encoding="utf-8")
 
     # Verify 'source_id' appears in core_aliases set alongside known members
     lines = source.splitlines()
@@ -82,5 +82,5 @@ def test_schema_factory_excludes_source_id_from_matrix_extensions() -> None:
     # Must appear at least twice (once for matrix extensions, once for criteria extensions)
     assert found_count >= 2, (
         f"REGRESSION: 'source_id' must be in core_aliases set in BOTH matrix and criteria "
-        f"extension loops in schema_factory.py. Found only {found_count} occurrences."
+        f"extension loops in registry.py. Found only {found_count} occurrences."
     )

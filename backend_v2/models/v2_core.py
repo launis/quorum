@@ -782,7 +782,7 @@ class StepRule(V2CoreBase):
         Field(description="Optional override to route this step to a non-default execution strategy."),
     ] = None
     expected_sdui_type: Annotated[
-        Literal["markdown", "hero_insight"] | None,
+        Literal["markdown", "hero_insight", "grid"] | None,
         Field(description="Declares the expected SDUI output schema for schema compilation."),
     ] = None
 

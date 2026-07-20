@@ -15,7 +15,7 @@
 
 ### Phase 2: SchemaFactory Registry Pattern & PromptCompiler SDUI Enforcement (Backend)
 - [x] **[OK] Red-Team**: Run `/tier0-research-plan` on [phase_2_schema_factory_registry.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_2_schema_factory_registry.md) in a fresh context window — HIGH-RISK: introduces new SSOT component (`SchemaBuilderRegistry`), modifies protected `prompt_compiler.py`.
-- [ ] **[NOK] Execute**: Run `/tier2-execute` on [phase_2_schema_factory_registry.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_2_schema_factory_registry.md)
+- [x] **[OK] Execute**: Run `/tier2-execute` on [phase_2_schema_factory_registry.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_2_schema_factory_registry.md)
 
 ---
 
@@ -114,7 +114,7 @@
 - **Workflow Configurations Migrated**: Migrated the global fallback `allowed_exports` and `historical_context_mode` directly to the `Workflow` domain boundary and updated all consumers (`dag_executor`, `workflow_service`, `blueprint`, `worker`).
 - **Test Suite Rescued**: Stripped obsolete proxy fields across 1,100+ tests and updated mock injections.
 - **Global Audit Passed**: Executed the `backend_audit_loop.py` verifying Python strictness, MyPy types, Ruff formatting, and test suite passage (1120 passed).
-- **Phase 2 Red-Teaming Complete**: Verified the Phase 2 implementation plan via System 2 analysis. Fixed DI injection leak in strategy factory, resolved Pydantic strictness violations (`**kwargs` -> explicitly typed arguments), added `HeroInsightSchemaStrategy` mapping, and removed stale formatting directives milestone (completed in Phase 1).
+- **Phase 2 Complete**: Successfully refactored `SchemaFactory` into a registry pattern, threaded `expected_sdui_type`, passed all tests, and created the `sdui_schema_registry` Knowledge Item.
 
 ## Learned
 - `SynthesisConfigDTO` is still needed for `OutputLayoutBlock.synthesis` and `ReportLayoutDTO.synthesis` — only the profile-level `synthesis` field is removed.
@@ -127,13 +127,13 @@
 
 ## Remaining
 - Phase 1 (Backend model pruning) — Executed and verified.
-- Phase 2 (SchemaFactory + PromptCompiler) — Ready for execution.
-- Phase 2.5 (Worker migration) — Placeholder, requires Tier 1 re-planning after Phase 2.
-- Phase 3 (Flutter cleanup) — Placeholder, requires Tier 1 re-planning after Phase 2.
+- Phase 2 (SchemaFactory + PromptCompiler) — Executed and verified.
+- **Phase 2.5 (Worker migration)** — REQUIRES PLANNING (`/tier1-planner`)
+- **Phase 3 (Flutter cleanup)** — REQUIRES PLANNING (`/tier1-planner`)
 - All post-implementation gates (hardening, proxy sunset, coverage audit, documentation).
 
 ---
 
 ```bash
-/tier5-resume --workflow=/tier2-execute --target="docs/epic/tasks_epic_106/phase_2_schema_factory_registry.md, docs/epic/EPIC_106_output_profile_simplification_tracker.md"
+/tier5-resume --workflow=/tier1-planner --target="docs/epic/EPIC_106_output_profile_simplification.md, docs/epic/EPIC_106_output_profile_simplification_tracker.md"
 ```

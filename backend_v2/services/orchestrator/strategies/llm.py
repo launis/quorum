@@ -564,6 +564,7 @@ class LLMNodeStrategy(NodeStrategy):
                 source_document_ids=source_doc_ids,
                 allowed_dynamic_keys=allowed_dynamic_keys,
                 allowed_mcp_prefixes=hook_state.metadata.get("allowed_mcp_prefixes", []),
+                expected_sdui_type=getattr(step, "expected_sdui_type", "grid"),
             )
             frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()
 
@@ -618,6 +619,7 @@ class LLMNodeStrategy(NodeStrategy):
                     target_locale=target_locale,
                     strictness_level=context.strictness_level,
                     source_document_ids=doc_aliases,
+                    expected_sdui_type=getattr(step, "expected_sdui_type", "grid"),
                 )
 
                 static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)

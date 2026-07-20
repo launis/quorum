@@ -57,6 +57,11 @@
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
         <key_domains>domain/ (SSOT DB shapes), dtos/ (API boundaries - legacy dtos/report eradicated), prompts/ (LLM templates), v2_core.py (Core Execution Models), enums.py</key_domains>
     </module>
+
+    <module path="backend_v2/core/">
+        <responsibility>CORE ARCHITECTURE & REGISTRIES</responsibility>
+        <key_domains>registry.py (SSOT for TaskRegistry and SchemaBuilderRegistry), template_processor.py</key_domains>
+    </module>
     
     <module path="backend_v2/database/">
         <responsibility>DATA PERSISTENCE & REPOSITORIES (PILLAR 2)</responsibility>

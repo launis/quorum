@@ -15,15 +15,12 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from backend_v2.core.registry import EvidenceType, StrippedBaseMatrixXAI
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.v2_core import ExpectedInput, PromptBlock
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
-from backend_v2.services.orchestrator.schema_factory import (
-    EvidenceType,
-    SchemaFactory,
-    StrippedBaseMatrixXAI,
-)
+from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
 # Backward-compatible re-exports for consumers importing from prompt_compiler
 __all__ = [
@@ -127,6 +124,7 @@ class PromptCompiler:
         allowed_dynamic_keys: list[str] | None = None,
         allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
+        expected_sdui_type: str = "grid",
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -148,13 +146,14 @@ class PromptCompiler:
         return self._schema_factory.build_dynamic_schema(
             schema_name,
             criteria,
-            has_shuffled_atoms=has_shuffled_atoms,
-            target_locale=target_locale,
+            has_shuffled_atoms,
+            target_locale,
             strictness_level=strictness_level,
             source_document_ids=source_document_ids,
             allowed_atom_ids=allowed_atom_ids,
             allowed_dynamic_keys=allowed_dynamic_keys,
             max_evaluations=max_evaluations,
+            expected_sdui_type=expected_sdui_type,
         )
 
     def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:

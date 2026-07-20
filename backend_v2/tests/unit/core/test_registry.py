@@ -1,7 +1,15 @@
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from backend_v2.core.registry import TaskDefinition, TaskRegistry
+from backend_v2.core.registry import (
+    GridSchemaStrategy,
+    HeroInsightSchemaStrategy,
+    MarkdownSchemaStrategy,
+    TaskDefinition,
+    TaskRegistry,
+    get_schema_strategy,
+    register_sdui_schema,
+)
 from backend_v2.exceptions import AppException
 
 
@@ -54,3 +62,27 @@ def test_task_definition_strictness() -> None:
             output_schema=DummyOutput,
             extra="fail",  # type: ignore
         )
+
+
+def test_get_schema_strategy_resolves_correctly() -> None:
+    assert get_schema_strategy("markdown") == MarkdownSchemaStrategy
+    assert get_schema_strategy("hero_insight") == HeroInsightSchemaStrategy
+    assert get_schema_strategy("grid") == GridSchemaStrategy
+
+
+def test_get_schema_strategy_unknown_raises_error() -> None:
+    with pytest.raises(AppException) as exc:
+        get_schema_strategy("unknown_type")
+    assert exc.value.status_code == 500
+    assert "Unknown expected_sdui_type" in exc.value.message
+
+
+def test_register_sdui_schema_duplicate_raises_error() -> None:
+    with pytest.raises(AppException) as exc:
+
+        @register_sdui_schema("grid")
+        class DuplicateGridSchemaStrategy(GridSchemaStrategy):
+            pass
+
+    assert exc.value.status_code == 500
+    assert "is already registered" in exc.value.message

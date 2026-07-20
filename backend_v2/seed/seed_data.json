@@ -7639,7 +7639,8 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "DYNAMIC_TOOL_AGENT"
+                    "engine_override": "DYNAMIC_TOOL_AGENT",
+                    "expected_sdui_type": "grid"
                 },
                 {
                     "id": "sr_5a8ae009eee44fe2",
@@ -7694,7 +7695,8 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "DYNAMIC_TOOL_AGENT"
+                    "engine_override": "DYNAMIC_TOOL_AGENT",
+                    "expected_sdui_type": "grid"
                 },
                 {
                     "id": "sr_4d2272d8b4864847",
@@ -7810,7 +7812,8 @@
                     ],
                     "input_mappings": {
                         "results": "$steps.sr_5f3dd7712a7f4bb3"
-                    }
+                    },
+                    "expected_sdui_type": "grid"
                 },
                 {
                     "id": "sr_9e8d7c6b5a40312b",
