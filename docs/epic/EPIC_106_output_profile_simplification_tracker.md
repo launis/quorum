@@ -20,12 +20,13 @@
 ---
 
 ### Phase 2 → Phase 2.5/3 Lazy Planning Gate
-- [ ] **[NOK] Re-Plan**: Invoke the Tier 1 Planner again (`/tier1-planner`) to generate detailed plans for Phase 2.5 and Phase 3 based on the updated codebase state after Phase 2 is complete.
+- [x] **[OK] Re-Plan**: Invoke the Tier 1 Planner again (`/tier1-planner`) to generate detailed plans for Phase 2.5 and Phase 3 based on the updated codebase state after Phase 2 is complete.
 
 ---
 
 ### Phase 2.5: Worker Rendering Pipeline Migration (Backend)
-- [ ] **[NOK] Execute**: Run `/tier2-execute` on [phase_2_5_worker_migration.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_2_5_worker_migration.md) *(placeholder — detailed plan pending)*
+- [x] **[OK] Red-Team**: Run `/tier0-research-plan` on [phase_2_5_worker_migration.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_2_5_worker_migration.md)
+- [ ] **[NOK] Execute**: Run `/tier2-execute` on [phase_2_5_worker_migration.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_2_5_worker_migration.md)
 
 ---
 
@@ -35,7 +36,8 @@
 ---
 
 ### Phase 3: Flutter Admin UI Cleanup & Freezed Synchronization (Frontend)
-- [ ] **[NOK] Execute**: Run `/tier2-execute` on [phase_3_flutter_cleanup.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_3_flutter_cleanup.md) *(placeholder — detailed plan pending)*
+- [x] **[OK] Red-Team**: Run `/tier0-research-plan` on [phase_3_flutter_cleanup.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_3_flutter_cleanup.md)
+- [ ] **[NOK] Execute**: Run `/tier2-execute` on [phase_3_flutter_cleanup.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_3_flutter_cleanup.md)
 
 ---
 
@@ -128,12 +130,12 @@
 ## Remaining
 - Phase 1 (Backend model pruning) — Executed and verified.
 - Phase 2 (SchemaFactory + PromptCompiler) — Executed and verified.
-- **Phase 2.5 (Worker migration)** — REQUIRES PLANNING (`/tier1-planner`)
-- **Phase 3 (Flutter cleanup)** — REQUIRES PLANNING (`/tier1-planner`)
+- **Phase 2.5 (Worker migration)** — RED-TEAMED & PLAN READY (`/tier2-execute`)
+- **Phase 3 (Flutter cleanup)** — RED-TEAMED & PLAN READY (`/tier2-execute`)
 - All post-implementation gates (hardening, proxy sunset, coverage audit, documentation).
 
 ---
 
 ```bash
-/tier5-resume --workflow=/tier1-planner --target="docs/epic/EPIC_106_output_profile_simplification.md, docs/epic/EPIC_106_output_profile_simplification_tracker.md"
+/tier5-resume --workflow=/tier2-execute --target="docs/epic/tasks_epic_106/phase_2_5_worker_migration.md, docs/epic/EPIC_106_output_profile_simplification_tracker.md"
 ```
