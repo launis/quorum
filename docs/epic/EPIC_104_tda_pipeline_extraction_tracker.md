@@ -32,7 +32,7 @@
 
 ### Phase 3: DAG Executor Wiring & Fail-Fast Routing
 - [x] Execute [phase_3_dag_executor_wiring.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_3_dag_executor_wiring.md) via `/tier2-execute` *(Completed as part of Phase 2 execution)*
-- [ ] Atomic `git commit` after quality gate passes. (Skipped)
+- [x] Atomic `git commit` after quality gate passes.
 
 ### Phase 4: Engine Unit Tests & Strategy Test Modernization (PLACEHOLDER)
 - [ ] Execute [phase_4_testing.md](file:///c:/src/quorum/docs/epic/tasks_tda_pipeline_extraction/phase_4_testing.md) via `/tier2-execute` *(after detailed plan is generated)*
