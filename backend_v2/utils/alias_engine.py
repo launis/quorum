@@ -6,11 +6,13 @@ long system UUIDs (like tda_12345 or doc_abcde) into short semantic aliases
 """
 
 import logging
+import re
 from collections import defaultdict
-from typing import Annotated, Any, Literal, get_args, get_origin
+from typing import Annotated, Any, Literal, Self, get_args, get_origin
 
 from pydantic import Field
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import DEFAULT_ALIAS_LITERALS
 
@@ -144,7 +146,7 @@ class AliasEngine:
         )
 
     @classmethod
-    def from_manifest(cls, manifest: AliasManifest) -> AliasEngine:
+    def from_manifest(cls, manifest: AliasManifest) -> Self:
         """Reconstruct an AliasEngine from a previously exported manifest.
 
         Args:
@@ -199,16 +201,15 @@ class AliasEngine:
 
         Returns:
             The original opaque ID, or the original string if not a known prefix.
+
+        Raises:
+            AppException: (422) If the alias matches a registered prefix but is not found in the alias_map.
         """
         if not alias:
             return alias
 
         if alias in self.alias_map:
             return self.alias_map[alias]
-
-        import re
-
-        from backend_v2.exceptions import AppException, ErrorCodes
 
         active_prefixes = set()
         for k in self.alias_map.keys():
@@ -272,8 +273,6 @@ class AliasEngine:
                 text = text.replace(f'"{alias}"', f'"{real_str}"')
                 text = text.replace(f"`{alias}`", f"`{real_str}`")
                 # Also replace raw alias if it stands alone, but safely by checking word boundaries
-                import re
-
                 text = re.sub(rf"\b{alias}\b", real_str, text)
         return text
 

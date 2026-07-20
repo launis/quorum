@@ -63,7 +63,7 @@ def get_strictness_config(strictness_level: int) -> StrictnessConfig:
         strictness_level: Integer representing the strictness.
 
     Returns:
-        StrictnessConfig: Configuration containing math penalties.
+        Configuration containing math penalties.
     """
     level = max(0, min(100, strictness_level))
 
@@ -99,7 +99,7 @@ def clamp_score(score: float, math_min: float, math_max: float) -> float:
         math_max: The maximum allowed score.
 
     Returns:
-        float: The clamped score.
+        The clamped score.
 
     Raises:
         AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
@@ -125,7 +125,7 @@ def normalize_score_to_100(score: float, math_min: float, math_max: float) -> fl
         math_max: The maximum possible score in the calculation matrix.
 
     Returns:
-        float: The normalized proportional score between 0.0 and 100.0.
+        The normalized proportional score between 0.0 and 100.0.
 
     Raises:
         AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
@@ -155,7 +155,7 @@ def calculate_scaled_score(score: float, number_of_options: int, math_min: float
         math_max: The maximum bound of the scale.
 
     Returns:
-        float: The scaled score clamped within bounds.
+        The scaled score clamped within bounds.
 
     Raises:
         AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
@@ -186,7 +186,7 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
         target_max: The maximum value of the desired target scale (e.g. 10.0).
 
     Returns:
-        float: The proportionally scaled score.
+        The proportionally scaled score.
 
     Raises:
         AppException: If raw_min >= raw_max (INVALID_OUTPUT_SCHEMA).
@@ -218,7 +218,7 @@ def convert_strictness_to_forgiveness(strictness_level: int) -> float:
         strictness_level: Integer representing the strictness (must be >= 85).
 
     Returns:
-        float: The base forgiveness multiplier (0.0 - 1.0).
+        The base forgiveness multiplier (0.0 - 1.0).
     """
     return get_strictness_config(strictness_level).base_forgiveness
 
@@ -244,7 +244,7 @@ def calculate_soft_waterfall_score(
         base_forgiveness: The joustokerroin (0.0 - 1.0) defining how much of the remaining points pass through.
 
     Returns:
-        float: The calculated soft waterfall score.
+        The calculated soft waterfall score.
 
     Raises:
         AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
@@ -307,7 +307,7 @@ def calculate_linear_ratio_score(
         exponent: Non-linear exponent to apply to the proportional fraction.
 
     Returns:
-        float: The exact weighted score.
+        The exact weighted score.
 
     Raises:
         AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).

@@ -17,11 +17,11 @@ def deep_merge_dicts(base: dict[str, Any], update: dict[str, Any]) -> dict[str, 
     instead of being fully overwritten.
 
     Args:
-        base (dict[str, Any]): The original dictionary (remains unmutated).
-        update (dict[str, Any]): The dictionary delta containing updates.
+        base: The original dictionary (remains unmutated).
+        update: The dictionary delta containing updates.
 
     Returns:
-        dict[str, Any]: A new deeply merged dictionary.
+        A new deeply merged dictionary.
     """
     merged = copy.deepcopy(base)
     for key, value in update.items():

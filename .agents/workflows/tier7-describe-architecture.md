@@ -51,7 +51,7 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
 
     <step id="6">DIRECTORY REFERENCE SYNC: Update `.agents\rules\04_directory_reference.md` using your file editing tools to ensure the directory map precisely reflects the anchored component clusters.</step>
     
-    <step id="7">MID-EXECUTION HANDOVER (Context Window Protection): If you have executed more than 15 tool calls (searches/reads) or you feel the context window is filling up, DO NOT attempt to rewrite all documents at once. You MUST initiate a session handover. Create or update a Tracker file (e.g., `task.md`) detailing `achieved`, `learned`, and `remaining` pillar documents to update. Provide the user with the command: `/tier5-resume --target=[path_to_tracker] --workflow=/tier7-describe-architecture --rules=00-antigravity-core.md`.</step>
+    <step id="7">MID-EXECUTION HANDOVER (Context Window Protection): If you have executed more than 15 tool calls (searches/reads) or you feel the context window is filling up, DO NOT attempt to rewrite all documents at once. You MUST initiate a session handover. Create or update a Tracker file (e.g., `task.md`) detailing `achieved`, `learned`, and `remaining` pillar documents to update. Provide the user with the exact `/tier5-resume` command formatted exactly like this: `/tier5-resume --target="[absolute_path_to_tracker_artifact]" --workflow=/tier7-describe-architecture --rules="00-antigravity-core.md, [other_relevant_rules]"`.</step>
   </execution_protocol>
 </system_prompt>
 ```
