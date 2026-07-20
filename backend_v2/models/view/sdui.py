@@ -583,6 +583,14 @@ class SduiNACard(SduiBlockBase):
     message: Annotated[str, Field(..., description="Contextual message for the N/A outcome.")]
 
 
+class SduiGridBlock(SduiBlockBase):
+    """SDUI component representing a data grid."""
+
+    model_config = ConfigDict(title="grid")
+    block_type: Literal["grid"] = "grid"
+    items: Annotated[list[Any], Field(default_factory=list, description="Items in the grid.")]
+
+
 AnySduiBlock = Annotated[
     HeroInsightBlock
     | ParagraphBlock
@@ -591,6 +599,7 @@ AnySduiBlock = Annotated[
     | MarkdownBlock
     | SduiQuoteCard
     | SduiWarningCard
-    | SduiNACard,
+    | SduiNACard
+    | SduiGridBlock,
     Field(discriminator="block_type"),
 ]

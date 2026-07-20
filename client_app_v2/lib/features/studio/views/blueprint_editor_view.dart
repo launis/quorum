@@ -4,10 +4,11 @@ import 'package:client_app/features/studio/controllers/blueprint_editor_controll
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 /// **Blueprint Editor View (Phase 9 Rebuild)**
 ///
-/// Replaced the visual canvas builder with a clean parameter router
+/// Provides a clean parameter router
 /// aligning strictly with the `ReportRendererWidget` MVC pattern.
 class BlueprintEditorView extends ConsumerStatefulWidget {
   final Map<String, dynamic> initialBlueprint;
@@ -39,7 +40,6 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final config = ref.watch(blueprintEditorControllerProvider);
-    final controller = ref.read(blueprintEditorControllerProvider.notifier);
 
     final PresetView presetView = config.presetView;
 
@@ -55,11 +55,11 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
             icon: const Icon(Icons.check),
             label: Text(l10n.save),
           ),
-          const SizedBox(width: 16),
+          AppSpacing.w16,
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: AppSpacing.p24,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -67,10 +67,10 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
               l10n.studioViewsBlueprintRulesTitle,
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: AppSpacing.p16,
                 child: DropdownButtonFormField<PresetView>(
                   initialValue: presetView,
                   decoration: InputDecoration(
@@ -92,12 +92,14 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
                     ),
                     DropdownMenuItem(
                       value: PresetView.matrix3d,
-                      child: Text('3D: Matrix (Bubble)'),
+                      child: Text(l10n.studioViewsMatrix3d),
                     ),
                   ],
                   onChanged: (val) {
                     if (val != null) {
-                      controller.setPresetView(val);
+                      ref
+                          .read(blueprintEditorControllerProvider.notifier)
+                          .setPresetView(val);
                     }
                   },
                 ),

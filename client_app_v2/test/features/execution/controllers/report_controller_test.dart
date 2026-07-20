@@ -21,7 +21,8 @@ class MockExecutionClientPending implements ExecutionClient {
       // Second call returns actual data
       return {
         'execution_id': executionId,
-        'workflow_id': 'test_wf',
+        'workflow_id': 'wf_abc',
+        'profile_id': 'prof_123',
         'global_metrics': {
           'total_atoms': 5,
           'evaluated': 5,

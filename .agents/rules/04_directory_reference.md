@@ -90,7 +90,7 @@
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Admin Canvas), execution/ (Dashboards, SDUI Freezed DTOs: matrix_scorecard_dto.dart, report_layout_dto.dart, synthesis_config_dto.dart), auth/</key_domains>
+        <key_domains>studio/ (Admin Canvas), execution/ (Dashboards, SDUI Freezed DTOs: matrix_scorecard_dto.dart, report_layout_dto.dart), auth/</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">

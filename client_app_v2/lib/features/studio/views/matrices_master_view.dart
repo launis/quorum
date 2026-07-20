@@ -5,6 +5,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 /// Flat MVC List view for BARS Matrices.
 /// Adheres strictly to De-Generator constraints using List<Map<String, dynamic>>.
@@ -17,7 +18,7 @@ class MatricesMasterView extends ConsumerWidget {
     final blocksState = ref.watch(promptBlocksControllerProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: AppSpacing.p16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -40,10 +41,17 @@ class MatricesMasterView extends ConsumerWidget {
                         slug: draft.slug,
                       ).go(context);
                     }
-                  } catch (e) {
+                  } catch (e, st) {
                     if (context.mounted) {
+                      ref
+                          .read(loggerServiceProvider)
+                          .error('MatricesMasterView', 'Failed to mint', e, st);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to mint: $e')),
+                        SnackBar(
+                          content: Text(
+                            l10n.studioViewsFailedToCreate(e.toString()),
+                          ),
+                        ),
                       );
                     }
                   }
@@ -53,119 +61,123 @@ class MatricesMasterView extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          AppSpacing.h8,
           Text(
             l10n.studioViewsMatricesDescription,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 16),
-          blocksState.when(
-            data: (blocks) {
-              // The BARS matrices are a subtype of Prompt Blocks
-              final matrices = blocks
-                  .where((b) => b.categoryId == 'matrix')
-                  .toList();
+          AppSpacing.h16,
+          switch (blocksState) {
+            AsyncData(value: final blocks) => Builder(
+              builder: (context) {
+                // The BARS matrices are a subtype of Prompt Blocks
+                final matrices = blocks
+                    .where((b) => b.categoryId == 'matrix')
+                    .toList();
 
-              if (matrices.isEmpty) {
-                return Text(l10n.studioViewsNoMatricesAvailable);
-              }
+                if (matrices.isEmpty) {
+                  return Text(l10n.studioViewsNoMatricesAvailable);
+                }
 
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: matrices.length,
-                itemBuilder: (context, index) {
-                  final matrix = matrices[index];
-                  final displayName = matrix.label.get(
-                    matrix.label.defaultLocale,
-                  );
-                  if (displayName.isEmpty == true && matrix.id.isNotEmpty) {
-                    // Fallback
-                  }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: matrices.length,
+                  itemBuilder: (context, index) {
+                    final matrix = matrices[index];
+                    final displayName = matrix.label.get(
+                      matrix.label.defaultLocale,
+                    );
+                    if (displayName.isEmpty == true && matrix.id.isNotEmpty) {
+                      // Fallback
+                    }
 
-                  final scalesCount = matrix.scales?.length ?? 0;
+                    final scalesCount = matrix.scales?.length ?? 0;
 
-                  return Card(
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.table_chart,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      title: Text(
-                        displayName.isNotEmpty ? displayName : matrix.id,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        'ID: ${matrix.id} | Scales (Grades): $scalesCount',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.copy),
-                            tooltip: 'Duplicate (Deep Copy)',
-                            onPressed: () async {
-                              final id = matrix.id;
-                              if (id.isEmpty) return;
+                    return Card(
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.table_chart,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        title: Text(
+                          displayName.isNotEmpty ? displayName : matrix.id,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          l10n.studioViewsMatrixSubtitle(
+                            matrix.id,
+                            scalesCount,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.copy),
+                              tooltip: 'Duplicate (Deep Copy)',
+                              onPressed: () async {
+                                final id = matrix.id;
+                                if (id.isEmpty) return;
 
-                              try {
-                                await ref
-                                    .read(
-                                      promptBlocksControllerProvider.notifier,
-                                    )
-                                    .clonePromptBlock(id);
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(l10n.studioViewsMatrixCloned),
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!context.mounted) return;
-                                ref
-                                    .read(loggerServiceProvider)
-                                    .error(
-                                      'Studio',
-                                      'Failed to clone matrix: $e',
-                                      e,
-                                    );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      l10n.studioViewsFailedToClone(
-                                        e.toString(),
+                                try {
+                                  await ref
+                                      .read(
+                                        promptBlocksControllerProvider.notifier,
+                                      )
+                                      .clonePromptBlock(id);
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        l10n.studioViewsMatrixCloned,
                                       ),
                                     ),
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.error,
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                          const Icon(Icons.settings_ethernet),
-                        ],
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ref
+                                      .read(loggerServiceProvider)
+                                      .error(
+                                        'Studio',
+                                        'Failed to clone matrix: $e',
+                                        e,
+                                      );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        l10n.studioViewsFailedToClone(
+                                          e.toString(),
+                                        ),
+                                      ),
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            const Icon(Icons.settings_ethernet),
+                          ],
+                        ),
+                        onTap: () {
+                          MatrixEditRoute(id: matrix.id).go(context);
+                        },
                       ),
-                      onTap: () {
-                        MatrixEditRoute(
-                          id: matrix.id,
-                          $extra: matrix.toJson(),
-                        ).go(context);
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => ErrorView(
-              error: e,
+                    );
+                  },
+                );
+              },
+            ),
+            AsyncLoading() => const Center(child: CircularProgressIndicator()),
+            AsyncError(:final error) => ErrorView(
+              error: error,
               compact: true,
               onRetry: () =>
                   ref.read(promptBlocksControllerProvider.notifier).refresh(),
             ),
-          ),
+          },
         ],
       ),
     );

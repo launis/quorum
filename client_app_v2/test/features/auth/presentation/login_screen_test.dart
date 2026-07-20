@@ -5,7 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 void main() {
+  setUp(() {
+    dotenv.loadFromString(envString: 'ENVIRONMENT=development\n');
+  });
+
   testWidgets('LoginScreen shows mock login buttons in debug mode', (
     WidgetTester tester,
   ) async {
@@ -29,9 +35,12 @@ void main() {
     ); // Email, Password, Mock ID
 
     // Verify Mock Login Buttons exist with correct labels matching IDs
+    expect(find.text('Mock Login (Custom ID)'), findsOneWidget);
     expect(find.text('Mock Login (Root Master)'), findsOneWidget);
     expect(find.text('Mock Login (Admin)'), findsOneWidget);
-    expect(find.text('Mock Login (Manager)'), findsOneWidget);
+    expect(find.text('Mock Login (Analyst)'), findsOneWidget);
+    expect(find.text('Mock Login (Member)'), findsOneWidget);
+    expect(find.text('Mock Login (Viewer)'), findsOneWidget);
 
     // Test that the ROOT button is tappable
     final rootButton = find.text('Mock Login (Root Master)');

@@ -68,6 +68,7 @@ abstract class SduiBulletListItemDTO with _$SduiBulletListItemDTO {
 abstract class OutputLayoutBlock with _$OutputLayoutBlock {
   const OutputLayoutBlock._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory OutputLayoutBlock({
     @Default(PresetView.defaultView)
     @JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)
@@ -95,6 +96,7 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
 abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
   const SynthesisConfigDTO._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory SynthesisConfigDTO({
     String? systemPrompt,
     int? lengthConstraint,
@@ -123,6 +125,7 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
 abstract class OutputProfile with _$OutputProfile {
   const OutputProfile._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory OutputProfile({
     @StrictOpaqueIdConverter() required String id,
     @Default('') String slug,
@@ -155,6 +158,7 @@ abstract class OutputProfile with _$OutputProfile {
 abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
   const EmbeddedOutputProfile._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory EmbeddedOutputProfile({
     required I18nText name,
     I18nText? description,

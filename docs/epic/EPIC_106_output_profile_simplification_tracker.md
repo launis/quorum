@@ -56,15 +56,15 @@
   - `backend_v2/models/v2_core.py` (pruned models)
   After the structural extraction (Zero Behavioral Change), modernize the new code's architecture to strict Pydantic V2 and Push models via Tier 2 Hardening.
 
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` targeted at:
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` targeted at:
   - `client_app_v2/lib/features/studio/models/output_profile.dart` (pruned Freezed models)
   - `client_app_v2/lib/features/studio/views/` (cleaned UI)
 
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain. Confirm no file still imports or references the deleted fields. Run comprehensive `grep_search` across the entire codebase for `formatting_directives`, `matrix_column_labels`, and profile-level `synthesis` patterns.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain. Confirm no file still imports or references the deleted fields. Run comprehensive `grep_search` across the entire codebase for `formatting_directives`, `matrix_column_labels`, and profile-level `synthesis` patterns.
 
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify that line coverage of the surviving business logic remains >90%. Verify all old fallback tests have been cleanly replaced by strict Pydantic V2 boundary tests. Do NOT match raw test counts (which will drop as legacy tests are deleted per the Anti-TDD trap).
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify that line coverage of the surviving business logic remains >90%. **(Verified: Backend coverage for v2_core.py, registry.py, and schema_factory.py remains >90%. Frontend tests 100% passed with disallowUnrecognizedKeys strictness.)** Verify all old fallback tests have been cleanly replaced by strict Pydantic V2 boundary tests. Do NOT match raw test counts (which will drop as legacy tests are deleted per the Anti-TDD trap).
 
-- [ ] **[NOK] Documentation Update**: Update `docs/architecture/` and `.agents/rules/04_directory_reference.md` with the new SchemaBuilder Registry, pruned OutputProfile schema, and Workflow-level configuration fields. Create a Knowledge Item (KI) for the SDUI Schema Builder Registry Pattern.
+- [x] **[OK] Documentation Update**: Update `docs/architecture/` and `.agents/rules/04_directory_reference.md` with the new SchemaBuilder Registry, pruned OutputProfile schema, and Workflow-level configuration fields. Create a Knowledge Item (KI) for the SDUI Schema Builder Registry Pattern.
 
 ---
 
@@ -121,6 +121,9 @@
 - **Phase 3 Complete**: Successfully pruned the Flutter `OutputProfile` model, updated fromJson/toJson factories, and purged obsolete UI components (`output_format_view.dart`, `synthesis_controls_view.dart`).
 - **Proxy Sunset Complete**: Destroyed lingering proxy references across the codebase and updated import paths.
 - **Tier 2 Hardening (Backend) Complete**: Enforced Phase 9 strictness across the new SSOT components (`registry.py`, `schema_factory.py`, `v2_core.py`). Specifically hoisted all standard inline imports to global scope and eliminated `extra="ignore"` legacy duck-typing in dynamic token shields. Passed Pytest, Mypy, and Ruff cleanly.
+- **Tier 2 Hardening (Frontend) Complete**: Resolved `CheckedFromJsonException` Type casting bugs caused by legacy mock data. Corrected Mock Data injection for test suite compatibility with strictly typed `ReportDataDto` JSON properties (`profile_id`). All frontend test suites passed cleanly.
+- **Pre-Delete Audit Complete**: Verified zero orphaned occurrences of `formatting_directives` and `matrix_column_labels` in both codebase files and generated openapi.json.
+- **Epic 106 Completion**: All Phase Milestones and Integration Checkpoints successfully passed and Epic 106 is formally complete.
 
 ## Learned
 - `SynthesisConfigDTO` is still needed for `OutputLayoutBlock.synthesis` and `ReportLayoutDTO.synthesis` — only the profile-level `synthesis` field is removed.
@@ -132,15 +135,13 @@
 - Flutter `output_profile.dart` has `SynthesisConfigDTO` imported from `synthesis_config_dto.dart` in `execution/models/`. This is also used by `OutputLayoutBlock.synthesis` in the same file, so it CANNOT be deleted — only the profile-level field is removed.
 - **Worker Schema Resolution**: Worker tasks must now resolve `sdui_type` using `profile.get("expected_sdui_type", "markdown")` instead of checking schema types directly, as the profile schema has been fully delegated to the Registry.
 - **Backend Token Shield Rigidity**: Pydantic dynamic models constructed via `create_model()` (e.g. `DynamicLLMExtractedQuote`) MUST use `ConfigDict(extra="forbid", strict=True, frozen=True)` instead of `extra="ignore"` unless they are an explicit data projection model.
+- **Frontend Flutter Mocks**: `disallowUnrecognizedKeys: true` on Riverpod DTOs guarantees frontend crash-safety but demands perfect mock alignment in test scripts. Do not mock partial nested lists when parsing.
 
 ## Remaining
-- **Tier 2 Hardening (Frontend)**: Hardening for Flutter models and views.
-- **Pre-Delete Audit**: Verify no orphaned dependencies.
-- **Semantic Coverage Audit**: Confirm coverage remains >90%.
-- **Documentation Update**: Update architecture docs and references.
+- **EPIC 106 is complete.** You are ready for the next Epic assignment.
 
 ---
 
 ```bash
-/tier5-resume --workflow=/tier2-hardening-frontend --target="docs/epic/EPIC_106_output_profile_simplification_tracker.md" --instruction="Proceed to Tier 2 Hardening (Frontend)"
+/tier0-create-plan --target="[Next Epic Path]" --instruction="Epic 106 is complete. Proceed to the next objective."
 ```

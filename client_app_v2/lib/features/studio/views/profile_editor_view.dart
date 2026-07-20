@@ -14,6 +14,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 /// **Profile Editor View**
 ///
@@ -134,11 +135,11 @@ class ProfileEditorView extends HookConsumerWidget {
           );
           context.pop();
         }
-      } catch (e) {
+      } catch (e, st) {
         if (!context.mounted) return;
         ref
             .read(loggerServiceProvider)
-            .error('Studio', 'Failed to save user profile: $e', e);
+            .error('Studio', 'Failed to save user profile: $e', e, st);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.saveFailedError(e.toString())),
@@ -223,7 +224,7 @@ class ProfileEditorView extends HookConsumerWidget {
           ],
         ),
         body: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.p16,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -235,7 +236,7 @@ class ProfileEditorView extends HookConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
+                AppSpacing.w8,
                 FilledButton.icon(
                   onPressed: addProfileDialog,
                   icon: const Icon(Icons.add),
@@ -243,7 +244,7 @@ class ProfileEditorView extends HookConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             ...payload.outputProfiles.entries.map(
               (entry) => _buildProfileCard(
                 context,
@@ -287,13 +288,13 @@ class ProfileEditorView extends HookConsumerWidget {
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 24.0),
+      margin: const EdgeInsets.only(bottom: AppSpacing.s24),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Theme.of(context).colorScheme.outline),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -311,7 +312,7 @@ class ProfileEditorView extends HookConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
+                AppSpacing.w8,
                 IconButton(
                   icon: Icon(
                     Icons.delete,
@@ -331,7 +332,7 @@ class ProfileEditorView extends HookConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            AppSpacing.h12,
             I18nTextField(
               label: l10n.profileDisplayNameLabel,
               initialData: profileDef.name,
@@ -339,7 +340,7 @@ class ProfileEditorView extends HookConsumerWidget {
                 rebuildProfile(profileDef.copyWith(name: val));
               },
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             InputDecorator(
               decoration: InputDecoration(
                 labelText: l10n.profileDisplayScaleLabel,
@@ -373,111 +374,113 @@ class ProfileEditorView extends HookConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            AppSpacing.h24,
             InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Vaihekohtaiset laajennokset (Block-level)',
+              decoration: InputDecoration(
+                labelText: l10n.blockLevelExtensionsLabel,
                 isDense: true,
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
-              child: availableExtensionsState.when(
-                data: (availableExtensions) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: XaiExtensionType.values.map((ext) {
-                      final l10n = AppLocalizations.of(context)!;
-                      String label = ext.name;
-                      switch (ext) {
-                        case XaiExtensionType.citation:
-                          label = l10n.xaiSourceCitation;
-                          break;
-                        case XaiExtensionType.justification:
-                          label = l10n.xaiJustification;
-                          break;
-                        case XaiExtensionType.falsification:
-                          label = l10n.xaiDevilsAdvocate;
-                          break;
-                        case XaiExtensionType.theoryLink:
-                          label = l10n.xaiTheoryLink;
-                          break;
-                        case XaiExtensionType.riskFlag:
-                          label = l10n.xaiRiskFlag;
-                          break;
-                        case XaiExtensionType.coaching:
-                          label = l10n.xaiCoachingTip;
-                          break;
-                        case XaiExtensionType.missingContext:
-                          label = l10n.xaiMissingContext;
-                          break;
-                        case XaiExtensionType.remediationSteps:
-                          label = l10n.xaiRemediation;
-                          break;
-                        case XaiExtensionType.emotionalSentiment:
-                          label = l10n.xaiSentiment;
-                          break;
-                        case XaiExtensionType.confidence:
-                          label = l10n.xaiConfidence;
-                          break;
-                        case XaiExtensionType.sourceId:
-                          label = l10n.xaiSourceId;
-                          break;
-                        case XaiExtensionType.contextualOverride:
-                          label = l10n.xaiContextualOverride;
-                          break;
-                        case XaiExtensionType.varianceValidation:
-                          label = l10n.xaiVarianceValidationTitle;
-                          break;
-                        case XaiExtensionType.authenticityEvaluation:
-                          label = l10n.xaiAuthenticityEvaluationTitle;
-                          break;
-                      }
+              child: switch (availableExtensionsState) {
+                AsyncData(value: final availableExtensions) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: XaiExtensionType.values.map((ext) {
+                    final l10n = AppLocalizations.of(context)!;
+                    String label = ext.name;
+                    switch (ext) {
+                      case XaiExtensionType.citation:
+                        label = l10n.xaiSourceCitation;
+                        break;
+                      case XaiExtensionType.justification:
+                        label = l10n.xaiJustification;
+                        break;
+                      case XaiExtensionType.falsification:
+                        label = l10n.xaiDevilsAdvocate;
+                        break;
+                      case XaiExtensionType.theoryLink:
+                        label = l10n.xaiTheoryLink;
+                        break;
+                      case XaiExtensionType.riskFlag:
+                        label = l10n.xaiRiskFlag;
+                        break;
+                      case XaiExtensionType.coaching:
+                        label = l10n.xaiCoachingTip;
+                        break;
+                      case XaiExtensionType.missingContext:
+                        label = l10n.xaiMissingContext;
+                        break;
+                      case XaiExtensionType.remediationSteps:
+                        label = l10n.xaiRemediation;
+                        break;
+                      case XaiExtensionType.emotionalSentiment:
+                        label = l10n.xaiSentiment;
+                        break;
+                      case XaiExtensionType.confidence:
+                        label = l10n.xaiConfidence;
+                        break;
+                      case XaiExtensionType.sourceId:
+                        label = l10n.xaiSourceId;
+                        break;
+                      case XaiExtensionType.contextualOverride:
+                        label = l10n.xaiContextualOverride;
+                        break;
+                      case XaiExtensionType.varianceValidation:
+                        label = l10n.xaiVarianceValidationTitle;
+                        break;
+                      case XaiExtensionType.authenticityEvaluation:
+                        label = l10n.xaiAuthenticityEvaluationTitle;
+                        break;
+                    }
 
-                      // Dynamic Dropdown Population
-                      if (!availableExtensions.contains(ext.backendValue)) {
-                        return const SizedBox.shrink();
-                      }
+                    // Dynamic Dropdown Population
+                    if (!availableExtensions.contains(ext.backendValue)) {
+                      return const SizedBox.shrink();
+                    }
 
-                      final isWorkflowExtension = [
-                        XaiExtensionType.varianceValidation,
-                        XaiExtensionType.authenticityEvaluation,
-                      ].contains(ext);
+                    final isWorkflowExtension = [
+                      XaiExtensionType.varianceValidation,
+                      XaiExtensionType.authenticityEvaluation,
+                    ].contains(ext);
 
-                      if (isWorkflowExtension) return const SizedBox.shrink();
+                    if (isWorkflowExtension) return const SizedBox.shrink();
 
-                      return CheckboxListTile(
-                        title: Text(label),
-                        value: profileDef.visibleBlockExtensions.contains(ext),
-                        onChanged: (val) {
-                          final updatedList = List<XaiExtensionType>.from(
-                            profileDef.visibleBlockExtensions,
-                          );
-                          if (val == true) {
-                            updatedList.add(ext);
-                          } else {
-                            updatedList.remove(ext);
-                          }
-                          rebuildProfile(
-                            profileDef.copyWith(
-                              visibleBlockExtensions: updatedList,
-                            ),
-                          );
-                        },
-                        controlAffinity: ListTileControlAffinity.leading,
-                        dense: true,
-                      );
-                    }).toList(),
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, st) => Text('Error loading extensions: $e'),
-              ),
+                    return CheckboxListTile(
+                      title: Text(label),
+                      value: profileDef.visibleBlockExtensions.contains(ext),
+                      onChanged: (val) {
+                        final updatedList = List<XaiExtensionType>.from(
+                          profileDef.visibleBlockExtensions,
+                        );
+                        if (val == true) {
+                          updatedList.add(ext);
+                        } else {
+                          updatedList.remove(ext);
+                        }
+                        rebuildProfile(
+                          profileDef.copyWith(
+                            visibleBlockExtensions: updatedList,
+                          ),
+                        );
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                    );
+                  }).toList(),
+                ),
+                AsyncLoading() => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                AsyncError(:final error) => Text(
+                  l10n.studioViewsErrorLoadingExtensions(error.toString()),
+                ),
+              },
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Globaalit työnkulun laajennokset (Workflow-level)',
+              decoration: InputDecoration(
+                labelText: l10n.workflowLevelExtensionsLabel,
                 isDense: true,
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -528,7 +531,7 @@ class ProfileEditorView extends HookConsumerWidget {
                     }).toList(),
               ),
             ),
-            const SizedBox(height: 24),
+            AppSpacing.h24,
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -536,7 +539,7 @@ class ProfileEditorView extends HookConsumerWidget {
                   AppLocalizations.of(context)!.profileEditorMaxExtensionItems,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                const SizedBox(height: 8),
+                AppSpacing.h8,
                 Row(
                   children: [
                     Expanded(
@@ -584,7 +587,7 @@ class ProfileEditorView extends HookConsumerWidget {
               ],
             ),
 
-            const SizedBox(height: 24),
+            AppSpacing.h24,
             LayoutEditorCard(
               layouts: layouts,
               onChanged: (val) {

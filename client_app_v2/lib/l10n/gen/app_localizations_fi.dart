@@ -3620,4 +3620,140 @@ class AppLocalizationsFi extends AppLocalizations {
   String lblNaCascadeReason(String reasons) {
     return 'N/A Kaskadisyyt: $reasons';
   }
+
+  @override
+  String get studioViewsMatrix3d => '3D: Matrix (Bubble)';
+
+  @override
+  String get lexiconTitle => 'Performative Lexicons (Slop Words)';
+
+  @override
+  String get lexiconLangEn => 'Englanti (en)';
+
+  @override
+  String get lexiconLangFi => 'Suomi (fi)';
+
+  @override
+  String get lexiconDiscoverNew => 'Löydä uusia';
+
+  @override
+  String get lexiconTranslateMissing => 'Käännä puuttuvat';
+
+  @override
+  String get lexiconAddPlaceholder => 'Lisää uusi sana / lause';
+
+  @override
+  String get lexiconAddButton => 'Lisää';
+
+  @override
+  String lexiconDiscoveredSuccess(int count, int total) {
+    return 'Löydettiin ja lisättiin $count uutta lausetta (yhteensä $total).';
+  }
+
+  @override
+  String get lexiconDiscoveredEmpty => 'Ei uusia lauseita.';
+
+  @override
+  String lexiconTranslatedSuccess(int count) {
+    return 'Käännettiin ja lisättiin $count puuttuvaa lausetta.';
+  }
+
+  @override
+  String get lexiconTranslatedEmpty => 'Ei puuttuvia käännettäviä lauseita.';
+
+  @override
+  String studioViewsFailedToCreate(String error) {
+    return 'Luominen epäonnistui: $error';
+  }
+
+  @override
+  String studioViewsMatrixSubtitle(String id, int scales) {
+    return 'ID: $id | Asteikot (Arvosanat): $scales';
+  }
+
+  @override
+  String get unnamedGateway => 'Nimetön Gateway';
+
+  @override
+  String gatewaySubtitle(int tools, String status) {
+    return 'Sallitut työkalut: $tools | Tila: $status';
+  }
+
+  @override
+  String get activeStatus => 'Aktiivinen';
+
+  @override
+  String get inactiveStatus => 'Epäaktiivinen';
+
+  @override
+  String get addStrategyButton => 'Lisää strategia';
+
+  @override
+  String get providerPlaceholder => 'Tarjoaja (esim. google, openai)';
+
+  @override
+  String get jsonMustBeObjectError => 'Täytyy olla kelvollinen JSON-objekti';
+
+  @override
+  String get mustBeNumberError => 'Täytyy olla numero';
+
+  @override
+  String get mustBeIntegerError => 'Täytyy olla kokonaisluku';
+
+  @override
+  String get customPrefaceLabel => 'Selite (Rich Text Preface)';
+
+  @override
+  String get scoringEngineTitle => 'Arviointimoottori ja Ankaruustaso';
+
+  @override
+  String get identityMetadataTitle => 'Kannen metatiedot (Identity Metadata)';
+
+  @override
+  String get metaDate => 'Päivämäärä (date)';
+
+  @override
+  String get metaOrganization => 'Organisaatio (organization)';
+
+  @override
+  String get metaUser => 'Käyttäjä (user)';
+
+  @override
+  String get metaScoringEngine => 'Arviointimoottori (scoring_engine)';
+
+  @override
+  String get metaStrictness => 'Ankaruustaso (strictness)';
+
+  @override
+  String get metaCost => 'Hinta-arvio (cost)';
+
+  @override
+  String get metaTokens => 'Kognitiivinen työ (tokens)';
+
+  @override
+  String get maxExtensionItemsLabel => 'Max Extension Items';
+
+  @override
+  String get maxExtensionItemsHelper =>
+      'Maksimimäärä kohteita per XAI-laajennos. 999 tarkoittaa rajoittamatonta.';
+
+  @override
+  String get extensionItemsMustBeIntError =>
+      'Arvon tulee olla kokonaisluku >= 1';
+
+  @override
+  String get blockLevelExtensionsLabel =>
+      'Vaihekohtaiset laajennokset (Block-level)';
+
+  @override
+  String get workflowLevelExtensionsLabel =>
+      'Globaalit työnkulun laajennokset (Workflow-level)';
+
+  @override
+  String get toggleLayoutTooltip => 'Vaihda asettelua';
+
+  @override
+  String studioViewsErrorLoadingExtensions(String error) {
+    return 'Virhe ladattaessa laajennuksia: $error';
+  }
 }

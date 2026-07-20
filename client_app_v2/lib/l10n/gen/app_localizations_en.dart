@@ -3595,4 +3595,139 @@ class AppLocalizationsEn extends AppLocalizations {
   String lblNaCascadeReason(String reasons) {
     return 'N/A Cascade Reason: $reasons';
   }
+
+  @override
+  String get studioViewsMatrix3d => '3D: Matrix (Bubble)';
+
+  @override
+  String get lexiconTitle => 'Performative Lexicons (Slop Words)';
+
+  @override
+  String get lexiconLangEn => 'English (en)';
+
+  @override
+  String get lexiconLangFi => 'Finnish (fi)';
+
+  @override
+  String get lexiconDiscoverNew => 'Discover New';
+
+  @override
+  String get lexiconTranslateMissing => 'Translate Missing';
+
+  @override
+  String get lexiconAddPlaceholder => 'Add a new slop word / phrase';
+
+  @override
+  String get lexiconAddButton => 'Add';
+
+  @override
+  String lexiconDiscoveredSuccess(int count, int total) {
+    return 'Discovered and added $count new phrases (out of $total).';
+  }
+
+  @override
+  String get lexiconDiscoveredEmpty => 'No new phrases discovered.';
+
+  @override
+  String lexiconTranslatedSuccess(int count) {
+    return 'Translated and added $count missing phrases.';
+  }
+
+  @override
+  String get lexiconTranslatedEmpty =>
+      'No missing phrases to translate (did you forget to save the English words first?).';
+
+  @override
+  String studioViewsFailedToCreate(String error) {
+    return 'Failed to create: $error';
+  }
+
+  @override
+  String studioViewsMatrixSubtitle(String id, int scales) {
+    return 'ID: $id | Scales (Grades): $scales';
+  }
+
+  @override
+  String get unnamedGateway => 'Unnamed Gateway';
+
+  @override
+  String gatewaySubtitle(int tools, String status) {
+    return 'Allowed Tools: $tools | Status: $status';
+  }
+
+  @override
+  String get activeStatus => 'Active';
+
+  @override
+  String get inactiveStatus => 'Inactive';
+
+  @override
+  String get addStrategyButton => 'Add Strategy';
+
+  @override
+  String get providerPlaceholder => 'Provider (e.g. google, openai)';
+
+  @override
+  String get jsonMustBeObjectError => 'Must be a valid JSON object';
+
+  @override
+  String get mustBeNumberError => 'Must be a number';
+
+  @override
+  String get mustBeIntegerError => 'Must be an integer';
+
+  @override
+  String get customPrefaceLabel => 'Custom Preface (Rich Text)';
+
+  @override
+  String get scoringEngineTitle => 'Scoring Engine and Strictness';
+
+  @override
+  String get identityMetadataTitle => 'Identity Metadata';
+
+  @override
+  String get metaDate => 'Date (date)';
+
+  @override
+  String get metaOrganization => 'Organization (organization)';
+
+  @override
+  String get metaUser => 'User (user)';
+
+  @override
+  String get metaScoringEngine => 'Scoring Engine (scoring_engine)';
+
+  @override
+  String get metaStrictness => 'Strictness Level (strictness)';
+
+  @override
+  String get metaCost => 'Cost Estimate (cost)';
+
+  @override
+  String get metaTokens => 'Cognitive Load (tokens)';
+
+  @override
+  String get maxExtensionItemsLabel => 'Max Extension Items';
+
+  @override
+  String get maxExtensionItemsHelper =>
+      'Maximum number of items to show per XAI extension. 999 for unlimited.';
+
+  @override
+  String get extensionItemsMustBeIntError =>
+      'Given value must be an integer >= 1';
+
+  @override
+  String get blockLevelExtensionsLabel => 'Block-level Extensions';
+
+  @override
+  String get workflowLevelExtensionsLabel => 'Workflow-level Extensions';
+
+  @override
+  String get toggleLayoutTooltip => 'Toggle Layout';
+
+  @override
+  String studioViewsErrorLoadingExtensions(String error) {
+    return 'Error loading extensions: $error';
+  }
 }

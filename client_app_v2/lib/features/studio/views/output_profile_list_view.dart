@@ -5,6 +5,8 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 class OutputProfileListView extends ConsumerWidget {
   const OutputProfileListView({super.key});
@@ -15,7 +17,7 @@ class OutputProfileListView extends ConsumerWidget {
     final profilesState = ref.watch(outputProfilesControllerProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: AppSpacing.p16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -35,10 +37,22 @@ class OutputProfileListView extends ConsumerWidget {
                     if (context.mounted) {
                       OutputProfileEditRoute(id: draft.id).go(context);
                     }
-                  } catch (e) {
+                  } catch (e, st) {
                     if (context.mounted) {
+                      ref
+                          .read(loggerServiceProvider)
+                          .error(
+                            'OutputProfileListView',
+                            'Failed to mint',
+                            e,
+                            st,
+                          );
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to mint: $e')),
+                        SnackBar(
+                          content: Text(
+                            l10n.studioViewsFailedToCreate(e.toString()),
+                          ),
+                        ),
                       );
                     }
                   }
@@ -48,76 +62,78 @@ class OutputProfileListView extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          profilesState.when(
-            data: (profiles) {
-              if (profiles.isEmpty)
-                return Text(l10n.studioViewsNoOutputProfiles);
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: profiles.length,
-                itemBuilder: (context, index) {
-                  final profile = profiles[index];
-                  final layouts = profile.layouts;
+          AppSpacing.h16,
+          switch (profilesState) {
+            AsyncData(value: final profiles) => Builder(
+              builder: (context) {
+                if (profiles.isEmpty)
+                  return Text(l10n.studioViewsNoOutputProfiles);
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: profiles.length,
+                  itemBuilder: (context, index) {
+                    final profile = profiles[index];
+                    final layouts = profile.layouts;
 
-                  final currentLocale = Localizations.localeOf(
-                    context,
-                  ).languageCode;
-                  final title =
-                      profile.name.translations[currentLocale] ??
-                      profile.name.translations['en'] ??
-                      profile.name.translations['fi'] ??
-                      (profile.id.isNotEmpty
-                          ? profile.id
-                          : l10n.studioViewsUnnamedProfile);
+                    final currentLocale = Localizations.localeOf(
+                      context,
+                    ).languageCode;
+                    final title =
+                        profile.name.translations[currentLocale] ??
+                        profile.name.translations['en'] ??
+                        profile.name.translations['fi'] ??
+                        (profile.id.isNotEmpty
+                            ? profile.id
+                            : l10n.studioViewsUnnamedProfile);
 
-                  return Card(
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.print,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    return Card(
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.print,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        title: Text(
+                          title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '${l10n.studioViewsSlugSubtitle(profile.slug)}\n${l10n.studioViewsProfileListSubtitle(profile.id, profile.workflowId.isEmpty ? l10n.studioViewsNone : profile.workflowId, layouts.length)}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CloneEntityButton(
+                              onClone: () async {
+                                final id = profile.id;
+                                if (id.isEmpty) return;
+                                await ref
+                                    .read(
+                                      outputProfilesControllerProvider.notifier,
+                                    )
+                                    .cloneProfile(id);
+                              },
+                            ),
+                            const Icon(Icons.edit_document),
+                          ],
+                        ),
+                        onTap: () {
+                          OutputProfileEditRoute(id: profile.id).go(context);
+                        },
                       ),
-                      title: Text(
-                        title,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        '${l10n.studioViewsSlugSubtitle(profile.slug)}\n${l10n.studioViewsProfileListSubtitle(profile.id, profile.workflowId.isEmpty ? l10n.studioViewsNone : profile.workflowId, layouts.length)}',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CloneEntityButton(
-                            onClone: () async {
-                              final id = profile.id;
-                              if (id.isEmpty) return;
-                              await ref
-                                  .read(
-                                    outputProfilesControllerProvider.notifier,
-                                  )
-                                  .cloneProfile(id);
-                            },
-                          ),
-                          const Icon(Icons.edit_document),
-                        ],
-                      ),
-                      onTap: () {
-                        OutputProfileEditRoute(id: profile.id).go(context);
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => ErrorView(
-              error: e,
+                    );
+                  },
+                );
+              },
+            ),
+            AsyncLoading() => const Center(child: CircularProgressIndicator()),
+            AsyncError(:final error) => ErrorView(
+              error: error,
               compact: true,
               onRetry: () =>
                   ref.read(outputProfilesControllerProvider.notifier).refresh(),
             ),
-          ),
+          },
         ],
       ),
     );

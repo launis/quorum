@@ -5,6 +5,8 @@ import 'package:client_app/features/studio/controllers/lexicon_controller.dart';
 import 'package:client_app/features/studio/models/performative_lexicon.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 class LexiconSettingsView extends HookConsumerWidget {
   const LexiconSettingsView({super.key});
@@ -69,6 +71,7 @@ class LexiconSettingsView extends HookConsumerWidget {
     WidgetRef ref,
     String lang,
     SystemConfigPerformativeLexicons config,
+    AppLocalizations l10n,
   ) async {
     try {
       final phrases = await ref
@@ -81,18 +84,21 @@ class LexiconSettingsView extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Discovered and added $addedCount new phrases (out of ${phrases.length}).',
+                l10n.lexiconDiscoveredSuccess(addedCount, phrases.length),
               ),
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No new phrases discovered.')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.lexiconDiscoveredEmpty)));
         }
       }
-    } catch (e) {
+    } catch (e, st) {
       if (context.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error('LexiconSettingsView', 'Discover failed', e, st);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -105,6 +111,7 @@ class LexiconSettingsView extends HookConsumerWidget {
     WidgetRef ref,
     String lang,
     SystemConfigPerformativeLexicons config,
+    AppLocalizations l10n,
   ) async {
     try {
       final phrases = await ref
@@ -115,24 +122,19 @@ class LexiconSettingsView extends HookConsumerWidget {
         if (phrases.isNotEmpty) {
           final addedCount = await _addPhrases(ref, config, lang, phrases);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Translated and added $addedCount missing phrases.',
-              ),
-            ),
+            SnackBar(content: Text(l10n.lexiconTranslatedSuccess(addedCount))),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'No missing phrases to translate (did you forget to save the English words first?).',
-              ),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.lexiconTranslatedEmpty)));
         }
       }
-    } catch (e) {
+    } catch (e, st) {
       if (context.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error('LexiconSettingsView', 'Translate failed', e, st);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -150,175 +152,181 @@ class LexiconSettingsView extends HookConsumerWidget {
 
     final textController = useTextEditingController();
 
-    return state.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => ErrorView(
-        error: e,
+    return switch (state) {
+      AsyncLoading() => const Center(child: CircularProgressIndicator()),
+      AsyncError(:final error) => ErrorView(
+        error: error,
         onRetry: () =>
             ref.read(lexiconControllerProvider.notifier).fetchLexicons(),
       ),
-      data: (config) {
-        final lexiconConfigs = config.lexiconConfigs;
-        final currentConfig =
-            lexiconConfigs[selectedLang] ??
-            LexiconConfigPayload(
-              languageCode: selectedLang,
-              languageName: selectedLang.toUpperCase(),
-            );
+      AsyncData(value: final config) => Builder(
+        builder: (context) {
+          final lexiconConfigs = config.lexiconConfigs;
+          final currentConfig =
+              lexiconConfigs[selectedLang] ??
+              LexiconConfigPayload(
+                languageCode: selectedLang,
+                languageName: selectedLang.toUpperCase(),
+              );
 
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Performative Lexicons (Slop Words)',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  Row(
-                    children: [
-                      DropdownButton<String>(
-                        value: selectedLang,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'en',
-                            child: Text('English (en)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'fi',
-                            child: Text('Finnish (fi)'),
-                          ),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) selectedLangState.value = val;
-                        },
-                      ),
-                      const SizedBox(width: 16),
-                      FilledButton.icon(
-                        onPressed: () => _discoverPhrases(
-                          context,
-                          ref,
-                          selectedLang,
-                          config,
+          return Padding(
+            padding: AppSpacing.p16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.lexiconTitle,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    Row(
+                      children: [
+                        DropdownButton<String>(
+                          value: selectedLang,
+                          items: [
+                            DropdownMenuItem(
+                              value: 'en',
+                              child: Text(l10n.lexiconLangEn),
+                            ),
+                            DropdownMenuItem(
+                              value: 'fi',
+                              child: Text(l10n.lexiconLangFi),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) selectedLangState.value = val;
+                          },
                         ),
-                        icon: const Icon(Icons.search),
-                        label: const Text('Discover New'),
-                      ),
-                      const SizedBox(width: 8),
-                      if (selectedLang != 'en')
+                        AppSpacing.w16,
                         FilledButton.icon(
-                          onPressed: () => _translatePhrases(
+                          onPressed: () => _discoverPhrases(
                             context,
                             ref,
                             selectedLang,
                             config,
+                            l10n,
                           ),
-                          icon: const Icon(Icons.translate),
-                          label: const Text('Translate Missing'),
+                          icon: const Icon(Icons.search),
+                          label: Text(l10n.lexiconDiscoverNew),
                         ),
-                      const SizedBox(width: 8),
-                      FilledButton.icon(
-                        onPressed: () {
-                          ref
-                              .read(lexiconControllerProvider.notifier)
-                              .saveLexicons(config);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.studioChangesSaved)),
-                          );
+                        AppSpacing.w8,
+                        if (selectedLang != 'en')
+                          FilledButton.icon(
+                            onPressed: () => _translatePhrases(
+                              context,
+                              ref,
+                              selectedLang,
+                              config,
+                              l10n,
+                            ),
+                            icon: const Icon(Icons.translate),
+                            label: Text(l10n.lexiconTranslateMissing),
+                          ),
+                        AppSpacing.w8,
+                        FilledButton.icon(
+                          onPressed: () {
+                            ref
+                                .read(lexiconControllerProvider.notifier)
+                                .saveLexicons(config);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.studioChangesSaved)),
+                            );
+                          },
+                          icon: const Icon(Icons.save),
+                          label: Text(l10n.save),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                AppSpacing.h16,
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: textController,
+                        decoration: InputDecoration(
+                          labelText: l10n.lexiconAddPlaceholder,
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        onSubmitted: (value) async {
+                          if (value.trim().isNotEmpty) {
+                            await _addPhrases(ref, config, selectedLang, [
+                              value,
+                            ]);
+                            textController.clear();
+                          }
                         },
-                        icon: const Icon(Icons.save),
-                        label: Text(l10n.save),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: textController,
-                      decoration: const InputDecoration(
-                        labelText: 'Add a new slop word / phrase',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onSubmitted: (value) async {
-                        if (value.trim().isNotEmpty) {
-                          await _addPhrases(ref, config, selectedLang, [value]);
+                    ),
+                    AppSpacing.w8,
+                    FilledButton(
+                      onPressed: () async {
+                        if (textController.text.trim().isNotEmpty) {
+                          await _addPhrases(ref, config, selectedLang, [
+                            textController.text,
+                          ]);
                           textController.clear();
                         }
                       },
+                      child: Text(l10n.lexiconAddButton),
+                    ),
+                  ],
+                ),
+                AppSpacing.h16,
+                Expanded(
+                  child: Card(
+                    child: Builder(
+                      builder: (context) {
+                        final displayWords = List<String>.from(
+                          currentConfig.words,
+                        )..sort();
+                        return ListView.builder(
+                          itemCount: displayWords.length,
+                          itemBuilder: (context, index) {
+                            final word = displayWords[index];
+                            return ListTile(
+                              leading: const Icon(Icons.abc),
+                              title: Text(word),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () {
+                                  // Local mutation pattern
+                                  final updatedWords = List<String>.from(
+                                    currentConfig.words,
+                                  )..remove(word);
+                                  final updatedConfigPayload = currentConfig
+                                      .copyWith(words: updatedWords);
+                                  final updatedLexiconConfigs =
+                                      Map<String, LexiconConfigPayload>.from(
+                                        lexiconConfigs,
+                                      );
+                                  updatedLexiconConfigs[selectedLang] =
+                                      updatedConfigPayload;
+
+                                  final newConfig = config.copyWith(
+                                    lexiconConfigs: updatedLexiconConfigs,
+                                  );
+                                  ref
+                                      .read(lexiconControllerProvider.notifier)
+                                      .saveLexicons(newConfig);
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: () async {
-                      if (textController.text.trim().isNotEmpty) {
-                        await _addPhrases(ref, config, selectedLang, [
-                          textController.text,
-                        ]);
-                        textController.clear();
-                      }
-                    },
-                    child: const Text('Add'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Card(
-                  child: Builder(
-                    builder: (context) {
-                      final displayWords = List<String>.from(
-                        currentConfig.words,
-                      )..sort();
-                      return ListView.builder(
-                        itemCount: displayWords.length,
-                        itemBuilder: (context, index) {
-                          final word = displayWords[index];
-                          return ListTile(
-                            leading: const Icon(Icons.abc),
-                            title: Text(word),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () {
-                                // Local mutation pattern
-                                final updatedWords = List<String>.from(
-                                  currentConfig.words,
-                                )..remove(word);
-                                final updatedConfigPayload = currentConfig
-                                    .copyWith(words: updatedWords);
-                                final updatedLexiconConfigs =
-                                    Map<String, LexiconConfigPayload>.from(
-                                      lexiconConfigs,
-                                    );
-                                updatedLexiconConfigs[selectedLang] =
-                                    updatedConfigPayload;
-
-                                final newConfig = config.copyWith(
-                                  lexiconConfigs: updatedLexiconConfigs,
-                                );
-                                ref
-                                    .read(lexiconControllerProvider.notifier)
-                                    .saveLexicons(newConfig);
-                              },
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+              ],
+            ),
+          );
+        },
+      ),
+    };
   }
 }

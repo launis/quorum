@@ -15,6 +15,7 @@ import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 /// Admin Studio View for managing Output Profiles.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -52,21 +53,21 @@ class OutputProfileCrudView extends HookConsumerWidget {
       workflowAvailableExtensionsProvider(currentWorkflowId),
     );
 
-    return formState.when(
-      loading: () => Scaffold(
+    return switch (formState) {
+      AsyncLoading() => Scaffold(
         appBar: AppBar(title: Text(l10n.editOutputProfileTitle)),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (e, st) => Scaffold(
+      AsyncError(:final error, :final stackTrace) => Scaffold(
         appBar: AppBar(title: Text(l10n.editOutputProfileTitle)),
         body: ErrorView(
-          error: e,
-          stackTrace: st,
+          error: error,
+          stackTrace: stackTrace,
           compact: false,
           onRetry: () => ref.invalidate(outputProfileFormProvider(id)),
         ),
       ),
-      data: (payload) {
+      AsyncData(value: final payload) => (() {
         // Hydrate transient hooks on first build safely
         useMemoized(() {
           idController.text = payload.id;
@@ -90,8 +91,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
           availableExtensionsState,
           enableThreePaneLayout,
         );
-      },
-    );
+      })(),
+    };
   }
 
   Widget _buildScaffold(
@@ -243,7 +244,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
     Widget buildIdentityPane() {
       return Card(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.p16,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -255,7 +256,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 ),
                 readOnly: true,
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               TextFormField(
                 controller: slugController,
                 decoration: InputDecoration(
@@ -263,64 +264,69 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   border: const OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
-              workflowsState.when(
-                data: (rawWorkflows) {
-                  final workflows = rawWorkflows.cast<Workflow>();
-                  String? currentValue = workflowIdController.text.isNotEmpty
-                      ? workflowIdController.text
-                      : null;
+              AppSpacing.h16,
+              switch (workflowsState) {
+                AsyncData(value: final rawWorkflows) => Builder(
+                  builder: (context) {
+                    final workflows = rawWorkflows.cast<Workflow>();
+                    String? currentValue = workflowIdController.text.isNotEmpty
+                        ? workflowIdController.text
+                        : null;
 
-                  final bool hasValidValue =
-                      currentValue != null &&
-                      (workflows.any((w) => w.id == currentValue) ||
-                          currentValue == '');
+                    final bool hasValidValue =
+                        currentValue != null &&
+                        (workflows.any((w) => w.id == currentValue) ||
+                            currentValue == '');
 
-                  return DropdownButtonFormField<String>(
-                    initialValue: hasValidValue ? currentValue : null,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: l10n.workflowIdBindingLabel,
-                      border: const OutlineInputBorder(),
-                    ),
-                    hint: Text(l10n.selectWorkflowHint),
-                    items: [
-                      DropdownMenuItem(
-                        value: '',
-                        child: Text(
-                          l10n.noneDefaultLabel,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                    return DropdownButtonFormField<String>(
+                      initialValue: hasValidValue ? currentValue : null,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: l10n.workflowIdBindingLabel,
+                        border: const OutlineInputBorder(),
                       ),
-                      ...workflows.map((flow) {
-                        final flowId = flow.id;
-                        final localeCode = Localizations.localeOf(
-                          context,
-                        ).languageCode;
-                        final displayName = flow.name.get(localeCode);
-
-                        return DropdownMenuItem(
-                          value: flowId,
+                      hint: Text(l10n.selectWorkflowHint),
+                      items: [
+                        DropdownMenuItem(
+                          value: '',
                           child: Text(
-                            '$displayName ($flowId)',
+                            l10n.noneDefaultLabel,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        );
-                      }),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        workflowIdController.text = val;
-                        updatePayload(payload.copyWith(workflowId: val));
-                      }
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) =>
-                    Text(l10n.studioViewsErrorLoadingWorkflows(e.toString())),
-              ),
-              const SizedBox(height: 16),
+                        ),
+                        ...workflows.map((flow) {
+                          final flowId = flow.id;
+                          final localeCode = Localizations.localeOf(
+                            context,
+                          ).languageCode;
+                          final displayName = flow.name.get(localeCode);
+
+                          return DropdownMenuItem(
+                            value: flowId,
+                            child: Text(
+                              '$displayName ($flowId)',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          workflowIdController.text = val;
+                          updatePayload(payload.copyWith(workflowId: val));
+                        }
+                      },
+                    );
+                  },
+                ),
+                AsyncLoading() => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                AsyncError(:final error) => Text(
+                  l10n.studioViewsErrorLoadingWorkflows(error.toString()),
+                ),
+              },
+              AppSpacing.h16,
               I18nTextField(
                 label: l10n.profileDisplayNameLabel,
                 initialData: payload.name,
@@ -328,7 +334,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   updatePayload(payload.copyWith(name: val));
                 },
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               I18nTextField(
                 label: l10n.profileDescriptionLabel,
                 initialData: payload.description,
@@ -341,9 +347,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               I18nTextField(
-                label: 'Selite (Rich Text Preface)',
+                label: l10n.customPrefaceLabel,
                 initialData: payload.customPreface,
                 onChanged: (val) {
                   final isEmpty =
@@ -354,7 +360,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               InputDecorator(
                 decoration: InputDecoration(
                   labelText: l10n.profileDisplayScaleLabel,
@@ -397,12 +403,12 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              AppSpacing.h24,
               Text(
-                'Arviointimoottori ja Ankaruustaso',
+                l10n.scoringEngineTitle,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               InputDecorator(
                 decoration: InputDecoration(
                   labelText: l10n.strictnessSelectorTitle,
@@ -437,7 +443,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               InputDecorator(
                 decoration: InputDecoration(
                   labelText: l10n.analysisLevelLabel,
@@ -479,12 +485,12 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              AppSpacing.h24,
               Text(
-                'Kannen metatiedot (Identity Metadata)',
+                l10n.identityMetadataTitle,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               ...[
                 'date',
                 'organization',
@@ -495,13 +501,13 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 'tokens',
               ].map((meta) {
                 final String title = switch (meta) {
-                  'date' => 'Päivämäärä (date)',
-                  'organization' => 'Organisaatio (organization)',
-                  'user' => 'Käyttäjä (user)',
-                  'scoring_engine' => 'Arviointimoottori (scoring_engine)',
-                  'strictness' => 'Ankaruustaso (strictness)',
-                  'cost' => 'Hinta-arvio (cost)',
-                  'tokens' => 'Kognitiivinen työ (tokens)',
+                  'date' => l10n.metaDate,
+                  'organization' => l10n.metaOrganization,
+                  'user' => l10n.metaUser,
+                  'scoring_engine' => l10n.metaScoringEngine,
+                  'strictness' => l10n.metaStrictness,
+                  'cost' => l10n.metaCost,
+                  'tokens' => l10n.metaTokens,
                   _ => meta,
                 };
                 return CheckboxListTile(
@@ -535,14 +541,13 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   controlAffinity: ListTileControlAffinity.leading,
                 );
               }),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               TextFormField(
                 initialValue: payload.maxExtensionItems?.toString() ?? '3',
-                decoration: const InputDecoration(
-                  labelText: 'Max Extension Items',
-                  border: OutlineInputBorder(),
-                  helperText:
-                      'Maximum number of items to show per XAI extension. 999 for unlimited.',
+                decoration: InputDecoration(
+                  labelText: l10n.maxExtensionItemsLabel,
+                  border: const OutlineInputBorder(),
+                  helperText: l10n.maxExtensionItemsHelper,
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (val) {
@@ -555,117 +560,115 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   if (val == null || val.isEmpty) return null;
                   final parsed = int.tryParse(val);
                   if (parsed == null || parsed < 1)
-                    return 'Given value must be an integer >= 1';
+                    return l10n.extensionItemsMustBeIntError;
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
+              AppSpacing.h24,
               InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Vaihekohtaiset laajennokset (Block-level)',
+                decoration: InputDecoration(
+                  labelText: l10n.blockLevelExtensionsLabel,
                   isDense: true,
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
-                child: availableExtensionsState.when(
-                  data: (availableExtensions) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: XaiExtensionType.values.map((ext) {
-                        final l10n = AppLocalizations.of(context)!;
-                        String label = ext.backendValue;
-                        switch (ext) {
-                          case XaiExtensionType.citation:
-                            label = l10n.xaiSourceCitation;
-                            break;
-                          case XaiExtensionType.justification:
-                            label = l10n.xaiJustification;
-                            break;
-                          case XaiExtensionType.falsification:
-                            label = l10n.xaiDevilsAdvocate;
-                            break;
-                          case XaiExtensionType.theoryLink:
-                            label = l10n.xaiTheoryLink;
-                            break;
-                          case XaiExtensionType.riskFlag:
-                            label = l10n.xaiRiskFlag;
-                            break;
-                          case XaiExtensionType.coaching:
-                            label = l10n.xaiCoachingTip;
-                            break;
-                          case XaiExtensionType.missingContext:
-                            label = l10n.xaiMissingContext;
-                            break;
-                          case XaiExtensionType.remediationSteps:
-                            label = l10n.xaiRemediation;
-                            break;
-                          case XaiExtensionType.emotionalSentiment:
-                            label = l10n.xaiSentiment;
-                            break;
-                          case XaiExtensionType.confidence:
-                            label = l10n.xaiConfidence;
-                            break;
-                          case XaiExtensionType.sourceId:
-                            label = l10n.xaiSourceId;
-                            break;
-                          case XaiExtensionType.contextualOverride:
-                            label = l10n.xaiContextualOverride;
-                            break;
-                          case XaiExtensionType.varianceValidation:
-                            label = l10n.xaiVarianceValidationTitle;
-                            break;
-                          case XaiExtensionType.authenticityEvaluation:
-                            label = l10n.xaiAuthenticityEvaluationTitle;
-                            break;
-                        }
+                child: switch (availableExtensionsState) {
+                  AsyncData(value: final availableExtensions) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: XaiExtensionType.values.map((ext) {
+                      final l10n = AppLocalizations.of(context)!;
+                      String label = ext.backendValue;
+                      switch (ext) {
+                        case XaiExtensionType.citation:
+                          label = l10n.xaiSourceCitation;
+                          break;
+                        case XaiExtensionType.justification:
+                          label = l10n.xaiJustification;
+                          break;
+                        case XaiExtensionType.falsification:
+                          label = l10n.xaiDevilsAdvocate;
+                          break;
+                        case XaiExtensionType.theoryLink:
+                          label = l10n.xaiTheoryLink;
+                          break;
+                        case XaiExtensionType.riskFlag:
+                          label = l10n.xaiRiskFlag;
+                          break;
+                        case XaiExtensionType.coaching:
+                          label = l10n.xaiCoachingTip;
+                          break;
+                        case XaiExtensionType.missingContext:
+                          label = l10n.xaiMissingContext;
+                          break;
+                        case XaiExtensionType.remediationSteps:
+                          label = l10n.xaiRemediation;
+                          break;
+                        case XaiExtensionType.emotionalSentiment:
+                          label = l10n.xaiSentiment;
+                          break;
+                        case XaiExtensionType.confidence:
+                          label = l10n.xaiConfidence;
+                          break;
+                        case XaiExtensionType.sourceId:
+                          label = l10n.xaiSourceId;
+                          break;
+                        case XaiExtensionType.contextualOverride:
+                          label = l10n.xaiContextualOverride;
+                          break;
+                        case XaiExtensionType.varianceValidation:
+                          label = l10n.xaiVarianceValidationTitle;
+                          break;
+                        case XaiExtensionType.authenticityEvaluation:
+                          label = l10n.xaiAuthenticityEvaluationTitle;
+                          break;
+                      }
 
-                        // Dynamic Dropdown Population
-                        if (!availableExtensions.contains(ext.backendValue)) {
-                          return const SizedBox.shrink();
-                        }
+                      // Dynamic Dropdown Population
+                      if (!availableExtensions.contains(ext.backendValue)) {
+                        return const SizedBox.shrink();
+                      }
 
-                        final isWorkflowExtension = [
-                          XaiExtensionType.varianceValidation,
-                          XaiExtensionType.authenticityEvaluation,
-                        ].contains(ext);
+                      final isWorkflowExtension = [
+                        XaiExtensionType.varianceValidation,
+                        XaiExtensionType.authenticityEvaluation,
+                      ].contains(ext);
 
-                        if (isWorkflowExtension) return const SizedBox.shrink();
+                      if (isWorkflowExtension) return const SizedBox.shrink();
 
-                        return CheckboxListTile(
-                          title: Text(label),
-                          value: payload.visibleBlockExtensions.contains(ext),
-                          onChanged: (val) {
-                            final updatedList = List<XaiExtensionType>.from(
-                              payload.visibleBlockExtensions,
-                            );
-                            if (val == true) {
-                              updatedList.add(ext);
-                            } else {
-                              updatedList.remove(ext);
-                            }
-                            updatePayload(
-                              payload.copyWith(
-                                visibleBlockExtensions: updatedList,
-                              ),
-                            );
-                          },
-                          controlAffinity: ListTileControlAffinity.leading,
-                          dense: true,
-                        );
-                      }).toList(),
-                    );
-                  },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, st) => throw e,
-                ),
+                      return CheckboxListTile(
+                        title: Text(label),
+                        value: payload.visibleBlockExtensions.contains(ext),
+                        onChanged: (val) {
+                          final updatedList = List<XaiExtensionType>.from(
+                            payload.visibleBlockExtensions,
+                          );
+                          if (val == true) {
+                            updatedList.add(ext);
+                          } else {
+                            updatedList.remove(ext);
+                          }
+                          updatePayload(
+                            payload.copyWith(
+                              visibleBlockExtensions: updatedList,
+                            ),
+                          );
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                        dense: true,
+                      );
+                    }).toList(),
+                  ),
+                  AsyncLoading() => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  AsyncError(:final error) => throw error,
+                },
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               InputDecorator(
-                decoration: const InputDecoration(
-                  labelText:
-                      'Globaalit työnkulun laajennokset (Workflow-level)',
+                decoration: InputDecoration(
+                  labelText: l10n.workflowLevelExtensionsLabel,
                   isDense: true,
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -726,7 +729,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
       if (selectedWorkflowId.isEmpty) {
         return Card(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: AppSpacing.p16,
             child: Center(
               child: Text(
                 l10n.workflowSelectWarning,
@@ -774,7 +777,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 ),
                 onPressed: () =>
                     enableThreePaneLayout.value = !enableThreePaneLayout.value,
-                tooltip: "Toggle Layout",
+                tooltip: l10n.toggleLayoutTooltip,
               ),
               IconButton(
                 icon: Icon(
@@ -806,7 +809,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                     Expanded(
                       flex: 1,
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: AppSpacing.p16,
                         child: buildIdentityPane(),
                       ),
                     ),
@@ -815,7 +818,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                     Expanded(
                       flex: 1,
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: AppSpacing.p16,
                         child: buildLayoutPane(),
                       ),
                     ),
@@ -823,11 +826,11 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 );
               } else {
                 return ListView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: AppSpacing.p16,
                   children: [
                     buildIdentityPane(),
 
-                    const SizedBox(height: 24),
+                    AppSpacing.h24,
                     buildLayoutPane(),
                   ],
                 );

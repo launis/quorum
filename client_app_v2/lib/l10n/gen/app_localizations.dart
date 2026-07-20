@@ -6557,6 +6557,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'N/A Cascade Reason: {reasons}'**
   String lblNaCascadeReason(String reasons);
+
+  /// Label for 3D Matrix preset
+  ///
+  /// In en, this message translates to:
+  /// **'3D: Matrix (Bubble)'**
+  String get studioViewsMatrix3d;
+
+  /// No description provided for @lexiconTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Performative Lexicons (Slop Words)'**
+  String get lexiconTitle;
+
+  /// No description provided for @lexiconLangEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English (en)'**
+  String get lexiconLangEn;
+
+  /// No description provided for @lexiconLangFi.
+  ///
+  /// In en, this message translates to:
+  /// **'Finnish (fi)'**
+  String get lexiconLangFi;
+
+  /// No description provided for @lexiconDiscoverNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover New'**
+  String get lexiconDiscoverNew;
+
+  /// No description provided for @lexiconTranslateMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate Missing'**
+  String get lexiconTranslateMissing;
+
+  /// No description provided for @lexiconAddPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a new slop word / phrase'**
+  String get lexiconAddPlaceholder;
+
+  /// No description provided for @lexiconAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get lexiconAddButton;
+
+  /// No description provided for @lexiconDiscoveredSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered and added {count} new phrases (out of {total}).'**
+  String lexiconDiscoveredSuccess(int count, int total);
+
+  /// No description provided for @lexiconDiscoveredEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No new phrases discovered.'**
+  String get lexiconDiscoveredEmpty;
+
+  /// No description provided for @lexiconTranslatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Translated and added {count} missing phrases.'**
+  String lexiconTranslatedSuccess(int count);
+
+  /// No description provided for @lexiconTranslatedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No missing phrases to translate (did you forget to save the English words first?).'**
+  String get lexiconTranslatedEmpty;
+
+  /// No description provided for @studioViewsFailedToCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create: {error}'**
+  String studioViewsFailedToCreate(String error);
+
+  /// No description provided for @studioViewsMatrixSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ID: {id} | Scales (Grades): {scales}'**
+  String studioViewsMatrixSubtitle(String id, int scales);
+
+  /// No description provided for @unnamedGateway.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed Gateway'**
+  String get unnamedGateway;
+
+  /// No description provided for @gatewaySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed Tools: {tools} | Status: {status}'**
+  String gatewaySubtitle(int tools, String status);
+
+  /// No description provided for @activeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeStatus;
+
+  /// No description provided for @inactiveStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get inactiveStatus;
+
+  /// No description provided for @addStrategyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Strategy'**
+  String get addStrategyButton;
+
+  /// No description provided for @providerPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider (e.g. google, openai)'**
+  String get providerPlaceholder;
+
+  /// No description provided for @jsonMustBeObjectError.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be a valid JSON object'**
+  String get jsonMustBeObjectError;
+
+  /// No description provided for @mustBeNumberError.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be a number'**
+  String get mustBeNumberError;
+
+  /// No description provided for @mustBeIntegerError.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be an integer'**
+  String get mustBeIntegerError;
+
+  /// No description provided for @customPrefaceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Preface (Rich Text)'**
+  String get customPrefaceLabel;
+
+  /// No description provided for @scoringEngineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scoring Engine and Strictness'**
+  String get scoringEngineTitle;
+
+  /// No description provided for @identityMetadataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity Metadata'**
+  String get identityMetadataTitle;
+
+  /// No description provided for @metaDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date (date)'**
+  String get metaDate;
+
+  /// No description provided for @metaOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization (organization)'**
+  String get metaOrganization;
+
+  /// No description provided for @metaUser.
+  ///
+  /// In en, this message translates to:
+  /// **'User (user)'**
+  String get metaUser;
+
+  /// No description provided for @metaScoringEngine.
+  ///
+  /// In en, this message translates to:
+  /// **'Scoring Engine (scoring_engine)'**
+  String get metaScoringEngine;
+
+  /// No description provided for @metaStrictness.
+  ///
+  /// In en, this message translates to:
+  /// **'Strictness Level (strictness)'**
+  String get metaStrictness;
+
+  /// No description provided for @metaCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost Estimate (cost)'**
+  String get metaCost;
+
+  /// No description provided for @metaTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Cognitive Load (tokens)'**
+  String get metaTokens;
+
+  /// No description provided for @maxExtensionItemsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Extension Items'**
+  String get maxExtensionItemsLabel;
+
+  /// No description provided for @maxExtensionItemsHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum number of items to show per XAI extension. 999 for unlimited.'**
+  String get maxExtensionItemsHelper;
+
+  /// No description provided for @extensionItemsMustBeIntError.
+  ///
+  /// In en, this message translates to:
+  /// **'Given value must be an integer >= 1'**
+  String get extensionItemsMustBeIntError;
+
+  /// No description provided for @blockLevelExtensionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Block-level Extensions'**
+  String get blockLevelExtensionsLabel;
+
+  /// No description provided for @workflowLevelExtensionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow-level Extensions'**
+  String get workflowLevelExtensionsLabel;
+
+  /// No description provided for @toggleLayoutTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Layout'**
+  String get toggleLayoutTooltip;
+
+  /// No description provided for @studioViewsErrorLoadingExtensions.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading extensions: {error}'**
+  String studioViewsErrorLoadingExtensions(String error);
 }
 
 class _AppLocalizationsDelegate

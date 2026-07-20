@@ -96,7 +96,10 @@ void main() {
     );
 
     test('atomResults returns list without topological sorting', () {
+      final rd = container.read(reportDataV2Provider('exec_123'));
+      print('DEBUG: reportData = $rd');
       final results = container.read(atomResultsProvider('exec_123'));
+      print('DEBUG: results = $results');
       expect(results.length, 1);
       expect(results.first.tdaId, 'node_1');
     });

@@ -8,6 +8,7 @@ import 'package:client_app/features/studio/controllers/model_registry_controller
 import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 /// Admin Studio View for managing the Model Registry.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -25,32 +26,30 @@ class ModelRegistryView extends HookConsumerWidget {
     // 1. Data and loading states are read from Riverpod!
     final formState = ref.watch(modelRegistryFormProvider(id));
 
-    return formState.when(
-      loading: () => Scaffold(
+    return switch (formState) {
+      AsyncLoading() => Scaffold(
         appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (e, st) => Scaffold(
+      AsyncError(:final error, :final stackTrace) => Scaffold(
         appBar: AppBar(title: Text(l10n.modelRegistryTitle)),
         body: ErrorView(
-          error: e,
-          stackTrace: st,
+          error: error,
+          stackTrace: stackTrace,
           compact: false,
           onRetry: () => ref.invalidate(modelRegistryFormProvider(id)),
         ),
       ),
-      data: (payload) {
-        return _buildScaffold(
-          context,
-          ref,
-          l10n,
-          formKey,
-          formState,
-          payload,
-          availableModels,
-        );
-      },
-    );
+      AsyncData(value: final payload) => _buildScaffold(
+        context,
+        ref,
+        l10n,
+        formKey,
+        formState,
+        payload,
+        availableModels,
+      ),
+    };
   }
 
   Widget _buildScaffold(
@@ -146,10 +145,10 @@ class ModelRegistryView extends HookConsumerWidget {
           if (formState.isLoading)
             const Center(
               child: Padding(
-                padding: EdgeInsets.only(right: 16.0),
+                padding: EdgeInsets.only(right: AppSpacing.s16),
                 child: SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: AppSpacing.s16,
+                  height: AppSpacing.s16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
@@ -167,16 +166,16 @@ class ModelRegistryView extends HookConsumerWidget {
             label: Text(l10n.studioSaveButton),
             onPressed: formState.isLoading ? null : saveRegistry,
           ),
-          const SizedBox(width: 16),
+          AppSpacing.w16,
         ],
       ),
       body: Form(
         key: formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.p16,
           children: [
             _buildSystemAttributes(l10n, payload),
-            const SizedBox(height: 24),
+            AppSpacing.h24,
             _buildModelsSection(ref, l10n, payload, availableModels),
           ],
         ),
@@ -187,7 +186,7 @@ class ModelRegistryView extends HookConsumerWidget {
   Widget _buildSystemAttributes(AppLocalizations l10n, ModelConfig data) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -195,13 +194,13 @@ class ModelRegistryView extends HookConsumerWidget {
               l10n.systemMetaTitle,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             TextFormField(
               initialValue: data.id,
               decoration: InputDecoration(labelText: l10n.configIdLabel),
               readOnly: true, // Server-side Minting: ID is immutable
             ),
-            const SizedBox(height: 8),
+            AppSpacing.h8,
             TextFormField(
               initialValue: data.type,
               decoration: InputDecoration(labelText: l10n.configTypeLabel),
@@ -257,18 +256,18 @@ class ModelRegistryView extends HookConsumerWidget {
                     .forceRebuild(payload.copyWith(models: newModels));
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add Strategy'),
+              label: Text(l10n.addStrategyButton),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        AppSpacing.h16,
         if (payload.models.isEmpty) Text(l10n.noModelsDefined),
         ...providerGroups.entries.map((providerEntry) {
           final providerName = providerEntry.key;
           final providerModels = providerEntry.value;
 
           return Card(
-            margin: const EdgeInsets.only(bottom: 16.0),
+            margin: const EdgeInsets.only(bottom: AppSpacing.s16),
             child: ExpansionTile(
               initiallyExpanded: true,
               title: Text('${l10n.providerLabel}: $providerName'),
@@ -277,7 +276,7 @@ class ModelRegistryView extends HookConsumerWidget {
                 final cfg = modelEntry.value;
 
                 return Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: AppSpacing.p16,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -311,14 +310,14 @@ class ModelRegistryView extends HookConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      AppSpacing.h8,
                       // Strategy Config fields
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s12),
                         child: TextFormField(
                           initialValue: cfg.provider,
                           decoration: InputDecoration(
-                            labelText: 'Provider (e.g. google, openai)',
+                            labelText: l10n.providerPlaceholder,
                             border: const OutlineInputBorder(),
                           ),
                           onChanged: (val) {
@@ -328,7 +327,7 @@ class ModelRegistryView extends HookConsumerWidget {
                       ),
 
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s12),
                         child: DropdownButtonFormField<String>(
                           initialValue:
                               (cfg.modelName.isNotEmpty &&
@@ -372,6 +371,7 @@ class ModelRegistryView extends HookConsumerWidget {
                       _buildDoubleField(
                         cfg.temperature,
                         l10n.temperatureLabel,
+                        l10n,
                         (val) => updateModel(
                           modelId,
                           cfg.copyWith(temperature: val),
@@ -380,6 +380,7 @@ class ModelRegistryView extends HookConsumerWidget {
                       _buildDoubleField(
                         cfg.frequencyPenalty,
                         l10n.frequencyPenaltyLabel,
+                        l10n,
                         (val) => updateModel(
                           modelId,
                           cfg.copyWith(frequencyPenalty: val),
@@ -388,6 +389,7 @@ class ModelRegistryView extends HookConsumerWidget {
                       _buildDoubleField(
                         cfg.presencePenalty,
                         l10n.presencePenaltyLabel,
+                        l10n,
                         (val) => updateModel(
                           modelId,
                           cfg.copyWith(presencePenalty: val),
@@ -396,6 +398,7 @@ class ModelRegistryView extends HookConsumerWidget {
                       _buildIntField(
                         cfg.maxTokens,
                         l10n.maxTokensLabel,
+                        l10n,
                         (val) =>
                             updateModel(modelId, cfg.copyWith(maxTokens: val)),
                       ),
@@ -410,22 +413,26 @@ class ModelRegistryView extends HookConsumerWidget {
                       _buildDoubleField(
                         cfg.topP,
                         l10n.topPLabel,
+                        l10n,
                         (val) => updateModel(modelId, cfg.copyWith(topP: val)),
                       ),
                       _buildIntField(
                         cfg.topK,
                         l10n.topKLabel,
+                        l10n,
                         (val) => updateModel(modelId, cfg.copyWith(topK: val)),
                       ),
                       _buildIntField(
                         cfg.tpmLimit,
                         l10n.tpmLimitLabel,
+                        l10n,
                         (val) =>
                             updateModel(modelId, cfg.copyWith(tpmLimit: val)),
                       ),
                       _buildIntField(
                         cfg.rpmLimit,
                         l10n.rpmLimitLabel,
+                        l10n,
                         (val) =>
                             updateModel(modelId, cfg.copyWith(rpmLimit: val)),
                       ),
@@ -443,6 +450,7 @@ class ModelRegistryView extends HookConsumerWidget {
                       _buildJsonField(
                         cfg.additionalParams,
                         l10n.additionalParamsLabel,
+                        l10n,
                         (val) => updateModel(
                           modelId,
                           cfg.copyWith(additionalParams: val),
@@ -478,13 +486,14 @@ class ModelRegistryView extends HookConsumerWidget {
   Widget _buildJsonField(
     Map<String, dynamic>? initialValue,
     String label,
+    AppLocalizations l10n,
     Function(Map<String, dynamic>) onSaved,
   ) {
     final initialText = initialValue != null && initialValue.isNotEmpty
         ? const JsonEncoder.withIndent('  ').convert(initialValue)
         : '{}';
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: TextFormField(
         initialValue: initialText,
         maxLines: 4,
@@ -497,10 +506,10 @@ class ModelRegistryView extends HookConsumerWidget {
           try {
             final decoded = jsonDecode(val);
             if (decoded is! Map<String, dynamic>) {
-              return 'Must be a valid JSON object (e.g. {"key": "val"})';
+              return l10n.jsonMustBeObjectError;
             }
           } catch (e) {
-            return 'Invalid JSON';
+            return l10n.invalidJsonError;
           }
           return null;
         },
@@ -526,7 +535,7 @@ class ModelRegistryView extends HookConsumerWidget {
     Function(String) onChanged,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: TextFormField(
         initialValue: initialValue ?? '',
         decoration: InputDecoration(
@@ -541,10 +550,11 @@ class ModelRegistryView extends HookConsumerWidget {
   Widget _buildDoubleField(
     double? initialValue,
     String label,
+    AppLocalizations l10n,
     Function(double) onChanged,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: TextFormField(
         initialValue: initialValue?.toString() ?? '',
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -554,7 +564,7 @@ class ModelRegistryView extends HookConsumerWidget {
         ),
         validator: (val) {
           if (val == null || val.isEmpty) return null;
-          if (double.tryParse(val) == null) return 'Must be a number';
+          if (double.tryParse(val) == null) return l10n.mustBeNumberError;
           return null;
         },
         onChanged: (val) {
@@ -569,10 +579,11 @@ class ModelRegistryView extends HookConsumerWidget {
   Widget _buildIntField(
     int? initialValue,
     String label,
+    AppLocalizations l10n,
     Function(int) onChanged,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: TextFormField(
         initialValue: initialValue?.toString() ?? '',
         keyboardType: TextInputType.number,
@@ -582,7 +593,7 @@ class ModelRegistryView extends HookConsumerWidget {
         ),
         validator: (val) {
           if (val == null || val.isEmpty) return null;
-          if (int.tryParse(val) == null) return 'Must be an integer';
+          if (int.tryParse(val) == null) return l10n.mustBeIntegerError;
           return null;
         },
         onChanged: (val) {
@@ -600,7 +611,7 @@ class ModelRegistryView extends HookConsumerWidget {
     Function(bool) onChanged,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s8),
       child: SwitchListTile(
         title: Text(label),
         value: initialValue,

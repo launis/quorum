@@ -747,7 +747,6 @@
   "lblImperativeCommands": "Imperative Commands",
   "helpImperativeCommands": "A metric that measures how many direct commands or demands (imperatives) the user made in their text. This indicates initiative and the need for control in the interaction.",
   "lblPostHocRationalization": "Post-Hoc Rationalization",
-  "lblReasoning": "Reasoning",
   "lblAvgSentenceLength": "Average Sentence Length",
   "lblPsychologicalProfile": "Psychological Profile",
   "lblAuthorIntent": "Author Intent",
@@ -1867,6 +1866,100 @@
   "@lblNaCascadeReason": {
     "placeholders": {
       "reasons": {
+        "type": "String"
+      }
+    }
+  },
+  "studioViewsMatrix3d": "3D: Matrix (Bubble)",
+  "@studioViewsMatrix3d": {
+    "description": "Label for 3D Matrix preset"
+  },
+  "lexiconTitle": "Performative Lexicons (Slop Words)",
+  "lexiconLangEn": "English (en)",
+  "lexiconLangFi": "Finnish (fi)",
+  "lexiconDiscoverNew": "Discover New",
+  "lexiconTranslateMissing": "Translate Missing",
+  "lexiconAddPlaceholder": "Add a new slop word / phrase",
+  "lexiconAddButton": "Add",
+  "lexiconDiscoveredSuccess": "Discovered and added {count} new phrases (out of {total}).",
+  "@lexiconDiscoveredSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "lexiconDiscoveredEmpty": "No new phrases discovered.",
+  "lexiconTranslatedSuccess": "Translated and added {count} missing phrases.",
+  "@lexiconTranslatedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lexiconTranslatedEmpty": "No missing phrases to translate (did you forget to save the English words first?).",
+  "studioViewsFailedToCreate": "Failed to create: {error}",
+  "@studioViewsFailedToCreate": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "studioViewsMatrixSubtitle": "ID: {id} | Scales (Grades): {scales}",
+  "@studioViewsMatrixSubtitle": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      },
+      "scales": {
+        "type": "int"
+      }
+    }
+  },
+  "unnamedGateway": "Unnamed Gateway",
+  "gatewaySubtitle": "Allowed Tools: {tools} | Status: {status}",
+  "@gatewaySubtitle": {
+    "placeholders": {
+      "tools": {
+        "type": "int"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "activeStatus": "Active",
+  "inactiveStatus": "Inactive",
+  "addStrategyButton": "Add Strategy",
+  "providerPlaceholder": "Provider (e.g. google, openai)",
+  "jsonMustBeObjectError": "Must be a valid JSON object",
+  "mustBeNumberError": "Must be a number",
+  "mustBeIntegerError": "Must be an integer",
+  "customPrefaceLabel": "Custom Preface (Rich Text)",
+  "scoringEngineTitle": "Scoring Engine and Strictness",
+  "identityMetadataTitle": "Identity Metadata",
+  "metaDate": "Date (date)",
+  "metaOrganization": "Organization (organization)",
+  "metaUser": "User (user)",
+  "metaScoringEngine": "Scoring Engine (scoring_engine)",
+  "metaStrictness": "Strictness Level (strictness)",
+  "metaCost": "Cost Estimate (cost)",
+  "metaTokens": "Cognitive Load (tokens)",
+  "maxExtensionItemsLabel": "Max Extension Items",
+  "maxExtensionItemsHelper": "Maximum number of items to show per XAI extension. 999 for unlimited.",
+  "extensionItemsMustBeIntError": "Given value must be an integer >= 1",
+  "blockLevelExtensionsLabel": "Block-level Extensions",
+  "workflowLevelExtensionsLabel": "Workflow-level Extensions",
+  "toggleLayoutTooltip": "Toggle Layout",
+  "studioViewsErrorLoadingExtensions": "Error loading extensions: {error}",
+  "@studioViewsErrorLoadingExtensions": {
+    "placeholders": {
+      "error": {
         "type": "String"
       }
     }

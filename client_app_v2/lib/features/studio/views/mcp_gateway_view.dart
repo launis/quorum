@@ -6,6 +6,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'dart:convert';
 
 /// Admin Studio View for managing the MCP Gateways.
@@ -23,25 +24,29 @@ class McpGatewayView extends HookConsumerWidget {
     // 1. Data and loading states are read from Riverpod! No useEffect for fetching!
     final formState = ref.watch(mcpGatewayFormProvider(id));
 
-    return formState.when(
-      loading: () => Scaffold(
+    return switch (formState) {
+      AsyncLoading() => Scaffold(
         appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (e, st) => Scaffold(
+      AsyncError(:final error, :final stackTrace) => Scaffold(
         appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
         body: ErrorView(
-          error: e,
-          stackTrace: st,
+          error: error,
+          stackTrace: stackTrace,
           compact: false,
           onRetry: () => ref.invalidate(mcpGatewayFormProvider(id)),
         ),
       ),
-      data: (payload) {
-        // The UI is a pure renderer of the business payload
-        return _buildScaffold(context, ref, l10n, formKey, formState, payload);
-      },
-    );
+      AsyncData(value: final payload) => _buildScaffold(
+        context,
+        ref,
+        l10n,
+        formKey,
+        formState,
+        payload,
+      ),
+    };
   }
 
   Widget _buildScaffold(
@@ -136,10 +141,10 @@ class McpGatewayView extends HookConsumerWidget {
           if (formState.isLoading)
             const Center(
               child: Padding(
-                padding: EdgeInsets.only(right: 16.0),
+                padding: EdgeInsets.only(right: AppSpacing.s16),
                 child: SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: AppSpacing.s16,
+                  height: AppSpacing.s16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
@@ -159,16 +164,16 @@ class McpGatewayView extends HookConsumerWidget {
                 ? null
                 : saveGateway, // Read isLoading directly from Riverpod!
           ),
-          const SizedBox(width: 16),
+          AppSpacing.w16,
         ],
       ),
       body: Form(
         key: formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.p16,
           children: [
             _buildSystemAttributes(l10n, payload),
-            const SizedBox(height: 24),
+            AppSpacing.h24,
             _buildToolsSection(context, ref, l10n, payload),
           ],
         ),
@@ -182,7 +187,7 @@ class McpGatewayView extends HookConsumerWidget {
   ) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -190,19 +195,19 @@ class McpGatewayView extends HookConsumerWidget {
               l10n.gatewayMetadataTitle,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             TextFormField(
               initialValue: data['id']?.toString(),
               decoration: InputDecoration(labelText: l10n.configIdLabel),
               readOnly: true, // Opaque ID Mandate: NEVER editable manually
             ),
-            const SizedBox(height: 8),
+            AppSpacing.h8,
             TextFormField(
               initialValue: data['slug']?.toString(),
               decoration: InputDecoration(labelText: l10n.slugLabel),
               onSaved: (val) => data['slug'] = val,
             ),
-            const SizedBox(height: 8),
+            AppSpacing.h8,
             TextFormField(
               initialValue: data['type']?.toString(),
               decoration: InputDecoration(labelText: l10n.configTypeLabel),
@@ -241,14 +246,14 @@ class McpGatewayView extends HookConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        AppSpacing.h16,
         if (tools.isEmpty) Text(l10n.noToolsDefinedGateway),
         ...tools.asMap().entries.map((entry) {
           final index = entry.key;
           final tool = entry.value;
 
           return Card(
-            margin: const EdgeInsets.only(bottom: 16.0),
+            margin: const EdgeInsets.only(bottom: AppSpacing.s16),
             child: ExpansionTile(
               initiallyExpanded: true,
               title: Text(l10n.toolTitlePrefix(tool['tool_id'].toString())),
@@ -265,7 +270,7 @@ class McpGatewayView extends HookConsumerWidget {
               ),
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: AppSpacing.p16,
                   child: Column(
                     children: [
                       _buildStringField(ref, tool, 'tool_id', l10n.toolIdLabel),
@@ -301,7 +306,7 @@ class McpGatewayView extends HookConsumerWidget {
     String label,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s16),
       child: TextFormField(
         initialValue: map[key]?.toString() ?? '',
         decoration: InputDecoration(
@@ -326,7 +331,7 @@ class McpGatewayView extends HookConsumerWidget {
     String label,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s16),
       child: TextFormField(
         initialValue: map[key]?.toString() ?? '',
         maxLines: 3,
@@ -350,7 +355,7 @@ class McpGatewayView extends HookConsumerWidget {
     final currentStr = const JsonEncoder.withIndent('  ').convert(currentObj);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s16),
       child: TextFormField(
         initialValue: currentStr,
         maxLines: 5,
@@ -403,9 +408,9 @@ class McpGatewayView extends HookConsumerWidget {
           l10n.uiDisplayNameTitle,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 8),
+        AppSpacing.h8,
         Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
+          padding: const EdgeInsets.only(bottom: AppSpacing.s16),
           child: TextFormField(
             initialValue: translations['en']?.toString() ?? '',
             decoration: InputDecoration(
@@ -416,7 +421,7 @@ class McpGatewayView extends HookConsumerWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
+          padding: const EdgeInsets.only(bottom: AppSpacing.s16),
           child: TextFormField(
             initialValue: translations['fi']?.toString() ?? '',
             decoration: InputDecoration(

@@ -248,6 +248,8 @@ enum SduiBlockType {
   quoteCard,
   @JsonValue('n_a_card')
   nACard,
+  @JsonValue('grid')
+  grid,
 }
 
 /// UI intent mapping for SDUI visual rendering.

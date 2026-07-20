@@ -30,14 +30,15 @@ class MockExecutionClient implements ExecutionClient {
     return {
       'execution_id': executionId,
       'workflow_id': 'test_wf',
-      'global_metrics': {
+      'profile_id': 'prof_123',
+      'global_metrics': <String, dynamic>{
         'total_atoms': 5,
         'evaluated': 5,
         'short_circuited_na': 0,
         'duration_ms': 100,
       },
-      'results': [],
-      'hydrated_references': {},
+      'results': <dynamic>[],
+      'hydrated_references': <String, dynamic>{},
     };
   }
 
@@ -127,6 +128,10 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 200));
 
       final state = container.read(executionControllerProvider);
+      if (state.hasError) {
+        print('STATE ERROR: ' + state.error.toString());
+        print('STATE STACK: ' + state.stackTrace.toString());
+      }
       expect(state.hasValue, true);
       // Wait, state.value is an ExecutionRecord.
       expect(state.value?.id, 'test_exec');

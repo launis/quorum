@@ -1,7 +1,7 @@
 import 'package:client_app/core/models/enums.dart';
-
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 void main() {
   group('ReportDataDto JSON Parsing', () {
@@ -9,6 +9,7 @@ void main() {
       final json = {
         'execution_id': 'exec_123',
         'workflow_id': 'wf_abc',
+        'profile_id': 'prof_123',
         'global_metrics': {
           'total_atoms': 10,
           'evaluated': 8,
@@ -62,6 +63,7 @@ void main() {
         final Map<String, dynamic> json = {
           'execution_id': 'exec_123',
           'workflow_id': 'wf_abc',
+          'profile_id': 'prof_123',
           'global_metrics': <String, dynamic>{
             'total_atoms': 10,
             'evaluated': 8,
@@ -75,10 +77,11 @@ void main() {
           'unrecognized_rogue_key': 'should_be_stripped',
         };
 
-        // It should no longer crash, but successfully parse the allowed keys
-        final dto = ReportDataDto.fromJson(json);
-
-        expect(dto.executionId, 'exec_123');
+        // Should throw due to strict parsing
+        expect(
+          () => ReportDataDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
       },
     );
 
@@ -89,6 +92,7 @@ void main() {
       {
         "execution_id": "exec_isolate",
         "workflow_id": "wf_isolate",
+        "profile_id": "prof_123",
         "global_metrics": {
           "total_atoms": 5,
           "evaluated": 5,

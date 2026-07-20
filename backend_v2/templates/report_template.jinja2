@@ -141,6 +141,15 @@
                 <div style="margin-bottom: 15px; border-left: 4px solid #9E9E9E; background-color: #F5F5F5; padding: 12px; border-radius: 6px;">
                     <strong style="color: #757575;">N/A (Ei arvioitu):</strong> {{ block.message }}
                 </div>
+            {% elif block.block_type == 'grid' %}
+                <div style="margin-bottom: 15px;">
+                    <!-- Grid representation -->
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                        {% for item in block.items %}
+                            <tr><td style="border: 1px solid #E0E0E0; padding: 4px;">{{ item }}</td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
             {% endif %}
         {% endfor %}
     {% endmacro %}

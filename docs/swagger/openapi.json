@@ -1123,7 +1123,7 @@
           "Executions"
         ],
         "summary": "Get Execution Report",
-        "description": "Get the clean, UI-agnostic ReportDataDto for machine integrations (B2B Headless).\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    The headless ReportDataDto.\n\nRaises:\n    AppException: If execution is not found or permission is denied.",
+        "description": "Get the clean, UI-agnostic ReportDataDto for machine integrations (B2B Headless).\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    The headless ReportDataDTO.\n\nRaises:\n    AppException: If execution is not found or permission is denied.",
         "operationId": "get_execution_report_api_v2_execution_executions__execution_id__report_get",
         "security": [
           {
@@ -1147,7 +1147,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReportDataDto"
+                  "$ref": "#/components/schemas/ReportDataDTO"
                 }
               }
             }
@@ -1481,7 +1481,7 @@
           "Executions"
         ],
         "summary": "Override Atom",
-        "description": "Apply a human override to a scorecard atom.",
+        "description": "Apply a human override to a scorecard atom.\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    atom_id: The opaque identifier of the atom to override.\n    payload: The human override request payload containing the reason and new status.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    A success message indicating the atom was overridden and the execution recalculated.\n\nRaises:\n    AppException: If the override fails or permission is denied.",
         "operationId": "override_atom_api_v2_execution_executions__execution_id__atoms__atom_id__override_patch",
         "security": [
           {
@@ -3919,6 +3919,101 @@
         "title": "AntiPattern",
         "description": "Known anti-pattern with bilingual description."
       },
+      "AtomResultDTO": {
+        "properties": {
+          "tda_id": {
+            "type": "string",
+            "title": "Tda Id",
+            "description": "Opaque ID pointing to the hydrated_references dictionary key"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ExecutionStatus"
+          },
+          "extracted_data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractedValueDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Quantitative or isolated result"
+          },
+          "source_quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quote",
+            "description": "Verbatim original quote from the document"
+          },
+          "contextual_override": {
+            "type": "boolean",
+            "title": "Contextual Override",
+            "description": "Allows cognitive override without a verbatim quote",
+            "default": false
+          },
+          "evaluation_reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Reasoning",
+            "description": "Strictly AI cognitive reasoning, no infra errors"
+          },
+          "error_details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetailsDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Populated only if status is SYSTEM_ERROR"
+          },
+          "extensions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Extensions",
+            "description": "Requested XAI extensions mapping"
+          },
+          "depends_on_tda_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Depends On Tda Ids",
+            "description": "DAG adjacency list"
+          },
+          "short_circuit_reason_tda_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuit Reason Tda Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tda_id",
+          "status"
+        ],
+        "title": "AtomResultDTO",
+        "description": "Dynamic execution data (DAG node)."
+      },
       "BlockDataType": {
         "type": "string",
         "enum": [
@@ -4121,14 +4216,6 @@
             "title": "Language",
             "description": "Target output language."
           },
-          "formatting_directives": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Formatting Directives",
-            "description": "List of LLM formatting mandates."
-          },
           "tone_instruction": {
             "anyOf": [
               {
@@ -4188,21 +4275,10 @@
             "description": "Selects the source scaling for the scores printed by Blueprint.",
             "default": "original"
           },
-          "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Nested definition for synthesis configurations."
-          },
           "include_diagnostic_scorecard": {
             "type": "boolean",
             "title": "Include Diagnostic Scorecard",
-            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "description": "Enable appending the independent diagnostic scorecard.",
             "default": false
           },
           "strictness_level": {
@@ -4237,6 +4313,15 @@
             "type": "array",
             "title": "Layouts",
             "description": "Ordered sequence of layout blocks."
+          },
+          "content_blocks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Content Blocks",
+            "description": "Base SDUI content blocks predefined by the profile."
           }
         },
         "additionalProperties": false,
@@ -4246,6 +4331,36 @@
         ],
         "title": "EmbeddedOutputProfile",
         "description": "Embedded configuration mapping for workflow output profiles."
+      },
+      "EngineOverrideStrategy": {
+        "type": "string",
+        "enum": [
+          "SYNTHESIS",
+          "DYNAMIC_TOOL_AGENT"
+        ],
+        "title": "EngineOverrideStrategy",
+        "description": "Execution strategy overrides for the engine."
+      },
+      "ErrorDetailsDTO": {
+        "properties": {
+          "error_code": {
+            "type": "string",
+            "title": "Error Code",
+            "description": "Standardized error code, e.g., LLM_TIMEOUT"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Technical error message or stack trace"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error_code",
+          "message"
+        ],
+        "title": "ErrorDetailsDTO"
       },
       "ErrorTraceEvent": {
         "properties": {
@@ -4363,7 +4478,7 @@
               }
             ],
             "title": "Profile Id",
-            "description": "Epic 13 M1: Optional Opaque ID of the Output Profile to apply. If omitted, fallback to workflow default."
+            "description": "Optional Opaque ID of the Output Profile to apply. If omitted, fallback to workflow default."
           },
           "matrix_sampling_strategy": {
             "type": "integer",
@@ -4384,12 +4499,42 @@
         "title": "ExecutionCreate",
         "description": "Schema for initiating a new workflow execution."
       },
+      "ExecutionMetricsDTO": {
+        "properties": {
+          "total_atoms": {
+            "type": "integer",
+            "title": "Total Atoms"
+          },
+          "evaluated": {
+            "type": "integer",
+            "title": "Evaluated"
+          },
+          "short_circuited_na": {
+            "type": "integer",
+            "title": "Short Circuited Na"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms",
+            "description": "Execution duration in milliseconds for observability",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "total_atoms",
+          "evaluated",
+          "short_circuited_na"
+        ],
+        "title": "ExecutionMetricsDTO"
+      },
       "ExecutionRecord": {
         "properties": {
           "status": {
             "$ref": "#/components/schemas/ExecutionStatus",
             "description": "Current status of the workflow execution.",
-            "default": "pending"
+            "default": "PENDING"
           },
           "execution_trace": {
             "items": {
@@ -4636,14 +4781,17 @@
       "ExecutionStatus": {
         "type": "string",
         "enum": [
-          "pending",
-          "queued",
-          "running",
-          "completed",
-          "failed"
+          "PASSED",
+          "FAILED",
+          "N_A",
+          "SYSTEM_ERROR",
+          "BLOCKED",
+          "PENDING",
+          "RUNNING",
+          "QUEUED"
         ],
         "title": "ExecutionStatus",
-        "description": "Execution lifecycle status."
+        "description": "Execution lifecycle status.\n\nStr-Enum is mandatory for OpenAPI/Swagger generation,\nensuring Flutter receives type-safe classes instead of Literal strings."
       },
       "ExecutionStepState": {
         "properties": {
@@ -4659,10 +4807,9 @@
             "description": "Localized label for UI tracking"
           },
           "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Status: pending, running, completed, failed",
-            "default": "pending"
+            "$ref": "#/components/schemas/ExecutionStatus",
+            "description": "Status: pending, running, passed, failed",
+            "default": "PENDING"
           },
           "last_error": {
             "anyOf": [
@@ -4778,6 +4925,45 @@
         "title": "ExpectedInput",
         "description": "Dynamic input definition for a workflow (0-N inputs)."
       },
+      "ExtractedValueDTO": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "title": "Value"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit",
+            "description": "Unit of measurement, e.g., 'tCO2e' or 'EUR'"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "title": "ExtractedValueDTO"
+      },
       "FrozenContext": {
         "properties": {
           "compiled_prompts": {
@@ -4825,6 +5011,37 @@
         "title": "FrozenContext",
         "description": "Deep copy of context state at execution time for auditability."
       },
+      "GlobalSynthesisDTO": {
+        "properties": {
+          "executive_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executive Summary",
+            "description": "High-level synthesized summary"
+          },
+          "urgency_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Urgency Level"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "GlobalSynthesisDTO",
+        "description": "Data structure for high-level synthesized reports."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -4854,7 +5071,8 @@
               "type": "string"
             },
             "type": "array",
-            "title": "Hooks"
+            "title": "Hooks",
+            "description": "A list of registered system hooks or callback identifiers"
           }
         },
         "additionalProperties": false,
@@ -4868,8 +5086,7 @@
       "HumanOverrideDTO": {
         "properties": {
           "new_status": {
-            "type": "string",
-            "title": "New Status",
+            "$ref": "#/components/schemas/ExecutionStatus",
             "description": "The overridden status (e.g., TRUE, FALSE, DLQ)."
           },
           "reason": {
@@ -4879,7 +5096,7 @@
           },
           "evidence_quotes": {
             "items": {
-              "$ref": "#/components/schemas/QuoteEvidenceDTO"
+              "$ref": "#/components/schemas/QuoteEvidenceDTO-Output"
             },
             "type": "array",
             "title": "Evidence Quotes",
@@ -4912,8 +5129,7 @@
       "HumanOverrideRequest": {
         "properties": {
           "new_status": {
-            "type": "string",
-            "title": "New Status",
+            "$ref": "#/components/schemas/ExecutionStatus",
             "description": "The overridden status (e.g., TRUE, FALSE, DLQ)."
           },
           "reason": {
@@ -4923,7 +5139,7 @@
           },
           "evidence_quotes": {
             "items": {
-              "$ref": "#/components/schemas/QuoteEvidenceDTO"
+              "$ref": "#/components/schemas/QuoteEvidenceDTO-Input"
             },
             "type": "array",
             "title": "Evidence Quotes",
@@ -4938,6 +5154,39 @@
         ],
         "title": "HumanOverrideRequest",
         "description": "Payload for human override requests."
+      },
+      "HydratedAtomDTO": {
+        "properties": {
+          "sdui_component": {
+            "$ref": "#/components/schemas/SDUIComponentType",
+            "description": "Server-Driven UI hint for frontend."
+          },
+          "resolved_claim": {
+            "type": "string",
+            "title": "Resolved Claim",
+            "description": "Cleaned claim in human language"
+          },
+          "source_quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quote",
+            "description": "Verbatim original quote"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sdui_component",
+          "resolved_claim"
+        ],
+        "title": "HydratedAtomDTO",
+        "description": "Static ontology data. Perfectly cacheable.\nMust not contain any dynamic execution-related data."
       },
       "I18nText": {
         "properties": {
@@ -5322,6 +5571,373 @@
         "title": "MatrixScale",
         "description": "Represents a single score point in a BARS matrix scale.\n\nAttributes:\n    score: Numerical value of the scale point.\n    name: Optional name for the scale point (e.g., 'Excellent').\n    ai_label: Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE.\n    claims: List of behavioral claims/criteria for this score."
       },
+      "MatrixScorecardRowDTO": {
+        "properties": {
+          "block_id": {
+            "type": "string",
+            "title": "Block Id",
+            "description": "The opaque Stripe ID of the prompt block."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Pre-localized name for PDF layouts and static charts."
+          },
+          "label_i18n": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Full I18n translations dictionary for the UI."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Detailed instructions or prompt context behind this axis."
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "Raw scaled score."
+          },
+          "scale_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale Min",
+            "description": "Minimum possible score."
+          },
+          "scale_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale Max",
+            "description": "Maximum possible score."
+          },
+          "normalized_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Score",
+            "description": "Normalized score (0-100) if evaluative."
+          },
+          "true_atoms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "True Atoms",
+            "description": "Global hits found."
+          },
+          "total_atoms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Atoms",
+            "description": "Total atoms available to evaluate."
+          },
+          "row_explanation": {
+            "type": "string",
+            "title": "Row Explanation",
+            "description": "The one-sentence justification."
+          },
+          "evidence_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Type",
+            "description": "The EvidenceType extracted from AtomResponse"
+          },
+          "cited_source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Source Id"
+          },
+          "cited_text_quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Text Quote"
+          },
+          "cited_web_citation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Web Citation"
+          },
+          "coaching": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coaching"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "falsification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Falsification"
+          },
+          "missing_context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Context"
+          },
+          "risk_flag": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Flag"
+          },
+          "remediation_steps": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation Steps"
+          },
+          "emotional_sentiment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emotional Sentiment"
+          },
+          "theory_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theory Link"
+          },
+          "contextual_override": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contextual Override",
+            "description": "Whether contextual override was applied."
+          },
+          "semantic_reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Reasoning",
+            "description": "Detailed semantic justification for the override."
+          },
+          "level_breakdown": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Breakdown",
+            "description": "Breakdowns: DINA hits vs total per scale floor e.g. {'1.0': '5/5'}"
+          },
+          "level_names": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Names",
+            "description": "Map of level keys to their human readable names e.g. {'1': 'Heikko'}"
+          },
+          "ui_plot_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ui Plot Ratio",
+            "description": "Absolute normalized plot plot ratio [0.0 - 1.0] for mathless Flutter plotting"
+          },
+          "ui_boundary_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Ui Boundary Labels",
+            "description": "Pre-computed labels for extremes, e.g. {'0.0': 'Low', '1.0': 'High'}"
+          },
+          "is_evaluative": {
+            "type": "boolean",
+            "title": "Is Evaluative",
+            "description": "Whether this block contributes to global average."
+          },
+          "used_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Used Evidence Ids",
+            "description": "Trace IDs used for this row."
+          },
+          "evaluated_atoms": {
+            "items": {
+              "$ref": "#/components/schemas/ScorecardAtomDTO"
+            },
+            "type": "array",
+            "title": "Evaluated Atoms",
+            "description": "Flat presentation-only atoms evaluated for this row."
+          },
+          "clustered_row_sources": {
+            "items": {
+              "$ref": "#/components/schemas/MCPAuditTrace"
+            },
+            "type": "array",
+            "title": "Clustered Row Sources",
+            "description": "Purity Paradox resolution, cluster arrays at row level."
+          },
+          "tda_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tda State",
+            "description": "TDAState union representation."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "block_id",
+          "name",
+          "label_i18n",
+          "row_explanation",
+          "is_evaluative"
+        ],
+        "title": "MatrixScorecardRowDTO",
+        "description": "Represents a single evaluated matrix row in the scorecard and plot axes."
+      },
       "ModelProfile": {
         "properties": {
           "provider": {
@@ -5405,6 +6021,30 @@
             ],
             "title": "Max Tokens",
             "description": "Max generated tokens"
+          },
+          "frequency_penalty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frequency Penalty",
+            "description": "Frequency penalty"
+          },
+          "presence_penalty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Presence Penalty",
+            "description": "Presence penalty"
           },
           "allowed_tools": {
             "items": {
@@ -5862,14 +6502,6 @@
             "title": "Language",
             "description": "Target output language."
           },
-          "formatting_directives": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Formatting Directives",
-            "description": "List of LLM formatting mandates."
-          },
           "tone_instruction": {
             "anyOf": [
               {
@@ -5924,21 +6556,10 @@
             "description": "Selects the source scaling for the scores printed by Blueprint.",
             "default": "original"
           },
-          "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Nested definition for synthesis configurations."
-          },
           "include_diagnostic_scorecard": {
             "type": "boolean",
             "title": "Include Diagnostic Scorecard",
-            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "description": "Enable appending the independent diagnostic scorecard.",
             "default": false
           },
           "strictness_level": {
@@ -5975,6 +6596,15 @@
             "type": "array",
             "title": "Layouts",
             "description": "Ordered sequence of layout blocks."
+          },
+          "content_blocks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Content Blocks",
+            "description": "Base SDUI content blocks predefined by the profile."
           }
         },
         "additionalProperties": false,
@@ -6067,14 +6697,6 @@
             "title": "Language",
             "description": "Target output language."
           },
-          "formatting_directives": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Formatting Directives",
-            "description": "List of LLM formatting mandates."
-          },
           "visible_metadata": {
             "items": {
               "type": "string"
@@ -6123,21 +6745,10 @@
             "description": "UI rendering scale instruction.",
             "default": "original"
           },
-          "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Nested definition for synthesis configurations."
-          },
           "include_diagnostic_scorecard": {
             "type": "boolean",
             "title": "Include Diagnostic Scorecard",
-            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "description": "Enable appending the independent diagnostic scorecard.",
             "default": false
           },
           "strictness_level": {
@@ -6174,6 +6785,15 @@
             "type": "array",
             "title": "Layouts",
             "description": "Sequence of layouts."
+          },
+          "content_blocks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Content Blocks",
+            "description": "Base SDUI content blocks predefined by the profile."
           }
         },
         "additionalProperties": false,
@@ -6185,7 +6805,7 @@
           "name"
         ],
         "title": "OutputProfileCreateDTO",
-        "description": "DTO for creating a new Output Profile.\n\nAttributes:\n    id: Unique string ID for the profile. Must follow Stripe Pattern.\n    slug: Human-readable routing identifier.\n    workflow_id: References the execution DAG to scope Target Matrices.\n    organization_id: Tenant organization scope.\n    name: Localized name of the profile.\n    description: Localized description of the profile.\n    custom_preface: Rich text preface shown on outputs.\n    visible_metadata: List of metadata fields visible on the UI and PDF cover header.\n    visible_block_extensions: Block-level XAI extensions (per-matrix, LLM-produced).\n    visible_workflow_extensions: Workflow-level global extensions (mathematical engines).\n    max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.\n    display_scale: UI rendering scale instruction (e.g., 'normalized_100').\n    synthesis: Nested definition for synthesis configurations.\n    include_diagnostic_scorecard: Epic 24 feature indicating whether to append independent scorecards.\n    strictness_level: Profile-level strictness override setting.\n    scoring_strategy: Profile-level strategy calculation override.\n    layouts: Sequence of layout rendering blocks."
+        "description": "DTO for creating a new Output Profile.\n\nAttributes:\n    id: Unique string ID for the profile. Must follow Stripe Pattern.\n    slug: Human-readable routing identifier.\n    workflow_id: References the execution DAG to scope Target Matrices.\n    organization_id: Tenant organization scope.\n    name: Localized name of the profile.\n    description: Localized description of the profile.\n    custom_preface: Rich text preface shown on outputs.\n    visible_metadata: List of metadata fields visible on the UI and PDF cover header.\n    visible_block_extensions: Block-level XAI extensions (per-matrix, LLM-produced).\n    visible_workflow_extensions: Workflow-level global extensions (mathematical engines).\n    max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.\n    display_scale: UI rendering scale instruction (e.g., 'normalized_100').\n    synthesis: Nested definition for synthesis configurations.\n    include_diagnostic_scorecard: Feature indicating whether to append independent scorecards.\n    strictness_level: Profile-level strictness override setting.\n    scoring_strategy: Profile-level strategy calculation override.\n    layouts: Sequence of layout rendering blocks."
       },
       "OutputProfileListResponse": {
         "properties": {
@@ -6263,13 +6883,6 @@
             ],
             "title": "Language"
           },
-          "formatting_directives": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Formatting Directives"
-          },
           "visible_metadata": {
             "items": {
               "type": "string"
@@ -6312,20 +6925,10 @@
             "title": "Display Scale",
             "default": "original"
           },
-          "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "include_diagnostic_scorecard": {
             "type": "boolean",
             "title": "Include Diagnostic Scorecard",
-            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "description": "Enable appending the independent diagnostic scorecard.",
             "default": false
           },
           "strictness_level": {
@@ -6359,6 +6962,14 @@
             },
             "type": "array",
             "title": "Layouts"
+          },
+          "content_blocks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Content Blocks"
           }
         },
         "additionalProperties": false,
@@ -6895,7 +7506,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "PromptContextDTO",
-        "description": "Execution prompt context containing exact compilation boundaries.\n\nAttributes:\n    static_messages: Globally identical content across all chunks (base system prompt + source document).\n    dynamic_messages: Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors).\n    metadata: Arbitrary execution metadata (e.g., token proxy scores)."
+        "description": "Execution prompt context containing exact compilation boundaries."
       },
       "QuestionnaireItem": {
         "properties": {
@@ -6924,20 +7535,53 @@
         "title": "QuestionnaireItem",
         "description": "A single question definition within a dynamic questionnaire."
       },
-      "QuoteEvidenceDTO": {
+      "QuoteEvidenceDTO-Input": {
         "properties": {
           "quote": {
             "type": "string",
             "title": "Quote",
             "description": "The exact text of the quote."
           },
-          "source_alias": {
+          "verified_source_ids": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Source Alias",
-            "description": "A list of resolved Opaque IDs representing the source documents."
+            "title": "Verified Source Ids",
+            "description": "Resolved Opaque IDs.",
+            "default": []
+          },
+          "unverified_aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unverified Aliases",
+            "description": "Aliases that could not be verified.",
+            "default": []
+          },
+          "is_verified": {
+            "type": "boolean",
+            "title": "Is Verified",
+            "description": "True if there are verified aliases and no unverified aliases.",
+            "default": false
+          },
+          "source_alias": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Alias"
           }
         },
         "additionalProperties": false,
@@ -6946,7 +7590,47 @@
           "quote"
         ],
         "title": "QuoteEvidenceDTO",
-        "description": "Headless DTO for storing quote evidence with strict deterministic alias resolution.\n\nAttributes:\n    quote: The exact text of the quote.\n    source_alias: A list of resolved Opaque IDs representing the source documents."
+        "description": "Headless DTO for storing quote evidence with strict deterministic alias resolution.\n\nAttributes:\n    quote: The exact text of the quote.\n    verified_source_ids: Resolved Opaque IDs.\n    unverified_aliases: Aliases that could not be verified.\n    is_verified: True if there are verified aliases and no unverified aliases."
+      },
+      "QuoteEvidenceDTO-Output": {
+        "properties": {
+          "quote": {
+            "type": "string",
+            "title": "Quote",
+            "description": "The exact text of the quote."
+          },
+          "verified_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Verified Source Ids",
+            "description": "Resolved Opaque IDs.",
+            "default": []
+          },
+          "unverified_aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unverified Aliases",
+            "description": "Aliases that could not be verified.",
+            "default": []
+          },
+          "is_verified": {
+            "type": "boolean",
+            "title": "Is Verified",
+            "description": "True if there are verified aliases and no unverified aliases.",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "quote"
+        ],
+        "title": "QuoteEvidenceDTO",
+        "description": "Headless DTO for storing quote evidence with strict deterministic alias resolution.\n\nAttributes:\n    quote: The exact text of the quote.\n    verified_source_ids: Resolved Opaque IDs.\n    unverified_aliases: Aliases that could not be verified.\n    is_verified: True if there are verified aliases and no unverified aliases."
       },
       "ReasoningStepDTO": {
         "properties": {
@@ -7168,35 +7852,438 @@
         "title": "RenderedSynthesisCache",
         "description": "Cached synthesis results tied to a specific OutputProfile ID."
       },
-      "ReportDataDto": {
+      "ReportDataDTO": {
         "properties": {
-          "executive_summary": {
+          "workflow_id": {
             "type": "string",
-            "title": "Executive Summary",
-            "description": "Concise overview of findings from execution run."
+            "title": "Workflow Id"
           },
-          "evidence_quotes": {
+          "execution_id": {
+            "type": "string",
+            "title": "Execution Id",
+            "description": "The execution's opaque Stripe ID."
+          },
+          "scoring_strategy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scoring Strategy",
+            "description": "The mathematical strategy used for scoring (e.g. WATERFALL)"
+          },
+          "user_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Name",
+            "description": "Initiating user's name"
+          },
+          "scoring_engine_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scoring Engine Name",
+            "description": "Human readable name of the scoring engine"
+          },
+          "strictness_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strictness Level",
+            "description": "Numeric strictness level (0-100)"
+          },
+          "local_time_str": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Time Str",
+            "description": "Localized time string from the client"
+          },
+          "custom_preface_md": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Preface Md",
+            "description": "Custom user preface rendered as Markdown"
+          },
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "profile_name": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "available_profiles": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "Available Profiles"
+          },
+          "global_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Global Score",
+            "description": "The mathematical average extracted from the scoring_result hook."
+          },
+          "has_warning": {
+            "type": "boolean",
+            "title": "Has Warning",
+            "description": "Flag indicating if the report generation had non-fatal warnings.",
+            "default": false
+          },
+          "global_metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionMetricsDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "global_synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GlobalSynthesisDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stores the final synthesized output of the document."
+          },
+          "results": {
             "items": {
-              "$ref": "#/components/schemas/QuoteEvidenceDTO"
+              "$ref": "#/components/schemas/AtomResultDTO"
             },
             "type": "array",
-            "title": "Evidence Quotes",
-            "description": "Selected quotes to support the findings."
+            "title": "Results",
+            "description": "SDUI-RULE: Backend must return this list strictly topologically sorted. Frontend does not compute the DAG."
           },
-          "urgency_level": {
-            "type": "integer",
-            "title": "Urgency Level",
-            "description": "Urgency or severity level."
+          "hydrated_references": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HydratedAtomDTO"
+            },
+            "type": "object",
+            "title": "Hydrated References",
+            "description": "O(1) Dictionary: tda_id -> Static text."
+          },
+          "evaluative_matrices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MatrixScorecardRowDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluative Matrices",
+            "description": "Matrices that impact the final grade."
+          },
+          "informational_matrices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MatrixScorecardRowDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Informational Matrices",
+            "description": "Matrices strictly for informational/tracking purposes."
+          },
+          "content_blocks": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Blocks",
+            "description": "Global synthesis SDUI content blocks"
+          },
+          "visible_metadata": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Visible Metadata",
+            "description": "Fields visible on the UI and PDF cover header."
+          },
+          "layouts": {
+            "items": {
+              "$ref": "#/components/schemas/ReportLayoutDTO"
+            },
+            "type": "array",
+            "title": "Layouts"
+          },
+          "matrix_visible_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matrix Visible Columns"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "org_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Name"
+          },
+          "cost_estimate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Estimate"
+          },
+          "total_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Tokens"
+          },
+          "prompt_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Tokens"
+          },
+          "completion_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Tokens"
+          },
+          "reasoning_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Tokens"
+          },
+          "mcp_tool_audit": {
+            "items": {
+              "$ref": "#/components/schemas/MCPAuditTrace"
+            },
+            "type": "array",
+            "title": "Mcp Tool Audit",
+            "description": "Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
+          },
+          "grouped_extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {},
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouped Extensions",
+            "description": "Centrally grouped XAI extensions (e.g. 'citation': [...])"
+          },
+          "penalties_applied": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Penalties Applied",
+            "description": "List of penalty warnings formatted for print."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "executive_summary",
-          "urgency_level"
+          "workflow_id",
+          "execution_id",
+          "profile_id"
         ],
-        "title": "ReportDataDto",
-        "description": "Headless, strongly-typed Pydantic model carrying only semantic data."
+        "title": "ReportDataDTO"
+      },
+      "ReportLayoutDTO": {
+        "properties": {
+          "preset_view": {
+            "type": "string",
+            "enum": [
+              "1d_metrics",
+              "2d_compare",
+              "3d_complex",
+              "3d_matrix",
+              "default",
+              "text_only"
+            ],
+            "title": "Preset View"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO"
+            },
+            "type": "array",
+            "title": "Axes"
+          },
+          "text_delivery_mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "titles_only",
+              "none"
+            ],
+            "title": "Text Delivery Mode",
+            "description": "Granularity of text output for this layout.",
+            "default": "full"
+          },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "synthesis_blocks": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthesis Blocks",
+            "description": "The rendered SDUI blocks for this layout"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preset_view"
+        ],
+        "title": "ReportLayoutDTO"
       },
       "ReportView": {
         "properties": {
@@ -7269,6 +8356,17 @@
         "title": "ReportView",
         "description": "Top-level View Model for the Execution Report mapped strictly for client rendering.\n\nAttributes:\n    view_id: Session Execution unique identifier.\n    title: Localization title key reference.\n    status_theme: Status color theme indicator.\n    sections: Array of polymorphic UI rendering nodes.\n    metrics: Extra global key-value performance indicators.\n    system_notification: Global alerts if applicable.\n    references: Structured citations matrix."
       },
+      "SDUIComponentType": {
+        "type": "string",
+        "enum": [
+          "boolean_card",
+          "extracted_value_card",
+          "error_card",
+          "n_a_card"
+        ],
+        "title": "SDUIComponentType",
+        "description": "no_raw_string_enum_mappings: Prevents Magic String crashes in Flutter."
+      },
       "ScorecardAtomDTO": {
         "properties": {
           "atom_id": {
@@ -7303,7 +8401,7 @@
           },
           "exact_quotes": {
             "items": {
-              "$ref": "#/components/schemas/QuoteEvidenceDTO"
+              "$ref": "#/components/schemas/QuoteEvidenceDTO-Output"
             },
             "type": "array",
             "title": "Exact Quotes"
@@ -7314,13 +8412,12 @@
           "status": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/ExecutionStatus"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Status"
+            ]
           },
           "semantic_reasoning": {
             "type": "string",
@@ -7833,6 +8930,34 @@
             "title": "Input Mappings",
             "description": "Maps upstream results to LLM inputs. e.g. {\"context\": \"$inputs.document\"}"
           },
+          "engine_override": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EngineOverrideStrategy"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional override to route this step to a non-default execution strategy."
+          },
+          "expected_sdui_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "markdown",
+                  "hero_insight",
+                  "grid"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Sdui Type",
+            "description": "Declares the expected SDUI output schema for schema compilation."
+          },
           "ui_pos_x": {
             "type": "number",
             "title": "Ui Pos X",
@@ -7923,11 +9048,13 @@
         "properties": {
           "level": {
             "type": "integer",
-            "title": "Level"
+            "title": "Level",
+            "description": "The integer level of strictness"
           },
           "localization_key": {
             "type": "string",
-            "title": "Localization Key"
+            "title": "Localization Key",
+            "description": "The UI key for translation"
           }
         },
         "additionalProperties": false,
@@ -7946,7 +9073,8 @@
               "$ref": "#/components/schemas/StrictnessConfigDTO"
             },
             "type": "array",
-            "title": "Configs"
+            "title": "Configs",
+            "description": "The list of configs"
           }
         },
         "additionalProperties": false,
@@ -7981,6 +9109,30 @@
             ],
             "title": "System Prompt",
             "description": "Optional system prompt overriding default synthesis."
+          },
+          "synthesis_block_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthesis Block Id",
+            "description": "Optional explicit reference to the extraction block UUID that generates the global synthesis (e.g. blk_8f7e6d5c4b3a2019)."
+          },
+          "row_explanations_block_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Explanations Block Id",
+            "description": "Optional explicit reference to the extraction block UUID that generates row explanations."
           },
           "model_strategy": {
             "type": "string",
@@ -8632,7 +9784,8 @@
               "error",
               "output",
               "tombstone",
-              "evidence_override"
+              "evidence_override",
+              "progress"
             ],
             "title": "Event Type",
             "description": "Type of the event.",
@@ -9192,7 +10345,7 @@
           "system_audit_trail": {
             "type": "boolean",
             "title": "System Audit Trail",
-            "description": "Epic 82: If True, activates the background XAI Citation Extraction tracking mechanism.",
+            "description": "If True, activates the background XAI Citation Extraction tracking mechanism.",
             "default": false
           },
           "expected_inputs": {
@@ -9209,6 +10362,23 @@
             },
             "type": "array",
             "title": "Steps"
+          },
+          "allowed_exports": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "pdf",
+                "docx",
+                "raw_json"
+              ]
+            },
+            "type": "array",
+            "title": "Allowed Exports",
+            "description": "Supported export file formats for this workflow."
+          },
+          "historical_context_mode": {
+            "$ref": "#/components/schemas/HistoricalContextMode",
+            "description": "Mode for fetching historical context at workflow level."
           }
         },
         "additionalProperties": false,
@@ -9220,7 +10390,9 @@
           "description",
           "status",
           "version",
-          "default_profile_id"
+          "default_profile_id",
+          "allowed_exports",
+          "historical_context_mode"
         ],
         "title": "Workflow",
         "description": "Dynamic Directed Acyclic Graph orchestrator model."
@@ -9477,7 +10649,7 @@
           "system_audit_trail": {
             "type": "boolean",
             "title": "System Audit Trail",
-            "description": "Epic 82: If True, activates the background XAI Citation Extraction tracking mechanism.",
+            "description": "If True, activates the background XAI Citation Extraction tracking mechanism.",
             "default": false
           },
           "expected_inputs": {
@@ -9494,6 +10666,23 @@
             },
             "type": "array",
             "title": "Steps"
+          },
+          "allowed_exports": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "pdf",
+                "docx",
+                "raw_json"
+              ]
+            },
+            "type": "array",
+            "title": "Allowed Exports",
+            "description": "Supported export file formats for this workflow."
+          },
+          "historical_context_mode": {
+            "$ref": "#/components/schemas/HistoricalContextMode",
+            "description": "Mode for fetching historical context at workflow level."
           }
         },
         "additionalProperties": false,
@@ -9505,7 +10694,9 @@
           "description",
           "status",
           "version",
-          "default_profile_id"
+          "default_profile_id",
+          "allowed_exports",
+          "historical_context_mode"
         ],
         "title": "WorkflowResponseDTO",
         "description": "API Response boundary for Workflow ensuring Data Sovereignty.\n\nAttributes:\n    organization_id: Explicitly exposed for Admin Studio UI routing."

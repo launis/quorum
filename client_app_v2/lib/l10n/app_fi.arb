@@ -240,7 +240,7 @@
   "lblToulminScore": "Toulmin-pisteet",
   "lblMethodologicalLog": "Metodologinen Loki",
   "lblLogicMatrix": "Osaamisen osa-alueet",
-  "lblReasoning": "Päättely",
+  "lblReasoning": "Perustelu",
   "lblMatrixSubtitle": "Visuaalinen analyysi päättelyn laadusta.",
   "lblFidelity": "Uskollisuus",
   "lblPostHocWarning": "⚠️ Post-Hoc Rationalisointia havaittu!",
@@ -535,7 +535,6 @@
   "lblImperativeCommands": "Käskyjen määrä",
   "helpImperativeCommands": "Mittari sille, kuinka monta suoraa käskyä tai vaatimusta (imperatiivia) käyttäjä on tekstissään esittänyt. Tämä kuvastaa aloitteellisuutta ja hallintatarvetta vuorovaikutuksessa.",
   "lblPostHocRationalization": "Jälkikäteisrationalisointi",
-  "lblReasoning": "Perustelu",
   "lblAvgSentenceLength": "Lauseen keskipituus",
   "lblPsychologicalProfile": "Psykologinen Profiili",
   "lblAuthorIntent": "Tekijän Intentio",
@@ -1207,6 +1206,100 @@
   "@lblNaCascadeReason": {
     "placeholders": {
       "reasons": {
+        "type": "String"
+      }
+    }
+  },
+  "studioViewsMatrix3d": "3D: Matrix (Bubble)",
+  "@studioViewsMatrix3d": {
+    "description": "Label for 3D Matrix preset"
+  },
+  "lexiconTitle": "Performative Lexicons (Slop Words)",
+  "lexiconLangEn": "Englanti (en)",
+  "lexiconLangFi": "Suomi (fi)",
+  "lexiconDiscoverNew": "Löydä uusia",
+  "lexiconTranslateMissing": "Käännä puuttuvat",
+  "lexiconAddPlaceholder": "Lisää uusi sana / lause",
+  "lexiconAddButton": "Lisää",
+  "lexiconDiscoveredSuccess": "Löydettiin ja lisättiin {count} uutta lausetta (yhteensä {total}).",
+  "@lexiconDiscoveredSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "lexiconDiscoveredEmpty": "Ei uusia lauseita.",
+  "lexiconTranslatedSuccess": "Käännettiin ja lisättiin {count} puuttuvaa lausetta.",
+  "@lexiconTranslatedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lexiconTranslatedEmpty": "Ei puuttuvia käännettäviä lauseita.",
+  "studioViewsFailedToCreate": "Luominen epäonnistui: {error}",
+  "@studioViewsFailedToCreate": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "studioViewsMatrixSubtitle": "ID: {id} | Asteikot (Arvosanat): {scales}",
+  "@studioViewsMatrixSubtitle": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      },
+      "scales": {
+        "type": "int"
+      }
+    }
+  },
+  "unnamedGateway": "Nimetön Gateway",
+  "gatewaySubtitle": "Sallitut työkalut: {tools} | Tila: {status}",
+  "@gatewaySubtitle": {
+    "placeholders": {
+      "tools": {
+        "type": "int"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "activeStatus": "Aktiivinen",
+  "inactiveStatus": "Epäaktiivinen",
+  "addStrategyButton": "Lisää strategia",
+  "providerPlaceholder": "Tarjoaja (esim. google, openai)",
+  "jsonMustBeObjectError": "Täytyy olla kelvollinen JSON-objekti",
+  "mustBeNumberError": "Täytyy olla numero",
+  "mustBeIntegerError": "Täytyy olla kokonaisluku",
+  "customPrefaceLabel": "Selite (Rich Text Preface)",
+  "scoringEngineTitle": "Arviointimoottori ja Ankaruustaso",
+  "identityMetadataTitle": "Kannen metatiedot (Identity Metadata)",
+  "metaDate": "Päivämäärä (date)",
+  "metaOrganization": "Organisaatio (organization)",
+  "metaUser": "Käyttäjä (user)",
+  "metaScoringEngine": "Arviointimoottori (scoring_engine)",
+  "metaStrictness": "Ankaruustaso (strictness)",
+  "metaCost": "Hinta-arvio (cost)",
+  "metaTokens": "Kognitiivinen työ (tokens)",
+  "maxExtensionItemsLabel": "Max Extension Items",
+  "maxExtensionItemsHelper": "Maksimimäärä kohteita per XAI-laajennos. 999 tarkoittaa rajoittamatonta.",
+  "extensionItemsMustBeIntError": "Arvon tulee olla kokonaisluku >= 1",
+  "blockLevelExtensionsLabel": "Vaihekohtaiset laajennokset (Block-level)",
+  "workflowLevelExtensionsLabel": "Globaalit työnkulun laajennokset (Workflow-level)",
+  "toggleLayoutTooltip": "Vaihda asettelua",
+  "studioViewsErrorLoadingExtensions": "Virhe ladattaessa laajennuksia: {error}",
+  "@studioViewsErrorLoadingExtensions": {
+    "placeholders": {
+      "error": {
         "type": "String"
       }
     }
