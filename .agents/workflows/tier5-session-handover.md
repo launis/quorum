@@ -14,15 +14,15 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
   </context_rules>
 
   <execution_protocol level="5">
-    <step id="1">PRE-HANDOVER QUALITY GATE &amp; ESCALATION (MANDATORY): Before generating any handover package, you MUST run the Universal Quality Gate YOURSELF using `run_command` as defined in `AGENTS.md`. If tests fail, you must attempt to fix them. DIRTY STATE ROLLBACK: If you fail to fix the tests 3 times (Circuit Breaker trips), you MUST ABORT the handover. Do not attempt to duct-tape the code. Explicitly instruct the user to run `git restore .` to revert the corrupted state. Only proceed with handover once the codebase is clean and tests pass.</step>
+    <step id="1">PRE-HANDOVER QUALITY GATE &amp; ESCALATION (MANDATORY): Before generating any handover package, you MUST run the Universal Quality Gate YOURSELF using `run_command` as defined in `AGENTS.md`. If tests fail, attempt to fix them. DIRTY STATE ROLLBACK: If you fail to fix the tests 3 times (Circuit Breaker trips), you MUST instruct the user to run `git restore .`. CRITICALLY: Do NOT abort the handover entirely after a restore. Instead, proceed to generate a "Post-Restore Handover". Write into the Tracker's `learned` section exactly WHY the tests failed and what you tried, so the next agent can resume the fight in a fresh context window.</step>
     
     <step id="2">DOCUMENTATION &amp; TRACKER STATE PERSISTENCE: You MUST physically modify the current target `.md` plan/Epic file using your file editing tools. Mark completed tasks with `[x]` and leave incomplete tasks as `[ ]`. You MUST ALSO verify if `docs\architecture\` or `04_directory_reference.md` require updates. Ensure these files reflect the absolute truth of the codebase.</step>
     
-    <step id="3">CONTEXT ANALYSIS &amp; KNOWLEDGE EXTRACTION: Scan the entire current session. You MUST formulate a detailed payload for the next agent:
-      - `achieved`: Detail exactly what business logic and steps were completed.
-      - `learned`: Detail any architectural nuances, bug resolutions, or KI discoveries made during this session.
-      - `remaining`: Detail exactly what is left to do in the plan/Epic.
-      - `workflow`: Determine the exact slash command the next agent must adopt to continue (e.g., `/tier2-execute`, `/tier1-planner`, `/tier4-bug-hunting`).
+    <step id="3">CONTEXT ANALYSIS &amp; KNOWLEDGE EXTRACTION: Scan the entire current session. Instead of generating long CLI flags, you MUST physically append a `# Session Handover Context` block to the bottom of the target Tracker file (e.g., `task.md` or `epic_tracker.md`). Write exhaustive bullet points detailing:
+      - `achieved`: Exactly what business logic and steps were completed.
+      - `learned`: Any architectural nuances, bug resolutions, or KI discoveries.
+      - `remaining`: Exactly what is left to do in the plan/Epic.
+      Then, determine the exact slash command the next agent must adopt to continue (e.g., `/tier2-execute`, `/tier1-planner`, `/tier4-bug-hunting`).
     </step>
     
     <step id="4">KNOWLEDGE &amp; RULES ROUTING: Determine WHICH specific rules from `.agents/rules/` and WHICH Knowledge Items (KIs) are critical for the next agent to read to prevent amnesia.</step>
@@ -34,7 +34,7 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
 # SCRIPT COMPLETE. TESTS PASSED. CODE COMMITTED.
 # Copy the command below, CLOSE this chat, open a NEW chat, and paste it:
 
-/tier5-resume --target="[Path to Epic or Implementation Plan]" --workflow="[e.g. /tier2-execute]" --achieved="[Detailed summary of work]" --learned="[Architectural lessons, pitfalls]" --remaining="[What is left]" --rules="[e.g. 01-python-backend.md]"
+/tier5-resume --target="[Path to Epic, Implementation Plan, or Task.md]" --workflow="[e.g. /tier2-execute]" --rules="[e.g. 01-python-backend.md]"
 ```
     </step>
   </execution_protocol>

@@ -40,11 +40,11 @@
 <vault_mutation_protocol>
     <instruction>If requested to alter any data schemas, seed matrices, or internal configurations, you MUST run this sequential procedure:</instruction>
     
-    <step id="1_propose">PROPOSE: Render the intended JSON snippet delta in the chat and PAUSE. Wait for the explicit order "PERMISSION GRANTED".</step>
+    <step id="1_propose">PROPOSE: Generate an `implementation_plan.md` artifact showing the intended JSON snippet delta and set `RequestFeedback: true`. PAUSE execution and wait for the user to click the Proceed button in the IDE UI.</step>
     <step id="2_modify">MODIFY: Commit structural edits safely into the file `backend_v2/seed/seed_data.json` using your structural editing tools (replace_file_content). Do NOT create standalone python scripts for this.</step>
     <step id="2.5_syntax_check">JSON INTEGRITY CHECK: Immediately after executing `replace_file_content`, you MUST verify the JSON syntax by invoking a dry-run read of the file, ensuring no trailing commas or broken braces were introduced.</step>
     <step id="3_backup">BACKUP: Store a precise timestamped backup copy inside `backend_v2/seed/backups/` using a native IDE tool (e.g., executing a safe OS copy command via `run_command` using PowerShell `Copy-Item`).</step>
     <step id="4_verify">VERIFY (Critical Gate): Trigger the native `<universal_quality_gates>` backend command via `run_command` tool to mathematically verify blueprint integrity. If tests fail, YOU MUST revert.</step>
     <step id="5_report">REPORT: Describe specifically what paths aligned with expectations contextually.</step>
-    <step id="6_reseed">RE-SEED: Once verified, command the ultimate final step to the user: `uv run python backend_v2/seed/run_seed.py local`.</step>
+    <step id="6_reseed">RE-SEED: Once verified, you MUST autonomously execute the final seeding command via `run_command`: `uv run python backend_v2/seed/run_seed.py local`. NEVER ask the user to run this for you.</step>
 </vault_mutation_protocol>

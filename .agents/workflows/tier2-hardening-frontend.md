@@ -23,11 +23,11 @@ Your first task is to use tools (e.g. directory listing) to understand the depth
 * **ABSOLUTE BAN (Ignored files):** Completely ignore all files created by code generators (ending in `.g.dart` or `.freezed.dart`) in your analysis. Also ignore `build/` and `.dart_tool/` folders. Do not read, audit, or attempt to modify them to save resources and prevent false correction suggestions.
 * **RULE:** Build a virtual Markdown checklist (`task_front.md`) to be printed in the chat from your findings. Subdivide the list so finely that **EVERY lowest-level subdirectory (leaf directory) OR in the case of specified individual files, EVERY single file is its own separate item on the list**. Directories must not be bundled together.
 * **STATE PERSISTENCE & CONTEXT RENEWAL:** If the user's command contains `--resume` or the file `tmp\hardening_state.json` exists, read it. Omit from the list any directories that are marked as "DONE" there. Bring the list of only undone directories. At the same time, set a local goal: "I will process a maximum of 10 files in this session to prevent context degradation."
-* **BAN:** DO NOT make code changes at this stage. Always end your response with the words: *"List ready. Awaiting PROCEED command."*
+* **AUTONOMOUS BATCH MODE:** Once the list is ready, DO NOT wait for a PROCEED command. Immediately transition to Phase 2 (Auditing & Fixing) in the same continuous loop.
     </phase>
     
     <phase id="2" name="Auditing (Systematic Audit, One Subdirectory At A Time)">
-When I give permission to proceed ("PROCEED"), we will begin unpacking the virtual list:
+We will now unpack the virtual list autonomously in a continuous loop:
 1. Select the FIRST undone subdirectory OR single file from the list.
 2. Strictly read the `.dart` files of that target (or just that specific file), keeping ignored folders/files in mind. Define the audit matrix to cover ONLY the selected scope.
 3. **MANDATED TRACEABILITY MATRIX**: You MUST report your findings by printing a precise Markdown table ("Audit Matrix") into the chat. You MUST parse the content of `.agents\rules\00-antigravity-core.md` and `.agents\rules\02_flutter_desktop.md` in your mind and create a row in the matrix **for every `<rule_block>` present in the files**.
@@ -41,14 +41,14 @@ When I give permission to proceed ("PROCEED"), we will begin unpacking the virtu
       If any rule is missing from the table, you directly violate the main architecture rules of the system. Every Phase 9 rule must be gone through explicitly to force your own attention mechanism to check the code for that rule.
     </critical_anti_laziness_mandate>
 
-4. Stop after printing the table. I expect to see it. Wait for the command "FIX" (if things need to be fixed) or the command "NEXT" (if all rules were purely Pass). If "FIX" requires destroying files or critical UI components (Destructive Operations), you MUST ask for separate permission from the user before deleting.
+4. **AUTONOMOUS FIX & NEXT:** Do NOT stop and wait for a "FIX" or "NEXT" command. If all rules passed, immediately proceed to the next file on your list. If there are failures, immediately transition to STEP 3 - FIX (Remediation Phase). If fixing requires destroying files or critical UI components (Destructive Operations), you MUST stop and ask for separate permission from the user before deleting.
 5. **STATE PERSISTENCE:** When the folder is complete (meaning you received the command to fix and you fixed, OR it was clean immediately), update `tmp\hardening_state.json` IMMEDIATELY and mark this subdirectory as "DONE".
-6. **SESSION LIMIT & HANDOVER:** If you have processed (audited) a total of 10 files in THIS session, STOP immediately. Print to the user: "Session limit reached. Continue by issuing the command: `/tier2-hardening-frontend --resume`" and ensure that the master task document (e.g. `task.md`) is updated before closing.
+6. **SESSION LIMIT & HANDOVER:** If you have processed (audited) a total of 10 files in THIS session, STOP immediately. You MUST append a `# Session Handover Context` block to the bottom of the Tracker/Epic file detailing `achieved`, `learned`, and `remaining`. Then, print to the user: "Session limit reached. Continue by issuing the command: `/tier5-resume --target=[path_to_tracker] --workflow=/tier2-hardening-frontend --rules=02_flutter_desktop.md`".
     </phase>
     
     <critical_remediation_protocol name="STEP 3 - FIX (Remediation Phase)">
       <step id="1">RED-GREEN-REFACTOR MANDATE: If you received the command to fix code ("FIX"), you must FIRST update or create a test (e.g. widget test or unit test) that fails with the current broken code. Only after the test fails do you make the code changes (Fail-Fast). Use your structural editing tools to fix the code.</step>
-      <step id="2">AUDIT LOOP EXECUTION: NEVER attempt to run random commands yourself with the `run_command` tool (e.g. `flutter gen-l10n` is forbidden in the sandbox). You MUST run quality assurance testing after code changes as defined in `AGENTS.md`. Use the `--build` flag if models were modified.</step>
+      <step id="2">AUDIT LOOP MANDATE & CIRCUIT BREAKER: NEVER attempt to run random commands yourself with the `run_command` tool (e.g. `flutter gen-l10n` is forbidden in the sandbox). You MUST run quality assurance testing after code changes as defined in `AGENTS.md`. Use the `--build` flag if models were modified. DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your refactor (Circuit Breaker trips), you MUST STOP attempting to duct-tape the code. You MUST explicitly instruct the user to run `git restore .` to wipe the corrupted workspace state before re-evaluating your approach or requesting a handover.</step>
       <step id="3">DOCUMENTATION AUDIT MANDATE: If the refactoring caused significant architectural changes to the UI structure, file deletions, or the creation of new directories, you MUST physically modify the documents in the `docs\architecture\` directory and the `.agents\rules\04_directory_reference.md` file, strictly maintaining their existing table structures. Never just put a comment "Updated", physically modify the files.</step>
     </critical_remediation_protocol>
   </phases>

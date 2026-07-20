@@ -32,9 +32,9 @@
 
 <agentic_control_center>
     <rule_block id="knowledge_base_primacy">
-        <banned_pattern>Starting complex coding tasks or diagnosing architecture bugs without reading provided Knowledge Item (KI) summaries or checking previous conversation transcripts.</banned_pattern>
-        <mandatory_pattern>BEFORE proposing architectural shifts, you MUST cross-reference the system-injected KI summaries. If continuing a previous session, use `grep_search` on `.system_generated\logs\transcript.jsonl` to establish context.</mandatory_pattern>
-        <catastrophic_reason>Ignoring the Knowledge Base leads to "Amnesia Programming", where the LLM repeats fixed bugs, overrides established patterns, and destroys multi-session Epic continuity.</catastrophic_reason>
+        <banned_pattern>Starting complex coding tasks or diagnosing architecture bugs without reading provided Knowledge Item (KI) summaries or checking previous conversation Tracker contexts.</banned_pattern>
+        <mandatory_pattern>BEFORE proposing architectural shifts, you MUST cross-reference the system-injected KI summaries. If continuing a previous session, you MUST prioritize reading the `# Session Handover Context` in the project Tracker file (e.g., `task.md` or `epic_tracker.md`) before falling back to `grep_search` on `.system_generated\logs\transcript.jsonl`.</mandatory_pattern>
+        <catastrophic_reason>Ignoring the Knowledge Base leads to "Amnesia Programming". Scraping raw transcripts without checking Tracker handovers wastes context budget on truncated logs.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="context_triggered_loading">
@@ -74,16 +74,21 @@
 <workflow_routing>
     <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `.agents/workflows/`. When a user inputs a slash command, your IMMEDIATE action must be to use `view_file` on the corresponding workflow file in `.agents/workflows/` and strictly follow its instructions. Do not guess the workflow logic.</instruction>
     <execution_tiers>
+        <tier id="0_plan" path="/tier0-create-plan">Generates architectural implementation plan.</tier>
+        <tier id="0_epic" path="/tier0-research-epic">Deep System 2 analysis of Epic documents.</tier>
+        <tier id="0_research" path="/tier0-research-plan">System 2 analysis of implementation plans.</tier>
         <tier id="1" path="/tier1-planner">Epic Planner for generating `implementation_plan.md`.</tier>
         <tier id="2" path="/tier2-execute">Systematic step-by-step implementation of an approved plan.</tier>
         <tier id="2_backend" path="/tier2-hardening-backend">Step-by-step auditing loop for Python architecture.</tier>
         <tier id="2_frontend" path="/tier2-hardening-frontend">Step-by-step auditing loop for Flutter architecture.</tier>
         <tier id="3_db" path="/tier3-database-reset">Database wipes and re-seeding tweaks.</tier>
         <tier id="3_refactor" path="/tier3-feature-refactor">Single feature implementation or existing file cleanup.</tier>
+        <tier id="3_god" path="/tier3-god-code-decomposition">System 2 Decomposition Planner for Legacy Refactoring.</tier>
         <tier id="4" path="/tier4-bug-hunting">Deep root cause analysis and bug resolution.</tier>
-        <tier id="5_handover" path="/handover">Session Handover Export for context transition.</tier>
+        <tier id="5_handover" path="/tier5-session-handover">Session Handover Export for context transition.</tier>
         <tier id="5_resume" path="/tier5-resume">Resume & Zero-Shortcut Audit for new sessions.</tier>
         <tier id="6" path="/tier6-execution-monitor">Execution Monitor for real-time background log auditing.</tier>
         <tier id="7" path="/tier7-describe-architecture">As-Built architectural documentation from current codebase.</tier>
+        <tier id="8_audit" path="/tier8-red-teaming-audit">System 2 deep-dive evaluation and red-teaming.</tier>
     </execution_tiers>
 </workflow_routing>

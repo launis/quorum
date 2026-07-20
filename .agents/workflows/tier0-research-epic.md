@@ -38,6 +38,19 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       - Backend/Data Architect: Are the proposed data structures deterministic? Are we forcing dynamic API shapes into static persistence layers improperly?
       - SDUI & Frontend Architect: Does this maintain strict Server-Driven UI parity? Are we relying on frontend business logic where the backend should be responsible?
       - AI & Orchestration Architect: Are LLM interactions properly cached, deterministic, and isolated? Does the design avoid dynamic prompts in favor of strict PromptBlocks and Unified Model Garden multiplexing?
+      - Modernity Architect (Quorum 2026 Invariants): Ruthlessly audit the Epic against these specific Quorum anti-patterns. If ANY are detected, mutate the Epic to enforce the mandated replacement:
+        * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)
+        * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
+        * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
+        * String concatenation for LLM prompts → PromptBlock assembly with message object isolation
+        * Hardcoded model strings → `LLMClient.from_strategy()` via Unified Model Garden
+        * Dynamic variables in prompt prefix → Dynamic variables at absolute end (cache prefix survival)
+        * `try/except Exception` catch-all → Typed `AppException` + RFC7807 dual-reporting
+        * `Optional[T] = None` for required config → `T = Field(...)` with Fail-Fast crash
+        * Regex/fuzzy matching for evidence → `str.find()` exact forensic matching
+        * Hardcoded thresholds in business logic → `settings.py` central sovereignty
+        * Frontend-side business logic → Backend SDUI with ICU Markdown parity
+        * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading
       Evaluate the business value against the risk of architectural drift.
     </step>
 
@@ -53,7 +66,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
 
     <step id="5">SYNTHESIS & ARCHITECTURAL ALIGNMENT: Draft a clear synthesis on how the Epic must be adjusted to achieve perfect alignment with the local architectural rules. Ensure the proposed architecture is future-proof and deterministic.</step>
 
-    <step id="6">EPIC MUTATION & ANALYSIS SEPARATION (WRITE SAFETY): Update the `[epic_document]` based on your findings so the document becomes a bulletproof, unambiguous blueprint. You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation. Full file overwrites (`write_to_file`) are strictly forbidden. PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a concise justification for the architectural constraints and modifications you applied.</step>
+    <step id="6">EPIC MUTATION & ANALYSIS SEPARATION (WRITE SAFETY): Update the `[epic_document]` based on your findings so the document becomes a bulletproof, unambiguous blueprint. You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation. Full file overwrites (`write_to_file`) are strictly forbidden. PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a concise justification for the architectural constraints and modifications you applied. CONTEXT AMNESIA PREVENTION: Because this deep analysis heavily saturates the context window, you MUST conclude your response by instructing the user to start a brand NEW chat session and execute `/tier1-planner` from there. Do not allow planning to continue in this saturated context.</step>
   </execution_protocol>
 </system_prompt>
 ```

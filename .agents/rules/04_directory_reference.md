@@ -25,9 +25,18 @@
     </rule_block>
 
     <rule_block id="ephemeral_storage_mandate">
-        <banned_pattern>Creating ad-hoc testing scripts, JSON data dumps, or Python debug runners randomly in the root folder or source folders.</banned_pattern>
-        <mandatory_pattern>All AI-generated temporary sandbox files, debugging scripts, and scratchpads MUST be written exclusively to the `scratch/` directory.</mandatory_pattern>
+        <banned_pattern>Creating ad-hoc testing scripts, JSON data dumps, or Python debug runners randomly in the root folder, source folders, or a local `./scratch` folder.</banned_pattern>
+        <mandatory_pattern>All AI-generated temporary sandbox files, debugging scripts, and scratchpads MUST be written exclusively to the IDE's conversation artifact directory: `<appDataDir>\brain\<conversation-id>\scratch\`.</mandatory_pattern>
         <catastrophic_reason>Dumping scratch files across the workspace pollutes the Git repository, confuses human developers, and breaks automated quality gate scanning.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="test_directory_isolation">
+        <banned_pattern>Placing test files alongside production code (e.g., `services/test_auth.py`).</banned_pattern>
+        <mandatory_pattern>Test files MUST strictly mirror the production directory structure but reside in their respective isolated test roots:
+        - Python Backend: `backend_v2/tests/...`
+        - Flutter Frontend: `client_app_v2/test/...`
+        </mandatory_pattern>
+        <catastrophic_reason>Mixing test files with production code creates bloat, triggers false-positives in security scanners, and risks deploying mock data logic into production environments.</catastrophic_reason>
     </rule_block>
 </catastrophic_system_bans>
 

@@ -18,9 +18,29 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
       <mandatory_pattern>Before writing or modifying tests to reproduce the bug, you MUST explicitly read the corresponding `models.domain` or `models.dtos` schema definitions.</mandatory_pattern>
       <catastrophic_reason>Guessing the schema shapes during RCA causes you to write invalid tests that fail for the wrong reasons.</catastrophic_reason>
     </rule_block>
+    <rule_block id="log_extraction_guard">
+      <mandatory_pattern>You are STRICTLY FORBIDDEN from running terminal commands like `tail`, `cat`, or `Get-Content` to read logs, as this violates Windows PowerShell encoding invariants. Furthermore, using a naked `view_file` without parameters on large log files reads useless historical data from the top. You MUST first use `grep_search` to find the exact line numbers of exceptions or `execution_id`s, and then use `view_file` with explicit `StartLine` and `EndLine` parameters to read the exact stack trace.</mandatory_pattern>
+      <catastrophic_reason>Using terminal tools corrupts encodings. Using unbounded `view_file` on logs destroys the context window with irrelevant historical data.</catastrophic_reason>
+    </rule_block>
     <rule_block id="root_cause_justification_mandate">
       <mandatory_pattern>You MUST always actively search for the true Root Cause of any problem or architectural flaw. For EVERY modification you make or propose, you MUST explicitly write down the Root Cause that necessitated the change and provide a detailed architectural Justification for why your specific solution is the correct one.</mandatory_pattern>
       <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="modernity_and_best_practices_2026">
+      <mandatory_pattern>You MUST ruthlessly evaluate the code you write against these specific Quorum anti-patterns. If ANY are detected in your proposed code, you MUST rewrite it using the mandated replacement:
+        * `asyncio.gather` → `asyncio.TaskGroup`
+        * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
+        * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
+        * String concatenation for LLM prompts → PromptBlock assembly with message object isolation
+        * Hardcoded model strings → `LLMClient.from_strategy()` via Unified Model Garden
+        * Dynamic variables in prompt prefix → Dynamic variables at absolute end
+        * `try/except Exception` catch-all → Typed `AppException` + RFC7807 dual-reporting
+        * `Optional[T] = None` for required config → `T = Field(...)` with Fail-Fast crash
+        * Regex/fuzzy matching for evidence → `str.find()` exact forensic matching
+        * Hardcoded thresholds in business logic → `settings.py` central sovereignty
+        * Frontend-side business logic → Backend SDUI with ICU Markdown parity
+        * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading</mandatory_pattern>
+      <catastrophic_reason>Writing outdated architectural patterns violates Quorum invariants and forces immediate refactoring loops.</catastrophic_reason>
     </rule_block>
   </context_rules>
   <execution_protocol level="4">
@@ -30,13 +50,15 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
     
     <step id="3">PROOF OF FAILURE (AI EXECUTION): You MUST run the test YOURSELF using the `run_command` tool via the Universal Quality Gate as defined in `AGENTS.md`. DO NOT instruct the user to run it. Wait for your background task to finish and read the trace.</step>
     
-    <step id="4">BLAST RADIUS ANALYSIS &amp; PLAN: Detail the Root Cause of the bug based on the failed test trace and provide your architectural Justification (per the root_cause_justification_mandate). Before proposing a fix, you MUST use `grep_search` to find all downstream consumers of the function you intend to modify. Propose an atomic code fix that solves the bug without side effects to those consumers.</step>
+    <step id="4">BLAST RADIUS ANALYSIS &amp; THE 5 WHYS (Root Cause Proof): Detail the Root Cause of the bug based on the failed test trace. CRITICALLY: The line of code that threw the exception is ALMOST NEVER the true root cause; it is merely the crash site. You MUST perform a "5 Whys" backward trace. If a variable is `None`, you MUST trace the data flow backwards (using `grep_search` on the producing layers) to find EXACTLY where and why the state originally diverged from the architectural intent. Provide your architectural Justification (per the root_cause_justification_mandate). Before proposing a fix, you MUST use `grep_search` to find all downstream consumers of the function you intend to modify. Propose an atomic code fix at the TRUE origin of the bug that solves it without side effects to those consumers.</step>
     
-    <step id="5">FIX &amp; VERIFY (GREEN): Wait for "PERMISSION GRANTED" from the user. Once granted, use your structural editing tools to write the final logic fix (if not already handled by the Atomic Interface Exception). You MUST then run the tests YOURSELF again via the Quality Gate to verify the fix passes.</step>
+    <step id="5">FIX &amp; VERIFY (GREEN): Wait for "PERMISSION GRANTED" from the user. Once granted, use your structural editing tools to write the final logic fix (if not already handled by the Atomic Interface Exception). You MUST then run the tests YOURSELF again via the Quality Gate to verify the fix passes. DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your fix (Circuit Breaker), you MUST STOP attempting to duct-tape the code. You MUST explicitly instruct the user to run `git restore .` to wipe the corrupted workspace state before re-evaluating the Root Cause.</step>
     
     <step id="6">END-TO-END SMOKE TEST: After tests pass, you MUST verify the bug is completely resolved in the actual runtime context (e.g., UI behavior or full pipeline execution) before marking the hunt complete.</step>
     
     <step id="7">DOCUMENTATION &amp; KI AUDIT: If the bug resolution required structural changes, you MUST physically modify the documents in `docs\architecture\` AND `.agents\rules\04_directory_reference.md`. IF the bug was caused by a systemic misunderstanding of the architecture that other agents might repeat, suggest creating a new Knowledge Item (KI) to document the solution.</step>
+    
+    <step id="8">MID-EXECUTION HANDOVER: If the execution session becomes too long (e.g., deep RCA tracing) or the AI context window approaches its limits before the bug is fixed, you MUST initiate a session handover. CRITICALLY: You MUST create or update a `task.md` file containing exhaustive bullet points for: **Achieved**, **Learned** (crucial for passing telemetry insights and discovered dependencies to the next agent), and **Remaining**. Finally, provide the exact `/tier5-resume` command instructing the user to continue in a fresh context.</step>
   </execution_protocol>
 </system_prompt>
 ```

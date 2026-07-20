@@ -18,6 +18,26 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
       <mandatory_pattern>Before writing or modifying tests, you MUST explicitly read the corresponding `models.domain` or `models.dtos` schema definitions.</mandatory_pattern>
       <catastrophic_reason>Guessing the schema shapes causes strict Pydantic V2 validations to fail instantly.</catastrophic_reason>
     </rule_block>
+    <rule_block id="anti_tdd_trap_mandate">
+      <mandatory_pattern>You MUST explicitly state the following oath before doing any work: "I swear to obey the rules in the `.agents/rules/` directory as absolute truth." If existing tests conflict with `.agents/rules/` or the Knowledge Items (e.g. TaskGroup, De-Generator), you MUST ruthlessly tear down the legacy code and rewrite the tests. A green test suite that violates architectural sovereignty is a failed state.</mandatory_pattern>
+      <catastrophic_reason>Letting old unit tests dictate V2 architecture causes immediate regression to V1 anti-patterns and creates technical debt.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="modernity_and_best_practices_2026">
+      <mandatory_pattern>You MUST ruthlessly evaluate the code you write against these specific Quorum anti-patterns. If ANY are detected in your proposed code, you MUST rewrite it using the mandated replacement:
+        * `asyncio.gather` → `asyncio.TaskGroup`
+        * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
+        * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
+        * String concatenation for LLM prompts → PromptBlock assembly with message object isolation
+        * Hardcoded model strings → `LLMClient.from_strategy()` via Unified Model Garden
+        * Dynamic variables in prompt prefix → Dynamic variables at absolute end
+        * `try/except Exception` catch-all → Typed `AppException` + RFC7807 dual-reporting
+        * `Optional[T] = None` for required config → `T = Field(...)` with Fail-Fast crash
+        * Regex/fuzzy matching for evidence → `str.find()` exact forensic matching
+        * Hardcoded thresholds in business logic → `settings.py` central sovereignty
+        * Frontend-side business logic → Backend SDUI with ICU Markdown parity
+        * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading</mandatory_pattern>
+      <catastrophic_reason>Writing outdated architectural patterns violates Quorum invariants and forces immediate refactoring loops.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="3">
     <step id="1">DYNAMIC CONTEXT ACQUISITION &amp; EXHAUSTIVE PLAN: Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely target related files. Create an exhaustive, detailed execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files. DESTRUCTIVE OPERATION INVENTORY: If refactoring involves DELETING or REPLACING any source file, you MUST line-by-line inventory every exported symbol and map its new location. BIDIRECTIONAL INTEGRATION CHECK: For any new parser or data consumer, you MUST explicitly document the corresponding PRODUCER.</step>
@@ -33,6 +53,8 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
     <step id="6">DOCUMENTATION AUDIT MANDATE: If the refactoring introduced new systems, modified data flows, shifted architectural boundaries, or created directories, you MUST physically modify the documents in `docs\architecture\` AND `.agents\rules\04_directory_reference.md`, strictly maintaining their existing table structures. Do NOT update architecture documentation for minor tweaks.</step>
     
     <step id="7">HARDENING RECOMMENDATION: Once the feature is fully refactored, tests pass, and the Universal Quality Gate is green, explicitly suggest to the user that they should run the Tier 2 Hardening workflow. You MUST build and present the ready-to-run slash command for them (e.g., `/tier2-hardening-backend backend_v2/target_dir`).</step>
+    
+    <step id="8">MID-EXECUTION HANDOVER: If the execution session becomes too long or the AI context window approaches its limits before the refactoring is complete, you MUST initiate a session handover. CRITICALLY: You MUST create or update a `task.md` file containing exhaustive bullet points for: **Achieved**, **Learned** (crucial for passing ephemeral knowledge to the next agent), and **Remaining**. Finally, provide the exact `/tier5-resume` command instructing the user to continue in a fresh context.</step>
   </execution_protocol>
 </system_prompt>
 ```

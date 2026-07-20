@@ -25,12 +25,25 @@ description: Tier 0 (Create Plan) - Generates an architectural implementation pl
     <step id="2">SYSTEM 2 DESIGN &amp; CHAIN-OF-THOUGHT: Before writing the document, create a `<thinking_process>` block to think aloud (Do NOT use custom XML tags like `design_process`). Analyze:
       - Is any critical information missing (e.g., data structures or error handling)?
       - How does this new feature align with Quorum's current architecture (e.g., Pydantic models, SDUI, LLM caching)?
+      - QUORUM MODERNITY GATE (CRITICAL): Audit the design against these specific Quorum anti-patterns. If ANY are detected, ruthlessly upgrade and document the architectural pivot:
+        * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)
+        * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
+        * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
+        * String concatenation for LLM prompts → PromptBlock assembly with message object isolation
+        * Hardcoded model strings → `LLMClient.from_strategy()` via Unified Model Garden
+        * Dynamic variables in prompt prefix → Dynamic variables at absolute end (cache prefix survival)
+        * `try/except Exception` catch-all → Typed `AppException` + RFC7807 dual-reporting
+        * `Optional[T] = None` for required config → `T = Field(...)` with Fail-Fast crash
+        * Regex/fuzzy matching for evidence → `str.find()` exact forensic matching
+        * Hardcoded thresholds in business logic → `settings.py` central sovereignty
+        * Frontend-side business logic → Backend SDUI with ICU Markdown parity
+        * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading
       - Is a temporary legacy transition (legacy code support) required before the old code can be removed?
     </step>
 
     <step id="3">DOCUMENT SCOPE SELECTION (Epic vs Plan): Determine the scope based on the user's parameter (default is `plan`):
       - IF `epic`: Design a large, multi-phase document divided into clear execution Phases. An Epic does NOT contain line-by-line file changes; it defines the architecture, data models, and high-level objectives.
-      - IF `plan` (default): Design a very low-level implementation plan that strictly lists every single file to be modified, created, or deleted (`[MODIFY]`, `[NEW]`, `[DELETE]`), along with new functions and specific testing requirements.
+      - IF `plan` (default): Design a very low-level implementation plan that strictly lists every single file to be modified, created, or deleted (`[MODIFY]`, `[NEW]`, `[DELETE]`), along with new functions and specific testing requirements. RULE INJECTION MANDATE: You MUST explicitly write the relevant architectural constraints (e.g., "Must use Pydantic strict mode", "Must not use .get() fallbacks") directly into the `implementation_plan.md` artifact to prevent Context Amnesia when the next agent executes it.
     </step>
 
     <step id="4">ARCHITECTURAL SAFEGUARDS (Pre-Flight Red-Teaming): Ensure the document explicitly mandates quality requirements:

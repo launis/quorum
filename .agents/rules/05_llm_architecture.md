@@ -141,19 +141,18 @@
         <catastrophic_reason>Pure linear multiplication decays probabilities exponentially, artificially crushing all real-world variance into absolute 0. This forces bad architectural practices like arbitrary UX 'leniency floors', corrupting the integrity of the math.</catastrophic_reason>
     </rule_block>
     <rule_block id="strict_physical_anchoring_mandate">
-        <banned_pattern>Using fuzzy string matching as the PRIMARY validation gate for LLM evidence extraction, OR applying fuzzy matching to quotes under 10 characters (Entropy Gate), OR skipping the mandatory `str.find` first-pass entirely.</banned_pattern>
-        <mandatory_pattern>Enforce Tiered Lexical Validation for forensic evidence:
-        1. **Primary Gate (MANDATORY):** `str.find` on normalized strings. If an exact O(N) match is found, accept immediately.
-        2. **Entropy Gate:** Quotes under 10 characters MUST pass the Primary Gate — fuzzy fallback is forbidden for short strings.
-        3. **Fuzzy Fallback (CONTROLLED):** If the Primary Gate fails AND the quote exceeds 10 chars AND `strictness_level < 100`, RapidFuzz `partial_ratio` / `token_set_ratio` may be used with a locale-dependent threshold (e.g., 85% for Finnish). If the fuzzy score is below the threshold, raise `SemanticEvidenceError`.
-        4. **Pre-flight and Linguistic uses:** RapidFuzz is UNRESTRICTED for non-forensic purposes such as deterministic pre-flight atom evaluation (`ExtractiveSensorService`) and performative pattern detection (`linguistics.py`), where the goal is optimization, not forensic proof.</mandatory_pattern>
-        <catastrophic_reason>A flat ban on fuzzy matching ignores morphologically rich languages (Finnish) and OCR artifacts where strict `str.find` produces false negatives. The tiered model preserves forensic integrity via the mandatory Primary Gate while preventing legitimate evidence from being discarded due to minor surface-level discrepancies.</catastrophic_reason>
+        <banned_pattern>Using fuzzy string matching (like RapidFuzz, regex, or Levenshtein) as ANY part of the validation gate for LLM evidence extraction.</banned_pattern>
+        <mandatory_pattern>Enforce EXACT Lexical Validation for forensic evidence:
+        1. **Primary & Only Gate:** `str.find` on normalized strings. If an exact O(N) match is found, accept immediately.
+        2. **No Fuzzy Fallback:** Fuzzy matching is STRICTLY PROHIBITED for evidence quotes to prevent Chimera quotes. If `str.find` fails, raise `SemanticEvidenceError`.
+        3. **Pre-flight exception:** RapidFuzz is ONLY allowed for non-forensic purposes such as performative pattern detection (`linguistics.py`).</mandatory_pattern>
+        <catastrophic_reason>Fuzzy matching merges hallucinated text with real text, destroying the forensic audit trail (Chimera Quotes). Exact `str.find` is the only mathematically provable anchor.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="ensemble_parallel_evaluation_mandate">
-        <banned_pattern>Using multi-pass "negative rules" logic or chained sequential verifications for high-entropy / inverse-evidence PromptBlocks, or bottlenecking micro-ensembles with the global `settings.max_concurrent_llm_steps` macro-limit.</banned_pattern>
-        <mandatory_pattern>Execute high-entropy and negative validation steps using a single-pass "Best-of-3" ensemble. You MUST run parallel LLM calls cleanly wrapped in `asyncio.TaskGroup` and resolve the final output via a strict majority vote. **Micro-Level Concurrency Exemption**: For this specific Best-of-3 micro-task, you MUST use a localized `asyncio.Semaphore(3)` to allow the ensemble to fire in a single pass without deadlocking against the global macro-level limit.</mandatory_pattern>
-        <catastrophic_reason>Multi-pass negative logic forces the LLM into "double-negative" confusion. Parallel Best-of-3 polling mathematically smooths statistical anomalies. Enforcing macro-limits on micro-ensembles causes deadlocks and queuing delays.</catastrophic_reason>
+        <banned_pattern>Using multi-pass "negative rules" logic or chained sequential verifications for high-entropy / inverse-evidence PromptBlocks.</banned_pattern>
+        <mandatory_pattern>Execute high-entropy validation steps using a single-pass "Best-of-3" ensemble. You MUST run parallel LLM calls cleanly wrapped in `asyncio.TaskGroup` and resolve the final output via a strict majority vote. DO NOT attempt to bypass global limits with localized Semaphores. The underlying `LLMClient` router will natively manage the global concurrency queuing.</mandatory_pattern>
+        <catastrophic_reason>Multi-pass negative logic forces the LLM into "double-negative" confusion. Parallel Best-of-3 polling mathematically smooths statistical anomalies.</catastrophic_reason>
     </rule_block>
     <rule_block id="prompt_asset_ssot_mandate">
         <banned_pattern>Hardcoding system instructions, language translation directives (like `<linguistic_context>`), or Pydantic JSON schema descriptions directly into service layer classes (e.g., `PromptFactory`, `translation_service.py`, or `schema_factory.py`).</banned_pattern>

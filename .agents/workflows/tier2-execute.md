@@ -26,6 +26,22 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <mandatory_pattern>When updating tests or refactoring repositories, you MUST ensure that all mock data (e.g., dicts returned by AsyncMock) EXACTLY matches the strict Pydantic models. You are forbidden from passing naked, incomplete dictionaries if the underlying code uses `model_validate` with `ConfigDict(strict=True)`.</mandatory_pattern>
       <catastrophic_reason>Incomplete mock data triggers violent `ValidationError` crashes, wasting excessive debug cycles and blocking deployment.</catastrophic_reason>
     </rule_block>
+    <rule_block id="modernity_and_best_practices_2026">
+      <mandatory_pattern>You MUST ruthlessly evaluate the code you write against these specific Quorum anti-patterns. If ANY are detected in your proposed code, you MUST rewrite it using the mandated replacement:
+        * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)
+        * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
+        * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
+        * String concatenation for LLM prompts → PromptBlock assembly with message object isolation
+        * Hardcoded model strings → `LLMClient.from_strategy()` via Unified Model Garden
+        * Dynamic variables in prompt prefix → Dynamic variables at absolute end (cache prefix survival)
+        * `try/except Exception` catch-all → Typed `AppException` + RFC7807 dual-reporting
+        * `Optional[T] = None` for required config → `T = Field(...)` with Fail-Fast crash
+        * Regex/fuzzy matching for evidence → `str.find()` exact forensic matching
+        * Hardcoded thresholds in business logic → `settings.py` central sovereignty
+        * Frontend-side business logic → Backend SDUI with ICU Markdown parity
+        * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading</mandatory_pattern>
+      <catastrophic_reason>Writing outdated architectural patterns violates Quorum invariants and forces immediate refactoring loops.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="2">
     <step id="1">ISOLATION: Execute the plan ATOMICALLY. Work on one single Milestone/Step at a time.</step>
@@ -37,7 +53,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
     <step id="6">END-TO-END SMOKE TEST: Before marking a tracker phase as [x] (or marking the task complete), you MUST verify the change works in the actual runtime context, not just in unit tests. For LLM pipeline changes, this means verifying that the system prompt actually contains the new instructions, the LLM's response is parsed correctly by the pipeline, and the final output matches the expected format. If end-to-end verification is impossible in the current session, the phase MUST be marked as [NEEDS_E2E] instead of [x].</step>
     <step id="7">DOCUMENTATION AUDIT MANDATE: If the executed plan introduced new systems, modified data flows, shifted architectural boundaries, or created new directories, you MUST physically update the relevant `docs\architecture\` documentation files AND `.agents\rules\04_directory_reference.md` using file editing tools (following the Tier 7 'Describe Architecture' principles). Ensure your updates strictly follow the existing structures of these files, such as formatting tables correctly. Do NOT update architecture documentation for minor tweaks or localized refactors.</step>
     <step id="8">EPIC WRAP-UP: When all phases of the implementation plan are fully completed and the Epic is considered finished, you MUST output a ready-to-run Hardening slash command for the modified directories (e.g., `/tier2-hardening-backend backend_v2/target_dir` or `/tier2-hardening-frontend client_app_v2/lib/target_dir`). Do not output this command after individual steps, ONLY at the very end of the entire Epic.</step>
-    <step id="9">MID-EXECUTION HANDOVER: If the execution session becomes too long or the AI context window approaches its limits before the Epic is complete, you MUST initiate a session handover. Provide the exact `/tier5-resume` command explicitly instructing the user to continue in a fresh context. Update `task.md` completely before pausing.</step>
+    <step id="9">MID-EXECUTION HANDOVER: If the execution session becomes too long or the AI context window approaches its limits before the Epic is complete, you MUST initiate a session handover. Update `task.md` completely. CRITICALLY: You MUST append a `# Session Handover Context` block at the bottom of `task.md` containing exhaustive bullet points for: **Achieved**, **Learned** (crucial for passing ephemeral knowledge like mock strategies or weird behaviors to the next agent), and **Remaining**. Finally, provide the exact `/tier5-resume` command explicitly instructing the user to continue in a fresh context.</step>
   </execution_protocol>
 </system_prompt>
 ```

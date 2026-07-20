@@ -13,8 +13,8 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing and 
       <catastrophic_reason>Monitoring logs without understanding the Phase 9 architecture causes the AI to panic over intentional fallback mechanisms or ignore silent logical failures.</catastrophic_reason>
     </rule_block>
     <rule_block id="silent_observation_mandate">
-      <mandatory_pattern>You MUST ONLY use `view_file` or `grep_search` to read logs. NEVER use terminal commands like `cat`, `Get-Content`, or `run_command` to read logs while a task is running. Do NOT ask for permission to use read-only tools.</mandatory_pattern>
-      <catastrophic_reason>Using shell commands to read logs can lock files, disrupt UTF-8 encoding, or crash the running background process.</catastrophic_reason>
+      <mandatory_pattern>You are STRICTLY FORBIDDEN from running terminal commands like `tail`, `cat`, or `Get-Content` to read logs, as this violates Windows PowerShell encoding invariants. You MUST ONLY use `view_file` or `grep_search`. Furthermore, using a naked `view_file` without parameters on large log files reads useless historical data from the top. You MUST always use `view_file` with explicit `StartLine` (and optionally `EndLine`) parameters matching your saved cursor to read logs.</mandatory_pattern>
+      <catastrophic_reason>Using shell commands to read logs corrupts UTF-8 encoding. Using unbounded `view_file` destroys the context window with irrelevant historical data.</catastrophic_reason>
     </rule_block>
     <rule_block id="scratch_directory_mandate">
       <mandatory_pattern>Save your cumulative `monitor_state.json` strictly to the artifacts scratch directory (`<appDataDir>\brain\<conversation-id>/scratch/`), NEVER to the source code directory.</mandatory_pattern>

@@ -173,7 +173,7 @@
 
     <rule_block id="tenant_data_isolation">
         <banned_pattern>Leaving old cached Master Data arrays visually intact memory-resident when switching tenant organization context.</banned_pattern>
-        <mandatory_pattern>Upon User/Organization modification, the prior context state MUST be deliberately and safely invalidated (`ref.invalidate()`) protecting cross-tenant privacy leaks instantly.</mandatory_pattern>
+        <mandatory_pattern>Upon User/Organization modification, the prior context state MUST be deliberately and safely invalidated by targeting the root providers (e.g., `ref.invalidate(masterDataProvider);`) to protect cross-tenant privacy leaks instantly. Note: `ref.invalidate` requires the provider argument.</mandatory_pattern>
         <catastrophic_reason>Failing to flush the Riverpod cache on tenant boundary switches causes catastrophic Cross-Tenant Data Leaks, where User A sees User B's highly confidential data rendered on the screen.</catastrophic_reason>
     </rule_block>
 
@@ -218,12 +218,12 @@
         <mandatory_pattern>The cognitive loop MUST actively ignore `build/` directories and native generated artifact file paths.</mandatory_pattern>
     </rule_block>
 
-    <rule_block id="manual_code_generation_crises">
-        <banned_pattern>Getting stuck in loops trying to fix `AppLocalizations isn't defined`, `Couldn't resolve the package 'flutter_gen'`, or missing `.g.dart` / `.freezed.dart` files by changing Dart source code.</banned_pattern>
-        <mandatory_pattern>When `.arb` files are modified manually (bypassing normal save-watchers) or generated models throw missing file errors, you MUST forcefully command the user to regenerate them in the client directory:
-        1. For localization (l10n) errors: Ask user to run `cd client_app_v2; flutter gen-l10n;`
-        2. For Riverpod/Freezed serialization errors: Ask user to run `cd client_app_v2; dart run build_runner build -d;`
-        NEVER try to fix these missing files by modifying Dart view logic!</mandatory_pattern>
-        <catastrophic_reason>Windows native builds often fail to detect manual changes to non-Dart files (like `.arb` strings) and will break the build with false "missing module" errors.</catastrophic_reason>
+    <rule_block id="automated_code_generation_mandate">
+        <banned_pattern>Getting stuck in loops trying to fix missing `.g.dart` or `.freezed.dart` files by changing Dart source code, OR asking the human user to run build commands manually.</banned_pattern>
+        <mandatory_pattern>When `.arb` files or Freezed models are modified, you MUST autonomously execute the generation using the `run_command` tool (with appropriate `WaitMsBeforeAsync`):
+        1. For localization (l10n) errors: Run `cd client_app_v2; flutter gen-l10n`
+        2. For Riverpod/Freezed errors: Run `uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build`
+        NEVER try to fix these missing files by modifying Dart view logic, and NEVER wait for the human to run the commands for you.</mandatory_pattern>
+        <catastrophic_reason>Asking the human to run standard build commands violates the autonomous agent mandate and stalls the CI/CD pipeline.</catastrophic_reason>
     </rule_block>
 </universal_quality_gate>

@@ -178,12 +178,12 @@
         <catastrophic_reason>Conflating calculation bounds with UI display projections corrupts the empirical accuracy of the cognitive diagnostic model and fundamentally violates Single Source of Truth architecture. The LLM or the Backend must NEVER calculate "hunches" via cross-contamination.</catastrophic_reason>
     </rule_block>
 
-    <rule_block id="zero_orm_bleed">
-        <banned_pattern>Returning raw DB dictionaries directly from Repository to API routers.</banned_pattern>
-        <mandatory_pattern>The Repository layer is an absolute firewall. Raw records MUST be mapped into strict Pydantic Domain Models (`ConfigDict(frozen=True)`).</mandatory_pattern>
+    <rule_block id="service_layer_hydration_firewall">
+        <banned_pattern>Returning raw DB dictionaries directly from the Service layer to the API routers, or attempting to hydrate Pydantic models deep inside the Repository (Data Access) layer.</banned_pattern>
+        <mandatory_pattern>The Service layer acts as the absolute hydration firewall. The Repository MUST return raw polymorphic `dict[str, Any]` objects. The Service layer MUST instantly map these raw dictionaries into strict Pydantic Domain Models (`ConfigDict(frozen=True)`) before executing business logic or returning data to the Router.</mandatory_pattern>
         <code_example>
-            <anti_pattern>return db.table('users').get(doc_id=1)</anti_pattern>
-            <pro_pattern>return UserDTO.model_validate(raw[0])</pro_pattern>
+            <anti_pattern>return db.table('users').get(doc_id=1) # inside service</anti_pattern>
+            <pro_pattern>return UserDTO.model_validate(repo.get_user(1), strict=False)</pro_pattern>
         </code_example>
     </rule_block>
 
@@ -253,6 +253,7 @@
         <banned_pattern>Placing UI-formatting logic (e.g., "Output exactly ONE punchy sentence", 0-100 scales) in `PromptBlocks` or placing execution-tier directives (e.g., `ROLE: ANTAGONISTIC PROSECUTOR`, boolean hypothesis testing) in `OutputProfiles`.</banned_pattern>
         <mandatory_pattern>Strictly separate the Execution Phase from the Reporting Phase. `PromptBlocks` are EXCLUSIVELY for raw data evaluation (native scales like 1-5, ZERO-TRUST AUDITOR directives, atomic extraction) and MUST NOT contain UI formatting logic. `OutputProfiles` are EXCLUSIVELY for presentation and UI formatting (0-100 scales, brevity constraints, tone) and MUST NOT contain execution directives like hypothesis testing.</mandatory_pattern>
         <catastrophic_reason>Mixing these concerns causes LLM hallucinations, slows down generation, breaks the Single Source of Truth, and pollutes the execution trace with presentation details.</catastrophic_reason>
+    </rule_block>
     <rule_block id="fail_fast_hydration_mandate">
         <banned_pattern>Fishing for dictionary values via `dict.get()`.</banned_pattern>
         <mandatory_pattern>All uncertain data flowing as dictionaries MUST be hydrated via `.model_validate()` IMMEDIATELY before processing.</mandatory_pattern>

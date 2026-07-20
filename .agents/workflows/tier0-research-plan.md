@@ -30,6 +30,19 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       - Python Backend Architect: Does this break strict Pydantic models or asynchronous constraints (e.g., TaskGroup)? Are the APIs designed correctly?
       - LLM Architect: Are the backend LLM calls and prompts safe and controlled? Are hallucinations prevented and is cache utilization maximized?
       - Flutter & UI Developer: Does this fully support Server-Driven UI (SDUI)? Does the plan ensure UI components handle errors via Error Boundaries without crashing the entire app?
+      - Modernity Architect (Quorum 2026 Invariants): Ruthlessly audit the plan against these specific Quorum anti-patterns. If ANY are detected, mutate the plan to enforce the mandated replacement:
+        * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)
+        * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
+        * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
+        * String concatenation for LLM prompts → PromptBlock assembly with message object isolation
+        * Hardcoded model strings → `LLMClient.from_strategy()` via Unified Model Garden
+        * Dynamic variables in prompt prefix → Dynamic variables at absolute end (cache prefix survival)
+        * `try/except Exception` catch-all → Typed `AppException` + RFC7807 dual-reporting
+        * `Optional[T] = None` for required config → `T = Field(...)` with Fail-Fast crash
+        * Regex/fuzzy matching for evidence → `str.find()` exact forensic matching
+        * Hardcoded thresholds in business logic → `settings.py` central sovereignty
+        * Frontend-side business logic → Backend SDUI with ICU Markdown parity
+        * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading
       Evaluate if we are fixing the right problem (The XY Problem). Compare the solution against global industry best practices, particularly LLM provider recommendations.
     </step>
 
@@ -46,7 +59,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
 
     <step id="5">SYNTHESIS & FUTURE-PROOFING: Based on your findings, draft a clear synthesis on how to achieve a guaranteed, straightforward, and working solution. Ensure the solution is future-proof, easily extensible, and strictly adheres to all local architectural rules.</step>
 
-    <step id="6">PLAN MUTATION & ANALYSIS SEPARATION (WRITE SAFETY): Finally, update the actual `[implementation_plan]` document based on your validated findings so that the plan document itself remains clean and contains only straightforward execution instructions. You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation of the granular execution steps. Full file overwrites (`write_to_file`) are strictly forbidden. PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a short and concise justification for the architectural choices and changes you made.</step>
+    <step id="6">PLAN MUTATION & ANALYSIS SEPARATION (WRITE SAFETY): Finally, update the actual `[implementation_plan]` document based on your validated findings so that the plan document itself remains clean and contains only straightforward execution instructions. You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation of the granular execution steps. Full file overwrites (`write_to_file`) are strictly forbidden. PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a short and concise justification for the architectural choices and changes you made. CONTEXT AMNESIA PREVENTION: Because this deep analysis heavily saturates the context window, you MUST conclude your response by instructing the user to start a brand NEW chat session and execute `/tier2-execute` from there. Do not allow execution to continue in this saturated context.</step>
   </execution_protocol>
 </system_prompt>
 ```

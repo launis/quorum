@@ -12,13 +12,13 @@
     </rule_block>
   </context_rules>
   <execution_protocol level="3">
-    <step id="1">VERIFY CONTEXT &amp; SAFETY GATE: You MUST verify the target environment. If the user requests to reset `prod`, `dev`, or `staging`, you MUST STOP immediately and ask for explicit "PROCEED" permission. Destructive operations on non-local environments are strictly protected. If targeting `local`, proceed.</step>
+    <step id="1">VERIFY CONTEXT &amp; SAFETY GATE: You MUST verify the target environment. This workflow is STRICTLY for the `local` environment only. If the user requests to reset `prod`, `dev`, or `staging`, you MUST immediately refuse the request with a hard security violation. No overrides are permitted. You may only proceed if the target is `local`.</step>
     
     <step id="2">EXECUTE HARD RESET: Use your native `run_command` tool to execute the database wipe and re-seed process explicitly for the local environment: `uv run python backend_v2/seed/run_seed.py local`. Do not ask for permission for local wipes.
       <catastrophic_reason>In the 2026 architecture, local data is ephemeral. A Hard Reset is ALWAYS the correct choice to guarantee a Single Source of Truth from `seed_data.json`. "Soft Resets" are deprecated and cause insidious data corruption.</catastrophic_reason>
     </step>
     
-    <step id="3">POST-EXECUTION QUALITY GATE: Never assume success. After the reset command finishes, you MUST verify that the seeding was successful. Run the backend audit loop on the seed directory as defined in `AGENTS.md` to ensure no formatting or typing rules were broken.</step>
+    <step id="3">POST-EXECUTION QUALITY GATE: Never assume success. After the `run_command` background task completes, you MUST verify that the terminal exit code was 0 and that the logs show successful seeding. Afterwards, run the backend audit loop as a secondary validation.</step>
     
     <step id="4">REPORTING: Once all background tasks and tests complete successfully, report the results clearly to the user, confirming that the local database has been wiped and freshly seeded.</step>
   </execution_protocol>

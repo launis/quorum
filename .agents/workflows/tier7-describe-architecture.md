@@ -19,6 +19,23 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
       <mandatory_pattern>When performing Top-Down anchoring, you MUST ONLY edit the "Physical Implementation Map" section at the bottom of the 5 pillar documents, UNLESS the Knowledge Item (KI) database is actively being updated. If a KI is changed during Step 1, you MAY update the theoretical English text within the pillar documents to reflect the new KI. Otherwise, you MUST NEVER rewrite, delete, or alter the theoretical English text.</mandatory_pattern>
       <catastrophic_reason>Tier 7 is a physical auditor, not a theoretical designer. Overwriting the English theory with auto-generated code descriptions destroys the Knowledge Item foundation unless explicitly driven by a KI update.</catastrophic_reason>
     </rule_block>
+    <rule_block id="modernity_and_best_practices_2026">
+      <mandatory_pattern>You MUST ruthlessly evaluate the code you scan against these specific Quorum anti-patterns. If ANY are detected in the physical codebase, you MUST flag them as "Rogue/Legacy Code" rather than documenting them as official architecture:
+        * `asyncio.gather` → `asyncio.TaskGroup`
+        * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
+        * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
+        * String concatenation for LLM prompts → PromptBlock assembly with message object isolation
+        * Hardcoded model strings → `LLMClient.from_strategy()` via Unified Model Garden
+        * Dynamic variables in prompt prefix → Dynamic variables at absolute end
+        * `try/except Exception` catch-all → Typed `AppException` + RFC7807 dual-reporting
+        * `Optional[T] = None` for required config → `T = Field(...)` with Fail-Fast crash
+        * Regex/fuzzy matching for evidence → `str.find()` exact forensic matching
+        * Hardcoded thresholds in business logic → `settings.py` central sovereignty
+        * Frontend-side business logic → Backend SDUI with ICU Markdown parity
+        * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading
+        * Terminal commands (cat/tail) for log reading → Native MCP tools</mandatory_pattern>
+      <catastrophic_reason>Validating outdated architectural patterns as official architecture guarantees rapid technical decay.</catastrophic_reason>
+    </rule_block>
   </context_rules>
 
   <execution_protocol level="7">
@@ -30,9 +47,11 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
     
     <step id="4">ORPHAN REPORTING: If you discover any files, folders, or modules that DO NOT logically fit into the 5 pillars, you MUST generate an "Orphan Report" artifact. Flag these as either "Rogue/Legacy Code to be deleted" or "Missing Architectural Capability" and wait for User guidance.</step>
     
-    <step id="5">EVIDENCE-BASED KI EVALUATION: Based on the Orphan Report and your physical mapping, evaluate if recent changes necessitate an update to the Knowledge Items (KI database). If new legitimate patterns emerged that the theory doesn't cover, update the KIs now, and adjust the English theory in the pillar documents accordingly.</step>
+    <step id="5">EVIDENCE-BASED KI EVALUATION: Based on the Orphan Report and your physical mapping, evaluate if recent changes necessitate an update to the Knowledge Items (KI database). CRITICALLY: Do NOT guess how to create KIs. If a new KI is needed, you MUST instruct the user to create it using the IDE's KI interface, OR carefully generate it in the rigid `<appDataDir>\knowledge\<ki_name>` directory with `metadata.json` and `artifacts/` structure. Only after the KI exists may you adjust the English theory in the pillar documents.</step>
 
     <step id="6">DIRECTORY REFERENCE SYNC: Update `.agents\rules\04_directory_reference.md` using your file editing tools to ensure the directory map precisely reflects the anchored component clusters.</step>
+    
+    <step id="7">MID-EXECUTION HANDOVER (Context Window Protection): If you have executed more than 15 tool calls (searches/reads) or you feel the context window is filling up, DO NOT attempt to rewrite all documents at once. You MUST initiate a session handover. Create or update a Tracker file (e.g., `task.md`) detailing `achieved`, `learned`, and `remaining` pillar documents to update. Provide the user with the command: `/tier5-resume --target=[path_to_tracker] --workflow=/tier7-describe-architecture --rules=00-antigravity-core.md`.</step>
   </execution_protocol>
 </system_prompt>
 ```

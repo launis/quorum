@@ -173,13 +173,19 @@
         <mandatory_pattern>Write a failing test that reproduces the bug BEFORE fixing domain code. The code is not complete until a reliable test verifies the change.</mandatory_pattern>
     </rule_block>
 
+    <rule_block id="anti_tdd_trap">
+        <banned_pattern>Modifying Phase 9 modern domain code (e.g., reverting to dictionaries or removing strict types) just to make a failing legacy unit test pass.</banned_pattern>
+        <mandatory_pattern>If a legacy test fails because it asserts outdated behavior (e.g., expecting a raw `dict` instead of a Pydantic V2 DTO, or relying on `asyncio.gather`), you MUST NOT patch the domain code to appease the test. Instead, you MUST ruthlessly rewrite or delete the legacy test to comply with the new Phase 9 architectural invariants.</mandatory_pattern>
+        <catastrophic_reason>Prioritizing the survival of legacy tests over the enforcement of modern architecture creates a paradox where the AI intentionally corrupts the system to achieve "green tests".</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="mocking_mandate_for_llm">
         <banned_pattern>Executing direct HTTP calls to external LLM services or performing slow network requests during unit testing or CI/CD pipelines.</banned_pattern>
         <mandatory_pattern>Test Mandate Exception: When testing LLM interfaces or network operations, you MUST ABSOLUTELY use mocked JSON fixtures to mock the responses. You must utilize the global `backend_v2/llm/mock.py` and `mock_data.py` framework files when constructing Pytest fixtures. Live LLM calls during tests are strictly forbidden to prevent flaky, slow, and expensive test suites.</mandatory_pattern>
     </rule_block>
     <rule_block id="circuit_breaker_protocol">
-        <banned_pattern>Attempting to autonomously fix the exact same Pytest or Flutter error more than 3 times iteratively.</banned_pattern>
-        <mandatory_pattern>Implement the "Rule of Three". If failing 3 times, you MUST STOP. Output `<circuit_breaker_tripped>`, explain the paradox, and WAIT for human guidance.</mandatory_pattern>
+        <banned_pattern>Attempting to autonomously fix the exact same Pytest or Flutter error more than 3 times iteratively, or leaving the workspace in a broken state after failing.</banned_pattern>
+        <mandatory_pattern>Implement the "Rule of Three". If failing 3 times, you MUST STOP. Output `<circuit_breaker_tripped>`, explicitly instruct the user to run `git restore .` to wipe the corrupted workspace state, explain the paradox, and WAIT for human guidance or handover.</mandatory_pattern>
     </rule_block>
     <rule_block id="deterministic_testing_delegation">
         <banned_pattern>Writing manual JSON dictionary mock data or claiming "Tests are complete" without passing Coverage.</banned_pattern>
