@@ -952,6 +952,22 @@ class AuthService:
         org_id = initiator.organization_id
         return [u for u in all_users if u.organization_id == org_id]
 
+    async def list_organizations(self, initiator: TokenData) -> list[Organization]:
+        """List organizations securely scoped by Tenant/Organization.
+
+        Args:
+            initiator: The token data of the user requesting the list.
+
+        Returns:
+            A list of organizations scoped to the initiator's permissions.
+        """
+        if initiator.role != UserRole.ROOT:
+            if not initiator.organization_id:
+                return []
+            org = await self.get_organization(initiator, initiator.organization_id)
+            return [org] if org else []
+        return await self.org_repo.list_all()
+
     async def get_user(self, initiator: TokenData, target_id: str) -> User:
         """Fetch user securely.
 

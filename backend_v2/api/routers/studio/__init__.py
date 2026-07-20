@@ -11,6 +11,8 @@ from .steps import router as steps_router
 from .system_configs import router as system_configs_router
 from .workflows import router as workflows_router
 
+__all__ = ["router"]
+
 router = APIRouter(prefix="/studio")
 
 router.include_router(workflows_router)

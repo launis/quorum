@@ -9,7 +9,7 @@ from fastapi import APIRouter
 
 from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, OrganizationCreate, OrganizationDeleteResponse, UserRole
+from backend_v2.models.auth import Organization, OrganizationCreate, OrganizationDeleteResponse
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +31,7 @@ async def get_all_organizations(current_user: CurrentUserDep, auth_service: Auth
         AppException: If fetching organizations fails.
     """
     try:
-        # Subject to Root-only visibility in practice, or own-org
-        if current_user.role != UserRole.ROOT:
-            if not current_user.organization_id:
-                return []
-            org = await auth_service.get_organization(current_user, current_user.organization_id)
-            return [org] if org else []
-        return await auth_service.org_repo.list_all()
+        return await auth_service.list_organizations(current_user)
     except Exception as e:
         msg = f"Error retrieving organizations: {e}"
         logger.error(
