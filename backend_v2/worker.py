@@ -763,15 +763,24 @@ async def generate_profile_synthesis_and_pdf_task(
             t_synth = None
             t_row = None
 
-            if synthesis_block_id:
-                if not synthesis_cfg or not synthesis_cfg.system_prompt:
-                    msg = f"Fail-Fast: OutputProfile '{profile_id}' missing mandatory synthesis.system_prompt."
+            if synthesis_cfg:
+                if not synthesis_block_id:
+                    msg = f"Fail-Fast: OutputProfile '{profile_id}' missing mandatory synthesis_block_id."
                     logger.error("[Task] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                     raise AppException(
                         message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                     )
 
-                sys_prompt = synthesis_cfg.system_prompt
+                pb_dict = await repo.get_prompt_block(synthesis_block_id)
+                if not pb_dict:
+                    msg = f"Fail-Fast: PromptBlock '{synthesis_block_id}' not found for synthesis."
+                    logger.error("[Task] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                    )
+
+                pb = PromptBlock.model_validate(pb_dict, strict=False)
+                sys_prompt = pb.ai_description or ""
 
                 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
@@ -798,6 +807,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     client.run_structured_task(
                         messages=synth_messages,
                         response_model=SynthesisOutputDTO,
+                        mock_identity="SynthesisHook",
                     )
                 )
 
@@ -817,6 +827,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         client.run_structured_task(
                             messages=row_messages,
                             response_model=MatrixExplanationsResult,
+                            mock_identity="row_explainer",
                         )
                     )
 

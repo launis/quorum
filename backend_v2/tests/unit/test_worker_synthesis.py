@@ -95,6 +95,16 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         }
     ]
 
+    mock_repo.get_prompt_block.return_value = {
+        "id": "pb_2222222222222222",
+        "slug": "synthesis_prompt",
+        "type": "instruction",
+        "label": {"default_locale": "en", "translations": {"en": "Synth System"}},
+        "description": {"default_locale": "en", "translations": {"en": "System prompt for synthesis"}},
+        "ai_description": "You are an AI.",
+        "category_id": "system_rule",
+    }
+
     mock_repo.get_output_profile_by_id.return_value = {
         "slug": "test_slug",
         "workflow_id": "wf_123",
@@ -103,7 +113,19 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "max_extension_items": 3,
-        "layouts": [],
+        "layouts": [
+            {
+                "preset_view": "3d_matrix",
+                "title": {"default_locale": "en", "translations": {"en": "T"}},
+                "synthesis": {
+                    "synthesis_block_id": "pb_2222222222222222",
+                    "model_strategy": "synthesis",
+                    "length_constraint": 1000,
+                    "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional"}},
+                    "omit_empty_sections": True
+                }
+            }
+        ],
         "display_scale": "original",
     }
 
