@@ -24,8 +24,8 @@ enum SystemConcurrency {
 /// Execution strategy overrides for the engine.
 @JsonEnum()
 enum EngineOverrideStrategy {
-  @JsonValue('PRE_HYDRATED_SYNTHESIS')
-  preHydratedSynthesis,
+  @JsonValue('SYNTHESIS')
+  synthesis,
   @JsonValue('DYNAMIC_TOOL_AGENT')
   dynamicToolAgent,
 }

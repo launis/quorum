@@ -7,7 +7,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.state import TraceEvent
@@ -68,5 +68,7 @@ class EngineExecutionResult(BaseModel):
 
     results: list[AtomResultDTO]
     hydrated_references: dict[str, HydratedAtomDTO]
+    synthesis_output: dict[str, Any] | None = None
+    trace_events: list[TraceEvent] = Field(default_factory=list)
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)

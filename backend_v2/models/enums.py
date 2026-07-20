@@ -408,7 +408,7 @@ class InteractionStrategy(StrEnum):
 class EngineOverrideStrategy(StrEnum):
     """Execution strategy overrides for the engine."""
 
-    PRE_HYDRATED_SYNTHESIS = "PRE_HYDRATED_SYNTHESIS"
+    SYNTHESIS = "SYNTHESIS"
     DYNAMIC_TOOL_AGENT = "DYNAMIC_TOOL_AGENT"
 
 

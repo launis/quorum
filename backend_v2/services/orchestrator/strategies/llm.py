@@ -604,28 +604,71 @@ class LLMNodeStrategy(NodeStrategy):
             )
 
             from backend_v2.models.dtos.engine import EngineExecutionRequest
+            from backend_v2.models.enums import EngineOverrideStrategy
 
-            engine_request = EngineExecutionRequest(
-                bound_client=bound_client,
-                compiled_schema=None,  # Epic 105 forward compatibility
-                hydrated_messages=None,  # Epic 105 forward compatibility
-                system_prompt=user_payload,
-                step=step,
-                context=context,
-                global_source_text=global_source_text,
-                target_locale=target_locale,
-                semaphore=semaphore,
-                running_event=running_event,
-                progress_callback=progress_callback,
-                trace_callback=None,  # Phase 2+ telemetry
-                prompt_compiler=self.compiler,
+            is_synthesis_step = (
+                step.engine_override == EngineOverrideStrategy.SYNTHESIS or context.model_strategy == "synthesis"
             )
+
+            if is_synthesis_step:
+                target_locale = str(context.metadata.get("target_locale", "en"))
+
+                blackboard = hook_state.global_context_vars.get("__GLOBAL_ATOM_BLACKBOARD__", {})
+                doc_aliases = list(blackboard.get("atoms_by_input", {}).keys()) or ["N/A"]
+
+                dynamic_schema = self.compiler.build_dynamic_schema(
+                    schema_name=f"Step_{step.id}_Response",
+                    criteria=criteria_blocks,
+                    has_shuffled_atoms=False,
+                    target_locale=target_locale,
+                    strictness_level=context.strictness_level,
+                    source_document_ids=doc_aliases,
+                )
+
+                static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
+                static_msg = {"role": "system", "content": static_instructions}
+
+                engine_request = EngineExecutionRequest(
+                    bound_client=bound_client,
+                    compiled_schema=dynamic_schema,
+                    hydrated_messages=[static_msg],
+                    system_prompt="",
+                    step=step,
+                    context=context,
+                    global_source_text=global_source_text,
+                    target_locale=target_locale,
+                    semaphore=semaphore,
+                    running_event=running_event,
+                    progress_callback=progress_callback,
+                    trace_callback=None,
+                    prompt_compiler=self.compiler,
+                )
+            else:
+                engine_request = EngineExecutionRequest(
+                    bound_client=bound_client,
+                    compiled_schema=None,
+                    hydrated_messages=None,
+                    system_prompt=user_payload,
+                    step=step,
+                    context=context,
+                    global_source_text=global_source_text,
+                    target_locale=target_locale,
+                    semaphore=semaphore,
+                    running_event=running_event,
+                    progress_callback=progress_callback,
+                    trace_callback=None,
+                    prompt_compiler=self.compiler,
+                )
+
             engine_result = await self._engine.execute(engine_request)
 
-            final_dict = {
-                "results": [r.model_dump() for r in engine_result.results],
-                "hydrated_references": {k: v.model_dump() for k, v in engine_result.hydrated_references.items()},
-            }
+            if is_synthesis_step and engine_result.synthesis_output is not None:
+                final_dict = engine_result.synthesis_output
+            else:
+                final_dict = {
+                    "results": [r.model_dump() for r in engine_result.results],
+                    "hydrated_references": {k: v.model_dump() for k, v in engine_result.hydrated_references.items()},
+                }
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
             usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)

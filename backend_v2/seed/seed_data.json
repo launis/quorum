@@ -7610,7 +7610,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_0f7947ec7007498c",
@@ -7623,7 +7624,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_02b7cc1e7c2a4a62",
@@ -7650,7 +7652,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_99ca8c82a5aa48cd",
@@ -7663,7 +7666,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_87f408aeee64462f",
@@ -7676,7 +7680,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_d56fb84fbe13463a",
@@ -7702,7 +7707,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_1d7e6d26b02b457b",
@@ -7715,7 +7721,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_b4c328df1c4141c6",
@@ -7728,7 +7735,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_566e3209a60444d3",
@@ -7741,7 +7749,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_ba028623acab447a",
@@ -7755,7 +7764,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_0228db320e8f41bb",
@@ -7768,7 +7778,8 @@
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_5f3dd7712a7f4bb3",
@@ -7788,7 +7799,8 @@
           "input_mappings": {
             "prior_analysis": "$steps"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         },
         {
           "id": "sr_2fa56dc36614469a",
@@ -7810,7 +7822,8 @@
             "results": "$steps.sr_2fa56dc36614469a",
             "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
           },
-          "engine_override": "PRE_HYDRATED_SYNTHESIS"
+          "engine_override": "SYNTHESIS",
+          "expected_sdui_type": "markdown"
         }
       ],
       "slug": "kokonaisvaltainen_auditointi",

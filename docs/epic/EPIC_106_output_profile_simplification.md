@@ -49,7 +49,7 @@ Instead of defining "Row outputs" and "Summaries" as complex configurations insi
 
 ### Phase 0: Workflow Configuration Prerequisite
 - **Target File**: `backend_v2/models/v2_core.py` (specifically `Workflow` class)
-- **Action**: Add `allowed_exports: list[str] = Field(...)` and `historical_context_mode: LaxHistoricalContextMode = Field(...)` to the `Workflow` model. (Per `zero_defaults_mandate`, default factories for critical structural data are forbidden. The seed data MUST explicitly define these fields).
+- **Action**: Add `allowed_exports: list[Literal["pdf", "docx", "raw_json"]] = Field(...)` and `historical_context_mode: LaxHistoricalContextMode = Field(...)` to the `Workflow` model. (Per `zero_defaults_mandate`, default factories for critical structural data are forbidden. The seed data MUST explicitly define these fields). Note: Epic 104 revealed the danger of magic strings (`list[str]`), so strict Pydantic Literal typings MUST be enforced here.
 - **Why**: Epic 106 relocates `allowed_exports` and `historical_context_mode` from `SynthesisConfigDTO` to the `Workflow` level. These target fields MUST exist before Phase 2.5 attempts to migrate `worker.py` to use them.
 
 ### Phase 1: Data Model Pruning (`backend_v2/models/v2_core.py` & `backend_v2/models/dtos/output_profile.py`)
@@ -57,9 +57,14 @@ Instead of defining "Row outputs" and "Summaries" as complex configurations insi
 - *Architectural Rule*: Quorum strictly separates database state models (Domain) and API transport models (DTO). Both layers must be pruned simultaneously to prevent boundary parsing failures.
 - **Development Phase Clean Slate Wipe (No Legacy Support)**: Since the system is in active development, we do NOT need complex zero-downtime migrations. Simply update `backend_v2/seed/seed_data.json` manually: 
   1. **OutputProfile Pruning**: Delete the confirmed deprecated keys (`synthesis`, `formatting_directives`, `matrix_column_labels`). You MUST keep identity, tone, presentation, XAI visibility, layouts, content_blocks, display_scale, and override fields.
-  2. **Workflow Step Injection**: Inject the new mandatory `expected_sdui_type` into all `StepRule` definitions within the `workflows` array. (e.g., Use `"grid"` for standard evaluation steps, and `"markdown"` for synthesis steps).
-- **Strict Typing Enforcement**: You MUST add `expected_sdui_type: Literal["markdown", "grid", "hero"] = Field(...)` to the `StepRule` class in `v2_core.py`. (Do NOT use a raw `str`, as that breaks strict Pydantic parsing. Do NOT include `"unknown"` — that would violate Fail-Fast by silently accepting unconfigured steps). This enforces absolute Fail-Fast logic so that any Step missing a valid SDUI target will instantly crash the app on system boot.
-- **Database Reset**: After modifying the seed data, developers MUST run the database wipe workflow to flush the old data and load the clean seed. No backward compatibility is required.
+  2. **Workflow Step Validation**: Verify that the mandatory `expected_sdui_type` (already injected via Epic 105) exists in all `StepRule` definitions within the `workflows` array. (e.g., Use `"grid"` for standard evaluation steps, and `"markdown"` for synthesis steps).
+- **Strict Typing Enforcement**: The `expected_sdui_type` field on the `StepRule` class in `v2_core.py` was introduced in Epic 105. Epic 106 now relies on it as the absolute Single Source of Truth to drive `SchemaFactory` validation and prompt injection, enforcing absolute Fail-Fast logic.
+- **Database Reset**: After modifying the seed data, developers MUST run the database wipe workflow (`run_seed.py local`) to flush the old data and load the clean seed. No backward compatibility is required.
+
+### Phase 1.5: Legacy Unit Test Mock Migration (Lesson from Epic 104)
+- **Root Cause**: Because `OutputProfile` and its DTOs enforce strict parsing (`ConfigDict(extra="forbid")`), deleting fields like `synthesis` will instantly crash any existing unit tests that pass old mock data.
+- **Action**: You MUST perform a global audit of `backend_v2/tests/` (e.g., `test_output_profile.py`, `test_blueprint.py`, `test_api_clone_endpoints.py`, etc.) and scrub the `synthesis` and `formatting_directives` keys from all mock dictionary fixtures. If this is skipped, the CI pipeline will fail catastrophically with `ValidationError: extra fields not permitted`.
+- **Atomic Commits**: This Phase, along with Phase 1 and Phase 2.5 MUST be committed atomically. Epic 104 successfully proved that data structure changes (Phase 1) and worker wiring (Phase 2.5) cannot be decoupled without breaking the runtime.
 
 ### Phase 2: SchemaFactory & PromptCompiler Updates
 - **`prompt_compiler_immutability` Exception (USER APPROVED)**: This phase modifies `prompt_compiler.py`, which is protected by the `prompt_compiler_immutability` architecture rule. The user has explicitly granted permission to modify this file as part of Epic 106.

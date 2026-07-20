@@ -257,3 +257,67 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         args, kwargs = mock_repo.update_execution.call_args
         assert args[1]["status"] == ExecutionStatus.FAILED.value
         assert "System Crash" in args[1]["error"]
+
+
+@pytest.mark.asyncio
+async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compiler: Any) -> None:
+    """Verify that NodeExecutor match/case injects SynthesisEngine when override is SYNTHESIS."""
+    import asyncio
+
+    from backend_v2.models.enums import EngineOverrideStrategy
+    from backend_v2.models.v2_core import StepRule
+    from backend_v2.services.orchestrator.dag_executor import NodeExecutor
+
+    executor = NodeExecutor(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    step = StepRule(
+        id="stp_1234567890abcdef",
+        task_blueprint="bp_1234567890abcdef",
+        engine_override=EngineOverrideStrategy.SYNTHESIS,
+        expected_sdui_type="markdown",
+    )
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "bp_1234567890abcdef",
+        "slug": "synthesis-slug",
+        "type": "llm",
+        "model_strategy": "synthesis",
+        "criteria_block_ids": ["blk_1234567890abcdef"],
+        "extraction_protocol_block_id": "blk_1234567890abcdef",
+        "name": {"default_locale": "en", "translations": {"en": "en"}},
+        "description": {"default_locale": "en", "translations": {"en": "en"}},
+    }
+    projector = MagicMock()
+    projector.snapshot = {}
+    semaphore = asyncio.Semaphore(1)
+
+    with (
+        patch("backend_v2.services.orchestrator.engines.synthesis_engine.SynthesisEngine") as mock_engine_class,
+        patch(
+            "backend_v2.services.orchestrator.strategies.llm.LLMNodeStrategy.execute", new_callable=AsyncMock
+        ) as mock_strategy_execute,
+    ):
+        mock_strategy_execute.return_value = []
+
+        await executor.execute(
+            execution_id="exe_1",
+            workflow_id="wf_1",
+            step=step,
+            metadata={},
+            expected_inputs=[],
+            projector=projector,
+            semaphore=semaphore,
+            context_variables={},
+        )
+
+        mock_engine_class.assert_called_once()

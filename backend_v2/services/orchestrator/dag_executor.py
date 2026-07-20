@@ -1,5 +1,3 @@
-from backend_v2.settings import get_settings
-
 """Asynchronous Directed Acyclic Graph (DAG) Executor for V3 Workflows.
 
 Strictly follows Event Sourcing, Fail-Fast principles (RFC 7807) and O(1) Concurrency.
@@ -11,6 +9,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from backend_v2.settings import get_settings
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.interfaces import (
     IAuditRepository,
@@ -226,60 +225,74 @@ class NodeExecutor:
             )
 
             strategy_impl: NodeStrategy
-            if step_def.type == "logic":
-                strategy_impl = LogicNodeStrategy(
-                    self.exec_repo,
-                    self.workflow_repo,
-                    self.comp_repo,
-                    self.prompt_block_repo,
-                    self.output_profile_repo,
-                    self.identity_repo,
-                    self.audit_repo,
-                    self.system_repo,
-                    self.compiler,
-                    arq_pool=arq_pool,
-                )
-            elif step_def.model_strategy == "synthesis" or step.engine_override == "PRE_HYDRATED_SYNTHESIS":
-                from backend_v2.services.orchestrator.strategies.pre_hydrated_synthesis import (
-                    PreHydratedSynthesisStrategy,
-                )
+            from backend_v2.models.enums import EngineOverrideStrategy
 
-                strategy_impl = PreHydratedSynthesisStrategy(
-                    self.exec_repo,
-                    self.workflow_repo,
-                    self.comp_repo,
-                    self.prompt_block_repo,
-                    self.output_profile_repo,
-                    self.identity_repo,
-                    self.audit_repo,
-                    self.system_repo,
-                    self.compiler,
-                    arq_pool=arq_pool,
-                )
-            elif step_def.model_strategy == "reasoning":
-                from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
-
-                strategy_impl = LLMNodeStrategy(
-                    self.exec_repo,
-                    self.workflow_repo,
-                    self.comp_repo,
-                    self.prompt_block_repo,
-                    self.output_profile_repo,
-                    self.identity_repo,
-                    self.audit_repo,
-                    self.system_repo,
-                    self.compiler,
-                    engine=TDAEngine(self.compiler),
-                    arq_pool=arq_pool,
-                )
+            strategy_key: str
+            if step.engine_override == EngineOverrideStrategy.SYNTHESIS:
+                strategy_key = "synthesis"
+            elif step_def.type == "logic":
+                strategy_key = "logic"
+            elif step_def.model_strategy:
+                strategy_key = step_def.model_strategy
             else:
-                msg = f"Unknown model strategy '{step_def.model_strategy}' for step {step.id}."
-                logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                )
+                strategy_key = "reasoning"
+
+            match strategy_key:
+                case "logic":
+                    strategy_impl = LogicNodeStrategy(
+                        self.exec_repo,
+                        self.workflow_repo,
+                        self.comp_repo,
+                        self.prompt_block_repo,
+                        self.output_profile_repo,
+                        self.identity_repo,
+                        self.audit_repo,
+                        self.system_repo,
+                        self.compiler,
+                        arq_pool=arq_pool,
+                    )
+                case "synthesis":
+                    from backend_v2.services.llm_task_executor import LLMTaskExecutor
+                    from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
+
+                    llm_executor = LLMTaskExecutor(self.compiler)
+                    strategy_impl = LLMNodeStrategy(
+                        self.exec_repo,
+                        self.workflow_repo,
+                        self.comp_repo,
+                        self.prompt_block_repo,
+                        self.output_profile_repo,
+                        self.identity_repo,
+                        self.audit_repo,
+                        self.system_repo,
+                        self.compiler,
+                        engine=SynthesisEngine(llm_executor),
+                        arq_pool=arq_pool,
+                    )
+                case "reasoning" | "fast":
+                    from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
+
+                    strategy_impl = LLMNodeStrategy(
+                        self.exec_repo,
+                        self.workflow_repo,
+                        self.comp_repo,
+                        self.prompt_block_repo,
+                        self.output_profile_repo,
+                        self.identity_repo,
+                        self.audit_repo,
+                        self.system_repo,
+                        self.compiler,
+                        engine=TDAEngine(self.compiler),
+                        arq_pool=arq_pool,
+                    )
+                case _:
+                    msg = f"Unknown strategy key '{strategy_key}' for step {step.id}."
+                    logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                    )
 
             org_id = metadata["organization_id"] if "organization_id" in metadata else None
             await strategy_impl.assert_quota(org_id=org_id)
@@ -663,9 +676,7 @@ class DAGExecutor:
 
         try:
             # Epic 101 Phase 1B: RAG Pre-Flight Pipeline Injection
-            has_prehydrated = any(
-                step.engine_override == EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS for step in workflow.steps
-            )
+            has_prehydrated = any(step.engine_override == EngineOverrideStrategy.SYNTHESIS for step in workflow.steps)
             if has_prehydrated:
                 import uuid
 
@@ -817,9 +828,7 @@ class DAGExecutor:
         from backend_v2.services.llm_task_executor import LLMTaskExecutor
         from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
-        target_step = next(
-            s for s in workflow.steps if s.engine_override == EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS
-        )
+        target_step = next(s for s in workflow.steps if s.engine_override == EngineOverrideStrategy.SYNTHESIS)
 
         step_def_data = await self.workflow_repo.get_step_by_id(target_step.task_blueprint)
         if not step_def_data:

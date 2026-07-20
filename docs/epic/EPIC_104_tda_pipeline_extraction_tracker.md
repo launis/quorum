@@ -117,7 +117,8 @@
 - Phase 0 Executed: Created `engines/` directory structure, ExecutionEngine Protocol, EngineExecutionRequest DTO, and strict EngineExecutionResult Pydantic V2 DTO.
 - Phase 1 Executed: Extracted the inline TDA pipeline into `TDAEngine`. Migrated hardcoded `SlidingWindowLinker` settings to `settings.py`. Added unit tests for `TDAEngine` to verify the exception ACL and basic pipeline execution. Passed strict 30% coverage and Universal Quality Gate.
 - Phase 2 & 3 Executed: Refactored `LLMNodeStrategy` to enforce mandatory engine DI and replaced the inline pipeline with delegation. Wired `dag_executor.py` with `TDAEngine` lazy injection and Fail-Fast routing. Passed full test suite. Integration Checkpoint completed.
-- Re-Plan Completed: Invoked `/tier1-planner` to generate the detailed implementation plan for Phase 4 (Testing) and Post-Extraction Pipeline tasks.
+- Phase 4 Executed: Engine Unit Tests & Strategy Test Modernization.
+- Post-Extraction Pipeline Completed: Tier 2 Hardening of `backend_v2/services/orchestrator/engines/` executed successfully. Proxy Sunset & Pre-Delete audits completed with >90% semantic coverage. Knowledge Items and directory references updated. Epic 104 is **100% CLOSED**.
 
 ## Learned
 - Phase 2 and Phase 3 instructions were consolidated by the planner into `phase_2_strategy_refactoring.md`. DAG Executor wiring was executed smoothly alongside LLMNodeStrategy refactoring.
@@ -125,17 +126,13 @@
 - `EngineExecutionRequest` enforces strict Pydantic V2 typing, which required modifying the legacy `test_llm.py` tests to properly mock the request object so it doesn't fail validation.
 
 ## Remaining
-- Phase 4: Engine Unit Tests & Post-Extraction Hardening (ready for execution).
-- Tier 2 Hardening target at `backend_v2/services/orchestrator/engines/` and `backend_v2/models/dtos/engine.py`.
-- Proxy Sunset & Consumer Migration
-- Pre-Delete Audit
-- Semantic Coverage & Zero-Loss Audit
-- Documentation & Knowledge Item Update
+- **NONE**: Epic 104 is fully closed and verified. 
+- *Note: We have also completed the subsequent Epic 105 (Synthesis Engine Unification) in the latest session.*
 
 ---
 
 ## Resume Command
 
 ```
-/tier5-resume --workflow=/tier2-execute --target="docs\epic\EPIC_104_tda_pipeline_extraction_tracker.md, docs\epic\EPIC_104_tda_pipeline_extraction.md" --rules="00-antigravity-core.md, 01-python-backend.md"
+N/A - Epic 104 is complete. Please resume from the active epic tracker if applicable.
 ```

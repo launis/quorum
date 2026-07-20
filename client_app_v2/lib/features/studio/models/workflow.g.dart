@@ -123,6 +123,7 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'depends_on',
         'input_mappings',
         'engine_override',
+        'expected_sdui_type',
         'ui_pos_x',
         'ui_pos_y',
       ],
@@ -153,6 +154,10 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'engine_override',
         (v) => $enumDecodeNullable(_$EngineOverrideStrategyEnumMap, v),
       ),
+      expectedSduiType: $checkedConvert(
+        'expected_sdui_type',
+        (v) => $enumDecodeNullable(_$SduiBlockTypeEnumMap, v),
+      ),
       uiPosX: $checkedConvert(
         'ui_pos_x',
         (v) => (v as num?)?.toDouble() ?? 0.0,
@@ -169,6 +174,7 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
     'dependsOn': 'depends_on',
     'inputMappings': 'input_mappings',
     'engineOverride': 'engine_override',
+    'expectedSduiType': 'expected_sdui_type',
     'uiPosX': 'ui_pos_x',
     'uiPosY': 'ui_pos_y',
   },
@@ -182,13 +188,25 @@ Map<String, dynamic> _$StepRuleToJson(_StepRule instance) => <String, dynamic>{
   'depends_on': instance.dependsOn,
   'input_mappings': instance.inputMappings,
   'engine_override': _$EngineOverrideStrategyEnumMap[instance.engineOverride],
+  'expected_sdui_type': _$SduiBlockTypeEnumMap[instance.expectedSduiType],
   'ui_pos_x': instance.uiPosX,
   'ui_pos_y': instance.uiPosY,
 };
 
 const _$EngineOverrideStrategyEnumMap = {
-  EngineOverrideStrategy.preHydratedSynthesis: 'PRE_HYDRATED_SYNTHESIS',
+  EngineOverrideStrategy.synthesis: 'SYNTHESIS',
   EngineOverrideStrategy.dynamicToolAgent: 'DYNAMIC_TOOL_AGENT',
+};
+
+const _$SduiBlockTypeEnumMap = {
+  SduiBlockType.heroInsight: 'hero_insight',
+  SduiBlockType.paragraph: 'paragraph',
+  SduiBlockType.bulletList: 'bullet_list',
+  SduiBlockType.alertBox: 'alert_box',
+  SduiBlockType.markdown: 'markdown',
+  SduiBlockType.warningCard: 'warning_card',
+  SduiBlockType.quoteCard: 'quote_card',
+  SduiBlockType.nACard: 'n_a_card',
 };
 
 NodeStrategyLlm _$NodeStrategyLlmFromJson(

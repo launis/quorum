@@ -60,3 +60,7 @@ TDA-suoritusputken eristäminen on loistava veto SRP- ja OCP-periaatteiden kanna
 ## 6. Cross-Epic Synchronization (Epic 105 & 106)
 - **DAG Routing Compatibility**: When removing the default fallback in `dag_executor.py` (Phase 2 & 3), you MUST explicitly preserve the `elif step_def.model_strategy == "synthesis"` branch pointing to the legacy `PreHydratedSynthesisStrategy`. Do not break Synthesis routing. Epic 105 will later take ownership of rewriting this branch.
 - **Execution Order**: Epic 104 MUST be implemented **FIRST** to establish the `ExecutionEngine` Protocol and DTOs.
+
+## 7. Lessons Learned (Post-Execution Retrospective)
+- **UI Responsiveness (Progress Callbacks)**: Long-running TDA execution deadlocks the Flutter UI if no progress events are emitted. The `ExecutionEngine` must actively invoke `request.progress_callback(percent, total)` during major phase transitions (e.g., after atomization, after sliding window linker). This has been codified as a mandatory pattern for all future engines (like Synthesis in Epic 105).
+- **DAG Execution Mock Fragility**: Extracting `NodeStrategy` routing logic requires explicit attention to `test_dag_executor.py`. Previous tests were bypassing `NodeExecutor` entirely or relying on implicit legacy strategies. Any future strategy abstraction must explicitly add tests verifying the factory injection itself.

@@ -62,7 +62,7 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
                 task_blueprint="blp_1234567890abcdef",
                 input_mappings={},
                 depends_on=[],
-                engine_override=EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS,
+                engine_override=EngineOverrideStrategy.SYNTHESIS,
             )
         ],
     )

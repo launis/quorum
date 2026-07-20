@@ -91,7 +91,7 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
                 task_blueprint="blp_1234567890abcdef",
                 input_mappings={},
                 depends_on=[],
-                engine_override=EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS,
+                engine_override=EngineOverrideStrategy.SYNTHESIS,
             )
         ],
     )
@@ -144,7 +144,7 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
                 task_blueprint="blp_1234567890abcdef",
                 input_mappings={},
                 depends_on=[],
-                engine_override=EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS,
+                engine_override=EngineOverrideStrategy.SYNTHESIS,
             )
         ],
     )
@@ -200,7 +200,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
                 task_blueprint="blp_1234567890abcdef",
                 input_mappings={},
                 depends_on=[],
-                engine_override=EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS,
+                engine_override=EngineOverrideStrategy.SYNTHESIS,
             )
         ],
     )

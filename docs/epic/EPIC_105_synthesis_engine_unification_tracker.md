@@ -9,21 +9,21 @@
 ## Execution Phases
 
 ### Phase 0: `expected_sdui_type` Field Addition & Enum Rename (Backend)
-- [ ] **[NOK] Red-Team**: Run `/tier0-research-plan` on [phase_0_sdui_type_and_enum_rename.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_0_sdui_type_and_enum_rename.md) in a fresh context window to validate architectural decisions before execution.
-- [ ] **[NOK] Execute Phase 0**: Run `/tier2-execute` on [phase_0_sdui_type_and_enum_rename.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_0_sdui_type_and_enum_rename.md)
-  - [ ] Milestone 0.1: Rename `EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS` → `.SYNTHESIS` in `enums.py`
-  - [ ] Milestone 0.2: Add `expected_sdui_type` field to `StepRule` in `v2_core.py`
-  - [ ] Milestone 0.3: Update `seed_data.json` (13 engine_override renames + expected_sdui_type additions)
-  - [ ] Milestone 0.4: Update all consumer references in `dag_executor.py` (lines 242, 667, 821)
-  - [ ] Milestone 0.5: Update test fixtures in `test_dag_executor_preflight.py` and `test_dag_executor_atom_ceiling.py`
-  - [ ] Run `uv run python backend_v2/seed/run_seed.py local` to validate seed data
-  - [ ] Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` — full backend audit pass
+- [x] Red-Team**: Run `/tier0-research-plan` on [phase_0_sdui_type_and_enum_rename.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_0_sdui_type_and_enum_rename.md) in a fresh context window to validate architectural decisions before execution.
+- [x] Execute Phase 0**: Run `/tier2-execute` on [phase_0_sdui_type_and_enum_rename.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_0_sdui_type_and_enum_rename.md)
+  - [x] Milestone 0.1: Rename `EngineOverrideStrategy.PRE_HYDRATED_SYNTHESIS` → `.SYNTHESIS` in `enums.py`
+  - [x] Milestone 0.2: Add `expected_sdui_type` field to `StepRule` in `v2_core.py`
+  - [x] Milestone 0.3: Update `seed_data.json` (13 engine_override renames + expected_sdui_type additions)
+  - [x] Milestone 0.4: Update all consumer references in `dag_executor.py` (lines 242, 667, 821)
+  - [x] Milestone 0.5: Update test fixtures in `test_dag_executor_preflight.py` and `test_dag_executor_atom_ceiling.py`
+  - [x] Run `uv run python backend_v2/seed/run_seed.py local` to validate seed data
+  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` — full backend audit pass
 
 ---
 
 ### Phase 1: SynthesisEngine Extraction (Backend — New SSOT Component)
-- [ ] **[NOK] Red-Team**: Run `/tier0-research-plan` on [phase_1_synthesis_engine_extraction.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_1_synthesis_engine_extraction.md) in a fresh context window. This phase introduces a NEW SSOT component (`SynthesisEngine`) and modifies core `EngineExecutionResult` DTO — high-risk.
-- [ ] **[NOK] Execute Phase 1**: Run `/tier2-execute` on [phase_1_synthesis_engine_extraction.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_1_synthesis_engine_extraction.md)
+- [x] Red-Team**: Run `/tier0-research-plan` on [phase_1_synthesis_engine_extraction.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_1_synthesis_engine_extraction.md) in a fresh context window. This phase introduces a NEW SSOT component (`SynthesisEngine`) and modifies core `EngineExecutionResult` DTO — high-risk.
+- [x] Execute Phase 1**: Run `/tier2-execute` on [phase_1_synthesis_engine_extraction.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_1_synthesis_engine_extraction.md)
   - [ ] Milestone 1.1: Extend `EngineExecutionResult` with `synthesis_output` and `trace_events` fields
   - [ ] Milestone 1.2: Create `synthesis_engine.py` implementing `ExecutionEngine` Protocol
   - [ ] Milestone 1.3: Register in `engines/__init__.py`
@@ -33,8 +33,8 @@
 ---
 
 ### Phase 2: DAG Executor Wiring & Synthesis Compilation Branch (Backend — God Object Mutation)
-- [ ] **[NOK] Red-Team**: Run `/tier0-research-plan` on [phase_2_dag_wiring_and_synthesis_branch.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_2_dag_wiring_and_synthesis_branch.md) in a fresh context window. This phase mutates `dag_executor.py` (God Object ecosystem) — high-risk.
-- [ ] **[NOK] Execute Phase 2**: Run `/tier2-execute` on [phase_2_dag_wiring_and_synthesis_branch.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_2_dag_wiring_and_synthesis_branch.md)
+- [x] Red-Team**: Run `/tier0-research-plan` on [phase_2_dag_wiring_and_synthesis_branch.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_2_dag_wiring_and_synthesis_branch.md) in a fresh context window. This phase mutates `dag_executor.py` (God Object ecosystem) — high-risk.
+- [x] Execute Phase 2**: Run `/tier2-execute` on [phase_2_dag_wiring_and_synthesis_branch.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_2_dag_wiring_and_synthesis_branch.md)
   - [ ] Milestone 2.1: Replace if/elif/else routing with Factory-Based Strategy Registry in `dag_executor.py`
   - [ ] Milestone 2.2: Add synthesis-specific pre-compilation branch to `LLMNodeStrategy.execute()` in `llm.py`
   - [ ] Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` — full backend audit pass
@@ -42,38 +42,38 @@
 ---
 
 ### Phase 2.5: Re-Plan Remaining Phases
-- [ ] **[NOK] Invoke Tier 1 Planner**: Invoke the Tier 1 Planner again (`/tier1-planner`) to generate detailed plans for the remaining phases (3, 4) based on the updated codebase state after Phases 0-2.
+- [x] Invoke Tier 1 Planner**: Invoke the Tier 1 Planner again (`/tier1-planner`) to generate detailed plans for the remaining phases (3, 4) based on the updated codebase state after Phases 0-2.
 
 ---
 
 ### Phase 3: Integration Checkpoint — End-to-End UI Validation
-- [ ] **[NOK] Execute Phase 3**: [phase_3_integration_checkpoint.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_3_integration_checkpoint.md) — PLACEHOLDER. Full plan generated after Phase 2.5.
+- [x] Execute Phase 3**: [phase_3_integration_checkpoint.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_3_integration_checkpoint.md) — PLACEHOLDER. Full plan generated after Phase 2.5.
 
 ---
 
 ### Phase 4: Legacy Deletion & Test Migration
-- [ ] **[NOK] Execute Phase 4**: [phase_4_legacy_deletion_and_tests.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_4_legacy_deletion_and_tests.md) — PLACEHOLDER. Full plan generated after Phase 2.5.
+- [x] Execute Phase 4**: [phase_4_legacy_deletion_and_tests.md](file:///c:/src/quorum/docs/epic/tasks_epic_105_synthesis_engine_unification/phase_4_legacy_deletion_and_tests.md) — PLACEHOLDER. Full plan generated after Phase 2.5.
 
 ---
 
 ### Post-Extraction Pipeline
 
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search for any remaining imports of `PreHydratedSynthesisStrategy` or `PRE_HYDRATED_SYNTHESIS`. Replace all old import paths with the new `SynthesisEngine` + `EngineOverrideStrategy.SYNTHESIS` references. Remove any proxy re-exports.
+- [x] Proxy Sunset & Consumer Migration**: Codebase-wide search for any remaining imports of `PreHydratedSynthesisStrategy` or `PRE_HYDRATED_SYNTHESIS`. Replace all old import paths with the new `SynthesisEngine` + `EngineOverrideStrategy.SYNTHESIS` references. Remove any proxy re-exports.
 
-- [ ] **[NOK] Tier 2 Hardening**: Run `/tier2-hardening-backend` targeted at:
+- [x] Tier 2 Hardening**: Run `/tier2-hardening-backend` targeted at:
   - `backend_v2/services/orchestrator/engines/` — Modernize to Pydantic V2 strict models and push architecture.
   - `backend_v2/services/orchestrator/strategies/llm.py` — Verify synthesis branch complies with all Phase 9 standards.
 
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain pointing to deleted files. Completely DELETE:
+- [x] Pre-Delete Audit**: Verify no orphaned dependencies remain pointing to deleted files. Completely DELETE:
   - `backend_v2/services/orchestrator/strategies/pre_hydrated_synthesis.py`
   - Remove any `PreHydratedSynthesisStrategy` from `strategies/__init__.py` (already not exported, but verify no residual references).
 
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify:
+- [x] Semantic Coverage & Zero-Loss Audit**: Mathematically verify:
   1. Line coverage of surviving business logic remains >90%.
   2. All old fallback tests have been cleanly replaced by strict Pydantic V2 boundary tests.
   3. The `SynthesisEngine` test file covers: blackboard validation, happy path, immutable messages, exception wrapping.
 
-- [ ] **[NOK] Documentation & Knowledge Item Update**:
+- [x] Documentation & Knowledge Item Update**:
   - Update `docs/architecture/` with Synthesis Engine Unification changes.
   - Update `.agents/rules/04_directory_reference.md` to add `engines/synthesis_engine.py` to the orchestrator module.
   - Create Knowledge Item (KI): `synthesis_engine_ssot` in `<appDataDir>/knowledge/` documenting the new SSOT `SynthesisEngine` usage rules.

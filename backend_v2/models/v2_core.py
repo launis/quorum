@@ -781,6 +781,10 @@ class StepRule(V2CoreBase):
         LaxEngineOverrideStrategy | None,
         Field(description="Optional override to route this step to a non-default execution strategy."),
     ] = None
+    expected_sdui_type: Annotated[
+        Literal["markdown", "hero_insight"] | None,
+        Field(description="Declares the expected SDUI output schema for schema compilation."),
+    ] = None
 
     ui_pos_x: float = Field(default=0.0, description="X coordinate on the 2D DAG canvas.")
     ui_pos_y: float = Field(default=0.0, description="Y coordinate on the 2D DAG canvas.")
