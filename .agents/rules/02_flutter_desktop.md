@@ -102,6 +102,12 @@
         <catastrophic_reason>Global `MediaQuery` checks break component isolation in Multi-Window desktop deployments. LayoutBuilder guarantees pure component-level boundary constraints.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="sdui_native_schizophrenia_prevention">
+        <banned_pattern>Embedding new business logic, adding complex state flows, or building new UI components directly into hardcoded native views (e.g., inside `features/studio/views/`).</banned_pattern>
+        <mandatory_pattern>Enforce strict Server-Driven UI (SDUI) boundaries. While legacy hardcoded views still exist in the codebase (pending a future removal epic), you MUST treat them as strictly deprecated dead-ends. ALL new UI logic, rendering flows, and component updates MUST be driven by the backend (`sdui_mapper_service.py`) and rendered dynamically via the frontend's SDUI renderer (`sdui_node_renderer.dart`). Do NOT leak business logic back into the Flutter frontend.</mandatory_pattern>
+        <catastrophic_reason>Frontend-side business logic violates the core SDUI architecture. It creates "Architectural Schizophrenia" where half the app is driven by the server and half is hardcoded in Flutter, making multi-platform updates impossible and creating untraceable state bugs.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="flexbox_native_engine_standard">
         <banned_pattern>Calculating responsive widths/heights manually using decimal multipliers (e.g., `width: constraints.maxWidth * 0.33`) creating "MediaQuery Thrashing".</banned_pattern>
         <mandatory_pattern>Utilize the Rust-backed Impeller strictly via pure declarative CSS-style Flexbox equivalents (`Row`, `Expanded(flex: N)`, `Flexible`). Let native algorithms handle proportional filling.</mandatory_pattern>

@@ -156,6 +156,11 @@
         <banned_pattern>Hardcoding "Finnish" as the only target language in system schemas, or writing LLM inference rules/prompts in the target language.</banned_pattern>
         <mandatory_pattern>LLM rules (Matrix scales, TDA Assertions, instructions) MUST ALWAYS be defined in English (the System Language). The LLM is then dynamically instructed to map these English rules against the Localized Target Language (e.g., Finnish) source documents. Always use generalized terms like "Localized Target Language" in schema descriptions instead of hardcoding a specific language.</mandatory_pattern>
     </rule_block>
+    <rule_block id="sdui_contract_fracture_prevention">
+        <banned_pattern>Modifying a Backend Python DTO (in `models/dtos/`) without synchronously updating the exact corresponding Frontend Dart/Freezed model (in `client_app_v2/.../models/`), or vice versa.</banned_pattern>
+        <mandatory_pattern>Enforce Cross-Domain DTO Parity. The Backend and Frontend models are mathematically coupled via Server-Driven UI (SDUI). If you add, remove, or rename a field in a Python Pydantic model, you MUST immediately modify the corresponding Dart Freezed model in the Flutter codebase before declaring the task complete. Both MUST compile and pass their respective test gates (`backend_audit_loop.py` and `flutter_audit_loop.py`).</mandatory_pattern>
+        <catastrophic_reason>Quorum enforces strict Fail-Fast parsing (`disallowUnrecognizedKeys` / `extra='forbid'`). Any mismatch between the API payload and the client parser instantly crashes the application with a "White Screen of Death" (Unrecognized Key error).</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>
 
 <universal_quality_gate>
@@ -183,6 +188,16 @@
         <banned_pattern>Executing direct HTTP calls to external LLM services or performing slow network requests during unit testing or CI/CD pipelines.</banned_pattern>
         <mandatory_pattern>Test Mandate Exception: When testing LLM interfaces or network operations, you MUST ABSOLUTELY use mocked JSON fixtures to mock the responses. You must utilize the global `backend_v2/llm/mock.py` and `mock_data.py` framework files when constructing Pytest fixtures. Live LLM calls during tests are strictly forbidden to prevent flaky, slow, and expensive test suites.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="fragmented_quality_gates_prevention">
+        <banned_pattern>Running ONLY localized test subsets (e.g., `pytest tests/unit/` or `flutter test test/feature/`) and immediately declaring the entire task a success ("Fake Green") without verifying the global integration state.</banned_pattern>
+        <mandatory_pattern>You MUST enforce a Two-Stage Testing Pipeline to balance execution speed with global stability:
+        1. **Development Stage**: When fixing a bug, run ONLY the specific isolated test (e.g., `uv run pytest path/to/test.py::test_name`) for speed and context efficiency.
+        2. **Completion Gate Stage**: BEFORE declaring the task complete, you MUST run the GLOBAL audit loops (`backend_audit_loop.py` and `flutter_audit_loop.py`) or the ENTIRE test suite at least once.
+        Testing only the directory you modified guarantees that cross-domain integrations will silently fail downstream.</mandatory_pattern>
+        <catastrophic_reason>Running partial test suites hides regression failures in the CI/CD pipeline, leading to "Fake Green" commits that break the master branch. The Test Pyramid must be validated holistically.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="circuit_breaker_protocol">
         <banned_pattern>Attempting to autonomously fix the exact same Pytest or Flutter error more than 3 times iteratively, or leaving the workspace in a broken state after failing.</banned_pattern>
         <mandatory_pattern>Implement the "Rule of Three". If failing 3 times, you MUST STOP. Output `<circuit_breaker_tripped>`, explicitly instruct the user to run `git restore .` to wipe the corrupted workspace state, explain the paradox, and WAIT for human guidance or handover.</mandatory_pattern>

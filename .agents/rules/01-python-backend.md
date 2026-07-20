@@ -237,6 +237,12 @@
         <catastrophic_reason>Altering the Prompt Compiler risks breaking the deterministic synthesis pipeline, Schema V2 generation, and the core Fail-Fast architecture.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="orchestrator_god_object_fragility">
+        <banned_pattern>Modifying individual files within the DAG Engine core (`backend_v2/services/orchestrator/`, e.g., `atomizer.py`, `dag_executor.py`, `topological_evaluator.py`, `matrix_reducer.py`) without performing a full blast-radius analysis of the entire engine.</banned_pattern>
+        <mandatory_pattern>The DAG Orchestrator is a mathematically coupled "God Object" ecosystem. If you are tasked with modifying ANY file in this core (even to fix a minor bug in atom sorting keys), you MUST STOP and explicitly request "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem". You must then run the FULL backend audit loop and evaluate the entire topological flow, never assuming a change is isolated.</mandatory_pattern>
+        <catastrophic_reason>A seemingly innocent change to sorting keys in `atomizer.py` will silently break downstream topological graph resolutions in `topological_evaluator.py`, leading to an infinite "Dirty State Rollback" loop and catastrophic logic regressions across the entire platform.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="tripartite_rendering_boundary">
         <banned_pattern>Hardcoding UI components, layout structures, or Markdown tables directly within backend generation hooks (e.g., generating Matrix Summary tables via Python string concatenation).</banned_pattern>
         <mandatory_pattern>Backend services MUST return pure data payloads (Pydantic DTOs). Enforce the Tripartite Rendering Boundary: The Backend passes structured data, Flutter handles interactive UI rendering, and Jinja generates static PDFs. UI responsibilities MUST NOT bleed into the backend.</mandatory_pattern>
