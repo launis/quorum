@@ -115,7 +115,7 @@ class ContextBuilder:
         if isinstance(obj, dict):
             result: dict[str, Any] = {}
             for k, v in obj.items():
-                if k in ("shuffled_atoms",):
+                if k in ("shuffled_atoms", "original_text", "raw_content"):
                     continue
                 result[k] = ContextBuilder._project_compressed(v)
             return result

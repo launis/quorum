@@ -155,13 +155,13 @@ class Settings(BaseSettings):
     @property
     def ensemble_parallelism(self) -> int:
         """Dynamic parallel BoX calls based on execution mode."""
-        return 1 if self.environment.lower() == "development" else 3
+        return 1 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 3
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def ensemble_min_consensus(self) -> int:
         """Dynamic consensus votes based on execution mode."""
-        return 1 if self.environment.lower() == "development" else 2
+        return 1 if (self.environment.lower() == "development" and self.dev_execution_mode == "fast") else 2
 
     # --- Logging ---
     use_json_logging: Annotated[

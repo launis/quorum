@@ -266,6 +266,8 @@ class ExtractiveSensorService:
         settings = get_settings()
         parallelism = settings.ensemble_parallelism
 
+        logger.info("Evaluating atom batch with parallelism: %d", parallelism)
+
         class BooleanEvaluationResult(BaseModel):
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
             alias: Annotated[str, Field(description="The alias assigned to the claim (e.g., 'a0', 'a1').")]

@@ -122,8 +122,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
                     "model_strategy": "synthesis",
                     "length_constraint": 1000,
                     "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional"}},
-                    "omit_empty_sections": True
-                }
+                    "omit_empty_sections": True,
+                },
             }
         ],
         "display_scale": "original",
