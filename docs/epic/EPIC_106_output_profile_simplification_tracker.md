@@ -37,18 +37,18 @@
 
 ### Phase 3: Flutter Admin UI Cleanup & Freezed Synchronization (Frontend)
 - [x] **[OK] Red-Team**: Run `/tier0-research-plan` on [phase_3_flutter_cleanup.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_3_flutter_cleanup.md)
-- [ ] **[NOK] Execute**: Run `/tier2-execute` on [phase_3_flutter_cleanup.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_3_flutter_cleanup.md)
+- [x] **[OK] Execute**: Run `/tier2-execute` on [phase_3_flutter_cleanup.md](file:///c:/src/quorum/docs/epic/tasks_epic_106/phase_3_flutter_cleanup.md)
 
 ---
 
 ### Integration Checkpoint: Full-Stack UI Validation
-- [ ] **[NOK] UI Validation**: Deploy locally and verify existing report generation flows (report creation, PDF export, Studio Admin UI) work end-to-end through the User Interface. Both backend and Flutter must pass their respective quality gates.
+- [x] **[OK] UI Validation**: Deploy locally and verify existing report generation flows (report creation, PDF export, Studio Admin UI) work end-to-end through the User Interface. Both backend and Flutter must pass their respective quality gates.
 
 ---
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide `grep_search` for any remaining references to `OutputProfile.synthesis`, `OutputProfile.formatting_directives`, or `OutputProfile.matrix_column_labels`. Replace old import paths. Delete any deprecated proxy methods.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide `grep_search` for any remaining references to `OutputProfile.synthesis`, `OutputProfile.formatting_directives`, or `OutputProfile.matrix_column_labels`. Replace old import paths. Delete any deprecated proxy methods.
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` targeted at:
   - `backend_v2/core/registry.py` (new SSOT component)
@@ -117,6 +117,8 @@
 - **Test Suite Rescued**: Stripped obsolete proxy fields across 1,100+ tests and updated mock injections.
 - **Global Audit Passed**: Executed the `backend_audit_loop.py` verifying Python strictness, MyPy types, Ruff formatting, and test suite passage (1120 passed).
 - **Phase 2 Complete**: Successfully refactored `SchemaFactory` into a registry pattern, threaded `expected_sdui_type`, passed all tests, and created the `sdui_schema_registry` Knowledge Item.
+- **Phase 2.5 Complete**: Migrated `worker.py` to extract runtime `sdui_type` via the `expected_sdui_type` attribute and handle schema construction independently of the OutputProfile.
+- **Phase 3 Complete**: Successfully pruned the Flutter `OutputProfile` model, updated fromJson/toJson factories, and purged obsolete UI components (`output_format_view.dart`, `synthesis_controls_view.dart`).
 
 ## Learned
 - `SynthesisConfigDTO` is still needed for `OutputLayoutBlock.synthesis` and `ReportLayoutDTO.synthesis` — only the profile-level `synthesis` field is removed.
@@ -126,16 +128,18 @@
 - `expected_sdui_type` already exists on `StepRule` (v2_core.py line 784, added by Epic 105). Seed data already has `"expected_sdui_type": "markdown"` values.
 - The `Workflow` model does NOT yet have `allowed_exports` or `historical_context_mode` — Phase 0/1 adds them.
 - Flutter `output_profile.dart` has `SynthesisConfigDTO` imported from `synthesis_config_dto.dart` in `execution/models/`. This is also used by `OutputLayoutBlock.synthesis` in the same file, so it CANNOT be deleted — only the profile-level field is removed.
+- **Worker Schema Resolution**: Worker tasks must now resolve `sdui_type` using `profile.get("expected_sdui_type", "markdown")` instead of checking schema types directly, as the profile schema has been fully delegated to the Registry.
 
 ## Remaining
-- Phase 1 (Backend model pruning) — Executed and verified.
-- Phase 2 (SchemaFactory + PromptCompiler) — Executed and verified.
-- Phase 2.5 (Worker migration) — Executed and verified.
-- **Phase 3 (Flutter cleanup)** — RED-TEAMED & PLAN READY (`/tier2-execute`)
-- All post-implementation gates (hardening, proxy sunset, coverage audit, documentation).
+- **Proxy Sunset & Consumer Migration**: Search and destroy any lingering legacy proxy references.
+- **Tier 2 Hardening (Backend)**: Apply backend strictness to updated code.
+- **Tier 2 Hardening (Frontend)**: Hardening for Flutter models and views.
+- **Pre-Delete Audit**: Verify no orphaned dependencies.
+- **Semantic Coverage Audit**: Confirm coverage remains >90%.
+- **Documentation Update**: Update architecture docs and references.
 
 ---
 
 ```bash
-/tier5-resume --workflow=/tier2-execute --target="docs/epic/tasks_epic_106/phase_3_flutter_cleanup.md, docs/epic/EPIC_106_output_profile_simplification_tracker.md"
+/tier5-resume --workflow=/tier2-execute --target="docs/epic/EPIC_106_output_profile_simplification_tracker.md" --instruction="Proceed to Tier 2 Hardening (Backend)"
 ```

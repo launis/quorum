@@ -30,7 +30,7 @@ void main() {
 
   group('EmbeddedOutputProfile JSON Parsing', () {
     test(
-      'Should parse EmbeddedOutputProfile with language and formatting_directives',
+      'Should parse EmbeddedOutputProfile with language and content_blocks',
       () {
         final jsonPayload = {
           'name': {
@@ -38,7 +38,6 @@ void main() {
             'translations': {'en': 'Test Profile'},
           },
           'language': 'fi',
-          'formatting_directives': ['directive 1', 'directive 2'],
           'content_blocks': [
             {'id': 'blk_123', 'block_type': 'markdown', 'text': 'test'},
           ],

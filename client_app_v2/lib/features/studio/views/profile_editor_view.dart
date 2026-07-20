@@ -6,7 +6,6 @@ import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/features/studio/views/widgets/profile/synthesis_editor_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/layout_editor_card.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
@@ -584,13 +583,7 @@ class ProfileEditorView extends HookConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            SynthesisEditorCard(
-              synthesis: profileDef.synthesis,
-              onChanged: (val) {
-                rebuildProfile(profileDef.copyWith(synthesis: val));
-              },
-            ),
+
             const SizedBox(height: 24),
             LayoutEditorCard(
               layouts: layouts,

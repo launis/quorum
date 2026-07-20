@@ -136,7 +136,6 @@ abstract class OutputProfile with _$OutputProfile {
     @Default([]) List<XaiExtensionType> visibleWorkflowExtensions,
     @JsonKey(name: 'max_extension_items') int? maxExtensionItems,
     @Default('original') String displayScale,
-    SynthesisConfigDTO? synthesis,
     @Default(false)
     @JsonKey(name: 'include_diagnostic_scorecard')
     bool includeDiagnosticScorecard,
@@ -144,11 +143,6 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     String? language,
-    @JsonKey(name: 'formatting_directives')
-    @Default([])
-    List<String> formattingDirectives,
-    @JsonKey(name: 'matrix_column_labels')
-    Map<String, I18nText>? matrixColumnLabels,
     @Default([]) List<OutputLayoutBlock> layouts,
     @JsonKey(name: 'content_blocks') @Default([]) List<dynamic> contentBlocks,
   }) = _OutputProfile;
@@ -170,7 +164,6 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     @Default([]) List<XaiExtensionType> visibleWorkflowExtensions,
     @JsonKey(name: 'max_extension_items') int? maxExtensionItems,
     @Default('original') String displayScale,
-    SynthesisConfigDTO? synthesis,
     @Default(false)
     @JsonKey(name: 'include_diagnostic_scorecard')
     bool includeDiagnosticScorecard,
@@ -178,11 +171,6 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     String? language,
-    @JsonKey(name: 'formatting_directives')
-    @Default([])
-    List<String> formattingDirectives,
-    @JsonKey(name: 'matrix_column_labels')
-    Map<String, I18nText>? matrixColumnLabels,
     @Default([]) List<OutputLayoutBlock> layouts,
     @JsonKey(name: 'content_blocks') @Default([]) List<dynamic> contentBlocks,
   }) = _EmbeddedOutputProfile;

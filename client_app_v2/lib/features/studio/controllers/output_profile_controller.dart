@@ -238,13 +238,6 @@ class OutputProfileForm extends _$OutputProfileForm {
         description: isEmptyI18n(profileWithId.description)
             ? null
             : profileWithId.description,
-        synthesis: profileWithId.synthesis == null
-            ? null
-            : profileWithId.synthesis!.copyWith(
-                preambleText: isEmptyI18n(profileWithId.synthesis!.preambleText)
-                    ? null
-                    : profileWithId.synthesis!.preambleText,
-              ),
         layouts: profileWithId.layouts.map((l) {
           return l.copyWith(
             title: isEmptyI18n(l.title) ? null : l.title,

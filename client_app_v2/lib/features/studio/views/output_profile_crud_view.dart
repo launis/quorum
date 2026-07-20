@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-import 'package:client_app/features/studio/views/widgets/profile/synthesis_editor_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/layout_editor_card.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
@@ -723,15 +722,6 @@ class OutputProfileCrudView extends HookConsumerWidget {
       );
     }
 
-    Widget buildSynthesisPane() {
-      return SynthesisEditorCard(
-        synthesis: payload.synthesis,
-        onChanged: (val) {
-          updatePayload(payload.copyWith(synthesis: val));
-        },
-      );
-    }
-
     Widget buildLayoutPane() {
       if (selectedWorkflowId.isEmpty) {
         return Card(
@@ -820,14 +810,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                         child: buildIdentityPane(),
                       ),
                     ),
-                    const VerticalDivider(width: 1),
-                    Expanded(
-                      flex: 1,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16.0),
-                        child: buildSynthesisPane(),
-                      ),
-                    ),
+
                     const VerticalDivider(width: 1),
                     Expanded(
                       flex: 1,
@@ -843,8 +826,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   padding: const EdgeInsets.all(16.0),
                   children: [
                     buildIdentityPane(),
-                    const SizedBox(height: 24),
-                    buildSynthesisPane(),
+
                     const SizedBox(height: 24),
                     buildLayoutPane(),
                   ],

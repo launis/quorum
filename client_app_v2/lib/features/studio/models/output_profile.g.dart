@@ -431,161 +431,145 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'row_explanations_block_id': instance.rowExplanationsBlockId,
     };
 
-_OutputProfile _$OutputProfileFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  '_OutputProfile',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
+_OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_OutputProfile',
       json,
-      allowedKeys: const [
-        'id',
-        'slug',
-        'workflow_id',
-        'organization_id',
-        'name',
-        'description',
-        'custom_preface',
-        'visible_metadata',
-        'visible_block_extensions',
-        'visible_workflow_extensions',
-        'max_extension_items',
-        'display_scale',
-        'synthesis',
-        'include_diagnostic_scorecard',
-        'strictness_level',
-        'scoring_strategy',
-        'tone_instruction',
-        'language',
-        'formatting_directives',
-        'matrix_column_labels',
-        'layouts',
-        'content_blocks',
-      ],
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'id',
+            'slug',
+            'workflow_id',
+            'organization_id',
+            'name',
+            'description',
+            'custom_preface',
+            'visible_metadata',
+            'visible_block_extensions',
+            'visible_workflow_extensions',
+            'max_extension_items',
+            'display_scale',
+            'include_diagnostic_scorecard',
+            'strictness_level',
+            'scoring_strategy',
+            'tone_instruction',
+            'language',
+            'layouts',
+            'content_blocks',
+          ],
+        );
+        final val = _OutputProfile(
+          id: $checkedConvert(
+            'id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          slug: $checkedConvert('slug', (v) => v as String? ?? ''),
+          workflowId: $checkedConvert(
+            'workflow_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          organizationId: $checkedConvert(
+            'organization_id',
+            (v) => v as String?,
+          ),
+          name: $checkedConvert(
+            'name',
+            (v) => I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          description: $checkedConvert(
+            'description',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          customPreface: $checkedConvert(
+            'custom_preface',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          visibleMetadata: $checkedConvert(
+            'visible_metadata',
+            (v) =>
+                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+                const ['date', 'organization'],
+          ),
+          visibleBlockExtensions: $checkedConvert(
+            'visible_block_extensions',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                    .toList() ??
+                const [],
+          ),
+          visibleWorkflowExtensions: $checkedConvert(
+            'visible_workflow_extensions',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                    .toList() ??
+                const [],
+          ),
+          maxExtensionItems: $checkedConvert(
+            'max_extension_items',
+            (v) => (v as num?)?.toInt(),
+          ),
+          displayScale: $checkedConvert(
+            'display_scale',
+            (v) => v as String? ?? 'original',
+          ),
+          includeDiagnosticScorecard: $checkedConvert(
+            'include_diagnostic_scorecard',
+            (v) => v as bool? ?? false,
+          ),
+          strictnessLevel: $checkedConvert(
+            'strictness_level',
+            (v) => (v as num?)?.toInt(),
+          ),
+          scoringStrategy: $checkedConvert(
+            'scoring_strategy',
+            (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
+          ),
+          toneInstruction: $checkedConvert(
+            'tone_instruction',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          language: $checkedConvert('language', (v) => v as String?),
+          layouts: $checkedConvert(
+            'layouts',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map(
+                      (e) =>
+                          OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
+                    )
+                    .toList() ??
+                const [],
+          ),
+          contentBlocks: $checkedConvert(
+            'content_blocks',
+            (v) => v as List<dynamic>? ?? const [],
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'workflowId': 'workflow_id',
+        'organizationId': 'organization_id',
+        'customPreface': 'custom_preface',
+        'visibleMetadata': 'visible_metadata',
+        'visibleBlockExtensions': 'visible_block_extensions',
+        'visibleWorkflowExtensions': 'visible_workflow_extensions',
+        'maxExtensionItems': 'max_extension_items',
+        'displayScale': 'display_scale',
+        'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
+        'strictnessLevel': 'strictness_level',
+        'scoringStrategy': 'scoring_strategy',
+        'toneInstruction': 'tone_instruction',
+        'contentBlocks': 'content_blocks',
+      },
     );
-    final val = _OutputProfile(
-      id: $checkedConvert(
-        'id',
-        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
-      ),
-      slug: $checkedConvert('slug', (v) => v as String? ?? ''),
-      workflowId: $checkedConvert(
-        'workflow_id',
-        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
-      ),
-      organizationId: $checkedConvert('organization_id', (v) => v as String?),
-      name: $checkedConvert(
-        'name',
-        (v) => I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      description: $checkedConvert(
-        'description',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      customPreface: $checkedConvert(
-        'custom_preface',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      visibleMetadata: $checkedConvert(
-        'visible_metadata',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-            const ['date', 'organization'],
-      ),
-      visibleBlockExtensions: $checkedConvert(
-        'visible_block_extensions',
-        (v) =>
-            (v as List<dynamic>?)
-                ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
-                .toList() ??
-            const [],
-      ),
-      visibleWorkflowExtensions: $checkedConvert(
-        'visible_workflow_extensions',
-        (v) =>
-            (v as List<dynamic>?)
-                ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
-                .toList() ??
-            const [],
-      ),
-      maxExtensionItems: $checkedConvert(
-        'max_extension_items',
-        (v) => (v as num?)?.toInt(),
-      ),
-      displayScale: $checkedConvert(
-        'display_scale',
-        (v) => v as String? ?? 'original',
-      ),
-      synthesis: $checkedConvert(
-        'synthesis',
-        (v) => v == null
-            ? null
-            : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
-      ),
-      includeDiagnosticScorecard: $checkedConvert(
-        'include_diagnostic_scorecard',
-        (v) => v as bool? ?? false,
-      ),
-      strictnessLevel: $checkedConvert(
-        'strictness_level',
-        (v) => (v as num?)?.toInt(),
-      ),
-      scoringStrategy: $checkedConvert(
-        'scoring_strategy',
-        (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
-      ),
-      toneInstruction: $checkedConvert(
-        'tone_instruction',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      language: $checkedConvert('language', (v) => v as String?),
-      formattingDirectives: $checkedConvert(
-        'formatting_directives',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
-      matrixColumnLabels: $checkedConvert(
-        'matrix_column_labels',
-        (v) => (v as Map<String, dynamic>?)?.map(
-          (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-        ),
-      ),
-      layouts: $checkedConvert(
-        'layouts',
-        (v) =>
-            (v as List<dynamic>?)
-                ?.map(
-                  (e) => OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
-                )
-                .toList() ??
-            const [],
-      ),
-      contentBlocks: $checkedConvert(
-        'content_blocks',
-        (v) => v as List<dynamic>? ?? const [],
-      ),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'workflowId': 'workflow_id',
-    'organizationId': 'organization_id',
-    'customPreface': 'custom_preface',
-    'visibleMetadata': 'visible_metadata',
-    'visibleBlockExtensions': 'visible_block_extensions',
-    'visibleWorkflowExtensions': 'visible_workflow_extensions',
-    'maxExtensionItems': 'max_extension_items',
-    'displayScale': 'display_scale',
-    'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
-    'strictnessLevel': 'strictness_level',
-    'scoringStrategy': 'scoring_strategy',
-    'toneInstruction': 'tone_instruction',
-    'formattingDirectives': 'formatting_directives',
-    'matrixColumnLabels': 'matrix_column_labels',
-    'contentBlocks': 'content_blocks',
-  },
-);
 
 Map<String, dynamic> _$OutputProfileToJson(
   _OutputProfile instance,
@@ -606,16 +590,11 @@ Map<String, dynamic> _$OutputProfileToJson(
       .toList(),
   'max_extension_items': instance.maxExtensionItems,
   'display_scale': instance.displayScale,
-  'synthesis': instance.synthesis?.toJson(),
   'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
-  'formatting_directives': instance.formattingDirectives,
-  'matrix_column_labels': instance.matrixColumnLabels?.map(
-    (k, e) => MapEntry(k, e.toJson()),
-  ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks,
 };
@@ -654,14 +633,11 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'visible_workflow_extensions',
         'max_extension_items',
         'display_scale',
-        'synthesis',
         'include_diagnostic_scorecard',
         'strictness_level',
         'scoring_strategy',
         'tone_instruction',
         'language',
-        'formatting_directives',
-        'matrix_column_labels',
         'layouts',
         'content_blocks',
       ],
@@ -709,12 +685,6 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'display_scale',
         (v) => v as String? ?? 'original',
       ),
-      synthesis: $checkedConvert(
-        'synthesis',
-        (v) => v == null
-            ? null
-            : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
-      ),
       includeDiagnosticScorecard: $checkedConvert(
         'include_diagnostic_scorecard',
         (v) => v as bool? ?? false,
@@ -732,17 +702,6 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       language: $checkedConvert('language', (v) => v as String?),
-      formattingDirectives: $checkedConvert(
-        'formatting_directives',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
-      matrixColumnLabels: $checkedConvert(
-        'matrix_column_labels',
-        (v) => (v as Map<String, dynamic>?)?.map(
-          (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-        ),
-      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -771,8 +730,6 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
-    'formattingDirectives': 'formatting_directives',
-    'matrixColumnLabels': 'matrix_column_labels',
     'contentBlocks': 'content_blocks',
   },
 );
@@ -792,16 +749,11 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
       .toList(),
   'max_extension_items': instance.maxExtensionItems,
   'display_scale': instance.displayScale,
-  'synthesis': instance.synthesis?.toJson(),
   'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
-  'formatting_directives': instance.formattingDirectives,
-  'matrix_column_labels': instance.matrixColumnLabels?.map(
-    (k, e) => MapEntry(k, e.toJson()),
-  ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks,
 };

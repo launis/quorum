@@ -1216,10 +1216,6 @@ class BlueprintTransformer:
                             safe_md = bleach.clean(
                                 str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True
                             )
-                            if profile.synthesis and profile.synthesis.length_constraint:
-                                max_len = profile.synthesis.length_constraint
-                                if len(safe_md) > max_len:
-                                    safe_md = safe_md[:max_len] + "..."
                             c_block["text"] = safe_md
                             c_block["block_type"] = "markdown"
                             new_content_blocks.append(c_block)
