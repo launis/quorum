@@ -306,7 +306,7 @@ class ExtractiveSensorService:
             "Evaluate if the following claims are true based strictly on the provided context.\n"
             "Return the results matching each claim's alias.\n\n"
             f"<context>\n{context_text}\n</context>\n\n"
-            f"{claims_str}"
+            f"<execution_parameters>\n{claims_str}\n</execution_parameters>"
         )
 
         semaphore = asyncio.Semaphore(parallelism)

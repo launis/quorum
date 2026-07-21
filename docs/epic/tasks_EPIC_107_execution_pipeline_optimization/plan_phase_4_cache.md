@@ -14,23 +14,28 @@ Eradicate the massive 9x token duplication (uploading identical source documents
 
 ### 3. File Modifications & Sequence
 
-#### A. Caching Interface & Factory (Core Infrastructure)
-**`TARGET (Modify)`**: `@[c:\src\quorum\backend_v2\services\llm_task_executor.py]`
-- **CRITICAL BUG FIX (Early Teardown)**: Remove the `finally` block inside `execute_structured_task` that calls `LLMCachingService.teardown_workflow_caches`. Because this executor runs inside parallel `asyncio.TaskGroup` loops (e.g., in TDA Engine), the first task to complete currently destroys the global cache for all other parallel tasks, causing cascading 404 Cache Expired errors. Teardown MUST be hoisted to the orchestrator layer.
+## 2. Implementation Steps
 
-#### B. Orchestrator Floodgate Execution (Business Logic)
-**`TARGET (Modify)`**: `@[c:\src\quorum\backend_v2\services\orchestrator\enriched_dag_executor.py]` (and `tda_engine.py`)
-- **Pre-Floodgate Upload (Cache Pre-Warming)**: Before entering the `asyncio.TaskGroup` in `EnrichedDagExecutor.execute_graph` (or `batch_evaluation_callback`), invoke `LLMCachingService.pre_cache_document()` to upload the global source text once.
-- **Orchestrator Teardown**: Wrap the `TaskGroup` (or the entire DAG evaluation) inside a `try...finally` block. Inside the `finally`, call `LLMCachingService.teardown_workflow_caches(execution_id)`.
+### A. Orchestrator-Level Cache Teardown
+- [x] **Location**: `backend_v2/services/orchestrator/enriched_dag_executor.py`
+  - Wrap the `TaskGroup` (or the entire DAG evaluation) inside a `try...finally` block.
+  - Inside the `finally`, call `LLMCachingService.teardown_workflow_caches(execution_id)`.
+- [x] **Location**: `backend_v2/services/llm_task_executor.py`
+  - **REMOVE** the inner `try...finally` that clears the cache for Ephemeral providers, preventing early cache expiration.
 
-#### C. Caching Service (Adapter Delegation)
-**`TARGET (Modify)`**: `@[c:\src\quorum\backend_v2\llm\caching_service.py]`
-- Implement `pre_cache_document()` to lock and create the provider-specific context cache explicitly.
-- Ensure the caching layer seamlessly injects the active `cache_id` based on `workflow_run_id` / `execution_id` so `LLMClient` doesn't need signature parameters drilled down through every layer.
+### B. Pre-Caching Global Payload
+- [x] **Location**: `backend_v2/llm/caching_service.py`
+  - Implement `pre_cache_document()` to lock and create the provider-specific context cache explicitly.
+- [x] **Location**: `backend_v2/services/orchestrator/enriched_dag_executor.py` (or `ExtractiveSensorService.batch_pre_evaluate`)
+  - Before entering the `asyncio.TaskGroup`, invoke `LLMCachingService.pre_cache_document()` to upload the global source text once.
 
-#### D. Provider Adapters (Cache-Miss Fallback)
-**`TARGET (Modify)`**: `@[c:\src\quorum\backend_v2\llm\client.py]` or Adapter Layer
-- Ensure 404 Context Not Found or Cache Expired exceptions automatically trigger a cache-miss fallback, instructing the provider to transmit the full payload natively.
+### C. Provider Cache Survival
+- [x] **Location**: `backend_v2/services/orchestrator/prompt_compiler_adapter.py`
+  - Ensure the `static` prompt chunk remains entirely intact across DAG atoms.
+
+### D. Provider Adapters (Cache-Miss Fallback)
+- [x] **Location**: `backend_v2/llm/client.py` or Adapter Layer
+  - Ensure 404 Context Not Found or Cache Expired exceptions automatically trigger a cache-miss fallback, instructing the provider to transmit the full payload natively.
 
 ### 4. Integration Checkpoint Plan
 - Run full UI Execution pipeline observing Vertex/OpenAI traces to ensure perfect `Context Hit` tracking without token duplication. 

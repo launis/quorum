@@ -46,6 +46,25 @@ class LLMCachingService:
         return await adapter.prepare_caching_payload(compiled_prompt, model_name)
 
     @classmethod
+    async def pre_cache_document(
+        cls,
+        provider_name: str,
+        compiled_prompt: CompiledPrompt,
+        model_name: str,
+    ) -> None:
+        """Pre-cache a document upfront (Cache Pre-Warming).
+
+        Explicitly triggers the adapter to create and lock the provider-specific context cache,
+        preventing thundering herds during parallel TaskGroup execution.
+
+        Args:
+            provider_name: The target LLM provider (e.g., 'vertex_ai').
+            compiled_prompt: The structured CompiledPrompt containing static content.
+            model_name: The target model identifier.
+        """
+        await cls.prepare_caching_payload(provider_name, compiled_prompt, model_name)
+
+    @classmethod
     async def _run_purity_scanner(cls, messages: list[dict[str, Any]]) -> None:
         """Passive scanner to detect caching purity violations in system messages.
 

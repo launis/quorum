@@ -13,7 +13,7 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 
 ### 2.2. Provider-Agnostic Caching Topology (Static-First)
 - **Law:** The system must maximize LLM Context Caching (Prompt Caching) hit rates to reduce token costs and latency, regardless of the underlying LLM provider (Anthropic, OpenAI, or Vertex AI).
-- **Enforcement:** The PromptCompiler MUST assemble LLM payloads using a strict "Static-First" topology. All static components (System Instructions, Knowledge Items, Performative Lexicons) are compiled and placed at the absolute beginning of the prompt. All highly dynamic variables (User Queries, Opaque IDs, short-lived tokens) are appended at the absolute end. This ensures prefix-matching cache survival, maintaining a >95% cache hit rate.
+- **Enforcement:** The PromptCompiler MUST assemble LLM payloads using a strict "Static-First" topology. All static components (System Instructions, Knowledge Items, Performative Lexicons) are compiled and placed at the absolute beginning of the prompt. All highly dynamic variables (User Queries, Opaque IDs, short-lived tokens) are appended at the absolute end. The caching layer generates deterministic **composite hash signatures** (SHA-256) of the static components to identify cache hits globally across the Orchestrator without relying on transient request IDs. Furthermore, cache lifecycle management (pre-caching and teardown) MUST be hoisted to the Orchestrator level (e.g., `EnrichedDagExecutor`) to prevent early cache destruction during parallel TaskGroup execution.
 
 ### 2.3. Unified Model Multiplexing
 - **Law:** Business logic must never be hardcoded to a specific model version (e.g., `gemini-2.5-pro`).

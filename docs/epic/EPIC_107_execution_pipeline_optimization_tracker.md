@@ -6,7 +6,7 @@
 - `[x]` Phase 2B: Guard Step Fusion - Consumers & Mocks
 - `[x]` Tier 1 Planner Invocation for Phase 3 and 4
 - `[x]` Phase 3: Fact Checker Multi-Search Architecture
-- `[ ]` Phase 4: Global Document Context Caching
+- `[x]` Phase 4: Global Document Context Caching
 
 ## Tasks
 - `[x]` **Phase 1: RPM Quota Alignment**
@@ -15,9 +15,9 @@
 - `[x]` **Tier 1 Planner Iteration**
 - `[x]` **Phase 3: Fact Checker Multi-Search Architecture**
   - Execute `@[c:\src\quorum\docs\epic\tasks_EPIC_107_execution_pipeline_optimization\plan_phase_3_multi_search.md]`
-- `[NOK]` **Phase 4: Global Document Context Caching**
+- `[x]` **Phase 4: Global Document Context Caching**
   - Execute `@[c:\src\quorum\docs\epic\tasks_EPIC_107_execution_pipeline_optimization\plan_phase_4_cache.md]`
-- `[NOK]` **Tier 2 Hardening**
+- `[ ]` **Tier 2 Hardening (Pydantic V2 & Push Models)**
   - Run the Tier 2 Hardening Loop (`/tier2-hardening-backend`) to modernize architecture to Pydantic V2 and Push models for newly modified code.
 - `[x]` **Proxy Sunset & Consumer Migration**
   - Search/replace old import paths before deleting legacy files. (Done for Phase 2A)
@@ -37,9 +37,9 @@
 
 ---
 # Session Handover Context
-**Achieved:** Completed Phase 3 (Fact Checker Multi-Search Architecture) replacing sequential `mcp_tool_loop` with a concurrent `asyncio.TaskGroup` multi-search using `TavilySearchResultDTO`. Fully enforced Data Loss Prevention (thread-safe result lists), configured `settings.py` for thresholds, and patched the Fact Checker prompt block explicitly per the De-Generator Mandate to catch DLQ timeouts.
-**Learned:** The architecture handles rate limits transparently via `tenacity`, logging `ErrorCodes.FETCH_FAILED` efficiently. `BatchSearchQueryDTO` is safely isolated under Pydantic strict-mode.
-**Remaining:** Execute Phase 4 (Caching) and then follow up with Tier 2 Hardening.
+**Achieved:** Completed Phase 4 (Global Document Context Caching). Implemented Orchestrator-Level Cache Teardown in `EnrichedDagExecutor.execute_graph` wrapping the TaskGroup in a `try...finally` block. Added Cache Pre-Warming via `LLMCachingService.pre_cache_document()`. Segregated dynamic claims into `<execution_parameters>` in `ExtractiveSensorService` to protect static cache survival. Implemented 404 Cache Expired fallback natively in `client.py` and updated KI docs regarding Orchestrator-level teardown.
+**Learned:** The `PromptCompilerAdapter` seamlessly separates `<execution_parameters>` into dynamic tail arrays. Caching now securely executes with composite hash signatures.
+**Remaining:** Execute Tier 2 Hardening (Pydantic V2 & Push Models) on the newly modified code.
 
 ### Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_107_execution_pipeline_optimization_tracker.md], @[c:\src\quorum\docs\epic\tasks_EPIC_107_execution_pipeline_optimization\plan_phase_4_cache.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md], @[c:\src\quorum\.agents\rules\01-python-backend.md], @[c:\src\quorum\.agents\rules\04_directory_reference.md]"`
+`/tier5-resume --workflow=/tier2-hardening-backend --target="@[c:\src\quorum\docs\epic\EPIC_107_execution_pipeline_optimization_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md], @[c:\src\quorum\.agents\rules\01-python-backend.md], @[c:\src\quorum\.agents\rules\04_directory_reference.md]"`

@@ -44,6 +44,7 @@ class EnrichedDagExecutor:
         source_text: str,
         locale: str | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+        execution_id: str = "default_run",
     ) -> dict[str, AtomExecutionState]:
         """Executes the complete DAG of atoms.
 
@@ -126,11 +127,41 @@ class EnrichedDagExecutor:
 
             merged_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
 
-            async with asyncio.TaskGroup() as tg:
-                tasks = [tg.create_task(process_chunk(chunk)) for chunk in chunks]
+            from backend_v2.llm.caching_service import LLMCachingService
+            from backend_v2.models.prompt import CompiledPrompt
 
-            for task in tasks:
-                merged_results.update(task.result())
+            prompt_text = (
+                "Evaluate if the following claims are true based strictly on the provided context.\n"
+                "Return the results matching each claim's alias.\n\n"
+                f"<context>\n{source_text}\n</context>"
+            )
+            compiled_prompt = CompiledPrompt(
+                static_messages=[{"role": "user", "content": prompt_text}],
+                dynamic_messages=[],
+            )
+
+            provider_name = self._llm_client._config.provider if self._llm_client._config else "vertex_ai"
+            model_name = str(self._llm_client._config.model) if self._llm_client._config else "gemini-1.5-pro"
+
+            await LLMCachingService.pre_cache_document(
+                provider_name=provider_name,
+                compiled_prompt=compiled_prompt,
+                model_name=model_name,
+            )
+
+            try:
+                async with asyncio.TaskGroup() as tg:
+                    tasks = [tg.create_task(process_chunk(chunk)) for chunk in chunks]
+
+                for task in tasks:
+                    merged_results.update(task.result())
+            finally:
+                try:
+                    await LLMCachingService.teardown_workflow_caches(
+                        provider_name=provider_name, workflow_run_id=execution_id
+                    )
+                except Exception as teardown_err:
+                    logger.error("Error during orchestrator cache teardown: %s", teardown_err)
 
             return merged_results
 

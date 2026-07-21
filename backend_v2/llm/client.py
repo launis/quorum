@@ -366,22 +366,52 @@ class LLMClient:
                 )
 
             try:
-                # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
-                token_usage = None
-                response = await provider.generate(
-                    messages=final_messages,
-                    response_schema=adapter_schema,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    top_p=top_p,
-                    top_k=top_k,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                    mock_identity=mock_identity,
-                    timeout=strict_timeout,
-                    validation_context=validation_context,
-                    **extra_kwargs,
-                )
+                try:
+                    # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
+                    token_usage = None
+                    response = await provider.generate(
+                        messages=final_messages,
+                        response_schema=adapter_schema,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        top_p=top_p,
+                        top_k=top_k,
+                        frequency_penalty=frequency_penalty,
+                        presence_penalty=presence_penalty,
+                        mock_identity=mock_identity,
+                        timeout=strict_timeout,
+                        validation_context=validation_context,
+                        **extra_kwargs,
+                    )
+                except Exception as gen_err:
+                    err_str = str(gen_err).lower()
+                    if "404" in err_str and ("cache" in err_str or "not found" in err_str):
+                        logger.warning("Cache Miss Fallback Triggered. Resending full payload natively.", exc_info=True)
+                        extra_kwargs.pop("cached_content", None)
+                        if "extra_headers" in extra_kwargs:
+                            extra_kwargs["extra_headers"].pop("cached_content", None)
+                        if "extra_body" in extra_kwargs:
+                            extra_kwargs["extra_body"].pop("cachedContent", None)
+                            extra_kwargs["extra_body"].pop("cached_content", None)
+
+                        fallback_messages = compiled_prompt.to_flat_messages() if compiled_prompt else final_messages
+
+                        response = await provider.generate(
+                            messages=fallback_messages,
+                            response_schema=adapter_schema,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            top_p=top_p,
+                            top_k=top_k,
+                            frequency_penalty=frequency_penalty,
+                            presence_penalty=presence_penalty,
+                            mock_identity=mock_identity,
+                            timeout=strict_timeout,
+                            validation_context=validation_context,
+                            **extra_kwargs,
+                        )
+                    else:
+                        raise gen_err
 
                 # Extract usage securely into TokenUsage
                 usage_obj = response.token_usage if response else None
@@ -591,21 +621,49 @@ class LLMClient:
         if tools:
             extra_kwargs["parallel_tool_calls"] = True
 
-        # Generate
         try:
-            response = await provider.generate(
-                messages=final_messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                top_p=top_p,
-                top_k=top_k,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
-                tools=tools,
-                tool_choice=tool_choice,
-                timeout=strict_timeout,
-                **extra_kwargs,
-            )
+            try:
+                response = await provider.generate(
+                    messages=final_messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    top_p=top_p,
+                    top_k=top_k,
+                    frequency_penalty=frequency_penalty,
+                    presence_penalty=presence_penalty,
+                    tools=tools,
+                    tool_choice=tool_choice,
+                    timeout=strict_timeout,
+                    **extra_kwargs,
+                )
+            except Exception as gen_err:
+                err_str = str(gen_err).lower()
+                if "404" in err_str and ("cache" in err_str or "not found" in err_str):
+                    logger.warning("Cache Miss Fallback Triggered. Resending full payload natively.", exc_info=True)
+                    extra_kwargs.pop("cached_content", None)
+                    if "extra_headers" in extra_kwargs:
+                        extra_kwargs["extra_headers"].pop("cached_content", None)
+                    if "extra_body" in extra_kwargs:
+                        extra_kwargs["extra_body"].pop("cachedContent", None)
+                        extra_kwargs["extra_body"].pop("cached_content", None)
+
+                    fallback_messages = compiled_prompt.to_flat_messages() if compiled_prompt else final_messages
+
+                    response = await provider.generate(
+                        messages=fallback_messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        top_p=top_p,
+                        top_k=top_k,
+                        frequency_penalty=frequency_penalty,
+                        presence_penalty=presence_penalty,
+                        tools=tools,
+                        tool_choice=tool_choice,
+                        timeout=strict_timeout,
+                        **extra_kwargs,
+                    )
+                else:
+                    raise gen_err
 
             # If LLM returned tool_calls, return as dict for Tool Loop processing
             if response.tool_calls:
