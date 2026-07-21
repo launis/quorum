@@ -9,6 +9,7 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
 
     class MockSettings:
         linker_max_atoms_per_window = 20
+        max_concurrent_llm_steps = 3
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
 
@@ -86,6 +87,7 @@ def test_sliding_window_linker_get_windows_empty(monkeypatch: pytest.MonkeyPatch
 
     class MockSettings:
         linker_max_atoms_per_window = 20
+        max_concurrent_llm_steps = 3
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
     linker = SlidingWindowLinker(window_size=3, overlap=1)
@@ -98,6 +100,7 @@ def test_sliding_window_linker_get_windows_small(monkeypatch: pytest.MonkeyPatch
 
     class MockSettings:
         linker_max_atoms_per_window = 20
+        max_concurrent_llm_steps = 3
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
     linker = SlidingWindowLinker(window_size=3, overlap=1)
@@ -131,6 +134,7 @@ def test_sliding_window_linker_subdivides_oversized_chunks(monkeypatch: pytest.M
 
     class MockSettings:
         linker_max_atoms_per_window = 2
+        max_concurrent_llm_steps = 3
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
 
@@ -203,6 +207,7 @@ async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.Monke
 
     class MockSettings:
         linker_max_atoms_per_window = 20
+        max_concurrent_llm_steps = 3
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
 

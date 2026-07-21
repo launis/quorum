@@ -47,6 +47,7 @@ class EnrichedDagExecutor:
         locale: str | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         execution_id: str = "default_run",
+        semaphore: asyncio.Semaphore | None = None,
     ) -> dict[str, AtomExecutionState]:
         """Executes the complete DAG of atoms.
 
@@ -79,12 +80,13 @@ class EnrichedDagExecutor:
                             await progress_callback(completed_atoms, total_atoms)
                     return pre_flight_results
 
-                llm_results = await ExtractiveSensorService.evaluate_atom_boolean_batch(
-                    nodes=undecided_nodes,
-                    executor=self._llm_executor,
-                    client=self._llm_client,
-                    context_text=source_text,
-                )
+                async with semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps):
+                    llm_results = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+                        nodes=undecided_nodes,
+                        executor=self._llm_executor,
+                        client=self._llm_client,
+                        context_text=source_text,
+                    )
                 res = {**pre_flight_results, **llm_results}
                 if progress_callback:
                     async with progress_lock:

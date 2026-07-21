@@ -7,7 +7,7 @@ import pytest
 from backend_v2.core.hook_registry import HookResult
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
 from backend_v2.models.v2_core import I18nText, StepRule, Workflow
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
@@ -61,7 +61,7 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
 
     workflow = Workflow(
         allowed_exports=["pdf"],
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_4444444444444444",
         slug="wf_tg",
         status="draft",
@@ -129,7 +129,7 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
 
     workflow = Workflow(
         allowed_exports=["pdf"],
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_4444444444444444",
         slug="wf_tg_dep",
         status="draft",
@@ -138,19 +138,19 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
         name=I18nText(default_locale="en", translations={"en": "TG Test", "fi": "TG Test"}),
         description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
         steps=[
-            StepRule(id="step_A", task_blueprint="bp_fail"),
-            StepRule(id="step_C", task_blueprint="bp_dep", depends_on=["step_A"]),
+            StepRule(id="step_aaaa1111aaaa1111", task_blueprint="bp_fail"),
+            StepRule(id="step_cccc3333cccc3333", task_blueprint="bp_dep", depends_on=["step_aaaa1111aaaa1111"]),
         ],
     )
 
     async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
-        if step.id == "step_A":
+        if step.id == "step_aaaa1111aaaa1111":
             return [
                 ErrorTraceEvent(
                     step_name=step.id, error_code="MOCK_FAIL", error_message="Intentional failure", content={}
                 )
             ]
-        elif step.id == "step_C":
+        elif step.id == "step_cccc3333cccc3333":
             raise ValueError("Step C should not have executed")
         return []
 
@@ -172,5 +172,80 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
             calls = mock_repo.update_execution.call_args_list
             final_call_args = calls[-1][0]
             payload = final_call_args[1]
-            assert payload["step_states"]["step_A"]["status"] == ExecutionStatus.FAILED.value
-            assert payload["step_states"]["step_C"]["status"] == ExecutionStatus.FAILED.value
+            assert payload["step_states"]["step_aaaa1111aaaa1111"]["status"] == ExecutionStatus.FAILED.value
+            assert payload["step_states"]["step_cccc3333cccc3333"]["status"] == ExecutionStatus.FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_step_transient_failure_exhausts_retries(mock_repo: AsyncMock, mock_compiler: AsyncMock) -> None:
+    """Test that transient network errors trigger the AsyncRetrying loop and eventually fail."""
+    import httpx
+    import litellm.exceptions
+
+    from backend_v2.settings import get_settings
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        id="wf_4444444444444444",
+        slug="wf_tg_retry",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        name=I18nText(default_locale="en", translations={"en": "TG Test", "fi": "TG Test"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        steps=[
+            StepRule(id="step_ffaa9999ffaa9999", task_blueprint="bp_retry"),
+        ],
+    )
+
+    request = httpx.Request("GET", "http://test")
+    mock_execute = AsyncMock(
+        side_effect=litellm.exceptions.APIConnectionError(
+            message="Connection timeout", llm_provider="openai", model="gpt-4", request=request
+        )
+    )
+
+    with patch("backend_v2.services.orchestrator.dag_executor.get_settings") as mock_get_settings:
+        mock_settings = get_settings().model_copy(
+            update={
+                "llm_max_transient_retries": 3,
+                "llm_retry_min_seconds": 0,
+                "llm_retry_max_seconds": 0,
+            }
+        )
+        mock_get_settings.return_value = mock_settings
+
+        with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
+            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+
+            with patch.object(executor.node_executor, "execute", mock_execute):
+                with pytest.raises(AppException) as exc_info:
+                    await executor.execute_workflow(
+                        execution_id="exe_1111222233334444",
+                        workflow=workflow,
+                        raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
+                    )
+
+                assert "Workflow completed with failed steps" in str(exc_info.value)
+
+                # stop_after_attempt(3) means 3 total attempts
+                assert mock_execute.call_count == 3
+
+                calls = mock_repo.update_execution.call_args_list
+                final_call_args = calls[-1][0]
+                payload = final_call_args[1]
+                assert payload["step_states"]["step_ffaa9999ffaa9999"]["status"] == ExecutionStatus.FAILED.value

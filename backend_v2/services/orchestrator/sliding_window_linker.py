@@ -4,6 +4,7 @@ Uses a sliding window approach over extracted atoms to resolve cross-chunk causa
 dependencies without exceeding LLM context windows or losing attention on middle chunks.
 """
 
+import asyncio
 import logging
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
@@ -139,6 +140,7 @@ class SlidingWindowLinker:
         atoms: list[ExtractedAtom],
         ontology_map: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+        semaphore: asyncio.Semaphore | None = None,
     ) -> list[LinkedAtomGraph]:
         """Link atoms together into a causal graph.
 
@@ -206,11 +208,12 @@ class SlidingWindowLinker:
             )
 
             try:
-                response, _ = await executor.execute_structured_task(
-                    client=client,
-                    messages=compiled_prompt,
-                    response_model=LinkerResponseDTO,
-                )
+                async with semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps):
+                    response, _ = await executor.execute_structured_task(
+                        client=client,
+                        messages=compiled_prompt,
+                        response_model=LinkerResponseDTO,
+                    )
             except Exception as e:
                 # 01-python-backend.md: Zero-Compromise Pledge. No graceful degradation.
                 raise AppException(

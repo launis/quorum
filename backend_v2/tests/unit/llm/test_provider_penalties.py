@@ -26,8 +26,6 @@ async def test_litellm_provider_injects_penalties() -> None:
 
     mock_settings = MagicMock()
     mock_settings.llm_default_timeout = 30
-    mock_settings.semaphore_low_rpm_threshold = 5
-    mock_settings.semaphore_low_rpm_limit = 1
     mock_settings.llm_max_retries = 0
     mock_settings.llm_retry_jitter_initial_seconds = 0
     mock_settings.llm_retry_max_seconds = 0

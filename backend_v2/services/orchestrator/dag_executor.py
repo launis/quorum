@@ -9,6 +9,8 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
+
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.interfaces import (
     IAuditRepository,
@@ -21,6 +23,7 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
+from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.enums import ScoringStrategy, StrictnessAnchor
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
@@ -645,22 +648,37 @@ class DAGExecutor:
                     logger.info("Progress updated for step %s: %s", step_id, label)
 
                 try:
-                    events = await self.node_executor.execute(
-                        step=step_obj,
-                        execution_id=execution_id,
-                        workflow_id=workflow.id,
-                        metadata=exec_record.metadata,
-                        projector=projector,
-                        expected_inputs=workflow.expected_inputs,
-                        frozen_ctx=exec_record.frozen_context,
-                        trace=exec_record.execution_trace,
-                        strictness_level=strictness_level,
-                        semaphore=semaphore,
-                        running_event=running_event,
-                        context_variables=exec_record.context_variables,
-                        progress_callback=progress_callback,
-                        step_def=step_definitions.get(step_obj.task_blueprint) if step_obj.task_blueprint else None,
-                    )
+                    settings = get_settings()
+                    async for attempt in AsyncRetrying(
+                        stop=stop_after_attempt(settings.llm_max_transient_retries),
+                        wait=wait_exponential(
+                            multiplier=settings.llm_retry_multiplier,
+                            min=settings.llm_retry_min_seconds,
+                            max=settings.llm_retry_max_seconds,
+                        ),
+                        retry=retry_if_exception(_is_transient_llm_error),
+                        reraise=True,
+                        before_sleep=before_sleep_log(logger, logging.WARNING),
+                    ):
+                        with attempt:
+                            events = await self.node_executor.execute(
+                                step=step_obj,
+                                execution_id=execution_id,
+                                workflow_id=workflow.id,
+                                metadata=exec_record.metadata,
+                                projector=projector,
+                                expected_inputs=workflow.expected_inputs,
+                                frozen_ctx=exec_record.frozen_context,
+                                trace=exec_record.execution_trace,
+                                strictness_level=strictness_level,
+                                semaphore=semaphore,
+                                running_event=running_event,
+                                context_variables=exec_record.context_variables,
+                                progress_callback=progress_callback,
+                                step_def=step_definitions.get(step_obj.task_blueprint)
+                                if step_obj.task_blueprint
+                                else None,
+                            )
                 finally:
                     watcher_task.cancel()
 

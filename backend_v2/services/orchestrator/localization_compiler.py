@@ -102,7 +102,7 @@ class LocalizationCompiler:
                 continue
 
             crit_id = crit.id
-            label = self.resolve_i18n(crit.label, target_locale)
+            label = self.resolve_i18n(crit.label, "en")
             desc = crit.ai_description or ""
 
             xml_blocks.append(f'  <MATRIX id="{crit_id}" title="{label}">')
@@ -218,7 +218,7 @@ class LocalizationCompiler:
         compiled_lines = []
         for block in blocks:
             if block.category_id != "matrix" and block.category_id != "runtime_variables":
-                label = self.resolve_i18n(block.label, target_locale)
+                label = self.resolve_i18n(block.label, "en")
                 desc = block.ai_description
                 if not desc:
                     block_id = block.id
@@ -292,7 +292,7 @@ class LocalizationCompiler:
         compiled_lines = []
         for block in blocks:
             if block.category_id == "runtime_variables":
-                label = self.resolve_i18n(block.label, target_locale)
+                label = self.resolve_i18n(block.label, "en")
                 desc = block.ai_description
                 if not desc:
                     block_id = block.id

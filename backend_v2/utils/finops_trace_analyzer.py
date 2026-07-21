@@ -22,7 +22,8 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> dic
         state_file.write_text(json.dumps({"telemetry_cursor": 0}))
 
     state = json.loads(state_file.read_text())
-    cursor = state.get("telemetry_cursor", 0)
+    cursors = state.get("cursors", {})
+    cursor = cursors.get("llm_telemetry.jsonl", state.get("telemetry_cursor", 0))
 
     total_duration = 0
     total_calls = 0
@@ -42,7 +43,10 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> dic
                 if data.get("cache_hit") is False:
                     miss_found = True
 
-            state["telemetry_cursor"] = len(lines)
+            if "cursors" in state:
+                state["cursors"]["llm_telemetry.jsonl"] = len(lines)
+            else:
+                state["telemetry_cursor"] = len(lines)
             state_file.write_text(json.dumps(state))
 
     alerts = []
@@ -146,16 +150,26 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="FinOps Trace Analyzer")
     parser.add_argument("--monitor", type=str, help="Path to monitor_state.json")
     parser.add_argument("--finalize", type=str, help="Execution ID")
-    parser.add_argument("--telemetry-file", type=str, default="llm_telemetry.jsonl", help="Path to telemetry file")
-    parser.add_argument("--trace-file", type=str, default="execution_trace.json", help="Path to execution trace file")
+    parser.add_argument("--telemetry-file", type=str, default=None, help="Path to telemetry file")
+    parser.add_argument("--trace-file", type=str, default=None, help="Path to execution trace file")
 
     args = parser.parse_args()
 
     if args.monitor:
-        res = analyze_monitor_state(args.monitor, args.telemetry_file)
+        state_file = Path(args.monitor)
+        execution_id = "unknown"
+        if state_file.exists():
+            state = json.loads(state_file.read_text())
+            execution_id = state.get("execution_id", "unknown")
+
+        telemetry_file = args.telemetry_file or f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
+        res = analyze_monitor_state(args.monitor, telemetry_file)
         print(json.dumps(res, indent=2))
     elif args.finalize:
-        res = finalize_execution(args.trace_file, args.telemetry_file)
+        execution_id = args.finalize
+        trace_file = args.trace_file or f"data/files/executions/{execution_id}/execution_trace.json"
+        telemetry_file = args.telemetry_file or f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
+        res = finalize_execution(trace_file, telemetry_file)
         print(json.dumps(res, indent=2))
 
 

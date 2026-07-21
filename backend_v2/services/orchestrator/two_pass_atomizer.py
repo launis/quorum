@@ -58,6 +58,7 @@ class TwoPassAtomizer:
         client: LLMClient,
         hydrated_text: str,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+        semaphore: asyncio.Semaphore | None = None,
     ) -> GlobalOntologyMap:
         """Extracts and merges GlobalOntologyMap from all chunks.
 
@@ -86,7 +87,7 @@ class TwoPassAtomizer:
         )
 
         try:
-            sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+            sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
                 tasks = []
                 completed = 0
@@ -138,6 +139,7 @@ class TwoPassAtomizer:
         hydrated_text: str,
         ontology: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+        semaphore: asyncio.Semaphore | None = None,
     ) -> list[ExtractedAtom]:
         """Extracts atomic claims from chunks utilizing the global ontology.
 
@@ -168,7 +170,7 @@ class TwoPassAtomizer:
 
         all_atoms = []
         try:
-            sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+            sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
                 tasks = []
                 completed = 0
@@ -276,6 +278,7 @@ class TwoPassAtomizer:
         hydrated_text: str,
         ontology: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+        semaphore: asyncio.Semaphore | None = None,
     ) -> DraftAtomList:
         """Extracts atomic claims from chunks returning raw drafts and handling DLQ routing.
 
@@ -307,7 +310,7 @@ class TwoPassAtomizer:
         all_atoms = []
         has_dlq = False
         try:
-            sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+            sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
                 tasks = []
                 completed = 0

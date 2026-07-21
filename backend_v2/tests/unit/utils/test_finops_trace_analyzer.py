@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 
 from backend_v2.utils.finops_trace_analyzer import analyze_monitor_state, finalize_execution
 
@@ -72,3 +73,39 @@ def test_finalize_execution_structural_redundancy(tmp_path: Path) -> None:
     assert any("Pipeline Duplication Alert" in w for w in result["structural_warnings"])
     assert any("Double Work Alert" in w for w in result["hashing_warnings"])
     assert any("Duplicate MCP Trace" in w for w in result["mcp_warnings"])
+
+
+def test_main_resolves_execution_directory_paths(tmp_path: Path, monkeypatch: Any) -> None:
+    """Test that main() correctly resolves paths using execution_id when no explicit telemetry file is passed."""
+    # We will mock the executions directory to point inside our tmp_path
+    executions_dir = tmp_path / "data" / "files" / "executions"
+    execution_id = "exe_123"
+    exe_dir = executions_dir / execution_id
+    exe_dir.mkdir(parents=True)
+
+    telemetry_file = exe_dir / "llm_telemetry.jsonl"
+    telemetry_file.write_text(json.dumps({"duration_ms": 1000, "cache_hit": True, "model_strategy": "fast"}) + "\n")
+
+    state_file = tmp_path / "monitor_state.json"
+    state_file.write_text(json.dumps({"execution_id": execution_id, "cursors": {"llm_telemetry.jsonl": 0}}))
+
+    # Mock Path to point relative paths inside our tmp_path if needed,
+    # or just run main and capture stdout. But actually, main uses Path() from root.
+    # To test main() cleanly, we can temporarily change the CWD.
+    monkeypatch.chdir(tmp_path)
+
+    import sys
+
+    monkeypatch.setattr(sys, "argv", ["finops_trace_analyzer.py", "--monitor", "monitor_state.json"])
+
+    import io
+
+    from backend_v2.utils.finops_trace_analyzer import main
+
+    captured_out = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", captured_out)
+
+    main()
+
+    output = json.loads(captured_out.getvalue())
+    assert output["total_calls"] == 1, "main() did not resolve the telemetry file from the execution_id directory"

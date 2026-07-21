@@ -9,20 +9,18 @@ from backend_v2.llm.provider import LiteLLMProvider
 
 
 @pytest.fixture
-def mock_settings():
+def mock_settings() -> MagicMock:
     settings = MagicMock()
     settings.llm_max_retries = 0
     settings.llm_retry_jitter_initial_seconds = 0.1
     settings.llm_retry_max_seconds = 0.5
     settings.llm_retry_jitter_exp_base = 2
-    settings.semaphore_low_rpm_threshold = 100
-    settings.semaphore_low_rpm_limit = 2
     settings.llm_default_timeout = 600.0
     return settings
 
 
 @pytest.fixture
-def mock_config():
+def mock_config() -> MagicMock:
     config = MagicMock()
     config.provider = "vertex_ai"
     config.vertex_location = "europe-north1"
@@ -33,7 +31,7 @@ def mock_config():
 
 
 @pytest.mark.asyncio
-async def test_litellm_provider_injects_wrapped_httpx_client(mock_settings, mock_config):
+async def test_litellm_provider_injects_wrapped_httpx_client(mock_settings: MagicMock, mock_config: MagicMock) -> None:
     """Test that LiteLLMProvider wraps the custom httpx.AsyncClient
     in an AsyncHTTPHandler so that litellm does not drop it during Vertex AI calls.
     """

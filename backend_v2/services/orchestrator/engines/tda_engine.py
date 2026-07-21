@@ -100,17 +100,30 @@ class TDAEngine(ExecutionEngine):
                     await request.progress_callback(prog, 100)
 
             ontology = await atomizer.execute_phase_0(
-                request.bound_client, hydrated_text, progress_callback=phase_0_progress
+                request.bound_client, hydrated_text, progress_callback=phase_0_progress, semaphore=request.semaphore
             )
             atoms = await atomizer.execute_phase_1(
-                request.bound_client, hydrated_text, ontology, progress_callback=phase_1_progress
+                request.bound_client,
+                hydrated_text,
+                ontology,
+                progress_callback=phase_1_progress,
+                semaphore=request.semaphore,
             )
             atoms.sort(key=lambda x: x.source_sequence_index)
             nodes = await linker.link_graph(
-                llm_executor, request.bound_client, atoms, ontology, progress_callback=linker_progress
+                llm_executor,
+                request.bound_client,
+                atoms,
+                ontology,
+                progress_callback=linker_progress,
+                semaphore=request.semaphore,
             )
             states = await dag_executor.execute_graph(
-                nodes, global_source_text, request.target_locale, progress_callback=dag_progress
+                nodes,
+                global_source_text,
+                request.target_locale,
+                progress_callback=dag_progress,
+                semaphore=request.semaphore,
             )
 
             results_dto, hydrated_refs = ResultProjector.project(nodes, states)
