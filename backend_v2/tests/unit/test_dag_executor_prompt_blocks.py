@@ -108,7 +108,7 @@ def mock_compiler() -> Any:
 @pytest.mark.asyncio
 async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: Any, mock_compiler: Any) -> None:
     # Setup Executor
-    executor = DAGExecutor(
+    executor = DAGExecutor(rag_preflight=AsyncMock(), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -118,7 +118,6 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        rag_preflight=MagicMock(),
     )  # noqa: E501
 
     # Setup basic valid workflow

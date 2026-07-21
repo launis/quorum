@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for text normalization utilities."""
 
 from backend_v2.utils.normalization import normalize_evaluation_input

@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for Server-Driven UI (SDUI) view models."""
 
 import pytest

@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.v2_core import (
     I18nText,

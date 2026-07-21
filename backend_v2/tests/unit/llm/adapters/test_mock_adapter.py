@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for MockCacheAdapter."""
 
 import pytest

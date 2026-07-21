@@ -17,5 +17,5 @@ HydratedAtomDTO? hydratedReference(Ref ref, String executionId, String tdaId) {
     );
   }
 
-  return reportData.hydratedReferences?[tdaId];
+  return reportData.hydratedReferences[tdaId];
 }

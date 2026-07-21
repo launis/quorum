@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for MatrixReducer three-state logic and reduce_matrix."""
 
 from unittest.mock import MagicMock

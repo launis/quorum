@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Tests for the translation service."""
 
 import pytest

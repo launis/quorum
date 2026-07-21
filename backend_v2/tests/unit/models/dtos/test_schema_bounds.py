@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Tests for Vertex AI schema array bounds.
 
 Verifies that all Pydantic models used in LLM Structured Output DO NOT have

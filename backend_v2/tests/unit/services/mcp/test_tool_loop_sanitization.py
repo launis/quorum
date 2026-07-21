@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Tests for MCP Tool Loop message sanitization and query relevance validation.
 
 Bug 1: Orphaned `role: tool` messages without a preceding `role: assistant` + `tool_calls`

@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 

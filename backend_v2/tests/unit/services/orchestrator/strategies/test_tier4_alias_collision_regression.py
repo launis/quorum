@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Regression test: Verify no parallel alias system exists in LLMNodeStrategy.
 
 Tier 4 RCA proved that llm.py had a parallel alias system (_apply_alias_chunks_and_audit)

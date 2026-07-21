@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 from typing import cast
 from unittest.mock import MagicMock, patch
 

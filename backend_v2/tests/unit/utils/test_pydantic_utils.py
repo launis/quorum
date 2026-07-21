@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 import importlib
 
 import pytest

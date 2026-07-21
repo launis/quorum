@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.llm.mock_data import get_fallback_data

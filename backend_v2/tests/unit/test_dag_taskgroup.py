@@ -17,6 +17,16 @@ def mock_repo() -> AsyncMock:
     repo = AsyncMock()
     from backend_v2.models.enums import ExecutionStatus
 
+    repo.get_step_by_id.return_value = {
+        "id": "mock",
+        "type": "logic",
+        "model_strategy": "logic",
+        "slug": "mock",
+        "name": {"default_locale": "en", "translations": {"en": "mock"}},
+        "description": {"default_locale": "en", "translations": {"en": "mock"}},
+        "hook": "mock_hook"
+    }
+
     # Mock context rehydration
     repo.get_execution.return_value = {
         "id": "exe_1111222233334444",
@@ -38,7 +48,7 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
     """Test that asyncio.TaskGroup automatically cancels sibling tasks
     when one task fails, eradicating zombie threads naturally.
     """
-    executor = DAGExecutor(
+    executor = DAGExecutor(rag_preflight=AsyncMock(), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -48,7 +58,6 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        rag_preflight=MagicMock(),
     )  # noqa: E501
 
     workflow = Workflow(

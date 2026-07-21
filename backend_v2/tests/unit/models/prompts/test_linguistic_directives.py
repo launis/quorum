@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for the Linguistic Directives module.
 
 Note: The core functionality is tested extensively via `test_translation_service.py`

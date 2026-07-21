@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 from collections.abc import Generator
 from unittest.mock import patch
 

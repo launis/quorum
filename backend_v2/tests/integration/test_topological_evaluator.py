@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Integration tests for TopologicalEvaluator (Epic 92: DAG Determinismi)."""
 
 import asyncio

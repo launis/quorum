@@ -17,5 +17,5 @@ List<AtomResultDTO> atomResults(Ref ref, String executionId) {
     );
   }
 
-  return reportData.results ?? [];
+  return reportData.results;
 }

@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Test module to satisfy the backend audit loop for hooks/__init__.py."""
 
 

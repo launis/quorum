@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for validation_prompts."""
 
 import pytest

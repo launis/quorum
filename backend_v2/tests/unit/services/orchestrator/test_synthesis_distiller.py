@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for the Synthesis Distiller Hook.
 
 Epic 93 Phase 2, Milestone 1.7: Tests for metadata stripping and matrices_to_explain assembly.

@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 from backend_v2.models.prompts.hook_prompts import (
     INTERACTION_OBJECTIVE,
     INTERACTION_RULES,

@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for AliasEngine and AliasManifest.
 
 Tests the core aliasing pipeline including serialization boundary

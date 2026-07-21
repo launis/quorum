@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for ExecutionCoreFields SSOT leaf module.
 
 Tests verify the structural contract, inheritance chain,

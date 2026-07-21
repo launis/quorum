@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Tests for the global inputs hydration hook."""
 
 from typing import cast

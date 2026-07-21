@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit and precision cost-calculation tests for VertexCacheAdapter."""
 
 import asyncio

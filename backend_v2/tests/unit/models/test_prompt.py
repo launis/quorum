@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for CompiledPrompt models to verify Pydantic V2 validations and role merging."""
 
 import pytest

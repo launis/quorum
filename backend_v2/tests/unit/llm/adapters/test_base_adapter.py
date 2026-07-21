@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for BaseLLMAdapter abstract class imports and lazy import proof."""
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter

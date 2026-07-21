@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 """Unit tests for static_charts.py."""
 
 import pytest
