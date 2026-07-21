@@ -32,3 +32,8 @@ Following the Universal DTO Bridge (Epic 91.5), the engine must strictly decoupl
 3. All static evidence (`source_quote`, `resolved_claim`) is offloaded to the O(1) Dictionary `hydrated_references` using `HydratedAtomDTO`, keyed by its Opaque Stripe ID (`tda_id`).
 
 This avoids repetitive nested tree logic and guarantees 100% ICU Markdown serialization parity for the Frontend.
+
+## 3. Physical Implementation Map (Auto-Generated)
+> **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
+- **Backend Entrypoints:** `backend_v2/services/orchestrator/extractive_sensor_service.py`, `backend_v2/services/orchestrator/topological_evaluator.py`, `backend_v2/services/orchestrator/result_projector.py`, `backend_v2/services/orchestrator/sliding_window_linker.py`, `backend_v2/services/chat_parser.py`, `backend_v2/services/source_verification_service.py`.
+- **Frontend Consumers:** Rendered natively via standard SDUI blocks.

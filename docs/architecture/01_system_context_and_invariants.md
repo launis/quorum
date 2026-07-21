@@ -41,5 +41,5 @@ flowchart TD
 
 ## 4. Physical Implementation Map (Auto-Generated)
 > **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/exceptions.py` (Fail-Fast), `backend_v2/utils/alias_engine.py` (Opaque ID Hydration), `backend_v2/hooks/interaction_hook.py` (Hybrid UI Sanitization), `backend_v2/services/orchestrator/anchor_validation_service.py` (Opaque ID Validation).
+- **Backend Entrypoints:** `backend_v2/exceptions.py` (Fail-Fast), `backend_v2/utils/alias_engine.py` (Opaque ID Hydration), `backend_v2/hooks/interaction_hook.py` (Hybrid UI Sanitization), `backend_v2/services/orchestrator/anchor_validation_service.py` (Opaque ID Validation), `backend_v2/services/auth.py` (Identity & Security Context).
 - **Frontend Consumers:** `client_app_v2/lib/core/error/app_exception.dart` (Fail-Fast Enforcement), `client_app_v2/lib/core/network/error_interceptor.dart` (Dual-Reporting trace handler).

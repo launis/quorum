@@ -50,7 +50,7 @@
     
     <module path="backend_v2/services/">
         <responsibility>CORE BUSINESS LOGIC & ORCHESTRATION (PILLAR 3)</responsibility>
-        <key_domains>blueprint.py, studio/ (Ontology Management), execution.py, auth.py, llm_task_executor.py, orchestrator/ (DAG, Context, engines/), mcp/ (Tool Execution)</key_domains>
+        <key_domains>blueprint.py, studio/ (Ontology Management), execution.py, auth.py (Identity), llm_task_executor.py, orchestrator/ (DAG, Context, engines/), mcp/ (Tool Execution), document_extraction.py, web_fetcher.py, sdui_mapper_service.py, pdf_generator.py, pii_analyzer.py, usage_service.py</key_domains>
     </module>
     
     <module path="backend_v2/models/">
