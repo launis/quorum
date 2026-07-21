@@ -12,8 +12,8 @@ Optimize the Quorum DAG execution pipeline to eliminate massive "Pacing Lock" bo
 - `_apply_provider_pacing` loop: **REMOVED** from `base_adapter.py`.
 - LiteLLM Router with Redis: **IMPLEMENTED** in `provider.py` (lines 262-272).
 - Tenacity exception whitelisting: **IMPLEMENTED** via `_is_transient_llm_error()` in `provider.py`.
-- Legacy semaphore settings (`semaphore_rpm_divisor`, etc.): **REMOVED** from `settings.py`.
-- **REMAINING CLEANUP**: 2 legacy test fixtures still reference `semaphore_rpm_divisor` (`test_provider_penalties.py:32`, `test_provider_httpx_client.py:21`).
+- Legacy semaphore settings (`semaphore_rpm_divisor`, `semaphore_max_concurrency`, `semaphore_low_rpm_threshold`, `semaphore_low_rpm_limit`): **REMOVED** from `settings.py`.
+- **REMAINING CLEANUP**: 2 legacy test fixtures still reference deprecated semaphore properties (`test_provider_penalties.py`, `test_provider_httpx_client.py`).
 
 ### 2.2 Remaining Pipeline Bottlenecks
 The following bottlenecks remain to be addressed:
@@ -33,7 +33,7 @@ The following bottlenecks remain to be addressed:
 ### Phase 1: RPM Quota Alignment & Semaphore Purge — ✅ COMPLETED
 * **Status**: Core implementation completed in prior sessions. LiteLLM Router with Redis and Tenacity exception whitelisting are fully operational.
 * **Remaining Cleanup**:
-  * Purge legacy test fixture references to `semaphore_rpm_divisor` in `test_provider_penalties.py` and `test_provider_httpx_client.py`.
+  * Purge all legacy test fixture references to the deprecated semaphore architecture (e.g., `semaphore_rpm_divisor`, `semaphore_max_concurrency`) in `test_provider_penalties.py` and `test_provider_httpx_client.py`, and align them with Phase 9 concurrency mocks.
   * Run `backend_audit_loop.py` to confirm zero regressions.
 
 ### Phase 2: Guard Step Fusion & Pydantic Fail-Fast Security
@@ -41,14 +41,14 @@ The following bottlenecks remain to be addressed:
 * **Pre-condition**: The Guard step has already been removed from `seed_data.json` SSOT. This phase focuses on the prompt fusion, DTO refactoring, and domain model sunset.
 * **Architecture**:
   * **Static-First Caching Topology**: Update the system prompt exclusively in `seed_data.json` for `Input Processing` to inherently include the Guard security constraints. To prevent LLM context cache misses, absolutely NO string concatenation (e.g., f-strings) may be used to inject dynamic variables into the static system prompt. All prompt assembly MUST utilize `PromptBlock` objects, appending any volatile or dynamic variables exclusively at the absolute end of the prompt sequence.
-  * Define a strictly typed Pydantic response struct indicating `is_safe: bool` and `rejection_reason: Annotated[str | None, Field(default=None)]`. The DTO MUST enforce `model_config = ConfigDict(strict=True, extra='forbid')` to prevent implicit optionals and silently ignored LLM hallucinations.
+  * Define a strictly typed Pydantic response struct indicating `is_safe: bool` and `rejection_reason: Annotated[str | None, Field(description="Reason for rejection if unsafe")] = None`. To comply with the Feature Sovereignty Mandate, you MUST also migrate the `SecurityCheck` and `SanitizationResult` models into `backend_v2/models/domain/security.py` (or similar) and nest `security_check: SecurityCheck | None = None` inside `InputProcessingOutputDTO` to prevent dropping `risk_score` and `simulation_score` features. The DTO MUST enforce `model_config = ConfigDict(strict=True, extra='forbid')` to prevent implicit optionals and silently ignored LLM hallucinations.
   * **Application-Layer Fail-Fast Enforcement vs Structural Validation**: The Pydantic model MUST enforce *structural integrity* via an `@model_validator(mode='after')` that throws a standard `ValueError` if `is_safe` is `False` but `rejection_reason` is missing (triggering normal LLM Schema Healing to force the LLM to explain itself). However, do NOT enforce the actual *security check* inside the Pydantic model. The actual `AppException(status_code=403)` Security Halt MUST be raised in the Application Layer (e.g., Extraction Hook) immediately after a successful `model_validate()`. Crucially, this MUST utilize the **RFC-7807 Dual-Reporting** pattern (a structured `logger.error` trace immediately preceding the exception) to prevent opaque black-box security failures. This bypasses Schema Healing and securely halts the pipeline.
   * **Guard Domain Model Sunset Plan**: The following artifacts MUST be explicitly refactored or deleted:
-    * `backend_v2/models/domain/guard.py` — DELETE. Migrate `is_safe` / `rejection_reason` fields into the Input Processing output DTO as a flat sub-section (not a nested sub-model).
+    * `backend_v2/models/domain/guard.py` — DELETE. `GuardInput`, `TaintedDataContent`, `GuardDTO`, and `GuardOutput` are intentionally dropped. `SecurityCheck` and `SanitizationResult` are migrated to `backend_v2/models/domain/security.py` and nested in `InputProcessingOutputDTO`.
     * `backend_v2/models/domain/scoring.py` (`StepGuardDTO`) — REFACTOR to read security data from the unified Input Processing output state instead of a separate `step_guard` key.
     * `backend_v2/hooks/scoring.py` (line 117) — REFACTOR `sanitization_result` accessor to read from the Input Processing state context.
-    * `backend_v2/models/state.py` (line 229) — DELETE `step_guard` accessor. Replace with a new accessor on the Input Processing state.
-    * `backend_v2/models/domain/judge.py` (`step_guard` field) — REFACTOR to source security data from the unified Input Processing output.
+    * `backend_v2/models/state.py` (line 229) — DELETE `step_guard` accessor. Replace with a new `step_input_processing` accessor on the Input Processing state.
+    * `backend_v2/models/domain/judge.py` (`step_guard` field) — REFACTOR to source security data by replacing `step_guard: GuardOutput | None` with `step_input_processing: InputProcessingOutputDTO | None` in `JudgeInput`.
     * `backend_v2/llm/mock_data.py` (`MOCK_GUARD_OUTPUT`) — DELETE and replace with mock data that includes security fields in the Input Processing mock output.
     * `backend_v2/tests/unit/models/domain/test_guard.py` — DELETE or refactor to test the new unified Input Processing security DTO.
     * `backend_v2/models/domain/__init__.py` — PURGE all `GuardInput`, `GuardOutput` exports.
