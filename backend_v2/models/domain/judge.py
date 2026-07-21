@@ -67,7 +67,9 @@ class JudgeInput(V2CoreBase):
     step_detector: Annotated[PerformativityOutput | None, Field(description="Detector Output.")] = None
     step_overseer: Annotated[OverseerOutput | None, Field(description="Overseer Output.")] = None
 
-    step_input_processing: Annotated[InputProcessingOutputDTO | None, Field(description="Input Processing Output.")] = None
+    step_input_processing: Annotated[InputProcessingOutputDTO | None, Field(description="Input Processing Output.")] = (
+        None
+    )
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
     dynamic_inputs: Annotated[

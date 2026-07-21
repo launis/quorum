@@ -10,7 +10,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
-from backend_v2.models.domain.security import SanitizationResultDTO
+from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
     LevelStatsDTO,
@@ -41,6 +41,7 @@ class ScoringPayloadWrapper(V2CoreBase):
 
     model_config = ConfigDict(extra="ignore", frozen=True)
     sanitization_result: SanitizationResultDTO | None = None
+    step_input_processing: InputProcessingOutputDTO | None = None
     step_falsifier: StepFalsifierDTO | None = None
     step_panel: StepPanelDTO | None = None
     evaluative_matrices: dict[str, float] | None = Field(default=None, alias="_evaluative_matrices")
@@ -107,14 +108,16 @@ def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
 def _extract_guard_flag(data: dict[str, Any]) -> bool | None:
     """Extracts the security threat flag from the guard output in the state.
 
-    Iterates over the V2 execution snapshot to find the sanitization_result.
+    Iterates over the V2 execution snapshot to find the input processing result.
     Silent Fallback is BANNED. If the data is malformed, we raise an exception.
     """
     for wrapper in _extract_payloads(data):
-        if wrapper.sanitization_result:
+        if wrapper.step_input_processing and wrapper.step_input_processing.security_check:
+            return wrapper.step_input_processing.security_check.threat_detected
+        elif wrapper.sanitization_result:
             return wrapper.sanitization_result.threat_detected
 
-    logger.info("[ScoringHook] sanitization_result (Guard data) missing from state. Security step bypassed.")
+    logger.info("[ScoringHook] security_check (Input Processing data) missing from state. Security step bypassed.")
     return None
 
 
