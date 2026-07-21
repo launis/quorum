@@ -18,7 +18,7 @@ def mock_repo() -> AsyncMock:
     from backend_v2.models.enums import ExecutionStatus
 
     repo.get_step_by_id.return_value = {
-        "id": "mock",
+        "id": "stp_1234567890abcdef",
         "type": "logic",
         "model_strategy": "logic",
         "slug": "mock",

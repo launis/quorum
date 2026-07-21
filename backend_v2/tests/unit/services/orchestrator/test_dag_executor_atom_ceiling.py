@@ -35,7 +35,7 @@ def mock_compiler() -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,

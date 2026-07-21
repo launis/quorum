@@ -29,7 +29,7 @@ def mock_compiler() -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -76,7 +76,7 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
 
 @pytest.mark.asyncio
 async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -132,7 +132,7 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
 async def test_dag_executor_preflight_triggered_by_model_strategy(
     mock_repo: MagicMock, mock_compiler: MagicMock
 ) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -195,7 +195,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
 
 @pytest.mark.asyncio
 async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -250,7 +250,7 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
 
 @pytest.mark.asyncio
 async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
