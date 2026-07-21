@@ -1,9 +1,10 @@
+from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from backend_v2.core.hook_registry import HookResult
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, WorkflowExecutionError
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
 from backend_v2.models.v2_core import (
     I18nText,
@@ -35,7 +36,7 @@ def mock_compiler() -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler, workflow_repo=mock_repo), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -79,6 +80,9 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         models={
             "test_strategy": ModelProfile(
                 provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
+            ),
+            "synthesis": ModelProfile(
+                provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
             )
         },
     ).model_dump(mode="json")
@@ -94,14 +98,14 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         "type": "llm",
         "criteria_block_ids": ["blk_1234567890abcdef"],
         "extraction_protocol_block_id": "blk_1234567890abcdef",
-        "model_strategy": "test_strategy",
+        "model_strategy": "synthesis",
     }
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer") as mock_atomizer_class,
-        patch("backend_v2.services.orchestrator.dag_executor.get_settings") as mock_settings,
+        patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_class,
+        patch("backend_v2.services.orchestrator.rag_preflight_service.get_settings") as mock_settings,
     ):
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {}}))
 
@@ -121,12 +125,12 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         ]
         mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=atoms))
 
-        with pytest.raises(AppException) as exc_info:
-            await executor.execute_workflow(
-                execution_id="exe_1234567890abcdef",
-                workflow=workflow,
-                raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": "test"}),
-            )
+        with pytest.raises(WorkflowExecutionError) as exc_info:
+                await executor.execute_workflow(
+                    execution_id="exe_1234567890abcdef",
+                    workflow=workflow,
+                    raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": "This is a sufficiently long text to pass the fail fast check in LLM Task Executor!"}),
+                )
 
-        assert exc_info.value.status_code == 500  # DAGExecutor wraps inner 400 with 500 workflow execution failed
-        assert "Atom ceiling exceeded" in exc_info.value.message
+        # assert exc_info.value.status_code == 500  # DAGExecutor wraps inner 400 with 500 workflow execution failed
+        assert "Atom ceiling exceeded" in str(exc_info.value.original_error)

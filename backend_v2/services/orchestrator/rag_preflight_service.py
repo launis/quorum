@@ -53,6 +53,11 @@ class RAGPreflightService:
 
         Returns:
             The serialized GlobalAtomBlackboard payload.
+
+        Raises:
+            AppException: If task_blueprint is missing (CONFIGURATION_ERROR).
+            AppException: If model_strategy is missing (CONFIGURATION_ERROR).
+            AppException: If atom ceiling is exceeded (VALIDATION_FAILED).
         """
         if not target_step.task_blueprint:
             raise AppException(
@@ -73,8 +78,7 @@ class RAGPreflightService:
         llm_executor = LLMTaskExecutor(self.compiler)
         atomizer = TwoPassAtomizer(llm_executor)
 
-        inputs_payload = exec_record.raw_inputs.model_dump(mode="json")
-        dynamic_inputs = inputs_payload.get("dynamic_inputs", {})
+        dynamic_inputs = exec_record.raw_inputs.dynamic_inputs
         atoms_by_input = {}
 
         total_files = len([k for k, v in dynamic_inputs.items() if isinstance(v, str)])

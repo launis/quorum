@@ -1,3 +1,6 @@
+import backend_v2.llm.client
+from backend_v2.models.v2_core import Step
+from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -29,7 +32,7 @@ def mock_compiler() -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -76,7 +79,7 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
 
 @pytest.mark.asyncio
 async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -109,6 +112,7 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
     )
 
     mock_repo.get_execution.return_value = None
+    mock_repo.get_step_by_id.return_value['model_strategy'] = 'synthesis'
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -132,7 +136,7 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
 async def test_dag_executor_preflight_triggered_by_model_strategy(
     mock_repo: MagicMock, mock_compiler: MagicMock
 ) -> None:
-    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -195,7 +199,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
 
 @pytest.mark.asyncio
 async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -228,6 +232,7 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
     )
 
     mock_repo.get_execution.return_value = None
+    mock_repo.get_step_by_id.return_value['model_strategy'] = 'synthesis'
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -250,7 +255,7 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
 
 @pytest.mark.asyncio
 async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler, workflow_repo=mock_repo), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -306,19 +311,22 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
     from backend_v2.models.domain.blackboard import DraftAtomList
 
     with (
-        patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.two_pass_atomizer.TwoPassAtomizer") as mock_atomizer_cls,
+        patch("backend_v2.llm.client.LLMClient.from_strategy"),
+        patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
     ):
         mock_atomizer = mock_atomizer_cls.return_value
+        mock_client = AsyncMock()
+        mock_client._config.provider = "openai"
+        mock_client.run_structured_task = AsyncMock(return_value=(MagicMock(), {"completion_tokens": 0, "prompt_tokens": 0, "total_tokens": 0}))
+        backend_v2.llm.client.LLMClient.from_strategy.return_value = mock_client
         mock_atomizer.execute_phase_0 = AsyncMock(return_value={})
         mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=[]))
 
         await executor.rag_preflight.execute(
-            workflow=workflow,
+            target_step=workflow.steps[0],
+            step_def=Step.model_validate(mock_repo.get_step_by_id.return_value),
             exec_record=exec_record,
-            projector=MagicMock(),
-            virtual_step_id="stp_1234567890abcdef",
-            _emit_progress=AsyncMock(),
+            emit_progress=AsyncMock(),
         )
 
         # It should ONLY process dynamic_inputs, not system keys like 'language'
