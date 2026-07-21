@@ -90,12 +90,13 @@ class SynthesisEngine:
                 await request.progress_callback(10, 100)
 
             # Epic 101: Rule 4 - Execution Delegation
-            validated_model, usage = await self._executor.execute_structured_task(
-                client=request.bound_client,
-                messages=local_messages,
-                response_model=request.compiled_schema,
-                validation_context={"strictness_level": request.context.strictness_level},
-            )
+            async with request.semaphore:
+                validated_model, usage = await self._executor.execute_structured_task(
+                    client=request.bound_client,
+                    messages=local_messages,
+                    response_model=request.compiled_schema,
+                    validation_context={"strictness_level": request.context.strictness_level},
+                )
 
             if request.progress_callback:
                 await request.progress_callback(90, 100)
