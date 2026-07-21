@@ -188,3 +188,45 @@ async def test_client_bubbles_up_service_unavailable_error(mock_create_provider:
     # It MUST raise ServiceUnavailableError directly, NOT AgentExecutionError or LLMSchemaValidationError
     with pytest.raises(ServiceUnavailableError):
         await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
+
+
+from enum import StrEnum
+
+
+class DummyEnum(StrEnum):
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+
+
+class DummyStrictEnumModel(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+    status: DummyEnum
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_parses_strict_enum_from_json(mock_create_provider: MagicMock) -> None:
+    """Tier 4 Regression: Ensure strict models with Enums are successfully parsed from LLM JSON strings."""
+    mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock()
+    mock_create_provider.return_value = mock_provider
+
+    mock_response = MagicMock()
+    mock_response.content = '{"status": "PASSED"}'
+    mock_response.token_usage = {
+        "prompt_tokens": 10,
+        "completion_tokens": 5,
+        "total_tokens": 15,
+        "cached_tokens": 0,
+        "reasoning_tokens": 0,
+        "cost_usd": 0.01,
+    }
+    mock_provider.generate.return_value = mock_response
+
+    client = LLMClient(config=cast(Any, DummyConfig()))
+    messages = [{"role": "user", "content": "Test"}]
+
+    # This will raise LLMSchemaValidationError if the bug is present, failing the test if we assert it succeeds.
+    # The proof of failure step means the test should crash/fail.
+    result, usage = await client.run_structured_task(messages=messages, response_model=DummyStrictEnumModel)
+    assert result.status == DummyEnum.PASSED

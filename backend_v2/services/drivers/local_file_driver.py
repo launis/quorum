@@ -15,8 +15,8 @@ from backend_v2.services.file_driver import FileDriver
 logger = logging.getLogger(__name__)
 
 # Constants for Windows os.replace retry logic
-MAX_REPLACE_RETRIES = 5
-REPLACE_RETRY_DELAY_SEC = 0.1
+MAX_REPLACE_RETRIES = 15
+REPLACE_RETRY_DELAY_SEC = 0.5
 
 
 class LocalFileDriver(FileDriver):
@@ -154,13 +154,16 @@ class LocalFileDriver(FileDriver):
                     await asyncio.sleep(REPLACE_RETRY_DELAY_SEC)
 
             return str(full_path)
+        except AppException:
+            # Re-raise the already formatted AppException (e.g. 409 File Locked)
+            raise
         except Exception as e:
             logger.error(
                 f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save file to {path}: {e}",
                 exc_info=True,
             )
             raise AppException(
-                message=f"Local Save Failed: {str(e)}",
+                message=f"Local Save Failed: {e}",
                 status_code=500,
                 details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e

@@ -433,7 +433,8 @@ class LLMClient:
 
                 parsed_dict = UniversalIngress.parse_llm_output(raw_content)
                 cleaned_dict = UniversalIngress.clean_dict_against_model(parsed_dict, response_model)
-                parsed_json = response_model.model_validate(cleaned_dict, context=validation_context)
+                cleaned_json_str = json.dumps(cleaned_dict)
+                parsed_json = response_model.model_validate_json(cleaned_json_str, context=validation_context)
 
                 validated_model = cast(T, parsed_json)  # type: ignore[redundant-cast]
 
