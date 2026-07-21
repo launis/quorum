@@ -22,6 +22,10 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <mandatory_pattern>You MUST always actively search for the true Root Cause of any problem or architectural flaw. For EVERY modification you make or propose, you MUST explicitly write down the Root Cause that necessitated the change and provide a detailed architectural Justification for why your specific solution is the correct one.</mandatory_pattern>
       <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
     </rule_block>
+    <rule_block id="context_amnesia_prevention">
+      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
+      <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="0">
     <step id="1">DYNAMIC CONTEXT ACQUISITION: Read and internalize the provided `[implementation_plan]`. Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely target the files in `backend_v2/` referenced by the plan, as well as the database state in `backend_v2/seed/seed_data.json`.</step>
@@ -53,6 +57,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       - Can this change be implemented completely without breaking existing legacy code (or has the legacy migration been handled safely first)?
       - If we modify the backend data model, how do we ensure the Flutter client or the LLM parser does not break (second-order effects)?
       - How does the planned LLM functionality handle potential failure states (e.g., rate limits, token limits, failed JSON schema validations, or hallucinations) without compromising system stability?
+      - CONTEXT WINDOW AUDIT: Does this plan overload the Context Window by trying to modify too many files (>4) in a single session without scheduling a Session Handover tracker update?
     </step>
 
     <step id="4">EXPERIMENTAL VALIDATION (DRY-RUNS): Perform "dry-runs" for your best corrective proposals. If possible, execute local commands or simulated code walkthroughs to confirm that the proposed new logic will actually function as intended within the current Quorum environment.</step>

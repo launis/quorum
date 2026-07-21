@@ -29,6 +29,10 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       <mandatory_pattern>You MUST always actively search for the true Root Cause of any problem or architectural flaw. For EVERY modification you make or propose, you MUST explicitly write down the Root Cause that necessitated the change and provide a detailed architectural Justification for why your specific solution is the correct one.</mandatory_pattern>
       <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
     </rule_block>
+    <rule_block id="context_amnesia_prevention">
+      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
+      <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="0">
     <step id="1">DYNAMIC CONTEXT ACQUISITION: Read and internalize the provided `[epic_document]`. Actively use search tools (`grep_search`, `view_file`) to check the current state of the global architecture (`backend_v2/`, `client_app_v2/`, and `backend_v2/seed/seed_data.json`) to understand the baseline the Epic is modifying.</step>
@@ -60,6 +64,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       - If the Epic requires data migration, is the transition atomic and safe without creating "False Unifications"?
       - Does the Epic account for transient failures (e.g., network, LLM rate limits) using the established retry loops and DLQ strategies instead of generic try/except blocks?
       - Are we duplicating existing cognitive features or SSOT elements unnecessarily?
+      - ZERO-BEHAVIORAL CHANGE FALSIFICATION: Does this Epic illegally mix structural refactoring with new feature additions? If so, flag this as an architectural violation and demand they be split into separate phases.
     </step>
 
     <step id="4">AMBIGUITY RESOLUTION: Identify any underspecified requirements in the Epic. If the Epic assumes "the system will handle X" without defining *how* within the Quorum framework, call it out as a high-risk unknown.</step>

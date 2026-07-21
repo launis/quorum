@@ -18,6 +18,10 @@ description: Tier 0 (Create Plan) - Generates an architectural implementation pl
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
       <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
     </rule_block>
+    <rule_block id="context_amnesia_prevention">
+      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
+      <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="0_create">
     <step id="1">DYNAMIC CONTEXT ACQUISITION &amp; STATE VERIFICATION: Gather all requirements from the user. Do NOT guess the current state of the codebase. Actively use your search tools (`grep_search`, `view_file`) to precisely target the directories affected. MUTABILITY MANDATE: If the user requests to UPDATE an existing Epic or Plan, you MUST use `view_file` to read the existing document first to avoid overwriting previous work. Load architectural rules and KI summaries.</step>
@@ -49,7 +53,7 @@ description: Tier 0 (Create Plan) - Generates an architectural implementation pl
     <step id="4">ARCHITECTURAL SAFEGUARDS (Pre-Flight Red-Teaming): Ensure the document explicitly mandates quality requirements:
       - Where does the data originate (Producer) and who reads it (Consumer)?
       - How will the new feature be tested (Unit tests, Audit loops)?
-      - What Knowledge Base (KI) updates might this require?
+      - What Knowledge Base (KI) updates might this require? KNOWLEDGE ITEM CREATION MANDATE: If the plan involves creating a new Single Source of Truth (SSOT) or a novel architectural pattern, the plan MUST mandate the creation of a new Knowledge Item (KI) artifact so future agents inherit the pattern.
     </step>
 
     <step id="5">DOCUMENT CREATION &amp; PERSISTENCE (WRITE SAFETY):

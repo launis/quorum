@@ -38,6 +38,14 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
         * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading</mandatory_pattern>
       <catastrophic_reason>Writing outdated architectural patterns violates Quorum invariants and forces immediate refactoring loops.</catastrophic_reason>
     </rule_block>
+    <rule_block id="zero_behavioral_change_mandate">
+      <mandatory_pattern>If the task involves refactoring, you are STRICTLY FORBIDDEN from adding new features in the same session. Refactoring must be 100% structural parity.</mandatory_pattern>
+      <catastrophic_reason>Mixing functional changes with structural changes destroys the ability to isolate regressions.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="context_amnesia_prevention">
+      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
+      <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="3">
     <step id="1">DYNAMIC CONTEXT ACQUISITION &amp; EXHAUSTIVE PLAN: Do NOT attempt to read the entire codebase blindly. Instead, actively use your search tools (`grep_search`, `view_file`) to precisely target related files. Create an exhaustive, detailed execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files. DESTRUCTIVE OPERATION INVENTORY: If refactoring involves DELETING or REPLACING any source file, you MUST line-by-line inventory every exported symbol and map its new location. BIDIRECTIONAL INTEGRATION CHECK: For any new parser or data consumer, you MUST explicitly document the corresponding PRODUCER.</step>
@@ -50,7 +58,7 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
     
     <step id="5">RED-GREEN-REFACTOR &amp; ESCALATION MANDATE: After your atomic execution batch, you MUST run the tests YOURSELF using the `run_command` tool via the Universal Quality Gate as defined in `AGENTS.md`. Do NOT tell the user to run the tests. DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times, tripping the Circuit Breaker, you MUST STOP attempting to duct-tape the code. You MUST explicitly instruct the user to run `git restore .` to completely wipe the corrupted workspace state before re-evaluating the plan. END-TO-END SMOKE TEST: You MUST verify the change works in the actual runtime context before marking the refactoring complete.</step>
     
-    <step id="6">DOCUMENTATION AUDIT MANDATE: If the refactoring introduced new systems, modified data flows, shifted architectural boundaries, or created directories, you MUST physically modify the documents in `docs\architecture\` AND `.agents\rules\04_directory_reference.md`, strictly maintaining their existing table structures. Do NOT update architecture documentation for minor tweaks.</step>
+    <step id="6">DOCUMENTATION AUDIT MANDATE: If the refactoring introduced new systems, modified data flows, shifted architectural boundaries, or created directories, you MUST physically modify the documents in `docs\architecture\` AND `.agents\rules\04_directory_reference.md`, strictly maintaining their existing table structures. KNOWLEDGE ITEM CREATION MANDATE: If the refactoring results in a new, reusable domain pattern, you MUST mandate the creation of a KI artifact. Do NOT update architecture documentation for minor tweaks.</step>
     
     <step id="7">HARDENING RECOMMENDATION: Once the feature is fully refactored, tests pass, and the Universal Quality Gate is green, explicitly suggest to the user that they should run the Tier 2 Hardening workflow. You MUST build and present the ready-to-run slash command for them (e.g., `/tier2-hardening-backend backend_v2/target_dir`).</step>
     
