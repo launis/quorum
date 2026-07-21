@@ -47,6 +47,7 @@ def test_extracted_atom_valid():
         source_quote="The quote",
         tda_id="tda_1234567890abcdef",
         source_id="src_1",
+        source_sequence_index=0,
     )
     assert atom.resolved_claim == "The claim"
     assert atom.tda_id == "tda_1234567890abcdef"
@@ -56,11 +57,12 @@ def test_extracted_atom_invalid_tda_id():
     """Test ExtractedAtom with invalid tda_id format."""
     with pytest.raises(ValidationError):
         ExtractedAtom(
-            reasoning="Testing reasoning",
-            resolved_claim="The claim",
-            source_quote="The quote",
-            tda_id="invalid_id",
+            reasoning="Reasoning",
+            resolved_claim="Claim",
+            source_quote="Quote",
+            tda_id="invalid_id_format",
             source_id="src_1",
+            source_sequence_index=0,
         )
 
 
@@ -72,6 +74,7 @@ def test_linked_atom_graph_valid():
         source_quote="The quote",
         tda_id="tda_1234567890abcdef",
         source_id="src_1",
+        source_sequence_index=0,
     )
     graph = LinkedAtomGraph(atom=atom)
     assert graph.atom == atom

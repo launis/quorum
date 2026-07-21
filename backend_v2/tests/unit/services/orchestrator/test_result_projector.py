@@ -12,6 +12,7 @@ def test_result_projector_logical_deduction_crash():
         is_logical_deduction=True,
         source_quote=None,
         source_id="chunk_0",
+        source_sequence_index=0,
     )
     node = LinkedAtomGraph(atom=atom, depends_on=[])
 

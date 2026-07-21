@@ -110,7 +110,7 @@ class Settings(BaseSettings):
         int, Field(description="Global limit on number of extracted atoms per document to prevent DB bloat")
     ] = 1000
     max_concurrent_workflows: Annotated[int, Field(description="Max parallel workflow chunks")] = 10
-    max_concurrent_llm_steps: Annotated[int, Field(description="Max parallel LLM calls in dag_executor")] = 10
+    max_concurrent_llm_steps: Annotated[int, Field(description="Max parallel LLM extractions within a TaskGroup")] = 3
     llm_max_schema_retries: Annotated[int, Field(description="Max retries for schema validation failures")] = 2
     llm_max_logical_retries: Annotated[int, Field(description="Max retries for logical validation failures")] = 2
     llm_retry_multiplier: Annotated[int, Field(description="Exponential backoff multiplier")] = 2

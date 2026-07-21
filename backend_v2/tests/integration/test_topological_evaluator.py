@@ -21,6 +21,7 @@ def create_mock_atom(tda_id: str) -> ExtractedAtom:
         resolved_claim="Test claim",
         source_quote="Test quote",
         source_id="chunk_1",
+        source_sequence_index=0,
     )
 
 

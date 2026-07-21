@@ -53,19 +53,24 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
             resolved_claim="claim",
             source_quote="test text",
             source_id="src",
+            source_sequence_index=0,
         ),
         depends_on=[],
     )
 
-    with patch(
-        "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.evaluate_atom_boolean_batch",
-        new_callable=AsyncMock,
-    ) as mock_sensor, patch(
-        "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
-        new_callable=AsyncMock,
-    ), patch(
-        "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
-        new_callable=AsyncMock,
+    with (
+        patch(
+            "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.evaluate_atom_boolean_batch",
+            new_callable=AsyncMock,
+        ) as mock_sensor,
+        patch(
+            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
+            new_callable=AsyncMock,
+        ),
     ):
         mock_sensor.return_value = {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})}
         status_dict = await captured_callback([mock_node])
@@ -87,6 +92,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
 
     captured_callback = None
+
     async def fake_evaluate_graph(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
     ) -> dict[str, Any]:
@@ -95,6 +101,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
         return {}
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom
+
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
             tda_id="tda_11111111111111111111111111111111",
@@ -102,6 +109,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
             resolved_claim="claim",
             source_quote="test text",
             source_id="src",
+            source_sequence_index=0,
         ),
         depends_on=[],
     )
@@ -112,21 +120,26 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
     assert captured_callback is not None
 
     progress_calls = []
+
     async def mock_progress(completed: int, total: int) -> None:
         progress_calls.append((completed, total))
 
-    with patch(
-        "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
-        new_callable=AsyncMock,
-    ) as mock_pre_eval, patch(
-        "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
-        new_callable=AsyncMock,
-    ), patch(
-        "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
-        new_callable=AsyncMock,
+    with (
+        patch(
+            "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
+            new_callable=AsyncMock,
+        ) as mock_pre_eval,
+        patch(
+            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
+            new_callable=AsyncMock,
+        ),
     ):
         mock_pre_eval.return_value = ({"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})}, [])
-        
+
         # We need to test the progress_callback, but the callback is provided to execute_graph.
         # So we have to re-invoke execute_graph, but patch evaluate_graph to actually run the callback.
         pass
@@ -138,17 +151,24 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
         return await batch_evaluation_callback(nodes)
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph_exec):
-        with patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
-            new_callable=AsyncMock,
-        ) as mock_pre_eval, patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
-            new_callable=AsyncMock,
-        ), patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
-            new_callable=AsyncMock,
+        with (
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
+                new_callable=AsyncMock,
+            ) as mock_pre_eval,
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
+                new_callable=AsyncMock,
+            ),
         ):
-            mock_pre_eval.return_value = ({"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})}, [])
+            mock_pre_eval.return_value = (
+                {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})},
+                [],
+            )
             result = await executor.execute_graph(
                 nodes=[mock_node], source_text="test text", progress_callback=mock_progress
             )
@@ -169,6 +189,7 @@ async def test_execute_graph_callback_persistent_error(
         return await batch_evaluation_callback(nodes)
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom
+
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
             tda_id="tda_11111111111111111111111111111111",
@@ -176,24 +197,30 @@ async def test_execute_graph_callback_persistent_error(
             resolved_claim="claim",
             source_quote="test text",
             source_id="src",
+            source_sequence_index=0,
         ),
         depends_on=[],
     )
 
     progress_calls = []
+
     async def mock_progress(completed: int, total: int) -> None:
         progress_calls.append((completed, total))
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph_exec):
-        with patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
-            new_callable=AsyncMock,
-        ) as mock_pre_eval, patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
-            new_callable=AsyncMock,
-        ), patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
-            new_callable=AsyncMock,
+        with (
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
+                new_callable=AsyncMock,
+            ) as mock_pre_eval,
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
+                new_callable=AsyncMock,
+            ),
         ):
             mock_pre_eval.side_effect = ValueError("Some persistent validation error")
             result = await executor.execute_graph(
@@ -205,9 +232,7 @@ async def test_execute_graph_callback_persistent_error(
 
 
 @pytest.mark.asyncio
-async def test_execute_graph_callback_transient_error(
-    mock_llm_executor: AsyncMock, mock_llm_client: AsyncMock
-) -> None:
+async def test_execute_graph_callback_transient_error(mock_llm_executor: AsyncMock, mock_llm_client: AsyncMock) -> None:
     """Test when process_chunk raises a transient error, it bubbles up."""
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
 
@@ -217,6 +242,7 @@ async def test_execute_graph_callback_transient_error(
         return await batch_evaluation_callback(nodes)
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom
+
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
             tda_id="tda_11111111111111111111111111111111",
@@ -224,29 +250,35 @@ async def test_execute_graph_callback_transient_error(
             resolved_claim="claim",
             source_quote="test text",
             source_id="src",
+            source_sequence_index=0,
         ),
         depends_on=[],
     )
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph_exec):
-        with patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
-            new_callable=AsyncMock,
-        ) as mock_pre_eval, patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor._is_transient_llm_error",
-            return_value=True,
-        ), patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
-            new_callable=AsyncMock,
-        ), patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
-            new_callable=AsyncMock,
-        ) as mock_teardown:
+        with (
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
+                new_callable=AsyncMock,
+            ) as mock_pre_eval,
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor._is_transient_llm_error",
+                return_value=True,
+            ),
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
+                new_callable=AsyncMock,
+            ) as mock_teardown,
+        ):
             mock_pre_eval.side_effect = ValueError("Transient network error")
-            mock_teardown.side_effect = ValueError("Teardown error") # Also cover the finally block exception handling
-            
+            mock_teardown.side_effect = ValueError("Teardown error")  # Also cover the finally block exception handling
+
             with pytest.raises(ExceptionGroup) as exc_info:
                 await executor.execute_graph(nodes=[mock_node], source_text="test text")
-            
+
             assert len(exc_info.value.exceptions) == 1
             assert str(exc_info.value.exceptions[0]) == "Transient network error"

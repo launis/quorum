@@ -24,7 +24,7 @@ def mock_repo() -> AsyncMock:
         "slug": "mock",
         "name": {"default_locale": "en", "translations": {"en": "mock"}},
         "description": {"default_locale": "en", "translations": {"en": "mock"}},
-        "hook": "mock_hook"
+        "hook": "mock_hook",
     }
 
     # Mock context rehydration
@@ -48,7 +48,8 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
     """Test that asyncio.TaskGroup automatically cancels sibling tasks
     when one task fails, eradicating zombie threads naturally.
     """
-    executor = DAGExecutor(rag_preflight=AsyncMock(),
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,

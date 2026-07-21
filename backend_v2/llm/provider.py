@@ -511,9 +511,7 @@ class LiteLLMProvider(LLMProvider):
                     _timeout = call_kwargs["timeout"]
                     start_time = time.perf_counter()
 
-                    response = await asyncio.wait_for(
-                        self.router.acompletion(**call_kwargs), timeout=float(_timeout)
-                    )
+                    response = await asyncio.wait_for(self.router.acompletion(**call_kwargs), timeout=float(_timeout))
 
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")

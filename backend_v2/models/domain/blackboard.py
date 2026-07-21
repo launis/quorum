@@ -53,6 +53,9 @@ class DraftExtractedAtom(V2CoreBase):
         Field(default=None, description="The exact verbatim quote. Must be None if is_logical_deduction is True."),
     ] = None
     draft_id: Annotated[str, Field(description="A short temporary ID assigned by LLM, e.g. a0, a1.")]
+    source_sequence_index: Annotated[
+        int, Field(description="Injected programmatically by the Python worker for chronological sorting.")
+    ]
 
 
 class DraftAtomList(V2CoreBase):

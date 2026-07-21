@@ -62,7 +62,6 @@ async def test_lite_llm_rate_limit_cooldown(mock_settings: Any, monkeypatch: Any
 
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
 
-
     # apply_provider_pacing removed from module
 
     try:
@@ -141,7 +140,6 @@ async def test_lite_llm_fail_soft_fallback(mock_settings: Any, monkeypatch: Any)
         pass
 
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
-
 
     # apply_provider_pacing removed from module
 

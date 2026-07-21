@@ -19,6 +19,7 @@ def create_atom(tda_id: str) -> ExtractedAtom:
         source_quote="quote",
         tda_id=tda_id,
         source_id="src",
+        source_sequence_index=0,
     )
 
 

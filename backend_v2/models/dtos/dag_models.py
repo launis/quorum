@@ -78,6 +78,9 @@ class ExtractedAtom(BaseModel):
         ),
     ]
     source_id: Annotated[str | None, Field(description="The spatial anchor (Chunk ID).")] = None
+    source_sequence_index: Annotated[
+        int, Field(description="The chronological sequence index indicating extraction order.")
+    ]
 
 
 class LinkedAtomGraph(BaseModel):

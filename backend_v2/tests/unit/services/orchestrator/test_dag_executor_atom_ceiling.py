@@ -36,7 +36,10 @@ def mock_compiler() -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler, workflow_repo=mock_repo),
+    executor = DAGExecutor(
+        rag_preflight=RAGPreflightService(
+            system_repo=mock_repo, prompt_compiler=mock_compiler, workflow_repo=mock_repo
+        ),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -83,7 +86,7 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
             ),
             "synthesis": ModelProfile(
                 provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
-            )
+            ),
         },
     ).model_dump(mode="json")
     mock_repo.get_system_config_model_registry.return_value = model_registry_data
@@ -119,18 +122,28 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         mock_atomizer.execute_phase_0 = AsyncMock()
 
         atoms = [
-            DraftExtractedAtom(reasoning="1", resolved_claim="1", draft_id="a1", is_logical_deduction=True),
-            DraftExtractedAtom(reasoning="2", resolved_claim="2", draft_id="a2", is_logical_deduction=True),
-            DraftExtractedAtom(reasoning="3", resolved_claim="3", draft_id="a3", is_logical_deduction=True),
+            DraftExtractedAtom(
+                reasoning="1", resolved_claim="1", draft_id="a1", is_logical_deduction=True, source_sequence_index=0
+            ),
+            DraftExtractedAtom(
+                reasoning="2", resolved_claim="2", draft_id="a2", is_logical_deduction=True, source_sequence_index=0
+            ),
+            DraftExtractedAtom(
+                reasoning="3", resolved_claim="3", draft_id="a3", is_logical_deduction=True, source_sequence_index=0
+            ),
         ]
         mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=atoms))
 
         with pytest.raises(WorkflowExecutionError) as exc_info:
-                await executor.execute_workflow(
-                    execution_id="exe_1234567890abcdef",
-                    workflow=workflow,
-                    raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": "This is a sufficiently long text to pass the fail fast check in LLM Task Executor!"}),
-                )
+            await executor.execute_workflow(
+                execution_id="exe_1234567890abcdef",
+                workflow=workflow,
+                raw_inputs=WorkflowInputs(
+                    dynamic_inputs={
+                        "doc_1": "This is a sufficiently long text to pass the fail fast check in LLM Task Executor!"
+                    }
+                ),
+            )
 
         # assert exc_info.value.status_code == 500  # DAGExecutor wraps inner 400 with 500 workflow execution failed
         assert "Atom ceiling exceeded" in str(exc_info.value.original_error)

@@ -14,7 +14,7 @@ def test_security_check_valid() -> None:
         "risk_score": 1.0,
         "simulation_score": 1.0,
         "anonymized": False,
-        "pii_findings": []
+        "pii_findings": [],
     }
     model = SecurityCheck.model_validate(data)
     assert model.threat_detected is False
@@ -29,7 +29,7 @@ def test_security_check_invalid_score() -> None:
         "risk_score": 5.0,  # Invalid
         "simulation_score": 1.0,
         "anonymized": False,
-        "pii_findings": []
+        "pii_findings": [],
     }
     with pytest.raises(AppException) as exc:
         SecurityCheck.model_validate(data)
@@ -78,4 +78,3 @@ def test_input_processing_output_invalid_unsafe_no_reason() -> None:
         InputProcessingOutputDTO.model_validate(data)
 
     assert "rejection_reason must be provided if is_safe is False" in str(exc.value)
-

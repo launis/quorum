@@ -199,6 +199,7 @@ class TwoPassAtomizer:
                         source_quote=exact_quote,
                         tda_id=tda_id,
                         source_id=f"chunk_{chunk_index}",
+                        source_sequence_index=0,
                     )
                 )
             return final_atoms
@@ -294,6 +295,7 @@ class TwoPassAtomizer:
                             is_logical_deduction=True,
                             source_quote=None,
                             draft_id=draft.draft_id,
+                            source_sequence_index=0,
                         )
                     )
                     continue
@@ -327,6 +329,7 @@ class TwoPassAtomizer:
                         is_logical_deduction=False,
                         source_quote=exact_quote,
                         draft_id=draft.draft_id,
+                        source_sequence_index=0,
                     )
                 )
 

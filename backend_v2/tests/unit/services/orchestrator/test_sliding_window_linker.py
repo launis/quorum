@@ -18,27 +18,47 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
     chunks = [
         [
             ExtractedAtom(
-                tda_id="tda_0123456789abcdef", resolved_claim="claim 1", reasoning="reason 1", source_quote="quote 1"
+                tda_id="tda_0123456789abcdef",
+                resolved_claim="claim 1",
+                reasoning="reason 1",
+                source_quote="quote 1",
+                source_sequence_index=0,
             )
         ],
         [
             ExtractedAtom(
-                tda_id="tda_0123456789abcde0", resolved_claim="claim 2", reasoning="reason 2", source_quote="quote 2"
+                tda_id="tda_0123456789abcde0",
+                resolved_claim="claim 2",
+                reasoning="reason 2",
+                source_quote="quote 2",
+                source_sequence_index=0,
             )
         ],
         [
             ExtractedAtom(
-                tda_id="tda_0123456789abcde1", resolved_claim="claim 3", reasoning="reason 3", source_quote="quote 3"
+                tda_id="tda_0123456789abcde1",
+                resolved_claim="claim 3",
+                reasoning="reason 3",
+                source_quote="quote 3",
+                source_sequence_index=0,
             )
         ],
         [
             ExtractedAtom(
-                tda_id="tda_0123456789abcde2", resolved_claim="claim 4", reasoning="reason 4", source_quote="quote 4"
+                tda_id="tda_0123456789abcde2",
+                resolved_claim="claim 4",
+                reasoning="reason 4",
+                source_quote="quote 4",
+                source_sequence_index=0,
             )
         ],
         [
             ExtractedAtom(
-                tda_id="tda_0123456789abcde3", resolved_claim="claim 5", reasoning="reason 5", source_quote="quote 5"
+                tda_id="tda_0123456789abcde3",
+                resolved_claim="claim 5",
+                reasoning="reason 5",
+                source_quote="quote 5",
+                source_sequence_index=0,
             )
         ],
     ]
@@ -84,12 +104,20 @@ def test_sliding_window_linker_get_windows_small(monkeypatch: pytest.MonkeyPatch
     chunks = [
         [
             ExtractedAtom(
-                tda_id="tda_0123456789abcdef", resolved_claim="claim 1", reasoning="reason 1", source_quote="quote 1"
+                tda_id="tda_0123456789abcdef",
+                resolved_claim="claim 1",
+                reasoning="reason 1",
+                source_quote="quote 1",
+                source_sequence_index=0,
             )
         ],
         [
             ExtractedAtom(
-                tda_id="tda_0123456789abcde0", resolved_claim="claim 2", reasoning="reason 2", source_quote="quote 2"
+                tda_id="tda_0123456789abcde0",
+                resolved_claim="claim 2",
+                reasoning="reason 2",
+                source_quote="quote 2",
+                source_sequence_index=0,
             )
         ],
     ]
@@ -109,7 +137,11 @@ def test_sliding_window_linker_subdivides_oversized_chunks(monkeypatch: pytest.M
     linker = SlidingWindowLinker(window_size=3, overlap=1)
     chunk = [
         ExtractedAtom(
-            tda_id=f"tda_0000000{i}", resolved_claim=f"claim {i}", reasoning=f"reason {i}", source_quote=f"quote {i}"
+            tda_id=f"tda_0000000{i}",
+            resolved_claim=f"claim {i}",
+            reasoning=f"reason {i}",
+            source_quote=f"quote {i}",
+            source_sequence_index=0,
         )
         for i in range(5)
     ]
@@ -179,10 +211,20 @@ async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.Monke
     # Two valid atoms
     atoms = [
         ExtractedAtom(
-            tda_id="tda_00000000", resolved_claim="claim 0", reasoning="r0", source_quote="q0", source_id="chunk_0"
+            tda_id="tda_00000000",
+            resolved_claim="claim 0",
+            reasoning="r0",
+            source_quote="q0",
+            source_id="chunk_0",
+            source_sequence_index=0,
         ),
         ExtractedAtom(
-            tda_id="tda_11111111", resolved_claim="claim 1", reasoning="r1", source_quote="q1", source_id="chunk_0"
+            tda_id="tda_11111111",
+            resolved_claim="claim 1",
+            reasoning="r1",
+            source_quote="q1",
+            source_id="chunk_0",
+            source_sequence_index=0,
         ),
     ]
 

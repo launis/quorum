@@ -32,7 +32,8 @@ def mock_compiler() -> Any:
 
 @pytest.mark.asyncio
 async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo: Any, mock_compiler: Any) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(),
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -42,7 +43,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        )
+    )
 
     workflow = Workflow(
         allowed_exports=["pdf"],
@@ -82,7 +83,8 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
 
 @pytest.mark.asyncio
 async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compiler: Any) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(),
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -92,7 +94,7 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        )
+    )
 
     workflow = Workflow(
         allowed_exports=["pdf"],
@@ -145,7 +147,8 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_compiler: Any) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(),
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -155,7 +158,7 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        )
+    )
 
     workflow = Workflow(
         allowed_exports=["pdf"],
@@ -214,7 +217,8 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
 @pytest.mark.asyncio
 async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_compiler: Any) -> None:
     """Test that an unhandled exception inside a step triggers ExceptionGroup cascade and DLQ routing."""
-    executor = DAGExecutor(rag_preflight=AsyncMock(),
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -224,7 +228,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        )
+    )
 
     from backend_v2.models.v2_core import StepRule, Workflow, WorkflowInputs
 
@@ -294,7 +298,7 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        )
+    )
 
     step = StepRule(
         id="stp_1234567890abcdef",
