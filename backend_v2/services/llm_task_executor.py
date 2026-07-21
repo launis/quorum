@@ -1,3 +1,5 @@
+"""Centralized LLM task executor enforcing self-healing and Fail-Fast pipelines."""
+
 import logging
 import re
 import time
@@ -19,6 +21,7 @@ from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.settings import get_settings
+from backend_v2.utils.llm_debug_logger import write_llm_telemetry_log
 
 logger = logging.getLogger(__name__)
 
@@ -181,8 +184,6 @@ class LLMTaskExecutor:
                         else usage.get("total_tokens", 0)
                     )
                     trigger_reason = "initial" if attempt == 0 else "self_healing_retry"
-
-                    from backend_v2.utils.llm_debug_logger import write_llm_telemetry_log
 
                     write_llm_telemetry_log(
                         execution_id=exec_id,
@@ -389,5 +390,8 @@ class LLMTaskExecutor:
 
         Returns:
             The raw unstructured response from the LLM.
+
+        Raises:
+            AgentExecutionError: If the chat task execution fails.
         """
         return await client.run_chat(**kwargs)

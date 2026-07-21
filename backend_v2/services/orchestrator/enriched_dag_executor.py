@@ -8,10 +8,12 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 
+from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
@@ -71,6 +73,10 @@ class EnrichedDagExecutor:
                 )
 
                 if not undecided_nodes:
+                    if progress_callback:
+                        async with progress_lock:
+                            completed_atoms += len(chunk)
+                            await progress_callback(completed_atoms, total_atoms)
                     return pre_flight_results
 
                 llm_results = await ExtractiveSensorService.evaluate_atom_boolean_batch(
@@ -127,9 +133,6 @@ class EnrichedDagExecutor:
 
             merged_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
 
-            from backend_v2.llm.caching_service import LLMCachingService
-            from backend_v2.models.prompt import CompiledPrompt
-
             prompt_text = (
                 "Evaluate if the following claims are true based strictly on the provided context.\n"
                 "Return the results matching each claim's alias.\n\n"
@@ -141,7 +144,7 @@ class EnrichedDagExecutor:
             )
 
             provider_name = self._llm_client._config.provider if self._llm_client._config else "vertex_ai"
-            model_name = str(self._llm_client._config.model) if self._llm_client._config else "gemini-1.5-pro"
+            model_name = str(self._llm_client._config.model_name) if self._llm_client._config else "gemini-1.5-pro"
 
             await LLMCachingService.pre_cache_document(
                 provider_name=provider_name,

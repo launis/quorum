@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.exceptions import (
     AgentExecutionError,
+    AppException,
     ServiceUnavailableError,
 )
 from backend_v2.llm.client import LLMClient
@@ -230,3 +231,105 @@ async def test_client_parses_strict_enum_from_json(mock_create_provider: MagicMo
     # The proof of failure step means the test should crash/fail.
     result, usage = await client.run_structured_task(messages=messages, response_model=DummyStrictEnumModel)
     assert result.status == DummyEnum.PASSED
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_chat_success(mock_create_provider: MagicMock) -> None:
+    """Test successful free-form chat generation."""
+    mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock()
+    mock_create_provider.return_value = mock_provider
+
+    mock_response = MagicMock()
+    mock_response.content = "Chat success"
+    mock_response.tool_calls = None
+    mock_provider.generate.return_value = mock_response
+
+    client = LLMClient(config=cast(Any, DummyConfig()))
+    messages = [{"role": "user", "content": "Test"}]
+
+    res = await client.run_chat(messages=messages, model="test-model")
+    assert res == "Chat success"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_chat_cache_miss_fallback(mock_create_provider: MagicMock) -> None:
+    """Test run_chat cache miss fallback when cache returns 404."""
+    mock_provider = AsyncMock()
+    mock_create_provider.return_value = mock_provider
+
+    mock_success_response = MagicMock()
+    mock_success_response.content = "Fallback success"
+    mock_success_response.tool_calls = None
+
+    mock_provider.generate.side_effect = [Exception("404 Cached content not found"), mock_success_response]
+
+    c = DummyConfig()
+    c.caching_strategy = "ephemeral"
+    client = LLMClient(config=cast(Any, c))
+    messages = [{"role": "user", "content": "Test"}]
+
+    with patch(
+        "backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload", new_callable=AsyncMock
+    ) as mock_prepare:
+        mock_prepare.return_value = ([{"role": "user", "content": "Test"}], {"cached_content": "cache_id"})
+        res = await client.run_chat(messages=messages, model="test-model")
+        assert res == "Fallback success"
+        assert mock_provider.generate.call_count == 2
+        # Assert cached_content was stripped in second call
+        kwargs = mock_provider.generate.call_args_list[1].kwargs
+        assert "cached_content" not in kwargs
+
+
+@pytest.mark.asyncio
+async def test_client_run_structured_task_missing_config() -> None:
+    """Test AppException is raised when client is not configured via Strategy and model is missing."""
+    client = LLMClient(config=None)
+    with pytest.raises(AppException) as exc_info:
+        await client.run_structured_task(
+            messages=[{"role": "user", "content": "Test"}], response_model=DummyStrictModel
+        )
+    assert "Model Configuration Missing" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_client_run_chat_missing_config() -> None:
+    """Test AppException is raised when client is not configured via Strategy and model is missing for chat."""
+    client = LLMClient(config=None)
+    with pytest.raises(AppException) as exc_info:
+        await client.run_chat(messages=[{"role": "user", "content": "Test"}])
+    assert "Model Configuration Missing" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_structured_task_cache_miss_fallback(mock_create_provider: MagicMock) -> None:
+    """Test run_structured_task cache miss fallback when cache returns 404."""
+    mock_provider = AsyncMock()
+    mock_create_provider.return_value = mock_provider
+
+    mock_success_response = MagicMock()
+    mock_success_response.content = '{"step_4_final_score": 1}'
+    mock_success_response.token_usage = {
+        "prompt_tokens": 10,
+        "completion_tokens": 5,
+        "total_tokens": 15,
+        "cost_usd": 0.0,
+    }
+
+    mock_provider.generate.side_effect = [Exception("404 Cached content not found"), mock_success_response]
+
+    c = DummyConfig()
+    c.caching_strategy = "ephemeral"
+    client = LLMClient(config=cast(Any, c))
+    messages = [{"role": "user", "content": "Test"}]
+
+    with patch(
+        "backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload", new_callable=AsyncMock
+    ) as mock_prepare:
+        mock_prepare.return_value = ([{"role": "user", "content": "Test"}], {"cached_content": "cache_id"})
+        res, _ = await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
+        assert res.step_4_final_score == 1
+        assert mock_provider.generate.call_count == 2

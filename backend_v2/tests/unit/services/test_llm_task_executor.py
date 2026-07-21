@@ -192,3 +192,161 @@ async def test_execute_chat_task(mock_prompt_compiler: MagicMock, mock_client: A
     res = await executor.execute_chat_task(client=mock_client, messages=[])
     assert res == "chat response"
     mock_client.run_chat.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_validate_non_empty_payload_too_short(mock_prompt_compiler: MagicMock, mock_client: AsyncMock) -> None:
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+    from backend_v2.exceptions import AppException
+
+    with pytest.raises(AppException) as exc_info:
+        await executor.execute_structured_task(
+            client=mock_client,
+            messages=[{"role": "user", "content": "a"}],
+            response_model=MockResponseSchema,
+        )
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_execute_structured_task_compiled_prompt_and_metadata(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    executor = LLMTaskExecutor(
+        prompt_compiler=mock_prompt_compiler,
+        default_validation_context={"execution_id": "test", "step_id": "test_step"},
+    )
+    from backend_v2.models.prompt import CompiledPrompt
+
+    messages = CompiledPrompt(
+        static_messages=[
+            {"role": "user", "content": "This is a very long payload to pass the minimum validation length check."}
+        ],
+        dynamic_messages=[],
+    )
+
+    mock_client.run_structured_task.return_value = (
+        MockResponseSchema(value="ok"),
+        {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
+    )
+    res_model, _ = await executor.execute_structured_task(
+        client=mock_client, messages=messages, response_model=MockResponseSchema, validation_context={"custom": "meta"}
+    )
+    assert res_model.value == "ok"
+
+
+@pytest.mark.asyncio
+async def test_execute_structured_task_telemetry_failure(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+    mock_client.run_structured_task.return_value = (
+        MockResponseSchema(value="ok"),
+        {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
+    )
+
+    from unittest.mock import patch
+
+    with patch(
+        "backend_v2.services.llm_task_executor.write_llm_telemetry_log", side_effect=Exception("Telemetry fail")
+    ):
+        res, _ = await executor.execute_structured_task(
+            client=mock_client,
+            messages=[{"role": "user", "content": "Long enough payload text for passing validation"}],
+            response_model=MockResponseSchema,
+        )
+        assert res.value == "ok"
+
+
+@pytest.mark.asyncio
+async def test_execute_structured_task_schema_error_no_dynamic_messages(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+
+    from backend_v2.models.domain.usage import TokenUsage
+
+    error = LLMSchemaValidationError(raw_llm_payload="bad json", validation_error_msg="syntax error", is_eof=False)
+    error.token_usage = TokenUsage(total_tokens=5, prompt_tokens=2, completion_tokens=3)
+
+    mock_client.run_structured_task.side_effect = [
+        error,
+        (MockResponseSchema(value="fixed"), {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}),
+    ]
+
+    from backend_v2.models.prompt import CompiledPrompt
+
+    messages = CompiledPrompt(
+        static_messages=[{"role": "user", "content": "Long enough payload text for passing validation"}],
+        dynamic_messages=[],
+    )
+
+    res, usage = await executor.execute_structured_task(
+        client=mock_client,
+        messages=messages,
+        response_model=MockResponseSchema,
+        max_schema_retries=1,
+    )
+
+    assert res.value == "fixed"
+    assert usage.total_tokens == 15
+
+
+@pytest.mark.asyncio
+async def test_execute_structured_task_logical_error_max_retries_and_stuck_loop(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+
+    async def mock_validator(model: Any) -> None:
+        raise LogicalValidationError(validation_error_msg="Logical flaw detected")
+
+    mock_client.run_structured_task.return_value = (
+        MockResponseSchema(value="bad logic"),
+        {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
+    )
+
+    with pytest.raises(AgentExecutionError) as exc_info:
+        await executor.execute_structured_task(
+            client=mock_client,
+            messages=[{"role": "user", "content": "Long enough payload text for passing validation"}],
+            response_model=MockResponseSchema,
+            max_logical_retries=1,
+            validator_hook=mock_validator,
+        )
+    assert exc_info.value.error_code == str(ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED)
+
+
+@pytest.mark.asyncio
+async def test_execute_structured_task_logical_error_coaching_notes(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+
+    async def mock_validator(model: Any) -> None:
+        if "bad" in model.value:
+            raise LogicalValidationError(validation_error_msg="Logic error")
+
+    bad_model = MockResponseSchema(value="bad logic ... [")
+    good_model = MockResponseSchema(value="good logic")
+
+    mock_client.run_structured_task.side_effect = [
+        (bad_model, {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}),
+        (good_model, {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}),
+    ]
+
+    res, _ = await executor.execute_structured_task(
+        client=mock_client,
+        messages=[{"role": "user", "content": "Long enough payload text for passing validation"}],
+        response_model=MockResponseSchema,
+        max_logical_retries=1,
+        validator_hook=mock_validator,
+    )
+
+    assert res.value == "good logic"
+
+    calls = mock_client.run_structured_task.call_args_list
+    retry_prompt = calls[1].kwargs["messages"]
+    flat_messages = retry_prompt.to_flat_messages()
+    assert "COACHING: You used ellipses" in flat_messages[-1]["content"]
+    assert "COACHING: You injected square brackets" in flat_messages[-1]["content"]

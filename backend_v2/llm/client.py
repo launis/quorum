@@ -2,7 +2,7 @@ import copy
 import json
 import logging
 import uuid
-from typing import Any, cast
+from typing import Any, Self, cast
 
 import pydantic
 from pydantic import BaseModel
@@ -20,7 +20,7 @@ from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import ExecutionProfile
+from backend_v2.models.enums import PIPELINE_REGISTRY, ExecutionProfile
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import SystemConfigModelRegistry
@@ -59,8 +59,6 @@ class LLMClient:
         """Build the structured JSON schema for the provider, applying caching and strictness constraints."""
         adapter_schema: Any = {"type": "json_schema"}
         if self._config and self._config.provider:
-            from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
-
             try:
                 adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
                 adapter_schema = adapter.prepare_structured_output(response_model)
@@ -83,7 +81,7 @@ class LLMClient:
         repository: Any = None,
         execution_profile: ExecutionProfile | None = None,
         pipeline_name: str | None = None,
-    ) -> LLMClient:
+    ) -> Self:
         """Factory: Create an LLMClient strictly bound to a database-defined Strategy.
 
         Args:
@@ -104,8 +102,6 @@ class LLMClient:
 
         # 0. Load Execution Pipelines from static registry
         try:
-            from backend_v2.models.enums import PIPELINE_REGISTRY, ExecutionProfile
-
             if pipeline_name and pipeline_name in PIPELINE_REGISTRY:
                 pipeline = PIPELINE_REGISTRY[pipeline_name]
                 if execution_profile is None and pipeline.profile:
@@ -185,8 +181,6 @@ class LLMClient:
         # 4.5 Apply Execution Profile (Dynamic overrides)
         final_caching_strategy = target_strategy.caching_strategy
         if execution_profile:
-            from backend_v2.models.enums import ExecutionProfile
-
             if execution_profile == ExecutionProfile.ONE_SHOT:
                 final_caching_strategy = "none"
                 logger.info(

@@ -1,3 +1,5 @@
+"""Extractive Sensor Service for TDD deterministic evaluation and Bo3 LLM voting."""
+
 import asyncio
 import logging
 from typing import Annotated
@@ -21,7 +23,7 @@ from backend_v2.utils.alias_engine import AliasEngine
 class PreFlightResult(BaseModel):
     """Result of the deterministic pre-flight evaluation."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     decided: bool
     result: str | None = None
