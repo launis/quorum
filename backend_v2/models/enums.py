@@ -405,13 +405,6 @@ class InteractionStrategy(StrEnum):
     CHAIN_OF_THOUGHT = "STRATEGY_CHAIN_OF_THOUGHT"
 
 
-class EngineOverrideStrategy(StrEnum):
-    """Execution strategy overrides for the engine."""
-
-    SYNTHESIS = "SYNTHESIS"
-    DYNAMIC_TOOL_AGENT = "DYNAMIC_TOOL_AGENT"
-
-
 class ScoringPenalty(StrEnum):
     """Penalty types applied during deterministic score calibration."""
 
@@ -540,7 +533,6 @@ class ScoringStrategy(StrEnum):
 
 
 # --- Lax Type Aliases (Pydantic V2) ---
-LaxEngineOverrideStrategy = Annotated[EngineOverrideStrategy, Field(strict=False)]
 LaxExecutionProfile = Annotated[ExecutionProfile, Field(strict=False)]
 LaxLLMCachingStrategy = Annotated[LLMCachingStrategy, Field(strict=False)]
 LaxLLMProviderName = Annotated[LLMProviderName, Field(strict=False)]

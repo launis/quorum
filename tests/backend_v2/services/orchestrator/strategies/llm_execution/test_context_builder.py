@@ -1,5 +1,5 @@
-import pytest
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
+
 
 def test_project_compressed_strips_original_text_and_raw_content():
     """Test that _project_compressed recursively removes original_text and raw_content."""
@@ -22,18 +22,18 @@ def test_project_compressed_strips_original_text_and_raw_content():
             }
         ]
     }
-    
+
     result = ContextBuilder._project_compressed(payload)
-    
+
     assert "original_text" not in result
     assert "raw_content" not in result
     assert "shuffled_atoms" not in result
-    
+
     assert "original_text" not in result["nested"]
     assert "raw_content" not in result["nested"]
     assert result["nested"]["keep"] == "this"
     assert result["nested"]["source_quote"] == "KEEP THIS"
-    
+
     assert "original_text" not in result["list_data"][0]
     assert "raw_content" not in result["list_data"][0]
     assert result["list_data"][0]["value"] == "keep"

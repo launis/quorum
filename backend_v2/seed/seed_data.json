@@ -7637,7 +7637,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "DYNAMIC_TOOL_AGENT",
                     "expected_sdui_type": "grid"
                 },
                 {
@@ -7690,7 +7689,6 @@
                         "chat_log": "$inputs.chat_log",
                         "reflection_text": "$inputs.reflection_text"
                     },
-                    "engine_override": "DYNAMIC_TOOL_AGENT",
                     "expected_sdui_type": "grid"
                 },
                 {

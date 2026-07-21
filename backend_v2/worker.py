@@ -35,6 +35,7 @@ from backend_v2.models.v2_core import (
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
@@ -969,6 +970,11 @@ async def startup(ctx: Any) -> None:
 
     # 3. Initialize DAGExecutor (V2 SSOT Enforcer)
     compiler = PromptCompilerAdapter()
+    rag_preflight = RAGPreflightService(
+        workflow_repo=repository,
+        system_repo=repository,
+        prompt_compiler=compiler,
+    )
     engine = DAGExecutor(
         exec_repo=repository,
         workflow_repo=repository,
@@ -979,6 +985,7 @@ async def startup(ctx: Any) -> None:
         audit_repo=repository,
         system_repo=repository,
         prompt_compiler=compiler,
+        rag_preflight=rag_preflight,
     )
 
     # 4. Store in Context

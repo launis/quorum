@@ -56,7 +56,6 @@ abstract class StepRule with _$StepRule {
     @StrictOpaqueIdConverter() required String taskBlueprint,
     @Default([]) List<String> dependsOn,
     @Default({}) Map<String, String> inputMappings,
-    @JsonKey(name: 'engine_override') EngineOverrideStrategy? engineOverride,
     @JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType,
     @Default(0.0) double uiPosX,
     @Default(0.0) double uiPosY,

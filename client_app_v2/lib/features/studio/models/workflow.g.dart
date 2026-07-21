@@ -122,7 +122,6 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'task_blueprint',
         'depends_on',
         'input_mappings',
-        'engine_override',
         'expected_sdui_type',
         'ui_pos_x',
         'ui_pos_y',
@@ -150,10 +149,6 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
             ) ??
             const {},
       ),
-      engineOverride: $checkedConvert(
-        'engine_override',
-        (v) => $enumDecodeNullable(_$EngineOverrideStrategyEnumMap, v),
-      ),
       expectedSduiType: $checkedConvert(
         'expected_sdui_type',
         (v) => $enumDecodeNullable(_$SduiBlockTypeEnumMap, v),
@@ -173,7 +168,6 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
     'taskBlueprint': 'task_blueprint',
     'dependsOn': 'depends_on',
     'inputMappings': 'input_mappings',
-    'engineOverride': 'engine_override',
     'expectedSduiType': 'expected_sdui_type',
     'uiPosX': 'ui_pos_x',
     'uiPosY': 'ui_pos_y',
@@ -187,15 +181,9 @@ Map<String, dynamic> _$StepRuleToJson(_StepRule instance) => <String, dynamic>{
   ),
   'depends_on': instance.dependsOn,
   'input_mappings': instance.inputMappings,
-  'engine_override': _$EngineOverrideStrategyEnumMap[instance.engineOverride],
   'expected_sdui_type': _$SduiBlockTypeEnumMap[instance.expectedSduiType],
   'ui_pos_x': instance.uiPosX,
   'ui_pos_y': instance.uiPosY,
-};
-
-const _$EngineOverrideStrategyEnumMap = {
-  EngineOverrideStrategy.synthesis: 'SYNTHESIS',
-  EngineOverrideStrategy.dynamicToolAgent: 'DYNAMIC_TOOL_AGENT',
 };
 
 const _$SduiBlockTypeEnumMap = {

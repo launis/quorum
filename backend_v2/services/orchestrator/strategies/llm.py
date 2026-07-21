@@ -600,11 +600,8 @@ class LLMNodeStrategy(NodeStrategy):
             )
 
             from backend_v2.models.dtos.engine import EngineExecutionRequest
-            from backend_v2.models.enums import EngineOverrideStrategy
 
-            is_synthesis_step = (
-                step.engine_override == EngineOverrideStrategy.SYNTHESIS or context.model_strategy == "synthesis"
-            )
+            is_synthesis_step = context.model_strategy == "synthesis"
 
             if is_synthesis_step:
                 target_locale = str(context.metadata.get("target_locale", "en"))

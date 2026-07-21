@@ -85,7 +85,9 @@ class ExecutionTimeline extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: progress / 100.0,
-                          backgroundColor: Theme.of(context).disabledColor.withValues(alpha: 0.2),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).disabledColor.withValues(alpha: 0.2),
                           minHeight: 6,
                         ),
                       ),

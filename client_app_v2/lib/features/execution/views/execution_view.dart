@@ -178,13 +178,16 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                           ),
                       ],
                     ),
-                    if (status == 'running' || status == 'pending' || status == 'queued') ...[
+                    if (status == 'running' ||
+                        status == 'pending' ||
+                        status == 'queued') ...[
                       const SizedBox(height: 16),
                       LinearProgressIndicator(
                         value: (record.progress ?? 0) / 100.0,
                         backgroundColor: Theme.of(context).colorScheme.surface,
                       ),
-                      if (record.statusMessage != null && record.statusMessage!.isNotEmpty) ...[
+                      if (record.statusMessage != null &&
+                          record.statusMessage!.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -199,9 +202,8 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             ),
                             Text(
                               '${record.progress ?? 0}%',
-                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),

@@ -21,7 +21,7 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
-from backend_v2.models.enums import EngineOverrideStrategy, ScoringStrategy, StrictnessAnchor
+from backend_v2.models.enums import ScoringStrategy, StrictnessAnchor
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -37,6 +37,7 @@ from backend_v2.services.execution import create_execution_record
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
+from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
@@ -226,12 +227,9 @@ class NodeExecutor:
             )
 
             strategy_impl: NodeStrategy
-            from backend_v2.models.enums import EngineOverrideStrategy
 
             strategy_key: str
-            if step.engine_override == EngineOverrideStrategy.SYNTHESIS:
-                strategy_key = "synthesis"
-            elif step_def.type == "logic":
+            if step_def.type == "logic":
                 strategy_key = "logic"
             elif step_def.model_strategy:
                 strategy_key = step_def.model_strategy
@@ -335,6 +333,7 @@ class DAGExecutor:
         audit_repo: IAuditRepository,
         system_repo: ISystemRepository,
         prompt_compiler: Any,
+        rag_preflight: RAGPreflightService,
     ) -> None:
         """Initialize the main DAG orchestration manager.
 
@@ -346,6 +345,7 @@ class DAGExecutor:
             audit_repo: Compliance parameters interface.
             system_repo: Orchestrator environment constants limits.
             prompt_compiler: Standard evaluation environment for templates compilers.
+            rag_preflight: RAG preflight service instance.
         """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
@@ -356,6 +356,7 @@ class DAGExecutor:
         self.audit_repo = audit_repo
         self.system_repo = system_repo
         self.compiler = prompt_compiler
+        self.rag_preflight = rag_preflight
         self.committer = ExecutionCommitter(exec_repo, "")
         self.node_executor = NodeExecutor(
             exec_repo=exec_repo,
@@ -416,7 +417,9 @@ class DAGExecutor:
             return b_id, Step.model_validate(data)
 
         if blueprint_ids:
-            results = await asyncio.gather(*[_fetch_and_validate(b_id) for b_id in blueprint_ids])
+            async with asyncio.TaskGroup() as tg:
+                tasks = [tg.create_task(_fetch_and_validate(b_id)) for b_id in blueprint_ids]
+            results = [t.result() for t in tasks]
             step_definitions = dict(results)
 
         if strictness_level is None:
@@ -701,17 +704,13 @@ class DAGExecutor:
             has_prehydrated = False
             preflight_target_step = None
             for step in workflow.steps:
-                if step.engine_override == EngineOverrideStrategy.SYNTHESIS:
-                    has_prehydrated = True
-                    preflight_target_step = step
-                    break
                 if step.task_blueprint and step.task_blueprint in step_definitions:
                     if step_definitions[step.task_blueprint].model_strategy == "synthesis":
                         has_prehydrated = True
                         preflight_target_step = step
                         break
 
-            if has_prehydrated:
+            if has_prehydrated and preflight_target_step:
                 import uuid
 
                 virtual_step_id = f"stp_{uuid.uuid4().hex[:16]}"
@@ -738,13 +737,11 @@ class DAGExecutor:
                     await _safe_commit()
 
                 try:
-                    blackboard_payload = await self._execute_rag_preflight(
-                        workflow=workflow,
-                        exec_record=exec_record,
-                        projector=projector,
-                        virtual_step_id=virtual_step_id,
+                    blackboard_payload = await self.rag_preflight.execute(
                         target_step=preflight_target_step,
-                        _emit_progress=_emit_preflight_progress,
+                        step_def=step_definitions[preflight_target_step.task_blueprint],
+                        exec_record=exec_record,
+                        emit_progress=_emit_preflight_progress,
                     )
 
                     async with _update_lock:
@@ -837,132 +834,3 @@ class DAGExecutor:
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                 status_code=500,
             ) from unexpected_err
-
-    async def _execute_rag_preflight(
-        self,
-        workflow: Workflow,
-        exec_record: ExecutionRecord,
-        projector: StateProjector,
-        virtual_step_id: str,
-        target_step: StepRule,
-        _emit_progress: Any,
-    ) -> dict[str, Any]:
-        """Phase 1B RAG Pre-flight Pipeline execution.
-
-        Args:
-            workflow: The current workflow containing the PRE_HYDRATED_SYNTHESIS step.
-            exec_record: Current execution record to extract inputs from.
-            projector: Transient state projector.
-            virtual_step_id: Trace correlation ID.
-            target_step: The step triggering the synthesis.
-            _emit_progress: Callback to push progress events.
-
-        Returns:
-            The serialized GlobalAtomBlackboard payload.
-        """
-        from backend_v2.llm.client import LLMClient
-        from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
-        from backend_v2.services.llm_task_executor import LLMTaskExecutor
-        from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
-
-        if not target_step.task_blueprint:
-            raise AppException(
-                message="Target synthesis step missing task_blueprint.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                status_code=500,
-            )
-
-        step_def_data = await self.workflow_repo.get_step_by_id(target_step.task_blueprint)
-        if not step_def_data:
-            raise AppException(
-                message=f"Blueprint {target_step.task_blueprint} not found.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                status_code=500,
-            )
-        from backend_v2.models.v2_core import Step
-
-        step_def = Step.model_validate(step_def_data)
-        strategy_name = step_def.model_strategy
-        if not strategy_name:
-            raise AppException(
-                message=f"Blueprint {target_step.task_blueprint} has no model_strategy.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                status_code=500,
-            )
-
-        bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo, pipeline_name="chunk_worker")
-        llm_executor = LLMTaskExecutor(self.compiler)
-        atomizer = TwoPassAtomizer(llm_executor)
-
-        inputs_payload = exec_record.raw_inputs.model_dump(mode="json")
-        dynamic_inputs = inputs_payload.get("dynamic_inputs", {})
-        atoms_by_input = {}
-
-        total_files = len([k for k, v in dynamic_inputs.items() if isinstance(v, str)])
-        processed_files = 0
-
-        for key, text_content in dynamic_inputs.items():
-            if not isinstance(text_content, str):
-                continue
-
-            await _emit_progress(
-                f"Extracting knowledge from file {processed_files + 1}/{total_files}...",
-                int(processed_files / total_files * 100),
-            )
-
-            chunk_size = get_settings().rag_preflight_chunk_size
-            text_chunks = [text_content[i : i + chunk_size] for i in range(0, max(len(text_content), 1), chunk_size)]
-
-            # Check from Epic tracker limit: Limit chunks in dev mode
-            max_dev_chunks = get_settings().max_development_chunks
-            if max_dev_chunks > 0 and len(text_chunks) > max_dev_chunks:
-                logger.warning(
-                    "[DEV MODE] Slicing text_chunks from %d to %d to save tokens.", len(text_chunks), max_dev_chunks
-                )
-                text_chunks = text_chunks[:max_dev_chunks]
-
-            base_progress = (processed_files / total_files) * 100
-            local_slice = 100 / total_files
-
-            async def phase_0_progress(
-                completed: int,
-                total: int,
-                pf: int = processed_files,
-                tf: int = total_files,
-                bp: float = base_progress,
-                ls: float = local_slice,
-            ) -> None:
-                prog = int(bp + ((completed / total) * 0.3 * ls))
-                await _emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Mapping)", prog)
-
-            ontology = await atomizer.execute_phase_0(bound_client, text_chunks, progress_callback=phase_0_progress)
-
-            async def phase_1_progress(
-                completed: int,
-                total: int,
-                pf: int = processed_files,
-                tf: int = total_files,
-                bp: float = base_progress,
-                ls: float = local_slice,
-            ) -> None:
-                prog = int(bp + (0.3 * ls) + ((completed / total) * 0.7 * ls))
-                await _emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Reducing)", prog)
-
-            draft_list = await atomizer.execute_phase_1_drafts(
-                bound_client, text_chunks, ontology, progress_callback=phase_1_progress
-            )
-
-            if len(draft_list.atoms) > get_settings().max_extracted_atoms_per_document:
-                raise AppException(
-                    message=f"Atom ceiling exceeded for file {key}. Extracted {len(draft_list.atoms)} atoms.",
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    status_code=400,
-                )
-
-            atoms_by_input[key] = draft_list
-            processed_files += 1
-
-        await _emit_progress("Knowledge extraction complete.", 100)
-
-        blackboard = GlobalAtomBlackboard(atoms_by_input=atoms_by_input)
-        return blackboard.model_dump(mode="json")

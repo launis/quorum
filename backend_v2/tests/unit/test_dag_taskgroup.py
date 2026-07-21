@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -48,6 +48,7 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
+        rag_preflight=MagicMock(),
     )  # noqa: E501
 
     workflow = Workflow(

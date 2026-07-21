@@ -5,7 +5,6 @@ import pytest
 from backend_v2.core.hook_registry import HookResult
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
-from backend_v2.models.enums import EngineOverrideStrategy
 from backend_v2.models.v2_core import (
     I18nText,
     ModelProfile,
@@ -36,7 +35,7 @@ def mock_compiler() -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(
+    executor = DAGExecutor(rag_preflight=MagicMock(), 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -64,7 +63,6 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
                 task_blueprint="blp_1234567890abcdef",
                 input_mappings={},
                 depends_on=[],
-                engine_override=EngineOverrideStrategy.SYNTHESIS,
             )
         ],
     )

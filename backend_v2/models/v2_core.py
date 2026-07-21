@@ -29,7 +29,6 @@ from backend_v2.models.enums import (
     HistoricalContextMode,
     LaxBlockDataType,
     LaxComponentType,
-    LaxEngineOverrideStrategy,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
     LaxPromptBlockCategory,
@@ -777,10 +776,6 @@ class StepRule(V2CoreBase):
         default_factory=dict,
         description='Maps upstream results to LLM inputs. e.g. {"context": "$inputs.document"}',
     )
-    engine_override: Annotated[
-        LaxEngineOverrideStrategy | None,
-        Field(description="Optional override to route this step to a non-default execution strategy."),
-    ] = None
     expected_sdui_type: Annotated[
         Literal["markdown", "hero_insight", "grid"] | None,
         Field(description="Declares the expected SDUI output schema for schema compilation."),

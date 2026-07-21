@@ -55,6 +55,7 @@ from backend_v2.services.execution import ExecutionService
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.services.studio import (
     StudioLexiconService,
     StudioOutputProfileService,
@@ -373,6 +374,11 @@ async def get_dag_executor(
     Returns:
         DAG executor instance.
     """
+    rag_preflight = RAGPreflightService(
+        workflow_repo=workflow_repo,
+        system_repo=system_repo,
+        prompt_compiler=prompt_compiler,
+    )
     return DAGExecutor(
         exec_repo=exec_repo,
         workflow_repo=workflow_repo,
@@ -383,6 +389,7 @@ async def get_dag_executor(
         audit_repo=audit_repo,
         system_repo=system_repo,
         prompt_compiler=prompt_compiler,
+        rag_preflight=rag_preflight,
     )
 
 

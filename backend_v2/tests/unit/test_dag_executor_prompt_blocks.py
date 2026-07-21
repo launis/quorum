@@ -118,6 +118,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
+        rag_preflight=MagicMock(),
     )  # noqa: E501
 
     # Setup basic valid workflow

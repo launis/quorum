@@ -1,6 +1,5 @@
 from backend_v2.models.dtos.output_profile import (
     OutputProfileResponseDTO,
-    OutputProfileUpdateDTO,
 )
 
 
@@ -18,4 +17,4 @@ def test_output_profile_response_dto_synthesis_none():
     }
 
     # This should fail if synthesis is not allowed to be None
-    dto = OutputProfileResponseDTO.model_validate(data)
+    OutputProfileResponseDTO.model_validate(data)

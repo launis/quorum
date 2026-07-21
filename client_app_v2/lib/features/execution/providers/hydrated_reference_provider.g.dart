@@ -78,7 +78,7 @@ final class HydratedReferenceProvider
   }
 }
 
-String _$hydratedReferenceHash() => r'd5cc1853521c3580b653d73ce5ce29a79e9b473a';
+String _$hydratedReferenceHash() => r'a3966ac1424574f595ec3e70cc6dcf8b3dd7880e';
 
 /// Extracts the static reference from `ReportDataDto.hydratedReferences[tdaId]`
 /// in O(1) time without nested loops, enforcing the Topo-Graph rules.
