@@ -559,31 +559,45 @@ class DAGExecutor:
             if exec_record.step_states[step_id].status == ExecutionStatus.PASSED:
                 return
 
-            for dep in step_obj.depends_on:
-                await step_events[dep].wait()
-
-            # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
-            if step_obj.task_blueprint == "sp_7a8b9c0d1e2f3a4b":
-                try:
-                    lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
-
-                    reduce_event = TraceEvent(
-                        step_name="matrix_reducer", event_type="output", content=lightweight_matrix.model_dump()
-                    )
-
-                    async with _update_lock:
-                        exec_record.execution_trace.append(reduce_event)
-                        projector.apply_delta(reduce_event)
-                    logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
-                except Exception as e:
-                    logger.error(
-                        "[DAGExecutor] Failed to project and reduce matrix pre-synthesis: %s", e, exc_info=True
-                    )
-                    raise WorkflowExecutionError(
-                        step_id=step_id, task_key=step_obj.task_blueprint, original_error=e
-                    ) from e
-
             try:
+                for dep in step_obj.depends_on:
+                    await step_events[dep].wait()
+                    if exec_record.step_states[dep].status == ExecutionStatus.FAILED:
+                        async with _update_lock:
+                            new_state = exec_record.step_states[step_id].model_copy(
+                                update={"status": ExecutionStatus.FAILED}
+                            )
+                            new_states = {**exec_record.step_states, step_id: new_state}
+                            exec_record = exec_record.model_copy(update={"step_states": new_states})
+                        await _safe_commit()
+                        logger.warning(
+                            "[DAGExecutor] Cascading failure: Step %s failed because dependency %s failed.",
+                            step_id,
+                            dep,
+                        )
+                        return
+
+                # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
+                if step_obj.task_blueprint == "sp_7a8b9c0d1e2f3a4b":
+                    try:
+                        lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
+
+                        reduce_event = TraceEvent(
+                            step_name="matrix_reducer", event_type="output", content=lightweight_matrix.model_dump()
+                        )
+
+                        async with _update_lock:
+                            exec_record.execution_trace.append(reduce_event)
+                            projector.apply_delta(reduce_event)
+                        logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
+                    except Exception as e:
+                        logger.error(
+                            "[DAGExecutor] Failed to project and reduce matrix pre-synthesis: %s", e, exc_info=True
+                        )
+                        raise WorkflowExecutionError(
+                            step_id=step_id, task_key=step_obj.task_blueprint, original_error=e
+                        ) from e
+
                 async with _update_lock:
                     new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.QUEUED})
                     new_states = {**exec_record.step_states, step_id: new_state}
@@ -688,7 +702,6 @@ class DAGExecutor:
                     new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.PASSED})
                     new_states = {**exec_record.step_states, step_id: new_state}
                     exec_record = exec_record.model_copy(update={"step_states": new_states})
-                step_events[step_id].set()
                 await _safe_commit()
 
             except Exception as e:
@@ -697,7 +710,9 @@ class DAGExecutor:
                     new_states = {**exec_record.step_states, step_id: new_state}
                     exec_record = exec_record.model_copy(update={"step_states": new_states})
                 await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
-                raise WorkflowExecutionError(step_id=step_id, task_key=step_obj.task_blueprint, original_error=e) from e
+                logger.error("[DAGExecutor] Step %s failed with error: %s", step_id, str(e), exc_info=True)
+            finally:
+                step_events[step_id].set()
 
         try:
             # Epic 101 Phase 1B: RAG Pre-Flight Pipeline Injection
@@ -770,6 +785,22 @@ class DAGExecutor:
             async with asyncio.TaskGroup() as tg:
                 for step in workflow.steps:
                     tg.create_task(run_step_wrapper(step.id))
+
+            if any(state.status == ExecutionStatus.FAILED for state in exec_record.step_states.values()):
+                exec_record = exec_record.model_copy(update={"status": ExecutionStatus.FAILED})
+                await self.committer.commit_trace(
+                    trace=exec_record.execution_trace,
+                    status=exec_record.status,
+                    step_states=exec_record.step_states,
+                    context_variables=exec_record.context_variables,
+                )
+                msg = "Workflow completed with failed steps"
+                logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+                )
 
             await self.committer.commit_trace(
                 trace=exec_record.execution_trace,

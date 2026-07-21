@@ -15,10 +15,8 @@ def mock_settings():
     settings.llm_retry_jitter_initial_seconds = 0.1
     settings.llm_retry_max_seconds = 0.5
     settings.llm_retry_jitter_exp_base = 2
-    settings.semaphore_max_concurrency = 10
     settings.semaphore_low_rpm_threshold = 100
     settings.semaphore_low_rpm_limit = 2
-    settings.semaphore_rpm_divisor = 50
     settings.llm_default_timeout = 600.0
     return settings
 

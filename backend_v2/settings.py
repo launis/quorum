@@ -113,6 +113,7 @@ class Settings(BaseSettings):
     max_concurrent_llm_steps: Annotated[int, Field(description="Max parallel LLM extractions within a TaskGroup")] = 3
     llm_max_schema_retries: Annotated[int, Field(description="Max retries for schema validation failures")] = 2
     llm_max_logical_retries: Annotated[int, Field(description="Max retries for logical validation failures")] = 2
+    llm_max_transient_retries: Annotated[int, Field(description="Max retries for transient network errors")] = 3
     llm_retry_multiplier: Annotated[int, Field(description="Exponential backoff multiplier")] = 2
     llm_retry_min_seconds: Annotated[int, Field(description="Minimum backoff delay in seconds")] = 2
     llm_retry_max_seconds: Annotated[int, Field(description="Maximum backoff delay in seconds")] = 60
