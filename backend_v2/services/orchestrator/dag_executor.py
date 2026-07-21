@@ -158,6 +158,7 @@ class NodeExecutor:
         running_event: asyncio.Event | None = None,
         context_variables: dict[str, Any] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+        step_def: Step | None = None,
     ) -> list[TraceEvent]:
         """Executes a pipeline node strategy with static parameters.
 
@@ -194,17 +195,17 @@ class NodeExecutor:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
-            step_def_data = await self.workflow_repo.get_step_by_id(blueprint_id)
-            if not step_def_data:
-                msg = f"Configuration error: Step '{blueprint_id}' not found."
-                logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                )
-
-            step_def = Step.model_validate(step_def_data)
+            if not step_def:
+                step_def_data = await self.workflow_repo.get_step_by_id(blueprint_id)
+                if not step_def_data:
+                    msg = f"Configuration error: Step '{blueprint_id}' not found."
+                    logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                    )
+                step_def = Step.model_validate(step_def_data)
 
             normalized_mappings = {}
             for logical_name, path in step.input_mappings.items():
@@ -397,6 +398,26 @@ class DAGExecutor:
         DAGCompilerService.validate_workflow(workflow)
 
         self.committer.execution_id = execution_id
+
+        # 1. Pre-fetch and validate all Step definitions upfront (Fail-Fast & N+1 fix)
+        blueprint_ids = {s.task_blueprint for s in workflow.steps if s.task_blueprint}
+        step_definitions: dict[str, Step] = {}
+
+        async def _fetch_and_validate(b_id: str) -> tuple[str, Step]:
+            data = await self.workflow_repo.get_step_by_id(b_id)
+            if not data:
+                msg = f"Configuration error: Step '{b_id}' not found."
+                logger.error("[DAGExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                )
+            return b_id, Step.model_validate(data)
+
+        if blueprint_ids:
+            results = await asyncio.gather(*[_fetch_and_validate(b_id) for b_id in blueprint_ids])
+            step_definitions = dict(results)
 
         if strictness_level is None:
             strictness_level = workflow.default_strictness_level
@@ -621,6 +642,7 @@ class DAGExecutor:
                         running_event=running_event,
                         context_variables=exec_record.context_variables,
                         progress_callback=progress_callback,
+                        step_def=step_definitions.get(step_obj.task_blueprint) if step_obj.task_blueprint else None,
                     )
                 finally:
                     watcher_task.cancel()
@@ -676,7 +698,19 @@ class DAGExecutor:
 
         try:
             # Epic 101 Phase 1B: RAG Pre-Flight Pipeline Injection
-            has_prehydrated = any(step.engine_override == EngineOverrideStrategy.SYNTHESIS for step in workflow.steps)
+            has_prehydrated = False
+            preflight_target_step = None
+            for step in workflow.steps:
+                if step.engine_override == EngineOverrideStrategy.SYNTHESIS:
+                    has_prehydrated = True
+                    preflight_target_step = step
+                    break
+                if step.task_blueprint and step.task_blueprint in step_definitions:
+                    if step_definitions[step.task_blueprint].model_strategy == "synthesis":
+                        has_prehydrated = True
+                        preflight_target_step = step
+                        break
+
             if has_prehydrated:
                 import uuid
 
@@ -709,6 +743,7 @@ class DAGExecutor:
                         exec_record=exec_record,
                         projector=projector,
                         virtual_step_id=virtual_step_id,
+                        target_step=preflight_target_step,
                         _emit_progress=_emit_preflight_progress,
                     )
 
@@ -809,6 +844,7 @@ class DAGExecutor:
         exec_record: ExecutionRecord,
         projector: StateProjector,
         virtual_step_id: str,
+        target_step: StepRule,
         _emit_progress: Any,
     ) -> dict[str, Any]:
         """Phase 1B RAG Pre-flight Pipeline execution.
@@ -818,6 +854,7 @@ class DAGExecutor:
             exec_record: Current execution record to extract inputs from.
             projector: Transient state projector.
             virtual_step_id: Trace correlation ID.
+            target_step: The step triggering the synthesis.
             _emit_progress: Callback to push progress events.
 
         Returns:
@@ -828,7 +865,12 @@ class DAGExecutor:
         from backend_v2.services.llm_task_executor import LLMTaskExecutor
         from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
-        target_step = next(s for s in workflow.steps if s.engine_override == EngineOverrideStrategy.SYNTHESIS)
+        if not target_step.task_blueprint:
+            raise AppException(
+                message="Target synthesis step missing task_blueprint.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                status_code=500,
+            )
 
         step_def_data = await self.workflow_repo.get_step_by_id(target_step.task_blueprint)
         if not step_def_data:

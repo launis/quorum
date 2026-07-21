@@ -14,6 +14,18 @@
         <catastrophic_reason>Duct-tape fixes mask root causes, corrupt data flows, and violate the Zero-Compromise Pledge.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="partial_mocking_srp_ban">
+        <banned_pattern>Using "Partial Mocking" in unit tests by stuffing heavy orchestration or AI logic into private methods (e.g., `_execute_rag_preflight`) inside a parent class like `DAGExecutor` just to avoid creating new files or managing dependency injection.</banned_pattern>
+        <mandatory_pattern>Follow the Single Responsibility Principle (SRP). Heavy sub-processes MUST be extracted into their own isolated service classes (e.g., `RAGPreflightService`) and injected via standard Dependency Injection. Tests MUST mock the injected service class, NOT internal methods of the class being tested.</mandatory_pattern>
+        <catastrophic_reason>Partial mocking blinds unit tests to internal integration crashes (like StopIteration) and leads to massive "God Classes" that hide architectural failures.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="engine_override_ban">
+        <banned_pattern>Relying on workflow-level override flags (e.g., `engine_override`) or hardcoded strategy aliases to determine execution paths instead of reading the actual Task Blueprint's defined strategy.</banned_pattern>
+        <mandatory_pattern>Enforce "Eager Fetching" and Dynamic Inference. The Orchestrator MUST read the single source of truth directly from the blueprint definition (e.g., `step_def.model_strategy`) to infer execution paths dynamically without requiring external duct-tape flags.</mandatory_pattern>
+        <catastrophic_reason>Override flags fragment the architecture, creating situations where the workflow JSON contradicts the underlying task blueprint, leading to untraceable execution bugs.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="prompt_fragmentation_ban">
         <banned_pattern>Scattering LLM prompt instructions, structural JSON mandates, or logic constraints directly inside business methods or client wrappers (e.g., `client.py`).</banned_pattern>
         <mandatory_pattern>ALL global prompt instructions MUST be centralized in `directives.py` as explicit string constants. Treat `directives.py` as the absolute Single Source of Truth for LLM constraints.</mandatory_pattern>

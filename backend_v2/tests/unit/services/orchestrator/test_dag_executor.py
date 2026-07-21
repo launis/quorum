@@ -12,6 +12,15 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor, Execution
 @pytest.fixture
 def mock_repo() -> Any:
     repo = AsyncMock()
+    repo.get_step_by_id.return_value = {
+        "id": "blp_1234567890abcdef",
+        "type": "logic",
+        "model_strategy": "logic",
+        "slug": "mock_step",
+        "name": {"default_locale": "en", "translations": {"en": "Mock Step"}},
+        "description": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "hook": "mock_hook",
+    }
     return repo
 
 
