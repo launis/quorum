@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 from unittest.mock import MagicMock, patch
 
 from backend_v2.core.hook_registry import HookState

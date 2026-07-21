@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for the Event Sourcing State components and StepOutputDTO."""
 
 import pytest

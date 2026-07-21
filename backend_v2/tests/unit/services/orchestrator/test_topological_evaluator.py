@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Tests for Topological Evaluator."""
 
 import pytest

@@ -1,10 +1,9 @@
-from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from backend_v2.core.hook_registry import HookResult
-from backend_v2.exceptions import AppException, WorkflowExecutionError
+from backend_v2.exceptions import WorkflowExecutionError
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
 from backend_v2.models.v2_core import (
     I18nText,
@@ -15,6 +14,7 @@ from backend_v2.models.v2_core import (
     WorkflowInputs,
 )
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def mock_compiler() -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
-    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler, workflow_repo=mock_repo), 
+    executor = DAGExecutor(rag_preflight=RAGPreflightService(system_repo=mock_repo, prompt_compiler=mock_compiler, workflow_repo=mock_repo),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,

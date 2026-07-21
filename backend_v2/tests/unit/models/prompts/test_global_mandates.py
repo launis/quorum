@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 from backend_v2.models.prompts.global_mandates import (
     ANTI_ID_MANDATE,
     ANTI_SCORE_MANDATE,

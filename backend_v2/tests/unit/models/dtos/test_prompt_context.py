@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Tests for PromptContextDTO."""
 
 from backend_v2.models.dtos.prompt_context import PromptContextDTO

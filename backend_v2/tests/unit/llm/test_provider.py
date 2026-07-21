@@ -127,7 +127,7 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
     # Call generate and verify if resolved additional_params (vertex_location) bleed into call_kwargs
     from unittest.mock import patch
 
-    with patch("backend_v2.llm.provider.apply_provider_pacing", new_callable=AsyncMock):
+    if True:
         await provider.generate(
             prompt="Hello",
             temperature=0.7,

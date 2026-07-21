@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 import base64
 from unittest.mock import patch
 

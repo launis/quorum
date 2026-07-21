@@ -52,7 +52,7 @@ async def test_provider_caching_payload_scrub_bug() -> None:
 
     with (
         patch("litellm.completion_cost", return_value=0.0),
-        patch("backend_v2.llm.provider.apply_provider_pacing", new_callable=AsyncMock),
+        patch("asyncio.sleep", new_callable=AsyncMock),
     ):
         # We provide system instruction and cached_content
         # By default, system instruction goes into final_messages

@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for ReportDataDTO and AtomResultDTO referential integrity & fail-fast mechanisms."""
 
 import pytest

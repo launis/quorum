@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for the wipe_user_data script."""
 
 import json

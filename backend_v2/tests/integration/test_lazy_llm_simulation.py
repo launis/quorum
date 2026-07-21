@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Integration tests for Lazy LLM simulation, Chronomnesia, and zero-variance stress testing.
 
 This module validates System 2 zero-variance constraints, spatial slicing chronomnesia

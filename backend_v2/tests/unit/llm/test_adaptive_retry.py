@@ -20,7 +20,7 @@ async def test_lite_llm_provider_adaptive_retry_depleted(monkeypatch: pytest.Mon
     # Mock asyncio.sleep to avoid waiting during test execution
     mock_sleep = AsyncMock()
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
-    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+    # apply_provider_pacing patch removed
 
     settings = get_settings()
     settings.llm_retry_jitter_initial_seconds = 0.001
@@ -67,7 +67,7 @@ async def test_lite_llm_provider_adaptive_retry_success_on_retry(monkeypatch: py
 
     mock_sleep = AsyncMock()
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
-    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+    # apply_provider_pacing patch removed
     monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.002)
 
     settings = get_settings()

@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 import pytest
 from pytest_archon import archrule
 

@@ -64,7 +64,7 @@ async def test_litellm_provider_injects_penalties() -> None:
     provider.router.acompletion = AsyncMock(return_value=mock_response)
 
     # Mock apply_provider_pacing so it doesn't try to access Redis/Locks
-    with patch("backend_v2.llm.provider.apply_provider_pacing", new_callable=AsyncMock):
+    if True:
         # 2. This will FAIL because provider.generate() doesn't accept these arguments yet.
         await provider.generate(
             prompt="Test prompt", temperature=0.0, max_tokens=100, frequency_penalty=0.5, presence_penalty=0.1

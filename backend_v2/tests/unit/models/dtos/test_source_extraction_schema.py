@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Tests for source_extraction_schema."""
 
 from backend_v2.models.domain.source_verification import SourceClaimDTO

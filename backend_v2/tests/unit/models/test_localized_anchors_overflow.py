@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """TDD RED: Reproduce localized_anchors_found overflow crash.
 
 Production crash: exe_51311c08e1fe4e299a3529dc49560363

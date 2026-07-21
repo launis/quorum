@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for PromptCompilerAdapter and static-first cryptographic determinism verification."""
 
 import hashlib

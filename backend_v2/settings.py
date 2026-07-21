@@ -125,10 +125,6 @@ class Settings(BaseSettings):
     llm_min_payload_length: Annotated[int, Field(description="Minimum chars for LLM payload before fail-fast")] = 10
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
-    semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
-    semaphore_low_rpm_limit: Annotated[int, Field(description="Concurrency limit for low RPM environments")] = 2
-    semaphore_max_concurrency: Annotated[int, Field(description="Max simultaneous active LLM connections")] = 10
-    semaphore_rpm_divisor: Annotated[int, Field(description="Divisor applied to requested RPM constraint")] = 10
     max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
     schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
     context_cache_lock_ttl_seconds: Annotated[int, Field(description="Time-to-live for Vertex caching lock")] = 300

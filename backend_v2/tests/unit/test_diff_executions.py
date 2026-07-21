@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 import pytest
 
 from scripts.diff_executions import (

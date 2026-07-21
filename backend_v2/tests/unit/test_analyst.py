@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for Analyst Domain Models."""
 
 import pytest

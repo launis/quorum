@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 from backend_v2.models.enums import XAI_EXTENSION_SCOPE, XaiExtensionType
 
 

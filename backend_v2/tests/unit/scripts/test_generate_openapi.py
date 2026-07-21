@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for the OpenAPI schema generation script."""
 
 import json

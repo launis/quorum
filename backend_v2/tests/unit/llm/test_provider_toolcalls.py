@@ -67,7 +67,7 @@ async def test_lite_llm_provider_tool_calls_content_extraction() -> None:
 
     from unittest.mock import patch
 
-    with patch("backend_v2.llm.provider.apply_provider_pacing", new_callable=AsyncMock):
+    if True:
         # Act
         response = await provider.generate(
             prompt="Hello",

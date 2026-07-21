@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Test for backend_v2/api/routers/iam/__init__.py."""
 
 

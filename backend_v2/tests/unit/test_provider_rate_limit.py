@@ -65,7 +65,7 @@ async def test_lite_llm_rate_limit_cooldown(mock_settings: Any, monkeypatch: Any
 
     import backend_v2.llm.adapters.base_adapter
 
-    monkeypatch.setattr(backend_v2.llm.adapters.base_adapter, "apply_provider_pacing", AsyncMock())
+    # apply_provider_pacing removed from module
 
     try:
         response = await provider.generate(prompt="Test rate limit", temperature=0.7, max_tokens=1000)
@@ -146,7 +146,7 @@ async def test_lite_llm_fail_soft_fallback(mock_settings: Any, monkeypatch: Any)
 
     import backend_v2.llm.adapters.base_adapter
 
-    monkeypatch.setattr(backend_v2.llm.adapters.base_adapter, "apply_provider_pacing", AsyncMock())
+    # apply_provider_pacing removed from module
 
     response = await provider.generate(
         prompt="Test fallback",

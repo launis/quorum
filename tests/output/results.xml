@@ -1,1 +1,632 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="3" time="0.895" timestamp="2026-07-21T12:56:52.895172+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.unit.test_local_file_driver" name="test_init_fails_fast_on_missing_directory" time="0.198" /><testcase classname="backend_v2.tests.unit.test_local_file_driver" name="test_init_fails_fast_on_not_a_directory" time="0.004" /><testcase classname="backend_v2.tests.unit.test_local_file_driver" name="test_save_creates_parent_directories_and_uses_atomic_write" time="0.014" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="10" skipped="0" tests="34" time="13.341" timestamp="2026-07-21T13:18:56.264320+03:00" hostname="Laptop-Risto"><testcase classname="tests.backend_v2.models.domain.test_tools" name="test_base_tool_instantiation" time="0.155" /><testcase classname="tests.backend_v2.models.dtos.test_quote_evidence_bug" name="test_lightweight_extraction_atom_accepts_chat_log_source_id" time="0.001" /><testcase classname="tests.backend_v2.services.drivers.test_local_file_driver" name="test_local_file_driver_winerror5_retry_exhaustion" time="7.121" /><testcase classname="tests.backend_v2.services.drivers.test_local_file_driver" name="test_local_file_driver_winerror5_retry_success" time="1.533" /><testcase classname="tests.backend_v2.services.mcp.test_dispatcher" name="test_dispatcher_initialization" time="0.001" /><testcase classname="tests.backend_v2.services.mcp.test_dispatcher" name="test_get_declarations" time="0.001" /><testcase classname="tests.backend_v2.services.mcp.test_dispatcher" name="test_execute_tool_success" time="0.003" /><testcase classname="tests.backend_v2.services.mcp.test_dispatcher" name="test_execute_tool_not_found" time="0.003" /><testcase classname="tests.backend_v2.services.mcp.test_tavily_tool" name="test_tavily_tool_execute_success" time="0.004" /><testcase classname="tests.backend_v2.services.mcp.test_tavily_tool" name="test_tavily_tool_execute_failure" time="0.007" /><testcase classname="tests.backend_v2.services.orchestrator.strategies.llm_execution.test_context_builder" name="test_project_compressed_strips_original_text_and_raw_content" time="0.001" /><testcase classname="tests.backend_v2.services.test_blueprint_sdui" name="test_blueprint_sdui_missing_synthesis_md" time="0.007"><failure message="pydantic_core._pydantic_core.ValidationError: 1 validation error for OutputProfile&#10;synthesis&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value={'synthesis_block_id': 'b...length_constraint': 100}, input_type=dict]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden">@pytest.mark.asyncio
+    async def test_blueprint_sdui_missing_synthesis_md():
+        # Setup mocks
+        exec_repo = AsyncMock()
+        identity_repo = AsyncMock()
+    
+        # Mock OutputProfile with a synthesis block
+        profile_dict = {
+            "id": "prf_1234567890abcdef",
+            "slug": "test",
+            "workflow_id": "wf_test",
+            "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+            "synthesis": {"synthesis_block_id": "blk_123", "system_prompt": "Prompt", "length_constraint": 100},
+            "content_blocks": [{"id": "blk_123", "block_type": "markdown", "text": ""}],
+            "layouts": [],
+            "visible_metadata": ["date"],
+            "scoring_strategy": "PURE_MATH",
+            "strictness_level": 100,
+        }
+    
+        output_profile_repo = AsyncMock()
+        output_profile_repo.get_all_output_profiles.return_value = [profile_dict]
+    
+        exec_repo.get_execution_profile.return_value = None  # No cache
+    
+        # Mock Execution without any synthesis_md in execution_trace
+        execution = MagicMock()
+        execution.id = "exe_123"
+        execution.workflow_id = "wf_test"
+        execution.created_by = "usr_123"
+        execution.organization_id = "org_123"
+        import datetime
+    
+        execution.created_at = datetime.datetime.now(datetime.timezone.utc)
+        execution.execution_trace = []  # NO synthesis completion event!
+        execution.step_states = {}
+        execution.profile_syntheses = {}
+        execution.metadata = {}
+    
+        exec_repo.get_execution.return_value = execution
+        exec_repo.get_execution_results.return_value = []
+    
+        # Workflow object
+        workflow_mock = MagicMock()
+        workflow_mock.default_scoring_strategy.value = "PURE_MATH"
+        exec_repo.get_workflow.return_value = workflow_mock
+    
+        identity_repo.get_organization_model.return_value = MagicMock(name="Test Org")
+        org_mock = MagicMock()
+        org_mock.name = "Test Org"
+        identity_repo.get_organization_model.return_value = org_mock
+        identity_repo.get_user.return_value = {"name": "Test User"}
+    
+        # Run the transformer
+        transformer = BlueprintTransformer(
+            exec_repo=exec_repo,
+            identity_repo=identity_repo,
+            workflow_repo=AsyncMock(),
+            comp_repo=AsyncMock(),
+            prompt_block_repo=AsyncMock(),
+            output_profile_repo=output_profile_repo,
+            system_repo=AsyncMock(),
+        )
+    
+        try:
+&gt;           dto = await transformer.build_report_dto("exe_123", "prf_1234567890abcdef", "en")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\backend_v2\services\test_blueprint_sdui.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend_v2.services.blueprint.BlueprintTransformer object at 0x000001C6D518CD70&gt;
+execution_id = 'exe_123', profile_id = 'prf_1234567890abcdef'
+accept_language = 'en', custom_preface_md = None, local_time_str = None
+
+    async def build_report_dto(
+        self,
+        execution_id: str,
+        profile_id: str | None = None,
+        accept_language: str | None = None,
+        custom_preface_md: str | None = None,
+        local_time_str: str | None = None,
+    ) -&gt; ReportDataDTO:
+        """Builds the strictly typed report payload by parsing results according to the selected profile.
+    
+        Args:
+            execution_id: Identifier of the execution.
+            profile_id: Optional Output Profile ID to override the workflow default.
+            accept_language: Optional locale string for localized titles.
+            custom_preface_md: Optional custom markdown preface string.
+            local_time_str: Optional formatted string representing local time of generation.
+    
+        Returns:
+            A strictly typed ReportDataDTO containing the synthesized execution report.
+    
+        Raises:
+            AppException: Triggered for RESOURCE_NOT_FOUND, VALIDATION_FAILED, or CONFIGURATION_ERROR.
+        """
+        execution = await self.exec_repo.get_execution(execution_id)
+        if not execution:
+            msg = f"Execution {execution_id} not found."
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise AppException(
+                message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            )
+    
+        workflow_obj = await self.workflow_repo.get_workflow(execution.workflow_id)
+        if not workflow_obj:
+            msg = f"Executing workflow {execution.workflow_id} not found."
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+    
+        projector = StateProjector()
+        results = projector.fold_trace(execution.execution_trace)
+    
+        locale = accept_language or (
+            execution.metadata.get("target_locale", SystemLocale.EN.value)
+            if isinstance(execution.metadata, dict)
+            else SystemLocale.EN.value
+        )
+    
+        default_profile_ref = workflow_obj.default_profile_id
+        resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
+    
+        all_profiles_dicts = await self.output_profile_repo.get_all_output_profiles()
+&gt;       all_profiles = [OutputProfile.model_validate(p_dict, strict=False) for p_dict in all_profiles_dicts]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for OutputProfile
+E       synthesis
+E         Extra inputs are not permitted [type=extra_forbidden, input_value={'synthesis_block_id': 'b...length_constraint': 100}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden
+
+backend_v2\services\blueprint.py:837: ValidationError</failure></testcase><testcase classname="tests.backend_v2.test_seed_data_validation" name="test_seed_data_no_synthesis_override_for_matrix_hooks" time="0.007" /><testcase classname="tests.tier4.test_bug_exact_quotes" name="test_lightweight_extraction_atom_exact_quotes_limit" time="0.001"><failure message="pydantic_core._pydantic_core.ValidationError: 6 validation errors for LightweightExtractionAtom&#10;exact_quotes.0&#10;  Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 1', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/model_type&#10;exact_quotes.1&#10;  Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 2', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/model_type&#10;exact_quotes.2&#10;  Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 3', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/model_type&#10;exact_quotes.3&#10;  Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 4', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/model_type&#10;exact_quotes.4&#10;  Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 5', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/model_type&#10;exact_quotes.5&#10;  Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 6', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/model_type">def test_lightweight_extraction_atom_exact_quotes_limit():
+        quotes = ["quote 1", "quote 2", "quote 3", "quote 4", "quote 5", "quote 6"]
+&gt;       atom = LightweightExtractionAtom(
+            atom_id="tda_123", extracted_facts={}, exact_quotes=quotes, status="PASS", confidence=0.9
+        )
+E       pydantic_core._pydantic_core.ValidationError: 6 validation errors for LightweightExtractionAtom
+E       exact_quotes.0
+E         Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 1', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.13/v/model_type
+E       exact_quotes.1
+E         Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 2', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.13/v/model_type
+E       exact_quotes.2
+E         Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 3', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.13/v/model_type
+E       exact_quotes.3
+E         Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 4', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.13/v/model_type
+E       exact_quotes.4
+E         Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 5', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.13/v/model_type
+E       exact_quotes.5
+E         Input should be a valid dictionary or instance of LLMExtractedQuote [type=model_type, input_value='quote 6', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.13/v/model_type
+
+tests\tier4\test_bug_exact_quotes.py:6: ValidationError</failure></testcase><testcase classname="tests.tier4.test_llm_task_executor_bug" name="test_stuck_loop_throws_exception_not_fallback" time="0.004" /><testcase classname="tests.tier4.test_scorecard_atom_dto_epic90" name="test_scorecard_atom_dto_has_epic90_fields" time="0.001"><failure message="Failed: ScorecardAtomDTO failed to instantiate with Epic 90 fields: 2 validation errors for ScorecardAtomDTO&#10;status&#10;  Input should be an instance of ExecutionStatus [type=is_instance_of, input_value='PASS', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of&#10;visual_intent&#10;  Input should be an instance of VisualIntent [type=is_instance_of, input_value='NEUTRAL', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of">def test_scorecard_atom_dto_has_epic90_fields():
+        """Tier 4 TDD Repro: Verify ScorecardAtomDTO supports chart_display_label and visual_intent."""
+        # We simulate passing the fields that the UI expects
+        try:
+&gt;           dto = ScorecardAtomDTO(
+                atom_id="atm_123",
+                level=1,
+                level_name="Level 1",
+                claim_label="Test",
+                extracted_facts={},
+                exact_quotes=[],
+                internal_logic_en=ReasoningStepDTO(
+                    step_1_identify_premise="a",
+                    step_2_scan_source="b",
+                    step_3_evaluate_anti_patterns="c",
+                    step_4_final_conclusion="d",
+                ),
+                status="PASS",
+                semantic_reasoning="reason",
+                contextual_override=False,
+                structural_location="loc",
+                chart_display_label="Short Label",
+                visual_intent="NEUTRAL",
+            )
+E           pydantic_core._pydantic_core.ValidationError: 2 validation errors for ScorecardAtomDTO
+E           status
+E             Input should be an instance of ExecutionStatus [type=is_instance_of, input_value='PASS', input_type=str]
+E               For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+E           visual_intent
+E             Input should be an instance of VisualIntent [type=is_instance_of, input_value='NEUTRAL', input_type=str]
+E               For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+
+tests\tier4\test_scorecard_atom_dto_epic90.py:10: ValidationError
+
+During handling of the above exception, another exception occurred:
+
+    def test_scorecard_atom_dto_has_epic90_fields():
+        """Tier 4 TDD Repro: Verify ScorecardAtomDTO supports chart_display_label and visual_intent."""
+        # We simulate passing the fields that the UI expects
+        try:
+            dto = ScorecardAtomDTO(
+                atom_id="atm_123",
+                level=1,
+                level_name="Level 1",
+                claim_label="Test",
+                extracted_facts={},
+                exact_quotes=[],
+                internal_logic_en=ReasoningStepDTO(
+                    step_1_identify_premise="a",
+                    step_2_scan_source="b",
+                    step_3_evaluate_anti_patterns="c",
+                    step_4_final_conclusion="d",
+                ),
+                status="PASS",
+                semantic_reasoning="reason",
+                contextual_override=False,
+                structural_location="loc",
+                chart_display_label="Short Label",
+                visual_intent="NEUTRAL",
+            )
+        except Exception as e:
+&gt;           pytest.fail(f"ScorecardAtomDTO failed to instantiate with Epic 90 fields: {e}")
+E           Failed: ScorecardAtomDTO failed to instantiate with Epic 90 fields: 2 validation errors for ScorecardAtomDTO
+E           status
+E             Input should be an instance of ExecutionStatus [type=is_instance_of, input_value='PASS', input_type=str]
+E               For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+E           visual_intent
+E             Input should be an instance of VisualIntent [type=is_instance_of, input_value='NEUTRAL', input_type=str]
+E               For further information visit https://errors.pydantic.dev/2.13/v/is_instance_of
+
+tests\tier4\test_scorecard_atom_dto_epic90.py:31: Failed</failure></testcase><testcase classname="tests.unit.services.orchestrator.test_enriched_dag_executor" name="test_enriched_dag_happy_path" time="0.014"><failure message="AssertionError: assert &lt;ExecutionSta...LED: 'FAILED'&gt; == &lt;ExecutionSta...SED: 'PASSED'&gt;&#10;  &#10;  - PASSED&#10;  + FAILED">mock_llm_executor = &lt;MagicMock spec='LLMTaskExecutor' id='1953490333920'&gt;
+mock_llm_client = &lt;MagicMock spec='LLMClient' id='1953490334928'&gt;
+
+    @pytest.mark.asyncio
+    async def test_enriched_dag_happy_path(mock_llm_executor, mock_llm_client):
+        """Test that all nodes pass when LLM evaluates claims as True."""
+        mock_result = MagicMock()
+        mock_result.is_true = True
+        mock_llm_executor.execute_structured_task.return_value = (mock_result, None)
+    
+        executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
+    
+        node1 = create_mock_node("tda_1111111111111111")
+        node2 = create_mock_node(
+            "tda_2222222222222222",
+            depends_on=[
+                CausalEdge.model_validate(
+                    {
+                        "tda_id": "tda_1111111111111111",
+                        "source_id": "chunk_0",
+                        "edge_reasoning": "mock",
+                        "expected_status": ExecutionStatus.PASSED,
+                    }
+                )
+            ],
+        )
+    
+        result = await executor.execute_graph([node1, node2], "mock context")
+    
+&gt;       assert result["tda_1111111111111111"].status == ExecutionStatus.PASSED
+E       AssertionError: assert &lt;ExecutionSta...LED: 'FAILED'&gt; == &lt;ExecutionSta...SED: 'PASSED'&gt;
+E         
+E         - PASSED
+E         + FAILED
+
+tests\unit\services\orchestrator\test_enriched_dag_executor.py:69: AssertionError</failure></testcase><testcase classname="tests.unit.services.orchestrator.test_enriched_dag_executor" name="test_enriched_dag_short_circuit_cascade" time="0.008" /><testcase classname="tests.unit.services.orchestrator.test_enriched_dag_executor" name="test_enriched_dag_blocked_cascade" time="0.008"><failure message="AssertionError: assert &lt;ExecutionSta...LED: 'FAILED'&gt; == &lt;ExecutionSta...SYSTEM_ERROR'&gt;&#10;  &#10;  - SYSTEM_ERROR&#10;  + FAILED">mock_llm_executor = &lt;MagicMock spec='LLMTaskExecutor' id='1953490332576'&gt;
+mock_llm_client = &lt;MagicMock spec='LLMClient' id='1953490329888'&gt;
+
+    @pytest.mark.asyncio
+    async def test_enriched_dag_blocked_cascade(mock_llm_executor, mock_llm_client):
+        """Test that child is BLOCKED when parent hits SYSTEM_ERROR."""
+        mock_llm_executor.execute_structured_task.side_effect = Exception("API Error")
+    
+        executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
+    
+        node1 = create_mock_node("tda_1111111111111111")
+        node2 = create_mock_node(
+            "tda_2222222222222222",
+            depends_on=[
+                CausalEdge.model_validate(
+                    {
+                        "tda_id": "tda_1111111111111111",
+                        "source_id": "chunk_0",
+                        "edge_reasoning": "mock",
+                        "expected_status": ExecutionStatus.PASSED,
+                    }
+                )
+            ],
+        )
+    
+        result = await executor.execute_graph([node1, node2], "mock context")
+    
+&gt;       assert result["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+E       AssertionError: assert &lt;ExecutionSta...LED: 'FAILED'&gt; == &lt;ExecutionSta...SYSTEM_ERROR'&gt;
+E         
+E         - SYSTEM_ERROR
+E         + FAILED
+
+tests\unit\services\orchestrator\test_enriched_dag_executor.py:128: AssertionError</failure></testcase><testcase classname="tests.unit.services.orchestrator.test_enriched_dag_executor" name="test_enriched_dag_deadlock_prevention" time="0.008"><failure message="AssertionError: assert &lt;ExecutionSta...LED: 'FAILED'&gt; == &lt;ExecutionSta...SYSTEM_ERROR'&gt;&#10;  &#10;  - SYSTEM_ERROR&#10;  + FAILED">mock_llm_executor = &lt;MagicMock spec='LLMTaskExecutor' id='1953490335936'&gt;
+mock_llm_client = &lt;MagicMock spec='LLMClient' id='1953491681360'&gt;
+
+    @pytest.mark.asyncio
+    async def test_enriched_dag_deadlock_prevention(mock_llm_executor, mock_llm_client):
+        """Test that exceptions do not deadlock the graph evaluation."""
+        mock_llm_executor.execute_structured_task.side_effect = Exception("Timeout Simulation")
+    
+        executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
+    
+        node1 = create_mock_node("tda_1111111111111111")
+        node2 = create_mock_node(
+            "tda_2222222222222222",
+            depends_on=[
+                CausalEdge.model_validate(
+                    {
+                        "tda_id": "tda_1111111111111111",
+                        "source_id": "chunk_0",
+                        "edge_reasoning": "mock",
+                        "expected_status": ExecutionStatus.PASSED,
+                    }
+                )
+            ],
+        )
+    
+        # Wrap in wait_for to ensure the child doesn't hang indefinitely waiting for parent
+        result = await asyncio.wait_for(executor.execute_graph([node1, node2], "mock context"), timeout=2.0)
+    
+&gt;       assert result["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+E       AssertionError: assert &lt;ExecutionSta...LED: 'FAILED'&gt; == &lt;ExecutionSta...SYSTEM_ERROR'&gt;
+E         
+E         - SYSTEM_ERROR
+E         + FAILED
+
+tests\unit\services\orchestrator\test_enriched_dag_executor.py:157: AssertionError</failure></testcase><testcase classname="tests.unit.services.orchestrator.test_extractive_sensor_service" name="test_resolve_majority_vote_consensus" time="0.001" /><testcase classname="tests.unit.services.orchestrator.test_extractive_sensor_service" name="test_resolve_majority_vote_1_fail_resilience" time="0.002" /><testcase classname="tests.unit.services.orchestrator.test_extractive_sensor_service" name="test_resolve_majority_vote_2_fails" time="0.001"><failure message="Failed: DID NOT RAISE AgentExecutionError">def test_resolve_majority_vote_2_fails():
+        """Test that 2 transient failures correctly bubbles up the AgentExecutionError."""
+        expected_ids = ["tda_11111111"]
+    
+        res1 = {"tda_11111111": (ExecutionStatus.FAILED, "R1", {})}
+        res2 = None
+        res3 = None
+    
+&gt;       with pytest.raises(AgentExecutionError) as exc_info:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE AgentExecutionError
+
+tests\unit\services\orchestrator\test_extractive_sensor_service.py:76: Failed</failure></testcase><testcase classname="tests.unit.services.orchestrator.test_extractive_sensor_service" name="test_resolve_majority_vote_split_system_error" time="0.001"><failure message="AssertionError: assert &lt;ExecutionSta...LED: 'FAILED'&gt; == &lt;ExecutionSta...SYSTEM_ERROR'&gt;&#10;  &#10;  - SYSTEM_ERROR&#10;  + FAILED">def test_resolve_majority_vote_split_system_error():
+        """Test that a lack of consensus triggers a SYSTEM_ERROR."""
+        expected_ids = ["tda_11111111"]
+    
+        res1 = {"tda_11111111": (ExecutionStatus.FAILED, "R1", {})}
+        res2 = {"tda_11111111": (ExecutionStatus.PASSED, "R2", {})}
+        res3 = None
+    
+        final = ExtractiveSensorService.resolve_majority_vote(expected_ids, [res1, res2, res3])
+    
+&gt;       assert final["tda_11111111"][0] == ExecutionStatus.SYSTEM_ERROR
+E       AssertionError: assert &lt;ExecutionSta...LED: 'FAILED'&gt; == &lt;ExecutionSta...SYSTEM_ERROR'&gt;
+E         
+E         - SYSTEM_ERROR
+E         + FAILED
+
+tests\unit\services\orchestrator\test_extractive_sensor_service.py:93: AssertionError</failure></testcase><testcase classname="tests.unit.services.orchestrator.test_extractive_sensor_service" name="test_resolve_majority_vote_dropped_alias" time="0.001" /><testcase classname="tests.unit.services.orchestrator.test_sliding_window_linker" name="test_sliding_window_linker_basic" time="0.007"><failure message="backend_v2.exceptions.AppException: Failed to link graph window: list index out of range">args = ()
+kwargs = {'client': &lt;MagicMock id='1953490332912'&gt;, 'messages': CompiledPrompt(static_messages=[{'role': 'system', 'content': "...level': 'high'}), 'response_model': &lt;class 'backend_v2.services.orchestrator.sliding_window_linker.LinkerResponseDTO'&gt;}
+
+    async def mock_execute(*args, **kwargs):
+        messages = kwargs.get("messages")
+&gt;       prompt_content = messages.static_messages[1]["content"]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\unit\services\orchestrator\test_sliding_window_linker.py:61: IndexError
+
+The above exception was the direct cause of the following exception:
+
+dummy_atoms = [ExtractedAtom(reasoning='R1', resolved_claim='Claim 1', is_logical_deduction=False, source_quote='Q1', tda_id='tda_11...ed_claim='Claim 3', is_logical_deduction=False, source_quote='Q3', tda_id='tda_3333333333333333', source_id='chunk_2')]
+mock_executor = &lt;MagicMock id='1953490330224'&gt;
+mock_client = &lt;MagicMock id='1953490332912'&gt;
+
+    @pytest.mark.asyncio
+    async def test_sliding_window_linker_basic(dummy_atoms, mock_executor, mock_client):
+        linker = SlidingWindowLinker(window_size=2, overlap=1)
+    
+        # Mock LLM to return dependencies using Alias IDs.
+        # Window 1: tda_1 -&gt; a0, tda_2 -&gt; a1. tda_2 depends on tda_1.
+        # Window 2: tda_2 -&gt; a0, tda_3 -&gt; a1. tda_3 depends on tda_2.
+        async def mock_execute(*args, **kwargs):
+            messages = kwargs.get("messages")
+            prompt_content = messages.static_messages[1]["content"]
+            if "Claim 3" in prompt_content:
+                return LinkerResponseDTO(dependencies={"a1": [LinkerEdgeDTO(edge_reasoning="R", tda_id="a0")]}), None
+            else:
+                return LinkerResponseDTO(dependencies={"a1": [LinkerEdgeDTO(edge_reasoning="R", tda_id="a0")]}), None
+    
+        mock_executor.execute_structured_task.side_effect = mock_execute
+    
+        ontology_map = GlobalOntologyMap(entities=[], macro_rules=[])
+    
+&gt;       results = await linker.link_graph(mock_executor, mock_client, dummy_atoms, ontology_map)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\services\orchestrator\test_sliding_window_linker.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend_v2.services.orchestrator.sliding_window_linker.SlidingWindowLinker object at 0x000001C6D518EA50&gt;
+executor = &lt;MagicMock id='1953490330224'&gt;
+client = &lt;MagicMock id='1953490332912'&gt;
+atoms = [ExtractedAtom(reasoning='R1', resolved_claim='Claim 1', is_logical_deduction=False, source_quote='Q1', tda_id='tda_11...ed_claim='Claim 3', is_logical_deduction=False, source_quote='Q3', tda_id='tda_3333333333333333', source_id='chunk_2')]
+ontology_map = GlobalOntologyMap(entities=[], macro_rules=[])
+progress_callback = None
+
+    async def link_graph(
+        self,
+        executor: LLMTaskExecutor,
+        client: LLMClient,
+        atoms: list[ExtractedAtom],
+        ontology_map: GlobalOntologyMap,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+    ) -&gt; list[LinkedAtomGraph]:
+        """Link atoms together into a causal graph.
+    
+        Args:
+            executor: The LLM executor to run the generation.
+            client: The LLM client.
+            atoms: Flat list of extracted atoms.
+            ontology_map: The global ontology map for anaphora resolution.
+            progress_callback: Optional asynchronous callback for reporting progress.
+    
+        Returns:
+            A list of LinkedAtomGraph objects with populated depends_on.
+    
+        Raises:
+            AppException: If LLM execution fails critically.
+        """
+        if not atoms:
+            return []
+    
+        # 1. Group atoms by source_id (chunk_index) maintaining insertion order
+        chunk_groups: dict[str, list[ExtractedAtom]] = defaultdict(list)
+        for atom in atoms:
+            chunk_groups[atom.source_id or "default"].append(atom)
+    
+        chunks = list(chunk_groups.values())
+        windows = self._get_sliding_windows(chunks)
+    
+        master_deps: dict[str, dict[str, CausalEdge]] = defaultdict(dict)
+    
+        ontology_text = ontology_map.model_dump_json(indent=2)
+    
+        for i, window_chunks in enumerate(windows):
+            if progress_callback:
+                await progress_callback(i, len(windows))
+    
+            # Flatten atoms in the current window
+            window_atoms = [atom for chunk in window_chunks for atom in chunk]
+            if not window_atoms:
+                continue
+    
+            alias_engine = AliasEngine()
+            claims_text = ""
+    
+            for atom in window_atoms:
+                alias = alias_engine.register(atom.tda_id, "a")
+                claims_text += f"[{alias}] {atom.resolved_claim}\n"
+                claims_text += f"Quote: {atom.source_quote}\n\n"
+    
+            user_prompt = LINKER_USER_PROMPT.format(
+                global_ontology_map=ontology_text,
+                claims_window=claims_text.strip(),
+            )
+    
+            static_messages = [
+                {"role": "system", "content": LINKER_SYSTEM_PROMPT},
+            ]
+            dynamic_messages = [
+                {"role": "user", "content": user_prompt},
+            ]
+    
+            compiled_prompt = CompiledPrompt(
+                static_messages=static_messages,
+                dynamic_messages=dynamic_messages,
+                metadata={"strictness_level": "high"},
+            )
+    
+            try:
+                response, _ = await executor.execute_structured_task(
+                    client=client,
+                    messages=compiled_prompt,
+                    response_model=LinkerResponseDTO,
+                )
+            except Exception as e:
+                # 01-python-backend.md: Zero-Compromise Pledge. No graceful degradation.
+&gt;               raise AppException(
+                    message=f"Failed to link graph window: {str(e)}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+                ) from e
+E               backend_v2.exceptions.AppException: Failed to link graph window: list index out of range
+
+backend_v2\services\orchestrator\sliding_window_linker.py:216: AppException</failure></testcase><testcase classname="tests.unit.services.orchestrator.test_sliding_window_linker" name="test_sliding_window_deduplication" time="0.004"><failure message="backend_v2.exceptions.AppException: Failed to link graph window: 1 validation error for LinkerResponseDTO&#10;dependencies&#10;  Input should be a valid list [type=list_type, input_value={'a1': [LinkerEdgeDTO(edg...tus.PASSED: 'PASSED'&gt;)]}, input_type=dict]&#10;    For further information visit https://errors.pydantic.dev/2.13/v/list_type">args = ()
+kwargs = {'client': &lt;MagicMock id='1953490332576'&gt;, 'messages': CompiledPrompt(static_messages=[{'role': 'system', 'content': "...level': 'high'}), 'response_model': &lt;class 'backend_v2.services.orchestrator.sliding_window_linker.LinkerResponseDTO'&gt;}
+
+    async def mock_execute(*args, **kwargs):
+        # Always output tda_2 (a1) depends on tda_1 (a0)
+&gt;       return LinkerResponseDTO(dependencies={"a1": [LinkerEdgeDTO(edge_reasoning="R", tda_id="a0")]}), None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for LinkerResponseDTO
+E       dependencies
+E         Input should be a valid list [type=list_type, input_value={'a1': [LinkerEdgeDTO(edg...tus.PASSED: 'PASSED'&gt;)]}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.13/v/list_type
+
+tests\unit\services\orchestrator\test_sliding_window_linker.py:94: ValidationError
+
+The above exception was the direct cause of the following exception:
+
+dummy_atoms = [ExtractedAtom(reasoning='R1', resolved_claim='Claim 1', is_logical_deduction=False, source_quote='Q1', tda_id='tda_11...ed_claim='Claim 3', is_logical_deduction=False, source_quote='Q3', tda_id='tda_3333333333333333', source_id='chunk_2')]
+mock_executor = &lt;MagicMock id='1953490336272'&gt;
+mock_client = &lt;MagicMock id='1953490332576'&gt;
+
+    @pytest.mark.asyncio
+    async def test_sliding_window_deduplication(dummy_atoms, mock_executor, mock_client):
+        # If the overlap window yields the same edge again, it should be deduplicated
+        linker = SlidingWindowLinker(window_size=3, overlap=2)
+    
+        async def mock_execute(*args, **kwargs):
+            # Always output tda_2 (a1) depends on tda_1 (a0)
+            return LinkerResponseDTO(dependencies={"a1": [LinkerEdgeDTO(edge_reasoning="R", tda_id="a0")]}), None
+    
+        mock_executor.execute_structured_task.side_effect = mock_execute
+    
+        ontology_map = GlobalOntologyMap(entities=[], macro_rules=[])
+    
+&gt;       results = await linker.link_graph(mock_executor, mock_client, dummy_atoms, ontology_map)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\services\orchestrator\test_sliding_window_linker.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend_v2.services.orchestrator.sliding_window_linker.SlidingWindowLinker object at 0x000001C6D4FDAD50&gt;
+executor = &lt;MagicMock id='1953490336272'&gt;
+client = &lt;MagicMock id='1953490332576'&gt;
+atoms = [ExtractedAtom(reasoning='R1', resolved_claim='Claim 1', is_logical_deduction=False, source_quote='Q1', tda_id='tda_11...ed_claim='Claim 3', is_logical_deduction=False, source_quote='Q3', tda_id='tda_3333333333333333', source_id='chunk_2')]
+ontology_map = GlobalOntologyMap(entities=[], macro_rules=[])
+progress_callback = None
+
+    async def link_graph(
+        self,
+        executor: LLMTaskExecutor,
+        client: LLMClient,
+        atoms: list[ExtractedAtom],
+        ontology_map: GlobalOntologyMap,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+    ) -&gt; list[LinkedAtomGraph]:
+        """Link atoms together into a causal graph.
+    
+        Args:
+            executor: The LLM executor to run the generation.
+            client: The LLM client.
+            atoms: Flat list of extracted atoms.
+            ontology_map: The global ontology map for anaphora resolution.
+            progress_callback: Optional asynchronous callback for reporting progress.
+    
+        Returns:
+            A list of LinkedAtomGraph objects with populated depends_on.
+    
+        Raises:
+            AppException: If LLM execution fails critically.
+        """
+        if not atoms:
+            return []
+    
+        # 1. Group atoms by source_id (chunk_index) maintaining insertion order
+        chunk_groups: dict[str, list[ExtractedAtom]] = defaultdict(list)
+        for atom in atoms:
+            chunk_groups[atom.source_id or "default"].append(atom)
+    
+        chunks = list(chunk_groups.values())
+        windows = self._get_sliding_windows(chunks)
+    
+        master_deps: dict[str, dict[str, CausalEdge]] = defaultdict(dict)
+    
+        ontology_text = ontology_map.model_dump_json(indent=2)
+    
+        for i, window_chunks in enumerate(windows):
+            if progress_callback:
+                await progress_callback(i, len(windows))
+    
+            # Flatten atoms in the current window
+            window_atoms = [atom for chunk in window_chunks for atom in chunk]
+            if not window_atoms:
+                continue
+    
+            alias_engine = AliasEngine()
+            claims_text = ""
+    
+            for atom in window_atoms:
+                alias = alias_engine.register(atom.tda_id, "a")
+                claims_text += f"[{alias}] {atom.resolved_claim}\n"
+                claims_text += f"Quote: {atom.source_quote}\n\n"
+    
+            user_prompt = LINKER_USER_PROMPT.format(
+                global_ontology_map=ontology_text,
+                claims_window=claims_text.strip(),
+            )
+    
+            static_messages = [
+                {"role": "system", "content": LINKER_SYSTEM_PROMPT},
+            ]
+            dynamic_messages = [
+                {"role": "user", "content": user_prompt},
+            ]
+    
+            compiled_prompt = CompiledPrompt(
+                static_messages=static_messages,
+                dynamic_messages=dynamic_messages,
+                metadata={"strictness_level": "high"},
+            )
+    
+            try:
+                response, _ = await executor.execute_structured_task(
+                    client=client,
+                    messages=compiled_prompt,
+                    response_model=LinkerResponseDTO,
+                )
+            except Exception as e:
+                # 01-python-backend.md: Zero-Compromise Pledge. No graceful degradation.
+&gt;               raise AppException(
+                    message=f"Failed to link graph window: {str(e)}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+                ) from e
+E               backend_v2.exceptions.AppException: Failed to link graph window: 1 validation error for LinkerResponseDTO
+E               dependencies
+E                 Input should be a valid list [type=list_type, input_value={'a1': [LinkerEdgeDTO(edg...tus.PASSED: 'PASSED'&gt;)]}, input_type=dict]
+E                   For further information visit https://errors.pydantic.dev/2.13/v/list_type
+
+backend_v2\services\orchestrator\sliding_window_linker.py:216: AppException</failure></testcase><testcase classname="tests.unit.test_atom_evaluation_item" name="test_atom_evaluation_item_truncates_chart_label" time="0.001" /><testcase classname="tests.unit.test_atom_evaluation_item" name="test_atom_evaluation_item_rejects_invalid_visual_intent" time="0.001" /><testcase classname="tests.unit.test_output_profile_dto" name="test_output_profile_response_dto_synthesis_none" time="0.001" /><testcase classname="tests.unit.test_quote_evidence" name="test_llm_extracted_quote_parses_valid_data" time="0.001" /><testcase classname="tests.unit.test_quote_evidence" name="test_llm_extracted_quote_ignores_extra_keys" time="0.001" /><testcase classname="tests.unit.test_quote_evidence" name="test_llm_extracted_quote_fails_on_missing_fields" time="0.001" /><testcase classname="tests.unit.test_schema_factory_vertex" name="test_schema_factory_max_length_vertex_ai_bug" time="0.012" /></testsuite></testsuites>

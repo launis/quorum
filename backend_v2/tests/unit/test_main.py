@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from backend_v2.main import app

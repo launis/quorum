@@ -54,7 +54,7 @@ async def test_litellm_provider_injects_wrapped_httpx_client(mock_settings, mock
         )
 
         with (
-            patch("backend_v2.llm.provider.apply_provider_pacing", new_callable=AsyncMock),
+            patch("asyncio.sleep", new_callable=AsyncMock),
             patch("litellm.Router.acompletion", new_callable=AsyncMock) as mock_acompletion,
         ):
             mock_response = MagicMock()

@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -48,7 +48,7 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
     """Test that asyncio.TaskGroup automatically cancels sibling tasks
     when one task fails, eradicating zombie threads naturally.
     """
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,

@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for field_prompts.py."""
 
 from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES

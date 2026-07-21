@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 from backend_v2.settings import get_settings
 
 

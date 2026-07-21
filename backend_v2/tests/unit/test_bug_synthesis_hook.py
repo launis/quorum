@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 import pytest
 
 # We simulate the application startup by importing hooks, just like main.py does

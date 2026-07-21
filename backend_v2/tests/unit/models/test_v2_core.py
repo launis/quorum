@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 from backend_v2.models.v2_core import ReportDataDTO
 
 # Import existing tests so they are included in the coverage run for v2_core.py

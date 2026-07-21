@@ -32,7 +32,7 @@ def mock_compiler() -> Any:
 
 @pytest.mark.asyncio
 async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo: Any, mock_compiler: Any) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -82,7 +82,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
 
 @pytest.mark.asyncio
 async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compiler: Any) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -145,7 +145,7 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_compiler: Any) -> None:
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -214,7 +214,7 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
 @pytest.mark.asyncio
 async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_compiler: Any) -> None:
     """Test that an unhandled exception inside a step triggers ExceptionGroup cascade and DLQ routing."""
-    executor = DAGExecutor(rag_preflight=AsyncMock(), 
+    executor = DAGExecutor(rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,

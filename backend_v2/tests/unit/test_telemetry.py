@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.api.routers.system.telemetry import report_client_error

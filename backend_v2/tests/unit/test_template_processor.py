@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for the TemplateProcessor and CDATA security logic.
 
 Verifies that f-strings are replaced with secure CDATA encapsulation

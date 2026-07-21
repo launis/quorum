@@ -22,7 +22,7 @@ async def test_lite_llm_provider_fallback_strips_cache_control(monkeypatch: pyte
     """Test that cache_control is stripped from system message when falling back to flash."""
     mock_sleep = AsyncMock()
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
-    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+    # apply_provider_pacing patch removed
     monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.001)
 
     settings = get_settings()

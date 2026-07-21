@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for SchemaFactory dynamic Pydantic schema generation."""
 
 import pytest

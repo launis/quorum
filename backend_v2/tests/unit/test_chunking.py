@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for Chunking Domain Models."""
 
 import pytest
