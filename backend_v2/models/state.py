@@ -20,13 +20,13 @@ from backend_v2.models.domain.archivist import ArchivistOutput
 from backend_v2.models.domain.causal import CausalOutput
 from backend_v2.models.domain.coach import CoachingPlan
 from backend_v2.models.domain.falsifier import FalsifierOutput
-from backend_v2.models.domain.guard import GuardOutput
 from backend_v2.models.domain.interaction import InteractionAnalysis
 from backend_v2.models.domain.judge import JudgeOutput
 from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.overseer import OverseerOutput
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
+from backend_v2.models.domain.security import InputProcessingOutputDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.xai import XAIOutput
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
@@ -225,9 +225,9 @@ class WorkflowState(ExecutionCoreFields):
     # works with validated objects, while the database remains a simple JSON store.
 
     @property
-    def step_guard(self) -> Any | None:
-        """Type-Safe Accessor for Guard Output."""
-        return self.get_context("step_guard", GuardOutput)
+    def step_input_processing(self) -> Any | None:
+        """Type-Safe Accessor for Input Processing Output."""
+        return self.get_context("step_input_processing", InputProcessingOutputDTO)
 
     @property
     def step_interaction(self) -> Any | None:

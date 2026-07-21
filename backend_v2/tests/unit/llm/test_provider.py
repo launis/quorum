@@ -125,7 +125,6 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
     provider.router.acompletion.return_value = MockLiteLLMResponse()
 
     # Call generate and verify if resolved additional_params (vertex_location) bleed into call_kwargs
-    from unittest.mock import patch
 
     if True:
         await provider.generate(

@@ -18,7 +18,7 @@ from backend_v2.models.domain import (
     FactCheckRFI,
     FalsifierData,
     FalsifierOutput,
-    GuardOutput,
+    InputProcessingOutputDTO,
     Hypothesis,
     InteractionAnalysis,
     JudgeScoreCard,
@@ -35,7 +35,6 @@ from backend_v2.models.domain import (
     ProfilerOutput,
     ReasoningFidelity,
     SecurityCheck,
-    TaintedDataContent,
     ToulminComponent,
     WaltonScheme,
     WaltonStressTest,
@@ -286,10 +285,12 @@ MOCK_SYNTHESIS_OUTPUT = SynthesisOutputDTO(
     xai_highlights=[],
 )
 
-MOCK_GUARD_OUTPUT = GuardOutput(
+MOCK_INPUT_PROCESSING_OUTPUT = InputProcessingOutputDTO(
     thought_process="Mock Guard Trace: Checked security.",
     conclusion="Safe to proceed.",
     confidence_score=1.0,
+    is_safe=True,
+    rejection_reason=None,
     security_check=SecurityCheck(
         threat_detected=False,
         risk_level=RiskLevel.LOW,
@@ -298,15 +299,12 @@ MOCK_GUARD_OUTPUT = GuardOutput(
         anonymized=True,
         pii_findings=[],
     ),
-    tainted_data=TaintedDataContent(
-        chat_history="History", product_text="Product", reflection_text="Reflection", safe_data="Safe"
-    ),
 )
 
 
 MOCK_REGISTRY: dict[type[Any], Any] = {
     AnalystOutput: MOCK_ANALYST_OUTPUT,
-    GuardOutput: MOCK_GUARD_OUTPUT,
+    InputProcessingOutputDTO: MOCK_INPUT_PROCESSING_OUTPUT,
     InteractionAnalysis: MOCK_INTERACTION_OUTPUT,
     ProfilerOutput: MOCK_PROFILER_OUTPUT,
     ArchivistOutput: MOCK_ARCHIVIST_OUTPUT,
@@ -359,7 +357,7 @@ def get_fallback_data(key: str) -> dict[str, Any]:
         ValueError: If mock data is not found for the given key.
     """
     if key == "guard_agent":
-        return MOCK_GUARD_OUTPUT.model_dump()
+        return MOCK_INPUT_PROCESSING_OUTPUT.model_dump()
     elif key == "analyst_agent":
         return MOCK_ANALYST_OUTPUT.model_dump()
     elif key == "interaction_agent":

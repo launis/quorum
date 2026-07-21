@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes

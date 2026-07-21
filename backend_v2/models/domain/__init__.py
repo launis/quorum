@@ -46,15 +46,6 @@ from backend_v2.models.domain.falsifier import (
     ReasoningFidelity,
     WaltonStressTest,
 )
-
-# 2. Agent Modules
-from backend_v2.models.domain.guard import (
-    GuardInput,
-    GuardOutput,
-    SanitizationResult,
-    SecurityCheck,
-    TaintedDataContent,
-)
 from backend_v2.models.domain.interaction import InteractionAnalysis, InteractionAnalysisDTO, InteractionInput
 from backend_v2.models.domain.judge import (
     DimensionResultItem,
@@ -93,6 +84,14 @@ from backend_v2.models.domain.performativity import (
 )
 from backend_v2.models.domain.profiler import ProfilerDTO, ProfilerInput, ProfilerOutput, TextMetrics
 from backend_v2.models.domain.retrieval import RetrievalDTO, RetrievalInput, RetrievalOutput, RetrievedFact
+
+# 2. Agent Modules
+from backend_v2.models.domain.security import (
+    InputProcessingOutputDTO,
+    SanitizationResultDTO,
+    SecurityCheck,
+    SecurityPayloadDTO,
+)
 from backend_v2.models.domain.xai import (
     ReportResult,
     XAIOutput,
@@ -102,7 +101,7 @@ from backend_v2.models.domain.xai import (
 
 # --- REGISTRY ---
 DOMAIN_REGISTRY = {
-    "GuardOutput": GuardOutput,
+    "InputProcessingOutputDTO": InputProcessingOutputDTO,
     "AnalystOutput": AnalystOutput,
     "LogicianOutput": LogicianOutput,
     "JudgeInput": JudgeInput,
@@ -114,7 +113,7 @@ DOMAIN_REGISTRY = {
     "ProfilerOutput": ProfilerOutput,
     "InteractionAnalysis": InteractionAnalysis,
     # Hook Results
-    "SanitizationResult": SanitizationResult,
+    "SanitizationResultDTO": SanitizationResultDTO,
     "LinguisticsResult": LinguisticsResult,
     "BibliographyResult": BibliographyResult,
     "TextMetrics": TextMetrics,
@@ -138,11 +137,10 @@ __all__ = [
     "EvaluationMatrixConfig",
     "EvaluationResult",
     "ValidationResult",
-    "GuardInput",
-    "GuardOutput",
+    "InputProcessingOutputDTO",
     "SecurityCheck",
-    "TaintedDataContent",
-    "SanitizationResult",
+    "SecurityPayloadDTO",
+    "SanitizationResultDTO",
     "AnalystInput",
     "AnalystOutput",
     "AnalystDTO",

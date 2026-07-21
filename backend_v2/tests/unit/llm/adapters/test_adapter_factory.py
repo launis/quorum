@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock
 """Unit tests for LLMCacheAdapterFactory."""
 
 import pytest

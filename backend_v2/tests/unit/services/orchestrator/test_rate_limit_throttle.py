@@ -13,10 +13,6 @@ from backend_v2.llm.provider import LiteLLMProvider
 
 @pytest.mark.asyncio
 async def test_concurrency_throttle_limits_overlap(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Mock apply_provider_pacing to prevent Fakeredis infinite loops
-    import backend_v2.llm.provider
-
-    monkeypatch.setattr(backend_v2.llm.provider, "apply_provider_pacing", AsyncMock())
 
     """Proves that LiteLLMProvider dynamically throttles concurrent requests
     under low RPM limits to prevent concurrent request explosions.

@@ -65,7 +65,6 @@ async def test_lite_llm_provider_tool_calls_content_extraction() -> None:
 
     provider.router.acompletion.return_value = MockLiteLLMResponse()
 
-    from unittest.mock import patch
 
     if True:
         # Act

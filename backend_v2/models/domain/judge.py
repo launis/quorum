@@ -16,11 +16,11 @@ from backend_v2.models.domain.archivist import ArchivistOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.causal import CausalOutput
 from backend_v2.models.domain.falsifier import FalsifierOutput
-from backend_v2.models.domain.guard import GuardOutput
 from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.overseer import OverseerOutput
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
+from backend_v2.models.domain.security import InputProcessingOutputDTO
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class JudgeInput(V2CoreBase):
         step_causal: Causal Output.
         step_detector: Detector Output.
         step_overseer: Overseer Output.
-        step_guard: Guard Output.
+        step_input_processing: Input Processing Output.
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
@@ -67,7 +67,7 @@ class JudgeInput(V2CoreBase):
     step_detector: Annotated[PerformativityOutput | None, Field(description="Detector Output.")] = None
     step_overseer: Annotated[OverseerOutput | None, Field(description="Overseer Output.")] = None
 
-    step_guard: Annotated[GuardOutput | None, Field(description="Guard Output.")] = None
+    step_input_processing: Annotated[InputProcessingOutputDTO | None, Field(description="Input Processing Output.")] = None
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
     dynamic_inputs: Annotated[

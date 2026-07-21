@@ -12,25 +12,9 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace
 from backend_v2.models.domain.causal import CausalAnalysis
 from backend_v2.models.domain.falsifier import FalsifierData
-from backend_v2.models.domain.guard import SecurityCheck, TaintedDataContent
 from backend_v2.models.domain.logician import LogicianData
 from backend_v2.models.domain.overseer import OverseerData
 from backend_v2.models.domain.performativity import PerformativityAnalysis
-
-
-class StepGuardDTO(ReasoningTrace):
-    """Strict schema for step_guard output within scoring hook.
-
-    Attributes:
-        security_check: Evaluated results mapping safe execution states.
-        tainted_data: Optional details identifying any tainted data elements encountered.
-    """
-
-    security_check: Annotated[SecurityCheck, Field(description="Evaluated results mapping safe execution states.")]
-    tainted_data: Annotated[
-        TaintedDataContent | None,
-        Field(description="Optional details identifying any tainted data elements encountered."),
-    ] = None
 
 
 class StepFalsifierDTO(ReasoningTrace):

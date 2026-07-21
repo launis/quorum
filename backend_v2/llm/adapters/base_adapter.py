@@ -7,11 +7,11 @@ strict pricing policies, and distributed rate pacing control patterns.
 from abc import ABC, abstractmethod
 from typing import Any
 
-
 from pydantic import BaseModel
 
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
+
 
 class BaseLLMAdapter(ABC):
     """Abstract base class defining the strict interface for caching and pricing adapters."""
