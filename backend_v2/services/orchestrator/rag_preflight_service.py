@@ -93,15 +93,15 @@ class RAGPreflightService:
                 int(processed_files / total_files * 100),
             )
 
-            chunk_size = get_settings().rag_preflight_chunk_size
-            text_chunks = [text_content[i : i + chunk_size] for i in range(0, max(len(text_content), 1), chunk_size)]
+            from backend_v2.utils.alias_engine import AliasEngine
 
-            max_dev_chunks = get_settings().max_development_chunks
-            if max_dev_chunks > 0 and len(text_chunks) > max_dev_chunks:
-                logger.warning(
-                    "[DEV MODE] Slicing text_chunks from %d to %d to save tokens.", len(text_chunks), max_dev_chunks
-                )
-                text_chunks = text_chunks[:max_dev_chunks]
+            alias_engine = AliasEngine()
+            paragraphs = [p.strip() for p in text_content.split("\n\n") if p.strip()]
+            numbered_lines = []
+            for p in paragraphs:
+                block_id = alias_engine.register(p, prefix="B")
+                numbered_lines.append(f"[{block_id}] {p}")
+            hydrated_text = "\n\n".join(numbered_lines)
 
             base_progress = (processed_files / total_files) * 100
             local_slice = 100 / total_files
@@ -117,7 +117,7 @@ class RAGPreflightService:
                 prog = int(bp + ((completed / total) * 0.3 * ls))
                 await emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Mapping)", prog)
 
-            ontology = await atomizer.execute_phase_0(bound_client, text_chunks, progress_callback=phase_0_progress)
+            ontology = await atomizer.execute_phase_0(bound_client, hydrated_text, progress_callback=phase_0_progress)
 
             async def phase_1_progress(
                 completed: int,
@@ -131,7 +131,7 @@ class RAGPreflightService:
                 await emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Reducing)", prog)
 
             draft_list = await atomizer.execute_phase_1_drafts(
-                bound_client, text_chunks, ontology, progress_callback=phase_1_progress
+                bound_client, hydrated_text, ontology, progress_callback=phase_1_progress
             )
 
             if len(draft_list.atoms) > get_settings().max_extracted_atoms_per_document:

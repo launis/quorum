@@ -14,7 +14,10 @@ def mock_llm_executor() -> MagicMock:
 
 @pytest.fixture
 def mock_client() -> MagicMock:
-    return AsyncMock()
+    client = AsyncMock()
+    client.provider_name = "mock_llm_99"
+    client.model_name = "mock"
+    return client
 
 
 @pytest.mark.asyncio
@@ -33,10 +36,14 @@ async def test_two_pass_atomizer_dlq_routing(mock_llm_executor: MagicMock, mock_
 
     mock_llm_executor.execute_structured_task = AsyncMock(return_value=(LLMDraftAtomList(atoms=atoms), None))
 
-    chunk = "This chunk has some text but not the fake quote."
+    from backend_v2.models.prompt import CompiledPrompt
+    chunk = "[B99] This chunk has some text but not the fake quote."
     sem = asyncio.Semaphore(1)
+    compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
 
-    result = await atomizer._extract_drafts_from_chunk_with_retry(mock_client, chunk, 1, "{}", sem)
+    result = await atomizer._extract_drafts_from_chunk_with_retry(
+        mock_client, compiled_prompt, "B0", "B99", ["B99"], 1, chunk, sem
+    )
 
-    assert len(result.atoms) == 1
-    assert result.atoms[0].draft_id == "a1"
+    assert len(result.atoms) == 2
+    assert result.atoms[1].draft_id == "a3"

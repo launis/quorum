@@ -16,7 +16,10 @@ def mock_executor():
 
 @pytest.fixture
 def mock_client():
-    return MagicMock()
+    client = MagicMock()
+    client.provider_name = "mock_llm_99"
+    client.model_name = "mock"
+    return client
 
 
 @pytest.fixture
@@ -39,7 +42,7 @@ async def test_execute_phase_0(mock_executor, mock_client, settings_mock):
     mock_executor.execute_structured_task.return_value = (mock_ontology, None)
 
     # Execute
-    result = await atomizer.execute_phase_0(client=mock_client, chunks=["chunk1", "chunk2"])
+    result = await atomizer.execute_phase_0(client=mock_client, hydrated_text="[B0] chunk1\n\n[B1] chunk2")
 
     # Assert
     assert isinstance(result, GlobalOntologyMap)
@@ -47,7 +50,7 @@ async def test_execute_phase_0(mock_executor, mock_client, settings_mock):
     assert result.entities[0].name == "Entity1"
     assert len(result.macro_rules) == 1
     assert "Rule1" in result.macro_rules
-    assert mock_executor.execute_structured_task.call_count == 2
+    assert mock_executor.execute_structured_task.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -64,7 +67,7 @@ async def test_execute_phase_1(mock_executor, mock_client, settings_mock):
     mock_executor.execute_structured_task.return_value = (mock_draft_list, None)
 
     # Execute
-    result = await atomizer.execute_phase_1(client=mock_client, chunks=["chunk1"], ontology=mock_ontology)
+    result = await atomizer.execute_phase_1(client=mock_client, hydrated_text="[B0] chunk1", ontology=mock_ontology)
 
     # Assert
     assert len(result) == 1

@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from backend_v2.exceptions import AppException
+from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import (
     DraftAtomList,
@@ -13,6 +14,7 @@ from backend_v2.models.domain.blackboard import (
     LLMDraftAtomList,
 )
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap
+from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompts.atom_extraction import (
     PHASE_0_SYSTEM_PROMPT,
@@ -22,9 +24,6 @@ from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
-
-
-# @deprecated — Import from backend_v2.models.domain.blackboard instead.
 
 
 class TwoPassAtomizer:
@@ -38,60 +37,97 @@ class TwoPassAtomizer:
         """
         self.executor = executor
 
+    def _calculate_packets(self, hydrated_text: str, packet_size: int = 50) -> list[tuple[str, str, list[str]]]:
+        """Deterministically calculate logical chunk boundaries."""
+        block_keys = []
+        for line in hydrated_text.split("\n\n"):
+            if line.startswith("[") and "] " in line:
+                block_keys.append(line[1 : line.find("]")])
+
+        packets: list[tuple[str, str, list[str]]] = []
+        if not block_keys:
+            packets.append(("[NO_BLOCK]", "[NO_BLOCK]", []))
+        else:
+            for i in range(0, len(block_keys), packet_size):
+                packet_keys = block_keys[i : i + packet_size]
+                packets.append((packet_keys[0], packet_keys[-1], packet_keys))
+        return packets
+
     async def execute_phase_0(
         self,
         client: LLMClient,
-        chunks: list[str],
+        hydrated_text: str,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> GlobalOntologyMap:
         """Extracts and merges GlobalOntologyMap from all chunks.
 
         Args:
             client: The LLM client to use.
-            chunks: A list of text chunks representing the document.
+            hydrated_text: Globally hydrated text with block IDs.
 
         Returns:
             A merged GlobalOntologyMap containing entities and macro-rules.
         """
         all_entities = {}
         all_rules = set()
-        sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
 
-        async with asyncio.TaskGroup() as tg:
-            tasks = []
-            completed = 0
+        packets = self._calculate_packets(hydrated_text)
 
-            async def track_task(chunk: str) -> GlobalOntologyMap:
-                nonlocal completed
-                res = await self._extract_ontology_from_chunk(client, chunk, sem)
-                completed += 1
-                if progress_callback:
-                    await progress_callback(completed, len(chunks))
-                return res
+        compiled_prompt = CompiledPrompt(
+            static_messages=[
+                {"role": "system", "content": PHASE_0_SYSTEM_PROMPT},
+                {"role": "user", "content": f"<source_data>\n{hydrated_text}\n</source_data>"},
+            ],
+            dynamic_messages=[],
+        )
 
-            for chunk in chunks:
-                tasks.append(tg.create_task(track_task(chunk)))
+        await LLMCachingService.pre_cache_document(
+            provider_name=client.provider_name, compiled_prompt=compiled_prompt, model_name=client.model_name
+        )
 
-        for task in tasks:
-            result = task.result()
-            for entity in result.entities:
-                all_entities[entity.name] = entity
-            for rule in result.macro_rules:
-                all_rules.add(rule)
+        try:
+            sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+            async with asyncio.TaskGroup() as tg:
+                tasks = []
+                completed = 0
+
+                async def track_task(start_b: str, end_b: str) -> GlobalOntologyMap:
+                    nonlocal completed
+                    res = await self._extract_ontology_from_chunk(client, compiled_prompt, start_b, end_b, sem)
+                    completed += 1
+                    if progress_callback:
+                        await progress_callback(completed, len(packets))
+                    return res
+
+                for start_b, end_b, _ in packets:
+                    tasks.append(tg.create_task(track_task(start_b, end_b)))
+
+            for task in tasks:
+                result = task.result()
+                for entity in result.entities:
+                    all_entities[entity.name] = entity
+                for rule in result.macro_rules:
+                    all_rules.add(rule)
+
+        finally:
+            await LLMCachingService.teardown_workflow_caches(client.provider_name, "tda_phase_0")
 
         return GlobalOntologyMap(entities=list(all_entities.values()), macro_rules=list(all_rules))
 
     async def _extract_ontology_from_chunk(
-        self, client: LLMClient, chunk: str, sem: asyncio.Semaphore
+        self, client: LLMClient, compiled_prompt: CompiledPrompt, start_b: str, end_b: str, sem: asyncio.Semaphore
     ) -> GlobalOntologyMap:
         async with sem:
-            messages = [
-                {"role": "system", "content": PHASE_0_SYSTEM_PROMPT},
-                {"role": "user", "content": f"<source_data>\n{chunk}\n</source_data>"},
-            ]
+            dynamic_instruction = (
+                f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
+            )
+            chunk_prompt = CompiledPrompt(
+                static_messages=compiled_prompt.static_messages,
+                dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
+            )
             result, _ = await self.executor.execute_structured_task(
                 client=client,
-                messages=messages,
+                messages=chunk_prompt,
                 response_model=GlobalOntologyMap,
             )
             return result
@@ -99,7 +135,7 @@ class TwoPassAtomizer:
     async def execute_phase_1(
         self,
         client: LLMClient,
-        chunks: list[str],
+        hydrated_text: str,
         ontology: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[ExtractedAtom]:
@@ -107,78 +143,108 @@ class TwoPassAtomizer:
 
         Args:
             client: The LLM client.
-            chunks: Document chunks.
+            hydrated_text: Globally hydrated text with block IDs.
             ontology: The ontology map generated in Phase 0.
 
         Returns:
             A list of ExtractedAtom objects with fully hydrated Opaque Stripe IDs.
         """
         ontology_json = ontology.model_dump_json()
-        sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+        system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
+
+        packets = self._calculate_packets(hydrated_text)
+
+        compiled_prompt = CompiledPrompt(
+            static_messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"<source_data>\n{hydrated_text}\n</source_data>"},
+            ],
+            dynamic_messages=[],
+        )
+
+        await LLMCachingService.pre_cache_document(
+            provider_name=client.provider_name, compiled_prompt=compiled_prompt, model_name=client.model_name
+        )
 
         all_atoms = []
-        async with asyncio.TaskGroup() as tg:
-            tasks = []
-            completed = 0
+        try:
+            sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+            async with asyncio.TaskGroup() as tg:
+                tasks = []
+                completed = 0
 
-            async def track_task(chunk: str, idx: int) -> list[ExtractedAtom]:
-                nonlocal completed
-                res = await self._extract_atoms_from_chunk(client, chunk, idx, ontology_json, sem)
-                completed += 1
-                if progress_callback:
-                    await progress_callback(completed, len(chunks))
-                return res
+                async def track_task(start_b: str, end_b: str, packet_keys: list[str], idx: int) -> list[ExtractedAtom]:
+                    nonlocal completed
+                    res = await self._extract_atoms_from_chunk(
+                        client, compiled_prompt, start_b, end_b, packet_keys, idx, hydrated_text, sem
+                    )
+                    completed += 1
+                    if progress_callback:
+                        await progress_callback(completed, len(packets))
+                    return res
 
-            for idx, chunk in enumerate(chunks):
-                tasks.append(tg.create_task(track_task(chunk, idx)))
+                for idx, (start_b, end_b, packet_keys) in enumerate(packets):
+                    tasks.append(tg.create_task(track_task(start_b, end_b, packet_keys, idx)))
 
-        for task in tasks:
-            all_atoms.extend(task.result())
+            for task in tasks:
+                all_atoms.extend(task.result())
+
+        finally:
+            await LLMCachingService.teardown_workflow_caches(client.provider_name, "tda_phase_1")
 
         return all_atoms
 
     async def _extract_atoms_from_chunk(
-        self, client: LLMClient, chunk: str, chunk_index: int, ontology_json: str, sem: asyncio.Semaphore
+        self,
+        client: LLMClient,
+        compiled_prompt: CompiledPrompt,
+        start_b: str,
+        end_b: str,
+        packet_keys: list[str],
+        chunk_index: int,
+        hydrated_text: str,
+        sem: asyncio.Semaphore,
     ) -> list[ExtractedAtom]:
         async with sem:
-            # 1. Anchor Hydration: Break chunk into numbered blocks using AliasEngine
-            paragraphs = [p.strip() for p in chunk.split("\n\n") if p.strip()]
-            alias_engine = AliasEngine()
-            numbered_lines = []
-            for p in paragraphs:
-                block_id = alias_engine.register(p, prefix="B")
-                numbered_lines.append(f"[{block_id}] {p}")
-
-            numbered_chunk = "\n\n".join(numbered_lines)
-
-            system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"<source_data>\n{numbered_chunk}\n</source_data>"},
-            ]
+            dynamic_instruction = (
+                f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
+            )
+            chunk_prompt = CompiledPrompt(
+                static_messages=compiled_prompt.static_messages,
+                dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
+            )
 
             draft_result, _ = await self.executor.execute_structured_task(
                 client=client,
-                messages=messages,
+                messages=chunk_prompt,
                 response_model=LLMDraftAtomList,
             )
 
+            local_alias_map = {}
+            for line in hydrated_text.split("\n\n"):
+                if line.startswith("[") and "] " in line:
+                    b_id = line[1 : line.find("]")]
+                    text = line[line.find("]") + 2 :]
+                    local_alias_map[b_id] = text
+            alias_engine = AliasEngine(alias_map=local_alias_map)
+
             final_atoms = []
             for draft in draft_result.atoms:
-                # Generate a compliant Opaque Stripe ID for the extracted atom.
-                # AliasEngine integration in 2.2 will refine this mapping.
                 tda_id = f"tda_{uuid.uuid4().hex[:8]}"
-
-                # 2. Anchor Hydration: Map block ID back to exact quote
                 exact_quote = None
+
                 if not draft.is_logical_deduction and draft.source_block_id:
                     clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
+                    if clean_id not in packet_keys:
+                        raise ValueError(
+                            f"Block ID {clean_id} is outside the assigned packet [{start_b}] to [{end_b}]!"
+                        )
+
                     try:
                         resolved = alias_engine.resolve_alias(clean_id)
                         if resolved != clean_id:
                             exact_quote = resolved
                     except AppException as exc:
-                        # Raised if alias hallucinated with known prefix
                         logger.warning(
                             "AliasEngine hallucination detected for %s: %s",
                             tda_id,
@@ -199,7 +265,7 @@ class TwoPassAtomizer:
                         source_quote=exact_quote,
                         tda_id=tda_id,
                         source_id=f"chunk_{chunk_index}",
-                        source_sequence_index=0,
+                        source_sequence_index=chunk_index,
                     )
                 )
             return final_atoms
@@ -207,7 +273,7 @@ class TwoPassAtomizer:
     async def execute_phase_1_drafts(
         self,
         client: LLMClient,
-        chunks: list[str],
+        hydrated_text: str,
         ontology: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> DraftAtomList:
@@ -215,38 +281,59 @@ class TwoPassAtomizer:
 
         Args:
             client: The LLM client.
-            chunks: Document chunks.
+            hydrated_text: Globally hydrated text with block IDs.
             ontology: The ontology map generated in Phase 0.
 
         Returns:
             A DraftAtomList containing DraftExtractedAtom instances and potential dlq_status.
         """
         ontology_json = ontology.model_dump_json()
-        sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+        system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
+
+        packets = self._calculate_packets(hydrated_text)
+
+        compiled_prompt = CompiledPrompt(
+            static_messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"<source_data>\n{hydrated_text}\n</source_data>"},
+            ],
+            dynamic_messages=[],
+        )
+
+        await LLMCachingService.pre_cache_document(
+            provider_name=client.provider_name, compiled_prompt=compiled_prompt, model_name=client.model_name
+        )
 
         all_atoms = []
         has_dlq = False
-        async with asyncio.TaskGroup() as tg:
-            tasks = []
-            completed = 0
+        try:
+            sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+            async with asyncio.TaskGroup() as tg:
+                tasks = []
+                completed = 0
 
-            async def track_task(chunk: str, idx: int) -> DraftAtomList:
-                nonlocal completed
-                res = await self._extract_drafts_from_chunk(client, chunk, idx, ontology_json, sem)
-                completed += 1
-                if progress_callback:
-                    await progress_callback(completed, len(chunks))
-                return res
+                async def track_task(start_b: str, end_b: str, packet_keys: list[str], idx: int) -> DraftAtomList:
+                    nonlocal completed
+                    res = await self._extract_drafts_from_chunk(
+                        client, compiled_prompt, start_b, end_b, packet_keys, idx, hydrated_text, sem
+                    )
+                    completed += 1
+                    if progress_callback:
+                        await progress_callback(completed, len(packets))
+                    return res
 
-            for idx, chunk in enumerate(chunks):
-                tasks.append(tg.create_task(track_task(chunk, idx)))
+                for idx, (start_b, end_b, packet_keys) in enumerate(packets):
+                    tasks.append(tg.create_task(track_task(start_b, end_b, packet_keys, idx)))
 
-        for task in tasks:
-            result = task.result()
-            if result.dlq_status:
-                has_dlq = True
-                logger.warning("dlq_chunk_detected", extra={"dlq_status": result.dlq_status})
-            all_atoms.extend(result.atoms)
+            for task in tasks:
+                result = task.result()
+                if result.dlq_status:
+                    has_dlq = True
+                    logger.warning("dlq_chunk_detected", extra={"dlq_status": result.dlq_status})
+                all_atoms.extend(result.atoms)
+
+        finally:
+            await LLMCachingService.teardown_workflow_caches(client.provider_name, "tda_phase_1_drafts")
 
         return DraftAtomList(atoms=all_atoms, dlq_status="FAILED/DLQ" if has_dlq else None)
 
@@ -259,35 +346,42 @@ class TwoPassAtomizer:
         ),
     )
     async def _extract_drafts_from_chunk_with_retry(
-        self, client: LLMClient, chunk: str, chunk_index: int, ontology_json: str, sem: asyncio.Semaphore
+        self,
+        client: LLMClient,
+        compiled_prompt: CompiledPrompt,
+        start_b: str,
+        end_b: str,
+        packet_keys: list[str],
+        chunk_index: int,
+        hydrated_text: str,
+        sem: asyncio.Semaphore,
     ) -> DraftAtomList:
         async with sem:
-            # 1. Anchor Hydration: Break chunk into numbered blocks using AliasEngine
-            paragraphs = [p.strip() for p in chunk.split("\n\n") if p.strip()]
-            alias_engine = AliasEngine()
-            numbered_lines = []
-            for p in paragraphs:
-                block_id = alias_engine.register(p, prefix="B")
-                numbered_lines.append(f"[{block_id}] {p}")
-
-            numbered_chunk = "\n\n".join(numbered_lines)
-
-            system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"<source_data>\n{numbered_chunk}\n</source_data>"},
-            ]
+            dynamic_instruction = (
+                f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
+            )
+            chunk_prompt = CompiledPrompt(
+                static_messages=compiled_prompt.static_messages,
+                dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
+            )
 
             draft_result, _ = await self.executor.execute_structured_task(
                 client=client,
-                messages=messages,
+                messages=chunk_prompt,
                 response_model=LLMDraftAtomList,
             )
+
+            local_alias_map = {}
+            for line in hydrated_text.split("\n\n"):
+                if line.startswith("[") and "] " in line:
+                    b_id = line[1 : line.find("]")]
+                    text = line[line.find("]") + 2 :]
+                    local_alias_map[b_id] = text
+            alias_engine = AliasEngine(alias_map=local_alias_map)
 
             final_drafts = []
             for draft in draft_result.atoms:
                 if draft.is_logical_deduction:
-                    # Force null hypothesis for logical deductions
                     final_drafts.append(
                         DraftExtractedAtom(
                             reasoning=draft.reasoning,
@@ -295,17 +389,19 @@ class TwoPassAtomizer:
                             is_logical_deduction=True,
                             source_quote=None,
                             draft_id=draft.draft_id,
-                            source_sequence_index=0,
+                            source_sequence_index=chunk_index,
                         )
                     )
                     continue
 
                 if not draft.source_block_id:
-                    # Should have a block ID if not a logical deduction
                     logger.warning("corrupted_atom_dropped", extra={"reason": "missing_block_id_on_non_deduction"})
                     continue
 
                 clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
+                if clean_id not in packet_keys:
+                    raise ValueError(f"Block ID {clean_id} is outside the assigned packet [{start_b}] to [{end_b}]!")
+
                 exact_quote = None
                 try:
                     resolved = alias_engine.resolve_alias(clean_id)
@@ -329,17 +425,27 @@ class TwoPassAtomizer:
                         is_logical_deduction=False,
                         source_quote=exact_quote,
                         draft_id=draft.draft_id,
-                        source_sequence_index=0,
+                        source_sequence_index=chunk_index,
                     )
                 )
 
             return DraftAtomList(atoms=final_drafts)
 
     async def _extract_drafts_from_chunk(
-        self, client: LLMClient, chunk: str, chunk_index: int, ontology_json: str, sem: asyncio.Semaphore
+        self,
+        client: LLMClient,
+        compiled_prompt: CompiledPrompt,
+        start_b: str,
+        end_b: str,
+        packet_keys: list[str],
+        chunk_index: int,
+        hydrated_text: str,
+        sem: asyncio.Semaphore,
     ) -> DraftAtomList:
         try:
-            return await self._extract_drafts_from_chunk_with_retry(client, chunk, chunk_index, ontology_json, sem)
+            return await self._extract_drafts_from_chunk_with_retry(
+                client, compiled_prompt, start_b, end_b, packet_keys, chunk_index, hydrated_text, sem
+            )
         except Exception as e:
             logger.error(f"DLQ Worker Failed: {e}", exc_info=True)
             return DraftAtomList(atoms=[], dlq_status="FAILED/DLQ")

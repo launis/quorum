@@ -50,6 +50,14 @@ class LLMClient:
         """Initialize the client."""
         pass
 
+    @property
+    def provider_name(self) -> str:
+        return self._config.provider if self._config else "unknown"
+
+    @property
+    def model_name(self) -> str:
+        return self._config.model_name if self._config else "unknown"
+
     def _build_structured_schema(
         self,
         response_model: type[BaseModel],

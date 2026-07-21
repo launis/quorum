@@ -340,4 +340,4 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         processed_chunks = [call.args[1] for call in calls]
 
         assert len(processed_chunks) == 1
-        assert processed_chunks[0] == ["This is valid document text."]
+        assert processed_chunks[0] == "[B0] This is valid document text."

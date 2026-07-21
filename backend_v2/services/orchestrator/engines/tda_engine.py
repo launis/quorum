@@ -67,11 +67,17 @@ class TDAEngine(ExecutionEngine):
             )
             dag_executor = EnrichedDagExecutor(llm_executor, request.bound_client)
 
-            chunk_size = get_settings().rag_preflight_chunk_size
             global_source_text = request.global_source_text
-            text_chunks = [
-                global_source_text[i : i + chunk_size] for i in range(0, max(len(global_source_text), 1), chunk_size)
-            ]
+
+            from backend_v2.utils.alias_engine import AliasEngine
+
+            alias_engine = AliasEngine()
+            paragraphs = [p.strip() for p in global_source_text.split("\n\n") if p.strip()]
+            numbered_lines = []
+            for p in paragraphs:
+                block_id = alias_engine.register(p, prefix="B")
+                numbered_lines.append(f"[{block_id}] {p}")
+            hydrated_text = "\n\n".join(numbered_lines)
 
             async def phase_0_progress(completed: int, total: int) -> None:
                 if request.progress_callback:
@@ -94,11 +100,12 @@ class TDAEngine(ExecutionEngine):
                     await request.progress_callback(prog, 100)
 
             ontology = await atomizer.execute_phase_0(
-                request.bound_client, text_chunks, progress_callback=phase_0_progress
+                request.bound_client, hydrated_text, progress_callback=phase_0_progress
             )
             atoms = await atomizer.execute_phase_1(
-                request.bound_client, text_chunks, ontology, progress_callback=phase_1_progress
+                request.bound_client, hydrated_text, ontology, progress_callback=phase_1_progress
             )
+            atoms.sort(key=lambda x: x.source_sequence_index)
             nodes = await linker.link_graph(
                 llm_executor, request.bound_client, atoms, ontology, progress_callback=linker_progress
             )

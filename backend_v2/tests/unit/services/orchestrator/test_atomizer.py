@@ -115,13 +115,15 @@ async def test_two_pass_atomizer_phase_0() -> None:
 
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_client = AsyncMock(spec=LLMClient)
+    mock_client.provider_name = "mock_llm_99"
+    mock_client.model_name = "mock"
 
-    result = await atomizer.execute_phase_0(client=mock_client, chunks=["Chunk 1", "Chunk 2"])
+    result = await atomizer.execute_phase_0(client=mock_client, hydrated_text="[B0] Chunk 1\n\n[B1] Chunk 2")
 
     assert len(result.entities) == 1
     assert result.entities[0].name == "System"
     assert len(result.macro_rules) == 1
-    assert mock_executor.execute_structured_task.call_count == 2
+    assert mock_executor.execute_structured_task.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -137,9 +139,11 @@ async def test_two_pass_atomizer_phase_1() -> None:
 
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_client = AsyncMock(spec=LLMClient)
+    mock_client.provider_name = "mock_llm_99"
+    mock_client.model_name = "mock"
     mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
 
-    result = await atomizer.execute_phase_1(client=mock_client, chunks=["Chunk 1"], ontology=mock_ontology)
+    result = await atomizer.execute_phase_1(client=mock_client, hydrated_text="[B0] Chunk 1\n\n[B1] Chunk 2", ontology=mock_ontology)
 
     assert len(result) == 1
     assert isinstance(result[0], ExtractedAtom)

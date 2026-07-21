@@ -87,7 +87,9 @@ async def test_tda_engine_execute_success(
         progress_cb = kwargs.get("progress_callback")
         if progress_cb:
             await progress_cb(1, 1)
-        return ["atom1"]
+        atom = MagicMock()
+        atom.source_sequence_index = 0
+        return [atom]
 
     mock_atomizer_instance.execute_phase_1.side_effect = mock_execute_phase_1
 
