@@ -163,6 +163,7 @@ class Settings(BaseSettings):
     anthropic_api_key: Annotated[str | None, Field(description="Anthropic API Key (Optional)")] = None
     tavily_api_key: Annotated[str | None, Field(description="Tavily AI Search API Key")] = None
     tavily_api_url: Annotated[str, Field(description="Tavily API URL")] = "https://api.tavily.com/search"
+    tavily_max_concurrent_requests: Annotated[int, Field(description="Max parallel Tavily search requests")] = 5
     tavily_timeout_seconds: Annotated[int, Field(description="Timeout for Tavily requests")] = 15
     tavily_max_results: Annotated[int, Field(description="Max search results to fetch")] = 5
     tavily_content_char_limit: Annotated[int, Field(description="Max content characters from search")] = 8000

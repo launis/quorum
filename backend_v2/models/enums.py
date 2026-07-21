@@ -201,6 +201,14 @@ class EvaluationCategory(StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+class SearchStatus(StrEnum):
+    """Execution status for batch multi-search tasks."""
+
+    COMPLETED = "COMPLETED"
+    DLQ_TIMEOUT = "DLQ_TIMEOUT"
+    DLQ_ERROR = "DLQ_ERROR"
+
+
 class ExecutionStatus(StrEnum):
     """Execution lifecycle status.
 
@@ -533,6 +541,7 @@ class ScoringStrategy(StrEnum):
 
 
 # --- Lax Type Aliases (Pydantic V2) ---
+LaxSearchStatus = Annotated[SearchStatus, Field(strict=False)]
 LaxExecutionProfile = Annotated[ExecutionProfile, Field(strict=False)]
 LaxLLMCachingStrategy = Annotated[LLMCachingStrategy, Field(strict=False)]
 LaxLLMProviderName = Annotated[LLMProviderName, Field(strict=False)]
