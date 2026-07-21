@@ -9124,7 +9124,8 @@
                             "pdf"
                         ],
                         "omit_empty_sections": false,
-                        "historical_context_mode": "DISABLED"
+                        "historical_context_mode": "DISABLED",
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 },
                 {
@@ -9165,7 +9166,8 @@
                             "raw_json"
                         ],
                         "omit_empty_sections": true,
-                        "historical_context_mode": "DISABLED"
+                        "historical_context_mode": "DISABLED",
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 },
                 {
@@ -9206,7 +9208,8 @@
                             "raw_json"
                         ],
                         "omit_empty_sections": true,
-                        "historical_context_mode": "DISABLED"
+                        "historical_context_mode": "DISABLED",
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 },
                 {
@@ -9246,7 +9249,8 @@
                             "raw_json"
                         ],
                         "omit_empty_sections": true,
-                        "historical_context_mode": "DISABLED"
+                        "historical_context_mode": "DISABLED",
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 },
                 {
@@ -9286,7 +9290,8 @@
                             "raw_json"
                         ],
                         "omit_empty_sections": true,
-                        "historical_context_mode": "DISABLED"
+                        "historical_context_mode": "DISABLED",
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 },
                 {
@@ -9326,7 +9331,8 @@
                             "raw_json"
                         ],
                         "omit_empty_sections": true,
-                        "historical_context_mode": "DISABLED"
+                        "historical_context_mode": "DISABLED",
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 },
                 {
@@ -9366,7 +9372,8 @@
                             "raw_json"
                         ],
                         "omit_empty_sections": true,
-                        "historical_context_mode": "DISABLED"
+                        "historical_context_mode": "DISABLED",
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 },
                 {
@@ -9406,7 +9413,8 @@
                             "raw_json"
                         ],
                         "omit_empty_sections": true,
-                        "historical_context_mode": "DISABLED"
+                        "historical_context_mode": "DISABLED",
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 },
                 {
@@ -9430,7 +9438,8 @@
                     },
                     "synthesis": {
                         "system_prompt": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text.",
-                        "length_constraint": 500
+                        "length_constraint": 500,
+                        "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
                     }
                 }
             ],

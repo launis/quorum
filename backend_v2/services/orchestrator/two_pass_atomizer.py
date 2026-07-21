@@ -403,7 +403,15 @@ class TwoPassAtomizer:
 
                 clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
                 if clean_id not in packet_keys:
-                    raise ValueError(f"Block ID {clean_id} is outside the assigned packet [{start_b}] to [{end_b}]!")
+                    logger.warning(
+                        "corrupted_atom_dropped",
+                        extra={
+                            "reason": "block_id_outside_packet_boundary",
+                            "block_id": clean_id,
+                            "packet": f"{start_b}-{end_b}",
+                        },
+                    )
+                    continue
 
                 exact_quote = None
                 try:
