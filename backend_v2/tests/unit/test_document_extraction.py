@@ -121,3 +121,25 @@ async def test_pdf_metadata_date_propagation() -> None:
 
     # Check that document_date was propagated to dynamic_inputs
     assert result.dynamic_inputs["document_date"] == mock_pdf_extracted_date
+
+
+def test_pdf_fallback_when_picture_comment_detected() -> None:
+    """Test that _extract_pdf_sync falls back to plain text when pymupdf4llm outputs picture comments."""
+    service = DocumentExtractionService()
+    # Create minimal valid PDF bytes with fitz
+    import fitz
+
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((50, 50), "User Question: Hello AI\nAI Answer: Hello User! This is full dialogue.")
+    pdf_bytes = doc.tobytes()
+    doc.close()
+
+    # When pymupdf4llm returns picture text comment, fallback should activate
+    with patch(
+        "pymupdf4llm.to_markdown",
+        return_value="<!-- Start of picture text -->\nUser Question: Hello AI<br><!-- End of picture text -->",
+    ):
+        extracted_text, _ = service._extract_pdf_sync(pdf_bytes)
+
+    assert "Hello User! This is full dialogue." in extracted_text

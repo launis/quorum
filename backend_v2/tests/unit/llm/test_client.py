@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend_v2.exceptions import (
     AgentExecutionError,
     AppException,
+    LLMSchemaValidationError,
     ServiceUnavailableError,
 )
 from backend_v2.llm.client import LLMClient
@@ -189,6 +190,29 @@ async def test_client_bubbles_up_service_unavailable_error(mock_create_provider:
     # It MUST raise ServiceUnavailableError directly, NOT AgentExecutionError or LLMSchemaValidationError
     with pytest.raises(ServiceUnavailableError):
         await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_bubbles_up_upstream_timeout_error(mock_create_provider: MagicMock) -> None:
+    """Ensure upstream 503 / UPSTREAM_TIMEOUT errors bubble up directly and are not wrapped as LLMSchemaValidationError."""
+    mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock(
+        side_effect=AppException(
+            message="Upstream LLM service timed out or is unavailable.",
+            status_code=503,
+            details={"error_code": "UPSTREAM_TIMEOUT"},
+        )
+    )
+    mock_create_provider.return_value = mock_provider
+
+    client = LLMClient(config=cast(Any, DummyConfig()))
+    messages = [{"role": "user", "content": "Test"}]
+
+    with pytest.raises(AppException) as exc_info:
+        await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
+
+    assert not isinstance(exc_info.value, LLMSchemaValidationError)
 
 
 from enum import StrEnum

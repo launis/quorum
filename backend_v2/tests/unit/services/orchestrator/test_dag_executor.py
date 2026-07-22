@@ -278,7 +278,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         calls = mock_repo.update_execution.call_args_list
         final_call_args = calls[-1][0]
         assert final_call_args[1]["status"] == ExecutionStatus.FAILED.value
-        
+
         # Verify that the original error was committed at some point
         error_recorded = any("System Crash" in call[0][1].get("error", "") for call in calls)
         assert error_recorded, "The exception 'System Crash' should have been committed as an error"

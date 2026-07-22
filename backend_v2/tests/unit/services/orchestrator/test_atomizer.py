@@ -143,7 +143,9 @@ async def test_two_pass_atomizer_phase_1() -> None:
     mock_client.model_name = "mock"
     mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
 
-    result = await atomizer.execute_phase_1(client=mock_client, hydrated_text="[B0] Chunk 1\n\n[B1] Chunk 2", ontology=mock_ontology)
+    result = await atomizer.execute_phase_1(
+        client=mock_client, hydrated_text="[B0] Chunk 1\n\n[B1] Chunk 2", ontology=mock_ontology
+    )
 
     assert len(result) == 1
     assert isinstance(result[0], ExtractedAtom)

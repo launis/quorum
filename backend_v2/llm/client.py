@@ -482,6 +482,13 @@ class LLMClient:
                     raise schema_err
                 if isinstance(schema_err, (ServiceUnavailableError, ConfigurationError)):
                     raise schema_err
+                if isinstance(schema_err, AppException) and (
+                    getattr(schema_err, "status_code", 0) in (502, 503, 504)
+                    or (
+                        schema_err.details and schema_err.details.get("error_code") == ErrorCodes.UPSTREAM_TIMEOUT.value
+                    )
+                ):
+                    raise schema_err
 
                 error_str = str(schema_err)
                 if isinstance(schema_err, AppException):

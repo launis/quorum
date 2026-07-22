@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -127,18 +128,25 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       withData: true,
     );
 
-    if (result != null && result.files.single.bytes != null) {
-      Uint8List fileBytes = result.files.single.bytes!;
-      String fileName = result.files.single.name;
-      String base64String = base64Encode(fileBytes);
+    if (result != null && result.files.isNotEmpty) {
+      final platformFile = result.files.single;
+      Uint8List? fileBytes = platformFile.bytes;
+      if (fileBytes == null && platformFile.path != null) {
+        fileBytes = File(platformFile.path!).readAsBytesSync();
+      }
 
-      setState(() {
-        _compiledInputs[inputKey] = {
-          'filename': fileName,
-          'content_base64': base64String,
-        };
-        _selectedFileNames[inputKey] = fileName;
-      });
+      if (fileBytes != null) {
+        String fileName = platformFile.name;
+        String base64String = base64Encode(fileBytes);
+
+        setState(() {
+          _compiledInputs[inputKey] = {
+            'filename': fileName,
+            'content_base64': base64String,
+          };
+          _selectedFileNames[inputKey] = fileName;
+        });
+      }
     }
   }
 

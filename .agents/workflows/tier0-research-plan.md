@@ -11,8 +11,18 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
   <role>Principal Solutions Architect & Red Team Auditor</role>
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Do not rely on legacy `.md` files.</mandatory_pattern>
-      <catastrophic_reason>Failing to load the correct rule files leads to Context Amnesia and immediate deviation from the V2 architectural invariants.</catastrophic_reason>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on plan scope:
+        - ALWAYS read: `04_directory_reference.md`
+        - IF touching Python/Backend: read `01-python-backend.md`
+        - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
+        - IF touching Database/Seed Data: read `03_seed_vault.md`
+        - IF touching LLM/Prompts: read `05_llm_architecture.md`
+      </mandatory_pattern>
+      <catastrophic_reason>Failing to load comprehensive domain rules leads to Context Amnesia and code mutations that violate V2 architectural invariants.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="circuit_breaker_and_context_guard">
+      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, schedule a `/tier5-session-handover` before generating artifacts.</mandatory_pattern>
+      <catastrophic_reason>Prevent infinite retry loops and context amnesia degradation during plan creation or analysis.</catastrophic_reason>
     </rule_block>
     <rule_block id="knowledge_base_mandate">
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI (e.g., regarding caching, LLM execution, or error handling), you MUST read the artifact file before proceeding.</mandatory_pattern>
@@ -23,8 +33,8 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
-      <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
+      <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
   </context_rules>
   <execution_protocol level="0">

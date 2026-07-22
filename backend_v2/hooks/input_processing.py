@@ -170,6 +170,9 @@ async def _process_chat_history(
             logger.info("[InputProcessingHook] Eager Anonymization for chat %s completed in %.2fs", key, duration)
 
         try:
+            logger.info(
+                "[InputProcessingHook] Resolved %s text (length: %d): %r", key, len(resolved_text), resolved_text
+            )
             chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)
         except Exception as e:
             if isinstance(e, AppException):

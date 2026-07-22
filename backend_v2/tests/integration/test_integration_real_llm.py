@@ -109,7 +109,10 @@ def deep_logic_compare(old_trace: list[dict[str, Any]], new_trace: list[dict[str
     logger.info("Deep Logic & Semantic Parity Checks PASSED.")
 
 
-@pytest.mark.skip(reason="Skip live LLM E2E tests by default to comply with mocking_mandate_for_llm")
+@pytest.mark.skipif(
+    os.environ.get("RUN_LIVE_E2E") != "true",
+    reason="Live E2E tests skipped by default. Set $env:RUN_LIVE_E2E='true' to run as final Epic verification gate.",
+)
 @pytest.mark.asyncio
 @pytest.mark.order("last")
 async def test_real_llm_e2e_orchestration() -> None:

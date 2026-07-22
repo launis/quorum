@@ -21,6 +21,10 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       </mandatory_pattern>
       <catastrophic_reason>Failing to load the correct rule files leads to Context Amnesia and allows the Epic to violate V2 architectural invariants before code is even written.</catastrophic_reason>
     </rule_block>
+    <rule_block id="circuit_breaker_and_context_guard">
+      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, schedule a `/tier5-session-handover` before generating artifacts.</mandatory_pattern>
+      <catastrophic_reason>Prevent infinite retry loops and context amnesia degradation during deep analysis.</catastrophic_reason>
+    </rule_block>
     <rule_block id="knowledge_base_mandate">
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the Epic proposes mechanisms related to existing KIs (e.g., caching, LLM orchestration, Error Boundaries), you MUST read the KI artifact file to prevent reinventing the wheel or regressing patterns.</mandatory_pattern>
       <catastrophic_reason>Epics that ignore the Knowledge Base result in redundant systems and broken architectural contracts.</catastrophic_reason>
@@ -30,8 +34,8 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
-      <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
+      <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
   </context_rules>
   <execution_protocol level="0">

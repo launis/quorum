@@ -78,6 +78,15 @@ class DocumentExtractionService:
             md_text = str(pymupdf4llm.to_markdown(doc))
             md_text = ftfy.fix_text(md_text)
 
+            # Robustness Fallback: If PyMuPDF4LLM converted text into HTML picture comments or truncated dialogue
+            if "<!-- Start of picture text -->" in md_text or len(md_text.strip()) < 100:
+                plain_pages = [page.get_text("text") for page in doc]
+                plain_text = ftfy.fix_text("\n\n".join(plain_pages)).strip()
+                if plain_text and (
+                    "<!-- Start of picture text -->" in md_text or len(plain_text) > len(md_text.strip())
+                ):
+                    md_text = plain_text
+
             # Read modDate first, fallback to creationDate
             metadata = doc.metadata or {}
             pdf_date = metadata.get("modDate") or metadata.get("creationDate")

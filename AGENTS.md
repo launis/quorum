@@ -74,6 +74,7 @@
 <workflow_routing>
     <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `.agents/workflows/`. When a user inputs a slash command, your IMMEDIATE action must be to use `view_file` on the corresponding workflow file in `.agents/workflows/` and strictly follow its instructions. Do not guess the workflow logic.</instruction>
     <execution_tiers>
+        <tier id="0_create_epic" path="/tier0-create-epic">Generates a standardized multi-phase Epic document (docs/epic/EPIC_XXX.md).</tier>
         <tier id="0_plan" path="/tier0-create-plan">Generates architectural implementation plan.</tier>
         <tier id="0_epic" path="/tier0-research-epic">Deep System 2 analysis of Epic documents.</tier>
         <tier id="0_research" path="/tier0-research-plan">System 2 analysis of implementation plans.</tier>

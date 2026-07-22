@@ -13,6 +13,10 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. First, read the Antigravity ruleset `.agents/rules/02_flutter_desktop.md` and `.agents/rules/00-antigravity-core.md` (UNIVERSAL MANDATE). Obey these instructions absolutely. Ensure code synchronization with the system's Knowledge Item (KI) guidelines (e.g. Strict ICU Markdown Parity, AppErrorBoundary). Read `04_directory_reference.md` if necessary.</mandatory_pattern>
       <catastrophic_reason>If architectural rules or KI guidelines are not loaded, the agent will accidentally refactor code back to the V1-legacy state, destroying the Desktop UI performance.</catastrophic_reason>
     </rule_block>
+      <rule_block id="context_amnesia_prevention">
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
+      <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
+    </rule_block>
   </context_rules>
 
   <phases>
@@ -42,7 +46,7 @@ We will now unpack the virtual list autonomously in a continuous loop:
     </critical_anti_laziness_mandate>
 
 4. **AUTONOMOUS FIX & NEXT:** Do NOT stop and wait for a "FIX" or "NEXT" command. If all rules passed, immediately proceed to the next file on your list. If there are failures, immediately transition to STEP 3 - FIX (Remediation Phase). If fixing requires destroying files or critical UI components (Destructive Operations), you MUST stop and ask for separate permission from the user before deleting.
-5. **STATE PERSISTENCE:** When the folder is complete (meaning you received the command to fix and you fixed, OR it was clean immediately), update `tmp\hardening_state.json` IMMEDIATELY and mark this subdirectory as "DONE".
+5. **STATE PERSISTENCE & TRACKER UPDATE:** When the folder/files are complete (meaning you received the command to fix and you fixed, OR it was clean immediately), update `tmp\hardening_state.json` IMMEDIATELY and mark this subdirectory as "DONE". Furthermore, check if an Epic Master Tracker or `task.md` was explicitly provided in your context or the user's command. IF a tracker is associated with this run, you MUST explicitly update its corresponding Post-Implementation Hardening Gate from `[NOK]` to `[OK]`. IF NO tracker is provided (e.g., this is a standalone hardening run), simply conclude the session. Do NOT blindly search `docs/epic/` for random trackers.
 6. **SESSION LIMIT & HANDOVER:** If you have processed (audited) a total of 10 files in THIS session, STOP immediately. You MUST append a `# Session Handover Context` block to the bottom of the Tracker/Epic file detailing `achieved`, `learned`, and `remaining`. Then, print to the user exactly: "Session limit reached. Continue by issuing the exact command (replace placeholders with absolute paths): `/tier5-resume --target="[absolute_path_to_tracker_artifact], [target_directory_being_audited]" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"`".
     </phase>
     

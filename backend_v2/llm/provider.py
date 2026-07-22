@@ -803,10 +803,9 @@ class LiteLLMProvider(LLMProvider):
                     ErrorCodes.UPSTREAM_TIMEOUT.name,
                     error_msg,
                 )
-                raise AppException(
+                raise ServiceUnavailableError(
                     message="Upstream LLM service timed out or is unavailable.",
-                    status_code=503,
-                    details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT.value},
+                    details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT.value, "original_error": error_msg},
                 ) from e
 
             # 5. CONTENT POLICY (Safety)

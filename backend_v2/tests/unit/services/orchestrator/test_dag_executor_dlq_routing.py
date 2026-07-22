@@ -37,6 +37,7 @@ async def test_two_pass_atomizer_dlq_routing(mock_llm_executor: MagicMock, mock_
     mock_llm_executor.execute_structured_task = AsyncMock(return_value=(LLMDraftAtomList(atoms=atoms), None))
 
     from backend_v2.models.prompt import CompiledPrompt
+
     chunk = "[B99] This chunk has some text but not the fake quote."
     sem = asyncio.Semaphore(1)
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
