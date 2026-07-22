@@ -19,15 +19,17 @@ This plan focuses on strictly aligning the Flutter frontend Studio Editor with t
 Target: `@[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart]`
 
 - **Destructive Operation Inventory**:
-  - REFACTOR: The current single-column flat list of properties inside `LayoutEditorCard` MUST be structurally reorganized into a 3-part UI (e.g., using `TabBar` + `TabBarView` or an accordion/expansion panel structure, similar to how the parent profile is organized).
+  - REFACTOR: Extract the `_buildLayoutEditor` logic into a new private `HookConsumerWidget` (e.g., `_LayoutBlockEditorItem`) to manage local state.
+  - REORGANIZE: Replace the single-column flat list with a 3-part conditionally rendered UI. Use `useState(0)` to track the active section and a `SegmentedButton` (or styled row) to switch between them. Do NOT use `TabBarView` as it will cause a fatal unbounded height crash inside the parent `ListView.builder`.
+  - DESIGN TOKENS: You MUST replace all existing hardcoded padding/margins (e.g., `EdgeInsets.all(12)`) in this component with `AppSpacing` tokens (e.g., `AppSpacing.p12`).
 - **Update Logic**:
   - **Part 1: Perustiedot (Basic Info)**: Move existing fields here: View Model, Text Delivery Mode, Section Title, Section Description.
   - **Part 2: Datasiilot & Stepit (Data & Blocks)**: Move existing fields here: Target Blocks, Steps, and Synthesis configurations.
   - **Part 3: Terminologia & Laajennokset (Terminology & Extensions)**: 
-    - Create a new UI section for `matrixColumnLabels` editing using a map editor pattern.
-    - Create a new UI section for `extensionLabels` editing using a map editor pattern.
-    - Crucially, use `I18nTextField` instances for the values of these maps to ensure the user can define terms like "Arjen Vinkki" in FI and EN.
-  - Ensure state updates (using `ref.read(profileNotifier).updateLayoutBlock(...)` or similar equivalent) correctly capture the modified maps.
+    - Create a dedicated private stateless widget (e.g., `_DictionaryMapEditor`) that takes a `Map<String, I18nText>` and an `onChanged` callback.
+    - Use this widget for both `matrixColumnLabels` and `extensionLabels`.
+    - Provide a button to "Add Term" (adds a new key), and render a row for each entry containing a standard `TextField` for the Key (e.g. "coaching") and an `I18nTextField` for the Value.
+  - Ensure state updates correctly use the parent `onChanged(OutputLayoutBlock)` callback. Do NOT attempt to read/write directly to global Riverpod notifiers from inside this controlled component.
 
 ## Bidirectional Integration Check
 - **Producer**: `layout_editor_card.dart` allows users to author terminology mappings in the Studio UI and saves them back to the database.
