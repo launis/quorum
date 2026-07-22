@@ -1963,5 +1963,23 @@
         "type": "String"
       }
     }
-  }
+  },
+  "excelHeaderMatrix": "Matrix",
+  "excelHeaderGrade": "Grade",
+  "excelHeaderMaxScore": "Max Score",
+  "excelHeaderNote": "Note",
+  "excelHeaderCriterion": "Criterion Name (UI)",
+  "excelHeaderAiRule": "AI Rule",
+  "excelHeaderInternalizedRule": "Internalized Rule",
+  "excelHeaderResultStatus": "Result (Status)",
+  "excelHeaderConfidence": "Confidence Estimate",
+  "excelHeaderReasoningLength": "Reasoning Length",
+  "excelHeaderFoundQuotes": "Found Quotes",
+  "excelHeaderUsedSources": "Used Sources",
+  "excelHeaderAiReasoning": "AI Reasoning",
+  "excelHeaderFalsification": "Falsification",
+  "excelNoteNoScores": "No scoring results in this execution",
+  "excelNoteNoAtoms": "No atoms found",
+  "excelSheetSummary": "Summary",
+  "excelSheetRawData": "Raw Data"
 }

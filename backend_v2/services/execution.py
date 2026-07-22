@@ -686,23 +686,76 @@ class ExecutionService:
             AppException: If parsing fails or storage access fails.
         """
         import io
+        import json
+        from pathlib import Path
 
         import pandas as pd
 
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
-        # 1. Attempt to fetch ReportDataDTO to populate the summary sheet.
-        # Fallback to an empty list if execution is not complete.
-        report_dto = None
-        if execution.status == ExecutionStatus.PASSED:
-            try:
-                report_dto = await self.get_report_dto(initiator, execution_id)
-            except Exception as e:
-                logger.warning(
-                    "[ExecutionService] Failed to generate ReportDataDTO for Excel export, skipping summary sheet: %s",
-                    e,
-                    exc_info=True,
-                )
+        # 1. Strict Fail-Fast Validation
+        if execution.status != ExecutionStatus.PASSED:
+            msg = "Strict Fail-Fast: Execution must be in PASSED state to export Excel."
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={
+                    "type": "about:blank",
+                    "title": "Invalid Execution Status",
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                },
+            )
+
+        has_atoms = (
+            any(step_state.scorecard_atoms for step_state in execution.step_states.values())
+            if execution.step_states
+            else False
+        )
+        if not has_atoms:
+            msg = "Strict Fail-Fast: Execution has no scoreable atoms."
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={
+                    "type": "about:blank",
+                    "title": "No Exportable Data",
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                },
+            )
+
+        # 2. String Resolution via Flutter ARB
+        locale = execution.metadata.get("target_locale", "fi") if execution.metadata else "fi"
+        arb_path = Path(f"client_app_v2/lib/l10n/app_{locale}.arb")
+        if not arb_path.exists():
+            arb_path = Path("client_app_v2/lib/l10n/app_en.arb")
+
+        with open(arb_path, encoding="utf-8") as f:
+            l10n = json.load(f)
+
+        # 3. Attempt to fetch ReportDataDTO to populate the summary sheet.
+        try:
+            report_dto = await self.get_report_dto(initiator, execution_id)
+        except AppException:
+            raise
+        except Exception as e:
+            logger.error(
+                "[ExecutionService] %s: Failed to fetch ReportDataDTO for %s - %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                execution_id,
+                e,
+                exc_info=True,
+            )
+            raise AppException(
+                message="Failed to generate Excel export (Report Fetch Error)",
+                status_code=500,
+                details={
+                    "type": "about:blank",
+                    "title": "Report Fetch Error",
+                    "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value,
+                },
+            ) from e
 
         summary_rows: list[dict[str, Any]] = []
         if report_dto:
@@ -717,16 +770,17 @@ class ExecutionService:
                 max_score = matrix.scale_max
                 summary_rows.append(
                     {
-                        "Matriisi": matrix.label_i18n.resolve() if matrix.label_i18n else matrix.name,
-                        "Arvosana (Grade)": score,
-                        "Maksimipisteet": max_score,
+                        l10n.get("excelHeaderMatrix", "Matrix"): matrix.label_i18n.resolve()
+                        if matrix.label_i18n
+                        else matrix.name,
+                        l10n.get("excelHeaderGrade", "Grade"): score,
+                        l10n.get("excelHeaderMaxScore", "Max Score"): max_score,
                     }
                 )
 
         df_summary = pd.DataFrame(summary_rows)
 
-        # 2. Reconstruct the Raakadata directly from the ExecutionStepState's scorecard_atoms
-        # We also need AI descriptions (rules) from PromptBlocks if available.
+        # 4. Reconstruct the Raakadata directly from the ExecutionStepState's scorecard_atoms
         components = await self.comp_repo.get_all_components("prompt_block")
         blocks_by_id = {}
         for b in components:
@@ -754,11 +808,12 @@ class ExecutionService:
                 quotes_str = "; ".join([q.quote for q in atom.exact_quotes]) if atom.exact_quotes else ""
 
                 sources_list = []
-                for q in atom.exact_quotes:
-                    if getattr(q, "verified_source_ids", None):
-                        sources_list.extend(q.verified_source_ids)
-                    if getattr(q, "unverified_aliases", None):
-                        sources_list.extend(q.unverified_aliases)
+                if atom.exact_quotes:
+                    for q in atom.exact_quotes:
+                        if q.verified_source_ids:
+                            sources_list.extend(q.verified_source_ids)
+                        if q.unverified_aliases:
+                            sources_list.extend(q.unverified_aliases)
 
                 sources = list(dict.fromkeys(sources_list))
                 sources_str = ", ".join(sources)
@@ -775,17 +830,17 @@ class ExecutionService:
 
                 rows.append(
                     {
-                        "Matriisi": step_state.label,
-                        "Kriteerin Nimi (UI)": atom.claim_label,
-                        "Tekoälyn Sääntö": claim_rule,
-                        "Sisäistetty Sääntö": internalization,
-                        "Tulos (Status)": num_status,
-                        "Varmuusarvio": None,
-                        "Perustelun Pituus": word_count,
-                        "Löydetyt Lainaukset": quotes_str,
-                        "Käytetyt Lähteet": sources_str,
-                        "Tekoälyn Perustelu": atom.semantic_reasoning,
-                        "Falsifiointi": anti_patterns,
+                        l10n.get("excelHeaderMatrix", "Matrix"): step_state.label,
+                        l10n.get("excelHeaderCriterion", "Criterion Name (UI)"): atom.claim_label,
+                        l10n.get("excelHeaderAiRule", "AI Rule"): claim_rule,
+                        l10n.get("excelHeaderInternalizedRule", "Internalized Rule"): internalization,
+                        l10n.get("excelHeaderResultStatus", "Result (Status)"): num_status,
+                        l10n.get("excelHeaderConfidence", "Confidence Estimate"): None,
+                        l10n.get("excelHeaderReasoningLength", "Reasoning Length"): word_count,
+                        l10n.get("excelHeaderFoundQuotes", "Found Quotes"): quotes_str,
+                        l10n.get("excelHeaderUsedSources", "Used Sources"): sources_str,
+                        l10n.get("excelHeaderAiReasoning", "AI Reasoning"): atom.semantic_reasoning,
+                        l10n.get("excelHeaderFalsification", "Falsification"): anti_patterns,
                     }
                 )
 
@@ -794,24 +849,23 @@ class ExecutionService:
         output = io.BytesIO()
         try:
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                if not df_summary.empty:
-                    df_summary.to_excel(writer, sheet_name="Yhteenveto", index=False)
-                else:
-                    pd.DataFrame([{"Huomio": "Ei pisteytystuloksia tässä ajossa"}]).to_excel(
-                        writer, sheet_name="Yhteenveto", index=False
-                    )
-                if not df_raw.empty:
-                    df_raw.to_excel(writer, sheet_name="Raakadata", index=False)
-                else:
-                    pd.DataFrame([{"Huomio": "Ei atomeja löytynyt"}]).to_excel(
-                        writer, sheet_name="Raakadata", index=False
-                    )
+                df_summary.to_excel(writer, sheet_name=l10n.get("excelSheetSummary", "Summary"), index=False)
+                df_raw.to_excel(writer, sheet_name=l10n.get("excelSheetRawData", "Raw Data"), index=False)
         except Exception as e:
-            logger.error("[ExecutionService] Excel writing failed", exc_info=True)
+            logger.error(
+                "[ExecutionService] %s: Excel writing failed - %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message="Failed to generate Excel export",
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                details={
+                    "type": "about:blank",
+                    "title": "Excel Generation Failed",
+                    "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value,
+                },
             ) from e
 
         output.seek(0)

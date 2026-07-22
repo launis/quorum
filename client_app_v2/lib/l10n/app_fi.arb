@@ -1303,5 +1303,23 @@
         "type": "String"
       }
     }
-  }
+  },
+  "excelHeaderMatrix": "Matriisi",
+  "excelHeaderGrade": "Arvosana (Grade)",
+  "excelHeaderMaxScore": "Maksimipisteet",
+  "excelHeaderNote": "Huomio",
+  "excelHeaderCriterion": "Kriteerin Nimi (UI)",
+  "excelHeaderAiRule": "Tekoälyn Sääntö",
+  "excelHeaderInternalizedRule": "Sisäistetty Sääntö",
+  "excelHeaderResultStatus": "Tulos (Status)",
+  "excelHeaderConfidence": "Varmuusarvio",
+  "excelHeaderReasoningLength": "Perustelun Pituus",
+  "excelHeaderFoundQuotes": "Löydetyt Lainaukset",
+  "excelHeaderUsedSources": "Käytetyt Lähteet",
+  "excelHeaderAiReasoning": "Tekoälyn Perustelu",
+  "excelHeaderFalsification": "Falsifiointi",
+  "excelNoteNoScores": "Ei pisteytystuloksia tässä ajossa",
+  "excelNoteNoAtoms": "Ei atomeja löytynyt",
+  "excelSheetSummary": "Yhteenveto",
+  "excelSheetRawData": "Raakadata"
 }

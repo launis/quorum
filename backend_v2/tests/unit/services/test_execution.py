@@ -610,13 +610,48 @@ async def test_get_execution_export_bytes_success() -> None:
     mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace_storage_path = None
     mock_record.execution_trace = []
-    mock_record.step_states = {}
+    from backend_v2.models.enums import VisualIntent
+    from backend_v2.models.v2_core import ExecutionStepState, ScorecardAtomDTO
+    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+
+    mock_record.step_states = {
+        "step_1": ExecutionStepState(
+            id="step_1",
+            label="Step 1",
+            status="PASSED",
+            scorecard_atoms={
+                "atom_1": ScorecardAtomDTO(
+                    atom_id="atom_1",
+                    level=1,
+                    level_name="T1",
+                    claim_label="Claim",
+                    extracted_facts={},
+                    exact_quotes=[],
+                    internal_logic_en=ReasoningStepDTO(
+                        step_1_identify_premise="",
+                        step_2_scan_source="",
+                        step_3_evaluate_anti_patterns="",
+                        step_4_final_conclusion=""
+                    ),
+                    status=ExecutionStatus.PASSED,
+                    semantic_reasoning="",
+                    contextual_override=False,
+                    structural_location="N/A",
+                    chart_display_label="N/A",
+                    visual_intent=VisualIntent.NEUTRAL,
+                )
+            },
+        )
+    }
     mock_record.organization_id = "org_1"
+    mock_record.metadata = {}
     mock_record.model_copy.return_value = mock_record
 
     repo_mock.get_execution.return_value = mock_record
 
-    bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
+    from unittest.mock import patch
+    with patch.object(service, "get_report_dto", return_value=None):
+        bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
 
     assert filename == "execution_export_exe_123.xlsx"
     assert len(bytes_out) > 0
@@ -663,11 +698,88 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
             },
         )
     ]
+    from backend_v2.models.enums import VisualIntent
+    from backend_v2.models.v2_core import ExecutionStepState, ScorecardAtomDTO
+    from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+    
+    mock_record.step_states = {
+        "step_1": ExecutionStepState(
+            id="step_1",
+            label="Step 1",
+            status="PASSED",
+            scorecard_atoms={
+                "atom_1": ScorecardAtomDTO(
+                    atom_id="atom_1",
+                    level=1,
+                    level_name="T1",
+                    claim_label="Claim",
+                    extracted_facts={},
+                    exact_quotes=[
+                        QuoteEvidenceDTO.model_construct(
+                            quote="Found quote",
+                            verified_source_ids=[],
+                            unverified_aliases=["src1"],
+                            surrounding_context=None,
+                        )
+                    ],
+                    internal_logic_en=ReasoningStepDTO(
+                        step_1_identify_premise="",
+                        step_2_scan_source="",
+                        step_3_evaluate_anti_patterns="",
+                        step_4_final_conclusion=""
+                    ),
+                    status=ExecutionStatus.PASSED,
+                    semantic_reasoning="",
+                    contextual_override=False,
+                    structural_location="N/A",
+                    chart_display_label="N/A",
+                    visual_intent=VisualIntent.NEUTRAL,
+                )
+            },
+        )
+    }
+    mock_record.organization_id = "org_1"
+    mock_record.metadata = {}
+    mock_record.model_copy.return_value = mock_record
+
+    repo_mock.get_execution.return_value = mock_record
+
+    from unittest.mock import patch
+    with patch.object(service, "get_report_dto", return_value=None):
+        bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
+    assert filename == "execution_export_exe_123.xlsx"
+
+@pytest.mark.asyncio
+async def test_get_execution_export_bytes_empty_states_fails() -> None:
+    repo_mock = AsyncMock()
+    executor_mock = Mock()
+
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=executor_mock,
+    )
+
+    initiator = TokenData(id="u1", role=UserRole.ROOT)
+
+    mock_record = Mock(spec=ExecutionRecord)
+    mock_record.status = ExecutionStatus.PASSED
     mock_record.step_states = {}
     mock_record.organization_id = "org_1"
     mock_record.model_copy.return_value = mock_record
 
     repo_mock.get_execution.return_value = mock_record
 
-    bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
-    assert filename == "execution_export_exe_123.xlsx"
+    with pytest.raises(AppException) as exc_info:
+        await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "no scoreable atoms" in exc_info.value.message

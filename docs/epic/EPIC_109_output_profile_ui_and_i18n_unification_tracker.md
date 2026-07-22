@@ -10,8 +10,8 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\00_phase0_seed_data_migration.md]
 
 ### Phase 1: Backend Domain Models & Service Engine Hardening
-- [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\01_phase1_backend_hardening.md]
-- [ ] **[NOK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\01_phase1_backend_hardening.md]
+- [x] **[OK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\01_phase1_backend_hardening.md]
+- [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\01_phase1_backend_hardening.md]
 
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
 - [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\02_phase2_orchestration_registry.md]
@@ -59,10 +59,10 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 
 | Epic Requirement | Implementation Phase | Status |
 |------------------|----------------------|--------|
-| Zero Legacy State Support Mandate (Re-seeding) | Phase 0 | Pending |
-| Excel Export Fail-Fast Boundary (Zero Duct-Tape) | Phase 1 | Pending |
-| RFC-7807 Dual-Reporting for execution errors | Phase 1 | Pending |
-| Replace hardcoded Finnish column headers with ARB | Phase 1 | Pending |
+| Zero Legacy State Support Mandate (Re-seeding) | Phase 0 | Complete |
+| Excel Export Fail-Fast Boundary (Zero Duct-Tape) | Phase 1 | Complete |
+| RFC-7807 Dual-Reporting for execution errors | Phase 1 | Complete |
+| Replace hardcoded Finnish column headers with ARB | Phase 1 | Complete |
 | Cross-Domain DTO Parity (`is_synthesis_enabled`) | Phase 2 | Pending |
 | 3-tab layout for Studio Workflow Top Navigation | Phase 3A | Pending |
 | 3-tab layout for Output Profile Admin UI | Phase 3B | Pending |
@@ -78,13 +78,17 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - Successfully executed Phase 0 data migration (seed data modifications to add `"xlsx"`).
 - Re-seeded the local database seamlessly with `run_seed.py local`.
 - Passed the `backend_audit_loop.py` quality gate for `v2_core.py` and `run_seed.py`.
+- Hardened `get_execution_export_bytes` in `backend_v2/services/execution.py` to strictly Fail-Fast.
+- Replaced hardcoded Finnish column headers in Excel export with Flutter ARB translation keys.
+- Ensured `/api/v2/executions/{execution_id}/export` relies solely on execution metadata `target_locale`.
+- Updated `backend_v2/tests/unit/services/test_execution.py` and passed universal quality gate.
 
 ## Learned
 - **Strict Seed Vault Exemption**: While `03_seed_vault.md` forbids mutating Pydantic schemas to fit data during seed operations, an explicit user override allowed us to update `Literal['pdf', 'docx', 'raw_json', 'xlsx']` simultaneously to prevent a Catch-22 with `run_seed.py` failing fast.
 
 ## Remaining
-- Perform research and execution for Phase 1 and Phase 2.
+- Perform research and execution for Phase 2.
 - Generate plans for Phase 3 via a new Tier 1 Planner pass once the backend SDUI model foundation is secure.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\01_phase1_backend_hardening.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\02_phase2_orchestration_registry.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
