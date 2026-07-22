@@ -29,7 +29,7 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\04_phase3B_output_profile_subtabs.md]
 
 ### Integration Checkpoint: Phase 3 Planner Invocation
-- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for Phase 3C and 3D based on the updated codebase state. (CRITICAL LIMIT requirement).
+- [x] **[OK]** Invoke Tier 1 Planner again to generate detailed plans for Phase 3C and 3D based on the updated codebase state. (CRITICAL LIMIT requirement).
 
 ### Phase 3C: Section Template UI & i18n Widget Updates
 - [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]
@@ -94,15 +94,19 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - Passed `flutter_audit_loop.py` for all Phase 3A targets.
 - Successfully executed Phase 3B (Output Profile Sub-Tab Restructuring), implementing the 3-tab layout in `profile_editor_view.dart` and adding necessary translations to ARB files.
 - Passed `flutter_audit_loop.py` for all Phase 3B targets.
+- Invoked Tier 1 Planner to generate detailed implementation plans for Phase 3C and 3D.
 
 ## Learned
 - **Strict Seed Vault Exemption**: While `03_seed_vault.md` forbids mutating Pydantic schemas to fit data during seed operations, an explicit user override allowed us to update `Literal['pdf', 'docx', 'raw_json', 'xlsx']` simultaneously to prevent a Catch-22 with `run_seed.py` failing fast.
 - **Single Responsibility Validation**: `output_profile.py` does not need explicit modification because its DTOs properly inherit `OutputLayoutBlock` from `v2_core.py`.
 - **Dead Code Cleanup**: `_resolve_i18n_str` in `blueprint.py` was verified as entirely unreferenced dead code and safely deleted.
 - **Cognitive Boundary Mandate**: Followed the limit of generating max 2 detailed Phase plans at a time (3A and 3B), leaving the rest as placeholders to preserve system context stability.
+- **Dart Model Mapping Lag**: Phase 2 added `is_synthesis_enabled` on the backend, but the Dart `OutputLayoutBlock` Freezed model does not yet possess it. It must be added to Dart models in Phase 3C to enforce cross-domain SDUI parity.
 
 ## Remaining
-- Invoke Tier 1 Planner to generate detailed plans for Phase 3C and 3D based on the updated codebase state.
+- Execute `/tier0-research-plan` and `/tier2-execute` for Phase 3C: Section Template UI & i18n Widget Updates.
+- Execute `/tier0-research-plan` and `/tier2-execute` for Phase 3D: Excel Action Button.
+- Perform all post-implementation audits, final E2E gates, and update documentation.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier1-planner --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
