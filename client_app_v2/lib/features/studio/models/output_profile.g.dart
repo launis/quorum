@@ -216,6 +216,8 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'synthesis_blocks',
         'strictness_level',
         'scoring_strategy',
+        'matrix_column_labels',
+        'extension_labels',
       ],
     );
     final val = _OutputLayoutBlock(
@@ -277,6 +279,18 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'scoring_strategy',
         (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
       ),
+      matrixColumnLabels: $checkedConvert(
+        'matrix_column_labels',
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+        ),
+      ),
+      extensionLabels: $checkedConvert(
+        'extension_labels',
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+        ),
+      ),
     );
     return val;
   },
@@ -288,6 +302,8 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     'synthesisBlocks': 'synthesis_blocks',
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
+    'matrixColumnLabels': 'matrix_column_labels',
+    'extensionLabels': 'extension_labels',
   },
 );
 
@@ -305,6 +321,12 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(
   'synthesis_blocks': instance.synthesisBlocks.map((e) => e.toJson()).toList(),
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
+  'matrix_column_labels': instance.matrixColumnLabels?.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
+  'extension_labels': instance.extensionLabels?.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
 };
 
 const _$PresetViewEnumMap = {

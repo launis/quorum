@@ -66,25 +66,29 @@ class ReportRendererV2Widget extends StatelessWidget {
       );
     }
 
-    // 1. Content Blocks (Yhteenveto)
+    // 1. Content Blocks
     if (payload.contentBlocks != null && payload.contentBlocks!.isNotEmpty) {
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.s24,
-            AppSpacing.s24,
-            AppSpacing.s24,
-            AppSpacing.s8,
-          ),
-          child: Text(
-            l10n.reportExecutiveSummary,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      );
       for (final block in payload.contentBlocks!) {
+        final resolvedTitle = block['resolved_title'] as String?;
+        if (resolvedTitle != null && resolvedTitle.isNotEmpty) {
+          widgets.add(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s24,
+                AppSpacing.s24,
+                AppSpacing.s24,
+                AppSpacing.s8,
+              ),
+              child: Text(
+                resolvedTitle,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+          );
+        }
+
         if (block['block_type'] == 'markdown' ||
             block['block_type'] == 'paragraph') {
           final text = block['text'] as String?;
@@ -136,41 +140,6 @@ class ReportRendererV2Widget extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      );
-    }
-
-    // 2.5 Global Synthesis (Yhteenveto)
-    if (payload.globalSynthesis != null &&
-        payload.globalSynthesis!.executiveSummary != null &&
-        payload.globalSynthesis!.executiveSummary!.isNotEmpty) {
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.s24,
-            AppSpacing.s24,
-            AppSpacing.s24,
-            AppSpacing.s8,
-          ),
-          child: Text(
-            l10n.reportExecutiveSummary,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      );
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.only(
-            bottom: AppSpacing.s16,
-            left: AppSpacing.s24,
-            right: AppSpacing.s24,
-            top: AppSpacing.s8,
-          ),
-          child: OutputRenderer(
-            markdownContent: payload.globalSynthesis!.executiveSummary!,
           ),
         ),
       );

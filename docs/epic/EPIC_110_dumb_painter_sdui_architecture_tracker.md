@@ -14,8 +14,8 @@
 - `[x]` **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_110\02_backend_blueprint_plan.md]`
 
 ### Phase 1 & 2: Frontend Models & Renderer
-- `[ ]` **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\03_frontend_models_and_renderer_plan.md]`
-- `[ ]` **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_110\03_frontend_models_and_renderer_plan.md]`
+- `[x]` **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\03_frontend_models_and_renderer_plan.md]`
+- `[x]` **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_110\03_frontend_models_and_renderer_plan.md]`
 
 ### Phase 4: Frontend UI Editor
 - `[ ]` **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]`
@@ -54,8 +54,8 @@
 | Add `matrix_column_labels` and `extension_labels` | Phase 2 | `01_backend_architecture_and_seed_plan.md` | Done |
 | Migrate `seed_data.json` layout blocks | Phase 2 | `01_backend_architecture_and_seed_plan.md` | Done |
 | Delegate title resolution in `blueprint.py` | Phase 3 | `02_backend_blueprint_plan.md` | Done |
-| Remove Flutter duct-tape | Phase 1 | `03_frontend_models_and_renderer_plan.md` | Pending |
-| Flutter Models Sync | Phase 2 | `03_frontend_models_and_renderer_plan.md` | Pending |
+| Remove Flutter duct-tape | Phase 1 | `03_frontend_models_and_renderer_plan.md` | Done |
+| Flutter Models Sync | Phase 2 | `03_frontend_models_and_renderer_plan.md` | Done |
 | 3-Part UI Refactor | Phase 4 | `04_frontend_ui_editor_plan.md` | Pending |
 
 # Session Handover Context
@@ -75,15 +75,20 @@
   - Resolved `matrix_column_labels` and `extension_labels` from `OutputLayoutBlock` and mapped them directly into `ReportLayoutDTO`.
   - Fixed the Amnesia Bug by preventing raw_score overwrite when an AI score already exists.
   - Passed strict backend audit loop (MyPy strict and Pytest).
+- Executed Phase 1 & 2 Frontend Models & Renderer updates:
+  - Added `matrixColumnLabels` and `extensionLabels` nullable map fields to `OutputLayoutBlock` in `output_profile.dart`.
+  - Stripped out "2.5 Global Synthesis" logic from `report_renderer_v2_widget.dart` to match Dumb Painter rules.
+  - Dynamically injected `resolvedTitle` from `payload.contentBlocks` without using localized defaults.
+  - Generated Freezed `build_runner` files and passed flutter audit gate.
 
 ## Learned
 - Seed data size is ~533KB, requiring careful parsing and bounded reading via grep or line limits to prevent truncation.
 - The `OutputLayoutBlock` model resides in `backend_v2/models/v2_core.py` (Python) and `client_app_v2/lib/features/studio/models/output_profile.dart` (Flutter).
 - `blueprint.py` handles the main ReportDataDTO mapping, and now correctly cascades UI label configurations down to the layout payloads.
+- SDUI enforces no layout assumptions on frontend, strict reliance on `block['resolved_title']`.
 
 ## Remaining
-- Execute Phase 1 & 2 Frontend Models & Renderer implementation plan to bring Flutter models and `report_renderer_v2_widget` into parity with backend.
 - Execute Phase 4 Frontend UI Editor implementation plan to support term authoring in `layout_editor_card.dart`.
 
 ## Resume Command
-/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture_tracker.md] @[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture.md] @[c:\src\quorum\docs\epic\tasks_EPIC_110\03_frontend_models_and_renderer_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"
+/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture_tracker.md] @[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture.md] @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"

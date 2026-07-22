@@ -89,6 +89,9 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     List<SduiBlockDTO> synthesisBlocks,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
+    @JsonKey(name: 'matrix_column_labels')
+    Map<String, I18nText>? matrixColumnLabels,
+    @JsonKey(name: 'extension_labels') Map<String, I18nText>? extensionLabels,
   }) = _OutputLayoutBlock;
 
   factory OutputLayoutBlock.fromJson(Map<String, dynamic> json) =>
