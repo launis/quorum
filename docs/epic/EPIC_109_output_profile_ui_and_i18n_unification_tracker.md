@@ -51,6 +51,9 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - [x] **[OK]** Update .agents/rules/04_directory_reference.md to include any new directories.
 - [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
 
+### Phase 5: Epic Audit
+- [ ] **[PENDING]** `/tier8-audit-epic` @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md]
+
 ## Instructions for the Execution Agent
 - Enforce atomic commits per-file/per-domain after any successful run of the universal quality gate.
 - Seed database using: `uv run python backend_v2/seed/run_seed.py local`
@@ -111,9 +114,10 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - **Dart Model Mapping Correction**: Verified that `EmbeddedOutputProfile` should NOT receive `is_synthesis_enabled` to avoid strict Freezed schema crashes, as it was never mapped in the Backend Phase 2.
 - **UI Logic Distinction**: `isSynthesisEnabled` and `synthesis != null` serve two entirely different functional purposes and require distinct toggles.
 - **DioException Bytes Decoding**: When downloading files via `ResponseType.bytes`, `Dio` does not parse the HTTP 400 JSON payload, returning it as a raw `Uint8List`. Standard `AppExceptionX` interceptors fail on this, so explicit `utf8.decode` and `jsonDecode` must be used to extract RFC-7807 messages in binary endpoints.
+- **Epic Audit Limitations**: Due to CRITICAL LIMIT rules, Epic Audits (`/tier8-audit-epic`) must be scoped strictly to ONE phase per session to prevent context amnesia. Phase 0 has been completed and verified as a PASS.
 
 ## Remaining
-- Perform all post-implementation audits, final E2E gates, and update documentation.
+- Continue Phase 5 `/tier8-audit-epic` for Phase 1 against @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] and update `EPIC_109_audit_report.md`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-hardening-backend --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier8-audit-epic --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
