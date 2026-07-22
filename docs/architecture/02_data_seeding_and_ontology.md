@@ -23,6 +23,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** System personality and localization strings are data, not code.
 - **Enforcement:** Attributes like specific vocabulary (e.g., forcing the AI to use "delve into" or "syventyä") are injected dynamically via `performative_lexicons` defined in the seed data. The LLM engine must apply these lexicons post-resolution, allowing multi-lingual operation without altering the core logic.
 
+### 2.5. Universal I18n Domain Model (I18nText)
+- **Law:** Dynamic localized strings must never be flattened into dictionary maps or separate schema fields (e.g., `title_en`).
+- **Enforcement:** Any user-facing string that exists within the ontology (like profile titles, layout descriptions, and preambles) MUST use the strictly typed `I18nText` object in Python (`backend_v2/models/v2_core.py`) and Flutter (`client_app_v2/lib/shared/models/i18n_text.dart`). This ensures safe fallback resolution logic, structural parity across boundaries, and prevents UI crashes due to missing translation keys.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

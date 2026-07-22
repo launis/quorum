@@ -28,6 +28,7 @@ abstract class ReportDataDto with _$ReportDataDto {
     @JsonKey(name: 'custom_preface_md') String? customPrefaceMd,
     @JsonKey(name: 'profile_id') required String profileId,
     @JsonKey(name: 'profile_name') I18nText? profileName,
+    @JsonKey(name: 'profile_description') I18nText? profileDescription,
     @JsonKey(name: 'available_profiles')
     @Default({})
     Map<String, I18nText> availableProfiles,

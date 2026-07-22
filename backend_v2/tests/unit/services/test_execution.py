@@ -610,9 +610,9 @@ async def test_get_execution_export_bytes_success() -> None:
     mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace_storage_path = None
     mock_record.execution_trace = []
+    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
     from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import ExecutionStepState, ScorecardAtomDTO
-    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
 
     mock_record.step_states = {
         "step_1": ExecutionStepState(
@@ -631,7 +631,7 @@ async def test_get_execution_export_bytes_success() -> None:
                         step_1_identify_premise="",
                         step_2_scan_source="",
                         step_3_evaluate_anti_patterns="",
-                        step_4_final_conclusion=""
+                        step_4_final_conclusion="",
                     ),
                     status=ExecutionStatus.PASSED,
                     semantic_reasoning="",
@@ -650,6 +650,7 @@ async def test_get_execution_export_bytes_success() -> None:
     repo_mock.get_execution.return_value = mock_record
 
     from unittest.mock import patch
+
     with patch.object(service, "get_report_dto", return_value=None):
         bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
 
@@ -698,11 +699,11 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
             },
         )
     ]
+    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+    from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
     from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import ExecutionStepState, ScorecardAtomDTO
-    from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
-    
+
     mock_record.step_states = {
         "step_1": ExecutionStepState(
             id="step_1",
@@ -727,7 +728,7 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
                         step_1_identify_premise="",
                         step_2_scan_source="",
                         step_3_evaluate_anti_patterns="",
-                        step_4_final_conclusion=""
+                        step_4_final_conclusion="",
                     ),
                     status=ExecutionStatus.PASSED,
                     semantic_reasoning="",
@@ -746,9 +747,11 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
     repo_mock.get_execution.return_value = mock_record
 
     from unittest.mock import patch
+
     with patch.object(service, "get_report_dto", return_value=None):
         bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
     assert filename == "execution_export_exe_123.xlsx"
+
 
 @pytest.mark.asyncio
 async def test_get_execution_export_bytes_empty_states_fails() -> None:

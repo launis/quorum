@@ -23,6 +23,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** The frontend must render SDUI components exactly as dictated by the backend enum mapping, avoiding manual UI overrides.
 - **Enforcement:** Specific SDUI components must inherently support their required domain constraints (e.g., `n_a_card` rendering `short_circuit_reason_tda_ids` directly from the context payload without separate API calls). The components defined in the backend `SDUIComponentType` (like `boolean_card`, `extracted_value_card`, `error_card`, `n_a_card`) are absolute boundaries.
 
+### 2.5. UI Editing Parity for Dynamic Text
+- **Law:** Forms mutating localized dynamic strings must encapsulate `I18nText` object handling natively.
+- **Enforcement:** When the Studio UI interacts with a localized string from the Ontology, it MUST use the `I18nTextField` component rather than a generic text input. This component safely extracts, updates, and repackages the underlying `I18nText` schema in real-time, preventing developers from manually unpacking maps or defaulting to fallback string inputs that would break schema parity with the backend.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

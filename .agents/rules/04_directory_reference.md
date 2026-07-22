@@ -98,6 +98,11 @@
         <key_domains>error/app_error_boundary.dart, models/enums.dart, network/</key_domains>
     </module>
     
+    <module path="client_app_v2/lib/shared/">
+        <responsibility>SHARED UI WIDGETS & CROSS-DOMAIN MODELS</responsibility>
+        <key_domains>widgets/ (e.g. i18n_text_field.dart), models/ (e.g. i18n_text.dart)</key_domains>
+    </module>
+    
     <module path="client_app_v2/lib/l10n/">
         <responsibility>STRICT INTERNATIONALIZATION STRINGS</responsibility>
         <key_domains>app_en.arb, app_fi.arb</key_domains>

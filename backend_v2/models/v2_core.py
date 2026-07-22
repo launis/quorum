@@ -1141,6 +1141,9 @@ class ReportDataDTO(V2CoreBase):
     custom_preface_md: str | None = Field(default=None, description="Custom user preface rendered as Markdown")
     profile_id: str
     profile_name: I18nText | None = Field(default=None)
+    profile_description: I18nText | None = Field(
+        default=None, description="Detailed profile context mapped from OutputProfile"
+    )
     available_profiles: dict[str, I18nText] = Field(default_factory=dict)
     global_score: float | None = Field(
         default=None, description="The mathematical average extracted from the scoring_result hook."

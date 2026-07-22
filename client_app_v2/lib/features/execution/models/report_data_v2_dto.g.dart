@@ -25,6 +25,7 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'custom_preface_md',
         'profile_id',
         'profile_name',
+        'profile_description',
         'available_profiles',
         'global_score',
         'has_warning',
@@ -71,6 +72,10 @@ _ReportDataDto _$ReportDataDtoFromJson(
       profileId: $checkedConvert('profile_id', (v) => v as String),
       profileName: $checkedConvert(
         'profile_name',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      profileDescription: $checkedConvert(
+        'profile_description',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       availableProfiles: $checkedConvert(
@@ -214,6 +219,7 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'customPrefaceMd': 'custom_preface_md',
     'profileId': 'profile_id',
     'profileName': 'profile_name',
+    'profileDescription': 'profile_description',
     'availableProfiles': 'available_profiles',
     'globalScore': 'global_score',
     'hasWarning': 'has_warning',
@@ -250,6 +256,7 @@ Map<String, dynamic> _$ReportDataDtoToJson(_ReportDataDto instance) =>
       'custom_preface_md': instance.customPrefaceMd,
       'profile_id': instance.profileId,
       'profile_name': instance.profileName?.toJson(),
+      'profile_description': instance.profileDescription?.toJson(),
       'available_profiles': instance.availableProfiles.map(
         (k, e) => MapEntry(k, e.toJson()),
       ),
