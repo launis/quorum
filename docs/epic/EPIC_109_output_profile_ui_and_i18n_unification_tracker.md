@@ -54,7 +54,8 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 ### Phase 5: Epic Audit
 - [x] **[OK]** Phase 0 Audit Complete: `EPIC_109_audit_report.md` created.
 - [x] **[OK]** `/tier8-audit-epic` for Phase 1 against @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md]
-- [ ] **[PENDING]** `/tier8-audit-epic` for Phase 2 against @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md]
+- [x] **[OK]** `/tier8-audit-epic` for Phase 2 against @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md]
+- [ ] **[PENDING]** `/tier8-audit-epic` for Phase 3 against @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md]
 
 ## Instructions for the Execution Agent
 - Enforce atomic commits per-file/per-domain after any successful run of the universal quality gate.
@@ -118,9 +119,10 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - **DioException Bytes Decoding**: When downloading files via `ResponseType.bytes`, `Dio` does not parse the HTTP 400 JSON payload, returning it as a raw `Uint8List`. Standard `AppExceptionX` interceptors fail on this, so explicit `utf8.decode` and `jsonDecode` must be used to extract RFC-7807 messages in binary endpoints.
 - **Epic Audit Limitations**: Due to CRITICAL LIMIT rules, Epic Audits (`/tier8-audit-epic`) must be scoped strictly to ONE phase per session to prevent context amnesia. Phase 0 and Phase 1 have been completed and verified as a PASS.
 - Executed Phase 1 Epic Audit, verifying Backend Domain Models and Service Engine Hardening, and updated `EPIC_109_audit_report.md`.
+- Executed Phase 2 Epic Audit, verifying Orchestration, Registry & Prompt Compiler Updates, and updated `EPIC_109_audit_report.md`.
 
 ## Remaining
-- Continue Phase 5 `/tier8-audit-epic` for Phase 2 against @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] and update `EPIC_109_audit_report.md`.
+- Continue Phase 5 `/tier8-audit-epic` for Phase 3 against @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] and update `EPIC_109_audit_report.md`.
 
 ## Resume Command
 `/tier5-resume --workflow=/tier8-audit-epic --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
