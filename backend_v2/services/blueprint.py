@@ -74,27 +74,6 @@ class BlueprintTransformer:
         self.system_repo = system_repo
 
     @staticmethod
-    def _resolve_i18n_str(val: dict[str, Any] | None, lang: str, fallback: str) -> str:
-        """Resolves an internationalized string from a dictionary mapping.
-
-        Args:
-            val: Dictionary mapping language codes to strings, or None.
-            lang: Target language code.
-            fallback: Fallback string if no match is found.
-
-        Returns:
-            The resolved string in the target language, English, or the fallback.
-        """
-        if val and isinstance(val, dict):
-            translations = val["translations"] if "translations" in val and val["translations"] else val
-            if isinstance(translations, dict):
-                if lang in translations and translations[lang]:
-                    return str(translations[lang])
-                if SystemLocale.EN.value in translations and translations[SystemLocale.EN.value]:
-                    return str(translations[SystemLocale.EN.value])
-        return fallback
-
-    @staticmethod
     def _clean_hallucinated_numbers(text: str) -> str:
         """Removes sentences that contain numeric evaluations to prevent hallucinations.
 
@@ -776,6 +755,7 @@ class BlueprintTransformer:
                         preset_view=preset_view,
                         title=layout_title,
                         description=layout_desc,
+                        is_synthesis_enabled=layout_def.is_synthesis_enabled,
                         axes=axes,
                         text_delivery_mode=text_delivery_mode,
                         synthesis=synthesis_config,

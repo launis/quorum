@@ -1034,6 +1034,7 @@ class ReportLayoutDTO(V2CoreBase):
     preset_view: Literal["1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only"]
     title: I18nText | None = Field(default=None)
     description: I18nText | None = Field(default=None)
+    is_synthesis_enabled: bool = Field(default=True)
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
     text_delivery_mode: Literal["full", "titles_only", "none"] = Field(
         default="full", description="Granularity of text output for this layout."
@@ -1229,6 +1230,7 @@ class OutputLayoutBlock(V2CoreBase):
     preset_view: Literal["1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only"] = Field(
         description="The static UI renderer preset (e.g. 1d_metrics, 3d_complex)."
     )
+    is_synthesis_enabled: bool = Field(default=True, description="Toggle for UI section-level synthesis.")
     title: I18nText | None = Field(default=None, description="Optional localized layout title.")
     description: I18nText | None = Field(default=None, description="Optional localized layout description.")
     steps: list[str] = Field(default_factory=list, description="List of step IDs providing the axes.")
