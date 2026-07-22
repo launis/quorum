@@ -22,6 +22,7 @@ This Epic unifies the Studio Workflow Top Navigation into a strict 3-tab layout,
 3. **Cross-Domain DTO Parity**: Any changes to `OutputLayoutBlock` or i18n structures in Python MUST be strictly mirrored in Dart Freezed models, verified via `flutter_audit_loop.py --build`.
 4. **RFC-7807 Dual-Reporting**: If Excel export catches an unexpected data shape or `ReportDataDTO` generation fails, it must NOT use a generic `try/except Exception` catch-all. It must catch typed `AppException`s and log a structured error via RFC-7807.
 5. **Fail-Fast Boundary (Zero Duct-Tape)**: If an execution lacks data (no scorecard atoms) or is not in a PASSED state, the Excel export MUST NOT generate empty formatted fallback sheets. It must Fail-Fast and throw an `AppException(status_code=400)` rejecting the export entirely, preventing silent failures and "Ei atomeja löytynyt" hallucinated exports.
+6. **Strict SDUI Rendering Mandate**: The frontend MUST NOT contain any hardcoded business logic, layout states, or fallback UI strings for output profiles. All dynamic content, including layout configurations, section titles, and RFC-7807 error messages, MUST be strictly driven by backend DTOs and localization dictionaries.
 
 ### Producer-Consumer Integration Check
 - **Producer (Seed/Backend)**: `seed_data.json` and `blueprint.py` must reliably generate and serve bilingual section titles/descriptions.
@@ -42,10 +43,13 @@ This Epic unifies the Studio Workflow Top Navigation into a strict 3-tab layout,
   - Harden `get_execution_export_bytes()` to strictly Fail-Fast. Remove existing openpyxl empty fallback sheet generation (L799-L808). If `execution.step_states` has no atoms or `status != PASSED`, throw an `AppException` (400 Bad Request).
   - Remove the `try/except Exception` catch-all at L700, replacing with strict typed `except AppException` and RFC-7807 dual-reporting.
   - Replace `getattr(q, "verified_source_ids", None)` and `getattr(q, "unverified_aliases", None)` at L758-L761 with direct Pydantic DTO attribute access (Zero-Compromise Pledge).
-  - Replace hardcoded Finnish column headers at L778-L789 (`"Matriisi"`, `"Kriteerin Nimi (UI)"`, `"Tekoälyn Sääntö"`, etc.) with locale-resolved Enum keys or at minimum English constants to comply with `no_string_l10n` invariant.
+  - Replace hardcoded Finnish column headers at L778-L789 (`"Matriisi"`, `"Kriteerin Nimi (UI)"`, `"Tekoälyn Sääntö"`, etc.) and mandate strict resolution via the backend's localization dictionaries to comply with the `no_string_l10n` invariant.
+  - Require a strictly typed API contract for locale resolution. The FastAPI endpoint MUST use a typed Query parameter (e.g., `locale: LocaleEnum = Query(...)`). Relying on ambiguous fallback logic like `Accept-Language` headers is forbidden to ensure OpenAPI schema correctness and Fail-Fast validation.
   - Verify `/api/v2/executions/{execution_id}/export` sets proper `Content-Disposition` headers.
 
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
+- Modify @[c:\src\quorum\backend_v2\models\domain\output_profile.py]:
+  - Add the `is_synthesis_enabled: bool = Field(default=False, strict=True)` property to the relevant layout block model to support the section-level synthesis toggle introduced in Phase 3C. The `default=False` establishes the initial un-toggled UI state. (Note: Old legacy executions are explicitly NOT supported and do not need to be compatible with the new output structures, per the Zero Legacy State Support Mandate).
 - Modify @[c:\src\quorum\backend_v2\services\blueprint.py] (CONTEXT-ONLY: `prompt_compiler.py` is frozen per `prompt_compiler_immutability` rule — do NOT modify it):
   - Ensure `blueprint.py`'s call-site usage relies strictly on the `I18nText.resolve(target_locale)` method for SDUI rendering. Absolutely no naked dictionary parsing or manual fallback chains allowed in the service layer.
 
@@ -56,10 +60,11 @@ This Epic unifies the Studio Workflow Top Navigation into a strict 3-tab layout,
 - Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\profile_editor_view.dart] to implement the 3-tab Output Profile sub-nav.
 
 ### Phase 3C: Section Template UI & i18n Widget Updates
-- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart] to use `I18nTextField` and section-level synthesis toggles (define whether toggle persists to DTO or is UI-only state).
+- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart] to use `I18nTextField` and section-level synthesis toggles. In a strict SDUI architecture, all layout configuration state must reside in the backend DTO (`OutputLayoutBlock`) and be driven by `seed_data.json`.
 
 ### Phase 3D: Excel Action Button (VERIFY & ENHANCE)
 - VERIFY existing Excel export button in @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_report_view.dart#L63] (`.xlsx` reference already exists). Enhance visibility/prominence alongside PDF download only if not already exposed.
+- **Error Handling**: Enforce a Flutter-side Error Boundary interceptor when triggering the export. It must catch `DioException`s and explicitly parse the RFC-7807 payload (HTTP 400) to display the backend-provided user-friendly error message, preventing raw app crashes and forbidding frontend-hardcoded error strings.
 - **Localization Updates**:
   - Modify @[c:\src\quorum\client_app_v2\lib\l10n\app_fi.arb] and @[c:\src\quorum\client_app_v2\lib\l10n\app_en.arb] with new tab names and button texts.
 

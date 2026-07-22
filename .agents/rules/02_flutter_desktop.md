@@ -108,6 +108,12 @@
         <catastrophic_reason>Frontend-side business logic violates the core SDUI architecture. It creates "Architectural Schizophrenia" where half the app is driven by the server and half is hardcoded in Flutter, making multi-platform updates impossible and creating untraceable state bugs.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="strict_sdui_rendering_mandate">
+        <banned_pattern>Hardcoding fallback UI strings for errors or layout states (e.g. hardcoding "Export failed" if the backend returns an HTTP 400 without reading the RFC-7807 detail).</banned_pattern>
+        <mandatory_pattern>The frontend MUST NOT contain any hardcoded business logic, layout states, or fallback UI strings for dynamic views (like output profiles). All dynamic content, including layout configurations, section titles, and RFC-7807 error messages, MUST be strictly driven by backend DTOs and localization dictionaries. The Flutter UI only renders what the backend provides.</mandatory_pattern>
+        <catastrophic_reason>Hardcoding fallback strings for dynamic features creates unlocalized "ghost texts" and bypasses the backend's Single Source of Truth for business rules, making errors untraceable and preventing seamless multi-platform updates.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="flexbox_native_engine_standard">
         <banned_pattern>Calculating responsive widths/heights manually using decimal multipliers (e.g., `width: constraints.maxWidth * 0.33`) creating "MediaQuery Thrashing".</banned_pattern>
         <mandatory_pattern>Utilize the Rust-backed Impeller strictly via pure declarative CSS-style Flexbox equivalents (`Row`, `Expanded(flex: N)`, `Flexible`). Let native algorithms handle proportional filling.</mandatory_pattern>
