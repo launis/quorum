@@ -3784,4 +3784,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get excelSheetRawData => 'Raw Data';
+
+  @override
+  String get profileTabGeneral => 'General';
+
+  @override
+  String get profileTabXai => 'Extensions (XAI)';
+
+  @override
+  String get profileTabLayouts => 'Layouts';
 }

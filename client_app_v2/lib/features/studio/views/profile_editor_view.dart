@@ -295,308 +295,380 @@ class ProfileEditorView extends HookConsumerWidget {
       ),
       child: Padding(
         padding: AppSpacing.p16,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.variantIdLabel(profileId),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                AppSpacing.w8,
-                IconButton(
-                  icon: Icon(
-                    Icons.delete,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  onPressed: () {
-                    final newProfiles = Map<String, EmbeddedOutputProfile>.from(
-                      payload.outputProfiles,
-                    );
-                    newProfiles.remove(profileId);
-                    ref
-                        .read(workflowFormProvider(workflowId).notifier)
-                        .forceRebuild(
-                          payload.copyWith(outputProfiles: newProfiles),
-                        );
-                  },
-                ),
-              ],
-            ),
-            AppSpacing.h12,
-            I18nTextField(
-              label: l10n.profileDisplayNameLabel,
-              initialData: profileDef.name,
-              onChanged: (val) {
-                rebuildProfile(profileDef.copyWith(name: val));
-              },
-            ),
-            AppSpacing.h16,
-            InputDecorator(
-              decoration: InputDecoration(
-                labelText: l10n.profileDisplayScaleLabel,
-                isDense: true,
-                border: const OutlineInputBorder(),
+        child: DefaultTabController(
+          length: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TabBar(
+                tabs: [
+                  Tab(text: l10n.profileTabGeneral),
+                  Tab(text: l10n.profileTabXai),
+                  Tab(text: l10n.profileTabLayouts),
+                ],
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: profileDef.displayScale,
-                  isDense: true,
-                  isExpanded: true,
-                  items: [
-                    DropdownMenuItem(
-                      value: 'original',
-                      child: Text(l10n.scaleOriginal),
-                    ),
-                    DropdownMenuItem(
-                      value: 'custom',
-                      child: Text(l10n.scaleCustom),
-                    ),
-                    DropdownMenuItem(
-                      value: 'normalized_100',
-                      child: Text(l10n.scaleNormalized100),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      rebuildProfile(profileDef.copyWith(displayScale: val));
-                    }
-                  },
-                ),
-              ),
-            ),
-            AppSpacing.h24,
-            InputDecorator(
-              decoration: InputDecoration(
-                labelText: l10n.blockLevelExtensionsLabel,
-                isDense: true,
-                border: const OutlineInputBorder(),
-              ),
-              child: switch (availableExtensionsState) {
-                AsyncData(value: final availableExtensions) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: XaiExtensionType.values.map((ext) {
-                    final l10n = AppLocalizations.of(context)!;
-                    String label = ext.name;
-                    switch (ext) {
-                      case XaiExtensionType.citation:
-                        label = l10n.xaiSourceCitation;
-                        break;
-                      case XaiExtensionType.justification:
-                        label = l10n.xaiJustification;
-                        break;
-                      case XaiExtensionType.falsification:
-                        label = l10n.xaiDevilsAdvocate;
-                        break;
-                      case XaiExtensionType.theoryLink:
-                        label = l10n.xaiTheoryLink;
-                        break;
-                      case XaiExtensionType.riskFlag:
-                        label = l10n.xaiRiskFlag;
-                        break;
-                      case XaiExtensionType.coaching:
-                        label = l10n.xaiCoachingTip;
-                        break;
-                      case XaiExtensionType.missingContext:
-                        label = l10n.xaiMissingContext;
-                        break;
-                      case XaiExtensionType.remediationSteps:
-                        label = l10n.xaiRemediation;
-                        break;
-                      case XaiExtensionType.emotionalSentiment:
-                        label = l10n.xaiSentiment;
-                        break;
-                      case XaiExtensionType.confidence:
-                        label = l10n.xaiConfidence;
-                        break;
-                      case XaiExtensionType.sourceId:
-                        label = l10n.xaiSourceId;
-                        break;
-                      case XaiExtensionType.contextualOverride:
-                        label = l10n.xaiContextualOverride;
-                        break;
-                      case XaiExtensionType.varianceValidation:
-                        label = l10n.xaiVarianceValidationTitle;
-                        break;
-                      case XaiExtensionType.authenticityEvaluation:
-                        label = l10n.xaiAuthenticityEvaluationTitle;
-                        break;
-                    }
-
-                    // Dynamic Dropdown Population
-                    if (!availableExtensions.contains(ext.backendValue)) {
-                      return const SizedBox.shrink();
-                    }
-
-                    final isWorkflowExtension = [
-                      XaiExtensionType.varianceValidation,
-                      XaiExtensionType.authenticityEvaluation,
-                    ].contains(ext);
-
-                    if (isWorkflowExtension) return const SizedBox.shrink();
-
-                    return CheckboxListTile(
-                      title: Text(label),
-                      value: profileDef.visibleBlockExtensions.contains(ext),
-                      onChanged: (val) {
-                        final updatedList = List<XaiExtensionType>.from(
-                          profileDef.visibleBlockExtensions,
-                        );
-                        if (val == true) {
-                          updatedList.add(ext);
-                        } else {
-                          updatedList.remove(ext);
-                        }
-                        rebuildProfile(
-                          profileDef.copyWith(
-                            visibleBlockExtensions: updatedList,
-                          ),
-                        );
-                      },
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
-                    );
-                  }).toList(),
-                ),
-                AsyncLoading() => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                AsyncError(:final error) => Text(
-                  l10n.studioViewsErrorLoadingExtensions(error.toString()),
-                ),
-              },
-            ),
-            AppSpacing.h16,
-            InputDecorator(
-              decoration: InputDecoration(
-                labelText: l10n.workflowLevelExtensionsLabel,
-                isDense: true,
-                border: const OutlineInputBorder(),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children:
-                    [
-                      XaiExtensionType.varianceValidation,
-                      XaiExtensionType.authenticityEvaluation,
-                    ].map((ext) {
-                      final l10n = AppLocalizations.of(context)!;
-                      String label = ext.name;
-                      switch (ext) {
-                        case XaiExtensionType.varianceValidation:
-                          label = l10n.xaiVarianceValidationTitle;
-                          break;
-                        case XaiExtensionType.authenticityEvaluation:
-                          label = l10n.xaiAuthenticityEvaluationTitle;
-                          break;
-                        case XaiExtensionType.confidence:
-                          label = l10n.xaiConfidence;
-                          break;
-                        default:
-                          break;
-                      }
-
-                      return CheckboxListTile(
-                        title: Text(label),
-                        value: profileDef.visibleWorkflowExtensions.contains(
-                          ext,
-                        ),
-                        onChanged: (val) {
-                          final updatedList = List<XaiExtensionType>.from(
-                            profileDef.visibleWorkflowExtensions,
-                          );
-                          if (val == true) {
-                            updatedList.add(ext);
-                          } else {
-                            updatedList.remove(ext);
-                          }
-                          rebuildProfile(
-                            profileDef.copyWith(
-                              visibleWorkflowExtensions: updatedList,
-                            ),
-                          );
-                        },
-                        controlAffinity: ListTileControlAffinity.leading,
-                        dense: true,
-                      );
-                    }).toList(),
-              ),
-            ),
-            AppSpacing.h24,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.profileEditorMaxExtensionItems,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                AppSpacing.h8,
-                Row(
+              AppSpacing.h16,
+              SizedBox(
+                height: 600,
+                child: TabBarView(
                   children: [
-                    Expanded(
-                      child: Slider(
-                        value: (profileDef.maxExtensionItems ?? 21).toDouble(),
-                        min: 1,
-                        max: 21,
-                        divisions: 20,
-                        label: profileDef.maxExtensionItems == null
-                            ? '∞'
-                            : profileDef.maxExtensionItems.toString(),
-                        onChanged: (val) {
-                          if (val.round() >= 21) {
-                            rebuildProfile(
-                              profileDef.copyWith(maxExtensionItems: null),
-                            );
-                          } else {
-                            rebuildProfile(
-                              profileDef.copyWith(
-                                maxExtensionItems: val.round(),
+                    // Tab 1: General
+                    ListView(
+                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l10n.variantIdLabel(profileId),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            );
-                          }
-                        },
-                      ),
+                            ),
+                            AppSpacing.w8,
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              onPressed: () {
+                                final newProfiles =
+                                    Map<String, EmbeddedOutputProfile>.from(
+                                      payload.outputProfiles,
+                                    );
+                                newProfiles.remove(profileId);
+                                ref
+                                    .read(
+                                      workflowFormProvider(workflowId).notifier,
+                                    )
+                                    .forceRebuild(
+                                      payload.copyWith(
+                                        outputProfiles: newProfiles,
+                                      ),
+                                    );
+                              },
+                            ),
+                          ],
+                        ),
+                        AppSpacing.h12,
+                        I18nTextField(
+                          label: l10n.profileDisplayNameLabel,
+                          initialData: profileDef.name,
+                          onChanged: (val) {
+                            rebuildProfile(profileDef.copyWith(name: val));
+                          },
+                        ),
+                        AppSpacing.h16,
+                        InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: l10n.profileDisplayScaleLabel,
+                            isDense: true,
+                            border: const OutlineInputBorder(),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: profileDef.displayScale,
+                              isDense: true,
+                              isExpanded: true,
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'original',
+                                  child: Text(l10n.scaleOriginal),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'custom',
+                                  child: Text(l10n.scaleCustom),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'normalized_100',
+                                  child: Text(l10n.scaleNormalized100),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  rebuildProfile(
+                                    profileDef.copyWith(displayScale: val),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(
-                      width: 40,
-                      child: Text(
-                        profileDef.maxExtensionItems?.toString() ?? '∞',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+
+                    // Tab 2: XAI / Extensions
+                    ListView(
+                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      children: [
+                        InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: l10n.blockLevelExtensionsLabel,
+                            isDense: true,
+                            border: const OutlineInputBorder(),
+                          ),
+                          child: switch (availableExtensionsState) {
+                            AsyncData(value: final availableExtensions) =>
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: XaiExtensionType.values.map((ext) {
+                                  final l10n = AppLocalizations.of(context)!;
+                                  String label = ext.name;
+                                  switch (ext) {
+                                    case XaiExtensionType.citation:
+                                      label = l10n.xaiSourceCitation;
+                                      break;
+                                    case XaiExtensionType.justification:
+                                      label = l10n.xaiJustification;
+                                      break;
+                                    case XaiExtensionType.falsification:
+                                      label = l10n.xaiDevilsAdvocate;
+                                      break;
+                                    case XaiExtensionType.theoryLink:
+                                      label = l10n.xaiTheoryLink;
+                                      break;
+                                    case XaiExtensionType.riskFlag:
+                                      label = l10n.xaiRiskFlag;
+                                      break;
+                                    case XaiExtensionType.coaching:
+                                      label = l10n.xaiCoachingTip;
+                                      break;
+                                    case XaiExtensionType.missingContext:
+                                      label = l10n.xaiMissingContext;
+                                      break;
+                                    case XaiExtensionType.remediationSteps:
+                                      label = l10n.xaiRemediation;
+                                      break;
+                                    case XaiExtensionType.emotionalSentiment:
+                                      label = l10n.xaiSentiment;
+                                      break;
+                                    case XaiExtensionType.confidence:
+                                      label = l10n.xaiConfidence;
+                                      break;
+                                    case XaiExtensionType.sourceId:
+                                      label = l10n.xaiSourceId;
+                                      break;
+                                    case XaiExtensionType.contextualOverride:
+                                      label = l10n.xaiContextualOverride;
+                                      break;
+                                    case XaiExtensionType.varianceValidation:
+                                      label = l10n.xaiVarianceValidationTitle;
+                                      break;
+                                    case XaiExtensionType
+                                        .authenticityEvaluation:
+                                      label =
+                                          l10n.xaiAuthenticityEvaluationTitle;
+                                      break;
+                                  }
+
+                                  // Dynamic Dropdown Population
+                                  if (!availableExtensions.contains(
+                                    ext.backendValue,
+                                  )) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  final isWorkflowExtension = [
+                                    XaiExtensionType.varianceValidation,
+                                    XaiExtensionType.authenticityEvaluation,
+                                  ].contains(ext);
+
+                                  if (isWorkflowExtension)
+                                    return const SizedBox.shrink();
+
+                                  return CheckboxListTile(
+                                    title: Text(label),
+                                    value: profileDef.visibleBlockExtensions
+                                        .contains(ext),
+                                    onChanged: (val) {
+                                      final updatedList =
+                                          List<XaiExtensionType>.from(
+                                            profileDef.visibleBlockExtensions,
+                                          );
+                                      if (val == true) {
+                                        updatedList.add(ext);
+                                      } else {
+                                        updatedList.remove(ext);
+                                      }
+                                      rebuildProfile(
+                                        profileDef.copyWith(
+                                          visibleBlockExtensions: updatedList,
+                                        ),
+                                      );
+                                    },
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    dense: true,
+                                  );
+                                }).toList(),
+                              ),
+                            AsyncLoading() => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            AsyncError(:final error) => Text(
+                              l10n.studioViewsErrorLoadingExtensions(
+                                error.toString(),
+                              ),
+                            ),
+                          },
+                        ),
+                        AppSpacing.h16,
+                        InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: l10n.workflowLevelExtensionsLabel,
+                            isDense: true,
+                            border: const OutlineInputBorder(),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children:
+                                [
+                                  XaiExtensionType.varianceValidation,
+                                  XaiExtensionType.authenticityEvaluation,
+                                ].map((ext) {
+                                  final l10n = AppLocalizations.of(context)!;
+                                  String label = ext.name;
+                                  switch (ext) {
+                                    case XaiExtensionType.varianceValidation:
+                                      label = l10n.xaiVarianceValidationTitle;
+                                      break;
+                                    case XaiExtensionType
+                                        .authenticityEvaluation:
+                                      label =
+                                          l10n.xaiAuthenticityEvaluationTitle;
+                                      break;
+                                    case XaiExtensionType.confidence:
+                                      label = l10n.xaiConfidence;
+                                      break;
+                                    default:
+                                      break;
+                                  }
+
+                                  return CheckboxListTile(
+                                    title: Text(label),
+                                    value: profileDef.visibleWorkflowExtensions
+                                        .contains(ext),
+                                    onChanged: (val) {
+                                      final updatedList =
+                                          List<XaiExtensionType>.from(
+                                            profileDef
+                                                .visibleWorkflowExtensions,
+                                          );
+                                      if (val == true) {
+                                        updatedList.add(ext);
+                                      } else {
+                                        updatedList.remove(ext);
+                                      }
+                                      rebuildProfile(
+                                        profileDef.copyWith(
+                                          visibleWorkflowExtensions:
+                                              updatedList,
+                                        ),
+                                      );
+                                    },
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    dense: true,
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+                        AppSpacing.h24,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.profileEditorMaxExtensionItems,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            AppSpacing.h8,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Slider(
+                                    value: (profileDef.maxExtensionItems ?? 21)
+                                        .toDouble(),
+                                    min: 1,
+                                    max: 21,
+                                    divisions: 20,
+                                    label: profileDef.maxExtensionItems == null
+                                        ? '∞'
+                                        : profileDef.maxExtensionItems
+                                              .toString(),
+                                    onChanged: (val) {
+                                      if (val.round() >= 21) {
+                                        rebuildProfile(
+                                          profileDef.copyWith(
+                                            maxExtensionItems: null,
+                                          ),
+                                        );
+                                      } else {
+                                        rebuildProfile(
+                                          profileDef.copyWith(
+                                            maxExtensionItems: val.round(),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 40,
+                                  child: Text(
+                                    profileDef.maxExtensionItems?.toString() ??
+                                        '∞',
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.profileEditorMaxExtensionItemsDesc,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    // Tab 3: Layouts
+                    ListView(
+                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      children: [
+                        LayoutEditorCard(
+                          layouts: layouts,
+                          onChanged: (val) {
+                            rebuildProfile(profileDef.copyWith(layouts: val));
+                          },
+                          allowedBlockIds: allowedBlockIds,
+                          promptBlocksState: promptBlocksState,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                Text(
-                  AppLocalizations.of(
-                    context,
-                  )!.profileEditorMaxExtensionItemsDesc,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-
-            AppSpacing.h24,
-            LayoutEditorCard(
-              layouts: layouts,
-              onChanged: (val) {
-                rebuildProfile(profileDef.copyWith(layouts: val));
-              },
-              allowedBlockIds: allowedBlockIds,
-              promptBlocksState: promptBlocksState,
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

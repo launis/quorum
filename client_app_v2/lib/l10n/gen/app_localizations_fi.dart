@@ -3810,4 +3810,13 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get excelSheetRawData => 'Raakadata';
+
+  @override
+  String get profileTabGeneral => 'Perustiedot';
+
+  @override
+  String get profileTabXai => 'XAI';
+
+  @override
+  String get profileTabLayouts => 'Raporttipohjat';
 }

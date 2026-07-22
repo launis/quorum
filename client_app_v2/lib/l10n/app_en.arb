@@ -1981,5 +1981,8 @@
   "excelNoteNoScores": "No scoring results in this execution",
   "excelNoteNoAtoms": "No atoms found",
   "excelSheetSummary": "Summary",
-  "excelSheetRawData": "Raw Data"
+  "excelSheetRawData": "Raw Data",
+  "profileTabGeneral": "General",
+  "profileTabXai": "Extensions (XAI)",
+  "profileTabLayouts": "Layouts"
 }

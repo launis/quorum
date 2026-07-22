@@ -6905,6 +6905,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Raw Data'**
   String get excelSheetRawData;
+
+  /// No description provided for @profileTabGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get profileTabGeneral;
+
+  /// No description provided for @profileTabXai.
+  ///
+  /// In en, this message translates to:
+  /// **'Extensions (XAI)'**
+  String get profileTabXai;
+
+  /// No description provided for @profileTabLayouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Layouts'**
+  String get profileTabLayouts;
 }
 
 class _AppLocalizationsDelegate

@@ -1321,5 +1321,8 @@
   "excelNoteNoScores": "Ei pisteytystuloksia tässä ajossa",
   "excelNoteNoAtoms": "Ei atomeja löytynyt",
   "excelSheetSummary": "Yhteenveto",
-  "excelSheetRawData": "Raakadata"
+  "excelSheetRawData": "Raakadata",
+  "profileTabGeneral": "Perustiedot",
+  "profileTabXai": "XAI",
+  "profileTabLayouts": "Raporttipohjat"
 }
