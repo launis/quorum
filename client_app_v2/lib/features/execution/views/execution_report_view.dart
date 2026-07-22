@@ -13,6 +13,7 @@ import 'dart:typed_data';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
+import 'dart:convert';
 
 /// Centralized settings for the Execution Report View
 class ReportSettings {
@@ -81,11 +82,28 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       ref
           .read(loggerServiceProvider)
           .error('ReportView', 'Failed to download Excel export', e, st);
+
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
+        String errorMessage = AppExceptionX.extractLocalizedHint(e, l10n);
+
+        if (e is DioException &&
+            e.response?.data != null &&
+            e.response!.data is List<int>) {
+          try {
+            final decodedString = utf8.decode(e.response!.data as List<int>);
+            final jsonMap = jsonDecode(decodedString) as Map<String, dynamic>;
+            if (jsonMap.containsKey('detail')) {
+              errorMessage = jsonMap['detail'] as String;
+            }
+          } catch (_) {
+            // Ignore decoding errors and fallback to default message
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
+            content: Text(errorMessage),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );

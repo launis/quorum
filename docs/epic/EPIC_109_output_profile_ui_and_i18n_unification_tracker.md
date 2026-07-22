@@ -36,8 +36,8 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]
 
 ### Phase 3D: Excel Action Button (VERIFY & ENHANCE)
-- [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]
-- [ ] **[NOK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]
+- [x] **[OK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]
+- [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]
 
 ### Phase 4: Verification & E2E Integration Gate
 - [ ] **[NOK]** Backend Audit Loops on modified python files.
@@ -70,7 +70,7 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 | 3-tab layout for Output Profile Admin UI | Phase 3B | Complete |
 | Bilingual support for section templates (`I18nTextField`) | Phase 3C | Complete |
 | Strict SDUI Rendering Mandate for layout configuration | Phase 3C | Complete |
-| Flutter-side Error Boundary interceptor (Excel Export) | Phase 3D | Pending |
+| Flutter-side Error Boundary interceptor (Excel Export) | Phase 3D | Complete |
 | Excel Export localization ARB updates | Phase 3D | Complete |
 
 # Session Handover Context
@@ -99,6 +99,7 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - Successfully executed `/tier0-research-plan` and `/tier2-execute` for Phase 3C (Section Template UI & i18n Widget Updates).
 - Added `is_synthesis_enabled` to `OutputLayoutBlock` and `ReportLayoutDTO` Freezed DTOs.
 - Corrected UI logic in `layout_editor_card.dart` to support distinct toggles for `isSynthesisEnabled` (inclusion) and `synthesis != null` (custom override) and mapped them to `app_en.arb` and `app_fi.arb` dictionaries.
+- Executed `/tier0-research-plan` for Phase 3D. Removed redundant `.arb` translation steps since Phase 1 already implemented the exact keys needed (e.g. `excelHeaderAiRule`). Refined the DioException catching strategy for binary downloads.
 
 ## Learned
 - **Strict Seed Vault Exemption**: While `03_seed_vault.md` forbids mutating Pydantic schemas to fit data during seed operations, an explicit user override allowed us to update `Literal['pdf', 'docx', 'raw_json', 'xlsx']` simultaneously to prevent a Catch-22 with `run_seed.py` failing fast.
@@ -107,10 +108,10 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - **Cognitive Boundary Mandate**: Followed the limit of generating max 2 detailed Phase plans at a time (3A and 3B), leaving the rest as placeholders to preserve system context stability.
 - **Dart Model Mapping Correction**: Verified that `EmbeddedOutputProfile` should NOT receive `is_synthesis_enabled` to avoid strict Freezed schema crashes, as it was never mapped in the Backend Phase 2.
 - **UI Logic Distinction**: `isSynthesisEnabled` and `synthesis != null` serve two entirely different functional purposes and require distinct toggles.
+- **DioException Bytes Decoding**: When downloading files via `ResponseType.bytes`, `Dio` does not parse the HTTP 400 JSON payload, returning it as a raw `Uint8List`. Standard `AppExceptionX` interceptors fail on this, so explicit `utf8.decode` and `jsonDecode` must be used to extract RFC-7807 messages in binary endpoints.
 
 ## Remaining
-- Execute `/tier0-research-plan` and `/tier2-execute` for Phase 3D: Excel Action Button.
 - Perform all post-implementation audits, final E2E gates, and update documentation.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`

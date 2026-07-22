@@ -7,31 +7,13 @@ This plan addresses the final phase of Epic 109, ensuring the Excel Export funct
 ### Frontend / Execution Views
 
 #### [MODIFY] [execution_report_view.dart](file:///c:/src/quorum/client_app_v2/lib/features/execution/views/execution_report_view.dart)
-- Ensure the `_downloadExcel` method explicitly catches `DioException` and uses the standard RFC-7807 payload parsing (via `AppExceptionX` or explicitly extracting the server's user-friendly error message).
-- **Rule Enforcement**: Ensure no frontend-side hardcoded error strings are used if the backend rejects the export. The UI must strictly render the backend's validation rejection reason.
-- Enhance the Excel Export button's visibility if needed, ensuring it sits cleanly alongside the PDF download option.
+- Because `_downloadExcel` uses `ResponseType.bytes`, an HTTP 400 response from the backend will be returned as raw bytes in `e.response.data`. You MUST explicitly catch the `DioException` in the `catch (e, st)` block, decode the byte array using `utf8.decode(e.response!.data)` and `jsonDecode()`, and extract the RFC-7807 `detail` string.
+- Display this explicitly extracted `detail` string in the `SnackBar` to ensure the exact backend reason (e.g., "Empty execution: No scored atoms") is shown to the user.
+- Do NOT rely entirely on `AppExceptionX` since it will fail to parse raw bytes.
+- Ensure the imports `dart:convert` is present.
 
 ### Frontend / Localization Dictionaries
-
-#### [MODIFY] [app_fi.arb](file:///c:/src/quorum/client_app_v2/lib/l10n/app_fi.arb)
-- Add translation keys for Excel Export headers to ensure cross-language parity for the backend Excel generation:
-  - `"excelHeaderMatrix": "Matriisi"`
-  - `"excelHeaderCriterion": "Kriteerin Nimi (UI)"`
-  - `"excelHeaderRule": "Tekoälyn Sääntö"`
-  - `"excelHeaderVerdict": "Tuomio"`
-  - `"excelHeaderScore": "Pistemäärä"`
-  - `"excelHeaderExplanation": "Perustelu (Raaka)"`
-  - `"layoutBlockDescriptionLabel": "Osion kuvaus (valinnainen väliotsikko)"`
-
-#### [MODIFY] [app_en.arb](file:///c:/src/quorum/client_app_v2/lib/l10n/app_en.arb)
-- Add the corresponding English translation keys for the Excel Export headers:
-  - `"excelHeaderMatrix": "Matrix"`
-  - `"excelHeaderCriterion": "Criterion Name (UI)"`
-  - `"excelHeaderRule": "AI Rule"`
-  - `"excelHeaderVerdict": "Verdict"`
-  - `"excelHeaderScore": "Score"`
-  - `"excelHeaderExplanation": "Explanation (Raw)"`
-  - `"layoutBlockDescriptionLabel": "Section Description (optional subtitle)"`
+- *(Note: Verified during Tier 0 analysis that all required ARB keys like `excelHeaderAiRule` and `excelHeaderResultStatus` were already implemented in Phase 1. No `.arb` modifications are needed in this phase.)*
 
 ## Verification Plan
 
