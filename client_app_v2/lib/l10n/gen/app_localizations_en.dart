@@ -3793,4 +3793,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileTabLayouts => 'Layouts';
+
+  @override
+  String get layoutBlockDescriptionLabel => 'Section Description (Optional)';
+
+  @override
+  String get sectionSynthesisToggleLabel => 'Include in AI Synthesis';
+
+  @override
+  String get sectionSynthesisToggleDesc =>
+      'Toggle to completely exclude this section from AI report synthesis.';
+
+  @override
+  String get sectionCustomSynthesisLabel =>
+      'Use Section-Specific Custom Synthesis';
+
+  @override
+  String get sectionCustomSynthesisDesc =>
+      'Overrides the global synthesis settings for this specific section.';
 }

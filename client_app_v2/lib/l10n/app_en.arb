@@ -1984,5 +1984,10 @@
   "excelSheetRawData": "Raw Data",
   "profileTabGeneral": "General",
   "profileTabXai": "Extensions (XAI)",
-  "profileTabLayouts": "Layouts"
+  "profileTabLayouts": "Layouts",
+  "layoutBlockDescriptionLabel": "Section Description (Optional)",
+  "sectionSynthesisToggleLabel": "Include in AI Synthesis",
+  "sectionSynthesisToggleDesc": "Toggle to completely exclude this section from AI report synthesis.",
+  "sectionCustomSynthesisLabel": "Use Section-Specific Custom Synthesis",
+  "sectionCustomSynthesisDesc": "Overrides the global synthesis settings for this specific section."
 }

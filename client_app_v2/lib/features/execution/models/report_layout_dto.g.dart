@@ -19,6 +19,7 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
             'description',
             'axes',
             'text_delivery_mode',
+            'is_synthesis_enabled',
             'synthesis',
             'synthesis_blocks',
           ],
@@ -51,6 +52,10 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
             'text_delivery_mode',
             (v) => v as String? ?? 'full',
           ),
+          isSynthesisEnabled: $checkedConvert(
+            'is_synthesis_enabled',
+            (v) => v as bool? ?? true,
+          ),
           synthesis: $checkedConvert(
             'synthesis',
             (v) => v == null
@@ -69,6 +74,7 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
       fieldKeyMap: const {
         'presetView': 'preset_view',
         'textDeliveryMode': 'text_delivery_mode',
+        'isSynthesisEnabled': 'is_synthesis_enabled',
         'synthesisBlocks': 'synthesis_blocks',
       },
     );
@@ -80,6 +86,7 @@ Map<String, dynamic> _$ReportLayoutDtoToJson(_ReportLayoutDto instance) =>
       'description': instance.description?.toJson(),
       'axes': instance.axes.map((e) => e.toJson()).toList(),
       'text_delivery_mode': instance.textDeliveryMode,
+      'is_synthesis_enabled': instance.isSynthesisEnabled,
       'synthesis': instance.synthesis?.toJson(),
       'synthesis_blocks': instance.synthesisBlocks,
     };

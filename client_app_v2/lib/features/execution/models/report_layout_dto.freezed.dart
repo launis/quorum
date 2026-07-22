@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReportLayoutDto {
 
-@JsonKey(name: 'preset_view') String get presetView; I18nText? get title; I18nText? get description; List<MatrixScorecardRowDto> get axes;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; SynthesisConfigDto? get synthesis;@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? get synthesisBlocks;
+@JsonKey(name: 'preset_view') String get presetView; I18nText? get title; I18nText? get description; List<MatrixScorecardRowDto> get axes;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode;@JsonKey(name: 'is_synthesis_enabled') bool get isSynthesisEnabled; SynthesisConfigDto? get synthesis;@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? get synthesisBlocks;
 /// Create a copy of ReportLayoutDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $ReportLayoutDtoCopyWith<ReportLayoutDto> get copyWith => _$ReportLayoutDtoCopyW
 
 @override
 String toString() {
-  return 'ReportLayoutDto(presetView: $presetView, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisBlocks: $synthesisBlocks)';
+  return 'ReportLayoutDto(presetView: $presetView, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, isSynthesisEnabled: $isSynthesisEnabled, synthesis: $synthesis, synthesisBlocks: $synthesisBlocks)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $ReportLayoutDtoCopyWith<$Res>  {
   factory $ReportLayoutDtoCopyWith(ReportLayoutDto value, $Res Function(ReportLayoutDto) _then) = _$ReportLayoutDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view') String presetView, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDto? synthesis,@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? synthesisBlocks
+@JsonKey(name: 'preset_view') String presetView, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDto? synthesis,@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? synthesisBlocks
 });
 
 
@@ -58,14 +58,15 @@ class _$ReportLayoutDtoCopyWithImpl<$Res>
 
 /// Create a copy of ReportLayoutDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisBlocks = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? isSynthesisEnabled = null,Object? synthesis = freezed,Object? synthesisBlocks = freezed,}) {
   return _then(_self.copyWith(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self.axes : axes // ignore: cast_nullable_to_non_nullable
 as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
-as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
+as String,isSynthesisEnabled: null == isSynthesisEnabled ? _self.isSynthesisEnabled : isSynthesisEnabled // ignore: cast_nullable_to_non_nullable
+as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDto?,synthesisBlocks: freezed == synthesisBlocks ? _self.synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
 as List<Map<String, dynamic>>?,
   ));
@@ -188,10 +189,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportLayoutDto() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisBlocks);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks);case _:
   return orElse();
 
 }
@@ -209,10 +210,10 @@ return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks)  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDto():
-return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisBlocks);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -229,10 +230,10 @@ return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  String presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  String presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDto() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisBlocks);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks);case _:
   return null;
 
 }
@@ -244,7 +245,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportLayoutDto implements ReportLayoutDto {
-  const _ReportLayoutDto({@JsonKey(name: 'preset_view') required this.presetView, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = 'full', this.synthesis, @JsonKey(name: 'synthesis_blocks') final  List<Map<String, dynamic>>? synthesisBlocks}): _axes = axes,_synthesisBlocks = synthesisBlocks;
+  const _ReportLayoutDto({@JsonKey(name: 'preset_view') required this.presetView, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = 'full', @JsonKey(name: 'is_synthesis_enabled') this.isSynthesisEnabled = true, this.synthesis, @JsonKey(name: 'synthesis_blocks') final  List<Map<String, dynamic>>? synthesisBlocks}): _axes = axes,_synthesisBlocks = synthesisBlocks;
   factory _ReportLayoutDto.fromJson(Map<String, dynamic> json) => _$ReportLayoutDtoFromJson(json);
 
 @override@JsonKey(name: 'preset_view') final  String presetView;
@@ -258,6 +259,7 @@ class _ReportLayoutDto implements ReportLayoutDto {
 }
 
 @override@JsonKey(name: 'text_delivery_mode') final  String textDeliveryMode;
+@override@JsonKey(name: 'is_synthesis_enabled') final  bool isSynthesisEnabled;
 @override final  SynthesisConfigDto? synthesis;
  final  List<Map<String, dynamic>>? _synthesisBlocks;
 @override@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? get synthesisBlocks {
@@ -284,7 +286,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ReportLayoutDto(presetView: $presetView, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisBlocks: $synthesisBlocks)';
+  return 'ReportLayoutDto(presetView: $presetView, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, isSynthesisEnabled: $isSynthesisEnabled, synthesis: $synthesis, synthesisBlocks: $synthesisBlocks)';
 }
 
 
@@ -295,7 +297,7 @@ abstract mixin class _$ReportLayoutDtoCopyWith<$Res> implements $ReportLayoutDto
   factory _$ReportLayoutDtoCopyWith(_ReportLayoutDto value, $Res Function(_ReportLayoutDto) _then) = __$ReportLayoutDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view') String presetView, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDto? synthesis,@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? synthesisBlocks
+@JsonKey(name: 'preset_view') String presetView, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDto? synthesis,@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? synthesisBlocks
 });
 
 
@@ -312,14 +314,15 @@ class __$ReportLayoutDtoCopyWithImpl<$Res>
 
 /// Create a copy of ReportLayoutDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisBlocks = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? isSynthesisEnabled = null,Object? synthesis = freezed,Object? synthesisBlocks = freezed,}) {
   return _then(_ReportLayoutDto(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
 as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
-as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
+as String,isSynthesisEnabled: null == isSynthesisEnabled ? _self.isSynthesisEnabled : isSynthesisEnabled // ignore: cast_nullable_to_non_nullable
+as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDto?,synthesisBlocks: freezed == synthesisBlocks ? _self._synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
 as List<Map<String, dynamic>>?,
   ));

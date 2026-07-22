@@ -80,6 +80,9 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     @Default('full')
     @JsonKey(name: 'text_delivery_mode')
     String textDeliveryMode,
+    @JsonKey(name: 'is_synthesis_enabled')
+    @Default(true)
+    bool isSynthesisEnabled,
     SynthesisConfigDTO? synthesis,
     @JsonKey(name: 'synthesis_blocks')
     @Default([])

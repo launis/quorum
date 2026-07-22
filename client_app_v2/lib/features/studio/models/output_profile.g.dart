@@ -211,6 +211,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'steps',
         'target_blocks',
         'text_delivery_mode',
+        'is_synthesis_enabled',
         'synthesis',
         'synthesis_blocks',
         'strictness_level',
@@ -250,6 +251,10 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'text_delivery_mode',
         (v) => v as String? ?? 'full',
       ),
+      isSynthesisEnabled: $checkedConvert(
+        'is_synthesis_enabled',
+        (v) => v as bool? ?? true,
+      ),
       synthesis: $checkedConvert(
         'synthesis',
         (v) => v == null
@@ -279,6 +284,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     'presetView': 'preset_view',
     'targetBlocks': 'target_blocks',
     'textDeliveryMode': 'text_delivery_mode',
+    'isSynthesisEnabled': 'is_synthesis_enabled',
     'synthesisBlocks': 'synthesis_blocks',
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
@@ -294,6 +300,7 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(
   'steps': instance.steps,
   'target_blocks': instance.targetBlocks,
   'text_delivery_mode': instance.textDeliveryMode,
+  'is_synthesis_enabled': instance.isSynthesisEnabled,
   'synthesis': instance.synthesis?.toJson(),
   'synthesis_blocks': instance.synthesisBlocks.map((e) => e.toJson()).toList(),
   'strictness_level': instance.strictnessLevel,

@@ -6923,6 +6923,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Layouts'**
   String get profileTabLayouts;
+
+  /// No description provided for @layoutBlockDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Section Description (Optional)'**
+  String get layoutBlockDescriptionLabel;
+
+  /// No description provided for @sectionSynthesisToggleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Include in AI Synthesis'**
+  String get sectionSynthesisToggleLabel;
+
+  /// No description provided for @sectionSynthesisToggleDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle to completely exclude this section from AI report synthesis.'**
+  String get sectionSynthesisToggleDesc;
+
+  /// No description provided for @sectionCustomSynthesisLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Section-Specific Custom Synthesis'**
+  String get sectionCustomSynthesisLabel;
+
+  /// No description provided for @sectionCustomSynthesisDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Overrides the global synthesis settings for this specific section.'**
+  String get sectionCustomSynthesisDesc;
 }
 
 class _AppLocalizationsDelegate

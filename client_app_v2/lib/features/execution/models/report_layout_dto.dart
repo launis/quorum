@@ -19,6 +19,9 @@ abstract class ReportLayoutDto with _$ReportLayoutDto {
     @JsonKey(name: 'text_delivery_mode')
     @Default('full')
     String textDeliveryMode,
+    @JsonKey(name: 'is_synthesis_enabled')
+    @Default(true)
+    bool isSynthesisEnabled,
     SynthesisConfigDto? synthesis,
     @JsonKey(name: 'synthesis_blocks')
     List<Map<String, dynamic>>? synthesisBlocks,

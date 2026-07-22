@@ -32,19 +32,18 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - [x] **[OK]** Invoke Tier 1 Planner again to generate detailed plans for Phase 3C and 3D based on the updated codebase state. (CRITICAL LIMIT requirement).
 
 ### Phase 3C: Section Template UI & i18n Widget Updates
-- [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]
-- [ ] **[NOK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]
+- [x] **[OK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]
+- [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]
 
 ### Phase 3D: Excel Action Button (VERIFY & ENHANCE)
 - [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]
 - [ ] **[NOK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]
 
-### Post-Implementation Gates
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on modified Python files.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` on modified Flutter files.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+### Phase 4: Verification & E2E Integration Gate
+- [ ] **[NOK]** Backend Audit Loops on modified python files.
+- [ ] **[NOK]** Frontend Audit Loop (`flutter_audit_loop.py`) for l10n and modified Flutter files.
+- [ ] **[NOK]** End-to-End Functionality Verification (Flutter Studio, Output Profile sub-tabs).
+- [ ] **[NOK]** End-to-End Excel Export Verification (Success state & Error Boundary 400 rejection).
 - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
@@ -69,8 +68,10 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 | Cross-Domain DTO Parity (`is_synthesis_enabled`) | Phase 2 | Complete |
 | 3-tab layout for Studio Workflow Top Navigation | Phase 3A | Complete |
 | 3-tab layout for Output Profile Admin UI | Phase 3B | Complete |
-| Bilingual support for section templates (`I18nTextField`) | Phase 3C | Pending |
-| Strict SDUI Rendering Mandate for layout configuration | Phase 3C | Pending |
+| Bilingual support for section templates (`I18nTextField`) | Phase 3C | Complete |
+| Strict SDUI Rendering Mandate for layout configuration | Phase 3C | Complete |
+| Flutter-side Error Boundary interceptor (Excel Export) | Phase 3D | Pending |
+| Excel Export localization ARB updates | Phase 3D | Complete |
 
 # Session Handover Context
 ## Achieved
@@ -95,18 +96,21 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - Successfully executed Phase 3B (Output Profile Sub-Tab Restructuring), implementing the 3-tab layout in `profile_editor_view.dart` and adding necessary translations to ARB files.
 - Passed `flutter_audit_loop.py` for all Phase 3B targets.
 - Invoked Tier 1 Planner to generate detailed implementation plans for Phase 3C and 3D.
+- Successfully executed `/tier0-research-plan` and `/tier2-execute` for Phase 3C (Section Template UI & i18n Widget Updates).
+- Added `is_synthesis_enabled` to `OutputLayoutBlock` and `ReportLayoutDTO` Freezed DTOs.
+- Corrected UI logic in `layout_editor_card.dart` to support distinct toggles for `isSynthesisEnabled` (inclusion) and `synthesis != null` (custom override) and mapped them to `app_en.arb` and `app_fi.arb` dictionaries.
 
 ## Learned
 - **Strict Seed Vault Exemption**: While `03_seed_vault.md` forbids mutating Pydantic schemas to fit data during seed operations, an explicit user override allowed us to update `Literal['pdf', 'docx', 'raw_json', 'xlsx']` simultaneously to prevent a Catch-22 with `run_seed.py` failing fast.
 - **Single Responsibility Validation**: `output_profile.py` does not need explicit modification because its DTOs properly inherit `OutputLayoutBlock` from `v2_core.py`.
 - **Dead Code Cleanup**: `_resolve_i18n_str` in `blueprint.py` was verified as entirely unreferenced dead code and safely deleted.
 - **Cognitive Boundary Mandate**: Followed the limit of generating max 2 detailed Phase plans at a time (3A and 3B), leaving the rest as placeholders to preserve system context stability.
-- **Dart Model Mapping Lag**: Phase 2 added `is_synthesis_enabled` on the backend, but the Dart `OutputLayoutBlock` Freezed model does not yet possess it. It must be added to Dart models in Phase 3C to enforce cross-domain SDUI parity.
+- **Dart Model Mapping Correction**: Verified that `EmbeddedOutputProfile` should NOT receive `is_synthesis_enabled` to avoid strict Freezed schema crashes, as it was never mapped in the Backend Phase 2.
+- **UI Logic Distinction**: `isSynthesisEnabled` and `synthesis != null` serve two entirely different functional purposes and require distinct toggles.
 
 ## Remaining
-- Execute `/tier0-research-plan` and `/tier2-execute` for Phase 3C: Section Template UI & i18n Widget Updates.
 - Execute `/tier0-research-plan` and `/tier2-execute` for Phase 3D: Excel Action Button.
 - Perform all post-implementation audits, final E2E gates, and update documentation.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`

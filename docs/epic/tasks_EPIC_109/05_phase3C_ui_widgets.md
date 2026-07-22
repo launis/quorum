@@ -10,8 +10,6 @@ Modify the Dart domain models to maintain DTO parity with the Backend updates fr
 #### [MODIFY] [output_profile.dart](file:///c:/src/quorum/client_app_v2/lib/features/studio/models/output_profile.dart)
 - Update `OutputLayoutBlock` class:
   - Add `@JsonKey(name: 'is_synthesis_enabled') @Default(true) bool isSynthesisEnabled,` to maintain cross-domain DTO parity.
-- Update `EmbeddedOutputProfile` class:
-  - Add `@JsonKey(name: 'is_synthesis_enabled') @Default(true) bool isSynthesisEnabled,` to maintain cross-domain DTO parity.
 
 #### [MODIFY] [report_layout_dto.dart](file:///c:/src/quorum/client_app_v2/lib/features/execution/models/report_layout_dto.dart)
 - Update `ReportLayoutDTO` class:
@@ -21,8 +19,8 @@ Modify the Dart domain models to maintain DTO parity with the Backend updates fr
 Refactor the legacy hardcoded inputs to use localized inputs and add the UI controls for synthesis toggling.
 
 #### [MODIFY] [layout_editor_card.dart](file:///c:/src/quorum/client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart)
-- Update `SwitchListTile` for section-level synthesis (around line 252) to rely on the new `isSynthesisEnabled` property instead of checking `layout.synthesis != null`.
-- Provide a clear UI state for toggling section-level synthesis on and off. 
+- Add a new `SwitchListTile` mapped to `layout.isSynthesisEnabled` to allow toggling whether a section is included in synthesis at all.
+- Retain the existing custom synthesis override switch (`layout.synthesis != null`), but update its text to clearly indicate it is an override (`sectionCustomSynthesisLabel`).
 - Refactor the hardcoded Finnish fallback for the description field (`"Osion kuvaus (valinnainen väliotsikko)"`) to use `l10n.layoutBlockDescriptionLabel` (or similar) from AppLocalizations.
 
 ## Verification Plan

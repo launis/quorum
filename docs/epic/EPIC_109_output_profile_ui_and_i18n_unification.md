@@ -51,7 +51,7 @@ This Epic unifies the Studio Workflow Top Navigation into a strict 3-tab layout,
 
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
 - Modify @[c:\src\quorum\backend_v2\models\v2_core.py] and @[c:\src\quorum\backend_v2\models\dtos\output_profile.py]:
-  - Ensure `is_synthesis_enabled: bool` is added to Pydantic domain models to enforce cross-domain SDUI parity.
+  - Ensure `is_synthesis_enabled: bool` is ONLY added to specific Pydantic domain models (`OutputLayoutBlock` and `ReportLayoutDTO`) to enforce cross-domain SDUI parity. It MUST NOT be added to `EmbeddedOutputProfile` to prevent strict Freezed schema crashes.
   - Add the `is_synthesis_enabled: bool = Field(default=True, description="Toggle for UI section-level synthesis.")` property to `OutputLayoutBlock` to support the section-level synthesis toggle introduced in Phase 3C. The `default=True` establishes backward compatibility for layouts that already use synthesis.
   - Add `is_synthesis_enabled: bool = Field(default=True)` to `ReportLayoutDTO` to ensure the Flutter client accurately receives the state from the orchestrator.
 - Modify @[c:\src\quorum\backend_v2\services\blueprint.py] (CONTEXT-ONLY: `prompt_compiler.py` is frozen per `prompt_compiler_immutability` rule — do NOT modify it):
@@ -66,8 +66,8 @@ This Epic unifies the Studio Workflow Top Navigation into a strict 3-tab layout,
 - Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\profile_editor_view.dart] to implement the 3-tab Output Profile sub-nav, mirroring the unified layout structure of the main builder.
 
 ### Phase 3C: Section Template UI & i18n Widget Updates
-- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart] to use `I18nTextField` and section-level synthesis toggles (synchronized with backend models to prevent JSON parsing crashes).
-- **Strict DTO Mapping**: Ensure the `isSynthesisEnabled` property is perfectly mapped to the frontend Dart Freezed model. In a strict SDUI architecture, all layout configuration state must reside in the backend DTO (`OutputLayoutBlock`) and be driven by `seed_data.json` to guarantee cross-domain SDUI parity.
+- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart] to use `I18nTextField` and implement clear UI separation for section-level synthesis toggles (one toggle for inclusion in synthesis `isSynthesisEnabled`, and one toggle for a custom override `synthesis != null`).
+- **Strict DTO Mapping**: Ensure the `isSynthesisEnabled` property is perfectly mapped to the frontend Dart Freezed models (`OutputLayoutBlock` and `ReportLayoutDTO`). In a strict SDUI architecture, all layout configuration state must reside in the backend DTO and be driven by `seed_data.json` to guarantee cross-domain SDUI parity.
 
 ### Phase 3D: Excel Action Button (VERIFY & ENHANCE)
 - VERIFY existing Excel export button in @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_report_view.dart#L63] (`.xlsx` reference already exists). Enhance visibility/prominence alongside PDF download only if not already exposed.

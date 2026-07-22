@@ -237,10 +237,9 @@ class LayoutEditorCard extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           I18nTextField(
-            label:
-                "Osion kuvaus (valinnainen väliotsikko)", // Fallback if L10n missing
+            label: l10n.layoutBlockDescriptionLabel,
             initialData:
-                layout.description ?? const I18nText(defaultLocale: 'fi'),
+                layout.description ?? const I18nText(defaultLocale: 'en'),
             onChanged: (val) {
               final isEmpty =
                   val.translations.isEmpty ||
@@ -250,12 +249,19 @@ class LayoutEditorCard extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           SwitchListTile(
-            title: const Text(
-              'Käytä osiokohtaista synteesiä (Section-Level Synthesis)',
-            ),
-            subtitle: const Text(
-              'Ohittaa globaalin raporttisynteesin asetukset tälle osiolle',
-            ),
+            title: Text(l10n.sectionSynthesisToggleLabel),
+            subtitle: Text(l10n.sectionSynthesisToggleDesc),
+            value: layout.isSynthesisEnabled,
+            onChanged: (val) {
+              updateLayout(layout.copyWith(isSynthesisEnabled: val));
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            title: Text(l10n.sectionCustomSynthesisLabel),
+            subtitle: Text(l10n.sectionCustomSynthesisDesc),
             value: layout.synthesis != null,
             onChanged: (val) {
               if (val) {

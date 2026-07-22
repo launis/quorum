@@ -1324,5 +1324,10 @@
   "excelSheetRawData": "Raakadata",
   "profileTabGeneral": "Perustiedot",
   "profileTabXai": "XAI",
-  "profileTabLayouts": "Raporttipohjat"
+  "profileTabLayouts": "Raporttipohjat",
+  "layoutBlockDescriptionLabel": "Osion kuvaus (valinnainen väliotsikko)",
+  "sectionSynthesisToggleLabel": "Sisällytä tekoälysynteesiin",
+  "sectionSynthesisToggleDesc": "Jos kytketty pois, tämä osio jätetään kokonaan pois synteesistä.",
+  "sectionCustomSynthesisLabel": "Käytä osiokohtaista synteesiä",
+  "sectionCustomSynthesisDesc": "Ylikirjoittaa työnkulun globaalit synteesiasetukset tämän osion osalta."
 }

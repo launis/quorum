@@ -3819,4 +3819,22 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get profileTabLayouts => 'Raporttipohjat';
+
+  @override
+  String get layoutBlockDescriptionLabel =>
+      'Osion kuvaus (valinnainen väliotsikko)';
+
+  @override
+  String get sectionSynthesisToggleLabel => 'Sisällytä tekoälysynteesiin';
+
+  @override
+  String get sectionSynthesisToggleDesc =>
+      'Jos kytketty pois, tämä osio jätetään kokonaan pois synteesistä.';
+
+  @override
+  String get sectionCustomSynthesisLabel => 'Käytä osiokohtaista synteesiä';
+
+  @override
+  String get sectionCustomSynthesisDesc =>
+      'Ylikirjoittaa työnkulun globaalit synteesiasetukset tämän osion osalta.';
 }
