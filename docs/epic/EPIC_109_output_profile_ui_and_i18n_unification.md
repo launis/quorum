@@ -43,33 +43,41 @@ This Epic unifies the Studio Workflow Top Navigation into a strict 3-tab layout,
   - Harden `get_execution_export_bytes()` to strictly Fail-Fast. Remove existing openpyxl empty fallback sheet generation (L799-L808). If `execution.step_states` has no atoms or `status != PASSED`, throw an `AppException` (400 Bad Request).
   - Remove the `try/except Exception` catch-all at L700, replacing with strict typed `except AppException` and RFC-7807 dual-reporting.
   - Replace `getattr(q, "verified_source_ids", None)` and `getattr(q, "unverified_aliases", None)` at L758-L761 with direct Pydantic DTO attribute access (Zero-Compromise Pledge).
-  - Replace hardcoded Finnish column headers at L778-L789 (`"Matriisi"`, `"Kriteerin Nimi (UI)"`, `"Tekoälyn Sääntö"`, etc.) and mandate strict resolution via the backend's localization dictionaries to comply with the `no_string_l10n` invariant.
-  - Require a strictly typed API contract for locale resolution. The FastAPI endpoint MUST use a typed Query parameter (e.g., `locale: LocaleEnum = Query(...)`). Relying on ambiguous fallback logic like `Accept-Language` headers is forbidden to ensure OpenAPI schema correctness and Fail-Fast validation.
+  - Extract `target_locale` securely from `execution.metadata["target_locale"]`.
+  - Read the Flutter localization files (`client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`) using `json.load()` to act as the single source of truth for string resolution.
+  - Replace hardcoded Finnish column headers at L778-L789 (`"Matriisi"`, `"Kriteerin Nimi (UI)"`, `"Tekoälyn Sääntö"`, etc.) with their respective `.arb` keys (e.g., `excelHeaderMatrix`, `excelHeaderCriterion`) to comply with the `no_string_l10n` invariant.
+  - Do NOT add a `locale` query parameter to the export endpoint. The execution endpoint must remain entirely zero-trust and rely solely on the `target_locale` inherently bound to the execution's metadata in the SSOT database.
   - Verify `/api/v2/executions/{execution_id}/export` sets proper `Content-Disposition` headers.
 
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
-- Modify @[c:\src\quorum\backend_v2\models\domain\output_profile.py]:
-  - Add the `is_synthesis_enabled: bool = Field(default=False, strict=True)` property to the relevant layout block model to support the section-level synthesis toggle introduced in Phase 3C. The `default=False` establishes the initial un-toggled UI state. (Note: Old legacy executions are explicitly NOT supported and do not need to be compatible with the new output structures, per the Zero Legacy State Support Mandate).
+- Modify @[c:\src\quorum\backend_v2\models\v2_core.py] and @[c:\src\quorum\backend_v2\models\dtos\output_profile.py]:
+  - Ensure `is_synthesis_enabled: bool` is added to Pydantic domain models to enforce cross-domain SDUI parity.
+  - Add the `is_synthesis_enabled: bool = Field(default=True, description="Toggle for UI section-level synthesis.")` property to `OutputLayoutBlock` to support the section-level synthesis toggle introduced in Phase 3C. The `default=True` establishes backward compatibility for layouts that already use synthesis.
+  - Add `is_synthesis_enabled: bool = Field(default=True)` to `ReportLayoutDTO` to ensure the Flutter client accurately receives the state from the orchestrator.
 - Modify @[c:\src\quorum\backend_v2\services\blueprint.py] (CONTEXT-ONLY: `prompt_compiler.py` is frozen per `prompt_compiler_immutability` rule — do NOT modify it):
-  - Ensure `blueprint.py`'s call-site usage relies strictly on the `I18nText.resolve(target_locale)` method for SDUI rendering. Absolutely no naked dictionary parsing or manual fallback chains allowed in the service layer.
+  - Delete the legacy `@staticmethod def _resolve_i18n_str` entirely, as it violates the strict `I18nText` object pattern (naked dictionary parsing).
+  - In `_build_layouts`, explicitly map `is_synthesis_enabled=layout_def.is_synthesis_enabled` to `ReportLayoutDTO`.
+  - **SDUI Parity Preservation**: Ensure that `title` and `description` are passed as native `I18nText` objects to the DTOs rather than prematurely forcing `I18nText.resolve(target_locale)`. This is strictly required to maintain full dynamic localization capabilities in the Flutter frontend.
 
 ### Phase 3A: Top Navigation Refactor
-- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\workflow_builder_view.dart] and @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\workflow\workflow_general_tab.dart] to implement the new 3-tab main nav structure (Perustiedot, XAI, Raporttipohjat).
+- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\workflow_builder_view.dart] and @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\workflow\workflow_general_tab.dart] to implement the new 3-tab main nav structure (Perustiedot, XAI, Raporttipohjat). This completely replaces the legacy monolithic scrollable form architecture to improve UI scalability.
 
 ### Phase 3B: Output Profile Sub-Tab Restructuring
-- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\profile_editor_view.dart] to implement the 3-tab Output Profile sub-nav.
+- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\profile_editor_view.dart] to implement the 3-tab Output Profile sub-nav, mirroring the unified layout structure of the main builder.
 
 ### Phase 3C: Section Template UI & i18n Widget Updates
-- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart] to use `I18nTextField` and section-level synthesis toggles. In a strict SDUI architecture, all layout configuration state must reside in the backend DTO (`OutputLayoutBlock`) and be driven by `seed_data.json`.
+- Modify @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart] to use `I18nTextField` and section-level synthesis toggles (synchronized with backend models to prevent JSON parsing crashes).
+- **Strict DTO Mapping**: Ensure the `isSynthesisEnabled` property is perfectly mapped to the frontend Dart Freezed model. In a strict SDUI architecture, all layout configuration state must reside in the backend DTO (`OutputLayoutBlock`) and be driven by `seed_data.json` to guarantee cross-domain SDUI parity.
 
 ### Phase 3D: Excel Action Button (VERIFY & ENHANCE)
 - VERIFY existing Excel export button in @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_report_view.dart#L63] (`.xlsx` reference already exists). Enhance visibility/prominence alongside PDF download only if not already exposed.
-- **Error Handling**: Enforce a Flutter-side Error Boundary interceptor when triggering the export. It must catch `DioException`s and explicitly parse the RFC-7807 payload (HTTP 400) to display the backend-provided user-friendly error message, preventing raw app crashes and forbidding frontend-hardcoded error strings.
+- **Error Handling & Boundary Enforcement**: Enforce a Flutter-side Error Boundary interceptor when triggering the export. It must catch `DioException`s and explicitly parse the RFC-7807 payload (HTTP 400) to display the backend-provided user-friendly error message. **Architectural Rule**: Instead of creating frontend-side error localizations for failed exports in the ARB files, you MUST directly present the RFC-7807 error message provided by the backend to prevent raw app crashes and forbid frontend-hardcoded error strings.
 - **Localization Updates**:
-  - Modify @[c:\src\quorum\client_app_v2\lib\l10n\app_fi.arb] and @[c:\src\quorum\client_app_v2\lib\l10n\app_en.arb] with new tab names and button texts.
+  - Modify @[c:\src\quorum\client_app_v2\lib\l10n\app_fi.arb] and @[c:\src\quorum\client_app_v2\lib\l10n\app_en.arb] with new tab names, button texts, and the new translation keys corresponding to the Excel export headers (e.g., `excelHeaderMatrix`, `excelHeaderCriterion`, `excelHeaderRule`, etc.) to enforce cross-language parity for the backend Excel generation.
 
 ### Phase 4: Verification & E2E Integration Gate
-- Run backend and flutter audit loops.
+- Run backend audit loops on modified python files.
+- Run frontend audit loop (`uv run python scripts/flutter_audit_loop.py client_app_v2/lib/l10n/ --build`) to ensure ARB files compile correctly.
 - Verify end-to-end functionality in Flutter Studio.
 - Verify Excel export logic correctly crashes with an Error Boundary (400) for empty executions and succeeds for populated execution states.
 
