@@ -35,5 +35,5 @@ flowchart TD
 
 ## 4. Physical Implementation Map (Auto-Generated)
 > **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/services/orchestrator/strategies/llm_execution/chunk_worker.py` (Transient Error Detector), `backend_v2/worker.py` (Exponential Backoff Queue), `backend_v2/core/rate_limit.py`, `backend_v2/services/usage_service.py` (Usage Tracking), `backend_v2/services/pii_analyzer.py` (Compliance Guardrail).
+- **Backend Entrypoints:** `backend_v2/services/orchestrator/strategies/llm_execution/chunk_worker.py` (Transient Error Detector), `backend_v2/worker.py` (Exponential Backoff Queue), `backend_v2/core/rate_limit.py`, `backend_v2/services/usage_service.py` (Usage Tracking), `backend_v2/services/progress.py` (Observability), `backend_v2/services/pii_analyzer.py` (Compliance Guardrail).
 - **Frontend Consumers:** `client_app_v2/lib/core/error/app_error_boundary.dart` (Red Screen Mitigation).
