@@ -79,7 +79,7 @@ final class AtomResultsProvider
   }
 }
 
-String _$atomResultsHash() => r'ceb6518ae0360cb115a8c0465a89a656a3b7d477';
+String _$atomResultsHash() => r'bb549fc9a56244771668fc2d2900a900c56c7d1e';
 
 /// Returns `ReportDataDto.results`.
 /// The frontend MUST NOT perform topological sorting. Trust the backend list sequence.

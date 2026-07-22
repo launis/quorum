@@ -310,11 +310,9 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
         await ref.read(workflowFormProvider(wfId).notifier).submit(newWorkflow);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Workflow saved successfully',
-              ), // Using hardcoded or localized
-              backgroundColor: Color(0xFF2E7D32),
+            SnackBar(
+              content: Text(l10n.workflowSavedSuccess),
+              backgroundColor: const Color(0xFF2E7D32),
             ),
           );
           context.pop();

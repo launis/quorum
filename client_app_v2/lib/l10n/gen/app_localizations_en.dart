@@ -3730,4 +3730,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String studioViewsErrorLoadingExtensions(String error) {
     return 'Error loading extensions: $error';
   }
+
+  @override
+  String get excelHeaderMatrix => 'Matrix';
+
+  @override
+  String get excelHeaderGrade => 'Grade';
+
+  @override
+  String get excelHeaderMaxScore => 'Max Score';
+
+  @override
+  String get excelHeaderNote => 'Note';
+
+  @override
+  String get excelHeaderCriterion => 'Criterion Name (UI)';
+
+  @override
+  String get excelHeaderAiRule => 'AI Rule';
+
+  @override
+  String get excelHeaderInternalizedRule => 'Internalized Rule';
+
+  @override
+  String get excelHeaderResultStatus => 'Result (Status)';
+
+  @override
+  String get excelHeaderConfidence => 'Confidence Estimate';
+
+  @override
+  String get excelHeaderReasoningLength => 'Reasoning Length';
+
+  @override
+  String get excelHeaderFoundQuotes => 'Found Quotes';
+
+  @override
+  String get excelHeaderUsedSources => 'Used Sources';
+
+  @override
+  String get excelHeaderAiReasoning => 'AI Reasoning';
+
+  @override
+  String get excelHeaderFalsification => 'Falsification';
+
+  @override
+  String get excelNoteNoScores => 'No scoring results in this execution';
+
+  @override
+  String get excelNoteNoAtoms => 'No atoms found';
+
+  @override
+  String get excelSheetSummary => 'Summary';
+
+  @override
+  String get excelSheetRawData => 'Raw Data';
 }

@@ -3756,4 +3756,58 @@ class AppLocalizationsFi extends AppLocalizations {
   String studioViewsErrorLoadingExtensions(String error) {
     return 'Virhe ladattaessa laajennuksia: $error';
   }
+
+  @override
+  String get excelHeaderMatrix => 'Matriisi';
+
+  @override
+  String get excelHeaderGrade => 'Arvosana (Grade)';
+
+  @override
+  String get excelHeaderMaxScore => 'Maksimipisteet';
+
+  @override
+  String get excelHeaderNote => 'Huomio';
+
+  @override
+  String get excelHeaderCriterion => 'Kriteerin Nimi (UI)';
+
+  @override
+  String get excelHeaderAiRule => 'Tekoälyn Sääntö';
+
+  @override
+  String get excelHeaderInternalizedRule => 'Sisäistetty Sääntö';
+
+  @override
+  String get excelHeaderResultStatus => 'Tulos (Status)';
+
+  @override
+  String get excelHeaderConfidence => 'Varmuusarvio';
+
+  @override
+  String get excelHeaderReasoningLength => 'Perustelun Pituus';
+
+  @override
+  String get excelHeaderFoundQuotes => 'Löydetyt Lainaukset';
+
+  @override
+  String get excelHeaderUsedSources => 'Käytetyt Lähteet';
+
+  @override
+  String get excelHeaderAiReasoning => 'Tekoälyn Perustelu';
+
+  @override
+  String get excelHeaderFalsification => 'Falsifiointi';
+
+  @override
+  String get excelNoteNoScores => 'Ei pisteytystuloksia tässä ajossa';
+
+  @override
+  String get excelNoteNoAtoms => 'Ei atomeja löytynyt';
+
+  @override
+  String get excelSheetSummary => 'Yhteenveto';
+
+  @override
+  String get excelSheetRawData => 'Raakadata';
 }

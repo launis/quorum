@@ -6797,6 +6797,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error loading extensions: {error}'**
   String studioViewsErrorLoadingExtensions(String error);
+
+  /// No description provided for @excelHeaderMatrix.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix'**
+  String get excelHeaderMatrix;
+
+  /// No description provided for @excelHeaderGrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade'**
+  String get excelHeaderGrade;
+
+  /// No description provided for @excelHeaderMaxScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Score'**
+  String get excelHeaderMaxScore;
+
+  /// No description provided for @excelHeaderNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get excelHeaderNote;
+
+  /// No description provided for @excelHeaderCriterion.
+  ///
+  /// In en, this message translates to:
+  /// **'Criterion Name (UI)'**
+  String get excelHeaderCriterion;
+
+  /// No description provided for @excelHeaderAiRule.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Rule'**
+  String get excelHeaderAiRule;
+
+  /// No description provided for @excelHeaderInternalizedRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Internalized Rule'**
+  String get excelHeaderInternalizedRule;
+
+  /// No description provided for @excelHeaderResultStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Result (Status)'**
+  String get excelHeaderResultStatus;
+
+  /// No description provided for @excelHeaderConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Confidence Estimate'**
+  String get excelHeaderConfidence;
+
+  /// No description provided for @excelHeaderReasoningLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning Length'**
+  String get excelHeaderReasoningLength;
+
+  /// No description provided for @excelHeaderFoundQuotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Found Quotes'**
+  String get excelHeaderFoundQuotes;
+
+  /// No description provided for @excelHeaderUsedSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Used Sources'**
+  String get excelHeaderUsedSources;
+
+  /// No description provided for @excelHeaderAiReasoning.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Reasoning'**
+  String get excelHeaderAiReasoning;
+
+  /// No description provided for @excelHeaderFalsification.
+  ///
+  /// In en, this message translates to:
+  /// **'Falsification'**
+  String get excelHeaderFalsification;
+
+  /// No description provided for @excelNoteNoScores.
+  ///
+  /// In en, this message translates to:
+  /// **'No scoring results in this execution'**
+  String get excelNoteNoScores;
+
+  /// No description provided for @excelNoteNoAtoms.
+  ///
+  /// In en, this message translates to:
+  /// **'No atoms found'**
+  String get excelNoteNoAtoms;
+
+  /// No description provided for @excelSheetSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get excelSheetSummary;
+
+  /// No description provided for @excelSheetRawData.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw Data'**
+  String get excelSheetRawData;
 }
 
 class _AppLocalizationsDelegate
