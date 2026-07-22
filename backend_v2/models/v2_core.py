@@ -1256,6 +1256,14 @@ class OutputLayoutBlock(V2CoreBase):
     scoring_strategy: LaxScoringStrategy | None = Field(
         default=None, description="Override for scoring_strategy in this layout."
     )
+    matrix_column_labels: dict[str, I18nText] = Field(
+        default_factory=dict,
+        description="Optional mapping of UI column identifiers to localized labels.",
+    )
+    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
+        default_factory=dict,
+        description="Optional mapping of XAI extension identifiers to localized labels.",
+    )
 
 
 class OutputProfile(V2CoreBase):

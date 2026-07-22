@@ -199,11 +199,11 @@
                 
                 {% for metaKey in metadata_list %}
                     {% if metaKey == 'user' %}
-                        <strong>Käyttäjä:</strong> {% if report_data and report_data.user_name %}{{ report_data.user_name }}{% else %}Tuntematon{% endif %}<br>
+                        <strong>{{ l10n.meta_user | default('Käyttäjä') }}:</strong> {% if report_data and report_data.user_name %}{{ report_data.user_name }}{% else %}{{ l10n.meta_unknown | default('Tuntematon') }}{% endif %}<br>
                     {% elif metaKey == 'organization' %}
-                        <strong>Organisaatio:</strong> {% if report_data and report_data.org_name %}{{ report_data.org_name }}{% else %}Tuntematon{% endif %}<br>
+                        <strong>{{ l10n.meta_organization | default('Organisaatio') }}:</strong> {% if report_data and report_data.org_name %}{{ report_data.org_name }}{% else %}{{ l10n.meta_unknown | default('Tuntematon') }}{% endif %}<br>
                     {% elif metaKey == 'date' %}
-                        <strong>Aikaleima:</strong> {% if report_data and report_data.local_time_str %}{{ report_data.local_time_str }}{% else %}{{ printed_at }}{% endif %}<br>
+                        <strong>{{ l10n.meta_timestamp | default('Aikaleima') }}:</strong> {% if report_data and report_data.local_time_str %}{{ report_data.local_time_str }}{% else %}{{ printed_at }}{% endif %}<br>
                         <div style="font-size: 10px; color: #888; margin-top: 4px; margin-bottom: 4px;">ID: {{ execution_id }}</div>
                     {% endif %}
                 {% endfor %}
@@ -214,13 +214,13 @@
                 <tr>
                     {% if show_cost %}
                     <td style="width: 50%; vertical-align: top; text-align: left;">
-                        <strong style="font-size: 12px;">Kustannukset</strong><br>
+                        <strong style="font-size: 12px;">{{ l10n.meta_costs | default('Kustannukset') }}</strong><br>
                         <span style="font-size: 11px;">API-hinta: {% if report_data and report_data.cost_estimate != None %}${{ "%.4f"|format(report_data.cost_estimate) }}{% else %}-{% endif %}</span>
                     </td>
                     {% endif %}
                     {% if show_tokens %}
                     <td style="width: 50%; vertical-align: top; text-align: left;">
-                        <strong style="font-size: 12px;">Kognitiivinen työ (Tokens)</strong><br>
+                        <strong style="font-size: 12px;">{{ l10n.meta_tokens | default('Kognitiivinen työ (Tokens)') }}</strong><br>
                         <span style="font-size: 11px;">
                             Prompt: {% if report_data and report_data.prompt_tokens != None %}{{ report_data.prompt_tokens }}{% else %}-{% endif %}<br>
                             Completion: {% if report_data and report_data.completion_tokens != None %}{{ report_data.completion_tokens }}{% else %}-{% endif %}<br>
@@ -243,7 +243,7 @@
 
         {% if report_data and report_data.content_blocks %}
         <div class="card" style="border-left: 4px solid #1E88E5; padding: 20px; margin-bottom: 0px; page-break-after: avoid;">
-            <h2 style="color: #1a237e; margin-top: 0;">Yhteenveto</h2>
+            <h2 style="color: #1a237e; margin-top: 0;">{{ l10n.summary_title | default('Yhteenveto') }}</h2>
             <div style="font-size: 13px; line-height: 1.6; color: #333;">
                 {{ render_sdui_blocks(report_data.content_blocks) }}
             </div>
@@ -255,7 +255,7 @@
             <table style="width: 100%; border: none; margin: 0; padding: 0;">
                 <tr>
                     <td style="text-align: left; vertical-align: middle;">
-                        <strong style="color: #1a1a1a; font-size: 18px;">Kokonaiskeskiarvo</strong>
+                        <strong style="color: #1a1a1a; font-size: 18px;">{{ l10n.global_score_title | default('Kokonaiskeskiarvo') }}</strong>
                     </td>
                     <td style="text-align: right; vertical-align: middle;">
                         <span style="font-size: 24px; font-weight: 800; color: #1a1a1a;">{{ "%.2f"|format(report_data.global_score) }}/100</span>
