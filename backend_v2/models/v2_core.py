@@ -1015,8 +1015,8 @@ class SynthesisConfigDTO(V2CoreBase):
         default=HistoricalContextMode.DISABLED, description="Mode for fetching historical context."
     )
     enable_pii_masking: bool = Field(default=False, description="Flag to enable algorithmic PII redaction.")
-    allowed_exports: list[Literal["pdf", "docx", "raw_json"]] = Field(
-        default_factory=lambda: cast(list[Literal["pdf", "docx", "raw_json"]], ["pdf", "raw_json"]),
+    allowed_exports: list[Literal["pdf", "docx", "raw_json", "xlsx"]] = Field(
+        default_factory=lambda: cast(list[Literal["pdf", "docx", "raw_json", "xlsx"]], ["pdf", "raw_json"]),
         description="Supported export file formats.",
     )
     omit_empty_sections: bool = Field(default=True, description="Flag to drop logically empty evaluation sections.")
@@ -1389,7 +1389,7 @@ class Workflow(V2CoreBase):
     )
     steps: list[StepRule] = Field(default_factory=list)
     allowed_exports: Annotated[
-        list[Literal["pdf", "docx", "raw_json"]],
+        list[Literal["pdf", "docx", "raw_json", "xlsx"]],
         Field(description="Supported export file formats for this workflow."),
     ]
     historical_context_mode: Annotated[

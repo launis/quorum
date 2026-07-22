@@ -6,8 +6,8 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 ## Phase Execution Status
 
 ### Phase 0: Seed Data & Database Prerequisite / Migration
-- [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\00_phase0_seed_data_migration.md]
-- [ ] **[NOK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\00_phase0_seed_data_migration.md]
+- [x] **[OK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\00_phase0_seed_data_migration.md]
+- [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\00_phase0_seed_data_migration.md]
 
 ### Phase 1: Backend Domain Models & Service Engine Hardening
 - [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\01_phase1_backend_hardening.md]
@@ -73,17 +73,18 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 ## Achieved
 - Initialized Tier 1 planning for EPIC 109.
 - Generated detailed micro-chunked plans for backend phases (0, 1, 2) in `c:\src\quorum\docs\epic\tasks_EPIC_109\`.
-- Created placeholder plans for frontend phases (3A, 3B, 3C, 3D) per cognitive load limits.
-- Generated standard tracker document for EPIC 109 execution.
+- Encountered a Pydantic Validation Error during Phase 0 execution due to strict literals.
+- Overrode the blocker per user instruction: Updated `backend_v2/models/v2_core.py` to allow `"xlsx"` in `allowed_exports`.
+- Successfully executed Phase 0 data migration (seed data modifications to add `"xlsx"`).
+- Re-seeded the local database seamlessly with `run_seed.py local`.
+- Passed the `backend_audit_loop.py` quality gate for `v2_core.py` and `run_seed.py`.
 
 ## Learned
-- Epic 109 focuses heavily on Fail-Fast behavior for Excel export, requiring strict rejection of empty states (no atoms) via AppExceptions.
-- Frontend UI relies on deep SDUI compliance, meaning layout configurations and string resolving must be passed carefully.
-- Target localization requires cross-reading ARB files securely in the backend, relying on `json.load`.
+- **Strict Seed Vault Exemption**: While `03_seed_vault.md` forbids mutating Pydantic schemas to fit data during seed operations, an explicit user override allowed us to update `Literal['pdf', 'docx', 'raw_json', 'xlsx']` simultaneously to prevent a Catch-22 with `run_seed.py` failing fast.
 
 ## Remaining
-- Perform research and execution for Phase 0, 1, and 2.
+- Perform research and execution for Phase 1 and Phase 2.
 - Generate plans for Phase 3 via a new Tier 1 Planner pass once the backend SDUI model foundation is secure.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\00_phase0_seed_data_migration.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\03_seed_vault.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\01_phase1_backend_hardening.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
