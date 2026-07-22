@@ -14,7 +14,7 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\01_phase1_backend_hardening.md]
 
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
-- [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\02_phase2_orchestration_registry.md]
+- [x] **[OK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\02_phase2_orchestration_registry.md]
 - [ ] **[NOK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\02_phase2_orchestration_registry.md]
 
 ### Integration Checkpoint: Full-Stack Validation
@@ -83,12 +83,16 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - Ensured `/api/v2/executions/{execution_id}/export` relies solely on execution metadata `target_locale`.
 - Updated `backend_v2/tests/unit/services/test_execution.py` and passed universal quality gate.
 
+- Executed `/tier0-research-plan` for Phase 2, eliminating duplicate schemas and dead code.
+
 ## Learned
 - **Strict Seed Vault Exemption**: While `03_seed_vault.md` forbids mutating Pydantic schemas to fit data during seed operations, an explicit user override allowed us to update `Literal['pdf', 'docx', 'raw_json', 'xlsx']` simultaneously to prevent a Catch-22 with `run_seed.py` failing fast.
+- **Single Responsibility Validation**: `output_profile.py` does not need explicit modification because its DTOs properly inherit `OutputLayoutBlock` from `v2_core.py`.
+- **Dead Code Cleanup**: `_resolve_i18n_str` in `blueprint.py` was verified as entirely unreferenced dead code.
 
 ## Remaining
-- Perform research and execution for Phase 2.
+- Perform execution for Phase 2 (`/tier2-execute`).
 - Generate plans for Phase 3 via a new Tier 1 Planner pass once the backend SDUI model foundation is secure.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\02_phase2_orchestration_registry.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\02_phase2_orchestration_registry.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`

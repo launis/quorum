@@ -6,14 +6,13 @@ Add the `is_synthesis_enabled` property to Pydantic models to enforce cross-doma
 
 ## Target Files (Modify)
 - @[c:\src\quorum\backend_v2\models\v2_core.py]
-- @[c:\src\quorum\backend_v2\models\dtos\output_profile.py]
 - @[c:\src\quorum\backend_v2\services\blueprint.py]
 
 ## Context Files (Read-Only)
 - @[c:\src\quorum\backend_v2\services\orchestrator\prompt_compiler.py]
 
 ## Implementation Steps
-1. In `v2_core.py` and `output_profile.py`:
+1. In `v2_core.py`:
    - Add `is_synthesis_enabled: bool = Field(default=True, description="Toggle for UI section-level synthesis.")` to `OutputLayoutBlock`.
    - Add `is_synthesis_enabled: bool = Field(default=True)` to `ReportLayoutDTO`.
 2. In `blueprint.py`:
