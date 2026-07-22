@@ -264,12 +264,17 @@ class BlueprintTransformer:
                     message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                 ) from e
 
+            true_atoms = None
+            total_atoms = None
             raw_score = matrix_payload.raw_score
-
-            if raw_score is None:
-                continue
-
             norm_score = matrix_payload.normalized_score
+
+            if matrix_payload.evaluated_atoms:
+                true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
+                total_atoms = len(matrix_payload.evaluated_atoms)
+                if total_atoms > 0:
+                    raw_score = true_atoms / total_atoms
+                    norm_score = raw_score * 100.0
 
             axis_name = pb_meta.label.resolve(locale) if pb_meta.label else b_id
             if not axis_name:
@@ -433,12 +438,6 @@ class BlueprintTransformer:
                 axis_level_breakdown = clean_level_dict
 
             ext_dict = matrix_payload.extensions or {}
-
-            true_atoms = None
-            total_atoms = None
-            if matrix_payload.evaluated_atoms:
-                true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
-                total_atoms = len(matrix_payload.evaluated_atoms)
 
             if False:
                 if b_id not in row_explanations_cache:

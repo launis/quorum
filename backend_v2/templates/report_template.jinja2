@@ -547,9 +547,10 @@
             <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">
                 <thead>
                     <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
-                        {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 30%; color: #333; font-weight: 700;">{{ l10n.lblLogicMatrix | default('Matriisi') }}</th>{% endif %}
-                        {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.atomicBreakdownTitle | default('Jakauma') }}</th>{% endif %}
-                        {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.rowExplanationTitle | default('Selite') }}</th>{% endif %}
+                        {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.lblLogicMatrix | default('Matriisi') }}</th>{% endif %}
+                        {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.atomicBreakdownTitle | default('Jakauma') }}</th>{% endif %}
+                        {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.rowExplanationTitle | default('Selite') }}</th>{% endif %}
+                        {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">Lainaukset (quotes)</th>{% endif %}
                         {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.normalizedScore | default('Skaalattu') }}</th>{% endif %}
                         {% if 'score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.score | default('Pisteet') }}</th>{% endif %}
                     </tr>
@@ -587,6 +588,51 @@
                         {% if 'row_explanation' in visible_cols %}
                         <td style="padding: 10px; color: #444; font-style: italic; font-size: 10px; vertical-align: top;">
                             {{ axis.row_explanation }}
+                        </td>
+                        {% endif %}
+                        {% if 'quotes' in visible_cols %}
+                        <td style="padding: 10px; vertical-align: top; font-size: 10px;">
+                            {% set evaluated_atoms = axis.evaluated_atoms or [] %}
+                            {% if evaluated_atoms %}
+                                {% set grouped_atoms = {} %}
+                                {% for atom in evaluated_atoms %}
+                                    {% set lvl = atom.level | string %}
+                                    {% if lvl not in grouped_atoms %}
+                                        {% set _ = grouped_atoms.update({lvl: []}) %}
+                                    {% endif %}
+                                    {% set _ = grouped_atoms[lvl].append(atom) %}
+                                {% endfor %}
+                                
+                                {% for lvl, atoms in grouped_atoms.items() | sort(reverse=True, attribute='0') %}
+                                    {% set lvl_name = (axis.level_names or {}).get(lvl, 'T' ~ lvl) %}
+                                    <div style="font-weight: bold; margin-bottom: 4px; font-size: 11px;">{{ lvl }} - {{ lvl_name }}</div>
+                                    {% set has_rendered = false %}
+                                    {% for atom in atoms %}
+                                        {% set status = (atom.status or '') | lower %}
+                                        {% if status not in ['skipped', 'none', 'dlq'] and 'chunk processing failed' not in (atom.semantic_reasoning or '')|lower %}
+                                            <div style="margin-bottom: 8px;">
+                                                <div style="font-weight: {{ 'bold' if status in ['pass', 'contested'] else 'normal' }}; color: #333;">
+                                                    - {{ atom.chart_display_label }}
+                                                </div>
+                                                {% for quote in atom.exact_quotes %}
+                                                    <div style="margin-top: 2px; color: #555;">
+                                                        {% if quote.display_name %}
+                                                            <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: bold; color: #1565c0; margin-right: 4px;">{{ quote.display_name | upper }}</span>
+                                                        {% endif %}
+                                                        {{ quote.quote_text }}
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% set has_rendered = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not has_rendered %}
+                                        <div style="color: #999; font-style: italic; margin-bottom: 8px;">- N/A</div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <div style="color: #999; font-style: italic;">- N/A</div>
+                            {% endif %}
                         </td>
                         {% endif %}
                         {% if 'normalized_score' in visible_cols %}

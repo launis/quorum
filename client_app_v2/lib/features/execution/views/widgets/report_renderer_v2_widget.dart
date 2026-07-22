@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
-// import 'package:client_app/features/execution/models/global_synthesis_dto.dart';
-// import 'package:client_app/features/execution/views/widgets/sdui_node_renderer.dart';
-// import 'package:client_app/l10n/gen/app_localizations.dart';
-// import 'package:client_app/core/theme/app_spacing.dart';
-// import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+
+import 'package:client_app/features/execution/views/widgets/xai_axis_telemetry_grid.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
+import 'package:client_app/shared/widgets/logic_radar_chart.dart';
 
 // Phase 3, Step 2: Create ReportRendererV2Widget
 class ReportRendererV2Widget extends StatelessWidget {
@@ -19,83 +21,382 @@ class ReportRendererV2Widget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
+    final widgets = <Widget>[];
+
+    // 0. Top Titles (Profile Name & Description)
+    final profileName = payload.profileName?.get(locale);
+    if (profileName != null && profileName.isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24,
+            AppSpacing.s24,
+            AppSpacing.s24,
+            AppSpacing.s8,
+          ),
+          child: Text(
+            profileName,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
+    final profileDescription = payload.profileDescription?.get(locale);
+    if (profileDescription != null && profileDescription.isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24,
+            0,
+            AppSpacing.s24,
+            AppSpacing.s16,
+          ),
+          child: Text(
+            profileDescription,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 1. Content Blocks (Yhteenveto)
+    if (payload.contentBlocks != null && payload.contentBlocks!.isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24,
+            AppSpacing.s24,
+            AppSpacing.s24,
+            AppSpacing.s8,
+          ),
+          child: Text(
+            l10n.reportExecutiveSummary,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+      for (final block in payload.contentBlocks!) {
+        if (block['block_type'] == 'markdown' ||
+            block['block_type'] == 'paragraph') {
+          final text = block['text'] as String?;
+          if (text != null && text.isNotEmpty) {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.only(
+                  bottom: AppSpacing.s16,
+                  left: AppSpacing.s24,
+                  right: AppSpacing.s24,
+                  top: AppSpacing.s16,
+                ),
+                child: OutputRenderer(markdownContent: text),
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    // 2. Global Score (Kokonaiskeskiarvo)
+    if (payload.globalScore != null) {
+      widgets.add(
+        Container(
+          margin: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s24,
+            vertical: AppSpacing.s16,
+          ),
+          padding: const EdgeInsets.all(AppSpacing.s16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(AppSpacing.s8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l10n.scorecard_global_average,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${payload.globalScore!.toStringAsFixed(2)}/100',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 2.5 Global Synthesis (Yhteenveto)
+    if (payload.globalSynthesis != null &&
+        payload.globalSynthesis!.executiveSummary != null &&
+        payload.globalSynthesis!.executiveSummary!.isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s24,
+            AppSpacing.s24,
+            AppSpacing.s24,
+            AppSpacing.s8,
+          ),
+          child: Text(
+            l10n.reportExecutiveSummary,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(
+            bottom: AppSpacing.s16,
+            left: AppSpacing.s24,
+            right: AppSpacing.s24,
+            top: AppSpacing.s8,
+          ),
+          child: OutputRenderer(
+            markdownContent: payload.globalSynthesis!.executiveSummary!,
+          ),
+        ),
+      );
+    }
+
+    // 3. Layouts
+    for (final layout in payload.layouts) {
+      final title = layout.title?.get(locale);
+      if (title != null && title.isNotEmpty) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s24,
+              AppSpacing.s24,
+              AppSpacing.s24,
+              AppSpacing.s8,
+            ),
+            child: Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      }
+
+      final description = layout.description?.get(locale);
+      if (description != null && description.isNotEmpty) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s24,
+              0,
+              AppSpacing.s24,
+              AppSpacing.s16,
+            ),
+            child: Text(
+              description,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        );
+      }
+
+      // 4. Layout Synthesis Blocks
+      if (layout.synthesisBlocks != null) {
+        for (final block in layout.synthesisBlocks!) {
+          if (block['block_type'] == 'markdown' ||
+              block['block_type'] == 'paragraph') {
+            final text = block['text'] as String?;
+            if (text != null && text.isNotEmpty) {
+              widgets.add(
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s24,
+                    vertical: AppSpacing.s8,
+                  ),
+                  child: OutputRenderer(markdownContent: text),
+                ),
+              );
+            }
+          }
+        }
+      }
+
+      // 5. Axes (XAIAxisTelemetryGrid)
+      final presetView = layout.presetView;
+      final showGraph = const [
+        'matrix3d',
+        '3d_matrix',
+        'compare2d',
+        '2d_compare',
+        '3d_complex',
+        'complex3d',
+      ].contains(presetView);
+
+      final hideAxes =
+          presetView == 'text_only' ||
+          (showGraph && layout.textDeliveryMode == 'none');
+
+      // 4.5. Render Graph if requested by layout presetView
+      if (showGraph && layout.axes.length >= 2) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s24,
+              vertical: AppSpacing.s16,
+            ),
+            child: SizedBox(
+              height: 300,
+              child: presetView == 'radar'
+                  ? LogicRadarChart(axes: layout.axes)
+                  : LogicMatrixChart(
+                      xAxis: layout.axes[0],
+                      yAxis: layout.axes[1],
+                      zAxis: layout.axes.length > 2 ? layout.axes[2] : null,
+                    ),
+            ),
+          ),
+        );
+      }
+
+      if (!hideAxes && layout.axes.isNotEmpty) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s24,
+              vertical: AppSpacing.s16,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: layout.axes.map((axis) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.s16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 1. Axis Name & Score
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              axis.name,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          if (axis.score != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${axis.score!.toStringAsFixed(1)}${axis.scaleMax != null && axis.scaleMax! > (axis.scaleMin ?? 0) ? ' / ${axis.scaleMax!.toStringAsFixed(1)}' : ''}',
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 2. Axis Description
+                      if (axis.description != null &&
+                          axis.description!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            axis.description!,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontStyle: FontStyle.italic,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+
+                      // 3. UI Plot Ratio (Progress Bar for metrics1d)
+                      if (presetView == 'metrics1d' && axis.uiPlotRatio != null)
+                        Container(
+                          height: 12,
+                          margin: const EdgeInsets.only(top: 4, bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: axis.uiPlotRatio!.clamp(0.0, 1.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // 4. Telemetry Grid (Text Explanations)
+                      XAIAxisTelemetryGrid(
+                        axis: axis,
+                        textDeliveryMode: layout.textDeliveryMode,
+                        showQuote: true,
+                        groupedExtensions: payload.groupedExtensions ?? {},
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      }
+    }
+
+    if (widgets.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return ListView(
       padding: EdgeInsets.zero,
       shrinkWrap: true,
       primary: false,
-      children: [
-        // Phase 3, Step 2: Build globalSynthesis and globalMetrics summary
-        // TODO(Phase C4): Migrate to content_blocks for synthesis and results
-        // if (payload.globalSynthesis != null)
-        //   _buildExecutiveSummary(context, payload.globalSynthesis!),
-
-        // ...payload.results.map(
-        //   (atom) => Padding(
-        //     padding: const EdgeInsets.only(
-        //       bottom: AppSpacing.s8,
-        //       left: AppSpacing.s16,
-        //       right: AppSpacing.s16,
-        //     ),
-        //     child: SduiNodeRenderer(executionId: executionId, result: atom),
-        //   ),
-        // ),
-      ],
+      children: widgets,
     );
   }
-
-  // Widget _buildExecutiveSummary(
-  //   BuildContext context,
-  //   GlobalSynthesisDTO synthesis,
-  // ) {
-  //   if (synthesis.executiveSummary == null ||
-  //       synthesis.executiveSummary!.isEmpty) {
-  //     return const SizedBox.shrink(); // Allowed here only as conditional omission, not error hiding.
-  //   }
-  //
-  //   return Padding(
-  //     padding: AppSpacing.p16,
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Text(
-  //           AppLocalizations.of(context)!.reportExecutiveSummary,
-  //           style: const TextStyle(
-  //             fontSize: 22,
-  //             fontWeight: FontWeight.bold,
-  //             letterSpacing: -0.5,
-  //           ),
-  //         ),
-  //         AppSpacing.h16,
-  //         Container(
-  //           width: double.infinity,
-  //           padding: AppSpacing.p16,
-  //           decoration: BoxDecoration(
-  //             color: Colors.white,
-  //             border: Border(
-  //               left: BorderSide(
-  //                 color: Theme.of(context).primaryColor,
-  //                 width: 4,
-  //               ),
-  //             ),
-  //             boxShadow: [
-  //               BoxShadow(
-  //                 color: Colors.black.withValues(alpha: 0.05),
-  //                 blurRadius: 4,
-  //                 offset: const Offset(0, 2),
-  //               ),
-  //             ],
-  //           ),
-  //           child: OutputRenderer(markdownContent: synthesis.executiveSummary!),
-  //         ),
-  //         if (synthesis.urgencyLevel != null) ...[
-  //           AppSpacing.h16,
-  //           Text(
-  //             'Urgency Level: ${synthesis.urgencyLevel}',
-  //             style: const TextStyle(fontWeight: FontWeight.bold),
-  //           ),
-  //         ],
-  //       ],
-  //     ),
-  //   );
-  // }
 }
