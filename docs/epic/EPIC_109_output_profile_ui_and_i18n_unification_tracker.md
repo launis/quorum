@@ -18,7 +18,7 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - [x] **[OK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\02_phase2_orchestration_registry.md]
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for Phase 3 (Frontend) based on the updated codebase state. (CRITICAL LIMIT requirement).
+- [x] **[OK]** Invoke Tier 1 Planner again to generate detailed plans for Phase 3 (Frontend) based on the updated codebase state. (CRITICAL LIMIT requirement).
 
 ### Phase 3A: Top Navigation Refactor
 - [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\03_phase3A_top_nav.md]
@@ -27,6 +27,9 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 ### Phase 3B: Output Profile Sub-Tab Restructuring
 - [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\04_phase3B_output_profile_subtabs.md]
 - [ ] **[NOK]** `/tier2-execute` @[c:\src\quorum\docs\epic\tasks_EPIC_109\04_phase3B_output_profile_subtabs.md]
+
+### Integration Checkpoint: Phase 3 Planner Invocation
+- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for Phase 3C and 3D based on the updated codebase state. (CRITICAL LIMIT requirement).
 
 ### Phase 3C: Section Template UI & i18n Widget Updates
 - [ ] **[NOK]** `/tier0-research-plan` @[c:\src\quorum\docs\epic\tasks_EPIC_109\05_phase3C_ui_widgets.md]
@@ -82,18 +85,20 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - Replaced hardcoded Finnish column headers in Excel export with Flutter ARB translation keys.
 - Ensured `/api/v2/executions/{execution_id}/export` relies solely on execution metadata `target_locale`.
 - Updated `backend_v2/tests/unit/services/test_execution.py` and passed universal quality gate.
-
 - Executed `/tier0-research-plan` for Phase 2, eliminating duplicate schemas and dead code.
 - Successfully executed `/tier2-execute` for Phase 2, adding `is_synthesis_enabled` to models and mapping it in `blueprint.py`.
 - Passed the `backend_audit_loop.py` quality gate for `v2_core.py` and `blueprint.py`.
+- Invoked Tier 1 Planner to generate detailed implementation plans for Phase 3A and 3B, treating them as the current batch to prevent LLM cognitive overload. Created placeholder plans for Phase 3C and 3D.
+- Added a new integration checkpoint to invoke the planner for Phase 3C and 3D after Phase 3B is complete.
 
 ## Learned
 - **Strict Seed Vault Exemption**: While `03_seed_vault.md` forbids mutating Pydantic schemas to fit data during seed operations, an explicit user override allowed us to update `Literal['pdf', 'docx', 'raw_json', 'xlsx']` simultaneously to prevent a Catch-22 with `run_seed.py` failing fast.
 - **Single Responsibility Validation**: `output_profile.py` does not need explicit modification because its DTOs properly inherit `OutputLayoutBlock` from `v2_core.py`.
 - **Dead Code Cleanup**: `_resolve_i18n_str` in `blueprint.py` was verified as entirely unreferenced dead code and safely deleted.
+- **Cognitive Boundary Mandate**: Followed the limit of generating max 2 detailed Phase plans at a time (3A and 3B), leaving the rest as placeholders to preserve system context stability.
 
 ## Remaining
-- Invoke Tier 1 Planner to generate detailed micro-chunked plans for Phase 3 (Frontend) based on the updated backend.
+- Execute Phase 3A (Top Navigation Refactor) using `/tier2-execute`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier1-planner --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\03_phase3A_top_nav.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
