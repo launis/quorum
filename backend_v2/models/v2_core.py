@@ -1044,6 +1044,14 @@ class ReportLayoutDTO(V2CoreBase):
     synthesis_blocks: list[dict[str, Any]] | None = Field(
         default=None, description="The rendered SDUI blocks for this layout"
     )
+    matrix_column_labels: dict[str, I18nText] = Field(
+        default_factory=dict,
+        description="Optional mapping of UI column identifiers to localized labels.",
+    )
+    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
+        default_factory=dict,
+        description="Optional mapping of XAI extension identifiers to localized labels.",
+    )
 
 
 class ErrorDetailsDTO(BaseModel):

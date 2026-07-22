@@ -272,7 +272,7 @@ class BlueprintTransformer:
             if matrix_payload.evaluated_atoms:
                 true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
                 total_atoms = len(matrix_payload.evaluated_atoms)
-                if total_atoms > 0:
+                if total_atoms > 0 and raw_score is None:
                     raw_score = true_atoms / total_atoms
                     norm_score = raw_score * 100.0
 
@@ -759,6 +759,8 @@ class BlueprintTransformer:
                         text_delivery_mode=text_delivery_mode,
                         synthesis=synthesis_config,
                         synthesis_blocks=section_blocks,
+                        matrix_column_labels=layout_def.matrix_column_labels,
+                        extension_labels=layout_def.extension_labels,
                     )
                 )
         return layouts_list

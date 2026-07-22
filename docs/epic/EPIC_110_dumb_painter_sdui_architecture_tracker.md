@@ -10,8 +10,8 @@
 - `[x]` **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_110\01_backend_architecture_and_seed_plan.md]`
 
 ### Phase 3: Backend Blueprint
-- `[ ]` **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\02_backend_blueprint_plan.md]`
-- `[ ]` **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_110\02_backend_blueprint_plan.md]`
+- `[x]` **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\02_backend_blueprint_plan.md]`
+- `[x]` **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_110\02_backend_blueprint_plan.md]`
 
 ### Phase 1 & 2: Frontend Models & Renderer
 - `[ ]` **[NOK]** Invoke the Tier 1 Planner `/tier1-planner` again to generate detailed plans for the remaining phases based on the updated codebase state.
@@ -51,7 +51,7 @@
 | Jinja PDF Deduplication | Phase 1 | `01_backend_architecture_and_seed_plan.md` | Done |
 | Add `matrix_column_labels` and `extension_labels` | Phase 2 | `01_backend_architecture_and_seed_plan.md` | Done |
 | Migrate `seed_data.json` layout blocks | Phase 2 | `01_backend_architecture_and_seed_plan.md` | Done |
-| Delegate title resolution in `blueprint.py` | Phase 3 | `02_backend_blueprint_plan.md` | Pending |
+| Delegate title resolution in `blueprint.py` | Phase 3 | `02_backend_blueprint_plan.md` | Done |
 | Remove Flutter duct-tape | Phase 1 | Frontend Plan (TBD) | Pending |
 | Flutter Models Sync | Phase 2 | Frontend Plan (TBD) | Pending |
 | 3-Part UI Refactor | Phase 4 | Frontend UI Plan (TBD) | Pending |
@@ -69,15 +69,18 @@
   - Migrated `seed_data.json` successfully with new label fields.
   - Refactored `report_template.jinja2` to remove hardcoded Finnish strings and use `l10n` placeholders.
   - Passed strict backend and seed data audit loops.
+- Executed Phase 3 Backend Blueprint mapping updates:
+  - Resolved `matrix_column_labels` and `extension_labels` from `OutputLayoutBlock` and mapped them directly into `ReportLayoutDTO`.
+  - Fixed the Amnesia Bug by preventing raw_score overwrite when an AI score already exists.
+  - Passed strict backend audit loop (MyPy strict and Pytest).
 
 ## Learned
 - Seed data size is ~533KB, requiring careful parsing and bounded reading via grep or line limits to prevent truncation.
 - The `OutputLayoutBlock` model resides in `backend_v2/models/v2_core.py` (Python) and `client_app_v2/lib/features/studio/models/output_profile.dart` (Flutter).
-- `blueprint.py` handles the main ReportDataDTO mapping, and will need logic injected to merge UI label configuration from the `OutputLayoutBlock` down to the matrix components.
+- `blueprint.py` handles the main ReportDataDTO mapping, and now correctly cascades UI label configurations down to the layout payloads.
 
 ## Remaining
-- Execute Phase 3 Blueprint mapping updates.
-- Re-run Tier 1 Planner for the remaining frontend work once the backend interfaces are finalized and stable.
+- Invoke the Tier 1 Planner for the remaining frontend work (Phase 1 & 2 Frontend Models & Renderer, Phase 4 UI Editor) since backend schemas are now fully finalized and stable.
 
 ## Resume Command
-/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture_tracker.md] @[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture.md] @[c:\src\quorum\docs\epic\tasks_EPIC_110\02_backend_blueprint_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md] @[c:\src\quorum\.agents\rules\03_seed_vault.md] @[c:\src\quorum\.agents\rules\04_directory_reference.md]"
+/tier5-resume --workflow=/tier1-planner --target="@[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture_tracker.md] @[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md] @[c:\src\quorum\.agents\rules\04_directory_reference.md]"
