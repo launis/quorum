@@ -251,7 +251,13 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
       ),
       textDeliveryMode: $checkedConvert(
         'text_delivery_mode',
-        (v) => v as String? ?? 'full',
+        (v) =>
+            $enumDecodeNullable(
+              _$TextDeliveryModeEnumMap,
+              v,
+              unknownValue: TextDeliveryMode.full,
+            ) ??
+            TextDeliveryMode.full,
       ),
       isSynthesisEnabled: $checkedConvert(
         'is_synthesis_enabled',
@@ -315,7 +321,7 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(
   'description': instance.description?.toJson(),
   'steps': instance.steps,
   'target_blocks': instance.targetBlocks,
-  'text_delivery_mode': instance.textDeliveryMode,
+  'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
   'is_synthesis_enabled': instance.isSynthesisEnabled,
   'synthesis': instance.synthesis?.toJson(),
   'synthesis_blocks': instance.synthesisBlocks.map((e) => e.toJson()).toList(),
@@ -336,6 +342,12 @@ const _$PresetViewEnumMap = {
   PresetView.matrix3d: '3d_matrix',
   PresetView.textOnly: 'text_only',
   PresetView.defaultView: 'default',
+};
+
+const _$TextDeliveryModeEnumMap = {
+  TextDeliveryMode.full: 'full',
+  TextDeliveryMode.titlesOnly: 'titles_only',
+  TextDeliveryMode.none: 'none',
 };
 
 const _$ScoringStrategyEnumMap = {
@@ -381,7 +393,13 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
           ),
           historicalContextMode: $checkedConvert(
             'historical_context_mode',
-            (v) => v as String? ?? 'DISABLED',
+            (v) =>
+                $enumDecodeNullable(
+                  _$HistoricalContextModeEnumMap,
+                  v,
+                  unknownValue: HistoricalContextMode.disabled,
+                ) ??
+                HistoricalContextMode.disabled,
           ),
           enablePiiMasking: $checkedConvert(
             'enable_pii_masking',
@@ -448,7 +466,8 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'system_prompt': instance.systemPrompt,
       'length_constraint': instance.lengthConstraint,
       'preamble_text': instance.preambleText?.toJson(),
-      'historical_context_mode': instance.historicalContextMode,
+      'historical_context_mode':
+          _$HistoricalContextModeEnumMap[instance.historicalContextMode]!,
       'enable_pii_masking': instance.enablePiiMasking,
       'allowed_exports': instance.allowedExports,
       'omit_empty_sections': instance.omitEmptySections,
@@ -459,6 +478,11 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'synthesis_block_id': instance.synthesisBlockId,
       'row_explanations_block_id': instance.rowExplanationsBlockId,
     };
+
+const _$HistoricalContextModeEnumMap = {
+  HistoricalContextMode.disabled: 'DISABLED',
+  HistoricalContextMode.slidingWindow3: 'SLIDING_WINDOW_3',
+};
 
 _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
     $checkedCreate(

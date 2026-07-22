@@ -16,10 +16,7 @@ void main() {
           'short_circuited_na': 2,
           'duration_ms': 1500,
         },
-        'global_synthesis': {
-          'executive_summary': 'All good',
-          'urgency_level': 1,
-        },
+
         'results': [
           {
             'tda_id': 'node_1',
@@ -46,7 +43,7 @@ void main() {
       expect(dto.executionId, 'exec_123');
       expect(dto.workflowId, 'wf_abc');
       expect(dto.globalMetrics?.totalAtoms, 10);
-      expect(dto.globalSynthesis?.executiveSummary, 'All good');
+
       expect(dto.results.length, 1);
       expect(dto.results.first.status, ExecutionStatus.passed);
       expect(dto.results.first.extractedData?.value, 42.0);

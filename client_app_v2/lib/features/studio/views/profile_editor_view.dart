@@ -106,7 +106,7 @@ class ProfileEditorView extends HookConsumerWidget {
               OutputLayoutBlock(
                 presetView: PresetView.metrics1d,
                 title: I18nText(defaultLocale: 'en'),
-                textDeliveryMode: 'full',
+                textDeliveryMode: TextDeliveryMode.full,
                 targetBlocks: [],
               ),
             ],

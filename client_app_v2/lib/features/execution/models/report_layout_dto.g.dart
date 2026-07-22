@@ -25,7 +25,16 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
           ],
         );
         final val = _ReportLayoutDto(
-          presetView: $checkedConvert('preset_view', (v) => v as String),
+          presetView: $checkedConvert(
+            'preset_view',
+            (v) =>
+                $enumDecodeNullable(
+                  _$PresetViewEnumMap,
+                  v,
+                  unknownValue: PresetView.defaultView,
+                ) ??
+                PresetView.defaultView,
+          ),
           title: $checkedConvert(
             'title',
             (v) =>
@@ -50,7 +59,13 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
           ),
           textDeliveryMode: $checkedConvert(
             'text_delivery_mode',
-            (v) => v as String? ?? 'full',
+            (v) =>
+                $enumDecodeNullable(
+                  _$TextDeliveryModeEnumMap,
+                  v,
+                  unknownValue: TextDeliveryMode.full,
+                ) ??
+                TextDeliveryMode.full,
           ),
           isSynthesisEnabled: $checkedConvert(
             'is_synthesis_enabled',
@@ -79,14 +94,30 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
       },
     );
 
-Map<String, dynamic> _$ReportLayoutDtoToJson(_ReportLayoutDto instance) =>
-    <String, dynamic>{
-      'preset_view': instance.presetView,
-      'title': instance.title?.toJson(),
-      'description': instance.description?.toJson(),
-      'axes': instance.axes.map((e) => e.toJson()).toList(),
-      'text_delivery_mode': instance.textDeliveryMode,
-      'is_synthesis_enabled': instance.isSynthesisEnabled,
-      'synthesis': instance.synthesis?.toJson(),
-      'synthesis_blocks': instance.synthesisBlocks,
-    };
+Map<String, dynamic> _$ReportLayoutDtoToJson(
+  _ReportLayoutDto instance,
+) => <String, dynamic>{
+  'preset_view': _$PresetViewEnumMap[instance.presetView]!,
+  'title': instance.title?.toJson(),
+  'description': instance.description?.toJson(),
+  'axes': instance.axes.map((e) => e.toJson()).toList(),
+  'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
+  'is_synthesis_enabled': instance.isSynthesisEnabled,
+  'synthesis': instance.synthesis?.toJson(),
+  'synthesis_blocks': instance.synthesisBlocks,
+};
+
+const _$PresetViewEnumMap = {
+  PresetView.metrics1d: '1d_metrics',
+  PresetView.compare2d: '2d_compare',
+  PresetView.complex3d: '3d_complex',
+  PresetView.matrix3d: '3d_matrix',
+  PresetView.textOnly: 'text_only',
+  PresetView.defaultView: 'default',
+};
+
+const _$TextDeliveryModeEnumMap = {
+  TextDeliveryMode.full: 'full',
+  TextDeliveryMode.titlesOnly: 'titles_only',
+  TextDeliveryMode.none: 'none',
+};

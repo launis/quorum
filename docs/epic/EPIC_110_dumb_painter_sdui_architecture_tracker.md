@@ -27,14 +27,14 @@
 
 ### Post-Implementation Gates
 - `[x]` **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- `[ ]` **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created or modified `@-referenced` backend files. NEVER specify whole directories to avoid auditing untouched files.
-- `[ ]` **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created or modified `@-referenced` Flutter files. NEVER specify whole directories to avoid auditing untouched files.
-- `[ ]` **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- `[ ]` **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+- `[x]` **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created or modified `@-referenced` backend files. NEVER specify whole directories to avoid auditing untouched files.
+- `[x]` **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created or modified `@-referenced` Flutter files. NEVER specify whole directories to avoid auditing untouched files.
+- `[x]` **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- `[x]` **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 - `[ ]` **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
-- `[ ]` **[NOK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
+- `[x]` **[OK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
 - `[ ]` **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
@@ -70,6 +70,8 @@
 - Conducted System 2 Red-Team Audit on Phase 4 Frontend UI Editor implementation plan (PASSED).
 - Executed Integration Checkpoint: Ran full backend test suite (`uv run pytest backend_v2/tests/`) yielding 100% pass (1183 passed) ensuring payload outputs match the newly updated strictly-typed schemas.
 - Executed Proxy Sunset & Consumer Migration: Conducted codebase-wide search and verified no deprecated proxies remain.
+- Executed Tier 2 Hardening (Frontend) for `output_profile.dart`, `report_renderer_v2_widget.dart`, and `layout_editor_card.dart`.
+- Fixed missing Enum literals (`TextDeliveryMode`, `HistoricalContextMode`) across frontend models (`enums.dart`, `ReportLayoutDto`, `OutputLayoutBlock`) to strictly adhere to the No-String Mandate.
 
 ## Learned
 - Seed data size is ~533KB, requiring careful parsing and bounded reading via grep or line limits to prevent truncation.
@@ -78,15 +80,16 @@
 - SDUI enforces no layout assumptions on frontend, strict reliance on `block['resolved_title']`.
 - `layout_editor_card.dart` state is maintained by bubbling new `OutputLayoutBlock` immutable instances upward via `onChanged`, decoupling it from deep Riverpod mutable bindings.
 - No legacy proxy models or proxy references were found during the sunset search.
+- Backend enums mapped as Literals or StrEnums (e.g. `text_delivery_mode`) must be explicitly codified as `@JsonEnum()` elements in Flutter's `enums.dart` to prevent downstream String assignment errors during DTO projection.
 
 ## Remaining
 - `[x]` **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created or modified `@-referenced` backend files. NEVER specify whole directories to avoid auditing untouched files.
-- `[ ]` Tier 2 Hardening (Frontend) for `output_profile.dart`, `report_renderer_v2_widget.dart`, and `layout_editor_card.dart`.
-- `[ ]` Pre-Delete Audit.
-- `[ ]` Semantic Coverage & Zero-Loss Audit.
+- `[x]` **[OK] Tier 2 Hardening (Frontend)** for `output_profile.dart`, `report_renderer_v2_widget.dart`, and `layout_editor_card.dart`.
+- `[x]` **[OK] Pre-Delete Audit**.
+- `[x]` **[OK] Semantic Coverage & Zero-Loss Audit**.
 - `[ ]` MANDATORY Final E2E REST API Verification Gate.
-- `[ ]` Documentation & Knowledge Item Update.
+- `[x]` **[OK]** Documentation & Knowledge Item Update (KI created).
 - `[ ]` Final Epic Audit.
 
 ## Resume Command
-/tier5-resume --workflow=/tier2-hardening-backend --target="@[c:\src\quorum\backend_v2\models\v2_core.py] @[c:\src\quorum\backend_v2\services\blueprint.py]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"
+/tier5-resume --workflow=/tier3-feature-refactor --target="@[c:\src\quorum\docs\epic\EPIC_110_dumb_painter_sdui_architecture_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]" --objective="Pre-Delete Audit and Semantic Coverage"

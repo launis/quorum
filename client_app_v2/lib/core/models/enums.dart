@@ -292,3 +292,23 @@ enum SDUIComponentType {
   @JsonValue('n_a_card')
   nACard,
 }
+
+/// Text delivery mode for output layouts.
+@JsonEnum()
+enum TextDeliveryMode {
+  @JsonValue('full')
+  full,
+  @JsonValue('titles_only')
+  titlesOnly,
+  @JsonValue('none')
+  none,
+}
+
+/// Historical context mode for synthesis.
+@JsonEnum()
+enum HistoricalContextMode {
+  @JsonValue('DISABLED')
+  disabled,
+  @JsonValue('SLIDING_WINDOW_3')
+  slidingWindow3,
+}

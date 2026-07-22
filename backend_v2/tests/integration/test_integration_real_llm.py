@@ -177,7 +177,7 @@ async def test_real_llm_pdf_execution() -> None:
             status_res = requests.get(
                 f"http://127.0.0.1:8000/api/v2/execution/executions/{execution_id}",
                 headers=headers,
-                timeout=5
+                timeout=30
             )
             
             assert status_res.status_code == 200, f"Failed to get execution status: {status_res.text}"

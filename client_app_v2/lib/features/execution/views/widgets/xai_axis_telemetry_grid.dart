@@ -5,7 +5,7 @@ import 'package:client_app/core/models/enums.dart';
 
 class XAIAxisTelemetryGrid extends StatelessWidget {
   final MatrixScorecardRowDto axis;
-  final String textDeliveryMode;
+  final TextDeliveryMode textDeliveryMode;
   final bool showQuote;
   final Map<String, List<dynamic>> groupedExtensions;
 
@@ -19,8 +19,8 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (textDeliveryMode == 'none') {
-      return const SizedBox();
+    if (textDeliveryMode == TextDeliveryMode.none) {
+      return const SizedBox.shrink();
     }
 
     return Column(
@@ -172,8 +172,8 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   }
 
   Widget _buildTelemetryGrid(BuildContext context) {
-    if (textDeliveryMode != 'full') {
-      return const SizedBox();
+    if (textDeliveryMode != TextDeliveryMode.full) {
+      return const SizedBox.shrink();
     }
 
     final l10n = AppLocalizations.of(context)!;

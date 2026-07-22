@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 
-def fix_mock_dict(d):
+def fix_mock_dict(d: Any) -> Any:
     if isinstance(d, dict):
         import re
 
@@ -944,9 +944,12 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
     even if the cache has NO curated highlights for a specific category (leaving it empty).
     """
     from backend_v2.models.dtos.synthesis import XaiHighlightItem
-    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+    from backend_v2.models.v2_core import (
+        ExecutionRecord,
+        RenderedSynthesisCache,
+    )
 
     # Active cache exists, but ONLY contains remediation_steps, NO coaching or justification
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
@@ -1215,3 +1218,66 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
     # This should trigger KeyError: 'chart_display_label' at blueprint.py line 533
     dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
     assert dto is not None
+
+
+@pytest.mark.asyncio
+async def test_blueprint_sdui_layout_terminology_override(mock_repo_transformer: Any) -> None:
+    """Epic 110: Verify Semantic Coverage for SDUI Parity
+    Ensures that matrix_column_labels and extension_labels from OutputLayoutBlock
+    are correctly passed into the final ReportLayoutDTO payload.
+    """
+    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputLayoutBlock, OutputProfile
+
+    # Override the mock to return an OutputProfile with custom terminology
+    mock_repo_transformer.get_all_output_profiles.return_value = [
+        OutputProfile(
+            id="prf_dddd1111dddd1111",
+            slug="default",
+            workflow_id="wf_1234abcd1234abcd",
+            name=I18nText(default_locale="en", translations={"en": "Default"}),
+            display_scale="original",
+            layouts=[
+                OutputLayoutBlock(
+                    preset_view="text_only",
+                    target_blocks=["*"],
+                    matrix_column_labels={
+                        "explanation": I18nText(default_locale="fi", translations={"fi": "Selite", "en": "Explanation"})
+                    },
+                    extension_labels={
+                        XaiExtensionType.COACHING: I18nText(
+                            default_locale="fi", translations={"fi": "Vinkki", "en": "Tip"}
+                        )
+                    },
+                )
+            ],
+        )
+    ]
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000099",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.PASSED,
+        execution_trace=[],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "fi"},
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+    dto = await transformer.build_report_dto("exe_0000000000000099")
+
+    assert len(dto.layouts) == 1
+    layout = dto.layouts[0]
+
+    assert layout.matrix_column_labels is not None
+    assert layout.matrix_column_labels["explanation"].translations["fi"] == "Selite"
+
+    assert layout.extension_labels is not None
+    assert layout.extension_labels[XaiExtensionType.COACHING].translations["fi"] == "Vinkki"

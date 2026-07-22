@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -124,13 +125,15 @@ class SynthesisEditorCard extends StatelessWidget {
             ),
             SwitchListTile(
               title: Text(AppLocalizations.of(context)!.synIncludeHistory),
-              value: syn.historicalContextMode == 'SLIDING_WINDOW_3',
+              value:
+                  syn.historicalContextMode ==
+                  HistoricalContextMode.slidingWindow3,
               onChanged: (val) {
                 onChanged(
                   syn.copyWith(
                     historicalContextMode: val
-                        ? 'SLIDING_WINDOW_3'
-                        : 'DISABLED',
+                        ? HistoricalContextMode.slidingWindow3
+                        : HistoricalContextMode.disabled,
                   ),
                 );
               },

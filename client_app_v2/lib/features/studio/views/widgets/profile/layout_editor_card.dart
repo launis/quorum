@@ -30,7 +30,7 @@ class LayoutEditorCard extends ConsumerWidget {
       const OutputLayoutBlock(
         presetView: PresetView.metrics1d,
         title: I18nText(defaultLocale: 'en'),
-        textDeliveryMode: 'full',
+        textDeliveryMode: TextDeliveryMode.full,
         targetBlocks: [],
       ),
     );
@@ -254,7 +254,7 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
             ),
             const SizedBox(width: AppSpacing.s12),
             Expanded(
-              child: DropdownButtonFormField<String>(
+              child: DropdownButtonFormField<TextDeliveryMode>(
                 initialValue: layout.textDeliveryMode,
                 isExpanded: true,
                 decoration: InputDecoration(
@@ -263,21 +263,21 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
                 ),
                 items: [
                   DropdownMenuItem(
-                    value: 'full',
+                    value: TextDeliveryMode.full,
                     child: Text(
                       l10n.textModeFull,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   DropdownMenuItem(
-                    value: 'titles_only',
+                    value: TextDeliveryMode.titlesOnly,
                     child: Text(
                       l10n.textModeTitlesOnly,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   DropdownMenuItem(
-                    value: 'none',
+                    value: TextDeliveryMode.none,
                     child: Text(
                       l10n.textModeNone,
                       overflow: TextOverflow.ellipsis,

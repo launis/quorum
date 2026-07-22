@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/models/enums.dart';
 
 import 'package:client_app/features/execution/views/widgets/xai_axis_telemetry_grid.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -209,17 +210,14 @@ class ReportRendererV2Widget extends StatelessWidget {
       // 5. Axes (XAIAxisTelemetryGrid)
       final presetView = layout.presetView;
       final showGraph = const [
-        'matrix3d',
-        '3d_matrix',
-        'compare2d',
-        '2d_compare',
-        '3d_complex',
-        'complex3d',
+        PresetView.matrix3d,
+        PresetView.compare2d,
+        PresetView.complex3d,
       ].contains(presetView);
 
       final hideAxes =
-          presetView == 'text_only' ||
-          (showGraph && layout.textDeliveryMode == 'none');
+          presetView == PresetView.textOnly ||
+          (showGraph && layout.textDeliveryMode == TextDeliveryMode.none);
 
       // 4.5. Render Graph if requested by layout presetView
       if (showGraph && layout.axes.length >= 2) {
@@ -231,7 +229,7 @@ class ReportRendererV2Widget extends StatelessWidget {
             ),
             child: SizedBox(
               height: 300,
-              child: presetView == 'radar'
+              child: presetView == PresetView.complex3d
                   ? LogicRadarChart(axes: layout.axes)
                   : LogicMatrixChart(
                       xAxis: layout.axes[0],
@@ -271,6 +269,7 @@ class ReportRendererV2Widget extends StatelessWidget {
                               axis.name,
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (axis.score != null)
@@ -318,7 +317,8 @@ class ReportRendererV2Widget extends StatelessWidget {
                         ),
 
                       // 3. UI Plot Ratio (Progress Bar for metrics1d)
-                      if (presetView == 'metrics1d' && axis.uiPlotRatio != null)
+                      if (presetView == PresetView.metrics1d &&
+                          axis.uiPlotRatio != null)
                         Container(
                           height: 12,
                           margin: const EdgeInsets.only(top: 4, bottom: 12),

@@ -77,9 +77,12 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     I18nText? description,
     @Default([]) List<String> steps,
     @Default([]) List<String> targetBlocks,
-    @Default('full')
-    @JsonKey(name: 'text_delivery_mode')
-    String textDeliveryMode,
+    @Default(TextDeliveryMode.full)
+    @JsonKey(
+      name: 'text_delivery_mode',
+      unknownEnumValue: TextDeliveryMode.full,
+    )
+    TextDeliveryMode textDeliveryMode,
     @JsonKey(name: 'is_synthesis_enabled')
     @Default(true)
     bool isSynthesisEnabled,
@@ -107,9 +110,12 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     String? systemPrompt,
     int? lengthConstraint,
     I18nText? preambleText,
-    @Default('DISABLED')
-    @JsonKey(name: 'historical_context_mode')
-    String historicalContextMode,
+    @Default(HistoricalContextMode.disabled)
+    @JsonKey(
+      name: 'historical_context_mode',
+      unknownEnumValue: HistoricalContextMode.disabled,
+    )
+    HistoricalContextMode historicalContextMode,
     @Default(false) bool enablePiiMasking,
     @Default(['pdf', 'raw_json']) List<String> allowedExports,
     @Default(true) bool omitEmptySections,
