@@ -20,6 +20,7 @@
 ### Phase 4: Frontend UI Editor
 - `[x]` **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]`
 - `[x]` **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]`
+- `[ ]` **[NOK]** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
 - `[ ]` **[NOK]** Run End-to-End backend evaluation and verify payload outputs match the newly updated strictly-typed schemas.
@@ -85,6 +86,7 @@
   - Refactored `layout_editor_card.dart` into a 3-part conditionally rendered `HookConsumerWidget`.
   - Replaced hardcoded numeric spacings with `AppSpacing` design tokens.
   - Implemented `_DictionaryMapEditor` to allow robust term authoring for `matrixColumnLabels` and `extensionLabels`.
+  - Added the missing `steps` text field configuration to Part 2 to ensure complete data parity.
   - Passed flutter audit loop (formatting and static analysis).
 
 ## Learned

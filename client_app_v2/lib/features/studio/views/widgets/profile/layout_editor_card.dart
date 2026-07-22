@@ -115,7 +115,7 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.s12),
-      padding: const EdgeInsets.all(AppSpacing.s12),
+      padding: AppSpacing.p12,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(AppSpacing.s8),
@@ -356,8 +356,8 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(
               top: AppSpacing.s8,
-              left: 4.0,
-              right: 4.0,
+              left: AppSpacing.s4,
+              right: AppSpacing.s4,
               bottom: AppSpacing.s12,
             ),
             child: SynthesisEditorCard(
@@ -369,6 +369,24 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
             ),
           ),
         AppSpacing.h12,
+        TextFormField(
+          initialValue: layout.steps.join(', '),
+          decoration: InputDecoration(
+            labelText: l10n.studioStepsTitle,
+            isDense: true,
+            hintText: 'step_1, step_2',
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: (val) {
+            final stepsList = val
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList();
+            updateLayout(layout.copyWith(steps: stepsList));
+          },
+        ),
+        AppSpacing.h16,
         Align(
           alignment: Alignment.centerLeft,
           child: Text(

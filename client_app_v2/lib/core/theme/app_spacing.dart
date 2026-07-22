@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppSpacing {
+  static const double s4 = 4.0;
   static const double s8 = 8.0;
   static const double s12 = 12.0;
   static const double s16 = 16.0;
   static const double s24 = 24.0;
 
   static const EdgeInsets p8 = EdgeInsets.all(s8);
+  static const EdgeInsets p12 = EdgeInsets.all(s12);
   static const EdgeInsets p16 = EdgeInsets.all(s16);
   static const EdgeInsets p24 = EdgeInsets.all(s24);
 
