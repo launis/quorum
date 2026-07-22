@@ -100,6 +100,8 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - Added `is_synthesis_enabled` to `OutputLayoutBlock` and `ReportLayoutDTO` Freezed DTOs.
 - Corrected UI logic in `layout_editor_card.dart` to support distinct toggles for `isSynthesisEnabled` (inclusion) and `synthesis != null` (custom override) and mapped them to `app_en.arb` and `app_fi.arb` dictionaries.
 - Executed `/tier0-research-plan` for Phase 3D. Removed redundant `.arb` translation steps since Phase 1 already implemented the exact keys needed (e.g. `excelHeaderAiRule`). Refined the DioException catching strategy for binary downloads.
+- Executed `/tier2-execute` for Phase 3D. Caught raw byte stream from `DioException`, decoded it using `utf8.decode` and `jsonDecode`, and successfully extracted the RFC-7807 `detail` string to display in the UI Error Boundary (SnackBar).
+- Ran `flutter_audit_loop.py` on `execution_report_view.dart` and achieved a clean build.
 
 ## Learned
 - **Strict Seed Vault Exemption**: While `03_seed_vault.md` forbids mutating Pydantic schemas to fit data during seed operations, an explicit user override allowed us to update `Literal['pdf', 'docx', 'raw_json', 'xlsx']` simultaneously to prevent a Catch-22 with `run_seed.py` failing fast.
@@ -114,4 +116,4 @@ Task Directory: @[c:\src\quorum\docs\epic\tasks_EPIC_109\]
 - Perform all post-implementation audits, final E2E gates, and update documentation.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md] @[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification.md] @[c:\src\quorum\docs\epic\tasks_EPIC_109\06_phase3D_excel_action.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier2-hardening-backend --target="@[c:\src\quorum\docs\epic\EPIC_109_output_profile_ui_and_i18n_unification_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
