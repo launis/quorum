@@ -20,13 +20,13 @@
 ### Phase 4: Frontend UI Editor
 - `[x]` **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]`
 - `[x]` **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]`
-- `[ ]` **[NOK]** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]`
+- `[x]` **[OK]** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
-- `[ ]` **[NOK]** Run End-to-End backend evaluation and verify payload outputs match the newly updated strictly-typed schemas.
+- `[x]` **[OK]** Run End-to-End backend evaluation and verify payload outputs match the newly updated strictly-typed schemas.
 
 ### Post-Implementation Gates
-- `[ ]` **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- `[x]` **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
 - `[ ]` **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created or modified `@-referenced` backend files. NEVER specify whole directories to avoid auditing untouched files.
 - `[ ]` **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created or modified `@-referenced` Flutter files. NEVER specify whole directories to avoid auditing untouched files.
 - `[ ]` **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
@@ -62,32 +62,14 @@
 # Session Handover Context
 ## Achieved
 - Conducted Epic 110 research (Tier 1).
-- Inspected the current architectural state of `report_template.jinja2`, `report_renderer_v2_widget.dart`, `v2_core.py`, `output_profile.dart`, `layout_editor_card.dart`, and `blueprint.py`.
-- Identified that `matrix_column_labels` and `extension_labels` are completely missing from the existing `OutputLayoutBlock` models.
 - Split the Epic execution into isolated Micro-Chunks (Plans).
-- Generated implementation plans for Phase 1 & 2 (Backend Models/Jinja/Seed) and Phase 3 (Blueprint Delegation).
-- Generated placeholder files for Frontend Plans to avoid context oversaturation, which will require a subsequent Tier 1 pass later.
 - Executed Phase 1 & 2 Backend Architecture updates.
-  - Added `matrix_column_labels` and `extension_labels` to `OutputLayoutBlock` (`v2_core.py`).
-  - Migrated `seed_data.json` successfully with new label fields.
-  - Refactored `report_template.jinja2` to remove hardcoded Finnish strings and use `l10n` placeholders.
-  - Passed strict backend and seed data audit loops.
-- Executed Phase 3 Backend Blueprint mapping updates:
-  - Resolved `matrix_column_labels` and `extension_labels` from `OutputLayoutBlock` and mapped them directly into `ReportLayoutDTO`.
-  - Fixed the Amnesia Bug by preventing raw_score overwrite when an AI score already exists.
-  - Passed strict backend audit loop (MyPy strict and Pytest).
-- Executed Phase 1 & 2 Frontend Models & Renderer updates:
-  - Added `matrixColumnLabels` and `extensionLabels` nullable map fields to `OutputLayoutBlock` in `output_profile.dart`.
-  - Stripped out "2.5 Global Synthesis" logic from `report_renderer_v2_widget.dart` to match Dumb Painter rules.
-  - Dynamically injected `resolvedTitle` from `payload.contentBlocks` without using localized defaults.
-  - Generated Freezed `build_runner` files and passed flutter audit gate.
-- Executed Tier 0 Research for Phase 4 Frontend UI Editor: Corrected layout crash risks and state management flow in the implementation plan.
-- Executed Phase 4 Frontend UI Editor updates:
-  - Refactored `layout_editor_card.dart` into a 3-part conditionally rendered `HookConsumerWidget`.
-  - Replaced hardcoded numeric spacings with `AppSpacing` design tokens.
-  - Implemented `_DictionaryMapEditor` to allow robust term authoring for `matrixColumnLabels` and `extensionLabels`.
-  - Added the missing `steps` text field configuration to Part 2 to ensure complete data parity.
-  - Passed flutter audit loop (formatting and static analysis).
+- Executed Phase 3 Backend Blueprint mapping updates.
+- Executed Phase 1 & 2 Frontend Models & Renderer updates.
+- Executed Phase 4 Frontend UI Editor updates.
+- Conducted System 2 Red-Team Audit on Phase 4 Frontend UI Editor implementation plan (PASSED).
+- Executed Integration Checkpoint: Ran full backend test suite (`uv run pytest backend_v2/tests/`) yielding 100% pass (1183 passed) ensuring payload outputs match the newly updated strictly-typed schemas.
+- Executed Proxy Sunset & Consumer Migration: Conducted codebase-wide search and verified no deprecated proxies remain.
 
 ## Learned
 - Seed data size is ~533KB, requiring careful parsing and bounded reading via grep or line limits to prevent truncation.
@@ -95,10 +77,16 @@
 - `blueprint.py` handles the main ReportDataDTO mapping, and now correctly cascades UI label configurations down to the layout payloads.
 - SDUI enforces no layout assumptions on frontend, strict reliance on `block['resolved_title']`.
 - `layout_editor_card.dart` state is maintained by bubbling new `OutputLayoutBlock` immutable instances upward via `onChanged`, decoupling it from deep Riverpod mutable bindings.
+- No legacy proxy models or proxy references were found during the sunset search.
 
 ## Remaining
-- Conduct System 2 Red-Team Audit on Phase 4 Frontend UI Editor implementation plan.
-- Proceed to Integration Checkpoint and Post-Implementation Gates in the tracker.
+- `[x]` **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created or modified `@-referenced` backend files. NEVER specify whole directories to avoid auditing untouched files.
+- `[ ]` Tier 2 Hardening (Frontend) for `output_profile.dart`, `report_renderer_v2_widget.dart`, and `layout_editor_card.dart`.
+- `[ ]` Pre-Delete Audit.
+- `[ ]` Semantic Coverage & Zero-Loss Audit.
+- `[ ]` MANDATORY Final E2E REST API Verification Gate.
+- `[ ]` Documentation & Knowledge Item Update.
+- `[ ]` Final Epic Audit.
 
 ## Resume Command
-/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_110\04_frontend_ui_editor_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"
+/tier5-resume --workflow=/tier2-hardening-backend --target="@[c:\src\quorum\backend_v2\models\v2_core.py] @[c:\src\quorum\backend_v2\services\blueprint.py]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"
