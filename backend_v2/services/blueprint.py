@@ -622,7 +622,7 @@ class BlueprintTransformer:
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
                 row_explanation=self._clean_hallucinated_numbers(final_explanation),
-                evidence_type=self._coerce_str(ext_dict.get("evidence_type")),
+                evidence_type=self._coerce_str(ext_dict.get("evidence_type")),  # type: ignore[arg-type]
                 missing_context=self._coerce_str(ext_dict.get("missing_context")) or "",
                 cited_source_id=self._coerce_str(ext_dict.get("source_id")),
                 cited_text_quote=self._coerce_str(ext_dict.get("citation")),

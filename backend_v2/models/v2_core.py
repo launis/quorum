@@ -921,18 +921,23 @@ class ScorecardAtomDTO(V2CoreBase):
 class TDAPending(V2CoreBase):
     runtimeType: Literal["pending"] = Field(default="pending")
 
+
 class TDAEvaluated(V2CoreBase):
     runtimeType: Literal["evaluated"] = Field(default="evaluated")
     passed: bool
     display_quote: str
     raw_anchor: str
 
+
 class TDADlq(V2CoreBase):
     runtimeType: Literal["dlq"] = Field(default="dlq")
     user_reason: str
     backend_trace: str
 
+
 TDAStateUnion = Annotated[TDAPending | TDAEvaluated | TDADlq, Field(discriminator="runtimeType")]
+
+
 class MatrixScorecardRowDTO(V2CoreBase):
     """Represents a single evaluated matrix row in the scorecard and plot axes."""
 

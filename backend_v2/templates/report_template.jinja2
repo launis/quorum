@@ -93,62 +93,70 @@
 
     {% macro render_sdui_blocks(blocks) %}
         {% for block in blocks %}
-            {% if block.title %}
-                <h2 style="color: #1a237e; margin-top: 0; margin-bottom: 10px;">{{ block.title.resolve(lang_code) }}</h2>
+            {% if block.title is defined and block.title %}
+                <h2 style="color: #1a237e; margin-top: 0; margin-bottom: 10px;">
+                    {% if block.title is string %}
+                        {{ block.title }}
+                    {% elif block.title is mapping %}
+                        {{ block.title[lang_code] if lang_code in block.title else block.title['en'] }}
+                    {% else %}
+                        {{ block.title.resolve(lang_code) }}
+                    {% endif %}
+                </h2>
             {% endif %}
-            {% if block.block_type == 'paragraph' %}
+            {% if block.block_type is defined and block.block_type == 'paragraph' %}
                 <div style="margin-top: 0; margin-bottom: 10px; font-size: 13px; line-height: 1.6; color: #333;">
-                    {{ block.text | md | safe }}
-                    {% if block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+                    {{ block.text | md | safe if block.text is defined else '' }}
+                    {% if block.citations is defined and block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
                 </div>
-            {% elif block.block_type == 'bullet_list' %}
+            {% elif block.block_type is defined and block.block_type == 'bullet_list' %}
                 <ul style="margin-top: 0; margin-bottom: 10px; padding-left: 20px;">
-                    {% for item in block.items %}
+                    {% for item in (block.items if block.items is defined else []) %}
                         <li style="margin-bottom: 4px;">
-                            {{ item.text | md | safe }}
-                            {% if item.citations %}{% for cit in item.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+                            {{ item.text | md | safe if item.text is defined else '' }}
+                            {% if item.citations is defined and item.citations %}{% for cit in item.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
                         </li>
                     {% endfor %}
                 </ul>
-            {% elif block.block_type == 'alert_box' %}
-                {% set border_color = '#1E88E5' if block.severity == 'info' else '#F57C00' %}
-                {% set bg_color = '#E3F2FD' if block.severity == 'info' else '#FFF3E0' %}
-                <div class="alert alert-{{ block.severity }}" style="border-left: 4px solid {{ border_color }}; background-color: {{ bg_color }}; padding: 12px; margin-bottom: 15px; border-radius: 6px; font-size: 13px; line-height: 1.6; color: #333;">
-                    {{ block.text | md | safe }}
-                    {% if block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+            {% elif block.block_type is defined and block.block_type == 'alert_box' %}
+                {% set border_color = '#1E88E5' if (block.severity is defined and block.severity == 'info') else '#F57C00' %}
+                {% set bg_color = '#E3F2FD' if (block.severity is defined and block.severity == 'info') else '#FFF3E0' %}
+                <div class="alert alert-{{ block.severity if block.severity is defined else 'warning' }}" style="border-left: 4px solid {{ border_color }}; background-color: {{ bg_color }}; padding: 12px; margin-bottom: 15px; border-radius: 6px; font-size: 13px; line-height: 1.6; color: #333;">
+                    {{ block.text | md | safe if block.text is defined else '' }}
+                    {% if block.citations is defined and block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
                 </div>
-            {% elif block.block_type == 'hero_insight' %}
+            {% elif block.block_type is defined and block.block_type == 'hero_insight' %}
                 <h3 style="color: #1E88E5; font-size: 18px; margin-top: 15px; margin-bottom: 15px;">
-                    {{ block.text | md | safe }}
-                    {% if block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
+                    {{ block.text | md | safe if block.text is defined else '' }}
+                    {% if block.citations is defined and block.citations %}{% for cit in block.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
                 </h3>
-            {% elif block.block_type == 'markdown' %}
+            {% elif block.block_type is defined and block.block_type == 'markdown' %}
                 <div style="margin-bottom: 15px; font-size: 13px; line-height: 1.6; color: #333;">
-                    {{ block.text | md | safe }}
+                    {{ block.text | md | safe if block.text is defined else '' }}
                 </div>
-            {% elif block.block_type == 'quote_card' %}
+            {% elif block.block_type is defined and block.block_type == 'quote_card' %}
                 <div style="margin-bottom: 15px; border-left: 3px solid #9E9E9E; padding-left: 10px; font-style: italic; color: #616161;">
-                    {{ block.quote }}
-                    {% if block.source_aliases %}
+                    {{ block.quote if block.quote is defined else '' }}
+                    {% if block.source_aliases is defined and block.source_aliases %}
                         <div style="font-size: 11px; margin-top: 5px; font-weight: bold;">- {{ block.source_aliases | join(', ') }}</div>
                     {% endif %}
                 </div>
-            {% elif block.block_type == 'warning_card' %}
+            {% elif block.block_type is defined and block.block_type == 'warning_card' %}
                 <div style="margin-bottom: 15px; border-left: 4px solid #D32F2F; background-color: #FFEBEE; padding: 12px; border-radius: 6px;">
-                    <strong style="color: #D32F2F;">Warning:</strong> {{ block.message }}
-                    {% if block.quote_text %}
+                    <strong style="color: #D32F2F;">Warning:</strong> {{ block.message if block.message is defined else '' }}
+                    {% if block.quote_text is defined and block.quote_text %}
                         <div style="margin-top: 5px; font-style: italic; color: #D32F2F; font-size: 11px;">"{{ block.quote_text }}"</div>
                     {% endif %}
                 </div>
-            {% elif block.block_type == 'n_a_card' %}
+            {% elif block.block_type is defined and block.block_type == 'n_a_card' %}
                 <div style="margin-bottom: 15px; border-left: 4px solid #9E9E9E; background-color: #F5F5F5; padding: 12px; border-radius: 6px;">
-                    <strong style="color: #757575;">N/A (Ei arvioitu):</strong> {{ block.message }}
+                    <strong style="color: #757575;">N/A (Ei arvioitu):</strong> {{ block.message if block.message is defined else '' }}
                 </div>
-            {% elif block.block_type == 'grid' %}
+            {% elif block.block_type is defined and block.block_type == 'grid' %}
                 <div style="margin-bottom: 15px;">
                     <!-- Grid representation -->
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
-                        {% for item in block.items %}
+                        {% for item in (block.items if block.items is defined else []) %}
                             <tr><td style="border: 1px solid #E0E0E0; padding: 4px;">{{ item }}</td></tr>
                         {% endfor %}
                     </table>
