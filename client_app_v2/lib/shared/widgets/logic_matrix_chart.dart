@@ -64,8 +64,9 @@ class LogicMatrixChart extends StatelessWidget {
       children: [
         SizedBox(
           height: 250,
-          child: ScatterChart(
-            ScatterChartData(
+          child: ExcludeSemantics(
+            child: ScatterChart(
+              ScatterChartData(
               scatterSpots: [
                 ScatterSpot(
                   x,
@@ -200,6 +201,7 @@ class LogicMatrixChart extends StatelessWidget {
                   ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
                 ),
               ),
+            ),
             ),
           ),
         ),

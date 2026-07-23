@@ -30,6 +30,7 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'global_score',
         'has_warning',
         'global_metrics',
+        'global_synthesis',
         'results',
         'hydrated_references',
         'evaluative_matrices',
@@ -96,6 +97,12 @@ _ReportDataDto _$ReportDataDtoFromJson(
         (v) => v == null
             ? null
             : ExecutionMetricsDTO.fromJson(v as Map<String, dynamic>),
+      ),
+      globalSynthesis: $checkedConvert(
+        'global_synthesis',
+        (v) => v == null
+            ? null
+            : GlobalSynthesisDto.fromJson(v as Map<String, dynamic>),
       ),
       results: $checkedConvert(
         'results',
@@ -217,6 +224,7 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'globalScore': 'global_score',
     'hasWarning': 'has_warning',
     'globalMetrics': 'global_metrics',
+    'globalSynthesis': 'global_synthesis',
     'hydratedReferences': 'hydrated_references',
     'evaluativeMatrices': 'evaluative_matrices',
     'informationalMatrices': 'informational_matrices',
@@ -255,6 +263,7 @@ Map<String, dynamic> _$ReportDataDtoToJson(_ReportDataDto instance) =>
       'global_score': instance.globalScore,
       'has_warning': instance.hasWarning,
       'global_metrics': instance.globalMetrics?.toJson(),
+      'global_synthesis': instance.globalSynthesis?.toJson(),
       'results': instance.results.map((e) => e.toJson()).toList(),
       'hydrated_references': instance.hydratedReferences.map(
         (k, e) => MapEntry(k, e.toJson()),

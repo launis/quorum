@@ -49,4 +49,4 @@ async def test_seed_database_local_branch() -> None:
         patch("backend_v2.seed.run_seed._seed_tinydb", new_callable=AsyncMock) as mock_seed,
     ):
         await run_seed.seed_database("local")
-        mock_seed.assert_called_once_with(run_seed.LOCAL_DB_PATH, {}, "local")
+        mock_seed.assert_called_once_with(run_seed.LOCAL_DB_PATH, {}, "local", dry_run=False)

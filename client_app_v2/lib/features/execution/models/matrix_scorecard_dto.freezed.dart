@@ -273,7 +273,7 @@ as String,
 /// @nodoc
 mixin _$QuoteEvidenceDto {
 
-@JsonKey(name: 'quote_text') String get quoteText;@JsonKey(name: 'source_id') String? get sourceId;@JsonKey(name: 'display_name') String? get displayName;
+ String get quote;@JsonKey(name: 'verified_source_ids') List<String> get verifiedSourceIds;@JsonKey(name: 'unverified_aliases') List<String> get unverifiedAliases;@JsonKey(name: 'is_verified') bool get isVerified;
 /// Create a copy of QuoteEvidenceDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -288,7 +288,7 @@ $QuoteEvidenceDtoCopyWith<QuoteEvidenceDto> get copyWith => _$QuoteEvidenceDtoCo
 
 @override
 String toString() {
-  return 'QuoteEvidenceDto(quoteText: $quoteText, sourceId: $sourceId, displayName: $displayName)';
+  return 'QuoteEvidenceDto(quote: $quote, verifiedSourceIds: $verifiedSourceIds, unverifiedAliases: $unverifiedAliases, isVerified: $isVerified)';
 }
 
 
@@ -299,7 +299,7 @@ abstract mixin class $QuoteEvidenceDtoCopyWith<$Res>  {
   factory $QuoteEvidenceDtoCopyWith(QuoteEvidenceDto value, $Res Function(QuoteEvidenceDto) _then) = _$QuoteEvidenceDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'quote_text') String quoteText,@JsonKey(name: 'source_id') String? sourceId,@JsonKey(name: 'display_name') String? displayName
+ String quote,@JsonKey(name: 'verified_source_ids') List<String> verifiedSourceIds,@JsonKey(name: 'unverified_aliases') List<String> unverifiedAliases,@JsonKey(name: 'is_verified') bool isVerified
 });
 
 
@@ -316,12 +316,13 @@ class _$QuoteEvidenceDtoCopyWithImpl<$Res>
 
 /// Create a copy of QuoteEvidenceDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? quoteText = null,Object? sourceId = freezed,Object? displayName = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? quote = null,Object? verifiedSourceIds = null,Object? unverifiedAliases = null,Object? isVerified = null,}) {
   return _then(_self.copyWith(
-quoteText: null == quoteText ? _self.quoteText : quoteText // ignore: cast_nullable_to_non_nullable
-as String,sourceId: freezed == sourceId ? _self.sourceId : sourceId // ignore: cast_nullable_to_non_nullable
-as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String?,
+quote: null == quote ? _self.quote : quote // ignore: cast_nullable_to_non_nullable
+as String,verifiedSourceIds: null == verifiedSourceIds ? _self.verifiedSourceIds : verifiedSourceIds // ignore: cast_nullable_to_non_nullable
+as List<String>,unverifiedAliases: null == unverifiedAliases ? _self.unverifiedAliases : unverifiedAliases // ignore: cast_nullable_to_non_nullable
+as List<String>,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -406,10 +407,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'quote_text')  String quoteText, @JsonKey(name: 'source_id')  String? sourceId, @JsonKey(name: 'display_name')  String? displayName)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String quote, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _QuoteEvidenceDto() when $default != null:
-return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
+return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
   return orElse();
 
 }
@@ -427,10 +428,10 @@ return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'quote_text')  String quoteText, @JsonKey(name: 'source_id')  String? sourceId, @JsonKey(name: 'display_name')  String? displayName)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String quote, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)  $default,) {final _that = this;
 switch (_that) {
 case _QuoteEvidenceDto():
-return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
+return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -447,10 +448,10 @@ return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'quote_text')  String quoteText, @JsonKey(name: 'source_id')  String? sourceId, @JsonKey(name: 'display_name')  String? displayName)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String quote, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)?  $default,) {final _that = this;
 switch (_that) {
 case _QuoteEvidenceDto() when $default != null:
-return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
+return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
   return null;
 
 }
@@ -462,12 +463,25 @@ return $default(_that.quoteText,_that.sourceId,_that.displayName);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _QuoteEvidenceDto implements QuoteEvidenceDto {
-  const _QuoteEvidenceDto({@JsonKey(name: 'quote_text') required this.quoteText, @JsonKey(name: 'source_id') this.sourceId, @JsonKey(name: 'display_name') this.displayName});
+  const _QuoteEvidenceDto({required this.quote, @JsonKey(name: 'verified_source_ids') final  List<String> verifiedSourceIds = const [], @JsonKey(name: 'unverified_aliases') final  List<String> unverifiedAliases = const [], @JsonKey(name: 'is_verified') this.isVerified = false}): _verifiedSourceIds = verifiedSourceIds,_unverifiedAliases = unverifiedAliases;
   factory _QuoteEvidenceDto.fromJson(Map<String, dynamic> json) => _$QuoteEvidenceDtoFromJson(json);
 
-@override@JsonKey(name: 'quote_text') final  String quoteText;
-@override@JsonKey(name: 'source_id') final  String? sourceId;
-@override@JsonKey(name: 'display_name') final  String? displayName;
+@override final  String quote;
+ final  List<String> _verifiedSourceIds;
+@override@JsonKey(name: 'verified_source_ids') List<String> get verifiedSourceIds {
+  if (_verifiedSourceIds is EqualUnmodifiableListView) return _verifiedSourceIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_verifiedSourceIds);
+}
+
+ final  List<String> _unverifiedAliases;
+@override@JsonKey(name: 'unverified_aliases') List<String> get unverifiedAliases {
+  if (_unverifiedAliases is EqualUnmodifiableListView) return _unverifiedAliases;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_unverifiedAliases);
+}
+
+@override@JsonKey(name: 'is_verified') final  bool isVerified;
 
 /// Create a copy of QuoteEvidenceDto
 /// with the given fields replaced by the non-null parameter values.
@@ -484,7 +498,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'QuoteEvidenceDto(quoteText: $quoteText, sourceId: $sourceId, displayName: $displayName)';
+  return 'QuoteEvidenceDto(quote: $quote, verifiedSourceIds: $verifiedSourceIds, unverifiedAliases: $unverifiedAliases, isVerified: $isVerified)';
 }
 
 
@@ -495,7 +509,7 @@ abstract mixin class _$QuoteEvidenceDtoCopyWith<$Res> implements $QuoteEvidenceD
   factory _$QuoteEvidenceDtoCopyWith(_QuoteEvidenceDto value, $Res Function(_QuoteEvidenceDto) _then) = __$QuoteEvidenceDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'quote_text') String quoteText,@JsonKey(name: 'source_id') String? sourceId,@JsonKey(name: 'display_name') String? displayName
+ String quote,@JsonKey(name: 'verified_source_ids') List<String> verifiedSourceIds,@JsonKey(name: 'unverified_aliases') List<String> unverifiedAliases,@JsonKey(name: 'is_verified') bool isVerified
 });
 
 
@@ -512,12 +526,13 @@ class __$QuoteEvidenceDtoCopyWithImpl<$Res>
 
 /// Create a copy of QuoteEvidenceDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? quoteText = null,Object? sourceId = freezed,Object? displayName = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? quote = null,Object? verifiedSourceIds = null,Object? unverifiedAliases = null,Object? isVerified = null,}) {
   return _then(_QuoteEvidenceDto(
-quoteText: null == quoteText ? _self.quoteText : quoteText // ignore: cast_nullable_to_non_nullable
-as String,sourceId: freezed == sourceId ? _self.sourceId : sourceId // ignore: cast_nullable_to_non_nullable
-as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String?,
+quote: null == quote ? _self.quote : quote // ignore: cast_nullable_to_non_nullable
+as String,verifiedSourceIds: null == verifiedSourceIds ? _self._verifiedSourceIds : verifiedSourceIds // ignore: cast_nullable_to_non_nullable
+as List<String>,unverifiedAliases: null == unverifiedAliases ? _self._unverifiedAliases : unverifiedAliases // ignore: cast_nullable_to_non_nullable
+as List<String>,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -528,7 +543,7 @@ as String?,
 /// @nodoc
 mixin _$HumanOverrideDto {
 
-@JsonKey(name: 'new_status') String get newStatus; String get reason;@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> get evidenceQuotes;
+@JsonKey(name: 'new_status') String get newStatus; String get reason;@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> get evidenceQuotes;@JsonKey(name: 'overridden_by') String get overriddenBy;@JsonKey(name: 'overridden_at') DateTime get overriddenAt;
 /// Create a copy of HumanOverrideDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -543,7 +558,7 @@ $HumanOverrideDtoCopyWith<HumanOverrideDto> get copyWith => _$HumanOverrideDtoCo
 
 @override
 String toString() {
-  return 'HumanOverrideDto(newStatus: $newStatus, reason: $reason, evidenceQuotes: $evidenceQuotes)';
+  return 'HumanOverrideDto(newStatus: $newStatus, reason: $reason, evidenceQuotes: $evidenceQuotes, overriddenBy: $overriddenBy, overriddenAt: $overriddenAt)';
 }
 
 
@@ -554,7 +569,7 @@ abstract mixin class $HumanOverrideDtoCopyWith<$Res>  {
   factory $HumanOverrideDtoCopyWith(HumanOverrideDto value, $Res Function(HumanOverrideDto) _then) = _$HumanOverrideDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'new_status') String newStatus, String reason,@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> evidenceQuotes
+@JsonKey(name: 'new_status') String newStatus, String reason,@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> evidenceQuotes,@JsonKey(name: 'overridden_by') String overriddenBy,@JsonKey(name: 'overridden_at') DateTime overriddenAt
 });
 
 
@@ -571,12 +586,14 @@ class _$HumanOverrideDtoCopyWithImpl<$Res>
 
 /// Create a copy of HumanOverrideDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? newStatus = null,Object? reason = null,Object? evidenceQuotes = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? newStatus = null,Object? reason = null,Object? evidenceQuotes = null,Object? overriddenBy = null,Object? overriddenAt = null,}) {
   return _then(_self.copyWith(
 newStatus: null == newStatus ? _self.newStatus : newStatus // ignore: cast_nullable_to_non_nullable
 as String,reason: null == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
 as String,evidenceQuotes: null == evidenceQuotes ? _self.evidenceQuotes : evidenceQuotes // ignore: cast_nullable_to_non_nullable
-as List<QuoteEvidenceDto>,
+as List<QuoteEvidenceDto>,overriddenBy: null == overriddenBy ? _self.overriddenBy : overriddenBy // ignore: cast_nullable_to_non_nullable
+as String,overriddenAt: null == overriddenAt ? _self.overriddenAt : overriddenAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
   ));
 }
 
@@ -661,10 +678,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes, @JsonKey(name: 'overridden_by')  String overriddenBy, @JsonKey(name: 'overridden_at')  DateTime overriddenAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HumanOverrideDto() when $default != null:
-return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
+return $default(_that.newStatus,_that.reason,_that.evidenceQuotes,_that.overriddenBy,_that.overriddenAt);case _:
   return orElse();
 
 }
@@ -682,10 +699,10 @@ return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes, @JsonKey(name: 'overridden_by')  String overriddenBy, @JsonKey(name: 'overridden_at')  DateTime overriddenAt)  $default,) {final _that = this;
 switch (_that) {
 case _HumanOverrideDto():
-return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
+return $default(_that.newStatus,_that.reason,_that.evidenceQuotes,_that.overriddenBy,_that.overriddenAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -702,10 +719,10 @@ return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'new_status')  String newStatus,  String reason, @JsonKey(name: 'evidence_quotes')  List<QuoteEvidenceDto> evidenceQuotes, @JsonKey(name: 'overridden_by')  String overriddenBy, @JsonKey(name: 'overridden_at')  DateTime overriddenAt)?  $default,) {final _that = this;
 switch (_that) {
 case _HumanOverrideDto() when $default != null:
-return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
+return $default(_that.newStatus,_that.reason,_that.evidenceQuotes,_that.overriddenBy,_that.overriddenAt);case _:
   return null;
 
 }
@@ -717,7 +734,7 @@ return $default(_that.newStatus,_that.reason,_that.evidenceQuotes);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _HumanOverrideDto implements HumanOverrideDto {
-  const _HumanOverrideDto({@JsonKey(name: 'new_status') required this.newStatus, required this.reason, @JsonKey(name: 'evidence_quotes') required final  List<QuoteEvidenceDto> evidenceQuotes}): _evidenceQuotes = evidenceQuotes;
+  const _HumanOverrideDto({@JsonKey(name: 'new_status') required this.newStatus, required this.reason, @JsonKey(name: 'evidence_quotes') required final  List<QuoteEvidenceDto> evidenceQuotes, @JsonKey(name: 'overridden_by') required this.overriddenBy, @JsonKey(name: 'overridden_at') required this.overriddenAt}): _evidenceQuotes = evidenceQuotes;
   factory _HumanOverrideDto.fromJson(Map<String, dynamic> json) => _$HumanOverrideDtoFromJson(json);
 
 @override@JsonKey(name: 'new_status') final  String newStatus;
@@ -729,6 +746,8 @@ class _HumanOverrideDto implements HumanOverrideDto {
   return EqualUnmodifiableListView(_evidenceQuotes);
 }
 
+@override@JsonKey(name: 'overridden_by') final  String overriddenBy;
+@override@JsonKey(name: 'overridden_at') final  DateTime overriddenAt;
 
 /// Create a copy of HumanOverrideDto
 /// with the given fields replaced by the non-null parameter values.
@@ -745,7 +764,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'HumanOverrideDto(newStatus: $newStatus, reason: $reason, evidenceQuotes: $evidenceQuotes)';
+  return 'HumanOverrideDto(newStatus: $newStatus, reason: $reason, evidenceQuotes: $evidenceQuotes, overriddenBy: $overriddenBy, overriddenAt: $overriddenAt)';
 }
 
 
@@ -756,7 +775,7 @@ abstract mixin class _$HumanOverrideDtoCopyWith<$Res> implements $HumanOverrideD
   factory _$HumanOverrideDtoCopyWith(_HumanOverrideDto value, $Res Function(_HumanOverrideDto) _then) = __$HumanOverrideDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'new_status') String newStatus, String reason,@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> evidenceQuotes
+@JsonKey(name: 'new_status') String newStatus, String reason,@JsonKey(name: 'evidence_quotes') List<QuoteEvidenceDto> evidenceQuotes,@JsonKey(name: 'overridden_by') String overriddenBy,@JsonKey(name: 'overridden_at') DateTime overriddenAt
 });
 
 
@@ -773,12 +792,14 @@ class __$HumanOverrideDtoCopyWithImpl<$Res>
 
 /// Create a copy of HumanOverrideDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? newStatus = null,Object? reason = null,Object? evidenceQuotes = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? newStatus = null,Object? reason = null,Object? evidenceQuotes = null,Object? overriddenBy = null,Object? overriddenAt = null,}) {
   return _then(_HumanOverrideDto(
 newStatus: null == newStatus ? _self.newStatus : newStatus // ignore: cast_nullable_to_non_nullable
 as String,reason: null == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
 as String,evidenceQuotes: null == evidenceQuotes ? _self._evidenceQuotes : evidenceQuotes // ignore: cast_nullable_to_non_nullable
-as List<QuoteEvidenceDto>,
+as List<QuoteEvidenceDto>,overriddenBy: null == overriddenBy ? _self.overriddenBy : overriddenBy // ignore: cast_nullable_to_non_nullable
+as String,overriddenAt: null == overriddenAt ? _self.overriddenAt : overriddenAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
   ));
 }
 

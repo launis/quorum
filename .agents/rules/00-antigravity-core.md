@@ -134,9 +134,10 @@
 </catastrophic_system_bans>
 
 <architectural_invariants>
-    <rule_block id="strict_variable_preservation">
-        <banned_pattern>Arbitrarily renaming variables, DTO fields, or DB properties (e.g., changing `synthesis_md` to `synthesized_markdown`) without explicit user permission just to "clean things up".</banned_pattern>
-        <mandatory_pattern>Respect and maintain the exact existing variable nomenclature across all boundaries unless an explicit schema refactoring is actively underway.</mandatory_pattern>
+    <rule_block id="anti_semantic_drift_renaming">
+        <banned_pattern>Arbitrarily renaming DTO fields, variables, or DB properties during refactoring (e.g., changing `cognitive_status` to `status`, or `reasoning` to `evaluation_reasoning`) to "make it clearer" or "improve semantic meaning".</banned_pattern>
+        <mandatory_pattern>Field names are PERMANENT architectural contracts. You MUST NOT rename them for the sake of clarity or subjective improvements. Furthermore, the nomenclature between Python (Backend) and Flutter (Frontend) MUST remain perfectly 1:1 identical at the serialization layer. You must respect standard casing (Python `snake_case` mapped to Flutter `camelCase` via `@JsonKey(name: 'snake_case')`), but the words themselves must NEVER diverge.</mandatory_pattern>
+        <catastrophic_reason>AI "Semantic Drift". Renaming a DTO field arbitrarily breaks the Database -> Pydantic -> Freezed -> Flutter pipeline, causing massive cross-domain deserialization failures and data loss.</catastrophic_reason>
     </rule_block>
     <rule_block id="universal_fail_fast">
         <banned_pattern>Allowing invalid data to pass silently through the system boundaries, or fixing corrupted JSON visually in the UI.</banned_pattern>

@@ -28,9 +28,14 @@ abstract class ReasoningStepDto with _$ReasoningStepDto {
 abstract class QuoteEvidenceDto with _$QuoteEvidenceDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory QuoteEvidenceDto({
-    @JsonKey(name: 'quote_text') required String quoteText,
-    @JsonKey(name: 'source_id') String? sourceId,
-    @JsonKey(name: 'display_name') String? displayName,
+    required String quote,
+    @JsonKey(name: 'verified_source_ids')
+    @Default([])
+    List<String> verifiedSourceIds,
+    @JsonKey(name: 'unverified_aliases')
+    @Default([])
+    List<String> unverifiedAliases,
+    @JsonKey(name: 'is_verified') @Default(false) bool isVerified,
   }) = _QuoteEvidenceDto;
 
   factory QuoteEvidenceDto.fromJson(Map<String, dynamic> json) =>
@@ -45,6 +50,8 @@ abstract class HumanOverrideDto with _$HumanOverrideDto {
     required String reason,
     @JsonKey(name: 'evidence_quotes')
     required List<QuoteEvidenceDto> evidenceQuotes,
+    @JsonKey(name: 'overridden_by') required String overriddenBy,
+    @JsonKey(name: 'overridden_at') required DateTime overriddenAt,
   }) = _HumanOverrideDto;
 
   factory HumanOverrideDto.fromJson(Map<String, dynamic> json) =>

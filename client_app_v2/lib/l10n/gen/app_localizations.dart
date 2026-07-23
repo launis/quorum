@@ -6953,6 +6953,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Overrides the global synthesis settings for this specific section.'**
   String get sectionCustomSynthesisDesc;
+
+  /// No description provided for @pdfAuditDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration:'**
+  String get pdfAuditDuration;
+
+  /// No description provided for @pdfAuditQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Query:'**
+  String get pdfAuditQuery;
+
+  /// No description provided for @pdfAuditImpactedAxes.
+  ///
+  /// In en, this message translates to:
+  /// **'This information was used in evaluating the following axes:'**
+  String get pdfAuditImpactedAxes;
+
+  /// No description provided for @pdfAuditSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get pdfAuditSources;
+
+  /// No description provided for @meta_timestamp.
+  ///
+  /// In en, this message translates to:
+  /// **'Timestamp'**
+  String get meta_timestamp;
+
+  /// No description provided for @meta_user.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta User'**
+  String get meta_user;
+
+  /// No description provided for @meta_organization.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta Organization'**
+  String get meta_organization;
+
+  /// No description provided for @meta_unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta Unknown'**
+  String get meta_unknown;
+
+  /// No description provided for @global_score_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Global Score Title'**
+  String get global_score_title;
+
+  /// No description provided for @evidence_rejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence Rejected'**
+  String get evidence_rejected;
+
+  /// No description provided for @meta_costs.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta Costs'**
+  String get meta_costs;
+
+  /// No description provided for @meta_tokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta Tokens'**
+  String get meta_tokens;
 }
 
 class _AppLocalizationsDelegate

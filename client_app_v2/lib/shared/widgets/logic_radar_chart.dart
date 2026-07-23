@@ -38,8 +38,9 @@ class LogicRadarChart extends StatelessWidget {
     return SizedBox(
       height: 300,
       width: double.infinity,
-      child: RadarChart(
-        RadarChartData(
+      child: ExcludeSemantics(
+        child: RadarChart(
+          RadarChartData(
           dataSets: dataSets,
           radarBackgroundColor: Colors.transparent,
           borderData: FlBorderData(show: false),
@@ -81,6 +82,7 @@ class LogicRadarChart extends StatelessWidget {
         ),
         duration: const Duration(milliseconds: 150),
         curve: Curves.linear,
+      ),
       ),
     );
   }

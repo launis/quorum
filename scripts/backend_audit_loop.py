@@ -36,6 +36,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import re
 
 # Force pure Python Protobuf implementation to prevent duplicate descriptor pool crashes in Python 3.14+
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -165,26 +166,49 @@ def main() -> None:
     print(f"\n🚀 Suoritetaan quality-loop kohteille: {targets_str}")
     print("--------------------------------------------------")
 
-    print("\n⏳ 1/3: Korjataan tiedostot (ruff check --fix)...")
+    print("\n⏳ 1/5: Korjataan tiedostot (ruff check --fix)...")
     res = subprocess.run(["uv", "run", "ruff", "check", *targets, "--fix", "--extend-ignore=E501"])
     if res.returncode != 0:
         print("❌ Ruff linter löysi automaattisesti korjaamattomia virheitä!")
         sys.exit(res.returncode)
     print("✅ Linttaus ja korjaus valmis.")
 
-    print("\n⏳ 2/3: Formatoidaan koodi (ruff format)...")
+    print("\n⏳ 2/5: Formatoidaan koodi (ruff format)...")
     res = subprocess.run(["uv", "run", "ruff", "format", *targets])
     if res.returncode != 0:
         print("❌ Ruff-formatointi epäonnistui!")
         sys.exit(res.returncode)
     print("✅ Formatointi valmis.")
 
-    print("\n⏳ 3/3: Tyyppitarkastetaan koodi (mypy --strict)...")
+    print("\n⏳ 3/5: Tyyppitarkastetaan koodi (mypy --strict)...")
     res = subprocess.run(["uv", "run", "mypy", *targets, "--strict"])
     if res.returncode != 0:
         print("\n❌ MyPy löysi tyyppivirheitä! Korjaa The Universal Quality Gaten rikkomukset.\n")
         sys.exit(res.returncode)
     print("✅ Tyyppitarkastus läpäisty.")
+
+    print("\n⏳ 4/5: Validoidaan UI-mallineet (Jinja Dumb Painter Enforcement)...")
+    jinja_dir = Path("backend_v2/templates")
+    dumb_painter_pattern = re.compile(r"\|\s*(default|d)\s*\(|\.get\s*\(")
+    if jinja_dir.exists():
+        for jinja_file in jinja_dir.rglob("*.jinja2"):
+            try:
+                content = jinja_file.read_text(encoding="utf-8")
+                if dumb_painter_pattern.search(content):
+                    print(f"\n❌ UI-mallineen validointi epäonnistui tiedostossa {jinja_file.name}!")
+                    print("   Löydettiin kielletty dumb-painter lauseke: `| default` tai `.get`.")
+                    print("   UI-mallineiden tulee olla täysin passiivisia (Strict ICU Markdown Parity).")
+                    sys.exit(1)
+            except Exception as e:
+                print(f"Varoitus: Ei voitu lukea tiedostoa {jinja_file.name}: {e}")
+    print("✅ UI-mallineet validoitu.")
+
+    print("\n⏳ 5/5: Validoidaan Seed Data (Dry-Run)...")
+    res = subprocess.run(["uv", "run", "python", "backend_v2/seed/run_seed.py", "local", "--dry-run"])
+    if res.returncode != 0:
+        print("\n❌ Seed Data Dry-Run epäonnistui! Pydantic mallien muutokset rikkovat SSOT JSON -tiedoston.\n")
+        sys.exit(res.returncode)
+    print("✅ Seed Data integroitu ja validoitu.")
 
     if run_openapi:
         print("\n⏳ Optio: Generoidaan OpenAPI-dokumentaatio (--openapi)...")

@@ -3811,4 +3811,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sectionCustomSynthesisDesc =>
       'Overrides the global synthesis settings for this specific section.';
+
+  @override
+  String get pdfAuditDuration => 'Duration:';
+
+  @override
+  String get pdfAuditQuery => 'Search Query:';
+
+  @override
+  String get pdfAuditImpactedAxes =>
+      'This information was used in evaluating the following axes:';
+
+  @override
+  String get pdfAuditSources => 'Sources';
+
+  @override
+  String get meta_timestamp => 'Timestamp';
+
+  @override
+  String get meta_user => 'Meta User';
+
+  @override
+  String get meta_organization => 'Meta Organization';
+
+  @override
+  String get meta_unknown => 'Meta Unknown';
+
+  @override
+  String get global_score_title => 'Global Score Title';
+
+  @override
+  String get evidence_rejected => 'Evidence Rejected';
+
+  @override
+  String get meta_costs => 'Meta Costs';
+
+  @override
+  String get meta_tokens => 'Meta Tokens';
 }

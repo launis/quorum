@@ -918,6 +918,21 @@ class ScorecardAtomDTO(V2CoreBase):
     human_override: HumanOverrideDTO | None = None
 
 
+class TDAPending(V2CoreBase):
+    runtimeType: Literal["pending"] = Field(default="pending")
+
+class TDAEvaluated(V2CoreBase):
+    runtimeType: Literal["evaluated"] = Field(default="evaluated")
+    passed: bool
+    display_quote: str
+    raw_anchor: str
+
+class TDADlq(V2CoreBase):
+    runtimeType: Literal["dlq"] = Field(default="dlq")
+    user_reason: str
+    backend_trace: str
+
+TDAStateUnion = Annotated[TDAPending | TDAEvaluated | TDADlq, Field(discriminator="runtimeType")]
 class MatrixScorecardRowDTO(V2CoreBase):
     """Represents a single evaluated matrix row in the scorecard and plot axes."""
 
@@ -936,7 +951,9 @@ class MatrixScorecardRowDTO(V2CoreBase):
     true_atoms: int | None = Field(default=None, description="Global hits found.")
     total_atoms: int | None = Field(default=None, description="Total atoms available to evaluate.")
     row_explanation: str = Field(..., description="The one-sentence justification.")
-    evidence_type: str | None = Field(default=None, description="The EvidenceType extracted from AtomResponse")
+    evidence_type: Literal["EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"] | None = Field(
+        default=None, description="The EvidenceType extracted from AtomResponse"
+    )
 
     cited_source_id: str | None = None
     cited_text_quote: str | None = None
@@ -984,7 +1001,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
         default_factory=list, description="Purity Paradox resolution, cluster arrays at row level."
     )
 
-    tda_state: dict[str, Any] | None = Field(default=None, description="TDAState union representation.")
+    tda_state: TDAStateUnion | None = Field(default=None, description="TDAState union representation.")
 
 
 class SynthesisConfigDTO(V2CoreBase):

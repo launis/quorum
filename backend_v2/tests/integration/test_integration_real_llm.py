@@ -11,8 +11,8 @@ import os
 import subprocess
 import time
 from pathlib import Path
-from typing import Any
 
+import fitz  # type: ignore
 import pytest
 import requests
 
@@ -66,15 +66,14 @@ def get_base64_file(file_path: str) -> str:
 @pytest.mark.order("last")
 async def test_real_llm_pdf_execution() -> None:
     """Live E2E test verifying PDF processing via the FastAPI Backend."""
-    
     # Verify PDF files exist
     pdf_files = {
         "chat_log": os.path.join(TESTILYHYT_DIR, "keskusteluhistoriia.pdf"),
         "product_text": os.path.join(TESTILYHYT_DIR, "loppputuote.pdf"),
         "reflection_text": os.path.join(TESTILYHYT_DIR, "reflektio.pdf"),
     }
-    
-    for key, path in pdf_files.items():
+
+    for _, path in pdf_files.items():
         if not os.path.exists(path):
             pytest.skip(f"Required PDF not found: {path}. Skipping test.")
 
@@ -136,55 +135,41 @@ async def test_real_llm_pdf_execution() -> None:
             dynamic_inputs[key] = {
                 "filename": os.path.basename(path),
                 "content_base64": get_base64_file(path),
-                "content_type": "application/pdf"
+                "content_type": "application/pdf",
             }
-            
+
         # Use the specific workflow ID from the seeded local DB
         workflow_id = "wf_9d68c573802341db"
 
-        payload = {
-            "workflow_id": workflow_id,
-            "target_locale": "fi",
-            "raw_inputs": {
-                "dynamic_inputs": dynamic_inputs
-            }
-        }
-        
-        headers = {
-            "Authorization": "Bearer mock-token:usr_18a0d5f6151349a5",
-            "Content-Type": "application/json"
-        }
-        
+        payload = {"workflow_id": workflow_id, "target_locale": "fi", "raw_inputs": {"dynamic_inputs": dynamic_inputs}}
+
+        headers = {"Authorization": "Bearer mock-token:usr_18a0d5f6151349a5", "Content-Type": "application/json"}
+
         logger.info("Sending execution POST request to backend...")
         response = requests.post(
-            "http://127.0.0.1:8000/api/v2/execution/executions/", 
-            json=payload, 
-            headers=headers,
-            timeout=10
+            "http://127.0.0.1:8000/api/v2/execution/executions/", json=payload, headers=headers, timeout=10
         )
-        
+
         assert response.status_code == 202, f"Failed to start execution: {response.text}"
-        
+
         execution_data = response.json()
         execution_id = execution_data["id"]
         logger.info(f"Execution started with ID: {execution_id}. Polling for completion...")
-        
+
         # Poll for completion
         start_time = time.time()
         completed = False
-        
+
         while time.time() - start_time < WAIT_TIMEOUT:
             status_res = requests.get(
-                f"http://127.0.0.1:8000/api/v2/execution/executions/{execution_id}",
-                headers=headers,
-                timeout=30
+                f"http://127.0.0.1:8000/api/v2/execution/executions/{execution_id}", headers=headers, timeout=30
             )
-            
+
             assert status_res.status_code == 200, f"Failed to get execution status: {status_res.text}"
-            
+
             status_data = status_res.json()
             current_status = status_data.get("status")
-            
+
             if current_status == ExecutionStatus.PASSED.value:
                 logger.info(f"Execution {execution_id} completed successfully.")
                 completed = True
@@ -192,10 +177,23 @@ async def test_real_llm_pdf_execution() -> None:
             elif current_status == ExecutionStatus.FAILED.value:
                 logger.error(f"Execution failed: {json.dumps(status_data)}")
                 pytest.fail(f"Execution {execution_id} failed.")
-                
+
             time.sleep(5)
-            
+
         assert completed, f"Execution {execution_id} timed out after {WAIT_TIMEOUT} seconds."
+
+        logger.info("Verifying generated PDF for SDUI parity...")
+        pdf_path = os.path.join(WORKSPACE_ROOT, "data", "files", "executions", execution_id, "report.pdf")
+        assert os.path.exists(pdf_path), f"PDF report not found at {pdf_path}"
+
+        doc = fitz.open(pdf_path)
+        full_text = ""
+        for page in doc:
+            full_text += page.get_text()
+
+        assert "Yhteenveto" not in full_text, "Legacy hardcoded string 'Yhteenveto' found in PDF!"
+        assert "Matrix Summary" in full_text, "Dynamic resolved title 'Matrix Summary' missing from PDF!"
+
         logger.info("PDF Execution E2E test passed successfully.")
 
     finally:

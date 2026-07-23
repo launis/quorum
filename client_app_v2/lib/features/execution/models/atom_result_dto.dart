@@ -40,6 +40,7 @@ abstract class AtomResultDTO with _$AtomResultDTO {
     bool contextualOverride,
     @JsonKey(name: 'evaluation_reasoning') String? evaluationReasoning,
     @JsonKey(name: 'error_details') ErrorDetailsDTO? errorDetails,
+    @JsonKey(name: 'extensions') @Default({}) Map<String, String> extensions,
     @JsonKey(name: 'depends_on_tda_ids')
     @Default([])
     List<String> dependsOnTdaIds,

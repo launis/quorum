@@ -1329,5 +1329,14 @@
   "sectionSynthesisToggleLabel": "Sisällytä tekoälysynteesiin",
   "sectionSynthesisToggleDesc": "Jos kytketty pois, tämä osio jätetään kokonaan pois synteesistä.",
   "sectionCustomSynthesisLabel": "Käytä osiokohtaista synteesiä",
-  "sectionCustomSynthesisDesc": "Ylikirjoittaa työnkulun globaalit synteesiasetukset tämän osion osalta."
+  "sectionCustomSynthesisDesc": "Ylikirjoittaa työnkulun globaalit synteesiasetukset tämän osion osalta.",
+  "pdfAuditImpactedAxes": "Tätä tietoa käytettiin seuraavien osioiden arvioinnissa:",
+  "meta_timestamp": "Aikaleima",
+  "meta_user": "Meta User",
+  "meta_organization": "Meta Organization",
+  "meta_unknown": "Meta Unknown",
+  "global_score_title": "Global Score Title",
+  "evidence_rejected": "Evidence Rejected",
+  "meta_costs": "Meta Costs",
+  "meta_tokens": "Meta Tokens"
 }

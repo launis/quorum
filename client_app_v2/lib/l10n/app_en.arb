@@ -1989,5 +1989,17 @@
   "sectionSynthesisToggleLabel": "Include in AI Synthesis",
   "sectionSynthesisToggleDesc": "Toggle to completely exclude this section from AI report synthesis.",
   "sectionCustomSynthesisLabel": "Use Section-Specific Custom Synthesis",
-  "sectionCustomSynthesisDesc": "Overrides the global synthesis settings for this specific section."
+  "sectionCustomSynthesisDesc": "Overrides the global synthesis settings for this specific section.",
+  "pdfAuditDuration": "Duration:",
+  "pdfAuditQuery": "Search Query:",
+  "pdfAuditImpactedAxes": "This information was used in evaluating the following axes:",
+  "pdfAuditSources": "Sources",
+  "meta_timestamp": "Timestamp",
+  "meta_user": "Meta User",
+  "meta_organization": "Meta Organization",
+  "meta_unknown": "Meta Unknown",
+  "global_score_title": "Global Score Title",
+  "evidence_rejected": "Evidence Rejected",
+  "meta_costs": "Meta Costs",
+  "meta_tokens": "Meta Tokens"
 }

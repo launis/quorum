@@ -83,9 +83,8 @@ void main() {
               extractedFacts: const {},
               exactQuotes: const [
                 QuoteEvidenceDto(
-                  sourceId: 'doc_1',
-                  displayName: 'DOC-1',
-                  quoteText: 'AI says FAIL',
+                  verifiedSourceIds: ['doc_1'],
+                  quote: 'AI says FAIL',
                 ),
               ],
               internalLogicEn: const ReasoningStepDto(
@@ -101,11 +100,12 @@ void main() {
               humanOverride: const HumanOverrideDto(
                 newStatus: 'PASS',
                 reason: 'Human thinks it is PASS',
+                overriddenAt: '2023-01-01T00:00:00Z',
+                overriddenBy: 'Test User',
                 evidenceQuotes: [
                   QuoteEvidenceDto(
-                    sourceId: 'manual',
-                    displayName: 'MANUAL',
-                    quoteText: 'Human evidence',
+                    verifiedSourceIds: ['manual'],
+                    quote: 'Human evidence',
                   ),
                 ],
               ),

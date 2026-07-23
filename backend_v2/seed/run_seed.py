@@ -91,50 +91,54 @@ def _fail_fast(msg: str, error: Exception) -> None:
     sys.exit(1)
 
 
-async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str) -> None:
+async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str, dry_run: bool = False) -> None:
     """Seeds the local TinyDB instance with parsed V2 registry data.
 
     Args:
         db_path: Absolute path to the local JSON database.
         seed_data: Raw JSON payload loaded from the seed file.
         target_env: Execution target environment string.
+        dry_run: If True, bypass database modifications.
 
     Returns:
         None
     """
     try:
-        db_path.parent.mkdir(parents=True, exist_ok=True)
+        if not dry_run:
+            db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # 1. Automatic Backup before dropping the DB
-        if db_path.exists():
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_dir = PROJECT_ROOT / "backend_v2" / "seed" / "backups"
-            backup_dir.mkdir(parents=True, exist_ok=True)
-            backup_path = backup_dir / f"{db_path.name}.{timestamp}.bak"
-            try:
-                shutil.copy2(db_path, backup_path)
-                print(f"[SUCCESS] Backup created: {backup_path}")
-            except Exception as e:
-                logger.error(
-                    "[Seeder] %s: Failed to create db backup: %s",
-                    ErrorCodes.FILESYSTEM_VIOLATION.name,
-                    e,
-                    exc_info=True,
-                )
-                print(f"[ERROR] Failed to create db backup: {e}")
-                sys.exit(1)
+            # 1. Automatic Backup before dropping the DB
+            if db_path.exists():
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_dir = PROJECT_ROOT / "backend_v2" / "seed" / "backups"
+                backup_dir.mkdir(parents=True, exist_ok=True)
+                backup_path = backup_dir / f"{db_path.name}.{timestamp}.bak"
+                try:
+                    shutil.copy2(db_path, backup_path)
+                    print(f"[SUCCESS] Backup created: {backup_path}")
+                except Exception as e:
+                    logger.error(
+                        "[Seeder] %s: Failed to create db backup: %s",
+                        ErrorCodes.FILESYSTEM_VIOLATION.name,
+                        e,
+                        exc_info=True,
+                    )
+                    print(f"[ERROR] Failed to create db backup: {e}")
+                    sys.exit(1)
 
-        db = TinyDB(str(db_path), encoding="utf-8")
-        db.drop_tables()  # CLEAN SLATE
-        print(f"[Seeder V2] CLEARED persistence. Dropped all tables from {db_path}.")
+            db = TinyDB(str(db_path), encoding="utf-8")
+            db.drop_tables()  # CLEAN SLATE
+            print(f"[Seeder V2] CLEARED persistence. Dropped all tables from {db_path}.")
 
-        # 2. Cleanup orphaned execution files physically
-        if "db_v2.json" in db_path.name:
-            executions_dir = PROJECT_ROOT / "data" / "files" / "executions"
-            if executions_dir.exists():
-                shutil.rmtree(executions_dir, ignore_errors=True)
-            executions_dir.mkdir(parents=True, exist_ok=True)
-            print(f"[Seeder V2] WIPED physical orphaned files from {executions_dir}.")
+            # 2. Cleanup orphaned execution files physically
+            if "db_v2.json" in db_path.name:
+                executions_dir = PROJECT_ROOT / "data" / "files" / "executions"
+                if executions_dir.exists():
+                    shutil.rmtree(executions_dir, ignore_errors=True)
+                executions_dir.mkdir(parents=True, exist_ok=True)
+                print(f"[Seeder V2] WIPED physical orphaned files from {executions_dir}.")
+        else:
+            print("[Seeder V2] DRY-RUN ACTIVE: Bypassing DB wipe and backup.")
 
     except Exception as e:
         _fail_fast("Error initializing TinyDB", e)
@@ -142,7 +146,7 @@ async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str
     # Seed Standard Strict Collections
     for col_key, config in STANDARD_REGISTRY.items():
         table_name = str(config["table"])
-        target_table = db.table(table_name)
+        target_table = db.table(table_name) if not dry_run else None
         id_field = str(config["id_field"])
         pyd_adapter: Any = config["model"]
         count = 0
@@ -173,7 +177,8 @@ async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str
         for dumped in dumped_buffer:
             try:
                 if id_field in dumped:
-                    target_table.upsert(dumped, Query().id == dumped[id_field])
+                    if not dry_run and target_table is not None:
+                        target_table.upsert(dumped, Query().id == dumped[id_field])
                     count += 1
                 else:
                     print(f"Item lacking {id_field}")
@@ -183,20 +188,24 @@ async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str
         # ---------------------------------------------------------------------
         # INTEGRITY PARITY CHECK: Fail-Fast if TinyDB silent drops occur
         # ---------------------------------------------------------------------
-        actual_db_count = len(target_table)
-        expected_count = len(dumped_buffer)
-        if actual_db_count != expected_count:
-            _fail_fast(
-                f"Data Loss Detected in '{col_key}' table!",
-                RuntimeError(
-                    f"Expected to save {expected_count} unique items, but TinyDB only holds {actual_db_count}."
-                ),
-            )
+        if not dry_run and target_table is not None:
+            actual_db_count = len(target_table)
+            expected_count = len(dumped_buffer)
+            if actual_db_count != expected_count:
+                _fail_fast(
+                    f"Data Loss Detected in '{col_key}' table!",
+                    RuntimeError(
+                        f"Expected to save {expected_count} unique items, but TinyDB only holds {actual_db_count}."
+                    ),
+                )
 
         print(f"[Seeder V2] Upserted and verified {count} items to '{col_key}' registry.")
 
-    db.close()
-    print(f"[Seeder V2] Closed DB. Final size: {db_path.stat().st_size} bytes.")
+    if not dry_run:
+        db.close()
+        print(f"[Seeder V2] Closed DB. Final size: {db_path.stat().st_size} bytes.")
+    else:
+        print("[Seeder V2] DRY-RUN ACTIVE: Completed successfully without saving to disk.")
 
 
 async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
@@ -286,11 +295,12 @@ def _delete_collection(coll_ref: Any, batch_size: int = 50) -> None:
         _delete_collection(coll_ref, batch_size)
 
 
-async def seed_database(target: str) -> None:
+async def seed_database(target: str, dry_run: bool = False) -> None:
     """Orchestrates the seeding process based on the target environment.
 
     Args:
         target: Target database environment ('local', 'firestore', or 'all').
+        dry_run: If True, bypass database modifications.
 
     Returns:
         None
@@ -306,13 +316,16 @@ async def seed_database(target: str) -> None:
         data = json.load(f)
 
     if target == "local":
-        await _seed_tinydb(LOCAL_DB_PATH, data, target)
+        await _seed_tinydb(LOCAL_DB_PATH, data, target, dry_run=dry_run)
         print(f"[SUCCESS] V2 Seeded Local DB at {LOCAL_DB_PATH}")
 
     elif target == "firestore":
-        print("[Seeder V2] Connecting to Firestore...")
-        await _seed_firestore(data, target)
-        print("[SUCCESS] V2 Seeded Cloud Firestore.")
+        if dry_run:
+            print("[Seeder V2] DRY-RUN for firestore not currently supported. Skipping.")
+        else:
+            print("[Seeder V2] Connecting to Firestore...")
+            await _seed_firestore(data, target)
+            print("[SUCCESS] V2 Seeded Cloud Firestore.")
 
 
 def main() -> None:
@@ -331,6 +344,11 @@ def main() -> None:
         choices=["local", "firestore", "all"],
         help="Target environment(s). 'local'=data/db_v2.json",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate seed data without modifying the database.",
+    )
 
     args = parser.parse_args()
 
@@ -340,7 +358,7 @@ def main() -> None:
 
     for t in targets:
         try:
-            asyncio.run(seed_database(t))
+            asyncio.run(seed_database(t, dry_run=args.dry_run))
         except Exception as e:
             logger.critical(
                 "[Seeder] %s: Failed to seed %s: %s",

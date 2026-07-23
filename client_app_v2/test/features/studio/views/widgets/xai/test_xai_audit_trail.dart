@@ -34,7 +34,7 @@ void main() {
             body: SingleChildScrollView(
               child: XAIAxisTelemetryGrid(
                 axis: axis,
-                textDeliveryMode: 'full',
+                textDeliveryMode: TextDeliveryMode.full,
                 showQuote: true,
                 groupedExtensions: const {},
               ),

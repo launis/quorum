@@ -22,6 +22,8 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
             'is_synthesis_enabled',
             'synthesis',
             'synthesis_blocks',
+            'matrix_column_labels',
+            'extension_labels',
           ],
         );
         final val = _ReportLayoutDto(
@@ -83,6 +85,24 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
                 ?.map((e) => e as Map<String, dynamic>)
                 .toList(),
           ),
+          matrixColumnLabels: $checkedConvert(
+            'matrix_column_labels',
+            (v) =>
+                (v as Map<String, dynamic>?)?.map(
+                  (k, e) =>
+                      MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+                ) ??
+                const {},
+          ),
+          extensionLabels: $checkedConvert(
+            'extension_labels',
+            (v) =>
+                (v as Map<String, dynamic>?)?.map(
+                  (k, e) =>
+                      MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+                ) ??
+                const {},
+          ),
         );
         return val;
       },
@@ -91,6 +111,8 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
         'textDeliveryMode': 'text_delivery_mode',
         'isSynthesisEnabled': 'is_synthesis_enabled',
         'synthesisBlocks': 'synthesis_blocks',
+        'matrixColumnLabels': 'matrix_column_labels',
+        'extensionLabels': 'extension_labels',
       },
     );
 
@@ -105,6 +127,12 @@ Map<String, dynamic> _$ReportLayoutDtoToJson(
   'is_synthesis_enabled': instance.isSynthesisEnabled,
   'synthesis': instance.synthesis?.toJson(),
   'synthesis_blocks': instance.synthesisBlocks,
+  'matrix_column_labels': instance.matrixColumnLabels.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
+  'extension_labels': instance.extensionLabels.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
 };
 
 const _$PresetViewEnumMap = {

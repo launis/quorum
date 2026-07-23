@@ -53,6 +53,12 @@
         <catastrophic_reason>Legacy providers leak memory aggressively and lack reliable AsyncValue tracking capabilities.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="3rd_party_semantic_sandboxing">
+        <banned_pattern>Allowing 3rd-party visual libraries (like `fl_chart`) to synthesize English accessibility texts (e.g. "X: 0.5"), or feeding localized backend strings to complex chart components to try to fix it.</banned_pattern>
+        <mandatory_pattern>All complex 3rd-party visual decorations (e.g., Radar/Scatter charts) MUST be wrapped in `ExcludeSemantics()`. The accessibility content MUST be rendered separately as standard text widgets (like a list or table) adjacent to the chart, purely driven by the backend SDUI payload.</mandatory_pattern>
+        <catastrophic_reason>Letting 3rd-party components dictate screen reader content causes severe a11y noise, coordinate spam, and destroys the Backend's Single Source of Truth over text. Tightly coupling backend DTOs to specific 3rd-party chart configurations violates the Dumb Painter principle.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="o1_lists">
         <banned_pattern>Using immutable collections packages for list state or deeply checking massive arrays manually.</banned_pattern>
         <mandatory_pattern>Use native Dart `List<T>` combined explicitly with `@Freezed(equal: false)` to bypass O(N^2) deep equality performance hits on Master Views.</mandatory_pattern>

@@ -3837,4 +3837,41 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get sectionCustomSynthesisDesc =>
       'Ylikirjoittaa työnkulun globaalit synteesiasetukset tämän osion osalta.';
+
+  @override
+  String get pdfAuditDuration => 'Kesto:';
+
+  @override
+  String get pdfAuditQuery => 'Hakukysely:';
+
+  @override
+  String get pdfAuditImpactedAxes =>
+      'Tätä tietoa käytettiin seuraavien osioiden arvioinnissa:';
+
+  @override
+  String get pdfAuditSources => 'Lähteet';
+
+  @override
+  String get meta_timestamp => 'Aikaleima';
+
+  @override
+  String get meta_user => 'Meta User';
+
+  @override
+  String get meta_organization => 'Meta Organization';
+
+  @override
+  String get meta_unknown => 'Meta Unknown';
+
+  @override
+  String get global_score_title => 'Global Score Title';
+
+  @override
+  String get evidence_rejected => 'Evidence Rejected';
+
+  @override
+  String get meta_costs => 'Meta Costs';
+
+  @override
+  String get meta_tokens => 'Meta Tokens';
 }

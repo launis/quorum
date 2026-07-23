@@ -56,34 +56,50 @@ Map<String, dynamic> _$ReasoningStepDtoToJson(_ReasoningStepDto instance) =>
       'step_4_final_conclusion': instance.step4FinalConclusion,
     };
 
-_QuoteEvidenceDto _$QuoteEvidenceDtoFromJson(Map<String, dynamic> json) =>
-    $checkedCreate(
-      '_QuoteEvidenceDto',
+_QuoteEvidenceDto _$QuoteEvidenceDtoFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_QuoteEvidenceDto',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
       json,
-      ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const ['quote_text', 'source_id', 'display_name'],
-        );
-        final val = _QuoteEvidenceDto(
-          quoteText: $checkedConvert('quote_text', (v) => v as String),
-          sourceId: $checkedConvert('source_id', (v) => v as String?),
-          displayName: $checkedConvert('display_name', (v) => v as String?),
-        );
-        return val;
-      },
-      fieldKeyMap: const {
-        'quoteText': 'quote_text',
-        'sourceId': 'source_id',
-        'displayName': 'display_name',
-      },
+      allowedKeys: const [
+        'quote',
+        'verified_source_ids',
+        'unverified_aliases',
+        'is_verified',
+      ],
     );
+    final val = _QuoteEvidenceDto(
+      quote: $checkedConvert('quote', (v) => v as String),
+      verifiedSourceIds: $checkedConvert(
+        'verified_source_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      unverifiedAliases: $checkedConvert(
+        'unverified_aliases',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      isVerified: $checkedConvert('is_verified', (v) => v as bool? ?? false),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'verifiedSourceIds': 'verified_source_ids',
+    'unverifiedAliases': 'unverified_aliases',
+    'isVerified': 'is_verified',
+  },
+);
 
 Map<String, dynamic> _$QuoteEvidenceDtoToJson(_QuoteEvidenceDto instance) =>
     <String, dynamic>{
-      'quote_text': instance.quoteText,
-      'source_id': instance.sourceId,
-      'display_name': instance.displayName,
+      'quote': instance.quote,
+      'verified_source_ids': instance.verifiedSourceIds,
+      'unverified_aliases': instance.unverifiedAliases,
+      'is_verified': instance.isVerified,
     };
 
 _HumanOverrideDto _$HumanOverrideDtoFromJson(Map<String, dynamic> json) =>
@@ -93,7 +109,13 @@ _HumanOverrideDto _$HumanOverrideDtoFromJson(Map<String, dynamic> json) =>
       ($checkedConvert) {
         $checkKeys(
           json,
-          allowedKeys: const ['new_status', 'reason', 'evidence_quotes'],
+          allowedKeys: const [
+            'new_status',
+            'reason',
+            'evidence_quotes',
+            'overridden_by',
+            'overridden_at',
+          ],
         );
         final val = _HumanOverrideDto(
           newStatus: $checkedConvert('new_status', (v) => v as String),
@@ -106,12 +128,19 @@ _HumanOverrideDto _$HumanOverrideDtoFromJson(Map<String, dynamic> json) =>
                 )
                 .toList(),
           ),
+          overriddenBy: $checkedConvert('overridden_by', (v) => v as String),
+          overriddenAt: $checkedConvert(
+            'overridden_at',
+            (v) => DateTime.parse(v as String),
+          ),
         );
         return val;
       },
       fieldKeyMap: const {
         'newStatus': 'new_status',
         'evidenceQuotes': 'evidence_quotes',
+        'overriddenBy': 'overridden_by',
+        'overriddenAt': 'overridden_at',
       },
     );
 
@@ -121,6 +150,8 @@ Map<String, dynamic> _$HumanOverrideDtoToJson(
   'new_status': instance.newStatus,
   'reason': instance.reason,
   'evidence_quotes': instance.evidenceQuotes.map((e) => e.toJson()).toList(),
+  'overridden_by': instance.overriddenBy,
+  'overridden_at': instance.overriddenAt.toIso8601String(),
 };
 
 _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>

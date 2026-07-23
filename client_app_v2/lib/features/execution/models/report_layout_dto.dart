@@ -31,6 +31,12 @@ abstract class ReportLayoutDto with _$ReportLayoutDto {
     SynthesisConfigDto? synthesis,
     @JsonKey(name: 'synthesis_blocks')
     List<Map<String, dynamic>>? synthesisBlocks,
+    @JsonKey(name: 'matrix_column_labels')
+    @Default({})
+    Map<String, I18nText> matrixColumnLabels,
+    @JsonKey(name: 'extension_labels')
+    @Default({})
+    Map<String, I18nText> extensionLabels,
   }) = _ReportLayoutDto;
 
   factory ReportLayoutDto.fromJson(Map<String, dynamic> json) =>

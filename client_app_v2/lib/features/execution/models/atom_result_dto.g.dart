@@ -51,6 +51,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
         'contextual_override',
         'evaluation_reasoning',
         'error_details',
+        'extensions',
         'depends_on_tda_ids',
         'short_circuit_reason_tda_ids',
       ],
@@ -81,6 +82,14 @@ _AtomResultDTO _$AtomResultDTOFromJson(
         (v) => v == null
             ? null
             : ErrorDetailsDTO.fromJson(v as Map<String, dynamic>),
+      ),
+      extensions: $checkedConvert(
+        'extensions',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as String),
+            ) ??
+            const {},
       ),
       dependsOnTdaIds: $checkedConvert(
         'depends_on_tda_ids',
@@ -116,6 +125,7 @@ Map<String, dynamic> _$AtomResultDTOToJson(_AtomResultDTO instance) =>
       'contextual_override': instance.contextualOverride,
       'evaluation_reasoning': instance.evaluationReasoning,
       'error_details': instance.errorDetails?.toJson(),
+      'extensions': instance.extensions,
       'depends_on_tda_ids': instance.dependsOnTdaIds,
       'short_circuit_reason_tda_ids': instance.shortCircuitReasonTdaIds,
     };

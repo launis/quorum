@@ -64,9 +64,10 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
         'evidence_quotes': _quotes
             .map(
               (q) => {
-                'source_id': q.sourceId,
-                'quote_text': q.quoteText,
-                'display_name': q.displayName,
+                'quote': q.quote,
+                'verified_source_ids': q.verifiedSourceIds,
+                'unverified_aliases': q.unverifiedAliases,
+                'is_verified': q.isVerified,
               },
             )
             .toList(),
@@ -160,11 +161,11 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                   child: ListTile(
                     dense: true,
                     title: Text(
-                      q.quoteText,
+                      q.quote,
                       style: const TextStyle(fontSize: 13),
                     ),
                     subtitle: Text(
-                      q.displayName ?? q.sourceId ?? 'HUMAN_OVERRIDE',
+                      q.verifiedSourceIds.isNotEmpty ? q.verifiedSourceIds.join(', ') : (q.unverifiedAliases.isNotEmpty ? q.unverifiedAliases.join(', ') : 'HUMAN_OVERRIDE'),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
@@ -184,9 +185,9 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                   setState(() {
                     _quotes.add(
                       const QuoteEvidenceDto(
-                        sourceId: 'human_override',
-                        displayName: 'HUMAN_OVERRIDE',
-                        quoteText: 'Asiantuntijan vahvistama huomio',
+                        verifiedSourceIds: ['human_override'],
+                        quote: 'Asiantuntijan vahvistama huomio',
+                        isVerified: true,
                       ),
                     );
                   });

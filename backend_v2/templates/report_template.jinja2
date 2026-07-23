@@ -93,6 +93,9 @@
 
     {% macro render_sdui_blocks(blocks) %}
         {% for block in blocks %}
+            {% if block.title %}
+                <h2 style="color: #1a237e; margin-top: 0; margin-bottom: 10px;">{{ block.title.resolve(lang_code) }}</h2>
+            {% endif %}
             {% if block.block_type == 'paragraph' %}
                 <div style="margin-top: 0; margin-bottom: 10px; font-size: 13px; line-height: 1.6; color: #333;">
                     {{ block.text | md | safe }}
@@ -100,7 +103,7 @@
                 </div>
             {% elif block.block_type == 'bullet_list' %}
                 <ul style="margin-top: 0; margin-bottom: 10px; padding-left: 20px;">
-                    {% for item in block.get('items', []) %}
+                    {% for item in block.items %}
                         <li style="margin-bottom: 4px;">
                             {{ item.text | md | safe }}
                             {% if item.citations %}{% for cit in item.citations %}<sup style="color: #1976D2; font-weight: bold;">[{{ cit }}]</sup>{% endfor %}{% endif %}
@@ -174,7 +177,7 @@
                     'weighted_average': l10n.strategyPainotettuKeskiarvo
                 } %}
                 <span style="background-color: #E8EAF6; border: 1px solid #C5CAE9; border-radius: 4px; padding: 4px 8px; font-size: 11px; display: inline-block; margin-right: 8px; font-weight: bold; color: #283593;">
-                    🧮 Scoring Engine: {{ strategy_map.get(report_data.scoring_strategy, report_data.scoring_strategy) }}
+                    🧮 Scoring Engine: {% if report_data.scoring_strategy in strategy_map %}{{ strategy_map[report_data.scoring_strategy] }}{% else %}{{ report_data.scoring_strategy }}{% endif %}
                 </span>
                 {% endif %}
                 
@@ -187,7 +190,7 @@
                     100: l10n.strictnessAbsolute
                 } %}
                 <span style="background-color: #E8EAF6; border: 1px solid #C5CAE9; border-radius: 4px; padding: 4px 8px; font-size: 11px; display: inline-block; font-weight: bold; color: #283593;">
-                    ⚖️ {{ l10n.strictnessSelectorTitle | default('Arvioinnin tiukkuus') }}: {{ strictness_map.get(report_data.strictness_level, report_data.strictness_level) }}
+                    ⚖️ {{ l10n.strictnessSelectorTitle }}: {% if report_data.strictness_level in strictness_map %}{{ strictness_map[report_data.strictness_level] }}{% else %}{{ report_data.strictness_level }}{% endif %}
                 </span>
                 {% endif %}
             </div>
@@ -199,11 +202,11 @@
                 
                 {% for metaKey in metadata_list %}
                     {% if metaKey == 'user' %}
-                        <strong>{{ l10n.meta_user | default('Käyttäjä') }}:</strong> {% if report_data and report_data.user_name %}{{ report_data.user_name }}{% else %}{{ l10n.meta_unknown | default('Tuntematon') }}{% endif %}<br>
+                        <strong>{{ l10n.meta_user }}:</strong> {% if report_data and report_data.user_name %}{{ report_data.user_name }}{% else %}{{ l10n.meta_unknown }}{% endif %}<br>
                     {% elif metaKey == 'organization' %}
-                        <strong>{{ l10n.meta_organization | default('Organisaatio') }}:</strong> {% if report_data and report_data.org_name %}{{ report_data.org_name }}{% else %}{{ l10n.meta_unknown | default('Tuntematon') }}{% endif %}<br>
+                        <strong>{{ l10n.meta_organization }}:</strong> {% if report_data and report_data.org_name %}{{ report_data.org_name }}{% else %}{{ l10n.meta_unknown }}{% endif %}<br>
                     {% elif metaKey == 'date' %}
-                        <strong>{{ l10n.meta_timestamp | default('Aikaleima') }}:</strong> {% if report_data and report_data.local_time_str %}{{ report_data.local_time_str }}{% else %}{{ printed_at }}{% endif %}<br>
+                        <strong>{{ l10n.meta_timestamp }}:</strong> {% if report_data and report_data.local_time_str %}{{ report_data.local_time_str }}{% else %}{{ printed_at }}{% endif %}<br>
                         <div style="font-size: 10px; color: #888; margin-top: 4px; margin-bottom: 4px;">ID: {{ execution_id }}</div>
                     {% endif %}
                 {% endfor %}
@@ -214,13 +217,13 @@
                 <tr>
                     {% if show_cost %}
                     <td style="width: 50%; vertical-align: top; text-align: left;">
-                        <strong style="font-size: 12px;">{{ l10n.meta_costs | default('Kustannukset') }}</strong><br>
+                        <strong style="font-size: 12px;">{{ l10n.meta_costs }}</strong><br>
                         <span style="font-size: 11px;">API-hinta: {% if report_data and report_data.cost_estimate != None %}${{ "%.4f"|format(report_data.cost_estimate) }}{% else %}-{% endif %}</span>
                     </td>
                     {% endif %}
                     {% if show_tokens %}
                     <td style="width: 50%; vertical-align: top; text-align: left;">
-                        <strong style="font-size: 12px;">{{ l10n.meta_tokens | default('Kognitiivinen työ (Tokens)') }}</strong><br>
+                        <strong style="font-size: 12px;">{{ l10n.meta_tokens }}</strong><br>
                         <span style="font-size: 11px;">
                             Prompt: {% if report_data and report_data.prompt_tokens != None %}{{ report_data.prompt_tokens }}{% else %}-{% endif %}<br>
                             Completion: {% if report_data and report_data.completion_tokens != None %}{{ report_data.completion_tokens }}{% else %}-{% endif %}<br>
@@ -243,7 +246,6 @@
 
         {% if report_data and report_data.content_blocks %}
         <div class="card" style="border-left: 4px solid #1E88E5; padding: 20px; margin-bottom: 0px; page-break-after: avoid;">
-            <h2 style="color: #1a237e; margin-top: 0;">{{ l10n.summary_title | default('Yhteenveto') }}</h2>
             <div style="font-size: 13px; line-height: 1.6; color: #333;">
                 {{ render_sdui_blocks(report_data.content_blocks) }}
             </div>
@@ -255,7 +257,7 @@
             <table style="width: 100%; border: none; margin: 0; padding: 0;">
                 <tr>
                     <td style="text-align: left; vertical-align: middle;">
-                        <strong style="color: #1a1a1a; font-size: 18px;">{{ l10n.global_score_title | default('Kokonaiskeskiarvo') }}</strong>
+                        <strong style="color: #1a1a1a; font-size: 18px;">{{ l10n.scorecard_global_average }}</strong>
                     </td>
                     <td style="text-align: right; vertical-align: middle;">
                         <span style="font-size: 24px; font-weight: 800; color: #1a1a1a;">{{ "%.2f"|format(report_data.global_score) }}/100</span>
@@ -266,11 +268,11 @@
         {% endif %}
 
         {% for layout in report_data.layouts %}
-            {% set layout_title_label = layout.title.get('fi', layout.title.get('en', 'Arviointi')) if layout.title else ('Automaattinen' if layout.preset_view == 'default' else layout.preset_view) %}
+            {% set layout_title_label = layout.title.resolve(lang_code) if layout.title else ('Automaattinen' if layout.preset_view == 'default' else layout.preset_view) %}
             <h2 style="margin-top: 20px; color: #004D40; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">{{ layout_title_label }}</h2>
             
             {% if layout.description %}
-                {% set layout_desc_label = layout.description.get('fi', layout.description.get('en', '')) %}
+                {% set layout_desc_label = layout.description.resolve(lang_code) %}
                 {% if layout_desc_label %}
                     <div style="font-size: 12px; color: #555; margin-bottom: 15px; font-style: italic;">{{ layout_desc_label }}</div>
                 {% endif %}
@@ -301,10 +303,10 @@
                         {% if axis.score != None %}
                         <div style="display: flex; align-items: center; gap: 8px;">
                             {% if axis.contextual_override %}
-                            <span style="color: #f57c00; font-size: 12px; font-weight: 500;">⚠️ {{ l10n.get('evidence_rejected', 'Arvosanan perusteet kumottu asiantuntijan toimesta') }}</span>
+                            <span style="color: #f57c00; font-size: 12px; font-weight: 500;">⚠️ {{ l10n.evidence_rejected }}</span>
                             {% endif %}
                             <div style="background-color: #e3f2fd; color: #1976D2; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 14px;">
-                                {{ "%.1f"|format(axis.score) }} {% if axis.scale_max > axis.scale_min %}/ {{ "%.1f"|format(axis.scale_max) }}{% endif %}
+                                {{ "%.1f"|format(axis.score) }} {% if axis.scale_max is not none and axis.scale_min is not none and axis.scale_max > axis.scale_min %}/ {{ "%.1f"|format(axis.scale_max) }}{% endif %}
                             </div>
                         </div>
                         {% endif %}
@@ -333,7 +335,7 @@
                                 <div style="margin-top: 10px;">
                                     <strong style="font-size: 11px; color: #444;">{{ atoms[0].level_name }}</strong>
                                     {% for atom in atoms %}
-                                        <div class="atom-card intent-{{ atom.visual_intent | default('default') }}">
+                                        <div class="atom-card intent-{{ atom.visual_intent }}">
                                             <div style="font-weight: bold; margin-bottom: 4px; color: #333;">{{ atom.chart_display_label }}</div>
                                             {% if atom.status == 'Skipped' %}
                                                 <div style="color: #888; font-style: italic;">Arviointi ohitettu (Skipped)</div>
@@ -365,7 +367,7 @@
 
                         {% if report_data and report_data.grouped_extensions and 'confidence' in report_data.grouped_extensions and axis.confidence is not none %}
                             <div style="margin-top: 8px; font-size: 11px; color: #3f51b5; font-weight: bold;">
-                                🎯 {{ l10n.get('reportConfidenceTitle', 'Tekoälyn varmuus: {value}%').replace('{value}', (axis.confidence * 100) | int | string) }}
+                                🎯 {{ l10n.reportConfidenceTitle.replace('{value}', (axis.confidence * 100) | int | string) }}
                             </div>
                         {% endif %}
 
@@ -399,8 +401,7 @@
                 'missing_context': '🔍 PUUTTUVA KONTEKSTI',
                 'remediation_steps': '🛠️ KORJAAVAT TOIMENPITEET',
                 'emotional_sentiment': '🎭 EMOTIONAALINEN SÄVY',
-                'confidence': 'LUOTETTAVUUS JA VARMUUS',
-                'variance_validation': l10n.get('xaiVarianceValidationTitle', '🤖 VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)')
+                'variance_validation': l10n.xaiVarianceValidationTitle
             } %}
 
             {% for ext_key, ext_items in report_data.grouped_extensions.items() %}
@@ -435,27 +436,27 @@
                         <div style="background-color: transparent; padding: 12px 16px; border-bottom: 1px solid {{ card_border }}; display: flex; align-items: center; justify-content: space-between;">
                             <h2 style="color: {{ header_text }}; margin: 0; font-size: 15px; font-weight: 600;">
                                 <span style="margin-right: 8px;">🧩</span>
-                                {{ ext_title_map.get(ext_key, ext_key | upper | replace('_', ' ')) }}
+                                {% if ext_key in ext_title_map %}{{ ext_title_map[ext_key] }}{% else %}{{ ext_key | upper | replace('_', ' ') }}{% endif %}
                             </h2>
                             <span style="color: {{ header_text }}; font-size: 12px;">▼</span>
                         </div>
                         <div style="padding: 16px; margin-top: 0; background-color: {{ card_bg }};">
                         {% if ext_key == 'variance_validation' %}
                             {% for item in ext_items %}
-                                {% set score = item.get('variance_score') | float %}
-                                {% set verdict = item.get('alignment_verdict') %}
-                                {% set mech_ref = item.get('mechanical_metric_ref') %}
-                                {% set cog_ref = item.get('cognitive_metric_ref') %}
+                                {% set score = item.variance_score | float %}
+                                {% set verdict = item.alignment_verdict %}
+                                {% set mech_ref = item.mechanical_metric_ref %}
+                                {% set cog_ref = item.cognitive_metric_ref %}
                                 
                                 {% set verdict_label = verdict %}
                                 {% if verdict == 'ALIGNED' %}
-                                    {% set verdict_label = l10n.get('xaiVerdictAligned', '✅ Aligned') %}
+                                    {% set verdict_label = l10n.xaiVerdictAligned %}
                                     {% set verdict_color = '#2e7d32' %}
                                 {% elif verdict == 'MISALIGNED_SYCOPHANCY' %}
-                                    {% set verdict_label = l10n.get('xaiVerdictSycophancy', '❌ Sycophancy') %}
+                                    {% set verdict_label = l10n.xaiVerdictSycophancy %}
                                     {% set verdict_color = '#d32f2f' %}
                                 {% elif verdict == 'MISALIGNED' %}
-                                    {% set verdict_label = l10n.get('xaiVerdictMisaligned', '⚠️ Misaligned') %}
+                                    {% set verdict_label = l10n.xaiVerdictMisaligned %}
                                     {% set verdict_color = '#e65100' %}
                                 {% endif %}
                                 
@@ -463,7 +464,7 @@
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                                         <span style="font-size: 13px; font-weight: bold; color: {{ verdict_color }};">{{ verdict_label }}</span>
                                         <span style="font-size: 10px; color: #666; font-style: italic;">
-                                            {{ l10n.get('xaiVarianceInfoText', 'Tämä mittari paljastaa, onko tekoälyn oma arvio suorituksestaan (kognitiivinen) ristiriidassa kylmien faktojen (mekaaninen skannaus) kanssa.') }}
+                                            {{ l10n.xaiVarianceInfoText }}
                                         </span>
                                     </div>
                                     
@@ -473,9 +474,9 @@
                                     <div style="position: relative; margin: 24px 0 16px 0; padding-top: 10px; height: 35px; width: 100%;">
                                         <!-- The progress bar segments -->
                                         <div style="display: flex; height: 16px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; width: 100%; position: absolute; top: 12px; left: 0;">
-                                            <div style="width: 25%; background-color: #E8F5E9; text-align: center; color: #1B5E20; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #c8e6c9;">{{ l10n.get('xaiVarianceBarAligned', 'Aligned') }} (0.0-0.5)</div>
-                                            <div style="width: 25%; background-color: #FFF3E0; text-align: center; color: #E65100; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #ffe0b2;">{{ l10n.get('xaiVarianceBarMild', 'Mild') }} (0.5-1.0)</div>
-                                            <div style="width: 50%; background-color: #FFEBEE; text-align: center; color: #C62828; font-size: 8px; line-height: 16px; font-weight: bold;">{{ l10n.get('xaiVarianceBarSevere', 'Severe') }} (1.0-2.0)</div>
+                                            <div style="width: 25%; background-color: #E8F5E9; text-align: center; color: #1B5E20; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #c8e6c9;">{{ l10n.xaiVarianceBarAligned }} (0.0-0.5)</div>
+                                            <div style="width: 25%; background-color: #FFF3E0; text-align: center; color: #E65100; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #ffe0b2;">{{ l10n.xaiVarianceBarMild }} (0.5-1.0)</div>
+                                            <div style="width: 50%; background-color: #FFEBEE; text-align: center; color: #C62828; font-size: 8px; line-height: 16px; font-weight: bold;">{{ l10n.xaiVarianceBarSevere }} (1.0-2.0)</div>
                                         </div>
                                         
                                         <!-- Float marker triangle pointing down -->
@@ -493,18 +494,18 @@
                         {% else %}
                             {% for item in ext_items %}
                                 {% if item is mapping %}
-                                    {% set content = item.get('content') %}
+                                    {% set content = item.content %}
                                     {% set display_content = content %}
-                                    {% if not content and item.get('axis_name') %}
+                                    {% if not content and item.axis_name %}
                                         {% set ns_inner = namespace(key='') %}
                                         {% for k in item.keys() if k not in ['axis_name', '_score', 'color_theme', 'icon_name'] %}
                                             {% if loop.first %}{% set ns_inner.key = k %}{% endif %}
                                         {% endfor %}
                                         {% if ns_inner.key %}
-                                            {% set display_content = item.get('axis_name') ~ ':\n' ~ item.get(ns_inner.key) %}
+                                            {% set display_content = item.axis_name ~ ':\n' ~ item[ns_inner.key] %}
                                         {% endif %}
                                     {% endif %}
-                                    {% set c_theme = item.get('color_theme', 'info') %}
+                                    {% set c_theme = item.color_theme %}
                                     {% set bg_color = '#e3f2fd' %}
                                     {% set fg_color = '#1976d2' %}
                                     
@@ -521,7 +522,7 @@
                                     
                                     <div style="margin-bottom: 8px;">
                                         <div style="background-color: {{ bg_color }}; border-left: 4px solid {{ fg_color }}; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; color: #212121;">
-                                            {{ display_content | default('') | md | safe }}
+                                            {% if display_content %}{{ display_content | md | safe }}{% endif %}
                                         </div>
                                     </div>
                                 {% else %}
@@ -540,23 +541,23 @@
         {% if visible_cols %}
         <div style="page-break-before: always; margin-top: 30px;">
 
-            {% set default_summary_title = l10n.scorecard_matrix_summary | default('Yhteenveto / Matrix Summary') %}
+            {% set default_summary_title = l10n.scorecard_matrix_summary %}
             {% set first_layout = report_data.layouts[0] if report_data and report_data.layouts else none %}
-            {% set summary_title = (first_layout.title.get(lang_code, first_layout.title.get('en', default_summary_title))) if first_layout and first_layout.title else default_summary_title %}
+            {% set summary_title = (first_layout.title.resolve(lang_code)) if first_layout and first_layout.title else default_summary_title %}
             <h2 style="color: #1a237e; text-transform: uppercase; border-bottom: 2px solid #1a237e; padding-bottom: 8px; margin-bottom: 20px;">{{ summary_title }}</h2>
             <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">
                 <thead>
                     <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
-                        {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.lblLogicMatrix | default('Matriisi') }}</th>{% endif %}
-                        {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.atomicBreakdownTitle | default('Jakauma') }}</th>{% endif %}
-                        {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.rowExplanationTitle | default('Selite') }}</th>{% endif %}
+                        {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.lblLogicMatrix }}</th>{% endif %}
+                        {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.atomicBreakdownTitle }}</th>{% endif %}
+                        {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.rowExplanationTitle }}</th>{% endif %}
                         {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">Lainaukset (quotes)</th>{% endif %}
-                        {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.normalizedScore | default('Skaalattu') }}</th>{% endif %}
-                        {% if 'score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.score | default('Pisteet') }}</th>{% endif %}
+                        {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.normalizedScore }}</th>{% endif %}
+                        {% if 'score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.score }}</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
-                {% set all_matrices = (report_data.evaluative_matrices | default([], true)) + (report_data.informational_matrices | default([], true)) %}
+                {% set all_matrices = (report_data.evaluative_matrices if report_data.evaluative_matrices else []) + (report_data.informational_matrices if report_data.informational_matrices else []) %}
                 {% for axis in all_matrices %}
                     <tr style="border-bottom: 1px solid #eee;">
                         {% if 'label' in visible_cols %}
@@ -574,8 +575,8 @@
                             {% if lvl %}
                                 <div style="margin: 0; font-size: 10px; line-height: 1.3;">
                                 {% for key, val in lvl.items() | sort(reverse=True, attribute='0') %}
-                                    {% set hit_str = val if val is string else (val.get('hits', val.get('true_atoms', 0)) ~ '/' ~ val.get('total', val.get('total_atoms', 0))) %}
-                                    {% set name = lvl_names.get(key, 'T' ~ key) %}
+                                    {% set hit_str = val if val is string else (val.hits ~ '/' ~ val.total) %}
+                                    {% set name = lvl_names[key] if key in lvl_names else ('T' ~ key) %}
                                     {% set numLvl = (key | float | int) if '.' in key else (key | int) %}
                                     <div style="margin-bottom: 2px;">{{ numLvl }} - {{ name }}: {{ hit_str }}</div>
                                 {% endfor %}
@@ -604,7 +605,7 @@
                                 {% endfor %}
                                 
                                 {% for lvl, atoms in grouped_atoms.items() | sort(reverse=True, attribute='0') %}
-                                    {% set lvl_name = (axis.level_names or {}).get(lvl, 'T' ~ lvl) %}
+                                    {% set lvl_name = axis.level_names[lvl] %}
                                     <div style="font-weight: bold; margin-bottom: 4px; font-size: 11px;">{{ lvl }} - {{ lvl_name }}</div>
                                     {% set has_rendered = false %}
                                     {% for atom in atoms %}
@@ -670,25 +671,25 @@
 
         {% if report_data.mcp_tool_audit %}
         <div class="card" style="border-top: 3px solid #009688;">
-            <h2 style="color: #00796b;">{{ l10n.systemAuditTrailLabel | default('Järjestelmän Faktantarkistusloki') }}</h2>
+            <h2 style="color: #00796b;">{{ l10n.systemAuditTrailLabel }}</h2>
             {% for audit in report_data.mcp_tool_audit %}
             <div style="background-color: #f7f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 15px;">
                 <div style="font-size: 13px; font-weight: bold; color: #333; margin-bottom: 6px;">
-                    <span style="font-size: 11px; float: right; font-weight: normal; color: #888; background-color: #eee; padding: 2px 6px; border-radius: 10px;">{{ l10n.pdfAuditDuration | default('Kesto:') }} {{ audit.duration_ms }}ms</span>
+                    <span style="font-size: 11px; float: right; font-weight: normal; color: #888; background-color: #eee; padding: 2px 6px; border-radius: 10px;">{{ l10n.pdfAuditDuration }} {{ audit.duration_ms }}ms</span>
                     <span style="font-family: monospace; font-size: 10px; background-color: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; border-radius: 4px; padding: 2px 6px; margin-right: 6px;">{{ audit.tool_id }}</span>
-                    🔍 {{ l10n.pdfAuditQuery | default('Hakukysely:') }} "{{ audit.query }}"
+                    🔍 {{ l10n.pdfAuditQuery }} "{{ audit.query }}"
                 </div>
                 <div style="font-size: 12px; color: #555; margin-bottom: 10px; line-height: 1.5; clear: both;">
                     {{ audit.response_summary | md | safe }}
                 </div>
                 {% if audit.impacted_axis_names %}
                 <div style="font-size: 11px; font-weight: bold; color: #2E7D32; margin-bottom: 10px; padding: 6px; background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; clear: both;">
-                    🎯 {{ l10n.pdfAuditImpactedAxes | default('Tätä tietoa käytettiin seuraavien osioiden arvioinnissa:') }}
+                    🎯 {{ l10n.pdfAuditImpactedAxes }}
                     <span style="font-weight: normal; color: #1b5e20;">{{ audit.impacted_axis_names | join(', ') }}</span>
                 </div>
                 {% endif %}
                 {% if audit.source_urls %}
-                <div style="font-size: 11px; font-weight: bold; color: #009688; margin-bottom: 4px;">{{ l10n.pdfAuditSources | default('Lähteet') }}</div>
+                <div style="font-size: 11px; font-weight: bold; color: #009688; margin-bottom: 4px;">{{ l10n.pdfAuditSources }}</div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px; clear: both;">
                     {% for url in audit.source_urls %}
                     <div style="background-color: #e3f2fd; border: 1px solid #bbdefb; color: #1976D2; padding: 4px 8px; border-radius: 4px; font-size: 10px; text-decoration: none; word-break: break-all; display: inline-block;">
@@ -704,19 +705,19 @@
 
         {% if report_data.penalties_applied %}
         <div style="margin-top: 40px; padding: 15px; background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 6px;">
-            <div style="font-size: 13px; font-weight: bold; color: #c62828; margin-bottom: 8px;">{{ l10n.reportPenaltiesApplied | default('Rangaistukset (Sovelletut vääristymät)') }}</div>
+            <div style="font-size: 13px; font-weight: bold; color: #c62828; margin-bottom: 8px;">{{ l10n.reportPenaltiesApplied }}</div>
             <ul style="margin: 0; padding-left: 20px; font-size: 11px; color: #b71c1c;">
                 {% for penalty in report_data.penalties_applied %}
                 <li>
                     {% if penalty.startswith('PENALTY_SECURITY:') %}
                         {% set pct = penalty.split(':')[1] %}
-                        {{ l10n.penaltySecurity | default('Security Threat Detected (-{percentage}%)') | replace('{percentage}', pct) }}
+                        {{ l10n.penaltySecurity | replace('{percentage}', pct) }}
                     {% elif penalty.startswith('PENALTY_POST_HOC:') %}
                         {% set pct = penalty.split(':')[1] %}
-                        {{ l10n.penaltyPostHoc | default('Post-Hoc Rationalization Detected (-{percentage}%)') | replace('{percentage}', pct) }}
+                        {{ l10n.penaltyPostHoc | replace('{percentage}', pct) }}
                     {% elif penalty.startswith('PENALTY_SLOP:') %}
                         {% set phrases = penalty.split(':', 1)[1] %}
-                        {{ l10n.penaltySlop | default('-5% Slop Penalty (AI Jargon): detected {phrases}') | replace('{phrases}', phrases) }}
+                        {{ l10n.penaltySlop | replace('{phrases}', phrases) }}
                     {% else %}
                         {# Zero-Compromise check: crash/fail-fast on legacy formats by invoking undefined #}
                         {{ ZERO_COMPROMISE_CRASH_LEGACY_PENALTY_FORMAT_DETECTION }}

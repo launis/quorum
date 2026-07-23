@@ -35,6 +35,12 @@
          <mandatory_pattern>This is purely a local testing environment with zero real customer data. Always prioritize architectural purity and wipe/re-seed the local database via `uv run python backend_v2/seed/run_seed.py local` whenever corrupted states arise. NEVER update `db_v2.json` directly.</mandatory_pattern>
          <catastrophic_reason>Editing the runtime `db_v2.json` creates a fork between local state and the schema. The next `run_seed.py` execution will ruthlessly overwrite it anyway, causing lost work.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="ai_context_amnesia_guard">
+         <banned_pattern>Reading the entire `seed_data.json` file using `view_file` without explicit line bounds.</banned_pattern>
+         <mandatory_pattern>The `seed_data.json` is a massive file. You MUST use bounded reads (`StartLine`/`EndLine`) or run python search scripts (like `uv run python check_seed_data.py` or `uv run python backend_v2/seed/run_seed.py local --dry-run`) to interrogate the file without blowing out the context window.</mandatory_pattern>
+         <catastrophic_reason>Reading a massive JSON file in a single operation overflows the LLM context window, causing immediate "Context Amnesia" and preventing coherent code generation in this session.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <vault_mutation_protocol>
