@@ -104,8 +104,8 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <fallback trigger="end-to-end verification is impossible in the current session">The phase MUST be marked as `[NEEDS_E2E]` instead of `[x]`.</fallback>
     </step>
 
-    <step id="7" name="DOCUMENTATION AUDIT MANDATE">
-      <action>If the executed plan introduced new systems, modified data flows, shifted architectural boundaries, or created new directories, you MUST physically update the relevant `docs\architecture\` documentation files AND `.agents\rules\04_directory_reference.md` using file editing tools.</action>
+    <step id="7" name="DOCUMENTATION & KI AUDIT">
+      <action>If the executed plan introduced new systems, modified data flows, or shifted architectural boundaries, you MUST create or update a Knowledge Item (KI) documenting the new pattern. **CRITICAL:** If a new KI is needed, you MUST either instruct the user to create it using the IDE's KI interface, or create it explicitly in `<appDataDir>\knowledge\<ki_name>\` with a `metadata.json` and an `artifacts/` subdirectory; do NOT guess the KI structure. After creating/updating a KI, you MUST instruct the user to run `/tier7-describe-architecture` in a fresh session to synchronize the pillar narratives. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`).</action>
       <action>Ensure your updates strictly follow the existing structures of these files, such as formatting tables correctly.</action>
       <constraint>Do NOT update architecture documentation for minor tweaks or localized refactors.</constraint>
     </step>

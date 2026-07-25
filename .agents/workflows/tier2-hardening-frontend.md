@@ -35,7 +35,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
     </rule_block>
     <rule_block id="documentation_audit_mandate">
       <banned_pattern>Making significant structural changes without updating architecture documentation.</banned_pattern>
-      <mandatory_pattern>If the refactoring caused significant architectural changes to the UI structure, file deletions, or the creation of new directories, you MUST physically modify the documents in the `docs\architecture\` directory and the `.agents\rules\04_directory_reference.md` file, strictly maintaining their existing table structures. Never just put a comment "Updated", physically modify the files.</mandatory_pattern>
+      <mandatory_pattern>If the refactoring caused significant architectural changes to the UI structure, file deletions, or the creation of new directories, you MUST create or update a Knowledge Item (KI) documenting the new pattern. **CRITICAL:** If a new KI is needed, you MUST either instruct the user to create it using the IDE's KI interface, or create it explicitly in `<appDataDir>\knowledge\<ki_name>\` with a `metadata.json` and an `artifacts/` subdirectory; do NOT guess the KI structure. After creating/updating a KI, you MUST instruct the user to run `/tier7-describe-architecture` in a fresh session to synchronize the pillar narratives. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`).</mandatory_pattern>
       <catastrophic_reason>Outdated architecture documentation leads to fatal context hallucinations in future AI sessions.</catastrophic_reason>
     </rule_block>
   </context_rules>
