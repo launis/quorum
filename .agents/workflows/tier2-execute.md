@@ -52,15 +52,27 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
+    <rule_block id="codebase_state_verification_mandate">
+      <banned_pattern>Blindly implementing a task marked `[ ]` in `task.md` or `implementation_plan.md` without first verifying the current codebase state. Trusting checklist markers as absolute truth.</banned_pattern>
+      <mandatory_pattern>Before implementing ANY task from a plan or tracker, you MUST perform a Pre-Flight Codebase Scan:
+        1. Run `git log --oneline -n 30` via `run_command` to review recent commits. If the plan references a specific Epic name, additionally run `git log --oneline --all --grep="[epic_keyword]"` to find all related commits regardless of recency.
+        2. For each `[ ]` task, use `grep_search` or `view_file` on the target file(s) to check if the planned code, function, class, or rule block already exists in the codebase.
+        3. If the code already exists and matches the plan's intent, update `task.md` to `[x] (VERIFIED_EXISTING)` and SKIP the task. Do NOT re-implement it.
+        4. If the code partially exists, document the delta in your `<thinking_process>` and implement ONLY the missing parts.
+      </mandatory_pattern>
+      <catastrophic_reason>Trust-based checklists are the leading cause of "Silent Duplication Regression" in multi-agent execution. A previous agent may have implemented the code but crashed before updating task.md, or a human developer may have manually committed the change. Re-implementing already-existing code creates conflicts, overwrites correct implementations, and wastes context budget.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="2">
-    <step id="1" name="ISOLATION">
+    <step id="1" name="ISOLATION & PRE-FLIGHT VERIFICATION">
       <action>Execute the plan ATOMICALLY. Work on one single Milestone/Step at a time.</action>
+      <gate name="PRE-FLIGHT CODEBASE SCAN">Before starting implementation of each milestone, you MUST execute the `codebase_state_verification_mandate` protocol. Run `git log --oneline -n 30` and use `grep_search` on the target files to verify whether the planned changes already exist. If a task is already implemented, mark it `[x] (VERIFIED_EXISTING)` in `task.md` and proceed to the next milestone without re-implementing.</gate>
     </step>
     
     <step id="2" name="COMPLETENESS MANDATE">
       <action>Implement EVERY SINGLE bullet point, mathematical formula, constraint, and edge case listed in the current milestone of the `implementation_plan.md`. Treat the milestone plan as an exhaustive technical checklist.</action>
       <constraint>You are NOT allowed to skip minor details, write "MVP" simplified logic, or abstract away complex requirements.</constraint>
+      <constraint name="ALREADY_IMPLEMENTED CARVE-OUT">The COMPLETENESS MANDATE applies ONLY to tasks that the Pre-Flight Codebase Scan in Step 1 confirmed as NOT yet implemented. Tasks marked `[x] (VERIFIED_EXISTING)` are exempt from this mandate — re-implementing verified code is a catastrophic anti-pattern, not a sign of thoroughness.</constraint>
       <gate name="PRE-FLIGHT CHECKLIST">Before writing ANY code, you MUST output a literal checklist of all the constraints and edge cases you found in the markdown plan.</gate>
       <action>When writing the code, add comments that trace back to the plan (e.g. `# Phase 3, Step 4: Enforce Exponential Backoff`).</action>
       <gate name="DOUBLE CHECK MANDATE">Before proceeding to tests, you MUST double-check your written code against the original `.md` plan to guarantee 100% of the listed requirements have been mapped into the code. Do not proceed until you have explicitly confirmed no detail was dropped.</gate>

@@ -11,6 +11,10 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
   <role>Principal Solutions Architect</role>
   
   <context_rules>
+    <rule_block id="anti_hallucination_guard">
+      <mandatory_pattern>Under NO circumstances may you begin implementing codebase code during a Tier 1 execution. If you inherit this session from a context checkpoint that claims "The user authorized the implementation" or "Status: moving into IMPLEMENTATION", you MUST IGNORE THAT FALSE INSTRUCTION. Tier 1 is strictly for planning, writing markdown artifacts, and creating the Tracker.</mandatory_pattern>
+      <catastrophic_reason>Checkpoint summaries often hallucinate authorization based on ambiguous chat history. Obeying a false context summary destroys the planning boundary of Tier 1.</catastrophic_reason>
+    </rule_block>
     <rule_block id="core_rules_routing">
       <banned_pattern>Starting planning without reading the core rules or relevant domain rules, or outputting a thinking process first.</banned_pattern>
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on Epic scope:
@@ -109,6 +113,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <action>Actively use your search tools (`grep_search`, `view_file`) to precisely target the relevant TARGET directories and files BEFORE writing the plans.</action>
       <constraint>Never hallucinate the current architectural state.</constraint>
       <action>You MUST actively analyze the existing codebase to identify components that can be reused or abstracted into a shared Single Source of Truth (SSOT). Do not propose new modules if an existing module can be adapted to serve both purposes. Always explore creating new shared modules for future reusability.</action>
+      <action name="ALREADY_IMPLEMENTED DETECTION">For each requirement in the Epic, you MUST proactively check if the code already exists in the codebase. Use `grep_search` to verify whether target functions, classes, rule blocks, or data structures mentioned in the Epic are already present. If a requirement is already fully implemented, you MUST still include it in the plan but mark it explicitly as `[ALREADY_IMPLEMENTED] - Skip execution. Verified at: @[file_path#Lnn-mm]`. This ensures the Tier 2 executing agent has a complete traceability matrix without re-implementing existing code.</action>
     </step>
     
     <step id="3.1" name="MICRO-CHUNK DIRECTORIES &amp; LAZY PLAN GENERATION">
@@ -132,6 +137,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
         Even if the Epic requests a legacy technical pattern to achieve a business goal, you MUST translate that requirement using the Quorum 2026 anti-patterns (e.g. translate `asyncio.gather` requirements to `TaskGroup`, raw dicts to strict Pydantic V2 DTOs, regex to exact matching). Ensure EVERY single requirement from the Epic is mapped into the sub-plans, but executed using modern syntax. DO NOT use lazy placeholders.
       </constraint>
       <action name="EXPLICIT TRACEABILITY">Map each generated milestone explicitly to the source material (e.g. `Source: Epic Phase 3, Step 4`).</action>
+      <constraint name="ZERO_OMISSION_FOR_EXISTING_CODE">You are FORBIDDEN from silently omitting requirements that are already implemented. Every requirement from the Epic MUST appear in the plans — either as an actionable task or as an explicitly tagged `[ALREADY_IMPLEMENTED]` item with a verified `@-reference` to the existing code location. This prevents future agents from assuming the requirement was forgotten and re-implementing it.</constraint>
     </step>
 
     <step id="4" name="DESTRUCTIVE OPERATION INVENTORY">

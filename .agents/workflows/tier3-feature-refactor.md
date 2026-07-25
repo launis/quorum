@@ -46,11 +46,22 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
       <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
+    <rule_block id="codebase_state_verification_mandate">
+      <banned_pattern>Blindly implementing a task marked `[ ]` in `task.md` or `implementation_plan.md` without first verifying the current codebase state. Trusting checklist markers as absolute truth.</banned_pattern>
+      <mandatory_pattern>Before implementing ANY task from a plan or tracker, you MUST perform a Pre-Flight Codebase Scan:
+        1. Run `git log --oneline -n 30` via `run_command` to review recent commits. If the plan references a specific Epic name, additionally run `git log --oneline --all --grep="[epic_keyword]"` to find all related commits regardless of recency.
+        2. For each `[ ]` task, use `grep_search` or `view_file` on the target file(s) to check if the planned code, function, class, or rule block already exists in the codebase.
+        3. If the code already exists and matches the plan's intent, update `task.md` to `[x] (VERIFIED_EXISTING)` and SKIP the task. Do NOT re-implement it.
+        4. If the code partially exists, document the delta in your `<thinking_process>` and implement ONLY the missing parts.
+      </mandatory_pattern>
+      <catastrophic_reason>Trust-based checklists are the leading cause of "Silent Duplication Regression" in multi-agent execution. A previous agent may have implemented the code but crashed before updating task.md, or a human developer may have manually committed the change. Re-implementing already-existing code creates conflicts, overwrites correct implementations, and wastes context budget.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="3">
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION &amp; EXHAUSTIVE PLAN">
       <constraint>Do NOT attempt to read the entire codebase blindly.</constraint>
       <action>Actively use search tools (`grep_search`, `view_file`) to precisely target related files.</action>
+      <action name="PRE-FLIGHT DUPLICATION CHECK">Before creating your execution plan, verify that the planned refactoring outcome does not already exist in the codebase from a prior agent session. Use `grep_search` to check for the target function names, class definitions, or rule block IDs. If the refactoring is already complete, report this to the user and HALT instead of re-executing.</action>
       <action>Create an exhaustive, detailed execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files.</action>
       <action name="DESTRUCTIVE OPERATION INVENTORY">If refactoring involves DELETING or REPLACING any source file, you MUST line-by-line inventory every exported symbol and map its new location.</action>
       <action name="BIDIRECTIONAL INTEGRATION CHECK">For any new parser or data consumer, you MUST explicitly document the corresponding PRODUCER.</action>
