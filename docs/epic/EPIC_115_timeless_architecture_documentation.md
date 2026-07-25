@@ -100,8 +100,10 @@ After handling the Pillar 06 and Pillar 02 special cases above, the executing ag
 
 #### Task 1.2: Remove Temporal Contamination & Physical Implementation Maps
 
+> **EXECUTION NOTE:** Line numbers referenced below were verified at Epic authoring time. The executing agent MUST search by content pattern rather than trusting fixed line numbers, as prior edits may have shifted them.
+
 Execute on all 6 architecture pillar documents:
-1. Remove all Physical Implementation Map sections (verified to exist in all 6 pillars).
+1. Remove all Physical Implementation Map sections (verified to exist in all 6 pillars). **Note:** Pillar 06 uses inconsistent section numbering (`## 3. Physical Implementation Map` instead of `## 4.` like the other pillars) — removing the section entirely resolves this.
 2. Remove all historical references: Epic IDs, dates, version migration language ("V1 to V2"), "previously"/"legacy"/"backward compatibility" comparisons. The executing agent MUST `grep_search` each pillar for the patterns `Epic`, `V1`, `legacy`, `backward`, `previously`, `migration`, `older`, `Phase \d` after scrubbing to verify zero remaining violations.
 3. **Specific Fix — @[c:\src\quorum\docs\architecture\02_data_seeding_and_ontology.md] Line 20:** The entire sentence contains 4 violations (`from V1 to V2 paradigms`, `backward compatibility`, `older JSON definitions`, `legacy parsing logic`). Replace the full sentence:
    - **Before:** `"The system uses a Y-Funnel architecture where Pre-Hooks manage structural migrations (e.g., from V1 to V2 paradigms) *before* data enters the domain validation phase. This ensures backward compatibility for older JSON definitions without polluting the strict Pydantic V2 Domain Models with legacy parsing logic."`
@@ -111,8 +113,8 @@ Execute on all 6 architecture pillar documents:
 #### Task 1.3: Fix Pillar Count References
 
 Update all instances of "5 pillar" / "5 core capabilities" to "6 pillar" / "6 core capabilities" (including Enriched Atom Graph Engine) in:
-1. @[c:\src\quorum\.agents\workflows\tier7-describe-architecture.md] — 5 occurrences scattered across the architectural invariants and execution steps.
-2. @[c:\src\quorum\.agents\rules\04_directory_reference.md] — line 113: update to "6 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine)".
+1. @[c:\src\quorum\.agents\workflows\tier7-describe-architecture.md] — **7+ occurrences** scattered across both `<architectural_invariants>` and `<execution_protocol>` blocks. The executing agent MUST `grep_search` for the pattern `5 ` (with trailing space) and `the 5` to find ALL instances, not stop at a fixed count.
+2. @[c:\src\quorum\.agents\rules\04_directory_reference.md] — line 113: **already corrected to 6** in a prior task. The executing agent MUST verify this is still correct; no update expected.
 
 ---
 
@@ -163,6 +165,7 @@ Add a strict new rule block to the Tier 7 system prompt to enforce the timeless 
    - Strictly forbid standard AI coding workflows from manually editing the 6 architecture pillar documents (`01_` through `06_`).
    - Route all structural documentation updates through: (a) KI creation/update → (b) `/tier7-describe-architecture` automated sync.
    - Permit direct updates ONLY to @[c:\src\quorum\.agents\rules\04_directory_reference.md] for physical path changes.
+   - Explicitly define write scope for `00_README_META_ARCHITECTURE.md`: as a meta-governance document (not a pillar), it MAY be directly edited by agents when governance rules themselves evolve, but content additions about specific capabilities MUST still route through KI → Tier 7.
 
 #### Task 2.4: [MODIFY] Re-route Execution Workflows
 
@@ -174,15 +177,15 @@ Audit and update the core execution workflows to align with the Dual-Axis Docume
 
 | Workflow File | Step | Required Change |
 |---|---|---|
-| @[c:\src\quorum\.agents\workflows\tier2-execute.md] | Step 7 | Replace `docs\architecture\` modification mandate with KI creation + Tier 7 delegation. Keep `04_directory_reference.md` direct update. |
-| @[c:\src\quorum\.agents\workflows\tier3-feature-refactor.md] | Step 6 | Same pattern as above. |
-| @[c:\src\quorum\.agents\workflows\tier2-hardening-backend.md] | Step 9 | Same pattern as above. |
-| @[c:\src\quorum\.agents\workflows\tier2-hardening-frontend.md] | Step 3 | Same pattern as above. |
-| @[c:\src\quorum\.agents\workflows\tier4-bug-hunting.md] | Step 7 | Same pattern as above. |
+| @[c:\src\quorum\.agents\workflows\tier2-execute.md] | `<step id="7">` (DOCUMENTATION AUDIT MANDATE) | Replace `docs\architecture\` modification mandate with KI creation + Tier 7 delegation. Keep `04_directory_reference.md` direct update. |
+| @[c:\src\quorum\.agents\workflows\tier3-feature-refactor.md] | `<step id="6">` (DOCUMENTATION AUDIT MANDATE) | Same pattern as above. |
+| @[c:\src\quorum\.agents\workflows\tier2-hardening-backend.md] | `<constraint name="DOCUMENTATION AUDIT MANDATE">` inside the audit phase (NOT a standalone step) | Same pattern as above. |
+| @[c:\src\quorum\.agents\workflows\tier2-hardening-frontend.md] | `<rule_block id="documentation_audit_mandate">` in `<context_rules>` (NOT an execution step) | Same pattern as above. |
+| @[c:\src\quorum\.agents\workflows\tier4-bug-hunting.md] | `<step id="7">` (DOCUMENTATION & KI AUDIT) | Same pattern as above. |
 | @[c:\src\quorum\.agents\workflows\tier5-session-handover.md] | Step 2 | Replace `docs\architecture\` verification with KI audit check. Keep `04_directory_reference.md` verification. |
 
 > **Standard Replacement Text (to be adapted per workflow's existing phrasing):**
-> "DOCUMENTATION & KI AUDIT: If the [operation] introduced new systems, modified data flows, or shifted architectural boundaries, you MUST create or update a Knowledge Item (KI) documenting the new pattern. **CRITICAL:** If a new KI is needed, you MUST either instruct the user to create it using the IDE's KI interface, or create it explicitly in `<appDataDir>\knowledge\<ki_name>\` with a `metadata.json` and an `artifacts/` subdirectory; do NOT guess the KI structure. The `/tier7-describe-architecture` workflow handles narrative sync to `docs/architecture/` automatically. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`)."
+> "DOCUMENTATION & KI AUDIT: If the [operation] introduced new systems, modified data flows, or shifted architectural boundaries, you MUST create or update a Knowledge Item (KI) documenting the new pattern. **CRITICAL:** If a new KI is needed, you MUST either instruct the user to create it using the IDE's KI interface, or create it explicitly in `<appDataDir>\knowledge\<ki_name>\` with a `metadata.json` and an `artifacts/` subdirectory; do NOT guess the KI structure. After creating/updating a KI, you MUST instruct the user to run `/tier7-describe-architecture` in a fresh session to synchronize the pillar narratives. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`)."
 
 > **Execution Constraint:** When modifying these 6 workflow files, the executing AI MUST strictly use the `multi_replace_file_content` tool for surgical edits. Full file overwrites (`write_to_file`) are strictly forbidden due to the large size and complexity of these system prompt files.
 
