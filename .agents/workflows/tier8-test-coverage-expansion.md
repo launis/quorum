@@ -9,8 +9,15 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
 <system_prompt>
   <objective>Expand test coverage for a target module or directory by writing negative, edge-case, and boundary value tests using ISTQB methodology.</objective>
   <role>Lead QA Engineer & Test Coverage Analyst</role>
-  <context_rules>
+  
+  <domain_boundary>
+    <role>TEST COVERAGE ENGINEER</role>
+    <instruction>These rules govern the systematic ISTQB-based expansion of negative, edge-case, and boundary value tests to ensure strict system resilience.</instruction>
+  </domain_boundary>
+
+  <architectural_invariants>
     <rule_block id="core_rules_routing">
+      <banned_pattern>Writing tests without first reading and understanding the architectural invariants of the target domain.</banned_pattern>
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on the target scope:
         - ALWAYS read: `04_directory_reference.md`
         - IF targeting Python/Backend: read `01-python-backend.md`
@@ -18,23 +25,31 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
       </mandatory_pattern>
       <catastrophic_reason>Writing tests without understanding the architectural invariants leads to tests that validate wrong behavior or use banned anti-patterns (e.g., raw dicts instead of Pydantic models, asyncio.gather instead of TaskGroup).</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="schema_first_mandate">
+      <banned_pattern>Guessing the shape of data models or writing tests without consulting the schema definitions.</banned_pattern>
       <mandatory_pattern>Before writing any test, you MUST explicitly read the corresponding `models.domain` or `models.dtos` schema definitions. Use `view_file` on the Pydantic model files to understand required fields, validators, and ConfigDict settings.</mandatory_pattern>
       <catastrophic_reason>Guessing the schema shapes during test creation causes strict Pydantic V2 validations to fail instantly, wasting debug cycles on phantom errors.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="anti_happy_path_enforcement">
+      <banned_pattern>Ignoring negative scenarios or writing only happy-path tests that test expected behavior.</banned_pattern>
       <mandatory_pattern>You MUST enforce the `anti_happy_path_mandate` from the `<universal_quality_gate>` section of `00-antigravity-core.md`. For every positive test case found in the existing suite, you MUST write at least 2 negative test cases. You MUST enforce ALL rule blocks in the `<universal_quality_gate>` — no rule block may be skipped.</mandatory_pattern>
       <catastrophic_reason>This workflow exists specifically to close the anti-happy-path gap. Skipping the mandate defeats the entire purpose.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="deterministic_mock_mandate">
+      <banned_pattern>Writing manual JSON dictionary mock data or using live network calls during tests.</banned_pattern>
       <mandatory_pattern>You MUST use `polyfactory` for generating schema-compliant mock data. You MUST NOT write manual JSON dictionary mock data. You MUST utilize the global `backend_v2/llm/mock.py` and `mock_data.py` framework files when constructing LLM-related test fixtures. The `conftest.py` blocks all live network calls — do NOT attempt to circumvent this.</mandatory_pattern>
       <catastrophic_reason>Manual mock data drifts from strict Pydantic schemas, causing silent test rot. Live network calls during testing are forbidden to prevent flaky, slow, and expensive test suites.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="context_amnesia_prevention">
+      <banned_pattern>Outputting file paths without wrapping them in @-reference syntax.</banned_pattern>
       <mandatory_pattern>Whenever you generate a handover command, tracker file, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
-  </context_rules>
+  </architectural_invariants>
 
   <execution_protocol level="8_test_expansion">
     <step id="1">BASELINE MEASUREMENT: Before writing any new tests, you MUST run the Universal Quality Gate as defined in `AGENTS.md` to capture the current test count and coverage percentage as a `[BASELINE]` metric. Record this baseline in the tracker or artifact for comparison.

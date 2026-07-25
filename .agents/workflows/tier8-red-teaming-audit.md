@@ -10,8 +10,14 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
   <objective>[DEFINE TARGET HERE. Ex: "Audit and red-team the rules in @[c:\src\quorum\.agents\workflows\tier3-god-code-decomposition.md]"]</objective>
   <role>Principal Security & Architecture Auditor (Red Team)</role>
   
-  <context_rules>
+  <domain_boundary>
+    <role>RED-TEAM AUDITOR</role>
+    <instruction>These rules govern the System 2 deep-dive evaluation, falsification, and hardening of agentic instructions and workflows.</instruction>
+  </domain_boundary>
+
+  <architectural_invariants>
     <rule_block id="core_rules_routing">
+      <banned_pattern>Auditing a rule without knowing the supreme core architectural laws or grounding yourself in the research methodology.</banned_pattern>
       <mandatory_pattern>Your VERY FIRST tool call MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`, `.agents/workflows/tier0-research-plan.md`, AND the specific target file(s) requested by the user. You MUST NOT output any `<thinking_process>` or generate code until you have physically read these files. ADDITIONALLY, you MUST load the domain-specific rule file that governs the TARGET's domain:
         - IF the target relates to Python/Backend: ADDITIONALLY read `01-python-backend.md`
         - IF the target relates to Flutter/Frontend: ADDITIONALLY read `02_flutter_desktop.md`
@@ -21,11 +27,15 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
       </mandatory_pattern>
       <catastrophic_reason>Auditing a rule without knowing the supreme core architectural laws or grounding yourself in the research methodology leads to false-positive recommendations that violate Phase 9 system integration.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="knowledge_base_mandate">
+      <banned_pattern>Auditing rules governing complex domains (e.g. caching, SDUI) without reading the associated Knowledge Item context.</banned_pattern>
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the target file governs mechanisms related to existing KIs (e.g., caching, LLM orchestration, Error Boundaries, Opaque IDs), you MUST read the KI artifact file BEFORE auditing, to prevent recommending changes that violate established architectural contracts.</mandatory_pattern>
       <catastrophic_reason>Auditing rules without KI context leads to false-positive recommendations that dismantle proven architectural solutions.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="modernity_and_best_practices_2026">
+      <banned_pattern>Failing to flag outdated legacy patterns in workflow instructions during an audit.</banned_pattern>
       <mandatory_pattern>You MUST ruthlessly evaluate all architectural patterns against these specific Quorum anti-patterns. If ANY are detected, flag them as findings with the mandated replacement:
         * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)
         * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
@@ -42,19 +52,25 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
         * Terminal commands (cat/tail) for log reading → Native MCP tools (`grep_search` / `view_file` with StartLine bounds)</mandatory_pattern>
       <catastrophic_reason>Allowing outdated architectural patterns to survive an audit guarantees rapid technical decay, preventing Quorum from leveraging modern performance, concurrency, and safety features.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="root_cause_justification_mandate">
+      <banned_pattern>Providing arbitrary audit findings without documenting a Root Cause or Architectural Justification.</banned_pattern>
       <mandatory_pattern>For EVERY weakness identified or improvement proposed, you MUST explicitly write down the Root Cause that necessitated the finding and provide a detailed architectural Justification for why your specific recommendation is the correct one.</mandatory_pattern>
       <catastrophic_reason>Without explicitly documenting root causes and justifications, audit findings appear arbitrary and are easily dismissed or misapplied.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="presentation_cleanliness_mandate">
+      <banned_pattern>Leaking XML tags into the final Markdown report or failing to use a thinking block for internal reasoning.</banned_pattern>
       <mandatory_pattern>You MUST use a `<thinking_process>` block for your System 2 internal reasoning and analysis. However, your FINAL Markdown report (Step 5) MUST NOT contain any XML tags and must be presented entirely outside of the thinking block as clean Markdown.</mandatory_pattern>
       <catastrophic_reason>Forcing complex logic without a thinking scratchpad degrades reasoning quality. Conversely, leaking XML into the final report clutters the UI.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="audit_persistence_mandate">
+      <banned_pattern>Delivering the audit only in chat without persisting the findings to an artifact file.</banned_pattern>
       <mandatory_pattern>After completing the Final Report, you MUST persist the audit findings by creating a timestamped artifact file (e.g., `red_team_audit_[target_name].md`) in the conversation artifact directory. This creates a searchable audit trail that survives context window closure and enables cross-session trend analysis.</mandatory_pattern>
       <catastrophic_reason>Without persistent audit trails, institutional security knowledge is lost with each conversation, forcing redundant re-audits and allowing previously identified vulnerabilities to silently re-emerge.</catastrophic_reason>
     </rule_block>
-  </context_rules>
+  </architectural_invariants>
   
   <execution_protocol level="8">
     <step id="1">CONTEXT RETRIEVAL: Carefully read `tier0-research-plan.md` to ground your analytical methodology, and then thoroughly read the target workflow or rule file provided by the user. CONTEXT BUDGET GUARD: If the target file exceeds 120 lines, or if you must load more than 3 ADDITIONAL Knowledge Item (KI) files beyond the mandatory core and domain rules, you MUST proactively warn the user that the audit may suffer from context degradation and recommend splitting the audit into focused sub-sections.</step>
@@ -66,7 +82,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
     - Does it enforce strict schema validation with Fail-Fast crash semantics (no silent fallbacks)?
     - Does it enforce Single Source of Truth (SSOT) without duplication?
     - Does it enforce Atomic Checkpoint commits and proper context window management?
-    - **Quorum Modernity Check**: Does the target rely on any of the specific Quorum anti-patterns (e.g., `asyncio.gather`, raw dict passing, `Optional[T] = None` for required fields, string concatenation for prompts, hardcoded model strings, `if/else` routing chains)? Flag each instance with its mandated modern replacement.
+    - **Quorum Modernity Check**: Does the target rely on any of the specific Quorum anti-patterns? Flag each instance with its mandated modern replacement.
     - **Peer Workflow Parity Check**: Does the target contain the same safety guardrails (e.g., circuit_breaker, session_handover, context_amnesia_prevention) as its peer workflows? If a peer has a guardrail that the target lacks, flag it as a potential gap.
     
     CONDITIONAL AXES (apply based on target domain):

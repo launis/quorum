@@ -19,6 +19,11 @@ description: Tier 2 (Knowledge Hardening) - Systematic Red-Teaming and XML Refac
       <mandatory_pattern>Whenever you generate a handover command, tracker file, or output a list of files, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\knowledge\target.md]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
+    <rule_block id="xml_refactoring_mandate">
+      <banned_pattern>Leaving knowledge items in generic markdown lists or paragraphs.</banned_pattern>
+      <mandatory_pattern>You MUST completely rewrite KI files into strict XML format using `<domain_boundary>`, `<architectural_invariants>`, `<rule_block>`, `<banned_pattern>`, `<mandatory_pattern>`, and `<catastrophic_reason>`.</mandatory_pattern>
+      <catastrophic_reason>Plain text rules cause Attention Dilution, leading to LLMs ignoring architectural rules.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <phases>

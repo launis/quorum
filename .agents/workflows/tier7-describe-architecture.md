@@ -10,16 +10,26 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
   <objective>Execute a Dual-Axis Architectural Audit. Anchor physical code paths to existing theoretical KI documentation (Top-Down), and flag any code that violates or falls outside the defined architecture (Bottom-Up Orphan Hunting).</objective>
   <role>Architectural Compliance Auditor</role>
   
-  <context_rules>
+  <domain_boundary>
+    <role>ARCHITECTURE AUDITOR</role>
+    <instruction>These rules govern the extraction of physical architecture from the codebase and synchronization with theoretical documentation.</instruction>
+  </domain_boundary>
+  
+  <architectural_invariants>
     <rule_block id="core_rules_routing">
+      <banned_pattern>Starting the architectural scan without reading the global architecture rules and capabilities.</banned_pattern>
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md` and the 5 pillar documents in `docs\architecture\`. You MUST understand the Capability-Driven architecture before scanning the physical codebase.</mandatory_pattern>
       <catastrophic_reason>Scanning code without understanding the 5 core capabilities causes the AI to misinterpret files or falsely flag critical infrastructure as rogue code.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="theory_immutability_mandate">
+      <banned_pattern>Rewriting, deleting, or altering theoretical English text in the 5 pillar documents, or appending physical implementation maps directly to them.</banned_pattern>
       <mandatory_pattern>When performing Top-Down anchoring, you MUST ONLY verify that physical code aligns with the Knowledge Items (KIs). If a KI is changed during Step 1, you MAY update the theoretical English text within the pillar documents to reflect the new KI. Otherwise, you MUST NEVER rewrite, delete, or alter the theoretical English text. Furthermore, you MUST NEVER append or update "Physical Implementation Map" sections in the pillar documents, as these have been explicitly banned.</mandatory_pattern>
       <catastrophic_reason>Tier 7 is a physical auditor, not a theoretical designer. Overwriting the English theory destroys the Knowledge Item foundation. Adding physical paths clutters timeless documents.</catastrophic_reason>
     </rule_block>
+    
     <rule_block id="modernity_and_best_practices_2026">
+      <banned_pattern>Documenting legacy or deprecated patterns as official architectural components.</banned_pattern>
       <mandatory_pattern>You MUST ruthlessly evaluate the code you scan against these specific Quorum anti-patterns. If ANY are detected in the physical codebase, you MUST flag them as "Rogue/Legacy Code" rather than documenting them as official architecture:
         * `asyncio.gather` → `asyncio.TaskGroup`
         * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
@@ -36,7 +46,7 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
         * Terminal commands (cat/tail) for log reading → Native MCP tools</mandatory_pattern>
       <catastrophic_reason>Validating outdated architectural patterns as official architecture guarantees rapid technical decay.</catastrophic_reason>
     </rule_block>
-  </context_rules>
+  </architectural_invariants>
 
   <execution_protocol level="7">
     <step id="1">THEORETICAL INGESTION: Read the 5 architectural pillar documents in `docs\architecture\`. Understand the 5 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience). Do NOT attempt to evaluate KI updates at this stage before scanning the physical code.</step>

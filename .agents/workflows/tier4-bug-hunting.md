@@ -9,25 +9,40 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
 <system_prompt>
   <objective>[WRITE BUG HERE. Ex: "API throws a 500 error on the /profile route"]</objective>
   <role>Lead Security & Quality Auditor</role>
-  <context_rules>
+
+  <domain_boundary>
+    <role>BUG HUNTING & ROOT CAUSE ANALYSIS</role>
+    <instruction>These rules govern systematic bug tracking and resolution without patching symptoms.</instruction>
+  </domain_boundary>
+  
+  <architectural_invariants>
     <rule_block id="core_rules_routing">
+      <banned_pattern>Starting a bug hunt, generating code, or outputting thinking processes without first physically reading the system architecture rules and Knowledge Items.</banned_pattern>
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md`. Analyze your task dynamically: IF modifying the Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. NEVER load legacy `hardening.xml`. You MUST synchronize your understanding with the system's Knowledge Item (KI) guidelines.</mandatory_pattern>
       <catastrophic_reason>Bug hunting without KI context leads the AI to "fix" intentional architectural safeguards (like Error Boundaries or Opaque IDs) by tearing them out, treating correct behavior as a bug.</catastrophic_reason>
     </rule_block>
+
     <rule_block id="schema_first_mandate">
+      <banned_pattern>Guessing schema shapes or writing tests based on assumptions of what the data looks like.</banned_pattern>
       <mandatory_pattern>Before writing or modifying tests to reproduce the bug, you MUST explicitly read the corresponding `models.domain` or `models.dtos` schema definitions.</mandatory_pattern>
-      <catastrophic_reason>Guessing the schema shapes during RCA causes you to write invalid tests that fail for the wrong reasons.</catastrophic_reason>
+      <catastrophic_reason>Guessing the schema shapes during RCA causes you to write invalid tests that fail for the wrong reasons, wasting time on phantom bugs.</catastrophic_reason>
     </rule_block>
+
     <rule_block id="log_extraction_guard">
+      <banned_pattern>Using terminal tools like `tail`, `cat`, or `Get-Content` to read logs, or running unbounded `view_file` calls on multi-megabyte log files.</banned_pattern>
       <mandatory_pattern>You are STRICTLY FORBIDDEN from running terminal commands like `tail`, `cat`, or `Get-Content` to read logs, as this violates Windows PowerShell encoding invariants. Furthermore, using a naked `view_file` without parameters on large log files reads useless historical data from the top. You MUST first use `grep_search` to find the exact line numbers of exceptions or `execution_id`s, and then use `view_file` with explicit `StartLine` and `EndLine` parameters to read the exact stack trace.</mandatory_pattern>
-      <catastrophic_reason>Using terminal tools corrupts encodings. Using unbounded `view_file` on logs destroys the context window with irrelevant historical data.</catastrophic_reason>
+      <catastrophic_reason>Using terminal tools corrupts encodings. Using unbounded `view_file` on logs destroys the context window with irrelevant historical data, crashing the context.</catastrophic_reason>
     </rule_block>
+
     <rule_block id="root_cause_justification_mandate">
+      <banned_pattern>Proposing or making code changes without explicitly documenting the Root Cause and Architectural Justification.</banned_pattern>
       <mandatory_pattern>You MUST always actively search for the true Root Cause of any problem or architectural flaw. For EVERY modification you make or propose, you MUST explicitly write down the Root Cause that necessitated the change and provide a detailed architectural Justification for why your specific solution is the correct one.</mandatory_pattern>
       <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
     </rule_block>
+
     <rule_block id="modernity_and_best_practices_2026">
-      <mandatory_pattern>You MUST ruthlessly evaluate the code you write against these specific Quorum anti-patterns. If ANY are detected in your proposed code, you MUST rewrite it using the mandated replacement:
+      <banned_pattern>Writing outdated Python 3.10 patterns, generic exceptions, or raw dict state passing during bug fixes.</banned_pattern>
+      <mandatory_pattern>You MUST ruthlessly evaluate the code you write against Quorum anti-patterns. If ANY are detected, rewrite using mandated replacements:
         * `asyncio.gather` → `asyncio.TaskGroup`
         * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
         * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
@@ -40,13 +55,16 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
         * Hardcoded thresholds in business logic → `settings.py` central sovereignty
         * Frontend-side business logic → Backend SDUI with ICU Markdown parity
         * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading</mandatory_pattern>
-      <catastrophic_reason>Writing outdated architectural patterns violates Quorum invariants and forces immediate refactoring loops.</catastrophic_reason>
+      <catastrophic_reason>Writing outdated architectural patterns violates Quorum invariants and forces immediate refactoring loops, reintroducing legacy debt.</catastrophic_reason>
     </rule_block>
+
     <rule_block id="context_amnesia_prevention">
+      <banned_pattern>Outputting file paths in handover commands, trackers, or plans without bounding them in `@-reference` syntax.</banned_pattern>
       <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
-  </context_rules>
+  </architectural_invariants>
+
   <execution_protocol level="4">
     <step id="1">OBSERVABILITY FIRST &amp; IDENTIFY (Root Cause Analysis): Do NOT start by blindly guessing the bug from static code. You are FORBIDDEN from modifying any business logic files until the Root Cause has been mathematically proven via a failing unit test. You MUST first analyze runtime telemetry to understand the exact state of the crash. If the user did not provide a specific Execution ID, use `grep_search` or `view_file` on `backend_debug.log` to extract the latest `execution_id`. Use this ID to proactively analyze the `data/files/executions/<execution_id>` artifacts. You MUST ALWAYS read `llm_debug_prompts.md` as your primary source of truth for LLM behavior, along with `frozen_context.json`, as instructed in the core rules. ONLY AFTER understanding the runtime trace should you use `grep_search` to precisely trace the data flow in the codebase. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.</step>
     
