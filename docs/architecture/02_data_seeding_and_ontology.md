@@ -17,7 +17,7 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 
 ### 2.3. The Y-Funnel Pre-Hook Architecture
 - **Law:** Data transformations during seeding must not pollute the pure domain objects.
-- **Enforcement:** The system uses a Y-Funnel architecture where Pre-Hooks manage structural migrations (e.g., from V1 to V2 paradigms) *before* data enters the domain validation phase. This ensures backward compatibility for older JSON definitions without polluting the strict Pydantic V2 Domain Models with legacy parsing logic.
+- **Enforcement:** The system uses a Y-Funnel architecture where Pre-Hooks perform structural data normalization *before* data enters the domain validation phase. This ensures heterogeneous JSON definitions are canonicalized into strict Pydantic V2 Domain Models without polluting the domain layer with transformation logic.
 
 ### 2.4. Semantic Localization (Performative Lexicons)
 - **Law:** System personality and localization strings are data, not code.
@@ -25,7 +25,7 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 
 ### 2.5. Universal I18n Domain Model (I18nText)
 - **Law:** Dynamic localized strings must never be flattened into dictionary maps or separate schema fields (e.g., `title_en`).
-- **Enforcement:** Any user-facing string that exists within the ontology (like profile titles, layout descriptions, and preambles) MUST use the strictly typed `I18nText` object in Python (`backend_v2/models/v2_core.py`) and Flutter (`client_app_v2/lib/shared/models/i18n_text.dart`). This ensures safe fallback resolution logic, structural parity across boundaries, and prevents UI crashes due to missing translation keys.
+- **Enforcement:** Any user-facing string that exists within the ontology (like profile titles, layout descriptions, and preambles) MUST use the strictly typed `I18nText` object in Python and Flutter. This ensures safe fallback resolution logic, structural parity across boundaries, and prevents UI crashes due to missing translation keys.
 
 ## 3. Logical Data Flow
 ```mermaid
@@ -41,7 +41,4 @@ flowchart TD
     I --> J[LLM Execution Engine]
 ```
 
-## 4. Physical Implementation Map (Auto-Generated)
-> **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/seed/seed_data.json` (SSOT), `backend_v2/models/enums.py` & `backend_v2/models/v2_core.py` (Pydantic V2 Domain Models), `backend_v2/services/orchestrator/schema_factory.py` (Polymorphic Router), `backend_v2/services/localization.py` & `backend_v2/services/translation_service.py` (Semantic Localization), `backend_v2/api/routers/studio/` (Ontology CRUD Endpoints), `backend_v2/services/studio/` (WorkflowService, SystemConfigService, SimulationService, PromptBlockService, OutputProfileService, LexiconService), `backend_v2/database/repositories/components/` (Domain-Specific Ontology Repositories: PromptBlocks, Matrices, Personas, Roles, Protocols), `backend_v2/database/` (Data Persistence & Wrappers).
-- **Frontend Consumers:** `client_app_v2/lib/core/models/prompt_block_category.dart` (Enum Mapping), `client_app_v2/lib/features/studio/models/output_profile.dart` (Layout & Terminology Rules).
+

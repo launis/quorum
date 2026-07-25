@@ -19,6 +19,14 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Business logic must never be hardcoded to a specific model version (e.g., `gemini-2.5-pro`).
 - **Enforcement:** The orchestration engine routes all LLM requests through a dynamic Model Registry defined in `seed_data.json`. Operations request logical model tiers (e.g., "fast", "deep", "synthesis") rather than physical model names. This allows administrators to hot-swap models globally without altering a single line of Python code.
 
+### 2.4. Data Ingestion & RAG Preflight
+- **Law:** The engine must handle dynamic external context gracefully.
+- **Enforcement:** The orchestrator utilizes a suite of Data Ingestion Providers (including Document Extraction, Web Fetching, File Drivers, and Flatteners) to acquire raw context. Before passing this context to the LLM, the system performs RAG Preflight Cache Pagination to optimize token usage and ensure context windows are not exceeded.
+
+### 2.5. Two-Pass Atomization & Execution
+- **Law:** Complex workflows require iterative decomposition and execution.
+- **Enforcement:** The orchestrator employs Two-Pass Atomization to break down high-level tasks into atomic steps. These atomic units are then routed through a DAG (Directed Acyclic Graph) Engine, ensuring dependencies are resolved correctly before dispatching to the Cognitive Execution Engines (such as TDA and Synthesis engines).
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
@@ -34,7 +42,4 @@ flowchart TD
     I --> J[Return Deterministic Result]
 ```
 
-## 4. Physical Implementation Map (Auto-Generated)
-> **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/services/orchestrator/prompt_compiler.py` (Static-First Assembly), `backend_v2/services/orchestrator/engines/tda_engine.py` & `backend_v2/services/orchestrator/engines/synthesis_engine.py` (Cognitive Execution Engines), `backend_v2/services/orchestrator/two_pass_atomizer.py` (Two-Pass Atomization), `backend_v2/services/orchestrator/rag_preflight_service.py` (RAG Preflight Cache Pagination), `backend_v2/services/orchestrator/dag_compiler.py` & `backend_v2/services/orchestrator/enriched_dag_executor.py` (DAG Engine), `backend_v2/services/orchestrator/context_router.py` (Context Routing), `backend_v2/services/llm_task_executor.py` (Best-Of-Three Consensus), `backend_v2/llm/client.py` (Model Multiplexer), `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py` (Dependency Injected Ontology Context), `backend_v2/services/mcp/` (MCP Tool Execution Loop), `backend_v2/services/document_extraction.py`, `backend_v2/services/web_fetcher.py`, `backend_v2/services/file_driver.py`, `backend_v2/services/storage.py`, `backend_v2/services/flattener.py` (Data Ingestion Providers).
-- **Frontend Consumers:** This capability is strictly backend-driven; the Frontend consumes synthesized results via `client_app_v2/lib/core/api/execution_client.dart`.
+
