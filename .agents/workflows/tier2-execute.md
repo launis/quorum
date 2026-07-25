@@ -54,16 +54,59 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
     </rule_block>
   </context_rules>
   <execution_protocol level="2">
-    <step id="1">ISOLATION: Execute the plan ATOMICALLY. Work on one single Milestone/Step at a time.</step>
-    <step id="2">COMPLETENESS MANDATE: You MUST implement EVERY SINGLE bullet point, mathematical formula, constraint, and edge case listed in the current milestone of the `implementation_plan.md`. You are NOT allowed to skip minor details, write "MVP" simplified logic, or abstract away complex requirements. Treat the milestone plan as an exhaustive technical checklist. PRE-FLIGHT CHECKLIST: Before writing ANY code, you MUST output a literal checklist of all the constraints and edge cases you found in the markdown plan. When writing the code, add comments that trace back to the plan (e.g. `# Phase 3, Step 4: Enforce Exponential Backoff`). DOUBLE CHECK MANDATE: Before proceeding to tests, you MUST double-check (varmista kahdesti) your written code against the original `.md` plan to guarantee 100% of the listed requirements have been mapped into the code. Do not proceed until you have explicitly confirmed no detail was dropped.</step>
-    <step id="2.5">ESCALATION PROTOCOL: If you discover that a specific bullet point in the implementation plan fundamentally contradicts the architecture rules (e.g., introduces a strict circular dependency or deeply couples shared state), you MUST NOT hallucinate a duct-tape workaround to satisfy the COMPLETENESS MANDATE. Instead, STOP execution for that step, mark it as `[BLOCKED]` in `task.md`, explicitly document the architectural contradiction, and instruct the user to provide manual guidance or run `/tier0-research-plan` on the blocked task.</step>
-    <step id="3">PRE-DELETE AUDIT: Before executing ANY file deletion: 1. Read ENTIRE file. 2. List every exported symbol. 3. Grep to verify symbols exist in new locations. 4. If ANY symbol is missing from its planned destination, you MUST STOP. You are strictly FORBIDDEN from deleting the file until you have explicitly asked and received PROCEED permission from the user.</step>
-    <step id="4">CONSTRAINTS & TDD MANDATE: For every single step, perform automated verification BEFORE and AFTER your changes. NEW FUNCTIONALITY MANDATE: You MUST write a failing test first (Red-Green-Refactor) for new logic. You MUST explicitly mandate the use of the Universal Quality Gate as defined in `AGENTS.md`. You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</step>
-    <step id="5">TASK MANAGEMENT & STATE RECOVERY: Update the `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]` to ensure absolute visibility of progress. DIRTY STATE ROLLBACK: If you trip the `circuit_breaker_protocol` (3 consecutive test failures) or encounter an unresolvable error, you MUST NOT leave the workspace in a broken state. You MUST explicitly instruct the user to run `git restore .` (or equivalent) to rollback the dirty working directory to the last atomic commit. Update `task.md` to reflect the failure before halting.</step>
-    <step id="6">END-TO-END SMOKE TEST: Before marking a tracker phase as [x] (or marking the task complete), you MUST verify the change works in the actual runtime context, not just in unit tests. For LLM pipeline changes, this means verifying that the system prompt actually contains the new instructions, the LLM's response is parsed correctly by the pipeline, and the final output matches the expected format. If end-to-end verification is impossible in the current session, the phase MUST be marked as [NEEDS_E2E] instead of [x].</step>
-    <step id="7">DOCUMENTATION AUDIT MANDATE: If the executed plan introduced new systems, modified data flows, shifted architectural boundaries, or created new directories, you MUST physically update the relevant `docs\architecture\` documentation files AND `.agents\rules\04_directory_reference.md` using file editing tools (following the Tier 7 'Describe Architecture' principles). Ensure your updates strictly follow the existing structures of these files, such as formatting tables correctly. Do NOT update architecture documentation for minor tweaks or localized refactors.</step>
-    <step id="8">PLAN WRAP-UP & AUDIT ROUTING: When all steps of the current `implementation_plan.md` are completed, you MUST NOT declare the task fully finished. Instead, you MUST enforce a mandatory System 2 Red-Team audit of your own work by instructing the user to run the `/tier8-audit-plan` workflow in a fresh context window. Provide the exact command (e.g., `/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_XXX\01_feature_plan.md]" --workflow=/tier8-audit-plan`). You are strictly FORBIDDEN from proceeding to the next plan or closing the task without routing through this audit gate.</step>
-    <step id="9">MID-EXECUTION HANDOVER: If the execution session becomes too long or the AI context window approaches its limits before the Epic is complete, you MUST initiate a session handover. Update `task.md` completely. CRITICALLY: You MUST append a `# Session Handover Context` block at the bottom of `task.md` containing exhaustive bullet points for: **Achieved**, **Learned** (crucial for passing ephemeral knowledge like mock strategies or weird behaviors to the next agent), and **Remaining**. Finally, provide the exact `/tier5-resume` command instructing the user to continue in a fresh context. The command MUST explicitly include the absolute path to the tracker artifact, the workflow, and the rules, formatted exactly like this: `/tier5-resume --target="[absolute_path_to_task.md]" --workflow=/tier2-execute --rules="00-antigravity-core.md, [other_relevant_rules]"`.</step>
+    <step id="1" name="ISOLATION">
+      <action>Execute the plan ATOMICALLY. Work on one single Milestone/Step at a time.</action>
+    </step>
+    
+    <step id="2" name="COMPLETENESS MANDATE">
+      <action>Implement EVERY SINGLE bullet point, mathematical formula, constraint, and edge case listed in the current milestone of the `implementation_plan.md`. Treat the milestone plan as an exhaustive technical checklist.</action>
+      <constraint>You are NOT allowed to skip minor details, write "MVP" simplified logic, or abstract away complex requirements.</constraint>
+      <gate name="PRE-FLIGHT CHECKLIST">Before writing ANY code, you MUST output a literal checklist of all the constraints and edge cases you found in the markdown plan.</gate>
+      <action>When writing the code, add comments that trace back to the plan (e.g. `# Phase 3, Step 4: Enforce Exponential Backoff`).</action>
+      <gate name="DOUBLE CHECK MANDATE">Before proceeding to tests, you MUST double-check your written code against the original `.md` plan to guarantee 100% of the listed requirements have been mapped into the code. Do not proceed until you have explicitly confirmed no detail was dropped.</gate>
+    </step>
+
+    <step id="2.5" name="ESCALATION PROTOCOL">
+      <fallback trigger="A specific bullet point in the plan fundamentally contradicts the architecture rules (e.g., circular dependency)">STOP execution for that step, mark it as `[BLOCKED]` in `task.md`, explicitly document the architectural contradiction, and instruct the user to provide manual guidance or run `/tier0-research-plan` on the blocked task.</fallback>
+      <constraint>You MUST NOT hallucinate a duct-tape workaround to satisfy the COMPLETENESS MANDATE.</constraint>
+    </step>
+
+    <step id="3" name="PRE-DELETE AUDIT">
+      <action>Before executing ANY file deletion: 1. Read ENTIRE file. 2. List every exported symbol. 3. Grep to verify symbols exist in new locations.</action>
+      <fallback trigger="ANY symbol is missing from its planned destination">You MUST STOP. You are strictly FORBIDDEN from deleting the file until you have explicitly asked and received PROCEED permission from the user.</fallback>
+    </step>
+
+    <step id="4" name="CONSTRAINTS & TDD MANDATE">
+      <action>For every single step, perform automated verification BEFORE and AFTER your changes.</action>
+      <action name="NEW FUNCTIONALITY MANDATE">You MUST write a failing test first (Red-Green-Refactor) for new logic.</action>
+      <action>You MUST explicitly mandate the use of the Universal Quality Gate as defined in `AGENTS.md`. Enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
+    </step>
+
+    <step id="5" name="TASK MANAGEMENT & STATE RECOVERY">
+      <action>Update the `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]` to ensure absolute visibility of progress.</action>
+      <fallback trigger="trip the circuit_breaker_protocol (3 consecutive test failures) or encounter an unresolvable error">You MUST NOT leave the workspace in a broken state. Explicitly instruct the user to run `git restore .` (or equivalent) to rollback the dirty working directory to the last atomic commit. Update `task.md` to reflect the failure before halting.</fallback>
+    </step>
+
+    <step id="6" name="END-TO-END SMOKE TEST">
+      <gate>Before marking a tracker phase as [x] (or marking the task complete), you MUST verify the change works in the actual runtime context, not just in unit tests. For LLM pipeline changes, verify the system prompt contains new instructions, the response is parsed correctly, and the final output matches.</gate>
+      <fallback trigger="end-to-end verification is impossible in the current session">The phase MUST be marked as `[NEEDS_E2E]` instead of `[x]`.</fallback>
+    </step>
+
+    <step id="7" name="DOCUMENTATION AUDIT MANDATE">
+      <action>If the executed plan introduced new systems, modified data flows, shifted architectural boundaries, or created new directories, you MUST physically update the relevant `docs\architecture\` documentation files AND `.agents\rules\04_directory_reference.md` using file editing tools.</action>
+      <action>Ensure your updates strictly follow the existing structures of these files, such as formatting tables correctly.</action>
+      <constraint>Do NOT update architecture documentation for minor tweaks or localized refactors.</constraint>
+    </step>
+
+    <step id="8" name="PLAN WRAP-UP & AUDIT ROUTING">
+      <constraint>When all steps of the current `implementation_plan.md` are completed, you MUST NOT declare the task fully finished. You are strictly FORBIDDEN from proceeding to the next plan or closing the task without routing through the audit gate.</constraint>
+      <gate>You MUST enforce a mandatory System 2 Red-Team audit of your own work by instructing the user to run the `/tier8-audit-plan` workflow in a fresh context window. Provide the exact command (e.g., `/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_XXX\01_feature_plan.md]" --workflow=/tier8-audit-plan`).</gate>
+    </step>
+
+    <step id="9" name="MID-EXECUTION HANDOVER">
+      <fallback trigger="execution session becomes too long or context window approaches its limits">You MUST initiate a session handover. Update `task.md` completely. CRITICALLY: Append a `# Session Handover Context` block at the bottom of `task.md` containing exhaustive bullet points for: Achieved, Learned, and Remaining.</fallback>
+      <action>Provide the exact `/tier5-resume` command instructing the user to continue in a fresh context. The command MUST explicitly include the absolute path to the tracker artifact, the workflow, and the rules, formatted exactly like this: `/tier5-resume --target="[absolute_path_to_task.md]" --workflow=/tier2-execute --rules="00-antigravity-core.md, [other_relevant_rules]"`.</action>
+    </step>
   </execution_protocol>
 </system_prompt>
 ```
