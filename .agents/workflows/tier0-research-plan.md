@@ -64,7 +64,12 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     <step id="2" name="SYSTEM 2 ANALYSIS &amp; CHAIN-OF-THOUGHT">
       <action>Before making any conclusions, create a separate `<thinking_process>` block where you document your entire thought process. Break the problem down to first principles.</action>
       <constraint>Do NOT use custom XML tags like `research_and_analysis`.</constraint>
-      <action>Analyze the plan through the Quorum "Panel of Experts" (Python Backend Architect, LLM Architect, Flutter &amp; UI Developer).</action>
+      <constraint name="PANEL OF EXPERTS">
+        Analyze the plan through the Quorum "Panel of Experts":
+        - Python Backend Architect: Does this break strict Pydantic models or asynchronous constraints (e.g., TaskGroup)? Are the APIs designed correctly?
+        - LLM Architect: Are the backend LLM calls and prompts safe and controlled? Are hallucinations prevented and is cache utilization maximized?
+        - Flutter & UI Developer: Does this fully support Server-Driven UI (SDUI)? Does the plan ensure UI components handle errors via Error Boundaries without crashing the entire app?
+      </constraint>
       <constraint name="QUORUM MODERNITY GATE">
         Ruthlessly audit the plan against Quorum anti-patterns. If ANY are detected, mutate the plan to enforce the mandated replacement:
         * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)

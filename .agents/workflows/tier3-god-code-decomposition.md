@@ -72,7 +72,7 @@ This workflow is designed for the systematic planning and decomposition of heavy
     </step>
     
     <step id="3" name="PHASE 2 (Micro-Chunking &amp; Lazy Plan Generation)">
-      <action>Break the decomposition down into multiple `phaseX_[domain]_extraction.md` plans inside a new `docs\epic\tasks_[filename]\` directory. Create ONE plan per domain.</action>
+      <action>Break the decomposition down into multiple `phaseX_[domain]_extraction.md` plans inside a new `docs\epic\tasks_[filename]\` directory. Create ONE plan per domain. This transforms the extraction into a continuous execution loop.</action>
       <constraint name="CRITICAL LIMIT">To prevent LLM cognitive overload, if there are more than 3 extraction phases, you MUST ONLY generate detailed plans for Phase 1 and Phase 2. For Phase 3 and beyond, just create empty placeholder files or title headers in the tracker.</constraint>
       <action>Add an explicit `[NOK]` task in the tracker after Phase 2 instructing the executing agent: "Invoke the Tier 3 Planner again to generate detailed plans for the remaining phases based on the updated codebase state."</action>
       <action>Ensure the Strangler Fig mapping (including test mock updates and DI shadow fixes) is detailed in the generated plans.</action>

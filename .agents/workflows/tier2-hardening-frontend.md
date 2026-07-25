@@ -29,13 +29,13 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
       <catastrophic_reason>Without a failing test, there is no mathematical proof that the fix works or that regressions won't occur.</catastrophic_reason>
     </rule_block>
     <rule_block id="audit_loop_circuit_breaker">
-      <banned_pattern>Attempting to run random terminal commands like `flutter gen-l10n`, or continuously trying to duct-tape failing tests more than 3 times.</banned_pattern>
+      <banned_pattern>Attempting to run random terminal commands like `flutter gen-l10n` (Note: running `flutter gen-l10n` is forbidden in the sandbox), or continuously trying to duct-tape failing tests more than 3 times.</banned_pattern>
       <mandatory_pattern>You MUST run quality assurance testing after code changes via the global audit loops as defined in `AGENTS.md`. DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your refactor (Circuit Breaker trips), you MUST STOP attempting to duct-tape the code. You MUST explicitly instruct the user to run `git restore .` to wipe the corrupted workspace state.</mandatory_pattern>
       <catastrophic_reason>Endless duct-taping corrupts the workspace and masks root causes.</catastrophic_reason>
     </rule_block>
     <rule_block id="documentation_audit_mandate">
       <banned_pattern>Making significant structural changes without updating architecture documentation.</banned_pattern>
-      <mandatory_pattern>If the refactoring caused significant architectural changes to the UI structure, file deletions, or the creation of new directories, you MUST create or update a Knowledge Item (KI) documenting the new pattern. **CRITICAL:** If a new KI is needed, you MUST either instruct the user to create it using the IDE's KI interface, or create it explicitly in `<appDataDir>\knowledge\<ki_name>\` with a `metadata.json` and an `artifacts/` subdirectory; do NOT guess the KI structure. After creating/updating a KI, you MUST instruct the user to run `/tier7-describe-architecture` in a fresh session to synchronize the pillar narratives. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`).</mandatory_pattern>
+      <mandatory_pattern>If the refactoring caused significant architectural changes to the UI structure, file deletions, or the creation of new directories, you MUST create or update a Knowledge Item (KI) documenting the new pattern. **CRITICAL:** If a new KI is needed, you MUST either instruct the user to create it using the IDE's KI interface, or create it explicitly in `<appDataDir>\knowledge\<ki_name>\` with a `metadata.json` and an `artifacts/` subdirectory; do NOT guess the KI structure. After creating/updating a KI, you MUST instruct the user to run `/tier7-describe-architecture` in a fresh session to synchronize the pillar narratives. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`). If you do update tracking `.md` files, you MUST do so strictly maintaining their existing table structures.</mandatory_pattern>
       <catastrophic_reason>Outdated architecture documentation leads to fatal context hallucinations in future AI sessions.</catastrophic_reason>
     </rule_block>
   </context_rules>
@@ -66,7 +66,7 @@ We will now unpack the virtual list autonomously in a continuous loop:
     </phase>
     
     <phase id="3" name="Remediation Phase (FIX)">
-If step 4 triggered a fix, execute the fixes obeying the Red-Green-Refactor, Audit Loop Circuit Breaker, and Documentation Audit mandates defined in `<context_rules>`. Once tests pass and documentation is updated, return to Phase 2, Step 5.
+If step 4 triggered a fix, execute the fixes obeying the Red-Green-Refactor, Audit Loop Circuit Breaker, and Documentation Audit mandates defined in `<context_rules>`. Use the `--build` flag when running the `flutter_audit_loop` if any Freezed models were modified. Once tests pass and documentation is updated, return to Phase 2, Step 5.
     </phase>
   </phases>
 </system_prompt>

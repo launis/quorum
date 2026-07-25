@@ -71,17 +71,15 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
 
     <step id="3" name="STANDARDIZED QUORUM EPIC ARCHITECTURE">
       <action>Draft the Epic file adhering to the comprehensive Quorum Epic Template.</action>
-      <action>Insert a `&gt; [!NOTE]` block titled `**Scientific &amp; Industrial Validation (2025-2026)**` at the very beginning of the document (immediately under the Epic title), containing the external justification and key source references found in Step 2.</action>
+      <action>Insert a `> [!NOTE]` block titled `**Scientific & Industrial Validation (2025-2026)**` at the very beginning of the document (immediately under the Epic title), containing the external justification and key source references found in Step 2.</action>
       <constraint name="TEMPLATE HEADINGS">
-        - `## 1. Goal Description &amp; Background (Objective &amp; Problem Statement)`: High-level business objectives, problem statement, and strategic scope.
-        - `## 2. Architectural Impact &amp; Compliance Matrix`: 
-          - **Deprecations &amp; Sunset List (`What We Will REMOVE`)**: Explicit inventory of deprecated classes, fields, endpoints, or files to be purged.
+        - `## 1. Goal Description & Background (Objective & Problem Statement)`: High-level business objectives, problem statement, and strategic scope.
+        - `## 2. Architectural Impact & Compliance Matrix`: 
+          - **Deprecations & Sunset List (`What We Will REMOVE`)**: Explicit inventory of deprecated classes, fields, endpoints, or files to be purged. Destructive Operation Inventory mapping each deleted symbol to its new home or marked "INTENTIONALLY DROPPED".
           - **Retained SSOT Invariants (`What We Will RETAIN`)**: Preserved models, APIs, and interfaces validated by Red-Teaming.
-          - **Compliance &amp; Modernity Gates**: Quorum 2026 invariants.
+          - **Compliance & Modernity Gates**: Quorum 2026 invariants.
           - **Producer-Consumer Integration Check**: Structural contract between data producers and data consumers.
         - `## 3. Phased Execution Plan (Implementation Strategy)`:
-          - Phase 0: Seed Data &amp; Database Prerequisite / Migration
-          - Phase 1: Backend Domain Models &amp; Service Engine Hardening
           - Phase 2: Orchestration, Registry &amp; Prompt Compiler Updates
           - Phase 3: Frontend Flutter UI &amp; Freezed DTO Synchronization
           - Phase 4: Verification &amp; E2E Integration Gate
