@@ -111,7 +111,7 @@ Execute on all 6 architecture pillar documents:
 #### Task 1.3: Fix Pillar Count References
 
 Update all instances of "5 pillar" / "5 core capabilities" to "6 pillar" / "6 core capabilities" (including Enriched Atom Graph Engine) in:
-1. @[c:\src\quorum\.agents\workflows\tier7-describe-architecture.md] — 5 occurrences at lines 15, 16, 42, 46, 48.
+1. @[c:\src\quorum\.agents\workflows\tier7-describe-architecture.md] — 5 occurrences scattered across the architectural invariants and execution steps.
 2. @[c:\src\quorum\.agents\rules\04_directory_reference.md] — line 113: update to "6 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine)".
 
 ---
@@ -143,7 +143,7 @@ Create a new English narrative file inside the architecture directory to guide d
 Add a strict new rule block to the Tier 7 system prompt to enforce the timeless mandate at the orchestration level.
 
 **Changes:**
-1. Add `<rule_block id="timeless_as_built_mandate">` to `<context_rules>`:
+1. Add `<rule_block id="timeless_as_built_mandate">` to `<architectural_invariants>`:
    ```xml
     <rule_block id="timeless_as_built_mandate">
       <mandatory_pattern>All theoretical descriptions in the architecture pillars MUST be strictly timeless and read as cohesive narratives. When updating documents based on new KIs, you MUST integrate the new information seamlessly into the relevant sections. You are FORBIDDEN from simply appending bulleted lists, changelogs, or "recent changes" to the bottom of the document. You are also FORBIDDEN from including project identifiers (e.g., "Epic 94", "Phase 3"), dates (e.g., "2025"), historical context (e.g., "Previously we used X, now we use Y"), or future plans (e.g., "We will implement Z"). Describe the system exactly as it exists today as an objective, factual state. NOTE: This rule is the domain-specific extension of the global `documentation_present_tense_mandate` in `00-antigravity-core.md`.</mandatory_pattern>
@@ -182,7 +182,7 @@ Audit and update the core execution workflows to align with the Dual-Axis Docume
 | @[c:\src\quorum\.agents\workflows\tier5-session-handover.md] | Step 2 | Replace `docs\architecture\` verification with KI audit check. Keep `04_directory_reference.md` verification. |
 
 > **Standard Replacement Text (to be adapted per workflow's existing phrasing):**
-> "DOCUMENTATION & KI AUDIT: If the [operation] introduced new systems, modified data flows, or shifted architectural boundaries, you MUST create or update a Knowledge Item (KI) documenting the new pattern. The `/tier7-describe-architecture` workflow handles narrative sync to `docs/architecture/` automatically. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`)."
+> "DOCUMENTATION & KI AUDIT: If the [operation] introduced new systems, modified data flows, or shifted architectural boundaries, you MUST create or update a Knowledge Item (KI) documenting the new pattern. **CRITICAL:** If a new KI is needed, you MUST either instruct the user to create it using the IDE's KI interface, or create it explicitly in `<appDataDir>\knowledge\<ki_name>\` with a `metadata.json` and an `artifacts/` subdirectory; do NOT guess the KI structure. The `/tier7-describe-architecture` workflow handles narrative sync to `docs/architecture/` automatically. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`)."
 
 > **Execution Constraint:** When modifying these 6 workflow files, the executing AI MUST strictly use the `multi_replace_file_content` tool for surgical edits. Full file overwrites (`write_to_file`) are strictly forbidden due to the large size and complexity of these system prompt files.
 
