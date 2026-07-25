@@ -12,8 +12,12 @@ description: Tier 2 (Knowledge Hardening) - Systematic Red-Teaming and XML Refac
   
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. First, read `.agents/rules/00-antigravity-core.md`, `.agents/rules/01-python-backend.md`, and `.agents/rules/02_flutter_desktop.md` to ground your architectural understanding.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. First, read `.agents/rules/00-antigravity-core.md`, `.agents/rules/01-python-backend.md`, `.agents/rules/02_flutter_desktop.md`, `.agents/rules/05_llm_architecture.md`, and `.agents/rules/04_directory_reference.md` to ground your architectural understanding across all domains.</mandatory_pattern>
       <catastrophic_reason>Without grounding in the core architectural rules, the red-team audit will fail to identify anti-patterns, resulting in KI files that enforce legacy paradigms.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="context_amnesia_prevention">
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, or output a list of files, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\knowledge\target.md]`).</mandatory_pattern>
+      <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
   </context_rules>
   
@@ -34,7 +38,7 @@ We will now unpack the virtual list autonomously in a continuous loop:
 4. **XML REFACTORING MANDATE**: You MUST completely rewrite the KI file. Convert plain markdown rules into strict XML format using `<domain_boundary>`, `<architectural_invariants>`, `<rule_block>`, `<banned_pattern>`, `<mandatory_pattern>`, and `<catastrophic_reason>`. Integrate any improvements or missing guardrails identified during your Red-Team analysis directly into the new XML rules.
 5. **AUTONOMOUS FIX & NEXT:** Use `write_to_file` to overwrite the KI file with the new XML structure. Print a brief summary of the changes and immediately proceed to the next undone file on the list. Do NOT wait for a "FIX" or "NEXT" command. 
 6. **STATE PERSISTENCE:** When the file is completely refactored and saved, update or create `tmp\hardening_ki_state.json` and mark the KI file as "DONE".
-7. **SESSION LIMIT & HANDOVER:** Keep a tally of the total number of KI files you have audited in this session. If you have processed 3 files, STOP immediately once the file is complete. Do not move on to the next. You MUST physically append a `# Session Handover Context` block to the bottom of a Tracker file (e.g., create or update `tmp\hardening_ki_tracker.md`) detailing `achieved` and `remaining`, because `/tier5-resume` requires reading from a file, NOT from the chat history. Then, print to the user exactly: "Session limit reached. Continue by issuing the command: `/tier5-resume --target="[absolute_path_to_tracker.md], [target_directory_being_audited]" --workflow=/tier2-hardening-knowledge --rules="00-antigravity-core.md"`".
+7. **SESSION LIMIT & HANDOVER:** Keep a tally of the total number of KI files you have audited in this session. If you have processed 3 files, STOP immediately once the file is complete. Do not move on to the next. You MUST physically append a `# Session Handover Context` block to the bottom of a Tracker file (e.g., create or update `tmp\hardening_ki_tracker.md`) detailing `achieved` and `remaining`, because `/tier5-resume` requires reading from a file, NOT from the chat history. Then, print to the user exactly: "Session limit reached. Continue by issuing the command: `/tier5-resume --target="@[absolute_path_to_tracker.md] @[target_directory_being_audited]" --workflow=/tier2-hardening-knowledge --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`".
     </phase>
   </phases>
 </system_prompt>

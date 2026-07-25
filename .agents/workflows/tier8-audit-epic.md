@@ -53,6 +53,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
 
     <step id="4">MODERNITY, COMPLIANCE & QUALITY GATE VERIFICATION: 
       - Inspect the actual implementations of the Epic's features for Quorum 2026 laws (TaskGroup, Pydantic V2 DTOs, No-String Mandate, SDUI Parity, no lazy fallbacks).
+      - You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.
       - MATHEMATICAL PROOF MANDATE: You MUST physically execute the universal quality gate scripts (`uv run python scripts/backend_audit_loop.py <target_dirs>` or `flutter_audit_loop.py`) on the primary directories touched by this Epic Phase. An Epic Phase CANNOT pass the audit if it has failing tests, type errors, or insufficient test coverage. Visual inspection is not enough.
     </step>
 

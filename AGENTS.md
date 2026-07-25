@@ -91,5 +91,6 @@
         <tier id="6" path="/tier6-execution-monitor">Execution Monitor for real-time background log auditing.</tier>
         <tier id="7" path="/tier7-describe-architecture">As-Built architectural documentation from current codebase.</tier>
         <tier id="8_audit" path="/tier8-red-teaming-audit">System 2 deep-dive evaluation and red-teaming.</tier>
+        <tier id="8_test_expansion" path="/tier8-test-coverage-expansion">ISTQB-based iterative test coverage expansion for negative and edge-case tests.</tier>
     </execution_tiers>
 </workflow_routing>

@@ -53,7 +53,8 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
     <step id="4">MODERNITY, COMPLIANCE & QUALITY GATE VERIFICATION: 
       - Determine the domain scope of the plan (Backend-only, Frontend-only, or Full-Stack).
       - Inspect the actual implementations against Quorum 2026 laws (TaskGroup, Pydantic V2 DTOs, No-String Mandate, no lazy fallbacks).
-      - SCOPED SDUI PARITY: If the plan is Backend-only, do NOT fail the audit for missing Frontend implementations (they belong to the next phase). Enforce SDUI Parity ONLY if the plan spans both domains or if it is the final Integration Checkpoint.
+      - SCOPED SDUI Parity: If the plan is Backend-only, do NOT fail the audit for missing Frontend implementations (they belong to the next phase). Enforce SDUI Parity ONLY if the plan spans both domains or if it is the final Integration Checkpoint.
+      - You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.
       - MATHEMATICAL PROOF MANDATE: You MUST physically execute the universal quality gate scripts (`uv run python scripts/backend_audit_loop.py <target_dirs>` or `flutter_audit_loop.py`) on the primary directories touched by this plan.
     </step>
 

@@ -61,6 +61,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     </step>
 
     <step id="3">FALSIFICATION & RED-TEAMING (CHECKLIST): Attack the plan with a "Red-Team" mindset. You MUST find and document at least two potential weaknesses or failure points in the original plan. Before proceeding, answer these mandatory questions for every major architectural change:
+      - Does the plan include explicit negative test scenarios (at least 2 per feature) as mandated by the `anti_happy_path_mandate` in the `<universal_quality_gate>` of `00-antigravity-core.md`?
       - Does this solution seamlessly support the core architecture (e.g., strict Pydantic validations), and have you actively verified it does not conflict with any Knowledge Base (KI) guidelines?
       - Have you checked the Dependency Injection (DI) wiring and Interface Segregation (Protocol) blast radius effects?
       - If the plan involves breaking down components, have you verified that ALL unit test mocks (e.g., AsyncMock return values) are planned to be explicitly updated to match the new strict Pydantic schemas?

@@ -22,6 +22,12 @@ Pillar 06 is structurally unique: it embeds `**Path:** backend_v2/...` reference
 2. Remove the inline `**Path:** ...` lines.
 3. Verify that `04_directory_reference.md` already covers these paths under the `backend_v2/services/` module.
 
+**Special Handling — Pillar 02 ([02_data_seeding_and_ontology.md](file:///c:/src/quorum/docs/architecture/02_data_seeding_and_ontology.md)):**
+Pillar 02 line 28 (Section 2.5 — Universal I18n Domain Model) embeds inline physical file paths (`backend_v2/models/v2_core.py` and `client_app_v2/lib/shared/models/i18n_text.dart`) within the theoretical I18nText description. The executing agent MUST remove these inline paths and verify that `04_directory_reference.md` already covers them under the `backend_v2/models/` and `client_app_v2/lib/shared/` modules.
+
+**General Sweep — ALL Pillars:**
+After handling the Pillar 06 and Pillar 02 special cases above, the executing agent MUST `grep_search` ALL 6 pillar documents for any remaining inline file path patterns (e.g., `backend_v2/`, `client_app_v2/`, `.py`, `.dart`) in the theoretical body text (not the Physical Implementation Map sections, which are removed separately in Phase A.2). Any discovered paths MUST be removed and verified to exist in `04_directory_reference.md`.
+
 ### Phase A.2: Remove Temporal Contamination & Physical Implementation Maps
 
 Execute on all 6 architecture pillar documents:
@@ -108,7 +114,7 @@ Audit and update the core execution workflows to align with the Dual-Axis Docume
 **Standard Replacement Text (to be adapted per workflow's existing phrasing):**
 > "DOCUMENTATION & KI AUDIT: If the [operation] introduced new systems, modified data flows, or shifted architectural boundaries, you MUST create or update a Knowledge Item (KI) documenting the new pattern. The `/tier7-describe-architecture` workflow handles narrative sync to `docs/architecture/` automatically. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`)."
 
-> **NOTE:** [tier1-planner.md](file:///c:/src/quorum/.agents/workflows/tier1-planner.md) Step 9 is already partially aligned and uses the correct pattern: "Do NOT instruct agents to manually update the physical file paths in the architecture documents." This serves as the baseline.
+> **NOTE:** [tier1-planner.md](file:///c:/src/quorum/.agents/workflows/tier1-planner.md) does not currently contain any documentation audit mandate referencing `docs\architecture\`. No re-routing is needed for this workflow.
 
 ---
 

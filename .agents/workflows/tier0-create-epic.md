@@ -42,6 +42,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
 
     <step id="2">SYSTEM 2 DESIGN & CHAIN-OF-THOUGHT: Before writing the Epic document, create a `<thinking_process>` block to analyze:
       - High-level business goals, core problems, and architectural objectives.
+      - SCIENTIFIC VALIDATION MANDATE: You MUST use the `search_web` tool to find the most modern (e.g., 2025-2026) scientific or industrial validation and research for the proposed architectural changes. This external research MUST actively influence how the Epic is constructed.
       - QUORUM MODERNITY GATE & CROSS-EPIC INVARIANTS AUDIT (Synthesized from Epics 74, 91.5, 92, 95, 106, 107, 108, 109):
         1. Zero Legacy State Support Mandate: No backward compatibility for past runs. Clean slate DB re-seeding (`uv run python backend_v2/seed/run_seed.py local`).
         2. Central Config Sovereignty: All RPM/concurrency limits in `backend_v2/settings.py`. Taxonomies in `models/enums.py`.
@@ -56,7 +57,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
         11. Exact String Matching: `str.find()` for forensic quote evidence (no regex or fuzzy matching).
     </step>
 
-    <step id="3">STANDARDIZED QUORUM EPIC ARCHITECTURE (Synthesized Headings): Draft the Epic file adhering to the comprehensive Quorum Epic Template:
+    <step id="3">STANDARDIZED QUORUM EPIC ARCHITECTURE (Synthesized Headings): Draft the Epic file adhering to the comprehensive Quorum Epic Template. You MUST insert a `> [!NOTE]` block titled `**Scientific & Industrial Validation (2025-2026)**` at the very beginning of the document (immediately under the Epic title), containing the external justification and key source references found in Step 2.
       - `## 1. Goal Description & Background (Objective & Problem Statement)`: High-level business objectives, problem statement, and strategic scope.
       - `## 2. Architectural Impact & Compliance Matrix`: 
         - **Deprecations & Sunset List (`What We Will REMOVE`)**: Explicit inventory of deprecated classes, fields, endpoints, or files to be purged. Destructive Operation Inventory mapping each deleted symbol to its new home or marked "INTENTIONALLY DROPPED".

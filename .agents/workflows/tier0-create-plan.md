@@ -63,6 +63,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       - Include unit test commands (`backend_audit_loop.py`, `flutter_audit_loop.py`).
       - Include the MANDATORY Final E2E REST API Verification Gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
       - Mandate Creation of Knowledge Items (KIs) if introducing a new Single Source of Truth (SSOT).
+      - ANTI-HAPPY-PATH COMPLIANCE: Every implementation plan MUST include explicit test scenarios with concrete inputs and expected outputs for BOTH success AND failure paths. Mandate a minimum of 2 negative scenarios per feature (e.g., missing required input, invalid type, AppException path). You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.
     </step>
 
     <step id="5">USER GUIDANCE & NEXT STEPS:

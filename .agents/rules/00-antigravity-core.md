@@ -212,4 +212,10 @@
         <banned_pattern>Writing manual JSON dictionary mock data or claiming "Tests are complete" without passing Coverage.</banned_pattern>
         <mandatory_pattern>You are the worker, Python is the judge. 1) Use `polyfactory` for mock data. 2) The `conftest.py` blocks networks. 3) The `backend_audit_loop.py` enforces >90% coverage. Analyze the `Miss` column if it fails.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="anti_happy_path_mandate">
+        <banned_pattern>Delivering features or bug fixes with ONLY positive "happy path" test coverage. Writing tests that verify only the expected success behavior without testing error conditions, boundary values, or invalid inputs.</banned_pattern>
+        <mandatory_pattern>For every positive test case, you MUST write at least 2 negative test cases covering: 1) Missing or invalid required inputs triggering AppException, 2) Boundary values (min-1, max+1) or type violations per ISTQB Boundary Value Analysis. Test coverage MUST NOT decrease from the pre-change baseline.</mandatory_pattern>
+        <catastrophic_reason>Happy-path-only testing creates a false sense of security. Edge cases and error paths are where production systems actually fail, especially in LLM pipelines with stochastic outputs and strict Pydantic validation boundaries.</catastrophic_reason>
+    </rule_block>
 </universal_quality_gate>
