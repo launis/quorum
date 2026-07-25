@@ -21,6 +21,11 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md` and the 6 pillar documents in `docs\architecture\`. You MUST understand the Capability-Driven architecture before scanning the physical codebase.</mandatory_pattern>
       <catastrophic_reason>Scanning code without understanding the 6 core capabilities causes the AI to misinterpret files or falsely flag critical infrastructure as rogue code.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="timeless_as_built_mandate">
+      <mandatory_pattern>All theoretical descriptions in the architecture pillars MUST be strictly timeless and read as cohesive narratives. When updating documents based on new KIs, you MUST integrate the new information seamlessly into the relevant sections. You are FORBIDDEN from simply appending bulleted lists, changelogs, or "recent changes" to the bottom of the document. You are also FORBIDDEN from including project identifiers (e.g., "Epic 94", "Phase 3"), dates (e.g., "2025"), historical context (e.g., "Previously we used X, now we use Y"), or future plans (e.g., "We will implement Z"). Describe the system exactly as it exists today as an objective, factual state. NOTE: This rule is the domain-specific extension of the global `documentation_present_tense_mandate` in `00-antigravity-core.md`.</mandatory_pattern>
+      <catastrophic_reason>Including historical data or appending unintegrated changelogs rapidly turns architecture documentation into a stale, fragmented project log rather than a pure Source of Truth, breaking the AI's ability to understand the current structural invariants.</catastrophic_reason>
+    </rule_block>
     
     <rule_block id="theory_immutability_mandate">
       <banned_pattern>Rewriting, deleting, or altering theoretical English text in the 6 pillar documents, or appending physical implementation maps directly to them.</banned_pattern>
@@ -57,7 +62,7 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
     
     <step id="4">ORPHAN REPORTING: If you discover any files, folders, or modules that DO NOT logically fit into the 6 pillars, you MUST generate an "Orphan Report" artifact. Flag these as either "Rogue/Legacy Code to be deleted" or "Missing Architectural Capability" and wait for User guidance.</step>
     
-    <step id="5">EVIDENCE-BASED KI EVALUATION: Based on the Orphan Report and your physical mapping, evaluate if recent changes necessitate an update to the Knowledge Items (KI database). CRITICALLY: Do NOT guess how to create KIs. If a new KI is needed, you MUST instruct the user to create it using the IDE's KI interface, OR carefully generate it in the rigid `<appDataDir>\knowledge\<ki_name>` directory with `metadata.json` and `artifacts/` structure. Only after the KI exists may you adjust the English theory in the pillar documents.</step>
+    <step id="5">EVIDENCE-BASED KI EVALUATION &amp; TIMELESS CLEANUP: Based on the Orphan Report and your physical mapping, evaluate if recent changes necessitate an update to the Knowledge Items (KI database). CRITICALLY: Do NOT guess how to create KIs. If a new KI is needed, you MUST instruct the user to create it using the IDE's KI interface, OR carefully generate it in the rigid `<appDataDir>\knowledge\<ki_name>` directory with `metadata.json` and `artifacts/` structure. Only after the KI exists may you adjust the English theory in the pillar documents. When adjusting the theory, you MUST simultaneously execute a timelessness cleanup (removing Epic IDs, historical language, and inline physical paths) on the target pillar.</step>
 
     <step id="6">DIRECTORY REFERENCE SYNC: Update `.agents\rules\04_directory_reference.md` using your file editing tools to ensure the directory map precisely reflects the anchored component clusters.</step>
     

@@ -110,7 +110,7 @@
 
     <module path="docs/architecture/">
         <responsibility>CONSOLIDATED ARCHITECTURE MANIFESTOS</responsibility>
-        <key_domains>6 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine).</key_domains>
+        <key_domains>00_README_META_ARCHITECTURE.md (Meta-Governance), 6 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine).</key_domains>
     </module>
     
     <module path="scratch/">

@@ -84,6 +84,11 @@
         <banned_pattern>Ignoring execution artifacts when debugging a complex run or trying to read the massive `execution_trace.json` blindly top-to-bottom.</banned_pattern>
         <mandatory_pattern>When the user provides an execution folder (e.g., `data/files/executions/exe_...`), you MUST utilize its artifacts strategically: 1) Use `view_file` on `llm_debug_prompts.md` to inspect the exact prompts and raw LLM responses that caused hallucinations or schema errors. 2) Use `view_file` on `frozen_context.json` to see the exact snapshot of data provided to the engine. 3) Because `execution_trace.json` is usually multiple megabytes, DO NOT try to read the whole file at once. Instead, use `grep_search` with specific keywords or write a Python script in the `scratch/` directory to parse and analyze it programmatically. 4) If a `report.pdf` or `inputs/` exist, they represent the final generated output and user inputs.</mandatory_pattern>
     </rule_block>
+    <rule_block id="dual_axis_documentation_mandate">
+        <banned_pattern>Manually editing the 6 architecture pillar documents (`docs/architecture/01_` through `06_`) during standard coding workflows.</banned_pattern>
+        <mandatory_pattern>You MUST strictly follow the Dual-Axis Documentation Paradigm: AI agents read `rules/` and KIs for execution logic; humans read `docs/architecture/` for narrative understanding. You are FORBIDDEN from manually editing `01_` through `06_`. All structural documentation updates MUST be routed through: (a) KI creation/update → (b) `/tier7-describe-architecture` automated sync. You MAY directly edit `.agents/rules/04_directory_reference.md` for physical path changes, and you MAY edit `docs/architecture/00_README_META_ARCHITECTURE.md` to update meta-governance rules, but content additions about specific capabilities MUST route through KI → Tier 7.</mandatory_pattern>
+        <catastrophic_reason>Directly editing architecture pillar narratives causes them to drift from the actual codebase constraints, polluting the documentation with physical paths and breaking the Single Source of Truth for system context.</catastrophic_reason>
+    </rule_block>
 </ide_orchestration_protocol>
 
 <catastrophic_system_bans>
