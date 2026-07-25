@@ -6,8 +6,8 @@
 ## Phase Execution Status
 
 ### Phase 1: Structural Scrubbing (Pillars 1-3)
-- [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_115\01_structural_scrubbing_1_plan.md]`
-- [ ] **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_115\01_structural_scrubbing_1_plan.md]`
+- [x] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_115\01_structural_scrubbing_1_plan.md]`
+- [x] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_115\01_structural_scrubbing_1_plan.md]`
 
 ### Phase 1: Structural Scrubbing (Pillars 4-6)
 - [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_115\02_structural_scrubbing_2_plan.md]`
@@ -72,11 +72,18 @@
 
 # Session Handover Context
 ## Achieved
-- 
+- Removed Physical Implementation Map sections from Pillars 1, 2, and 3.
+- Synthesized Data Ingestion and Two-Pass Atomization into Pillar 3 theoretical section.
+- Purged historical/temporal references and inline file paths from Pillars 1, 2, and 3.
+- Validated via `grep_search` that no contamination remains.
+
 ## Learned
-- 
+- Specific concepts from Pillar 3's map (Data Ingestion Providers, RAG Preflight Cache Pagination, Two-Pass Atomization) needed synthesis into theory.
+- The `Y-Funnel` temporal contamination in Pillar 2 line 20 has been cleanly rewritten to be timeless.
+
 ## Remaining
-- 
+- Must perform Tier 8 Audit on `01_structural_scrubbing_1_plan.md`.
+- Next execution phase: `02_structural_scrubbing_2_plan.md` (Pillars 4-6).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_115_timeless_architecture_documentation_tracker.md] @[c:\src\quorum\docs\epic\EPIC_115_timeless_architecture_documentation.md] @[c:\src\quorum\docs\epic\tasks_EPIC_115\01_structural_scrubbing_1_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\04_directory_reference.md]"`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_115\01_structural_scrubbing_1_plan.md]" --workflow=/tier8-audit-plan --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\04_directory_reference.md]"`
