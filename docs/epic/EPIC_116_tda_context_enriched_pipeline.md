@@ -136,7 +136,7 @@ from backend_v2.models.dtos.engine import FlattenedAtom
 
 #### [MODIFY] [llm.py](file:///c:/src/quorum/backend_v2/services/orchestrator/strategies/llm.py)
 
-Pass the `shuffled_atoms` from `state_data` when the step is a matrix step. To enforce the **Fail-Fast Hydration Mandate** and **Zero-Duct-Tape Ban**, we MUST use **unconditional direct key access** `state_data["shuffled_atoms"]` when `is_matrix_step` is True. If the `atom_flattening_hook` failed to inject the atoms, the native `KeyError` immediately crashes into a 500 error instead of silently passing `None` downstream:
+Pass the `shuffled_atoms` from `state_data` when the step is a matrix step. To enforce the **Fail-Fast Hydration Mandate** and **Zero-Duct-Tape Ban**, we MUST use **unconditional direct key access** `state_data["shuffled_atoms"]` when `is_matrix_step` is True. This means replacing the existing `if is_matrix_step and "shuffled_atoms" in state_data:` checks with unconditional access. If the `atom_flattening_hook` failed to inject the atoms, the native `KeyError` immediately crashes into a 500 error instead of silently passing `None` downstream:
 
 ```python
 # HYDRATION MANDATE: state_data contains raw dicts. We MUST hydrate them to satisfy strict=True.
@@ -165,32 +165,29 @@ No frontend changes required. This is a backend-only change with no DTO parity i
 Implement the **Context-Enriched Decompose-Verify Pipeline** while strictly preserving `AliasEngine` block tags and ensuring Prefix-Matching Cache Survival:
 
 1. Execute **Phase 0** and **Phase 1** to generate `ontology` and `extracted_atoms`.
-2. Construct a `full_context` string that combines BOTH the enriched facts AND the original `hydrated_text` (which contains the critical `[B0]`, `[B1]` block tags):
-
-Per the **XML Structural Sovereignty Mandate** (`xml_structural_sovereignty_mandate`), the `full_context` MUST use rigid XML tags to provide mathematically optimal semantic boundaries for the LLM, eliminating "Attention Dilution" between enriched facts and source text:
-
-```python
-enriched_claims = "\n".join(f"- {a.resolved_claim}" for a in extracted_atoms)
-full_context = (
-    "<context>\n"
-    "<enriched_facts>\n"
-    f"{enriched_claims}\n"
-    "</enriched_facts>\n"
-    "<source_text>\n"
-    f"{hydrated_text}\n"
-    "</source_text>\n"
-    "</context>"
-)
-```
-
-3. If `request.shuffled_atoms` is present, map them explicitly into `LinkedAtomGraph` nodes (preserving `tda_id`), and **skip** `SlidingWindowLinker` (because matrix assertions are independent). A module-level sentinel constant `_MATRIX_SOURCE_SENTINEL` is used per `zero_db_hardcoding_mandate` to avoid hardcoded strings. To satisfy strict Pydantic requirements:
+2. If `request.shuffled_atoms` is present, map them explicitly into `LinkedAtomGraph` nodes (preserving `tda_id`), construct the `full_context`, and **skip** `SlidingWindowLinker` (because matrix assertions are independent). A module-level sentinel constant `_MATRIX_SOURCE_SENTINEL` is used per `zero_db_hardcoding_mandate` to avoid hardcoded strings. To satisfy strict Pydantic requirements:
    ```python
    from backend_v2.models.dtos.dag_models import LinkedAtomGraph, ExtractedAtom
 
    _MATRIX_SOURCE_SENTINEL: str = "MATRIX"  # Module-level constant (zero_db_hardcoding_mandate)
 
    nodes: list[LinkedAtomGraph] = []
+   evaluation_context: str = global_source_text  # Default for Regular TDA
+
    if request.shuffled_atoms:
+       # MATRIX PATH: Use enriched context to evaluate predefined matrix atoms
+       enriched_claims = "\n".join(f"- {a.resolved_claim}" for a in atoms)
+       evaluation_context = (
+           "<context>\n"
+           "<enriched_facts>\n"
+           f"{enriched_claims}\n"
+           "</enriched_facts>\n"
+           "<source_text>\n"
+           f"{hydrated_text}\n"
+           "</source_text>\n"
+           "</context>"
+       )
+
        for i, flat_atom in enumerate(request.shuffled_atoms):
            ext_atom = ExtractedAtom(
                reasoning="Predefined matrix assertion",
@@ -203,9 +200,10 @@ full_context = (
            )
            nodes.append(LinkedAtomGraph(atom=ext_atom, depends_on=[]))
    else:
+       # REGULAR TDA PATH: Use global_source_text to prevent tautological validation loops
        nodes = await linker.link_graph(...)
    ```
-4. Call `EnrichedDagExecutor.execute_graph()`, passing `full_context` as the `source_text`. By keeping the massive `full_context` at the absolute top of the prompt (`<context>`), we guarantee **O(1) Cache Survival** across the entire matrix chunk evaluation, bypassing standard token cost explosions.
+4. Call `EnrichedDagExecutor.execute_graph()`, passing the dynamically resolved `evaluation_context` as the `source_text` parameter. For Matrix paths, this keeps the massive `full_context` at the absolute top of the prompt (`<context>`), guaranteeing **O(1) Cache Survival**. For Regular paths, it preserves strict forensic quote extraction against the raw source text.
 5. Project via `ResultProjector.project()`.
 
 ---
