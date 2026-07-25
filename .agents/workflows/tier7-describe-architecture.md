@@ -18,12 +18,12 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
   <architectural_invariants>
     <rule_block id="core_rules_routing">
       <banned_pattern>Starting the architectural scan without reading the global architecture rules and capabilities.</banned_pattern>
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md` and the 5 pillar documents in `docs\architecture\`. You MUST understand the Capability-Driven architecture before scanning the physical codebase.</mandatory_pattern>
-      <catastrophic_reason>Scanning code without understanding the 5 core capabilities causes the AI to misinterpret files or falsely flag critical infrastructure as rogue code.</catastrophic_reason>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md` and the 6 pillar documents in `docs\architecture\`. You MUST understand the Capability-Driven architecture before scanning the physical codebase.</mandatory_pattern>
+      <catastrophic_reason>Scanning code without understanding the 6 core capabilities causes the AI to misinterpret files or falsely flag critical infrastructure as rogue code.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="theory_immutability_mandate">
-      <banned_pattern>Rewriting, deleting, or altering theoretical English text in the 5 pillar documents, or appending physical implementation maps directly to them.</banned_pattern>
+      <banned_pattern>Rewriting, deleting, or altering theoretical English text in the 6 pillar documents, or appending physical implementation maps directly to them.</banned_pattern>
       <mandatory_pattern>When performing Top-Down anchoring, you MUST ONLY verify that physical code aligns with the Knowledge Items (KIs). If a KI is changed during Step 1, you MAY update the theoretical English text within the pillar documents to reflect the new KI. Otherwise, you MUST NEVER rewrite, delete, or alter the theoretical English text. Furthermore, you MUST NEVER append or update "Physical Implementation Map" sections in the pillar documents, as these have been explicitly banned.</mandatory_pattern>
       <catastrophic_reason>Tier 7 is a physical auditor, not a theoretical designer. Overwriting the English theory destroys the Knowledge Item foundation. Adding physical paths clutters timeless documents.</catastrophic_reason>
     </rule_block>
@@ -49,13 +49,13 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
   </architectural_invariants>
 
   <execution_protocol level="7">
-    <step id="1">THEORETICAL INGESTION: Read the 5 architectural pillar documents in `docs\architecture\`. Understand the 5 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience). Do NOT attempt to evaluate KI updates at this stage before scanning the physical code.</step>
+    <step id="1">THEORETICAL INGESTION: Read the 6 architectural pillar documents in `docs\architecture\`. Understand the 6 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine). Do NOT attempt to evaluate KI updates at this stage before scanning the physical code.</step>
     
-    <step id="2">TOP-DOWN ANCHORING (Physical Verification): Use targeted `grep_search` with specific architectural signatures (e.g., `class .*Service`, `implements PromptBlock`, `extends Riverpod`) to verify the physical files that implement the 5 capabilities. You MUST strictly exclude and NEVER scan `build/`, `.venv/`, `.dart_tool/`, and `__pycache__/` directories. Ensure physical paths are mapped in `.agents\rules\04_directory_reference.md`, NOT in the architecture pillars.</step>
+    <step id="2">TOP-DOWN ANCHORING (Physical Verification): Use targeted `grep_search` with specific architectural signatures (e.g., `class .*Service`, `implements PromptBlock`, `extends Riverpod`) to verify the physical files that implement the 6 capabilities. You MUST strictly exclude and NEVER scan `build/`, `.venv/`, `.dart_tool/`, and `__pycache__/` directories. Ensure physical paths are mapped in `.agents\rules\04_directory_reference.md`, NOT in the architecture pillars.</step>
     
-    <step id="3">BOTTOM-UP COVERAGE (Orphan Hunting): Systematically map every major module found in `backend_v2` and `client_app_v2` to one of the 5 pillars. Rely on targeted searches and `list_dir` on specific domain folders, avoiding recursive blind crawling.</step>
+    <step id="3">BOTTOM-UP COVERAGE (Orphan Hunting): Systematically map every major module found in `backend_v2` and `client_app_v2` to one of the 6 pillars. Rely on targeted searches and `list_dir` on specific domain folders, avoiding recursive blind crawling.</step>
     
-    <step id="4">ORPHAN REPORTING: If you discover any files, folders, or modules that DO NOT logically fit into the 5 pillars, you MUST generate an "Orphan Report" artifact. Flag these as either "Rogue/Legacy Code to be deleted" or "Missing Architectural Capability" and wait for User guidance.</step>
+    <step id="4">ORPHAN REPORTING: If you discover any files, folders, or modules that DO NOT logically fit into the 6 pillars, you MUST generate an "Orphan Report" artifact. Flag these as either "Rogue/Legacy Code to be deleted" or "Missing Architectural Capability" and wait for User guidance.</step>
     
     <step id="5">EVIDENCE-BASED KI EVALUATION: Based on the Orphan Report and your physical mapping, evaluate if recent changes necessitate an update to the Knowledge Items (KI database). CRITICALLY: Do NOT guess how to create KIs. If a new KI is needed, you MUST instruct the user to create it using the IDE's KI interface, OR carefully generate it in the rigid `<appDataDir>\knowledge\<ki_name>` directory with `metadata.json` and `artifacts/` structure. Only after the KI exists may you adjust the English theory in the pillar documents.</step>
 
