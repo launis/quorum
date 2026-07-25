@@ -5,11 +5,9 @@ The Enriched Atom Graph Engine transforms flat text extraction into a causal, co
 ## Core Architectural Components
 
 ### 1. Extractive Sensor Service
-**Path:** `backend_v2/services/orchestrator/extractive_sensor_service.py`
 The sensor service handles extracting raw boolean values using the `BooleanEvaluationResult` DTO, relying on LLM structured execution. It uses `execute_structured_task` to execute robust boolean validation on evaluation paths.
 
 ### 2. Topological Evaluator
-**Path:** `backend_v2/services/orchestrator/topological_evaluator.py`
 The absolute SSOT for Directed Acyclic Graph (DAG) state evaluation. It uses a non-blocking `asyncio.TaskGroup` to execute the node graph simultaneously:
 - Each node creates its own `asyncio.Event()` that guarantees deterministic signaling.
 - Parent nodes are awaited sequentially per-node (never via `asyncio.gather`), resolving the "Straggler" issue.
@@ -17,23 +15,22 @@ The absolute SSOT for Directed Acyclic Graph (DAG) state evaluation. It uses a n
 - **Short-Circuit Cascade:** If a parent resolves as `FAILED` (or does not meet the expected status), its children immediately short-circuit to `N_A`. Errors propagate via the `BLOCKED` status.
 
 ### 3. Result Projector
-**Path:** `backend_v2/services/orchestrator/result_projector.py`
 Implements the `ResultProjector` abstraction. `EnrichedResultProjector` uses Python's `graphlib.TopologicalSorter` to enforce a stable topological iteration order over the evaluated nodes. 
 
 ### 4. Sliding Window Linker
-**Path:** `backend_v2/services/orchestrator/sliding_window_linker.py`
-Connects extracted atoms into a causal graph using an output-aware sliding window strategy. To prevent LLM output truncation (8192 token ceiling), windows are dynamically bounded by the `LINKER_MAX_ATOMS_PER_WINDOW` limit (default 20), pre-subdividing oversized chunks and maintaining deterministic edge mapping.
+Connects extracted atoms into a causal graph using an output-aware sliding window strategy. To prevent LLM output truncation (8192 token ceiling), windows are dynamically bounded by the strict limit, pre-subdividing oversized chunks and maintaining deterministic edge mapping.
+
+### 5. Chat Parser
+Transforms raw conversational interactions into structured analytical events. By parsing unstructured dialogue, it feeds contextual triggers directly into the graph engine, ensuring that human-in-the-loop interactions can dynamically alter evaluation paths without bypassing strict structural validation.
+
+### 6. Source Verification Service
+Acts as the authoritative validator for data provenance within the graph. It ensures that any extracted atom or causal link is strictly backed by traceable evidence, preventing hallucinations from contaminating the DAG state and providing a verified audit trail for all evaluations.
 
 ## DTO Lifecycle & Output Boundary
 
-Following the Universal DTO Bridge (Epic 91.5), the engine must strictly decouple logical graph execution from server-driven UI elements.
+The engine strictly decouples logical graph execution from server-driven UI elements.
 1. The engine produces a `dict[str, AtomExecutionState]`.
 2. `EnrichedResultProjector` compiles the dynamic results into a flat list of `AtomResultDTO` objects.
 3. All static evidence (`source_quote`, `resolved_claim`) is offloaded to the O(1) Dictionary `hydrated_references` using `HydratedAtomDTO`, keyed by its Opaque Stripe ID (`tda_id`).
 
 This avoids repetitive nested tree logic and guarantees 100% ICU Markdown serialization parity for the Frontend.
-
-## 3. Physical Implementation Map (Auto-Generated)
-> **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/services/orchestrator/extractive_sensor_service.py`, `backend_v2/services/orchestrator/topological_evaluator.py`, `backend_v2/services/orchestrator/result_projector.py`, `backend_v2/services/orchestrator/sliding_window_linker.py`, `backend_v2/services/chat_parser.py`, `backend_v2/services/source_verification_service.py`.
-- **Frontend Consumers:** Rendered natively via standard SDUI blocks.

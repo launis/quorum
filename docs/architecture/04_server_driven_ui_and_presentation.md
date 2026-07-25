@@ -1,7 +1,7 @@
 # Server-Driven UI & Presentation
 
 ## 1. Executive Summary
-The **Server-Driven UI & Presentation** capability governs how the "Surface" of the Compound AI System operates. The core philosophy is that the client application (`client_app_v2` / Flutter) is a completely "dumb" rendering engine. It contains zero business logic, zero prompt compilation, and zero layout math. The backend strictly dictates the state, and the frontend merely paints the declarative Markdown and data blocks it receives.
+The **Server-Driven UI & Presentation** capability governs how the "Surface" of the Compound AI System operates. The core philosophy is that the client application (Flutter frontend) is a completely "dumb" rendering engine. It contains zero business logic, zero prompt compilation, and zero layout math. The backend strictly dictates the state, and the frontend merely paints the declarative Markdown and data blocks it receives.
 
 ## 2. Core Architectural Invariants (The Laws)
 
@@ -21,11 +21,19 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 
 ### 2.4. SDUI Component Contracts
 - **Law:** The frontend must render SDUI components exactly as dictated by the backend enum mapping, avoiding manual UI overrides.
-- **Enforcement:** Specific SDUI components must inherently support their required domain constraints (e.g., `n_a_card` rendering `short_circuit_reason_tda_ids` directly from the context payload without separate API calls). The components defined in the backend `SDUIComponentType` (like `boolean_card`, `extracted_value_card`, `error_card`, `n_a_card`) are absolute boundaries.
+- **Enforcement:** Specific SDUI components must inherently support their required domain constraints (e.g., `n_a_card` rendering required fields directly from the context payload without separate API calls). The components defined in the backend `SDUIComponentType` (like `boolean_card`, `extracted_value_card`, `error_card`, `n_a_card`) are absolute boundaries.
 
 ### 2.5. UI Editing Parity for Dynamic Text
 - **Law:** Forms mutating localized dynamic strings must encapsulate `I18nText` object handling natively.
-- **Enforcement:** When the Studio UI interacts with a localized string from the Ontology, it MUST use the `I18nTextField` component rather than a generic text input. This component safely extracts, updates, and repackages the underlying `I18nText` schema in real-time, preventing developers from manually unpacking maps or defaulting to fallback string inputs that would break schema parity with the backend.
+- **Enforcement:** When the Studio UI interacts with a localized string from the Ontology, it MUST use the standard translation component rather than a generic text input. This component safely extracts, updates, and repackages the underlying `I18nText` schema in real-time, preventing developers from manually unpacking maps or defaulting to fallback string inputs that would break schema parity with the backend.
+
+### 2.6. BFF SDUI Translation
+- **Law:** The backend must translate complex domain models into explicit Server-Driven UI payloads before sending them to the frontend.
+- **Enforcement:** Utilizing the Backend-for-Frontend (BFF) pattern, dedicated mappers translate domain objects into exact layout structures (e.g., rows, columns, cards). The frontend consumes this strictly typed structure, avoiding any complex logic processing on the client side.
+
+### 2.7. 3-Part UI Layout Block Editor
+- **Law:** Editing interfaces for layout components must enforce strict structural constraints across all views.
+- **Enforcement:** The UI editing mechanism for layout blocks enforces a rigid three-part architecture (Header, Body, Footer). This standardization ensures that both the interactive canvas editor and the final rendered view follow identical structural rules, maintaining 100% parity across edit and display states.
 
 ## 3. Logical Data Flow
 ```mermaid
@@ -34,13 +42,8 @@ flowchart TD
     B --> C[Semantic Markdown Generation]
     B --> D[ICU Template Injection]
     C & D --> E[JSON API Response]
-    E --> F[Client App V2 (Flutter)]
+    E --> F[Client App]
     F --> G{App Shell Router}
-    G --> H[Widget Library (Theme / Color / Layout)]
+    G --> H[Widget Library]
     H --> I[Screen Render]
 ```
-
-## 4. Physical Implementation Map (Auto-Generated)
-> **Note:** This section is automatically maintained by the Tier 7 execution agent. Do not manually update physical file paths here.
-- **Backend Entrypoints:** `backend_v2/api/routers/execution/`, `backend_v2/services/execution.py`, `backend_v2/services/blueprint.py` (Payload Compiler), `backend_v2/services/sdui_mapper_service.py` (BFF SDUI Translation), `backend_v2/services/pdf_generator.py` (PDF rendering), `backend_v2/templates/` (PDF rendering).
-- **Frontend Consumers:** `client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart` (Main SDUI consumer), `client_app_v2/lib/features/execution/views/widgets/sdui_block_renderer.dart` (SDUI Rendering), `client_app_v2/lib/shared/widgets/output_renderer.dart` (Markdown Parser), `client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart` (3-Part UI Layout Block Editor).
