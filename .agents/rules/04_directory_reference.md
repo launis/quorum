@@ -49,8 +49,8 @@
     </module>
     
     <module path="backend_v2/services/">
-        <responsibility>CORE BUSINESS LOGIC & ORCHESTRATION (PILLAR 3)</responsibility>
-        <key_domains>blueprint.py, studio/ (Ontology Management), execution.py, auth.py (Identity), llm_task_executor.py, orchestrator/ (DAG, Context, engines/), mcp/ (Tool Execution), document_extraction.py, web_fetcher.py, sdui_mapper_service.py, pdf_generator.py, pii_analyzer.py, usage_service.py, progress.py, translation_service.py</key_domains>
+        <responsibility>CORE BUSINESS LOGIC & ORCHESTRATION (PILLAR 3 & PILLAR 6)</responsibility>
+        <key_domains>blueprint.py, studio/ (Ontology Management), execution.py, auth.py (Identity), llm_task_executor.py, orchestrator/ (DAG, Context, engines/, extractive_sensor_service.py, topological_evaluator.py, result_projector.py, sliding_window_linker.py), mcp/ (Tool Execution), document_extraction.py, web_fetcher.py, sdui_mapper_service.py, pdf_generator.py, pii_analyzer.py, usage_service.py, progress.py, translation_service.py, chat_parser.py, source_verification_service.py</key_domains>
     </module>
     
     <module path="backend_v2/models/">
@@ -110,7 +110,7 @@
 
     <module path="docs/architecture/">
         <responsibility>CONSOLIDATED ARCHITECTURE MANIFESTOS</responsibility>
-        <key_domains>5 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience).</key_domains>
+        <key_domains>6 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine).</key_domains>
     </module>
     
     <module path="scratch/">

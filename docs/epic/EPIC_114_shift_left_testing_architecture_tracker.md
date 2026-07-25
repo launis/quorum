@@ -34,10 +34,10 @@
 
 ### Documentation & Knowledge Item Update
 - [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/. (Verified existing).
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture`.
 
 ### Final Epic Audit
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_114_shift_left_testing_architecture.md]`.
+- [x] **[OK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_114_shift_left_testing_architecture.md]`.
 
 ## Instructions for the Execution Agent
 - Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`).
@@ -55,11 +55,11 @@
 | Update tier6-execution-monitor.md | Phase 4 | 04_quality_gate_mutator_plan.md | IMPLEMENTED |
 
 # Session Handover Context
-- **Achieved**: Decomposed EPIC 114 into chunked implementation plans, created the Tracker, and updated tier6-execution-monitor.md with quality gate compliance routing.
-- **Learned**: Almost all features in EPIC 114 were already implemented. Verified via rigorous `view_file` calls. Phase 4 is now fully complete.
-- **Remaining**: Execute Tier 8 Plan Audit for Phase 4, followed by Tier 7 As-Built Sync and Tier 8 Epic Audit.
+- **Achieved**: Executed `/tier7-describe-architecture`. Verified the 6 architectural pillars. Updated `04_directory_reference.md` to map Pillar 6 (Enriched Atom Graph Engine). Generated `orphan_report.md` for rogue files like `extraction_schema_factory.py`.
+- **Learned**: The system architecture now features 6 capability pillars. There are a few orphaned utility/factory files at the root of `backend_v2/` that need eventual relocation.
+- **Remaining**: Execute Tier 8 Epic Audit to finalize EPIC 114.
 
 ## Resume Command
 ```bash
-/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_114\04_quality_gate_mutator_plan.md]" --workflow=/tier8-audit-plan --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"
+/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_114_shift_left_testing_architecture_tracker.md]" --workflow=/tier8-audit-epic --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"
 ```
