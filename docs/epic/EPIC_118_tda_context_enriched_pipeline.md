@@ -170,9 +170,10 @@ Implement the **Context-Enriched Decompose-Verify Pipeline** while strictly pres
 1. Execute **Phase 0** and **Phase 1** to generate `ontology` and `extracted_atoms`.
 2. If `request.shuffled_atoms` is present, map them explicitly into `LinkedAtomGraph` nodes (preserving `tda_id`), construct the `full_context`, and **skip** `SlidingWindowLinker` (because matrix assertions are independent). A module-level sentinel constant `_MATRIX_SOURCE_SENTINEL` is used per `zero_db_hardcoding_mandate` to avoid hardcoded strings. To satisfy strict Pydantic requirements:
    ```python
+   from typing import Final
    from backend_v2.models.dtos.dag_models import LinkedAtomGraph, ExtractedAtom
 
-   _MATRIX_SOURCE_SENTINEL: str = "MATRIX"  # Module-level constant (zero_db_hardcoding_mandate)
+   _MATRIX_SOURCE_SENTINEL: Final[str] = "MATRIX"  # Module-level constant (zero_db_hardcoding_mandate)
 
    nodes: list[LinkedAtomGraph] = []
    evaluation_context: str = global_source_text  # Default for Regular TDA
