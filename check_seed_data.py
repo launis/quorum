@@ -4,7 +4,7 @@ import sys
 # Ensure UTF-8 output
 sys.stdout.reconfigure(encoding='utf-8')
 
-with open("backend_v2/seed/seed_data.json", "r", encoding="utf-8") as f:
+with open("backend_v2/seed/seed_data.json", encoding="utf-8") as f:
     data = json.load(f)
 
 for wf in data.get("workflows", []):

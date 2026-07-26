@@ -1,5 +1,4 @@
 import json
-import os
 
 SEED_FILE = "c:/src/quorum/backend_v2/seed/seed_data.json"
 
@@ -38,7 +37,7 @@ EXTENSION_LABELS = {
 }
 
 def migrate():
-    with open(SEED_FILE, 'r', encoding='utf-8') as f:
+    with open(SEED_FILE, encoding='utf-8') as f:
         data = json.load(f)
 
     changed = False
@@ -66,7 +65,7 @@ def migrate():
                 for prof_id, profile in workflow["output_profiles"].items():
                     if "layouts" in profile:
                         update_layouts(profile["layouts"])
-            
+
             # Also check default layouts if workflows have them directly? Workflows don't have layouts directly according to schema, they are in embedded output profiles.
 
     if changed:

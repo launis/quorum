@@ -33,10 +33,10 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --openapi
 """
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
-import re
 
 # Force pure Python Protobuf implementation to prevent duplicate descriptor pool crashes in Python 3.14+
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"

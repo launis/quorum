@@ -1,6 +1,6 @@
-import subprocess
-import os
 import glob
+import os
+import subprocess
 
 # Ensure scratch directory exists
 os.makedirs(r"C:\Users\risto\.gemini\antigravity-ide\brain\bb87cf3e-0f31-4b3f-85eb-6bb2bbfe5d5d\scratch", exist_ok=True)
@@ -22,11 +22,11 @@ with open(output_file, "w", encoding="utf-8") as out:
             ).decode("utf-8")
         except subprocess.CalledProcessError:
             legacy = "FILE DID NOT EXIST IN 2014e69b\n"
-        
-        out.write(f"========================================\n")
+
+        out.write("========================================\n")
         out.write(f"FILE: {file_name}\n")
-        out.write(f"========================================\n")
+        out.write("========================================\n")
         out.write(legacy)
-        out.write(f"\n\n")
+        out.write("\n\n")
 
 print(f"Dumped to {output_file}")

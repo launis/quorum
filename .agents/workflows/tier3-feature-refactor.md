@@ -56,9 +56,14 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
       </mandatory_pattern>
       <catastrophic_reason>Trust-based checklists are the leading cause of "Silent Duplication Regression" in multi-agent execution. A previous agent may have implemented the code but crashed before updating task.md, or a human developer may have manually committed the change. Re-implementing already-existing code creates conflicts, overwrites correct implementations, and wastes context budget.</catastrophic_reason>
     </rule_block>
+    <rule_block id="conditional_context_quarantine">
+      <mandatory_pattern>If the task modifies >2 target files OR the plan requires >3 distinct execution steps, the agent MUST generate an `implementation_plan.md` Artifact (XML Sandwich format) and halt with a `/tier5-resume --workflow=/tier2-execute` command. If the task is at or below this threshold, in-session execution is permitted. The `HYBRID_XML_SANDWICH_MANDATE` applies to all generated plans regardless of in-session or deferred execution.</mandatory_pattern>
+      <catastrophic_reason>Executing complex refactors within the planning session leads to Context Amnesia, token exhaustion, and silent regression due to context blending.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="3">
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION &amp; EXHAUSTIVE PLAN">
+      <gate name="COMPLEXITY_ASSESSMENT">You MUST evaluate the task scope against the `conditional_context_quarantine` threshold BEFORE execution begins.</gate>
       <constraint>Do NOT attempt to read the entire codebase blindly.</constraint>
       <action>Actively use search tools (`grep_search`, `view_file`) to precisely target related files.</action>
       <action name="PRE-FLIGHT DUPLICATION CHECK">Before creating your execution plan, verify that the planned refactoring outcome does not already exist in the codebase from a prior agent session. Use `grep_search` to check for the target function names, class definitions, or rule block IDs. If the refactoring is already complete, report this to the user and HALT instead of re-executing.</action>
@@ -78,7 +83,8 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
     </step>
     
     <step id="4" name="ATOMIC EXECUTION BATCH &amp; PAUSE">
-      <action>Present the execution plan, get confirmation ("PERMISSION GRANTED") from the user, and write the code.</action>
+      <action>If the `conditional_context_quarantine` threshold was breached, you MUST NOT execute the code. Instead, jump directly to Step 8 (MID-EXECUTION HANDOVER) to stop the session.</action>
+      <action>Present the execution plan, get confirmation ("PERMISSION GRANTED") from the user, and write the code (ONLY if below threshold).</action>
       <action>You MUST update the Domain Code AND its corresponding Unit Tests symmetrically in the SAME atomic tool-call batch before running any tests to avoid asymmetrical compile errors.</action>
       <gate name="PRE-DELETE AUDIT">Before executing ANY file deletion listed in your plan, you MUST read the file and grep for all its exported symbols to guarantee they exist in their new locations.</gate>
     </step>
