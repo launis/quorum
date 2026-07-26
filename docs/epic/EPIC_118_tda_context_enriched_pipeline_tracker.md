@@ -16,8 +16,8 @@
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
 - `[x]` /tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_118\02_phase_2_orchestration_registry.md]
 - `[ ]` /tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_118\02_phase_2_orchestration_registry.md]
-  - `[x]` `phase_2.1`
-  - `[x]` `phase_2.2`
+  - `[x] (85af2832)` `phase_2.1`
+  - `[x] (85af2832)` `phase_2.2`
 
 ### Phase 3: Frontend Flutter UI & Freezed DTO Synchronization
 - `[ ]` /tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_118\03_phase_3_frontend.md]
@@ -80,18 +80,18 @@
 
 # Session Handover Context
 ## Achieved
-- Ran `/tier1-planner` to generate all micro-chunked Epic 118 plans.
-- Ran `/tier1-tracker-generator` to generate this strict requirements traceability matrix and execution tracker.
+- Executed Phase 2.1: `llm.py` safely parses `shuffled_atoms` via TypeAdapter with explicit AppException error boundaries.
+- Executed Phase 2.2: `TDAEngine.execute()` properly bypasses the Atomizer Phase 1 and `SlidingWindowLinker` for matrix execution paths, mapping `FlattenedAtom` instances to synthetic, independent `ExtractedAtom` schemas. Evaluation context is constructed dynamically with static-first tag boundaries.
+- Test suites (`test_llm.py`, `test_tda_engine.py`) have been rewritten to cover both matrix execution paths and exception branches.
+- Code has been fully verified using the `backend_audit_loop.py` and committed.
 
 ## Learned
-- **Baseline State Snapshot**:
-  - `FlattenedAtom` currently lives inside `c:\src\quorum\backend_v2\hooks\atom_flattening.py` violating the Models import boundary rule (No Naked Dicts implementation was done locally to avoid circular dependencies).
-  - `llm.py` uses unsafe duck-typing dict access (`shuffled_atoms = state_data["shuffled_atoms"]`) which can cause naked KeyErrors instead of AppExceptions. It also doesn't hydrate the array properly.
-  - `TDAEngine.execute()` in `c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py` does not currently accept or process `request.shuffled_atoms`, ignoring matrix evaluation parameters and passing only the raw text to the atomizer pipeline.
+- **Architectural Checkpoint**: `EngineExecutionRequest` requires `shuffled_atoms` as a fully hydrated Pydantic list (no naked dicts).
+- **Testing Mocks**: `ExtractedAtom` schemas enforce rigorous regex constraints on `tda_id` (e.g. `^tda_[a-fA-F0-9]{8,32}$`); mocking must ensure proper prefixes to satisfy Pydantic validations during Matrix testing.
 
 ## Remaining
-- Execute Phase 2 (`tasks_EPIC_118/02_phase_2_orchestration_registry.md`).
-- Execute Phase 3 (`tasks_EPIC_118/03_phase_3_frontend.md`).
+- Execute Phase 3 (`tasks_EPIC_118/03_phase_3_frontend.md`): Frontend Flutter UI & Freezed DTO Synchronization.
+- The next executing agent should follow `/tier2-execute` for `03_phase_3_frontend.md`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_118_tda_context_enriched_pipeline_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_118\02_phase_2_orchestration_registry.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_118_tda_context_enriched_pipeline_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_118\03_phase_3_frontend.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
