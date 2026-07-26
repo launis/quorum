@@ -94,19 +94,6 @@ The core of this bug fix is to preserve Quorum's existing architectural strength
 
 No seed data or database changes required. This is a pure backend engine fix.
 
-
-```xml
-<execution_block phase="phase_0" consumer="tier2-execute">
-  <summary><![CDATA[Seed Data & Database Prerequisite / Migration]]></summary>
-  <step id="phase_0.1" scope="MODIFY">
-    <action>No seed data or database changes required. This is a pure backend engine fix.</action>
-    <target>N/A</target>
-    <invariants/>
-    <tests min_negative="0"/>
-  </step>
-</execution_block>
-```
-
 ### Phase 1: Backend Domain Models & Service Engine Hardening
 
 #### [MODIFY] [engine.py](file:///c:/src/quorum/backend_v2/models/dtos/engine.py)
@@ -145,41 +132,6 @@ Remove the `FlattenedAtom` definition and instead import it from the DTO layer:
 from backend_v2.models.dtos.engine import FlattenedAtom
 ```
 
-
-  ```xml
-  <execution_block phase="phase_1" consumer="tier2-execute">
-    <summary><![CDATA[Backend Domain Models & Service Engine Hardening]]></summary>
-    <step id="phase_1.1" scope="MODIFY">
-  <action>Move `FlattenedAtom` model definition into the DTO layer to strictly enforce the **No Naked Dicts** rule without creating an architectural layer violation (Models importing from Hooks) or a Circular Import.</action>
-  <target>@[c:\src\quorum\backend_v2\models\dtos\engine.py]</target>
-  <invariants>
-    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, extra='forbid')</must>
-    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all</forbidden>
-  </invariants>
-  <tests min_negative="2">
-    <positive>Verify engine.py compiles and integrates correctly</positive>
-    <negative>Verify missing required fields trigger ValidationError/AppException</negative>
-    <negative>Verify invalid types trigger Pydantic ValidationError</negative>
-  </tests>
-  <audit_command>uv run python scripts/backend_audit_loop.py c:/src/quorum/backend_v2/models/dtos/engine.py --test</audit_command>
-</step>
-<step id="phase_1.2" scope="MODIFY">
-  <action>Remove the `FlattenedAtom` definition and instead import it from the DTO layer:</action>
-  <target>@[c:\src\quorum\backend_v2\hooks\atom_flattening.py]</target>
-  <invariants>
-    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, extra='forbid')</must>
-    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all</forbidden>
-  </invariants>
-  <tests min_negative="2">
-    <positive>Verify atom_flattening.py compiles and integrates correctly</positive>
-    <negative>Verify missing required fields trigger ValidationError/AppException</negative>
-    <negative>Verify invalid types trigger Pydantic ValidationError</negative>
-  </tests>
-  <audit_command>uv run python scripts/backend_audit_loop.py c:/src/quorum/backend_v2/hooks/atom_flattening.py --test</audit_command>
-</step>
-  </execution_block>
-  ```
-
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
 
 #### [MODIFY] [llm.py](file:///c:/src/quorum/backend_v2/services/orchestrator/strategies/llm.py)
@@ -205,43 +157,9 @@ engine_request = EngineExecutionRequest(
 )
 ```
 
-
-  ```xml
-  <execution_block phase="phase_2" consumer="tier2-execute">
-    <summary><![CDATA[Orchestration, Registry & Prompt Compiler Updates]]></summary>
-    <step id="phase_2.1" scope="MODIFY">
-  <action>Pass the `shuffled_atoms` from `state_data` when the step is a matrix step. To enforce the **Fail-Fast Hydration Mandate** and **Zero-Duct-Tape Ban**, we MUST use **unconditional direct key access** `state_data["shuffled_atoms"]` when `is_matrix_step` is True. This means replacing the existing `if is_matrix_step and "shuffled_atoms" in state_data:` checks with unconditional access. If the `atom_flattening_hook` failed to inject the atoms, the native `KeyError` immediately crashes into a 500 error instead of silently passing `None` downstream:</action>
-  <target>@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]</target>
-  <invariants>
-    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, extra='forbid')</must>
-    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all</forbidden>
-  </invariants>
-  <tests min_negative="2">
-    <positive>Verify llm.py compiles and integrates correctly</positive>
-    <negative>Verify missing required fields trigger ValidationError/AppException</negative>
-    <negative>Verify invalid types trigger Pydantic ValidationError</negative>
-  </tests>
-  <audit_command>uv run python scripts/backend_audit_loop.py c:/src/quorum/backend_v2/services/orchestrator/strategies/llm.py --test</audit_command>
-</step>
-  </execution_block>
-  ```
-
 ### Phase 3: Frontend Flutter UI & Freezed DTO Synchronization
 
 No frontend changes required. This is a backend-only change with no DTO parity impact.
-
-
-```xml
-<execution_block phase="phase_3" consumer="tier2-execute">
-  <summary><![CDATA[Frontend Flutter UI & Freezed DTO Synchronization]]></summary>
-  <step id="phase_3.1" scope="MODIFY">
-    <action>No frontend changes required. This is a backend-only change with no DTO parity impact.</action>
-    <target>N/A</target>
-    <invariants/>
-    <tests min_negative="0"/>
-  </step>
-</execution_block>
-```
 
 ### Phase 4: Verification & E2E Integration Gate (Implementation)
 
@@ -294,27 +212,6 @@ Implement the **Context-Enriched Decompose-Verify Pipeline** while strictly pres
 4. Call `EnrichedDagExecutor.execute_graph()`, passing the dynamically resolved `evaluation_context` as the `source_text` parameter. For Matrix paths, this keeps the massive `full_context` at the absolute top of the prompt (`<context>`), guaranteeing **O(1) Cache Survival**. For Regular paths, it preserves strict forensic quote extraction against the raw source text.
 5. Project via `ResultProjector.project()`.
 
-
-  ```xml
-  <execution_block phase="phase_4" consumer="tier2-execute">
-    <summary><![CDATA[Verification & E2E Integration Gate (Implementation)]]></summary>
-    <step id="phase_4.1" scope="MODIFY">
-  <action>Implement the **Context-Enriched Decompose-Verify Pipeline** while strictly preserving `AliasEngine` block tags and ensuring Prefix-Matching Cache Survival: 1. Execute **Phase 0** and **Phase 1** to generate `ontology` and `extracted_atoms`. 2. If `request.shuffled_atoms` is present, map them explicitly into `LinkedAtomGraph` nodes (preserving `tda_id`), construct the `full_context`, and **skip** `SlidingWindowLinker` (because matrix assertions are independent). A module-level sentinel constant `_MATRIX_SOURCE_SENTINEL` is used per `zero_db_hardcoding_mandate` to avoid hardcoded strings. To satisfy strict Pydantic requirements:</action>
-  <target>@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]</target>
-  <invariants>
-    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, extra='forbid')</must>
-    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all</forbidden>
-  </invariants>
-  <tests min_negative="2">
-    <positive>Verify tda_engine.py compiles and integrates correctly</positive>
-    <negative>Verify missing required fields trigger ValidationError/AppException</negative>
-    <negative>Verify invalid types trigger Pydantic ValidationError</negative>
-  </tests>
-  <audit_command>uv run python scripts/backend_audit_loop.py c:/src/quorum/backend_v2/services/orchestrator/engines/tda_engine.py --test</audit_command>
-</step>
-  </execution_block>
-  ```
-
 ### Phase 5: Dual-Axis Documentation Update (EPIC 115 Compliance)
 
 #### [NEW] KI Creation
@@ -324,21 +221,6 @@ Create a new Knowledge Item (KI) documenting the **Context-Enriched Decompose-Ve
 - **Delegation:** Do NOT manually edit `docs/architecture/` pillars. Instruct the user to run `/tier7-describe-architecture` after KI creation to synchronize this structural change into the human-readable architectural narratives.
 
 ---
-
-
-        ```xml
-        <execution_block phase="phase_5" consumer="tier2-execute">
-          <summary>Dual-Axis Documentation Update (EPIC 115 Compliance)</summary>
-          <step id="phase_5.1" scope="MODIFY">
-            <action>#### [NEW] KI Creation
-Create a new Knowledge Item (KI) documenting the **Context-Enriched Decompose-Verify** architectural pattern introduced in this Epic.
-- Create `ki_context_enriched_decompose_ver...</action>
-            <target>N/A</target>
-            <invariants/>
-            <tests min_negative="0"/>
-          </step>
-        </execution_block>
-        ```
 
 ## 4. Definition of Done (DoD) & Verification Plan
 
