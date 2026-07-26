@@ -48,7 +48,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    final semanticNode = tester.getSemantics(find.byType(ReportRendererV2Widget));
+    final semanticNode = tester.getSemantics(
+      find.byType(ReportRendererV2Widget),
+    );
 
     final textSequence = <String>[];
     _extractSemantics(semanticNode, textSequence);

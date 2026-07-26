@@ -1,6 +1,5 @@
 """Unit tests for the ExtractiveSensorService."""
 
-
 import pytest
 
 from backend_v2.exceptions import AgentExecutionError
@@ -11,16 +10,8 @@ from backend_v2.services.orchestrator.extractive_sensor_service import Extractiv
 
 @pytest.fixture
 def mock_nodes():
-    atom1 = ExtractedAtom(
-        tda_id="tda_11111111",
-        resolved_claim="Claim 1",
-        reasoning="Reasoning 1"
-    )
-    atom2 = ExtractedAtom(
-        tda_id="tda_22222222",
-        resolved_claim="Claim 2",
-        reasoning="Reasoning 2"
-    )
+    atom1 = ExtractedAtom(tda_id="tda_11111111", resolved_claim="Claim 1", reasoning="Reasoning 1")
+    atom2 = ExtractedAtom(tda_id="tda_22222222", resolved_claim="Claim 2", reasoning="Reasoning 2")
     return [
         LinkedAtomGraph(atom=atom1),
         LinkedAtomGraph(atom=atom2),
@@ -33,16 +24,10 @@ def test_resolve_majority_vote_consensus():
 
     res1 = {
         "tda_11111111": (ExecutionStatus.PASSED, "R1", {"coaching": "c1"}),
-        "tda_22222222": (ExecutionStatus.PASSED, "R2", {})
+        "tda_22222222": (ExecutionStatus.PASSED, "R2", {}),
     }
-    res2 = {
-        "tda_11111111": (ExecutionStatus.FAILED, "R3", {}),
-        "tda_22222222": (ExecutionStatus.PASSED, "R2", {})
-    }
-    res3 = {
-        "tda_11111111": (ExecutionStatus.PASSED, "R4", {}),
-        "tda_22222222": (ExecutionStatus.PASSED, "R2", {})
-    }
+    res2 = {"tda_11111111": (ExecutionStatus.FAILED, "R3", {}), "tda_22222222": (ExecutionStatus.PASSED, "R2", {})}
+    res3 = {"tda_11111111": (ExecutionStatus.PASSED, "R4", {}), "tda_22222222": (ExecutionStatus.PASSED, "R2", {})}
 
     final = ExtractiveSensorService.resolve_majority_vote(expected_ids, [res1, res2, res3])
 

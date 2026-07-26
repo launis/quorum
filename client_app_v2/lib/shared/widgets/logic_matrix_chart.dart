@@ -67,141 +67,141 @@ class LogicMatrixChart extends StatelessWidget {
           child: ExcludeSemantics(
             child: ScatterChart(
               ScatterChartData(
-              scatterSpots: [
-                ScatterSpot(
-                  x,
-                  y,
-                  dotPainter: FlDotCirclePainter(
-                    radius: radius,
-                    color: Theme.of(context).colorScheme.primary.withValues(
-                      alpha: 0.7,
-                    ), // Transparent for overlapping
-                    strokeColor: Theme.of(context).colorScheme.primary,
-                    strokeWidth: 2,
-                  ),
-                ),
-              ],
-              minX:
-                  xMin -
-                  xMargin, // Dynamic visual padding based on logarithmic scale rules
-              maxX: xMax + xMargin,
-              minY: yMin - yMargin,
-              maxY: yMax + yMargin,
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              gridData: FlGridData(
-                show: true,
-                drawHorizontalLine: true,
-                drawVerticalLine: true,
-                // Draw quadrant dividers
-                checkToShowHorizontalLine: (value) => value == yMid,
-                checkToShowVerticalLine: (value) => value == xMid,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  strokeWidth: 2,
-                  dashArray: [5, 5],
-                ),
-                getDrawingVerticalLine: (value) => FlLine(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  strokeWidth: 2,
-                  dashArray: [5, 5],
-                ),
-              ),
-              titlesData: FlTitlesData(
-                show: true,
-                leftTitles: AxisTitles(
-                  axisNameWidget: Text(
-                    "Y: ${yAxis.name} (${yAxis.score} / ${yAxis.scaleMax})",
-                    style: const TextStyle(fontSize: 10),
-                  ),
-                  axisNameSize: 20, // Reserve space for name
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 30,
-                    interval: 1.0,
-                    getTitlesWidget: (value, meta) {
-                      if (value == 0.0 && yAxis.scaleMin != null) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6.0),
-                          child: Text(
-                            yAxis.scaleMin!.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 10),
-                            textAlign: TextAlign.right,
-                          ),
-                        );
-                      } else if (value == 1.0 && yAxis.scaleMax != null) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6.0),
-                          child: Text(
-                            yAxis.scaleMax!.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 10),
-                            textAlign: TextAlign.right,
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  axisNameWidget: Padding(
-                    padding: const EdgeInsets.only(top: 12.0),
-                    child: Text(
-                      "X: ${xAxis.name} (${xAxis.score} / ${xAxis.scaleMax})",
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                scatterSpots: [
+                  ScatterSpot(
+                    x,
+                    y,
+                    dotPainter: FlDotCirclePainter(
+                      radius: radius,
+                      color: Theme.of(context).colorScheme.primary.withValues(
+                        alpha: 0.7,
+                      ), // Transparent for overlapping
+                      strokeColor: Theme.of(context).colorScheme.primary,
+                      strokeWidth: 2,
                     ),
                   ),
-                  axisNameSize: 28,
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 30,
-                    interval: 1.0,
-                    getTitlesWidget: (value, meta) {
-                      if (value == 0.0 && xAxis.scaleMin != null) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6.0),
-                          child: Text(
-                            xAxis.scaleMin!.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 10),
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      } else if (value == 1.0 && xAxis.scaleMax != null) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6.0),
-                          child: Text(
-                            xAxis.scaleMax!.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 10),
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
+                ],
+                minX:
+                    xMin -
+                    xMargin, // Dynamic visual padding based on logarithmic scale rules
+                maxX: xMax + xMargin,
+                minY: yMin - yMargin,
+                maxY: yMax + yMargin,
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                gridData: FlGridData(
+                  show: true,
+                  drawHorizontalLine: true,
+                  drawVerticalLine: true,
+                  // Draw quadrant dividers
+                  checkToShowHorizontalLine: (value) => value == yMid,
+                  checkToShowVerticalLine: (value) => value == xMid,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    strokeWidth: 2,
+                    dashArray: [5, 5],
+                  ),
+                  getDrawingVerticalLine: (value) => FlLine(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    strokeWidth: 2,
+                    dashArray: [5, 5],
                   ),
                 ),
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
+                titlesData: FlTitlesData(
+                  show: true,
+                  leftTitles: AxisTitles(
+                    axisNameWidget: Text(
+                      "Y: ${yAxis.name} (${yAxis.score} / ${yAxis.scaleMax})",
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    axisNameSize: 20, // Reserve space for name
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      interval: 1.0,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0.0 && yAxis.scaleMin != null) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6.0),
+                            child: Text(
+                              yAxis.scaleMin!.toStringAsFixed(1),
+                              style: const TextStyle(fontSize: 10),
+                              textAlign: TextAlign.right,
+                            ),
+                          );
+                        } else if (value == 1.0 && yAxis.scaleMax != null) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6.0),
+                            child: Text(
+                              yAxis.scaleMax!.toStringAsFixed(1),
+                              style: const TextStyle(fontSize: 10),
+                              textAlign: TextAlign.right,
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    axisNameWidget: Padding(
+                      padding: const EdgeInsets.only(top: 12.0),
+                      child: Text(
+                        "X: ${xAxis.name} (${xAxis.score} / ${xAxis.scaleMax})",
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    axisNameSize: 28,
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      interval: 1.0,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0.0 && xAxis.scaleMin != null) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: Text(
+                              xAxis.scaleMin!.toStringAsFixed(1),
+                              style: const TextStyle(fontSize: 10),
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        } else if (value == 1.0 && xAxis.scaleMax != null) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: Text(
+                              xAxis.scaleMax!.toStringAsFixed(1),
+                              style: const TextStyle(fontSize: 10),
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                 ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+                  ),
                 ),
               ),
-              borderData: FlBorderData(
-                show: true,
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
-                ),
-              ),
-            ),
             ),
           ),
         ),

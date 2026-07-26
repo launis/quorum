@@ -24,6 +24,7 @@ async def test_local_file_driver_winerror5_retry_exhaustion(tmp_path: Path):
         assert exc_info.value.status_code == 409
         assert "Tiedosto on auki toisessa ohjelmassa" in exc_info.value.message
 
+
 @pytest.mark.asyncio
 async def test_local_file_driver_winerror5_retry_success(tmp_path: Path):
     """Test that LocalFileDriver successfully recovers if the lock is released during retries."""

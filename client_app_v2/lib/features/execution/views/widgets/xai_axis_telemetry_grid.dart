@@ -41,7 +41,11 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
         isOverride &&
         axis.semanticReasoning != null &&
         axis.semanticReasoning!.trim().isNotEmpty;
-    final hasQuote = showQuote && !isOverride && axis.citedTextQuote != null && axis.citedTextQuote!.isNotEmpty;
+    final hasQuote =
+        showQuote &&
+        !isOverride &&
+        axis.citedTextQuote != null &&
+        axis.citedTextQuote!.isNotEmpty;
     final hasWebCitation =
         axis.citedWebCitation != null && axis.citedWebCitation!.isNotEmpty;
     final hasSourceId =

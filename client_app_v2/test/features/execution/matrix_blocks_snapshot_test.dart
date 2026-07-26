@@ -97,10 +97,10 @@ void main() {
               semanticReasoning: 'AI reasoning says it fails',
               contextualOverride: false,
               structuralLocation: '',
-              humanOverride: const HumanOverrideDto(
+              humanOverride: HumanOverrideDto(
                 newStatus: 'PASS',
                 reason: 'Human thinks it is PASS',
-                overriddenAt: '2023-01-01T00:00:00Z',
+                overriddenAt: DateTime.parse('2023-01-01T00:00:00Z'),
                 overriddenBy: 'Test User',
                 evidenceQuotes: [
                   QuoteEvidenceDto(

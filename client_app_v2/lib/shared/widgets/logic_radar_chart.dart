@@ -41,48 +41,48 @@ class LogicRadarChart extends StatelessWidget {
       child: ExcludeSemantics(
         child: RadarChart(
           RadarChartData(
-          dataSets: dataSets,
-          radarBackgroundColor: Colors.transparent,
-          borderData: FlBorderData(show: false),
-          radarBorderData: const BorderSide(color: Colors.transparent),
-          tickCount: maxScale.toInt(),
-          ticksTextStyle: const TextStyle(
-            color: Colors.transparent,
-            fontSize: 10,
-          ),
-          tickBorderData: BorderSide(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
-          ),
-          gridBorderData: BorderSide(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
-            width: 1.5,
-          ),
-          radarShape: RadarShape.polygon,
-          getTitle: (index, angle) {
-            final axisName = axes[index].name;
-            final scoreStr = axes[index].score?.toStringAsFixed(1) ?? '-';
+            dataSets: dataSets,
+            radarBackgroundColor: Colors.transparent,
+            borderData: FlBorderData(show: false),
+            radarBorderData: const BorderSide(color: Colors.transparent),
+            tickCount: maxScale.toInt(),
+            ticksTextStyle: const TextStyle(
+              color: Colors.transparent,
+              fontSize: 10,
+            ),
+            tickBorderData: BorderSide(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+            ),
+            gridBorderData: BorderSide(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
+            radarShape: RadarShape.polygon,
+            getTitle: (index, angle) {
+              final axisName = axes[index].name;
+              final scoreStr = axes[index].score?.toStringAsFixed(1) ?? '-';
 
-            // Re-use logic to chunk title lines like PDF
-            final wrappedTitle = axisName.split(' ').join('\n');
+              // Re-use logic to chunk title lines like PDF
+              final wrappedTitle = axisName.split(' ').join('\n');
 
-            return RadarChartTitle(
-              text: "$wrappedTitle\n($scoreStr)",
-              angle: 0,
-            );
-          },
-          titleTextStyle: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
+              return RadarChartTitle(
+                text: "$wrappedTitle\n($scoreStr)",
+                angle: 0,
+              );
+            },
+            titleTextStyle: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.linear,
         ),
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.linear,
-      ),
       ),
     );
   }

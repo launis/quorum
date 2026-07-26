@@ -18,7 +18,7 @@ with open(output_file, "w", encoding="utf-8") as out:
             legacy = subprocess.check_output(
                 ["git", "show", f"2014e69b:.agents/workflows/{file_name}"],
                 cwd=r"c:\src\quorum",
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL,
             ).decode("utf-8")
         except subprocess.CalledProcessError:
             legacy = "FILE DID NOT EXIST IN 2014e69b\n"

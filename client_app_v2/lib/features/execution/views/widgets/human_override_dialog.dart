@@ -160,12 +160,13 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                   ),
                   child: ListTile(
                     dense: true,
-                    title: Text(
-                      q.quote,
-                      style: const TextStyle(fontSize: 13),
-                    ),
+                    title: Text(q.quote, style: const TextStyle(fontSize: 13)),
                     subtitle: Text(
-                      q.verifiedSourceIds.isNotEmpty ? q.verifiedSourceIds.join(', ') : (q.unverifiedAliases.isNotEmpty ? q.unverifiedAliases.join(', ') : 'HUMAN_OVERRIDE'),
+                      q.verifiedSourceIds.isNotEmpty
+                          ? q.verifiedSourceIds.join(', ')
+                          : (q.unverifiedAliases.isNotEmpty
+                                ? q.unverifiedAliases.join(', ')
+                                : 'HUMAN_OVERRIDE'),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,

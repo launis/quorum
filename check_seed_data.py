@@ -2,7 +2,7 @@ import json
 import sys
 
 # Ensure UTF-8 output
-sys.stdout.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 
 with open("backend_v2/seed/seed_data.json", encoding="utf-8") as f:
     data = json.load(f)

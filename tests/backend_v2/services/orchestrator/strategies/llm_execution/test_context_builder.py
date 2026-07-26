@@ -12,15 +12,9 @@ def test_project_compressed_strips_original_text_and_raw_content():
             "keep": "this",
             "original_text": "remove this too",
             "raw_content": "and this",
-            "source_quote": "KEEP THIS"
+            "source_quote": "KEEP THIS",
         },
-        "list_data": [
-            {
-                "original_text": "delete me",
-                "raw_content": "delete me too",
-                "value": "keep"
-            }
-        ]
+        "list_data": [{"original_text": "delete me", "raw_content": "delete me too", "value": "keep"}],
     }
 
     result = ContextBuilder._project_compressed(payload)

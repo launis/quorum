@@ -164,7 +164,7 @@ void main() {
     'AtomMatrixTableWidget renders Human Override Box instead of AI Box when overridden',
     (WidgetTester tester) async {
       final matrices = [
-        const MatrixScorecardRowDto(
+        MatrixScorecardRowDto(
           blockId: 'block_override',
           labelI18n: I18nText(
             translations: {'fi': 'Override', 'en': 'Override'},
@@ -203,7 +203,7 @@ void main() {
               humanOverride: HumanOverrideDto(
                 newStatus: 'PASS',
                 reason: 'Human thinks it is PASS',
-                overriddenAt: '2023-01-01T00:00:00Z',
+                overriddenAt: DateTime.parse('2023-01-01T00:00:00Z'),
                 overriddenBy: 'Test User',
                 evidenceQuotes: [
                   QuoteEvidenceDto(

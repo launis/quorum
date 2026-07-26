@@ -71,6 +71,9 @@ def main() -> None:
     elif cmd_dir.strip("\\/") == "client_app_v2":
         cmd_dir = "."
 
+    if not cmd_dir:
+        cmd_dir = "."
+
     if run_build:
         print("\n⏳ 1/3: Ajetaan koodigeneraattori (flutter gen-l10n & build_runner)...")
         res_l10n = subprocess.run(["flutter", "gen-l10n"], shell=True)

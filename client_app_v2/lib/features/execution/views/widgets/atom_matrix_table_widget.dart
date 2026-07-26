@@ -653,7 +653,11 @@ class AtomMatrixTableWidget extends ConsumerWidget {
     final uniqueQuotes = <String>{};
     final parsedQuotes = <Widget>[];
     for (final q in quotes) {
-      final disp = q.verifiedSourceIds.isNotEmpty ? q.verifiedSourceIds.join(', ') : (q.unverifiedAliases.isNotEmpty ? q.unverifiedAliases.join(', ') : null);
+      final disp = q.verifiedSourceIds.isNotEmpty
+          ? q.verifiedSourceIds.join(', ')
+          : (q.unverifiedAliases.isNotEmpty
+                ? q.unverifiedAliases.join(', ')
+                : null);
       final uniqueKey = '${disp ?? 'unknown'}::${q.quote}';
       if (!uniqueQuotes.add(uniqueKey)) continue;
 
