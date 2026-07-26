@@ -137,6 +137,78 @@ async def test_tda_engine_execute_success(
 @pytest.mark.asyncio
 @patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")
+async def test_tda_engine_matrix_path(
+    mock_get_settings,
+    mock_projector,
+    mock_dag_executor,
+    mock_atomizer,
+    mock_task_executor,
+    engine_request,
+    mock_compiler,
+):
+    """Test successful TDA engine matrix execution path."""
+    from backend_v2.models.dtos.engine import FlattenedAtom
+
+    engine_request = engine_request.model_copy(update={
+        "shuffled_atoms": [
+            FlattenedAtom(
+                atom_id="tda_12345678",
+                question="Test question",
+                extraction_rule="rule",
+                anchor_target="target",
+                is_inverse=False,
+            )
+        ]
+    })
+
+    mock_atomizer_instance = mock_atomizer.return_value
+    mock_dag_executor_instance = mock_dag_executor.return_value
+
+    async def mock_execute_phase_0(*args, **kwargs):
+        progress_cb = kwargs.get("progress_callback")
+        if progress_cb:
+            await progress_cb(1, 1)
+        return "mock_ontology"
+
+    mock_atomizer_instance.execute_phase_0.side_effect = mock_execute_phase_0
+
+    async def mock_execute_graph(*args, **kwargs):
+        progress_cb = kwargs.get("progress_callback")
+        if progress_cb:
+            await progress_cb(1, 1)
+        return {"state": "done"}
+
+    mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
+
+    mock_projector.project.return_value = ([], {})
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    result = await engine.execute(engine_request)
+
+    assert isinstance(result, EngineExecutionResult)
+    mock_atomizer_instance.execute_phase_0.assert_called_once()
+    # Phase 1 and Linker must be skipped for matrix
+    assert not mock_atomizer_instance.execute_phase_1.called
+    mock_dag_executor_instance.execute_graph.assert_called_once()
+    
+    nodes_arg = mock_dag_executor_instance.execute_graph.call_args[0][0]
+    assert len(nodes_arg) == 1
+    assert nodes_arg[0].atom.tda_id == "tda_12345678"
+    assert nodes_arg[0].atom.is_logical_deduction is True
+    assert nodes_arg[0].depends_on == []
+    
+    assert engine_request.progress_callback.call_count == 2
+    engine_request.progress_callback.assert_any_call(30, 100)
+    engine_request.progress_callback.assert_any_call(100, 100)
+
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")
 async def test_tda_engine_execute_exception_acl(
     mock_get_settings,

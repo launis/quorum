@@ -14,10 +14,10 @@
   - `[x]` `phase_1.2`
 
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
-- `[ ]` /tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_118\02_phase_2_orchestration_registry.md]
+- `[x]` /tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_118\02_phase_2_orchestration_registry.md]
 - `[ ]` /tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_118\02_phase_2_orchestration_registry.md]
-  - `[ ]` `phase_2.1`
-  - `[ ]` `phase_2.2`
+  - `[x]` `phase_2.1`
+  - `[x]` `phase_2.2`
 
 ### Phase 3: Frontend Flutter UI & Freezed DTO Synchronization
 - `[ ]` /tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_118\03_phase_3_frontend.md]
@@ -61,22 +61,22 @@
 | R3 | Update `test_engine.py` for new `FlattenedAtom` model with positive/negative tests | `phase_1.1` | `@[c:\src\quorum\backend_v2\tests\unit\models\dtos\test_engine.py]` | Complete |
 | R4 | Remove the `FlattenedAtom` definition from `atom_flattening.py` and import from DTO layer | `phase_1.2` | `@[c:\src\quorum\backend_v2\hooks\atom_flattening.py]` | Complete |
 | R5 | Update imports in `test_atom_flattening.py` to use new DTO location | `phase_1.2` | `@[c:\src\quorum\backend_v2\tests\unit\hooks\test_atom_flattening.py]` | Complete |
-| R6 | Safely parse `state_data["shuffled_atoms"]` when `is_matrix_step` is True via KeyError catch | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Pending |
-| R7 | Raise explicit AppException on KeyError for `state_data["shuffled_atoms"]` | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Pending |
-| R8 | Validate `raw_atoms` with `TypeAdapter(list[FlattenedAtom]).validate_python(..., strict=False)` | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Pending |
-| R9 | Pass hydrated `shuffled_atoms` to BOTH `EngineExecutionRequest` constructors | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Pending |
-| R10 | Implement Context-Enriched Decompose-Verify Pipeline in `TDAEngine.execute()` Matrix path | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Pending |
-| R11 | Construct `evaluation_context` using strict XML boundaries for enriched facts and source_text | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Pending |
-| R12 | Map `FlattenedAtom` objects to `ExtractedAtom` models with empty `depends_on` | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Pending |
-| R13 | Bypass `SlidingWindowLinker` for Matrix path (due to independent matrix assertions) | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Pending |
-| R14 | Use `_MATRIX_SOURCE_SENTINEL` constant instead of hardcoded strings | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Pending |
-| R15 | Update `test_tda_engine.py` with matrix and regular execution paths tests | `phase_2.2` | `@[c:\src\quorum\backend_v2\tests\unit\services\orchestrator\engines\test_tda_engine.py]` | Pending |
+| R6 | Safely parse `state_data["shuffled_atoms"]` when `is_matrix_step` is True via KeyError catch | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Complete |
+| R7 | Raise explicit AppException on KeyError for `state_data["shuffled_atoms"]` | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Complete |
+| R8 | Validate `raw_atoms` with `TypeAdapter(list[FlattenedAtom]).validate_python(..., strict=False)` | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Complete |
+| R9 | Pass hydrated `shuffled_atoms` to BOTH `EngineExecutionRequest` constructors | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Complete |
+| R10 | Implement Context-Enriched Decompose-Verify Pipeline in `TDAEngine.execute()` Matrix path | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Complete |
+| R11 | Construct `evaluation_context` using strict XML boundaries for enriched facts and source_text | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Complete |
+| R12 | Map `FlattenedAtom` objects to `ExtractedAtom` models with empty `depends_on` | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Complete |
+| R13 | Bypass `SlidingWindowLinker` for Matrix path (due to independent matrix assertions) | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Complete |
+| R14 | Use `_MATRIX_SOURCE_SENTINEL` constant instead of hardcoded strings | `phase_2.2` | `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` | Complete |
+| R15 | Update `test_tda_engine.py` with matrix and regular execution paths tests | `phase_2.2` | `@[c:\src\quorum\backend_v2\tests\unit\services\orchestrator\engines\test_tda_engine.py]` | Complete |
 
 ## Instructions for the Execution Agent
 - Atomic commit mandates: You MUST perform an atomic `git commit` after ANY successful run of the `universal_quality_gate` audit script that passes. NEVER propose `git add .`.
 - Seeding environment command: Execute `uv run python backend_v2/seed/run_seed.py local` to reset database if required.
 - `@-reference` syntax rule: Always explicitly wrap all target file paths in `@-reference` syntax.
-- You MUST update the `/tier5-resume` command at the bottom of this tracker before handing over the session.
+- You MUST update the `/tier5-resume` command at the bottom of this tracker before handing over the session. Additionally, whenever you finish a milestone, pause for user feedback, or complete a session, you MUST automatically output the `/tier5-resume` command in your chat response so the user can easily copy-paste it to continue.
 
 # Session Handover Context
 ## Achieved

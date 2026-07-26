@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_MATRIX_SOURCE_SENTINEL = "MATRIX_EVALUATION"
+
 
 class TDAEngine(ExecutionEngine):
     """Execution engine for Topological Data Analysis.
@@ -69,6 +71,7 @@ class TDAEngine(ExecutionEngine):
 
             global_source_text = request.global_source_text
 
+            from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
             from backend_v2.utils.alias_engine import AliasEngine
 
             alias_engine = AliasEngine()
@@ -79,52 +82,95 @@ class TDAEngine(ExecutionEngine):
                 numbered_lines.append(f"[{block_id}] {p}")
             hydrated_text = "\n\n".join(numbered_lines)
 
-            async def phase_0_progress(completed: int, total: int) -> None:
-                if request.progress_callback:
-                    prog = int((completed / total) * 15)
-                    await request.progress_callback(prog, 100)
+            if request.shuffled_atoms:
 
-            async def phase_1_progress(completed: int, total: int) -> None:
-                if request.progress_callback:
-                    prog = 15 + int((completed / total) * 20)
-                    await request.progress_callback(prog, 100)
+                async def phase_0_progress_matrix(completed: int, total: int) -> None:
+                    if request.progress_callback:
+                        prog = int((completed / total) * 30)
+                        await request.progress_callback(prog, 100)
 
-            async def linker_progress(completed: int, total: int) -> None:
-                if request.progress_callback:
-                    prog = 35 + int((completed / total) * 25)
-                    await request.progress_callback(prog, 100)
+                async def dag_progress_matrix(completed: int, total: int) -> None:
+                    if request.progress_callback:
+                        prog = 30 + int((completed / total) * 70)
+                        await request.progress_callback(prog, 100)
 
-            async def dag_progress(completed: int, total: int) -> None:
-                if request.progress_callback:
-                    prog = 60 + int((completed / total) * 40)
-                    await request.progress_callback(prog, 100)
+                ontology = await atomizer.execute_phase_0(
+                    request.bound_client,
+                    hydrated_text,
+                    progress_callback=phase_0_progress_matrix,
+                    semaphore=request.semaphore,
+                )
 
-            ontology = await atomizer.execute_phase_0(
-                request.bound_client, hydrated_text, progress_callback=phase_0_progress, semaphore=request.semaphore
-            )
-            atoms = await atomizer.execute_phase_1(
-                request.bound_client,
-                hydrated_text,
-                ontology,
-                progress_callback=phase_1_progress,
-                semaphore=request.semaphore,
-            )
-            atoms.sort(key=lambda x: x.source_sequence_index)
-            nodes = await linker.link_graph(
-                llm_executor,
-                request.bound_client,
-                atoms,
-                ontology,
-                progress_callback=linker_progress,
-                semaphore=request.semaphore,
-            )
-            states = await dag_executor.execute_graph(
-                nodes,
-                global_source_text,
-                request.target_locale,
-                progress_callback=dag_progress,
-                semaphore=request.semaphore,
-            )
+                evaluation_context = f"{hydrated_text}\n\n<ontology>\n{ontology}\n</ontology>"
+
+                nodes = []
+                for i, atom in enumerate(request.shuffled_atoms):
+                    extracted = ExtractedAtom(
+                        reasoning="Matrix assertion provided by orchestrator.",
+                        resolved_claim=atom.question,
+                        is_logical_deduction=True,
+                        source_quote=None,
+                        tda_id=atom.atom_id,
+                        source_id=_MATRIX_SOURCE_SENTINEL,
+                        source_sequence_index=i,
+                    )
+                    nodes.append(LinkedAtomGraph(atom=extracted, depends_on=[]))
+
+                states = await dag_executor.execute_graph(
+                    nodes,
+                    evaluation_context,
+                    request.target_locale,
+                    progress_callback=dag_progress_matrix,
+                    semaphore=request.semaphore,
+                )
+            else:
+
+                async def phase_0_progress(completed: int, total: int) -> None:
+                    if request.progress_callback:
+                        prog = int((completed / total) * 15)
+                        await request.progress_callback(prog, 100)
+
+                async def phase_1_progress(completed: int, total: int) -> None:
+                    if request.progress_callback:
+                        prog = 15 + int((completed / total) * 20)
+                        await request.progress_callback(prog, 100)
+
+                async def linker_progress(completed: int, total: int) -> None:
+                    if request.progress_callback:
+                        prog = 35 + int((completed / total) * 25)
+                        await request.progress_callback(prog, 100)
+
+                async def dag_progress(completed: int, total: int) -> None:
+                    if request.progress_callback:
+                        prog = 60 + int((completed / total) * 40)
+                        await request.progress_callback(prog, 100)
+
+                ontology = await atomizer.execute_phase_0(
+                    request.bound_client, hydrated_text, progress_callback=phase_0_progress, semaphore=request.semaphore
+                )
+                atoms = await atomizer.execute_phase_1(
+                    request.bound_client,
+                    hydrated_text,
+                    ontology,
+                    progress_callback=phase_1_progress,
+                    semaphore=request.semaphore,
+                )
+                atoms.sort(key=lambda x: x.source_sequence_index)
+                nodes = await linker.link_graph(
+                    llm_executor,
+                    request.bound_client,
+                    atoms,
+                    ontology,
+                    progress_callback=linker_progress,
+                    semaphore=request.semaphore,
+                )
+                states = await dag_executor.execute_graph(
+                    nodes,
+                    global_source_text,
+                    request.target_locale,
+                    progress_callback=dag_progress,
+                    semaphore=request.semaphore,
+                )
 
             results_dto, hydrated_refs = ResultProjector.project(nodes, states)
 

@@ -401,10 +401,28 @@ class LLMNodeStrategy(NodeStrategy):
         input_mappings = new_input_mappings
 
         has_shuffled_atoms = False
+        hydrated_shuffled_atoms = None
         is_matrix_step = any(b.category_id == "matrix" for b in criteria_blocks_models)
-        if is_matrix_step and "shuffled_atoms" in state_data:
-            shuffled_atoms = state_data["shuffled_atoms"]
-            if isinstance(shuffled_atoms, list) and len(shuffled_atoms) > 0:
+        if is_matrix_step:
+            try:
+                raw_atoms = state_data["shuffled_atoms"]
+            except KeyError as e:
+                logger.error(
+                    "Matrix step missing 'shuffled_atoms' in state data.",
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                )
+                raise AppException(
+                    message="Matrix step missing 'shuffled_atoms' in state data.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+            from pydantic import TypeAdapter
+
+            from backend_v2.models.dtos.engine import FlattenedAtom
+
+            hydrated_shuffled_atoms = TypeAdapter(list[FlattenedAtom]).validate_python(raw_atoms, strict=False)
+            if hydrated_shuffled_atoms:
                 has_shuffled_atoms = True
 
         # Tier 4 Fix: AliasEngine is initialized with clean state.
@@ -636,6 +654,7 @@ class LLMNodeStrategy(NodeStrategy):
                     progress_callback=progress_callback,
                     trace_callback=None,
                     prompt_compiler=self.compiler,
+                    shuffled_atoms=hydrated_shuffled_atoms,
                 )
             else:
                 engine_request = EngineExecutionRequest(
@@ -652,6 +671,7 @@ class LLMNodeStrategy(NodeStrategy):
                     progress_callback=progress_callback,
                     trace_callback=None,
                     prompt_compiler=self.compiler,
+                    shuffled_atoms=hydrated_shuffled_atoms,
                 )
 
             engine_result = await self._engine.execute(engine_request)

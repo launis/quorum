@@ -57,6 +57,7 @@ class EngineExecutionRequest(BaseModel):
         progress_callback: Progress reporting callback.
         trace_callback: Live telemetry flush callback.
         prompt_compiler: The prompt compiler instance.
+        shuffled_atoms: The explicit matrix assertions for matrix evaluations.
     """
 
     bound_client: LLMClient
@@ -72,6 +73,7 @@ class EngineExecutionRequest(BaseModel):
     progress_callback: Callable[[int, int], Awaitable[None]] | None
     trace_callback: Callable[[TraceEvent], Awaitable[None]] | None
     prompt_compiler: Any
+    shuffled_atoms: list[FlattenedAtom] | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)
 
