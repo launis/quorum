@@ -1039,3 +1039,72 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
     assert result.success is True
     assert result.state_delta is not None
     assert result.state_delta["evaluations"] == []
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_propagates_extensions() -> None:
+    """Test that matrix_scoring_hook aggregates atom-level extensions into the Matrix output."""
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    atom_hash = generate_atom_hash("atom_1", mandate)
+
+    # Simulate a DAG-mode response where AtomResultDTO has extensions
+    evaluations = [
+        {
+            "atom_id": atom_hash,
+            "status": "FAIL",
+            "semantic_reasoning": "Missing requirement",
+            "contextual_override": False,
+            "extensions": {"coaching": "This is a coaching tip."},
+        }
+    ]
+
+    state = HookState(
+        execution_id="ex_3333333333333333",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata={},
+        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        global_context_vars={},
+    )
+
+    class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
+        async def get_output_profile_by_id(self, _id: str) -> dict[str, Any]:
+            return {
+                "id": "prof_123",
+                "slug": "test_slug",
+                "workflow_id": "wf_123",
+                "name": {"default_locale": "en", "translations": {"en": "Test Profile", "fi": "Test Profile"}},
+                "strictness_level": 100,
+                "scoring_strategy": "WATERFALL",
+                "visible_block_extensions": ["coaching", "falsification", "remediation_steps"],
+                "visible_workflow_extensions": [],
+                "layouts": [],
+            }
+
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        prompt_block_repo=cast(Any, MockRepoWaterfall()),
+        output_profile_repo=cast(Any, MockOutputProfileRepoWaterfallPropagates()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+
+    from backend_v2.hooks.scoring import matrix_scoring_hook
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    matrix_output = result.state_delta.get("pb_1234567890123456")
+    assert matrix_output is not None, "Matrix output should be in state_delta"
+
+    # The bug: extensions is an empty dict {} because they were ignored
+    extensions = matrix_output.get("extensions", {})
+    assert "coaching" in extensions, "Coaching extension was not propagated to Matrix output"
+    assert extensions["coaching"] == "This is a coaching tip.", "Coaching extension text mismatch"

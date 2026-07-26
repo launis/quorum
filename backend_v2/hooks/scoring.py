@@ -22,6 +22,7 @@ from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import (
     LaxXaiExtensionType,
     ScoringCalibrationThresholds,
+    XaiExtensionType,
 )
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
@@ -711,6 +712,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         evaluated_atoms_by_block: dict[str, dict[str, bool | str]] = {}
         atom_quotes_by_block: dict[str, list[Any]] = {}
         contested_atoms_by_block: dict[str, int] = {}
+        matrix_extensions_by_block: dict[str, dict[str, list[str]]] = {}
 
         # 2. Iterate evaluations using whitelisted ASTEvaluator for 3-State Logic
 
@@ -755,6 +757,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             evaluated_atoms_by_block[pb_id] = {}
             atom_quotes_by_block[pb_id] = []
             contested_atoms_by_block[pb_id] = 0
+            matrix_extensions_by_block[pb_id] = {}
 
             for scale in scales:
                 s_val = float(scale.score)
@@ -951,24 +954,28 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 rsn = r_raw if r_raw else "Ei perustelua"
                                                 atom_quotes_by_block[pb_id].append(f"📍 {loc}: {rsn}")
 
-                                            extensions_dict = getattr(ev_dto, "extensions", {})
+                                            extensions_dict = ev_dict.get("extensions", {})
                                             if extensions_dict:
                                                 allowed_exts = {
                                                     e.value if hasattr(e, "value") else str(e)
                                                     for e in visible_block_extensions
                                                 }
                                                 for ext_k, ext_v in extensions_dict.items():
-                                                    if ext_k in allowed_exts and ext_v:
+                                                    ext_key_str = ext_k.value if hasattr(ext_k, "value") else str(ext_k)
+                                                    if ext_key_str in allowed_exts and ext_v:
                                                         prefix = (
                                                             "💡"
-                                                            if ext_k == "coaching"
+                                                            if ext_key_str == "coaching"
                                                             else "⚠️"
-                                                            if ext_k == "falsification"
+                                                            if ext_key_str == "falsification"
                                                             else "🛠️"
                                                         )
                                                         atom_quotes_by_block[pb_id].append(
-                                                            f"{prefix} {ext_k.upper()}: {ext_v}"
+                                                            f"{prefix} {ext_key_str.upper()}: {ext_v}"
                                                         )
+                                                        if ext_key_str not in matrix_extensions_by_block[pb_id]:
+                                                            matrix_extensions_by_block[pb_id][ext_key_str] = []
+                                                        matrix_extensions_by_block[pb_id][ext_key_str].append(ext_v)
 
                                             break
 
@@ -1003,12 +1010,16 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         # Inject dummy matrices so recalculate() can discover and compute them
         for pb_id, evaluated_atoms in evaluated_atoms_by_block.items():
+            final_exts = {
+                XaiExtensionType(k): "\n\n".join(v) for k, v in matrix_extensions_by_block.get(pb_id, {}).items()
+            }
             dummy = LightweightMatrixOutput(
                 raw_score=0.0,
                 normalized_score=None,
                 level_breakdown=None,
                 justification="[INITIALIZING]",
                 evaluated_atoms=evaluated_atoms,
+                extensions=final_exts,
             )
             new_payload[pb_id] = dummy.model_dump(mode="json", exclude_none=True)
 
