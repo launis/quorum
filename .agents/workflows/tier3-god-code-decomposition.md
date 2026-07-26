@@ -74,6 +74,7 @@ This workflow is designed for the systematic planning and decomposition of heavy
     <step id="3" name="PHASE 2 (Micro-Chunking &amp; Lazy Plan Generation)">
       <action>Break the decomposition down into multiple `phaseX_[domain]_extraction.md` plans inside a new `docs\epic\tasks_[filename]\` directory. Create ONE plan per domain. This transforms the extraction into a continuous execution loop.</action>
       <constraint name="CRITICAL LIMIT">To prevent LLM cognitive overload, if there are more than 3 extraction phases, you MUST ONLY generate detailed plans for Phase 1 and Phase 2. For Phase 3 and beyond, just create empty placeholder files or title headers in the tracker.</constraint>
+      <constraint name="HYBRID_XML_SANDWICH_MANDATE">You MUST require that generated `phaseX_extraction.md` files wrap their step-by-step instructions in `<execution_protocol>` XML blocks inside fenced ```xml ``` codeblocks, exactly matching the format produced by `tier0-create-plan`.</constraint>
       <action>Add an explicit `[NOK]` task in the tracker after Phase 2 instructing the executing agent: "Invoke the Tier 3 Planner again to generate detailed plans for the remaining phases based on the updated codebase state."</action>
       <action>Ensure the Strangler Fig mapping (including test mock updates and DI shadow fixes) is detailed in the generated plans.</action>
     </step>
@@ -92,11 +93,12 @@ This workflow is designed for the systematic planning and decomposition of heavy
       <constraint>Do NOT pass these as long CLI parameters.</constraint>
       <action>Provide a concise `/tier5-resume` command for the next session. The command MUST explicitly delegate execution to the Tier 2 workflow (`--workflow=/tier2-execute`), target BOTH the tracker and the original God Code file (`--target="docs\epic\[filename]_decomposition_tracker.md, [original_god_code_file]"`), and include the required rules (`--rules="[Relevant rule files, e.g. 00-antigravity-core.md]"`).</action>
       <action>You MUST explicitly wrap all target file paths in `@-reference` syntax.</action>
+      <constraint name="MANDATORY_STOP">Ensure the instructions strictly reinforce that the agent MUST stop and instruct the user to execute the plans in a fresh context window using the `/tier5-resume --workflow=/tier2-execute` command.</constraint>
     </step>
     
     <step id="6" name="PHASE 5 (Stop &amp; Present)">
       <action>Present the generated plans and tracker to the user.</action>
-      <action>Inform the user that planning is complete and they MUST switch to a fresh context window to execute the first phase using the handover command provided in the tracker.</action>
+      <action>Inform the user that planning is complete and they MUST STOP and instruct the user to execute the plans in a fresh context window using the `/tier5-resume --workflow=/tier2-execute` command.</action>
       <constraint>Do NOT implement any domain code yourself in this session.</constraint>
     </step>
   </execution_protocol>
