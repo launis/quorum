@@ -39,6 +39,12 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <catastrophic_reason>Hallucinating features creates zombie code paths that bloat the architecture and introduce untrackable bugs.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="strict_type_fidelity_mandate">
+      <banned_pattern>Dumbing down, simplifying, or generalizing explicit type signatures (e.g., replacing `Annotated[list[FlattenedAtom]]` with `list[Any]` or `dict`) when translating Epic requirements into implementation plans.</banned_pattern>
+      <mandatory_pattern>If the Epic specifies a precise Pydantic or Freezed type signature, you MUST preserve that EXACT signature character-for-character in the generated execution plan. You are strictly forbidden from relaxing type safety to bypass strictness or compilation rules during planning.</mandatory_pattern>
+      <catastrophic_reason>Type drift during planning causes downstream executing agents to implement `list[Any]`, which entirely bypasses Quorum's Fail-Fast validation gates and silently corrupts state transit.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Writing plan targets as raw strings instead of bounded `@-reference` blocks.</banned_pattern>
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
@@ -98,6 +104,18 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <mandatory_pattern>You MUST strictly adhere to the exact Tracker markdown structure defined in Step 11. You are FORBIDDEN from generating a simple to-do list tracker. The Tracker MUST contain `## Phase Execution Status` (with `/tier0-research-plan` and `/tier2-execute` tasks for EACH phase), `### Post-Implementation Gates`, `## Requirements Traceability Matrix` (table format), and `# Session Handover Context`.</mandatory_pattern>
       <catastrophic_reason>Generating a simplified tracker instead of the Epic 106/107/108 standard format breaks the AI execution loop, causing Tier 2 agents to skip critical security audits, full-stack validations, and hardening gates.</catastrophic_reason>
     </rule_block>
+    
+    <rule_block id="test_file_path_resolution_mandate">
+      <banned_pattern>Writing test file paths with qualifiers like "(or equivalent)", "(or similar)", "the corresponding test file", or any other ambiguous phrasing instead of a verified absolute @-reference path.</banned_pattern>
+      <mandatory_pattern>When a plan step specifies test targets, you MUST use `grep_search` to resolve the EXACT test file path in the current codebase BEFORE writing the plan. If the test file does not yet exist, you MUST specify the EXACT path where it will be created using the project's established test directory mirroring convention (e.g., `backend_v2/tests/unit/` mirrors `backend_v2/`). The plan MUST contain the resolved path as a full `@-reference` (e.g., `@[c:\src\quorum\backend_v2\tests\unit\services\orchestrator\strategies\test_llm.py]`). Ambiguous qualifiers like "(or equivalent)" are STRICTLY FORBIDDEN.</mandatory_pattern>
+      <catastrophic_reason>Ambiguous test file paths cause the executing agent to either create files in wrong locations, waste context searching, or skip test creation entirely — all of which violate the atomic audit trail and coverage mandates.</catastrophic_reason>
+    </rule_block>
+    
+    <rule_block id="inline_demolition_inventory">
+      <banned_pattern>Planning a modification step that adds new code to a file without documenting which existing code patterns in that SAME file must be REMOVED or REPLACED as part of the step.</banned_pattern>
+      <mandatory_pattern>When a plan step modifies an existing file, you MUST use `grep_search` and `view_file` to inspect the current code state. If the current code contains anti-patterns that the new code replaces (e.g., isinstance() checks, defensive .get() access, asyncio.gather, raw dict state passing), you MUST document them explicitly in a `<demolish>` tag within the XML step block. Format: `<demolish>REMOVE: existing isinstance(shuffled_atoms, list) check and defensive "shuffled_atoms" in state_data pattern at @[file.py#Lnn-mm]. REPLACE WITH: try...except KeyError → AppException pattern.</demolish>`. The executing agent MUST NOT preserve any code listed in `<demolish>` tags.</mandatory_pattern>
+      <catastrophic_reason>Without explicit demolition instructions, the executing agent adds new code alongside existing anti-patterns, creating contradictory logic branches that violate Fail-Fast and the Zero Compromise Pledge. The anti_duplication rule in 00-antigravity-core.md catches this at execution time, but the damage is already done if the planner fails to document what must be removed.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_epic_planner">
@@ -128,7 +146,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       </constraint>
       <action>To satisfy the UI validation mandate without violating domain isolation, schedule an 'Integration Checkpoint Plan' in the tracker immediately after the respective Backend and Frontend micro-plans where end-to-end UI validation across the full stack is performed.</action>
       <constraint name="CRITICAL LIMIT">
-        To prevent LLM cognitive overload and context degradation, if there are more than 3 implementation phases, you MUST ONLY generate detailed plans for Phase 1 and Phase 2. For Phase 3 and beyond, just create empty placeholder files or title headers in the tracker. You must add an explicit `[NOK]` task in the tracker after Phase 2 instructing the executing agent: "Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state."
+        To prevent LLM cognitive overload and context degradation, if there are more than 3 implementation phases, you MUST ONLY generate detailed plans for Phase 1 and Phase 2. For Phase 3 and beyond, create placeholder files that MUST contain: 1) The phase title from the Epic, 2) A one-line summary of the phase's objective, 3) An explicit `@-reference` to the Epic section that defines the phase (e.g., `Source: @[c:\src\quorum\docs\epic\EPIC_XXX.md#L262-L277] Phase 3: Frontend`), 4) A list of expected target files (if known from the Epic). You MUST add an explicit `[NOK]` task in the tracker after Phase 2 instructing the executing agent: "Invoke the Tier 1 Planner again to generate detailed plans for the remaining phases based on the updated codebase state."
       </constraint>
     </step>
     
@@ -139,6 +157,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       </constraint>
       <action name="EXPLICIT TRACEABILITY">Map each generated milestone explicitly to the source material (e.g. `Source: Epic Phase 3, Step 4`).</action>
       <constraint name="ZERO_OMISSION_FOR_EXISTING_CODE">You are FORBIDDEN from silently omitting requirements that are already implemented. Every requirement from the Epic MUST appear in the plans — either as an actionable task or as an explicitly tagged `[ALREADY_IMPLEMENTED]` item with a verified `@-reference` to the existing code location. This prevents future agents from assuming the requirement was forgotten and re-implementing it.</constraint>
+      <action name="ANTI-PATTERN AUDIT">For each MODIFY step, you MUST inspect the target file's current code and document any existing anti-patterns (isinstance(), .get(), asyncio.gather, catch-all try/except, raw dicts) that the new code supersedes. These MUST be listed in `<demolish>` tags within the XML step to force the executing agent to delete them.</action>
     </step>
 
     <step id="4" name="DESTRUCTIVE OPERATION INVENTORY">
@@ -176,10 +195,11 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <action>You MUST explicitly mandate the use of the Universal Quality Gate as defined in `AGENTS.md`. You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
       <action>At the conclusion of the final integration plan, you MUST include the Final Live E2E REST API Verification Gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.</action>
       <constraint>If the Epic involves modifying existing code, explicitly instruct the executing agent to run the tests first and record the passing test count and coverage as a `[BASELINE]` metric.</constraint>
+      <constraint name="TEST_FILE_RESOLUTION">Every test file referenced in a plan step MUST be a verified `@-reference` path resolved via `grep_search` against the current codebase. If the test file does not exist, the plan MUST specify its exact creation path following the established directory mirror convention.</constraint>
     </step>
 
     <step id="12" name="PAUSE &amp; EMBEDDED HANDOVER">
-      <action>Once the micro-chunked implementation plans are written to the disk, STOP. Do not generate a tracker. Inform the user they must switch to a fresh context window and run `/tier1-tracker-generator @[epic_file.md]`.</action>
+      <action>Once the micro-chunked implementation plans are written to the disk, STOP. Do not generate a tracker. You MUST explicitly output a clear, copy-pasteable instruction telling the user to open a NEW context window (start a new chat session) and execute the tracker generator command: `/tier1-tracker-generator @[epic_file.md] @[task_directory_path]`.</action>
       <constraint invariant="circuit_breaker_and_context_guard">This enforces the circuit breaker by forcing a session split before Tracker generation, guaranteeing a clean context window.</constraint>
       <constraint>Do NOT implement any domain code yourself in this session.</constraint>
     </step>
