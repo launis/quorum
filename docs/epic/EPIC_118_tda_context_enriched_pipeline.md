@@ -67,7 +67,7 @@ The core of this bug fix is to preserve Quorum's existing architectural strength
 |:--|:----------------------|:-------|
 | 1 | Zero Legacy State Support | ✅ Clean slate — no backward compatibility needed |
 | 2 | Central Config Sovereignty | ✅ No new config — uses existing `settings.py` limits |
-| 3 | Pydantic Strictness | ✅ `FlattenedAtom` uses `ConfigDict(strict=True, frozen=True, extra="ignore")` |
+| 3 | Pydantic Strictness | ✅ `FlattenedAtom` uses `ConfigDict(strict=True, frozen=True, extra="ignore")` — `duck_typing_token_shield_exception` applies (Internal Data Projection Model) |
 | 4 | Cross-Domain DTO Parity | N/A — backend-only change, no Flutter DTO impact |
 | 5 | Static-First Caching Topology | ✅ `full_context` placed at the absolute top of the prompt (`<context>`) for O(1) Cache Survival |
 | 6 | Python 3.14 Concurrency | ✅ Uses `asyncio.TaskGroup` for parallel evaluation |
@@ -128,6 +128,7 @@ class FlattenedAtom(BaseModel):
     anchor_target: Annotated[str, Field(default="", description="Semantic bounding box target.")] = ""
     is_inverse: Annotated[bool, Field(default=False, description="True if this is an inverse assertion.")] = False
 
+# Add to existing EngineExecutionRequest:
 class EngineExecutionRequest(BaseModel):
     ...
     shuffled_atoms: Annotated[list[FlattenedAtom] | None, Field(default=None, description="Predefined matrix assertions for TDA evaluation.")] = None
@@ -150,11 +151,12 @@ from backend_v2.models.dtos.engine import FlattenedAtom
   <execution_block phase="phase_1" consumer="tier2-execute">
     <summary><![CDATA[Backend Domain Models & Service Engine Hardening]]></summary>
     <step id="phase_1.1" scope="MODIFY">
-  <action>Move `FlattenedAtom` model definition into the DTO layer to strictly enforce the **No Naked Dicts** rule without creating an architectural layer violation (Models importing from Hooks) or a Circular Import.</action>
+  <action>Move `FlattenedAtom` model definition into the DTO layer to strictly enforce the **No Naked Dicts** rule without creating an architectural layer violation (Models importing from Hooks) or a Circular Import. FlattenedAtom MUST use PEP 593 `Annotated` syntax for all fields per `pydantic_annotated_fields_mandate`.</action>
   <target>@[c:\src\quorum\backend_v2\models\dtos\engine.py]</target>
   <invariants>
-    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, extra='forbid')</must>
-    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all</forbidden>
+    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, frozen=True, extra='ignore') — duck_typing_token_shield_exception applies: FlattenedAtom is an Internal Data Projection Model deserializing from hook state_delta which may contain transient metadata keys.</must>
+    <must>All fields use PEP 593 Annotated syntax per pydantic_annotated_fields_mandate.</must>
+    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all, bare Field() assignments without Annotated wrapper</forbidden>
   </invariants>
   <tests min_negative="2">
     <positive>Verify engine.py compiles and integrates correctly</positive>
@@ -164,11 +166,11 @@ from backend_v2.models.dtos.engine import FlattenedAtom
   <audit_command>uv run python scripts/backend_audit_loop.py c:/src/quorum/backend_v2/models/dtos/engine.py --test</audit_command>
 </step>
 <step id="phase_1.2" scope="MODIFY">
-  <action>Remove the `FlattenedAtom` definition and instead import it from the DTO layer:</action>
+  <action>Remove the `FlattenedAtom` definition and instead import it from the DTO layer.</action>
   <target>@[c:\src\quorum\backend_v2\hooks\atom_flattening.py]</target>
   <invariants>
-    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, extra='forbid')</must>
-    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all</forbidden>
+    <must>Import FlattenedAtom from backend_v2.models.dtos.engine (dependency direction: Hooks → Models)</must>
+    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all, local FlattenedAtom class definition</forbidden>
   </invariants>
   <tests min_negative="2">
     <positive>Verify atom_flattening.py compiles and integrates correctly</positive>
@@ -210,18 +212,38 @@ engine_request = EngineExecutionRequest(
   <execution_block phase="phase_2" consumer="tier2-execute">
     <summary><![CDATA[Orchestration, Registry & Prompt Compiler Updates]]></summary>
     <step id="phase_2.1" scope="MODIFY">
-  <action>Pass the `shuffled_atoms` from `state_data` when the step is a matrix step. To enforce the **Fail-Fast Hydration Mandate** and **Zero-Duct-Tape Ban**, we MUST use **unconditional direct key access** `state_data["shuffled_atoms"]` when `is_matrix_step` is True. This means replacing the existing `if is_matrix_step and "shuffled_atoms" in state_data:` checks with unconditional access. If the `atom_flattening_hook` failed to inject the atoms, the native `KeyError` immediately crashes into a 500 error instead of silently passing `None` downstream:</action>
+  <action>Pass the `shuffled_atoms` from `state_data` when the step is a matrix step. To enforce the **Fail-Fast Hydration Mandate** and **Zero-Duct-Tape Ban**, we MUST use **unconditional direct key access** `state_data["shuffled_atoms"]` when `is_matrix_step` is True. This means replacing the existing `if is_matrix_step and "shuffled_atoms" in state_data:` checks with unconditional access. If the `atom_flattening_hook` failed to inject the atoms, the native `KeyError` immediately crashes into a 500 error instead of silently passing `None` downstream.</action>
   <target>@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]</target>
   <invariants>
-    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, extra='forbid')</must>
-    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all</forbidden>
+    <must>Unconditional state_data["shuffled_atoms"] key access when is_matrix_step is True (Fail-Fast KeyError → 500)</must>
+    <must>TypeAdapter(list[FlattenedAtom]).validate_python(raw_atoms, strict=False) for hydration per python_314_root_model_ban</must>
+    <must>Pass shuffled_atoms=hydrated_shuffled_atoms into BOTH EngineExecutionRequest constructor calls in llm.py (synthesis and regular paths)</must>
+    <forbidden>dict.get() defensive access, asyncio.gather, isinstance() duck-typing checks for atom validation</forbidden>
   </invariants>
   <tests min_negative="2">
     <positive>Verify llm.py compiles and integrates correctly</positive>
-    <negative>Verify missing required fields trigger ValidationError/AppException</negative>
-    <negative>Verify invalid types trigger Pydantic ValidationError</negative>
+    <negative>Verify missing shuffled_atoms when is_matrix_step raises KeyError (test_llm_strategy_missing_atoms_crash)</negative>
+    <negative>Verify invalid shuffled_atoms type triggers Pydantic ValidationError (test_tda_engine_invalid_shuffled_atoms_type)</negative>
   </tests>
   <audit_command>uv run python scripts/backend_audit_loop.py c:/src/quorum/backend_v2/services/orchestrator/strategies/llm.py --test</audit_command>
+</step>
+<step id="phase_2.2" scope="MODIFY">
+  <action>Implement the **Context-Enriched Decompose-Verify Pipeline** in `TDAEngine.execute()`. If `request.shuffled_atoms` is present (Matrix path): execute Phase 0+1 to generate enriched context, construct `evaluation_context` with `<context>` XML wrapper, map predefined matrix atoms into `LinkedAtomGraph` nodes preserving `tda_id`, skip `SlidingWindowLinker`, and pass `evaluation_context` to `EnrichedDagExecutor.execute_graph()`. If `request.shuffled_atoms` is None (Regular path): preserve existing behavior with `SlidingWindowLinker` and `global_source_text`. Adjust progress callback ranges for Matrix path (skip linker allocation).</action>
+  <target>@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]</target>
+  <invariants>
+    <must>Preserve AliasEngine block tags ([B0], [B1]) in hydrated_text within evaluation_context</must>
+    <must>Static-First Caching: full_context at prompt top in XML context tags per context_enrichment_cache_survival KI</must>
+    <must>_MATRIX_SOURCE_SENTINEL module-level constant per zero_db_hardcoding_mandate</must>
+    <must>ExtractedAtom nodes use is_logical_deduction=True to allow null source_quote for matrix assertions</must>
+    <forbidden>Raw dict state passing, asyncio.gather, exposing raw tda_id UUIDs to the LLM prompt</forbidden>
+  </invariants>
+  <tests min_negative="2">
+    <positive>test_tda_engine_matrix_path: Verify EnrichedDagExecutor is called with original matrix atoms and enriched full_context</positive>
+    <positive>test_tda_engine_no_shuffled_atoms_unchanged: Verify Regular TDA path uses SlidingWindowLinker unchanged</positive>
+    <negative>Verify invalid shuffled_atoms structure triggers Pydantic ValidationError</negative>
+    <negative>Verify missing tda_id triggers ExtractedAtom validation crash</negative>
+  </tests>
+  <audit_command>uv run python scripts/backend_audit_loop.py c:/src/quorum/backend_v2/services/orchestrator/engines/tda_engine.py --test</audit_command>
 </step>
   </execution_block>
   ```
@@ -243,11 +265,13 @@ No frontend changes required. This is a backend-only change with no DTO parity i
 </execution_block>
 ```
 
-### Phase 4: Verification & E2E Integration Gate (Implementation)
+### Phase 4: Verification & E2E Integration Gate
 
-#### [MODIFY] [tda_engine.py](file:///c:/src/quorum/backend_v2/services/orchestrator/engines/tda_engine.py)
+The `tda_engine.py` implementation is covered in Phase 2 (step 2.2). This phase contains only the reference implementation details and E2E verification.
 
-Implement the **Context-Enriched Decompose-Verify Pipeline** while strictly preserving `AliasEngine` block tags and ensuring Prefix-Matching Cache Survival:
+#### Reference: Context-Enriched Decompose-Verify Pipeline Implementation Details
+
+The following pseudocode documents the implementation pattern for Phase 2, step 2.2:
 
 1. Execute **Phase 0** and **Phase 1** to generate `ontology` and `extracted_atoms`.
 2. If `request.shuffled_atoms` is present, map them explicitly into `LinkedAtomGraph` nodes (preserving `tda_id`), construct the `full_context`, and **skip** `SlidingWindowLinker` (because matrix assertions are independent). A module-level sentinel constant `_MATRIX_SOURCE_SENTINEL` is used per `zero_db_hardcoding_mandate` to avoid hardcoded strings. To satisfy strict Pydantic requirements:
@@ -291,26 +315,23 @@ Implement the **Context-Enriched Decompose-Verify Pipeline** while strictly pres
        # REGULAR TDA PATH: Use global_source_text to prevent tautological validation loops
        nodes = await linker.link_graph(...)
    ```
-4. Call `EnrichedDagExecutor.execute_graph()`, passing the dynamically resolved `evaluation_context` as the `source_text` parameter. For Matrix paths, this keeps the massive `full_context` at the absolute top of the prompt (`<context>`), guaranteeing **O(1) Cache Survival**. For Regular paths, it preserves strict forensic quote extraction against the raw source text.
+3. Call `EnrichedDagExecutor.execute_graph()`, passing the dynamically resolved `evaluation_context` as the `source_text` parameter. For Matrix paths, this keeps the massive `full_context` at the absolute top of the prompt (`<context>`), guaranteeing **O(1) Cache Survival**. For Regular paths, it preserves strict forensic quote extraction against the raw source text.
+4. Adjust progress callback ranges for Matrix path: skip the linker allocation (35-60%) and redistribute to DAG execution.
 5. Project via `ResultProjector.project()`.
 
 
   ```xml
   <execution_block phase="phase_4" consumer="tier2-execute">
-    <summary><![CDATA[Verification & E2E Integration Gate (Implementation)]]></summary>
-    <step id="phase_4.1" scope="MODIFY">
-  <action>Implement the **Context-Enriched Decompose-Verify Pipeline** while strictly preserving `AliasEngine` block tags and ensuring Prefix-Matching Cache Survival: 1. Execute **Phase 0** and **Phase 1** to generate `ontology` and `extracted_atoms`. 2. If `request.shuffled_atoms` is present, map them explicitly into `LinkedAtomGraph` nodes (preserving `tda_id`), construct the `full_context`, and **skip** `SlidingWindowLinker` (because matrix assertions are independent). A module-level sentinel constant `_MATRIX_SOURCE_SENTINEL` is used per `zero_db_hardcoding_mandate` to avoid hardcoded strings. To satisfy strict Pydantic requirements:</action>
+    <summary><![CDATA[Verification & E2E Integration Gate]]></summary>
+    <step id="phase_4.1" scope="VERIFY">
+  <action>Run the full backend audit loop for all modified files to verify compilation and >90% test coverage.</action>
   <target>@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]</target>
   <invariants>
-    <must>Strict Pydantic V2 typing with ConfigDict(strict=True, extra='forbid')</must>
-    <forbidden>Raw dict state passing, asyncio.gather, try/except Exception catch-all</forbidden>
+    <must>All 4 TDD test cases pass (2 success paths, 2 failure paths)</must>
+    <must>Backend audit loop passes at >90% coverage</must>
   </invariants>
-  <tests min_negative="2">
-    <positive>Verify tda_engine.py compiles and integrates correctly</positive>
-    <negative>Verify missing required fields trigger ValidationError/AppException</negative>
-    <negative>Verify invalid types trigger Pydantic ValidationError</negative>
-  </tests>
-  <audit_command>uv run python scripts/backend_audit_loop.py c:/src/quorum/backend_v2/services/orchestrator/engines/tda_engine.py --test</audit_command>
+  <tests min_negative="0"/>
+  <audit_command>uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/engines --test</audit_command>
 </step>
   </execution_block>
   ```
@@ -326,19 +347,21 @@ Create a new Knowledge Item (KI) documenting the **Context-Enriched Decompose-Ve
 ---
 
 
-        ```xml
-        <execution_block phase="phase_5" consumer="tier2-execute">
-          <summary>Dual-Axis Documentation Update (EPIC 115 Compliance)</summary>
-          <step id="phase_5.1" scope="MODIFY">
-            <action>#### [NEW] KI Creation
-Create a new Knowledge Item (KI) documenting the **Context-Enriched Decompose-Verify** architectural pattern introduced in this Epic.
-- Create `ki_context_enriched_decompose_ver...</action>
-            <target>N/A</target>
-            <invariants/>
-            <tests min_negative="0"/>
-          </step>
-        </execution_block>
-        ```
+  ```xml
+  <execution_block phase="phase_5" consumer="tier2-execute">
+    <summary><![CDATA[Dual-Axis Documentation Update (EPIC 115 Compliance)]]></summary>
+    <step id="phase_5.1" scope="NEW">
+  <action>Create a new Knowledge Item (KI) documenting the **Context-Enriched Decompose-Verify** architectural pattern. Create `ki_context_enriched_decompose_verify.md` in the knowledge directory artifacts. Describe the pipeline: Phase 0/1 for extracting ontology → preserving original `tda_id` UUIDs → `EnrichedDagExecutor` evaluating against the generated `full_context`. Do NOT manually edit `docs/architecture/` pillars. Instruct the user to run `/tier7-describe-architecture` after KI creation to synchronize.</action>
+  <target>Knowledge Item artifact directory</target>
+  <invariants>
+    <must>KI documents the dual-path (Matrix vs Regular) pipeline architecture</must>
+    <must>KI references context_enrichment_cache_survival and atom_aliasing_hydration_mandate</must>
+    <forbidden>Direct edits to docs/architecture/ pillar documents</forbidden>
+  </invariants>
+  <tests min_negative="0"/>
+</step>
+  </execution_block>
+  ```
 
 ## 4. Definition of Done (DoD) & Verification Plan
 
