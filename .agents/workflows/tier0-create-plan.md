@@ -63,12 +63,15 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       </constraint>
     </step>
 
-    <step id="3" name="IMPLEMENTATION PLAN ARTIFACT GENERATION">
+    <step id="3" name="HYBRID IMPLEMENTATION PLAN ARTIFACT GENERATION">
       <action>Create an `implementation_plan.md` system **Artifact** (do NOT write directly to codebase files).</action>
       <action>Set `request_feedback = true` in ArtifactMetadata.</action>
-      <action>Specify explicit file modification categories (`[MODIFY]`, `[NEW]`, `[DELETE]`).</action>
-      <action>MANDATE the relevant architectural invariants directly in the text of the plan to prevent Context Amnesia.</action>
-      <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` artifact containing a checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent (`/tier2-execute`) has a state-tracking file to consume during execution.</action>
+      <constraint name="HYBRID_XML_SANDWICH_MANDATE">
+        1. The top of the generated plan MUST be human-readable Markdown containing: Title, Objective, Scope (TARGET/CONTEXT files with bounded `@-references`), and explicit file modification categories (`[MODIFY]`, `[NEW]`, `[DELETE]`).
+        2. The execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock.
+        3. Architectural invariants MUST be injected as `<constraint invariant="rule_id">` tags within the relevant `<step>`.
+      </constraint>
+      <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` artifact containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
     </step>
 
     <step id="4" name="ARCHITECTURAL SAFEGUARDS &amp; VERIFICATION PLAN">

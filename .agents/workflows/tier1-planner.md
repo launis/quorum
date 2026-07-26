@@ -124,6 +124,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
         1) Maximum 3-4 target files modified per plan. 
         2) NEVER mix Backend (Python) and Frontend (Flutter) changes in the same plan. 
         3) You MUST include explicit `@-reference` syntax for all target files in these sub-plans to ensure the executing agent automatically loads them.
+        4) HYBRID SANDWICH ARCHITECTURE: Each generated plan MUST have human-readable Markdown at the top (overview, target files), but the actual step-by-step execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock.
       </constraint>
       <action>To satisfy the UI validation mandate without violating domain isolation, schedule an 'Integration Checkpoint Plan' in the tracker immediately after the respective Backend and Frontend micro-plans where end-to-end UI validation across the full stack is performed.</action>
       <constraint name="CRITICAL LIMIT">
@@ -132,7 +133,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     </step>
     
     <step id="3.2" name="RULE INJECTION &amp; VERIFICATION">
-      <action>For each plan, you MUST explicitly inject the relevant architectural invariants from `.agents/rules/`.</action>
+      <action>For each plan, you MUST explicitly inject the relevant architectural invariants from `.agents/rules/` as `<constraint invariant="rule_id">` tags within the XML block.</action>
       <constraint name="QUORUM MODERNITY GATE">
         Even if the Epic requests a legacy technical pattern to achieve a business goal, you MUST translate that requirement using the Quorum 2026 anti-patterns (e.g. translate `asyncio.gather` requirements to `TaskGroup`, raw dicts to strict Pydantic V2 DTOs, regex to exact matching). Ensure EVERY single requirement from the Epic is mapped into the sub-plans, but executed using modern syntax. DO NOT use lazy placeholders.
       </constraint>

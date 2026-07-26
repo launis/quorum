@@ -38,8 +38,8 @@
     </rule_block>
 
     <rule_block id="context_triggered_loading">
-        <banned_pattern>Writing domain-specific code (Python, Flutter, or Seed Data) without reading the strict architecture laws first.</banned_pattern>
-        <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. BEFORE writing any code or executing plans, you MUST dynamically read the relevant architecture laws using the `view_file` tool:
+        <banned_pattern>Relying on context memory to assume the rules without physically reading them, or waiting until a task starts to read them.</banned_pattern>
+        <mandatory_pattern>At the absolute beginning of EVERY new prompt or slash command, regardless of conversation history or previous context, you MUST treat it as a stateless reset. Your VERY FIRST tool call MUST be `view_file` to physically load the appropriate rule file into your current turn's active context window. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules.
         1. For **Global IDE & Orchestration**, you MUST read: `.agents/rules/00-antigravity-core.md`
         2. If working on **Backend/Python**, you MUST read: `.agents/rules/01-python-backend.md`
         3. If working on **Frontend/Flutter**, you MUST read: `.agents/rules/02_flutter_desktop.md`
@@ -47,7 +47,7 @@
         5. If working on **LLM or Prompts**, you MUST read: `.agents/rules/05_llm_architecture.md`
         6. If navigating or creating new files, you MUST read: `.agents/rules/04_directory_reference.md`
         </mandatory_pattern>
-        <catastrophic_reason>The Single Source of Truth architecture requires language-specific constraints to be loaded on-demand to preserve context and ensure extreme accuracy.</catastrophic_reason>
+        <catastrophic_reason>The Single Source of Truth architecture requires language-specific constraints to be loaded on-demand. Without this absolute stateless reset, the LLM falls into "Context Bypass" mode and hallucinates old rules, causing system destruction.</catastrophic_reason>
     </rule_block>
 </agentic_control_center>
 
@@ -72,7 +72,7 @@
 </universal_quality_gates>
 
 <workflow_routing>
-    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `.agents/workflows/`. When a user inputs a slash command, your IMMEDIATE action must be to use `view_file` on the corresponding workflow file in `.agents/workflows/` and strictly follow its instructions. Do not guess the workflow logic.</instruction>
+    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `.agents/workflows/`. When a user inputs a slash command (e.g. `/tier0-create-plan`), this triggers a HARD CONTEXT RESET. Your absolute first two tool calls MUST be: 1. `view_file` on `.agents/rules/00-antigravity-core.md`, and 2. `view_file` on the requested `.agents/workflows/` file. You are STRICTLY FORBIDDEN from calling any destructive tools (e.g., `replace_file_content`, `run_command`) in the same turn before these files are physically read and evaluated. Do not guess the workflow logic.</instruction>
     <execution_tiers>
         <tier id="0_create_epic" path="/tier0-create-epic">Generates a standardized multi-phase Epic document (docs/epic/EPIC_XXX.md).</tier>
         <tier id="0_plan" path="/tier0-create-plan">Generates architectural implementation plan.</tier>

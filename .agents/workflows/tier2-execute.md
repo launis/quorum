@@ -69,13 +69,15 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <gate name="PRE-FLIGHT CODEBASE SCAN">Before starting implementation of each milestone, you MUST execute the `codebase_state_verification_mandate` protocol. Run `git log --oneline -n 30` and use `grep_search` on the target files to verify whether the planned changes already exist. If a task is already implemented, mark it `[x] (VERIFIED_EXISTING)` in `task.md` and proceed to the next milestone without re-implementing.</gate>
     </step>
     
-    <step id="2" name="COMPLETENESS MANDATE">
-      <action>Implement EVERY SINGLE bullet point, mathematical formula, constraint, and edge case listed in the current milestone of the `implementation_plan.md`. Treat the milestone plan as an exhaustive technical checklist.</action>
+    <step id="2" name="XML SANDWICH COMPLETENESS MANDATE">
+      <action>Exclusive XML Parsing: Parse the `<execution_protocol>` XML codeblock inside the plan as the SOLE source of execution instructions. Treat `<action>` and `<constraint>` tags as the exhaustive checklist. Markdown sections are for human context only.</action>
+      <constraint name="READ-ONLY XML">Do NOT attempt to rewrite or modify the XML plan document during execution. Use the separate `task.md` for state tracking.</constraint>
+      <action name="BOUNDED LOADING">Use `grep_search` with query `execution_protocol` to find the XML block's line range, then `view_file` with `StartLine`/`EndLine` to load only the execution instructions, saving context tokens.</action>
       <constraint>You are NOT allowed to skip minor details, write "MVP" simplified logic, or abstract away complex requirements.</constraint>
-      <constraint name="ALREADY_IMPLEMENTED CARVE-OUT">The COMPLETENESS MANDATE applies ONLY to tasks that the Pre-Flight Codebase Scan in Step 1 confirmed as NOT yet implemented. Tasks marked `[x] (VERIFIED_EXISTING)` are exempt from this mandate — re-implementing verified code is a catastrophic anti-pattern, not a sign of thoroughness.</constraint>
-      <gate name="PRE-FLIGHT CHECKLIST">Before writing ANY code, you MUST output a literal checklist of all the constraints and edge cases you found in the markdown plan.</gate>
+      <constraint name="ALREADY_IMPLEMENTED CARVE-OUT">The COMPLETENESS MANDATE applies ONLY to tasks that the Pre-Flight Codebase Scan in Step 1 confirmed as NOT yet implemented. Tasks marked `[x] (VERIFIED_EXISTING)` are exempt from this mandate.</constraint>
+      <gate name="PRE-FLIGHT CHECKLIST">Before writing ANY code, you MUST output a literal checklist of all `<constraint>` tags extracted from the XML block.</gate>
       <action>When writing the code, add comments that trace back to the plan (e.g. `# Phase 3, Step 4: Enforce Exponential Backoff`).</action>
-      <gate name="DOUBLE CHECK MANDATE">Before proceeding to tests, you MUST double-check your written code against the original `.md` plan to guarantee 100% of the listed requirements have been mapped into the code. Do not proceed until you have explicitly confirmed no detail was dropped.</gate>
+      <gate name="DOUBLE CHECK MANDATE">Before proceeding to tests, you MUST cross-verify your written code against the `<action>` and `<constraint>` tags to guarantee 100% of the listed requirements have been mapped into the code. Do not proceed until confirmed.</gate>
     </step>
 
     <step id="2.5" name="ESCALATION PROTOCOL">

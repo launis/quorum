@@ -218,7 +218,7 @@ engine_request = EngineExecutionRequest(
     <must>Unconditional state_data["shuffled_atoms"] key access when is_matrix_step is True (Fail-Fast KeyError → 500)</must>
     <must>TypeAdapter(list[FlattenedAtom]).validate_python(raw_atoms, strict=False) for hydration per python_314_root_model_ban</must>
     <must>Pass shuffled_atoms=hydrated_shuffled_atoms into BOTH EngineExecutionRequest constructor calls in llm.py (synthesis and regular paths)</must>
-    <forbidden>dict.get() defensive access, asyncio.gather, isinstance() duck-typing checks for atom validation</forbidden>
+    <forbidden>dict.get() defensive access during schema compilation, modifying the chunking logic later in the file (around line 469) - it MUST remain unchanged, asyncio.gather, isinstance() duck-typing checks for atom validation</forbidden>
   </invariants>
   <tests min_negative="2">
     <positive>Verify llm.py compiles and integrates correctly</positive>
@@ -373,7 +373,8 @@ Create a new Knowledge Item (KI) documenting the **Context-Enriched Decompose-Ve
 - [ ] @[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py] implements the Context-Enriched pipeline: Phase 0+1 → enriched context → predefined matrix atoms → `EnrichedDagExecutor`
 - [ ] `full_context` includes both enriched facts AND original `hydrated_text` with `[B0]`, `[B1]` AliasEngine block tags
 - [ ] `matrix_scoring_hook` receives evaluation results with original predefined `tda_id` values — zero UUID mismatches
-- [ ] **[EPIC 114]** All 4 TDD test cases pass (2 success paths, 2 explicitly defined failure paths).
+- [ ] **[TEST ISOLATION]** Tests for `FlattenedAtom` are placed in @[c:\src\quorum\backend_v2\tests\unit\models\dtos\test_engine.py], strictly isolated from hook tests.
+- [ ] **[EPIC 114]** All TDD test cases pass (including new DTO scenarios and 4 Engine scenarios).
 - [ ] Backend audit loop passes at >90% coverage
 - [ ] **[EPIC 115]** KI `ki_context_enriched_decompose_verify.md` is created, establishing the SSOT for the pattern without modifying `docs/architecture/`.
 
@@ -381,7 +382,14 @@ Create a new Knowledge Item (KI) documenting the **Context-Enriched Decompose-Ve
 
 Per the Shift-Left Testing Architecture (EPIC 114), explicit test scenarios with concrete inputs and expected outputs for BOTH success AND failure paths (minimum 2 negative scenarios) are explicitly defined and must be implemented.
 
-#### Success Scenarios
+#### Phase 1: DTO Hardening Scenarios (`test_engine.py`)
+1. **Positive:** Verify `FlattenedAtom` instantiates with valid data.
+2. **Negative (Missing Field):** Instantiating `FlattenedAtom` without `atom_id` or `question` MUST trigger `ValidationError`.
+3. **Negative (Invalid Type):** Passing `int` for `question` field MUST trigger `ValidationError` due to `strict=True`.
+
+#### Phase 2: Orchestration & Strategy Scenarios
+
+##### Success Scenarios
 1. **`test_tda_engine_matrix_path`**:
    - **Input**: `EngineExecutionRequest` with `shuffled_atoms` populated with predefined matrix assertions.
    - **Expected Output**: `EnrichedDagExecutor` is called with the original matrix atoms and the concatenated `full_context` (containing extracted facts and original `[B0]` tags).
