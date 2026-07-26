@@ -9,33 +9,14 @@ LLM context fatigue and JSON token explosion.
 import logging
 import random
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.engine import FlattenedAtom
 from backend_v2.models.v2_core import PromptBlock, Step
 
 logger = logging.getLogger(__name__)
-
-
-class FlattenedAtom(BaseModel):
-    """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule).
-
-    Attributes:
-        atom_id: Opaque hashed ID for the extracted atom.
-        question: The text content evaluated blindly.
-        extraction_rule: The specific validation rule.
-        anchor_target: Semantic bounding box target.
-        is_inverse: True if this is an inverse assertion.
-    """
-
-    atom_id: str = Field(description="Opaque hashed ID for the extracted atom.")
-    question: str = Field(description="The text content evaluated blindly.")
-    extraction_rule: str = Field(default="", description="The specific validation rule.")
-    anchor_target: str = Field(default="", description="Semantic bounding box target.")
-    is_inverse: bool = Field(default=False, description="True if this is an inverse assertion.")
-
-    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
 
 
 class FlatteningHookOutput(BaseModel):

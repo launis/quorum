@@ -5,7 +5,7 @@ Provides the strict Pydantic V2 schemas for engine execution.
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,6 +16,26 @@ from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
 if TYPE_CHECKING:
     pass
+
+
+class FlattenedAtom(BaseModel):
+    """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule).
+
+    Attributes:
+        atom_id: Opaque hashed ID for the extracted atom.
+        question: The text content evaluated blindly.
+        extraction_rule: The specific validation rule.
+        anchor_target: Semantic bounding box target.
+        is_inverse: True if this is an inverse assertion.
+    """
+
+    atom_id: Annotated[str, Field(description="Opaque hashed ID for the extracted atom.")]
+    question: Annotated[str, Field(description="The text content evaluated blindly.")]
+    extraction_rule: Annotated[str, Field(default="", description="The specific validation rule.")]
+    anchor_target: Annotated[str, Field(default="", description="Semantic bounding box target.")]
+    is_inverse: Annotated[bool, Field(default=False, description="True if this is an inverse assertion.")]
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
 
 
 class EngineExecutionRequest(BaseModel):

@@ -43,7 +43,7 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
           - `- [ ] **[NOK]** As-Built Architectural Sync: Run \`/tier7-describe-architecture\` to automatically scan the codebase, anchor the physical implementation map in \`docs/architecture/\`, and update \`.agents/rules/04_directory_reference.md\`.`
         - **`### Final Epic Audit`**:
           - `- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run \`/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_XXX.md]\` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.`
-        - **`## Instructions for the Execution Agent`**: You MUST include this section and specify: Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule. You MUST add an instruction here: "You MUST update the `/tier5-resume` command at the bottom of this tracker before handing over the session."
+        - **`## Instructions for the Execution Agent`**: You MUST include this section and specify: Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule. You MUST add an instruction here: "You MUST update the `/tier5-resume` command at the bottom of this tracker before handing over the session. The mandatory workflow loop is: `/tier0-research-plan` (Phase N) -> `/tier2-execute` (Phase N) -> `/tier8-audit-plan` (Phase N) -> `/tier0-research-plan` (Phase N+1). Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`."
         - **`## Requirements Traceability Matrix`**: You MUST break down the Epic into highly granular, micro-level logical requirements (e.g., R1 through R15+). Do not summarize them into 5 or 6 broad phases. You MUST extract every single technical detail from the Epic into a separate row. Map each granular requirement to the specific `<step id>` in the XML plan. This serves as the human-readable Double-Entry Bookkeeping audit log.
         - **`# Session Handover Context`**: You MUST include this EXACT detailed section at the absolute bottom of the tracker. It must use the precise sub-headings `## Achieved`, `## Learned`, `## Remaining`, and `## Resume Command`. Do NOT use generic terms like "Current State" or "Next Steps". This section MUST ONLY exist in the tracker file. Format it EXACTLY like this:
           ```markdown
@@ -58,7 +58,7 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
           - Specific tasks left for the next session.
           
           ## Resume Command
-          `/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_XXX\01_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+          `/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_XXX\01_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
           ```
           The `## Resume Command` MUST be an exact copy-pasteable slash command for the user to execute next, properly injecting the `@-referenced` target files and required architectural rules for the next tier.
       </constraint>

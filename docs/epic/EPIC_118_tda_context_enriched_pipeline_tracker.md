@@ -4,14 +4,14 @@
 
 ### Phase 0: Seed Data & Database Prerequisite / Migration
 - `[ ]` /tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_118\00_phase_0_seed_data.md]
-- `[ ]` /tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_118\00_phase_0_seed_data.md]
-  - `[ ]` `phase_0.1`
+- `[x]` /tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_118\00_phase_0_seed_data.md]
+  - `[x]` `phase_0.1` (N/A - no seed changes needed)
 
 ### Phase 1: Backend Domain Models & Service Engine Hardening
 - `[ ]` /tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_118\01_phase_1_backend_domain_models.md]
-- `[ ]` /tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_118\01_phase_1_backend_domain_models.md]
-  - `[ ]` `phase_1.1`
-  - `[ ]` `phase_1.2`
+- `[x]` /tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_118\01_phase_1_backend_domain_models.md]
+  - `[x]` `phase_1.1`
+  - `[x]` `phase_1.2`
 
 ### Phase 2: Orchestration, Registry & Prompt Compiler Updates
 - `[ ]` /tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_118\02_phase_2_orchestration_registry.md]
@@ -56,11 +56,11 @@
 
 | Req ID | Requirement Description | XML Step ID | Target File | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| R1 | Move `FlattenedAtom` model definition into the DTO layer to enforce No Naked Dicts rule | `phase_1.1` | `@[c:\src\quorum\backend_v2\models\dtos\engine.py]` | Pending |
-| R2 | FlattenedAtom MUST use PEP 593 Annotated syntax for all fields | `phase_1.1` | `@[c:\src\quorum\backend_v2\models\dtos\engine.py]` | Pending |
-| R3 | Update `test_engine.py` for new `FlattenedAtom` model with positive/negative tests | `phase_1.1` | `@[c:\src\quorum\backend_v2\tests\unit\models\dtos\test_engine.py]` | Pending |
-| R4 | Remove the `FlattenedAtom` definition from `atom_flattening.py` and import from DTO layer | `phase_1.2` | `@[c:\src\quorum\backend_v2\hooks\atom_flattening.py]` | Pending |
-| R5 | Update imports in `test_atom_flattening.py` to use new DTO location | `phase_1.2` | `@[c:\src\quorum\backend_v2\tests\unit\hooks\test_atom_flattening.py]` | Pending |
+| R1 | Move `FlattenedAtom` model definition into the DTO layer to enforce No Naked Dicts rule | `phase_1.1` | `@[c:\src\quorum\backend_v2\models\dtos\engine.py]` | Complete |
+| R2 | FlattenedAtom MUST use PEP 593 Annotated syntax for all fields | `phase_1.1` | `@[c:\src\quorum\backend_v2\models\dtos\engine.py]` | Complete |
+| R3 | Update `test_engine.py` for new `FlattenedAtom` model with positive/negative tests | `phase_1.1` | `@[c:\src\quorum\backend_v2\tests\unit\models\dtos\test_engine.py]` | Complete |
+| R4 | Remove the `FlattenedAtom` definition from `atom_flattening.py` and import from DTO layer | `phase_1.2` | `@[c:\src\quorum\backend_v2\hooks\atom_flattening.py]` | Complete |
+| R5 | Update imports in `test_atom_flattening.py` to use new DTO location | `phase_1.2` | `@[c:\src\quorum\backend_v2\tests\unit\hooks\test_atom_flattening.py]` | Complete |
 | R6 | Safely parse `state_data["shuffled_atoms"]` when `is_matrix_step` is True via KeyError catch | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Pending |
 | R7 | Raise explicit AppException on KeyError for `state_data["shuffled_atoms"]` | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Pending |
 | R8 | Validate `raw_atoms` with `TypeAdapter(list[FlattenedAtom]).validate_python(..., strict=False)` | `phase_2.1` | `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` | Pending |
@@ -90,9 +90,8 @@
   - `TDAEngine.execute()` in `c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py` does not currently accept or process `request.shuffled_atoms`, ignoring matrix evaluation parameters and passing only the raw text to the atomizer pipeline.
 
 ## Remaining
-- Execute Phase 0 (`tasks_EPIC_118/00_phase_0_seed_data.md`).
-- Execute Phase 1 (`tasks_EPIC_118/01_phase_1_backend_domain_models.md`).
 - Execute Phase 2 (`tasks_EPIC_118/02_phase_2_orchestration_registry.md`).
+- Execute Phase 3 (`tasks_EPIC_118/03_phase_3_frontend.md`).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_118_tda_context_enriched_pipeline_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_118\00_phase_0_seed_data.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_118_tda_context_enriched_pipeline_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_118\02_phase_2_orchestration_registry.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
