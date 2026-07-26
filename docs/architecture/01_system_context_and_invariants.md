@@ -27,6 +27,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Crashing the system without a forensic trace creates "black box" failures.
 - **Enforcement:** Every `AppException` thrown must be preceded by a structured `logger.error` containing the exact logical reason for the failure and contextual parameters. This enables the UI to display a user-friendly error card while preserving the deep forensic trace in backend logs (e.g., Logfire).
 
+### 2.6. Agent Context Quarantine & Hybrid XML Sandwich
+- **Law:** Relying on massive context windows for complex agent tasks leads to context amnesia and token-saturation crashes.
+- **Enforcement:** The system enforces a strict Context Quarantine strategy to isolate analysis from execution. Workflows that generate implementation plans (e.g., God Code Decomposition, Bug Hunting) must output their instructions within a strict `<execution_protocol>` XML block. The execution phase then consumes this rigid schema in a fresh context session to guarantee structural fidelity. For feature refactoring, a conditional threshold (>2 files or >3 steps) mandates a hard quarantine boundary.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

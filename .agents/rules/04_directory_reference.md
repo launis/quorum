@@ -113,6 +113,16 @@
         <key_domains>00_README_META_ARCHITECTURE.md (Meta-Governance), 6 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine).</key_domains>
     </module>
     
+    <module path=".agents/rules/">
+        <responsibility>GLOBAL IDE RULES & ARCHITECTURAL INVARIANTS</responsibility>
+        <key_domains>00-antigravity-core.md, language-specific constraints, directory reference.</key_domains>
+    </module>
+
+    <module path=".agents/workflows/">
+        <responsibility>AGENTIC EXECUTION PLAYBOOKS & QUARANTINE PROTOCOLS</responsibility>
+        <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) slash commands and Hybrid XML Sandwich schemas.</key_domains>
+    </module>
+
     <module path="scratch/">
         <responsibility>SANDBOX FOR AI EXPERIMENTS & DEBUGGING</responsibility>
         <key_domains>Disposable test scripts, JSON dumps, log extraction.</key_domains>
