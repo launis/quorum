@@ -347,8 +347,11 @@ async def test_execute_success_path_structured_output(
     # Verify that DAG components were invoked
     llm_strategy._engine.execute.assert_called_once()  # type: ignore
 
+
 @pytest.mark.asyncio
-async def test_llm_strategy_missing_atoms_crash(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
+async def test_llm_strategy_missing_atoms_crash(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
     """Test that a matrix step without shuffled_atoms raises a structured AppException."""
     step = MagicMock()
     step.id = "step_missing_atoms"
@@ -386,8 +389,32 @@ async def test_llm_strategy_missing_atoms_crash(llm_strategy: LLMNodeStrategy, m
             "label": {"default_locale": "en", "translations": {"en": "Test"}},
             "description": {"default_locale": "en", "translations": {"en": "Test"}},
             "scales": [
-                {"score": 1, "ai_label": "bad", "claims": [{"label": {"default_locale": "en", "translations": {"en": "Test"}}, "ai_description": "desc", "tda_assertions": [{"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}]}]},
-                {"score": 5, "ai_label": "good", "claims": [{"label": {"default_locale": "en", "translations": {"en": "Test"}}, "ai_description": "desc", "tda_assertions": [{"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}]}]}
+                {
+                    "score": 1,
+                    "ai_label": "bad",
+                    "claims": [
+                        {
+                            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+                            "ai_description": "desc",
+                            "tda_assertions": [
+                                {"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "score": 5,
+                    "ai_label": "good",
+                    "claims": [
+                        {
+                            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+                            "ai_description": "desc",
+                            "tda_assertions": [
+                                {"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}
+                            ],
+                        }
+                    ],
+                },
             ],
         },
         {
@@ -397,30 +424,40 @@ async def test_llm_strategy_missing_atoms_crash(llm_strategy: LLMNodeStrategy, m
             "type": "instruction",
             "label": {"default_locale": "en", "translations": {"en": "Test"}},
             "description": {"default_locale": "en", "translations": {"en": "Test"}},
-        }
+        },
     ]
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}  # Missing shuffled_atoms
     mock_hook_state.global_context_vars = {}
 
     from unittest.mock import AsyncMock, patch
+
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
     ):
         mock_pre.return_value = (mock_hook_state, [])
         with pytest.raises(AppException) as exc_info:
             await llm_strategy.execute(
-                step=step, projector=projector, context=context, frozen_ctx=None, trace=[], semaphore=asyncio.Semaphore(2)
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+                semaphore=asyncio.Semaphore(2),
             )
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "missing 'shuffled_atoms'" in exc_info.value.message
 
+
 @pytest.mark.asyncio
-async def test_llm_strategy_invalid_shuffled_atoms_type(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
+async def test_llm_strategy_invalid_shuffled_atoms_type(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
     """Test that a matrix step with invalid shuffled_atoms raises a ValidationError."""
     from pydantic import ValidationError
+
     step = MagicMock()
     step.id = "step_invalid_atoms"
     step.task_blueprint = "bp_success"
@@ -457,8 +494,32 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(llm_strategy: LLMNodeStr
             "label": {"default_locale": "en", "translations": {"en": "Test"}},
             "description": {"default_locale": "en", "translations": {"en": "Test"}},
             "scales": [
-                {"score": 1, "ai_label": "bad", "claims": [{"label": {"default_locale": "en", "translations": {"en": "Test"}}, "ai_description": "desc", "tda_assertions": [{"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}]}]},
-                {"score": 5, "ai_label": "good", "claims": [{"label": {"default_locale": "en", "translations": {"en": "Test"}}, "ai_description": "desc", "tda_assertions": [{"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}]}]}
+                {
+                    "score": 1,
+                    "ai_label": "bad",
+                    "claims": [
+                        {
+                            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+                            "ai_description": "desc",
+                            "tda_assertions": [
+                                {"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "score": 5,
+                    "ai_label": "good",
+                    "claims": [
+                        {
+                            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+                            "ai_description": "desc",
+                            "tda_assertions": [
+                                {"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}
+                            ],
+                        }
+                    ],
+                },
             ],
         },
         {
@@ -468,20 +529,26 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(llm_strategy: LLMNodeStr
             "type": "instruction",
             "label": {"default_locale": "en", "translations": {"en": "Test"}},
             "description": {"default_locale": "en", "translations": {"en": "Test"}},
-        }
+        },
     ]
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {"shuffled_atoms": ["not", "valid", "dicts"]}  # Invalid type
     mock_hook_state.global_context_vars = {}
 
     from unittest.mock import AsyncMock, patch
+
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
     ):
         mock_pre.return_value = (mock_hook_state, [])
         with pytest.raises(ValidationError):
             await llm_strategy.execute(
-                step=step, projector=projector, context=context, frozen_ctx=None, trace=[], semaphore=asyncio.Semaphore(2)
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+                semaphore=asyncio.Semaphore(2),
             )
 
 
