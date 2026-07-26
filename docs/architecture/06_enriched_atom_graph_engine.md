@@ -26,6 +26,11 @@ Transforms raw conversational interactions into structured analytical events. By
 ### 6. Source Verification Service
 Acts as the authoritative validator for data provenance within the graph. It ensures that any extracted atom or causal link is strictly backed by traceable evidence, preventing hallucinations from contaminating the DAG state and providing a verified audit trail for all evaluations.
 
+### 7. Context-Enriched Pipeline (Dual-Path TDA)
+Supports two distinct execution paths: Regular TDA and Matrix Assertion TDA. 
+- **Matrix Path**: When assertions are predefined in a structured matrix, original UUIDs (`tda_id`) are preserved. The `SlidingWindowLinker` is bypassed because matrix assertions are independent. The structured claims are mapped directly into independent graph nodes.
+- **Enriched Context**: To prevent context drift and ensure O(1) Cache Survival, a static-first `<context>` block is constructed containing all enriched facts and raw source text. The topological executor inherits this enriched global context uniformly across parallel evaluations.
+
 ## DTO Lifecycle & Output Boundary
 
 The engine strictly decouples logical graph execution from server-driven UI elements.
