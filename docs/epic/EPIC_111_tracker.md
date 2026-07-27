@@ -124,7 +124,7 @@
 ### Phase 2C: Negative Testing & Hardening (Batch 3)
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`
 
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`
 - [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`
   - [ ] Step 1: NEGATIVE TESTING: REPORT DATA DTO
   - [ ] Step 2: NEGATIVE TESTING: WORKER SLOP DETECTION
@@ -320,9 +320,12 @@
   - Passed Universal Quality Gate (`backend_audit_loop.py` --test) strictly with >80% coverage and zero regression errors.
 - **Phase 2B Tier 8 Audit successfully completed**. Verified strict legacy field removal from batch 2 tests and zero regression errors.
 
+- **Phase 2C Tier 0 Red-Teaming successfully completed**.
+  - Surgically mutated the test plan to target missing test assertions in `test_worker.py` and negative test cases for `detect_performative_patterns` in `test_linguistics.py`, eliminating redundancy.
+
 ## Remaining
-- Proceed to **Phase 2C Tier 0 Red-Teaming**.
-- Execute `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`.
+- Proceed to **Phase 2C Execution**.
+- Execute `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md]" --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`

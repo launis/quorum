@@ -17,11 +17,11 @@ Add explicit negative tests verifying that the newly strict `ReportDataDTO` nati
   </step>
 
   <step id="2" name="NEGATIVE TESTING: WORKER SLOP DETECTION">
-    <action>Modify `@[c:\src\quorum\backend_v2\tests\unit\test_worker.py]`. Add negative tests verifying that slop penalty detection safely ignores layouts where `metadata` is `None` or missing `"penalty_type"`.</action>
+    <action>Modify `@[c:\src\quorum\backend_v2\tests\unit\test_worker.py]`. Finish the assertions for the existing `test_generate_pdf_task_slop_penalty_ignores_metadata` test to strictly verify the penalty logic doesn't crash. Then, add a NEW negative test verifying that slop penalty detection safely ignores layouts where `metadata` exists but is missing the `"penalty_type"` key.</action>
   </step>
 
   <step id="3" name="NEGATIVE TESTING: LINGUISTICS HOOK">
-    <action>Modify `@[c:\src\quorum\backend_v2\tests\unit\hooks\test_linguistics.py]`. Add negative tests for missing/empty `layouts`.</action>
+    <action>Modify `@[c:\src\quorum\backend_v2\tests\unit\hooks\test_linguistics.py]`. Since `scan_report_for_slop` already has negative tests, add negative test cases for `detect_performative_patterns`: verify it handles missing `chat_log_user_only` inputs gracefully, and verify it handles a missing/empty Lexicon configuration from the system database.</action>
   </step>
 
   <step id="4" name="TESTING STRATEGY & QUALITY GATE PLAN">
