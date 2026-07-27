@@ -13,7 +13,7 @@ def test_rendered_synthesis_cache_hydration_fails_with_extra() -> None:
         "evaluation_notes": "Tekoäly tuotti kattavan...",
         "reasoning_trace": "My reasoning process...",
         "blk_34def5d628ba4ed4": json.dumps(
-            {"section_syntheses": [{"block_id": "blk_34def5d628ba4ed4", "content": "Analyysin sisältö..."}]}
+            {"section_syntheses": [{"block_type": "markdown", "text": "Analyysin sisältö..."}]}
         ),
         "extracted_facts": {},
         "_step_metadata": {"token_usage": {}},
@@ -36,7 +36,7 @@ def test_rendered_synthesis_cache_hydration_success_after_fix() -> None:
         "evaluation_notes": "Tekoäly tuotti kattavan...",
         "reasoning_trace": "My reasoning process...",
         "blk_34def5d628ba4ed4": json.dumps(
-            {"section_syntheses": [{"block_id": "blk_34def5d628ba4ed4", "content": "Analyysin sisältö..."}]}
+            {"section_syntheses": [{"block_type": "markdown", "text": "Analyysin sisältö..."}]}
         ),
         "extracted_facts": {},
         "_step_metadata": {"token_usage": {}},
@@ -75,4 +75,4 @@ def test_rendered_synthesis_cache_hydration_success_after_fix() -> None:
     cache = RenderedSynthesisCache.model_validate(clean_delta)
     assert cache is not None
     assert "blk_34def5d628ba4ed4" in cache.section_syntheses
-    assert cache.section_syntheses["blk_34def5d628ba4ed4"][0]["content"] == "Analyysin sisältö..."
+    assert cache.section_syntheses["blk_34def5d628ba4ed4"][0].text == "Analyysin sisältö..."

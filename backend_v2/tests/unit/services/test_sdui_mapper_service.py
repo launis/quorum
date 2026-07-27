@@ -7,6 +7,7 @@ from backend_v2.models.v2_core import (
     ReportLayoutDTO,
 )
 from backend_v2.models.view.sdui import (
+    MarkdownBlock,
     ScoreCardDisplay,
     SduiQuoteCard,
     SduiWarningCard,
@@ -57,7 +58,7 @@ def test_map_report_to_sdui_complete() -> None:
         preset_view="1d_metrics",
         title=I18nText(default_locale="en", translations={"en": "Metrics"}),
         axes=[row],
-        synthesis_blocks=[{"block_type": "markdown", "text": "Layout synthesis"}],
+        synthesis_blocks=[MarkdownBlock(block_type="markdown", text="Layout synthesis")],
     )
 
     # Create dummy audit trace
@@ -104,7 +105,7 @@ def test_map_report_to_sdui_complete() -> None:
     # Check Layout Synthesis
     assert view.sections[1].id == "layout_synthesis_0"
     assert view.sections[1].type == SectionType.MARKDOWN_BLOCK
-    assert view.sections[1].data == [{"block_type": "markdown", "text": "Layout synthesis"}]
+    assert view.sections[1].data == [MarkdownBlock(block_type="markdown", text="Layout synthesis")]
 
     # Check MCP
     assert view.sections[2].id == "xai_mcp_audit"

@@ -3,7 +3,7 @@
 These models handle the ingestion and output formats for the Output Profile REST APIs.
 """
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -14,6 +14,7 @@ from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,
 )
+from backend_v2.models.view.sdui import AnySduiBlock
 
 
 class OutputProfileCreateDTO(V2CoreBase):
@@ -102,7 +103,7 @@ class OutputProfileCreateDTO(V2CoreBase):
     ]
     layouts: Annotated[list[OutputLayoutBlock], Field(default_factory=list, description="Sequence of layouts.")]
     content_blocks: Annotated[
-        list[dict[str, Any]],
+        list[AnySduiBlock],
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
     ]
 
@@ -184,7 +185,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
     ]
     layouts: Annotated[list[OutputLayoutBlock] | None, Field(default=None, description="Sequence of layouts.")]
     content_blocks: Annotated[
-        list[dict[str, Any]] | None,
+        list[AnySduiBlock] | None,
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
     ]
 
@@ -233,4 +234,4 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
     layouts: list[OutputLayoutBlock]
-    content_blocks: list[dict[str, Any]] = Field(default_factory=list)
+    content_blocks: list[AnySduiBlock] = Field(default_factory=list)

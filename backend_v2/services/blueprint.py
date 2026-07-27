@@ -39,6 +39,7 @@ from backend_v2.models.v2_core import (
     ScorecardAtomDTO,
     SystemConfigPerformativeLexicons,
 )
+from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
@@ -693,7 +694,7 @@ class BlueprintTransformer:
         self,
         layout_defs: list[OutputLayoutBlock],
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO],
-        section_syntheses: dict[str, list[dict[str, Any]]],
+        section_syntheses: dict[str, list[AnySduiBlock]],
     ) -> list[ReportLayoutDTO]:
         """Maps generated axes into report layouts based on layout rules.
 
@@ -883,10 +884,10 @@ class BlueprintTransformer:
 
         profile_cache = execution.profile_syntheses.get(resolved_pid)
         original_synthesis_md = synthesis_md
-        section_syntheses: dict[str, list[dict[str, Any]]] = {}
+        section_syntheses: dict[str, list[AnySduiBlock]] = {}
         xai_highlights_cache: list[Any] = []
-        content_blocks: list[dict[str, Any]] = (
-            [b.copy() for b in profile.content_blocks] if profile.content_blocks else []
+        content_blocks: list[AnySduiBlock] = (
+            [b.model_copy(deep=True) for b in profile.content_blocks] if profile.content_blocks else []
         )
 
         if profile_cache:
@@ -894,7 +895,7 @@ class BlueprintTransformer:
             # Epic 94: Do NOT overwrite profile.content_blocks with cached synthesis blocks!
             # The OutputProfile is the Single Source of Truth for SDUI layout.
             if not content_blocks and profile_cache.content_blocks:
-                content_blocks = [b.copy() for b in profile_cache.content_blocks]
+                content_blocks = [b.model_copy(deep=True) for b in profile_cache.content_blocks]
             synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
             xai_highlights_cache = profile_cache.xai_highlights or []
         else:
@@ -1164,13 +1165,13 @@ class BlueprintTransformer:
 
             injected = False
             if synthesis_block_id and content_blocks:
-                new_content_blocks: list[dict[str, Any]] = []
+                new_content_blocks: list[AnySduiBlock] = []
                 for c_block in content_blocks:
-                    if c_block.get("id") == synthesis_block_id:
+                    if getattr(c_block, "id", None) == synthesis_block_id:
                         if profile_cache and profile_cache.content_blocks and not synthesis_md:
                             # Epic 94: SDUI Block Splicing
                             for cache_b in profile_cache.content_blocks:
-                                new_content_blocks.append(cache_b.copy() if hasattr(cache_b, "copy") else cache_b)
+                                new_content_blocks.append(cache_b.model_copy(deep=True))
                             injected = True
                         elif synthesis_md:
                             # Legacy Markdown Fallback
@@ -1209,8 +1210,7 @@ class BlueprintTransformer:
                             safe_md = bleach.clean(
                                 str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True
                             )
-                            c_block["text"] = safe_md
-                            c_block["block_type"] = "markdown"
+                            c_block.text = safe_md
                             new_content_blocks.append(c_block)
                             injected = True
                         else:
@@ -1241,16 +1241,18 @@ class BlueprintTransformer:
                 compiler = PromptCompiler()
                 resolved_preamble = compiler.resolve_i18n(synthesis_cfg.preamble_text, locale)
                 if resolved_preamble:
-                    content_blocks.insert(0, {"block_type": "markdown", "text": resolved_preamble, "id": "preamble"})
+                    from backend_v2.models.view.sdui import MarkdownBlock
+
+                    content_blocks.insert(0, MarkdownBlock(id="preamble", text=resolved_preamble))
 
             if synthesis_cfg and synthesis_cfg.enable_pii_masking:
-                for cb in content_blocks:
-                    if isinstance(cb, dict) and "text" in cb and isinstance(cb["text"], str):
-                        cb["text"] = self._apply_pii_masking(cb["text"])
+                for idx, cb in enumerate(content_blocks):
+                    if hasattr(cb, "text") and isinstance(cb.text, str):
+                        content_blocks[idx] = cb.model_copy(update={"text": self._apply_pii_masking(cb.text)})
                 for _layout_id, sec_blocks in section_syntheses.items():
-                    for sb in sec_blocks:
-                        if isinstance(sb, dict) and "text" in sb and isinstance(sb["text"], str):
-                            sb["text"] = self._apply_pii_masking(sb["text"])
+                    for idx, sb in enumerate(sec_blocks):
+                        if hasattr(sb, "text") and isinstance(sb.text, str):
+                            sec_blocks[idx] = sb.model_copy(update={"text": self._apply_pii_masking(sb.text)})
 
             if not injected and synthesis_block_id and profile.content_blocks:
                 msg = f"Synthesis mapping failed: No SDUI ContentBlock found with id '{synthesis_block_id}' in OutputProfile. Fallback is forbidden."
@@ -1411,8 +1413,9 @@ class BlueprintTransformer:
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
 
-            if resolved_preface_md:
-                content_blocks.insert(0, {"block_type": "markdown", "text": resolved_preface_md, "id": "preface_md"})
+                from backend_v2.models.view.sdui import MarkdownBlock
+
+                content_blocks.insert(0, MarkdownBlock(id="preface_md", text=resolved_preface_md))
 
             if content_blocks:
                 target_layout = next((lay for lay in layouts_list if lay.is_synthesis_enabled), None)
@@ -1529,20 +1532,22 @@ class BlueprintTransformer:
                                 status_code=500,
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
-
                     effective_penalty = min(effective_penalty, 0.40)
                     recalc_final = base_avg * (1.0 - effective_penalty)
                     global_score = float(round(max(0.0, recalc_final), 1))
 
             if penalties_applied:
-                penalty_blocks = []
+                from backend_v2.models.view.sdui import AlertBlock
+
+                penalty_blocks: list[AnySduiBlock] = []
                 for p_str in penalties_applied:
                     penalty_blocks.append(
-                        {
-                            "block_type": "alert_box",
-                            "severity": "error",
-                            "text": f"Penalty applied: {p_str}",
-                        }
+                        AlertBlock(
+                            severity="warning",
+                            text=f"Penalty applied: {p_str}",
+                            exact_quotes=[],
+                            citations=[],
+                        )
                     )
                 layouts_list.insert(
                     0,

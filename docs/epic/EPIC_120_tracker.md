@@ -10,18 +10,18 @@
   - [x] `<step id="2">` Rewire Studio Imports
   - [x] `<step id="3">` Rewire Execution Imports
   - [x] `<step id="4">` Strict Deserialization Testing
-- [ ] **Phase 1 & 4: Backend Model Strictness Hardening & Test Fixture Migration**
-  - [ ] `<step id="1">` Update V2 Core Models
-  - [ ] `<step id="2">` Update Output Profile DTOs
-  - [ ] `<step id="3">` Test Fixture Migration
-  - [ ] `<step id="4">` Seed Data Verification
+- [x] **Phase 1 & 4: Backend Model Strictness Hardening & Test Fixture Migration**
+  - [x] `<step id="1">` Update V2 Core Models
+  - [x] `<step id="2">` Update Output Profile DTOs
+  - [x] `<step id="3">` Test Fixture Migration
+  - [x] `<step id="4">` Seed Data Verification
 - [ ] **Phase 3: Blueprint Generator & Worker Strictness Hardening**
   - [ ] `<step id="1">` Blueprint Generator Refactor
   - [ ] `<step id="2">` Synthesis Distiller Refactor
   - [ ] `<step id="3">` Worker Double-Serialization Removal
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] **[NOK]** Backend Audit Loop Passes (`uv run python scripts/backend_audit_loop.py backend_v2/ --test`)
+- [x] **[OK]** Backend Audit Loop Passes (`uv run python scripts/backend_audit_loop.py backend_v2/ --test`)
 - [x] **[OK]** Frontend Audit Loop Passes (`uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`)
 
 ### Post-Implementation Gates
@@ -49,20 +49,20 @@
 ## Requirements Traceability Matrix
 | Req ID | Requirement Description | Phase & Step Mapping |
 |---|---|---|
-| R1 | `OutputProfile.content_blocks` replaces `List<dynamic>` with `AnySduiBlock` (Backend) | Phase 1, Step 1 & 2 |
-| R2 | `EmbeddedOutputProfile.content_blocks` replaces `List<dynamic>` with `AnySduiBlock` (Backend) | Phase 1, Step 1 |
-| R3 | `OutputLayoutBlock.synthesis_blocks` typed to `list[AnySduiBlock] \| None` | Phase 1, Step 1 |
-| R4 | `ReportLayoutDTO.synthesis_blocks` typed to `list[AnySduiBlock] \| None` | Phase 1, Step 1 |
-| R5 | `RenderedSynthesisCache.content_blocks` typed to `list[AnySduiBlock]` | Phase 1, Step 1 |
-| R6 | `RenderedSynthesisCache.section_syntheses` typed to `dict[str, list[AnySduiBlock]]` | Phase 1, Step 1 |
-| R7 | `OutputProfile` DTOs updated to use `list[AnySduiBlock]` for `content_blocks` | Phase 1, Step 2 |
-| R8 | Test fixtures mocked as dicts updated to models or discriminators | Phase 1, Step 3 |
-| R9 | Seed data verification for `AnySduiBlock` | Phase 1, Step 4 |
-| R10 | Flutter `SduiBlockDTO` extracted to `shared/models/sdui_block_dto.dart` | Phase 2, Step 1 |
-| R11 | Flutter `SduiBlockDTO` adds 4 missing types: `quote_card`, `warning_card`, `n_a_card`, `grid` | Phase 2, Step 1 |
-| R12 | Flutter `OutputProfile` and `EmbeddedOutputProfile` replace `List<dynamic>` with `List<SduiBlockDTO>` | Phase 2, Step 2 |
-| R13 | Flutter `ReportLayoutDto` replaces `List<Map<String, dynamic>>?` with `List<SduiBlockDTO>?` | Phase 2, Step 3 |
-| R14 | Strict Deserialization Testing for `SduiBlockDTO.fromJson` | Phase 2, Step 4 |
+| R1 ✅ | `OutputProfile.content_blocks` replaces `List<dynamic>` with `AnySduiBlock` (Backend) | Phase 1, Step 1 & 2 |
+| R2 ✅ | `EmbeddedOutputProfile.content_blocks` replaces `List<dynamic>` with `AnySduiBlock` (Backend) | Phase 1, Step 1 |
+| R3 ✅ | `OutputLayoutBlock.synthesis_blocks` typed to `list[AnySduiBlock] \| None` | Phase 1, Step 1 |
+| R4 ✅ | `ReportLayoutDTO.synthesis_blocks` typed to `list[AnySduiBlock] \| None` | Phase 1, Step 1 |
+| R5 ✅ | `RenderedSynthesisCache.content_blocks` typed to `list[AnySduiBlock]` | Phase 1, Step 1 |
+| R6 ✅ | `RenderedSynthesisCache.section_syntheses` typed to `dict[str, list[AnySduiBlock]]` | Phase 1, Step 1 |
+| R7 ✅ | `OutputProfile` DTOs updated to use `list[AnySduiBlock]` for `content_blocks` | Phase 1, Step 2 |
+| R8 ✅ | Test fixtures mocked as dicts updated to models or discriminators | Phase 1, Step 3 |
+| R9 ✅ | Seed data verification for `AnySduiBlock` | Phase 1, Step 4 |
+| R10 ✅ | Flutter `SduiBlockDTO` extracted to `shared/models/sdui_block_dto.dart` | Phase 2, Step 1 |
+| R11 ✅ | Flutter `SduiBlockDTO` adds 4 missing types: `quote_card`, `warning_card`, `n_a_card`, `grid` | Phase 2, Step 1 |
+| R12 ✅ | Flutter `OutputProfile` and `EmbeddedOutputProfile` replace `List<dynamic>` with `List<SduiBlockDTO>` | Phase 2, Step 2 |
+| R13 ✅ | Flutter `ReportLayoutDto` replaces `List<Map<String, dynamic>>?` with `List<SduiBlockDTO>?` | Phase 2, Step 3 |
+| R14 ✅ | Strict Deserialization Testing for `SduiBlockDTO.fromJson` | Phase 2, Step 4 |
 | R15 | Blueprint Generator removes duck-typing (`isinstance`, `hasattr`, `.get()`) and uses Pydantic methods | Phase 3, Step 1 |
 | R16 | Synthesis Distiller serialization handles typed `AnySduiBlock` via `model_dump` | Phase 3, Step 2 |
 | R17 | Worker removes double-serialization `model_dump()` + cast when saving cache | Phase 3, Step 3 |
@@ -70,20 +70,19 @@
 
 # Session Handover Context
 ## Achieved
-- Executed Phase 2 implementation, successfully synchronizing the Flutter `SduiBlockDTO` sealed class with the backend's 9 types (`quote_card`, `warning_card`, `n_a_card`, `grid`).
-- Extracted `SduiBlockDTO` and `SduiBulletListItemDTO` into a shared layer (`shared/models/sdui_block_dto.dart`).
-- Rewired `output_profile.dart` and `report_layout_dto.dart` to strictly use `List<SduiBlockDTO>` instead of `List<dynamic>` and `List<Map<String, dynamic>>`.
-- Rewrote `report_renderer_v2_widget.dart` to natively pattern match the Freezed sealed class instead of relying on dangerous dynamic dictionary `[]` operator accesses.
-- Tested and verified 100% strict JSON conformity with the `disallowUnrecognizedKeys` Freezed parser.
+- Executed Phase 1 and 4 for Backend Model Strictness Hardening & Test Fixture Migration.
+- Rewrote the unstructured dict mappings into strict Pydantic V2 definitions (`list[AnySduiBlock]`).
+- Cleaned up the `seed_data.json` so that strict validation succeeds on placeholder blocks.
+- Solved testing failures in `test_blueprint.py` and `test_worker_synthesis_hydration.py` due to stricter block schema.
+- Passed `backend_audit_loop.py --test` with 100% green coverage across all unit tests and MyPy.
 
 ## Learned
-- **MANDATORY Order of Execution**: Phase 2 (Frontend) MUST be executed BEFORE Phase 1 (Backend). The Python backend emits 9 AnySduiBlock types while Flutter only has 5. Deploying the backend first will crash the client via `disallowUnrecognizedKeys`.
-- **Baseline State Snapshot**: `content_blocks` and `synthesis_blocks` currently use `list[dict[str, Any]]` and `List<dynamic>`. The blueprint generator (`c:\src\quorum\backend_v2\services\blueprint.py`) uses `isinstance(cb, dict)` and `c_block.get("id")`. Because `SduiBlockBase` lacks an `id` field, the `.get("id")` lookup logic MUST be redesigned during execution. Worker (`c:\src\quorum\backend_v2\worker.py`) does a double-serialization `model_dump()` cast on lines ~877-896.
-- **Frontend Sync Requirement**: Extracting `SduiBlockDTO` to the shared layer mathematically requires moving `SduiBulletListItemDTO` as well to prevent circular dependency fractures.
+- **Anti-TDD Trap Active**: Refactored existing mock dicts (like `{"type": "markdown", "content": "..."}`) into actual `MarkdownBlock` types (`{"block_type": "markdown", "text": "..."}`) directly because the legacy dict implementation breaks new schemas.
+- `SduiBlockBase` lacks an `id` field. We added an optional `id: str | None = None` to perfectly replicate the expected UI Section parameters from `sdui.py` in the mapping logic.
 
 ## Remaining
-- Execute System 2 Red-Team Audit for Phase 2 via `/tier8-audit-plan`.
-- Then proceed to Phase 1 backend updates via `/tier0-research-plan`.
+- Research and analyze Phase 3 (Blueprint Generator & Worker Strictness Hardening) via `/tier0-research-plan`.
+- Execute Phase 3 to eradicate the last remaining `isinstance(x, dict)` double serialization patterns.
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_120\00_phase2_frontend_sealed_class_sync.md]" --workflow=/tier8-audit-plan`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_120\02_phase3_blueprint_generator_strictness.md]" --workflow=/tier0-research-plan`

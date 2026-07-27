@@ -524,7 +524,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
             "prf_1234abcd1234abcd": RenderedSynthesisCache(
                 section_syntheses={
                     "layout_0_1d_metrics": [
-                        {"type": "markdown", "content": "### Title\\n<script>alert('xss');</script>Some content."}
+                        {"block_type": "markdown", "text": "### Title\\n<script>alert('xss');</script>Some content."}
                     ]
                 }
             )
@@ -564,7 +564,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
     assert len(dto.layouts) > 0
     assert dto.layouts[0].synthesis_blocks is not None
     assert len(dto.layouts[0].synthesis_blocks) > 0
-    safe_md = dto.layouts[0].synthesis_blocks[0]["content"]
+    safe_md = dto.layouts[0].synthesis_blocks[0].text
 
     assert "Some content." in safe_md
 

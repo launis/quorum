@@ -475,6 +475,7 @@ class DriverProfileDisplay(V2CoreBase):
 class SduiBlockBase(V2CoreBase):
     """Base schema for SDUI Polymorphic Blocks."""
 
+    id: Annotated[str | None, Field(default=None, description="Optional block identifier")] = None
     block_type: str
 
 

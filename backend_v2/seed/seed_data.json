@@ -10946,13 +10946,7 @@
       "slug": "holistic_audit",
       "workflow_id": "wf_9d68c573802341db",
       "organization_id": "SYSTEM",
-      "content_blocks": [
-        {
-          "id": "blk_8f7e6d5c4b3a2019",
-          "block_type": "markdown",
-          "text": ""
-        }
-      ]
+      "content_blocks": []
     }
   ],
   "step_blueprints": []

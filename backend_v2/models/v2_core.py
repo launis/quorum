@@ -40,6 +40,7 @@ from backend_v2.models.enums import (
     VisualIntent,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields
+from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -1064,7 +1065,7 @@ class ReportLayoutDTO(V2CoreBase):
     )
 
     synthesis: SynthesisConfigDTO | None = Field(default=None)
-    synthesis_blocks: list[dict[str, Any]] | None = Field(
+    synthesis_blocks: list[AnySduiBlock] | None = Field(
         default=None, description="The rendered SDUI blocks for this layout"
     )
     matrix_column_labels: dict[str, I18nText] = Field(
@@ -1264,7 +1265,7 @@ class OutputLayoutBlock(V2CoreBase):
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Optional Section-Level Synthesis configuration for this block."
     )
-    synthesis_blocks: list[dict[str, Any]] | None = Field(
+    synthesis_blocks: list[AnySduiBlock] | None = Field(
         default=None, description="Optional Section-Level Synthesis content blocks."
     )
     strictness_level: int | None = Field(
@@ -1327,7 +1328,7 @@ class OutputProfile(V2CoreBase):
     strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
-    content_blocks: list[dict[str, Any]] = Field(
+    content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
     )
 
@@ -1370,7 +1371,7 @@ class EmbeddedOutputProfile(V2CoreBase):
     strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
-    content_blocks: list[dict[str, Any]] = Field(
+    content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
     )
 
@@ -1537,10 +1538,8 @@ class RenderedSynthesisCache(V2CoreBase):
     """Cached synthesis results tied to a specific OutputProfile ID."""
 
     synthesized_markdown: str = Field(default="", description="Compiled Markdown content for the report")
-    content_blocks: list[dict[str, Any]] = Field(
-        default_factory=list, description="Global synthesis SDUI content blocks"
-    )
-    section_syntheses: dict[str, list[dict[str, Any]]] = Field(
+    content_blocks: list[AnySduiBlock] = Field(default_factory=list, description="Global synthesis SDUI content blocks")
+    section_syntheses: dict[str, list[AnySduiBlock]] = Field(
         default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis blocks"
     )
     row_explanations: dict[str, str] = Field(

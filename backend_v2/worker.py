@@ -34,6 +34,7 @@ from backend_v2.models.v2_core import (
     Workflow,
     WorkflowInputs,
 )
+from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -451,8 +452,8 @@ async def generate_pdf_task(
         for layout in dto.layouts:
             if layout.synthesis_blocks:
                 for block in layout.synthesis_blocks:
-                    if "text" in block:
-                        text = block["text"]
+                    if hasattr(block, "text"):
+                        text = block.text
                         if isinstance(text, str) and "PENALTY_SLOP:" in text:
                             has_slop_penalty = True
                             phrases_str = text.split("PENALTY_SLOP:")[1].strip()
@@ -869,16 +870,10 @@ async def generate_profile_synthesis_and_pdf_task(
             row_dto, _ = t_row.result()
             row_expl_res = row_dto
 
-        import typing
-
-        sec_dict: dict[str, list[dict[str, Any]]] = {}
+        sec_dict: dict[str, list[AnySduiBlock]] = {}
         if synthesis_res and synthesis_res.section_syntheses:
             for sec in synthesis_res.section_syntheses:
-                raw_blocks = sec.content_blocks if sec.content_blocks else []
-                sec_dict[sec.layout_id] = typing.cast(
-                    list[dict[str, Any]],
-                    [cb.model_dump(exclude_none=True) for cb in raw_blocks],
-                )
+                sec_dict[sec.layout_id] = sec.content_blocks if sec.content_blocks else []
 
         raw_content = synthesis_res.content_blocks if synthesis_res and synthesis_res.content_blocks else []
         # Concatenate SDUI text blocks into synthesized_markdown for PDF rendering
@@ -890,10 +885,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
         cache = RenderedSynthesisCache(
             synthesized_markdown="\n\n".join(flat_md_parts),
-            content_blocks=typing.cast(
-                list[dict[str, Any]],
-                [b.model_dump(exclude_none=True) for b in raw_content],
-            ),
+            content_blocks=raw_content,
             section_syntheses=sec_dict,
             row_explanations={item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
             if row_expl_res and row_expl_res.explanations
