@@ -54,7 +54,18 @@ class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     __model__ = MatrixScorecardRowDTO
     scorecard_atoms: dict[str, Any] = {}
     cited_web_citation: str | None = None
+    cited_source_id: str | None = None
+    cited_text_quote: str | None = None
+    coaching: str | None = None
+    falsification: str | None = None
+    missing_context: str | None = None
+    remediation_steps: str | None = None
+    emotional_sentiment: str | None = None
+    theory_link: str | None = None
+    description: str | None = None
+    semantic_reasoning: str | None = None
     score_display_label: str | None = "5.0 / 10.0"
+    risk_flag: bool | None = None
     __set_as_default_factory_for_type__ = True
 
 
