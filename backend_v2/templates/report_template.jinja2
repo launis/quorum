@@ -252,13 +252,6 @@
 
 
 
-        {% if report_data and report_data.content_blocks %}
-        <div class="card" style="border-left: 4px solid #1E88E5; padding: 20px; margin-bottom: 0px; page-break-after: avoid;">
-            <div style="font-size: 13px; line-height: 1.6; color: #333;">
-                {{ render_sdui_blocks(report_data.content_blocks) }}
-            </div>
-        </div>
-        {% endif %}
 
         {% if report_data and report_data.global_score != None %}
         <div style="background-color: #e6e0f8; border: 1px solid #d1c4e9; border-radius: 0 0 8px 8px; padding: 15px 20px; margin-bottom: 25px; margin-top: 0px; page-break-inside: avoid; page-break-before: avoid;">

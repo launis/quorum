@@ -3,7 +3,7 @@
 import uuid
 
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.v2_core import ExecutionRecord, I18nText, MatrixScorecardRowDTO, ReportDataDTO
+from backend_v2.models.v2_core import ExecutionRecord, I18nText, MatrixScorecardRowDTO, ReportDataDTO, ReportLayoutDTO
 
 ExecutionRecord.model_rebuild()
 from backend_v2.services.flattener import FlatFileService
@@ -28,17 +28,22 @@ def test_flat_file_service_flatten_results() -> None:
         profile_id="prof_test",
         global_score=85.0,
         has_warning=False,
-        evaluative_matrices=[
-            MatrixScorecardRowDTO(
-                block_id="blk_1",
-                name="Matrix 1",
-                label_i18n=I18nText(translations={"en": "Matrix 1"}, default_locale="en"),
-                row_explanation="Test matrix",
-                score=4.0,
-                semantic_reasoning="Passed because of X",
-                cited_text_quote="This is a quote",
-                cited_source_id="Source A",
-                is_evaluative=True,
+        layouts=[
+            ReportLayoutDTO(
+                preset_view="default",
+                axes=[
+                    MatrixScorecardRowDTO(
+                        block_id="blk_1",
+                        name="Matrix 1",
+                        label_i18n=I18nText(translations={"en": "Matrix 1"}, default_locale="en"),
+                        row_explanation="Test matrix",
+                        score=4.0,
+                        semantic_reasoning="Passed because of X",
+                        cited_text_quote="This is a quote",
+                        cited_source_id="Source A",
+                        is_evaluative=True,
+                    )
+                ],
             )
         ],
     )

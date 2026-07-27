@@ -441,11 +441,22 @@ async def generate_pdf_task(
         dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
 
         # 1.5 Scan for Performative AI Slop (Prong 2)
-        # Simply inspect penalties_applied computed in build_report_dto
-        has_slop_penalty = any(p.startswith("PENALTY_SLOP:") for p in (dto.penalties_applied or []))
+        # Inspect layouts for penalty alerts
+        has_slop_penalty = False
+        phrases_str = ""
+        for layout in dto.layouts:
+            if layout.synthesis_blocks:
+                for block in layout.synthesis_blocks:
+                    if isinstance(block, dict) and "text" in block:
+                        text = block["text"]
+                        if isinstance(text, str) and "PENALTY_SLOP:" in text:
+                            has_slop_penalty = True
+                            phrases_str = text.split("PENALTY_SLOP:")[1].strip()
+                            break
+            if has_slop_penalty:
+                break
+
         if has_slop_penalty:
-            slop_penalty = next(p for p in dto.penalties_applied if p.startswith("PENALTY_SLOP:"))
-            phrases_str = slop_penalty.split(":", 1)[1]
             logger.warning(f"[Task] OutputQualityScanner detected slop for {execution_id}: {phrases_str}")
 
             # Update DB ExecutionRecord metadata for frontend quick querying
