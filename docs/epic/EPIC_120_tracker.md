@@ -15,10 +15,10 @@
   - [x] `<step id="2">` Update Output Profile DTOs
   - [x] `<step id="3">` Test Fixture Migration
   - [x] `<step id="4">` Seed Data Verification
-- [ ] **Phase 3: Blueprint Generator & Worker Strictness Hardening**
-  - [ ] `<step id="1">` Blueprint Generator Refactor
-  - [ ] `<step id="2">` Synthesis Distiller Refactor
-  - [ ] `<step id="3">` Worker Double-Serialization Removal
+- [NEEDS_E2E] **Phase 3: Blueprint Generator & Worker Strictness Hardening**
+  - [x] `<step id="1">` Blueprint Generator Refactor
+  - [x] `<step id="2">` Synthesis Distiller Refactor
+  - [x] `<step id="3">` Worker Double-Serialization Removal
 
 ### Integration Checkpoint: Full-Stack Validation
 - [x] **[OK]** Backend Audit Loop Passes (`uv run python scripts/backend_audit_loop.py backend_v2/ --test`)
@@ -76,6 +76,8 @@
 - Solved testing failures in `test_blueprint.py` and `test_worker_synthesis_hydration.py` due to stricter block schema.
 - Passed `backend_audit_loop.py --test` with 100% green coverage across all unit tests and MyPy.
 - **Completed Tier 0 Research and System 2 Analysis for Phase 3.**
+- **Completed Tier 2 Execution for Phase 3**: Refactored `blueprint.py`, `synthesis_distiller.py`, and `worker.py` to eliminate duck typing, fix in-place model mutations, and enforce Fail-Fast `ValidationError` handling.
+- **Integration Checkpoint Passed**: Both `backend_audit_loop.py --test` and SDUI Parity Tests passed successfully.
 
 ## Learned
 - **Anti-TDD Trap Active**: Refactored existing mock dicts (like `{"type": "markdown", "content": "..."}`) into actual `MarkdownBlock` types (`{"block_type": "markdown", "text": "..."}`) directly because the legacy dict implementation breaks new schemas.
@@ -83,7 +85,9 @@
 - **Phase 3 Red-Teaming**: Found that the previous agent already handled the removal of most duck-typing. The true remaining tasks are replacing in-place mutations (like `c_block.text = safe_md`) with `.model_copy(update={...})` and adding proper `ValidationError` handling in `worker.py` to trigger Schema Healing.
 
 ## Remaining
-- Execute Phase 3 (Blueprint Generator & Worker Strictness Hardening) via `/tier2-execute`.
+- **Run Live E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` (User running manually)
+- Run System 2 Audit for Phase 3: `/tier8-audit-plan`
+- Start the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_120\02_phase3_blueprint_generator_strictness.md]" --workflow=/tier2-execute`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_120\02_phase3_blueprint_generator_strictness.md]" --workflow=/tier8-audit-plan`

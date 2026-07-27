@@ -12,6 +12,7 @@ from typing import Any
 
 import logfire
 from arq.connections import RedisSettings
+from pydantic import ValidationError
 
 import backend_v2.hooks  # noqa: F401
 from backend_v2.core.hook_registry import HookDependencies, HookState
@@ -909,13 +910,34 @@ async def generate_profile_synthesis_and_pdf_task(
             await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
 
     except Exception as e:
-        logger.error(
-            "[Task] Text Synthesis generation failed for %s. Cause: %s",
-            execution_id,
-            str(e),
-            exc_info=True,
-            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-        )
+        is_validation_err = isinstance(e, ValidationError)
+        if not is_validation_err and isinstance(e, ExceptionGroup):
+            val_errors, _ = e.split(ValidationError)
+            if val_errors:
+                is_validation_err = True
+
+        if is_validation_err:
+            msg = f"Strictness Fail-Fast: Invalid data payload during synthesis/pdf task: {str(e)}"
+            logger.error(
+                "[Task] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            e = AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        else:
+            logger.error(
+                "[Task] Text Synthesis generation failed for %s. Cause: %s",
+                execution_id,
+                str(e),
+                exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            )
         try:
             driver = await get_driver(get_settings())
             repo = UnifiedWorkflowRepository(driver)

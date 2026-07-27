@@ -1167,7 +1167,7 @@ class BlueprintTransformer:
             if synthesis_block_id and content_blocks:
                 new_content_blocks: list[AnySduiBlock] = []
                 for c_block in content_blocks:
-                    if getattr(c_block, "id", None) == synthesis_block_id:
+                    if c_block.id == synthesis_block_id:
                         if profile_cache and profile_cache.content_blocks and not synthesis_md:
                             # Epic 94: SDUI Block Splicing
                             for cache_b in profile_cache.content_blocks:
@@ -1210,8 +1210,8 @@ class BlueprintTransformer:
                             safe_md = bleach.clean(
                                 str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True
                             )
-                            c_block.text = safe_md
-                            new_content_blocks.append(c_block)
+                            updated_c_block = c_block.model_copy(update={"text": safe_md})
+                            new_content_blocks.append(updated_c_block)
                             injected = True
                         else:
                             # Epic 94 fix: If there is no synthesis_md and no cache, keep the original block
