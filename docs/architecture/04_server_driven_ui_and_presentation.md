@@ -35,15 +35,20 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Editing interfaces for layout components must enforce strict structural constraints across all views.
 - **Enforcement:** The UI editing mechanism for layout blocks enforces a rigid three-part architecture (Header, Body, Footer). This standardization ensures that both the interactive canvas editor and the final rendered view follow identical structural rules, maintaining 100% parity across edit and display states.
 
+### 2.8. Dumb Painter Layout Mapping & Formatting
+- **Law:** The frontend must never map semantic business models directly into layout arrays nor perform scaling math for score presentation.
+- **Enforcement:** All structural UI elements (including matrices and penalties) are strictly mapped into `ReportLayoutDTO` arrays by the backend. The frontend iterates through the flat `layouts` structure rather than relying on legacy component-specific arrays. Furthermore, all mathematical evaluations of scores (e.g., displaying "5.0 / 10.0" versus "-") are computed exclusively on the backend and sent as a pre-computed `score_display_label`. The frontend strictly acts as a Dumb Painter for these pre-computed strings, preserving deterministic rendering parity across web and PDF views.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
     A[Backend Service] --> B{SDUI Payload Compiler}
     B --> C[Semantic Markdown Generation]
     B --> D[ICU Template Injection]
-    C & D --> E[JSON API Response]
-    E --> F[Client App]
-    F --> G{App Shell Router}
-    G --> H[Widget Library]
-    H --> I[Screen Render]
+    B --> E[Dumb Painter Layout Mapping]
+    C & D & E --> F[JSON API Response]
+    F --> G[Client App]
+    G --> H{App Shell Router}
+    H --> I[Widget Library]
+    I --> J[Screen Render]
 ```

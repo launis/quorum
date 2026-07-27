@@ -159,7 +159,7 @@
 ### Documentation & Knowledge Item Update
 
 - [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs (e.g., `score_display_label` Dumb Painter pattern, penalty-as-layout SDUI pattern) in `<appDataDir>/knowledge/`.
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ---
 
@@ -370,11 +370,14 @@
   - Verified `ki_agent_context_quarantine.md` and `ki_epic_lifecycle_workflow.md` were already properly XML-structured.
   - Successfully marked all remaining Knowledge Items as completed in `hardening_ki_state.json`.
 
+- **Tier 7 As-Built Architectural Sync successfully completed**.
+  - Verified `04_directory_reference.md` accurately maps the Epic 111 changes (eradicated legacy dtos/report arrays).
+  - Anchored `ki_dumb_painter_penalty_layout.md` into `04_server_driven_ui_and_presentation.md` under "2.8. Dumb Painter Layout Mapping & Formatting".
+  - Verified timelessness across all architectural pillars (no Epic IDs or historical language present).
+
 ## Remaining
 - Execute Post-Implementation Gates:
-- [x] Create a Knowledge Item (KI) for new SSOTs (e.g., `score_display_label` Dumb Painter pattern, penalty-as-layout SDUI pattern).
-  - As-Built Architectural Sync (`/tier7-describe-architecture`).
   - Final Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier7-describe-architecture --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md]"`
+`/tier5-resume --workflow=/tier8-audit-epic --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md]"`
