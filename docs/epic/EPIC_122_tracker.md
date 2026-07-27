@@ -19,7 +19,7 @@
 - [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]`
 - [/] **[IN PROGRESS] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]`
   - [x] `1_1`: OutputLayoutBlock and ReportLayoutDto Parity
-  - [ ] `1_2`: SynthesisConfigDto and ReportDataDto Cleanup
+  - [x] `1_2`: SynthesisConfigDto and ReportDataDto Cleanup
   - [ ] `1_3`: GlobalSynthesisDto and OutputProfile Updates
   - [ ] `1_4`: Testing & Quality Gate Plan
 - [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]`
@@ -93,8 +93,8 @@
 | R12 | Remove hardcoded fallback columns from `report_template.jinja2` | 0_4 | ✅ Done |
 | R13 | Run backend audit loop for Phase 0 | 0_5 | ✅ Done |
 | R14 | Add `matrixVisibleColumns` to `OutputLayoutBlock` and `ReportLayoutDto` in frontend | 1_1 | ✅ Done |
-| R15 | Remove `matrixVisibleColumns` from `SynthesisConfigDTO` in frontend | 1_2 | ⏳ Pending |
-| R16 | Remove `matrixVisibleColumns` from `ReportDataDto` in frontend | 1_2 | ⏳ Pending |
+| R15 | Remove `matrixVisibleColumns` from `SynthesisConfigDTO` in frontend | 1_2 | ✅ Done |
+| R16 | Remove `matrixVisibleColumns` from `ReportDataDto` in frontend | 1_2 | ✅ Done |
 | R17 | Add `userRole` and `userRoleJustification` to `GlobalSynthesisDto` in frontend | 1_3 | ⏳ Pending |
 | R18 | Add `userRoleLabel` to `OutputProfile` in frontend | 1_3 | ⏳ Pending |
 | R19 | Run flutter build runner for Phase 0 | 1_4 | ⏳ Pending |
@@ -115,10 +115,11 @@
 - Passed the backend audit loop and unit tests for the modified domain models.
 - Completed Tier 8 Audit for Phase 0 Backend execution and generated the audit report at `@[c:\src\quorum\docs\epic\tasks_EPIC_122\00_phase0_backend_audit_report.md]`.
 - Implemented Phase 0 Frontend DTO Parity Step 1_1: OutputLayoutBlock and ReportLayoutDto Parity.
+- Implemented Phase 0 Frontend DTO Parity Step 1_2: SynthesisConfigDto and ReportDataDto Cleanup.
 
 ## Learned
 - **Baseline State Snapshot**:
-  - The frontend `SynthesisConfigDto` and `ReportDataDto` still contain `matrixVisibleColumns` and need to be aligned with backend changes.
+  - (RESOLVED in Step 1_2) The frontend `SynthesisConfigDto` and `ReportDataDto` previously contained `matrixVisibleColumns` and have now been aligned with backend changes.
   - The `OutputProfile` (specifically `holistic_audit`) in `seed_data.json` currently uses the old structure and lacks the required layout definitions and metadata extensions.
 
 ## Remaining

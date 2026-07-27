@@ -35,7 +35,6 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'hydrated_references',
         'visible_metadata',
         'layouts',
-        'matrix_visible_columns',
         'created_at',
         'org_name',
         'cost_estimate',
@@ -134,11 +133,6 @@ _ReportDataDto _$ReportDataDtoFromJson(
                 .toList() ??
             const [],
       ),
-      matrixVisibleColumns: $checkedConvert(
-        'matrix_visible_columns',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
       createdAt: $checkedConvert('created_at', (v) => v as String?),
       orgName: $checkedConvert('org_name', (v) => v as String?),
       costEstimate: $checkedConvert(
@@ -196,7 +190,6 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'globalSynthesis': 'global_synthesis',
     'hydratedReferences': 'hydrated_references',
     'visibleMetadata': 'visible_metadata',
-    'matrixVisibleColumns': 'matrix_visible_columns',
     'createdAt': 'created_at',
     'orgName': 'org_name',
     'costEstimate': 'cost_estimate',
@@ -235,7 +228,6 @@ Map<String, dynamic> _$ReportDataDtoToJson(_ReportDataDto instance) =>
       ),
       'visible_metadata': instance.visibleMetadata,
       'layouts': instance.layouts.map((e) => e.toJson()).toList(),
-      'matrix_visible_columns': instance.matrixVisibleColumns,
       'created_at': instance.createdAt,
       'org_name': instance.orgName,
       'cost_estimate': instance.costEstimate,

@@ -46,9 +46,6 @@ abstract class ReportDataDto with _$ReportDataDto {
     @Default([])
     List<String> visibleMetadata,
     @Default([]) List<ReportLayoutDto> layouts,
-    @JsonKey(name: 'matrix_visible_columns')
-    @Default([])
-    List<String> matrixVisibleColumns,
     @JsonKey(name: 'created_at') String? createdAt,
     @JsonKey(name: 'org_name') String? orgName,
     @JsonKey(name: 'cost_estimate') double? costEstimate,

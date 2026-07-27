@@ -37,12 +37,6 @@ _SynthesisConfigDto _$SynthesisConfigDtoFromJson(Map<String, dynamic> json) =>
             'omit_empty_sections',
             (v) => v as bool? ?? true,
           ),
-          matrixVisibleColumns: $checkedConvert(
-            'matrix_visible_columns',
-            (v) =>
-                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-                const [],
-          ),
         );
         return val;
       },
@@ -54,7 +48,6 @@ _SynthesisConfigDto _$SynthesisConfigDtoFromJson(Map<String, dynamic> json) =>
         'lengthConstraint': 'length_constraint',
         'enablePiiMasking': 'enable_pii_masking',
         'omitEmptySections': 'omit_empty_sections',
-        'matrixVisibleColumns': 'matrix_visible_columns',
       },
     );
 
@@ -67,5 +60,4 @@ Map<String, dynamic> _$SynthesisConfigDtoToJson(_SynthesisConfigDto instance) =>
       'length_constraint': instance.lengthConstraint,
       'enable_pii_masking': instance.enablePiiMasking,
       'omit_empty_sections': instance.omitEmptySections,
-      'matrix_visible_columns': instance.matrixVisibleColumns,
     };

@@ -17,9 +17,6 @@ abstract class SynthesisConfigDto with _$SynthesisConfigDto {
     @JsonKey(name: 'length_constraint') int? lengthConstraint,
     @JsonKey(name: 'enable_pii_masking') @Default(false) bool enablePiiMasking,
     @JsonKey(name: 'omit_empty_sections') @Default(true) bool omitEmptySections,
-    @JsonKey(name: 'matrix_visible_columns')
-    @Default([])
-    List<String> matrixVisibleColumns,
   }) = _SynthesisConfigDto;
 
   factory SynthesisConfigDto.fromJson(Map<String, dynamic> json) =>
