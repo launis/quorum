@@ -24,9 +24,6 @@
   },
   "global_score": null,
   "has_warning": false,
-  "evaluative_matrices": [],
-  "informational_matrices": [],
-  "content_blocks": [],
   "visible_metadata": [
     "TVdzWSuOpkSzogdoVxpj"
   ],
@@ -66,8 +63,5 @@
     "YUuVDnGIliBNqyNOKOzV": [
       "e393e3"
     ]
-  },
-  "penalties_applied": [
-    "fHBLqntKNfecblFGzdHl"
-  ]
+  }
 }
