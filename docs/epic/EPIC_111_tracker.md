@@ -134,11 +134,14 @@
 
 ---
 
-### Phase 3: Full-Stack Integration Checkpoint (Placeholder)
+### Phase 3: Full-Stack Integration Checkpoint
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]`
 
-- [ ] **[NOK] Execution**: Invoke Tier 1 Planner to generate a detailed Phase 3 plan from the updated codebase state.
-  - [ ] Step 1: INVOKE PLANNER FOR REMAINING PHASES
+- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]`
+- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]`
+  - [ ] Step 1: RUN SDUI SEMANTIC PARITY TEST
+  - [ ] Step 2: TESTING STRATEGY & QUALITY GATE PLAN
+- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]`
 
 ---
 
@@ -329,10 +332,12 @@
   - Added negative tests to `test_linguistics.py` ensuring `detect_performative_patterns` gracefully handles missing `chat_log_user_only` and missing/empty performative Lexicon configurations.
   - Passed Universal Quality Gate (`backend_audit_loop.py` --test) strictly with >80% coverage and zero regression errors.
 - **Phase 2C Tier 8 Audit successfully completed**. Verified strict legacy field removal testing and successful integration without regressions.
+- **Phase 3 Tier 1 Planning successfully completed**. Generated detailed plan for Phase 3 focusing on SDUI semantic parity integration testing.
 
 ## Remaining
-- Invoke Tier 1 Planner for Phase 3 placeholder plan.
-- Execute `/tier1-planner @[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]`.
+- Execute Phase 3 Red-Teaming: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]`
+- Execute Phase 3 Implementation: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]`
+- Execute Post-Implementation Gates.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier1-planner --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
