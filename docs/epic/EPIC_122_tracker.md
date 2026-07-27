@@ -16,9 +16,9 @@
 - [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\00_phase0_backend_refactoring_plan.md]` (Report: `@[c:\src\quorum\docs\epic\tasks_EPIC_122\00_phase0_backend_audit_report.md]`)
 
 ### Phase 0: Frontend DTO Parity
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]`
-- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]`
-  - [ ] `1_1`: OutputLayoutBlock and ReportLayoutDto Parity
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]`
+- [/] **[IN PROGRESS] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]`
+  - [x] `1_1`: OutputLayoutBlock and ReportLayoutDto Parity
   - [ ] `1_2`: SynthesisConfigDto and ReportDataDto Cleanup
   - [ ] `1_3`: GlobalSynthesisDto and OutputProfile Updates
   - [ ] `1_4`: Testing & Quality Gate Plan
@@ -92,7 +92,7 @@
 | R11 | Extract `matrix_visible_columns` from layout in `report_template.jinja2` | 0_4 | ✅ Done |
 | R12 | Remove hardcoded fallback columns from `report_template.jinja2` | 0_4 | ✅ Done |
 | R13 | Run backend audit loop for Phase 0 | 0_5 | ✅ Done |
-| R14 | Add `matrixVisibleColumns` to `OutputLayoutBlock` and `ReportLayoutDto` in frontend | 1_1 | ⏳ Pending |
+| R14 | Add `matrixVisibleColumns` to `OutputLayoutBlock` and `ReportLayoutDto` in frontend | 1_1 | ✅ Done |
 | R15 | Remove `matrixVisibleColumns` from `SynthesisConfigDTO` in frontend | 1_2 | ⏳ Pending |
 | R16 | Remove `matrixVisibleColumns` from `ReportDataDto` in frontend | 1_2 | ⏳ Pending |
 | R17 | Add `userRole` and `userRoleJustification` to `GlobalSynthesisDto` in frontend | 1_3 | ⏳ Pending |
@@ -114,6 +114,7 @@
 - Executed Phase 0: Backend Domain Model Refactoring, moving `matrix_visible_columns` and adding `global_synthesis` Fail-Fast checks to `blueprint.py`.
 - Passed the backend audit loop and unit tests for the modified domain models.
 - Completed Tier 8 Audit for Phase 0 Backend execution and generated the audit report at `@[c:\src\quorum\docs\epic\tasks_EPIC_122\00_phase0_backend_audit_report.md]`.
+- Implemented Phase 0 Frontend DTO Parity Step 1_1: OutputLayoutBlock and ReportLayoutDto Parity.
 
 ## Learned
 - **Baseline State Snapshot**:

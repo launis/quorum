@@ -13,7 +13,7 @@
   <constraint invariant="zero_deprecation_mandate">Resolve all typing and syntax errors before completion.</constraint>
 
   <step id="1_1" name="OutputLayoutBlock and ReportLayoutDto Parity">
-    <action>Add `@JsonKey(name: 'matrix_visible_columns') List&lt;String&gt; get matrixVisibleColumns;` (or with `@Default([])`) to `OutputLayoutBlock` (in `output_profile.dart`) and `ReportLayoutDto`.</action>
+    <action>Add `@JsonKey(name: 'matrix_visible_columns') @Default([]) List<String> matrixVisibleColumns,` to `OutputLayoutBlock` (in `output_profile.dart`) and `ReportLayoutDto`.</action>
   </step>
 
   <step id="1_2" name="SynthesisConfigDto and ReportDataDto Cleanup">
@@ -23,8 +23,8 @@
   </step>
 
   <step id="1_3" name="GlobalSynthesisDto and OutputProfile Updates">
-    <action>Add `userRole` and `userRoleJustification` (String?) to `GlobalSynthesisDto`.</action>
-    <action>Add `userRoleLabel` (I18nText?) to `OutputProfile`.</action>
+    <action>Add `@JsonKey(name: 'user_role') String? userRole,` and `@JsonKey(name: 'user_role_justification') String? userRoleJustification,` to `GlobalSynthesisDto`.</action>
+    <action>Add `@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,` to `OutputProfile` AND `EmbeddedOutputProfile` in `output_profile.dart`.</action>
   </step>
 
   <step id="1_4" name="Testing &amp; Quality Gate Plan">

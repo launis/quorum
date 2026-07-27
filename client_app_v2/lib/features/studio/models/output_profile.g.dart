@@ -27,6 +27,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'strictness_level',
         'scoring_strategy',
         'matrix_column_labels',
+        'matrix_visible_columns',
         'extension_labels',
       ],
     );
@@ -101,6 +102,11 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
           (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
         ),
       ),
+      matrixVisibleColumns: $checkedConvert(
+        'matrix_visible_columns',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
       extensionLabels: $checkedConvert(
         'extension_labels',
         (v) => (v as Map<String, dynamic>?)?.map(
@@ -119,6 +125,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'matrixColumnLabels': 'matrix_column_labels',
+    'matrixVisibleColumns': 'matrix_visible_columns',
     'extensionLabels': 'extension_labels',
   },
 );
@@ -140,6 +147,7 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(
   'matrix_column_labels': instance.matrixColumnLabels?.map(
     (k, e) => MapEntry(k, e.toJson()),
   ),
+  'matrix_visible_columns': instance.matrixVisibleColumns,
   'extension_labels': instance.extensionLabels?.map(
     (k, e) => MapEntry(k, e.toJson()),
   ),

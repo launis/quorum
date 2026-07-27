@@ -31,6 +31,9 @@ abstract class ReportLayoutDto with _$ReportLayoutDto {
     bool isSynthesisEnabled,
     SynthesisConfigDto? synthesis,
     @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
+    @JsonKey(name: 'matrix_visible_columns')
+    @Default([])
+    List<String> matrixVisibleColumns,
     @JsonKey(name: 'matrix_column_labels')
     @Default({})
     Map<String, I18nText> matrixColumnLabels,
