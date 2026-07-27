@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$GlobalSynthesisDto {
 
-@JsonKey(name: 'executive_summary') String? get executiveSummary;@JsonKey(name: 'urgency_level') int? get urgencyLevel;
+@JsonKey(name: 'executive_summary') String? get executiveSummary;@JsonKey(name: 'urgency_level') int? get urgencyLevel;@JsonKey(name: 'user_role') String? get userRole;@JsonKey(name: 'user_role_justification') String? get userRoleJustification;
 /// Create a copy of GlobalSynthesisDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $GlobalSynthesisDtoCopyWith<GlobalSynthesisDto> get copyWith => _$GlobalSynthesi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GlobalSynthesisDto&&(identical(other.executiveSummary, executiveSummary) || other.executiveSummary == executiveSummary)&&(identical(other.urgencyLevel, urgencyLevel) || other.urgencyLevel == urgencyLevel));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GlobalSynthesisDto&&(identical(other.executiveSummary, executiveSummary) || other.executiveSummary == executiveSummary)&&(identical(other.urgencyLevel, urgencyLevel) || other.urgencyLevel == urgencyLevel)&&(identical(other.userRole, userRole) || other.userRole == userRole)&&(identical(other.userRoleJustification, userRoleJustification) || other.userRoleJustification == userRoleJustification));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,executiveSummary,urgencyLevel);
+int get hashCode => Object.hash(runtimeType,executiveSummary,urgencyLevel,userRole,userRoleJustification);
 
 @override
 String toString() {
-  return 'GlobalSynthesisDto(executiveSummary: $executiveSummary, urgencyLevel: $urgencyLevel)';
+  return 'GlobalSynthesisDto(executiveSummary: $executiveSummary, urgencyLevel: $urgencyLevel, userRole: $userRole, userRoleJustification: $userRoleJustification)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $GlobalSynthesisDtoCopyWith<$Res>  {
   factory $GlobalSynthesisDtoCopyWith(GlobalSynthesisDto value, $Res Function(GlobalSynthesisDto) _then) = _$GlobalSynthesisDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'executive_summary') String? executiveSummary,@JsonKey(name: 'urgency_level') int? urgencyLevel
+@JsonKey(name: 'executive_summary') String? executiveSummary,@JsonKey(name: 'urgency_level') int? urgencyLevel,@JsonKey(name: 'user_role') String? userRole,@JsonKey(name: 'user_role_justification') String? userRoleJustification
 });
 
 
@@ -65,11 +65,13 @@ class _$GlobalSynthesisDtoCopyWithImpl<$Res>
 
 /// Create a copy of GlobalSynthesisDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? executiveSummary = freezed,Object? urgencyLevel = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? executiveSummary = freezed,Object? urgencyLevel = freezed,Object? userRole = freezed,Object? userRoleJustification = freezed,}) {
   return _then(_self.copyWith(
 executiveSummary: freezed == executiveSummary ? _self.executiveSummary : executiveSummary // ignore: cast_nullable_to_non_nullable
 as String?,urgencyLevel: freezed == urgencyLevel ? _self.urgencyLevel : urgencyLevel // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,userRole: freezed == userRole ? _self.userRole : userRole // ignore: cast_nullable_to_non_nullable
+as String?,userRoleJustification: freezed == userRoleJustification ? _self.userRoleJustification : userRoleJustification // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -154,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'urgency_level')  int? urgencyLevel)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'urgency_level')  int? urgencyLevel, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GlobalSynthesisDto() when $default != null:
-return $default(_that.executiveSummary,_that.urgencyLevel);case _:
+return $default(_that.executiveSummary,_that.urgencyLevel,_that.userRole,_that.userRoleJustification);case _:
   return orElse();
 
 }
@@ -175,10 +177,10 @@ return $default(_that.executiveSummary,_that.urgencyLevel);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'urgency_level')  int? urgencyLevel)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'urgency_level')  int? urgencyLevel, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification)  $default,) {final _that = this;
 switch (_that) {
 case _GlobalSynthesisDto():
-return $default(_that.executiveSummary,_that.urgencyLevel);case _:
+return $default(_that.executiveSummary,_that.urgencyLevel,_that.userRole,_that.userRoleJustification);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +197,10 @@ return $default(_that.executiveSummary,_that.urgencyLevel);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'urgency_level')  int? urgencyLevel)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'executive_summary')  String? executiveSummary, @JsonKey(name: 'urgency_level')  int? urgencyLevel, @JsonKey(name: 'user_role')  String? userRole, @JsonKey(name: 'user_role_justification')  String? userRoleJustification)?  $default,) {final _that = this;
 switch (_that) {
 case _GlobalSynthesisDto() when $default != null:
-return $default(_that.executiveSummary,_that.urgencyLevel);case _:
+return $default(_that.executiveSummary,_that.urgencyLevel,_that.userRole,_that.userRoleJustification);case _:
   return null;
 
 }
@@ -210,11 +212,13 @@ return $default(_that.executiveSummary,_that.urgencyLevel);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _GlobalSynthesisDto implements GlobalSynthesisDto {
-  const _GlobalSynthesisDto({@JsonKey(name: 'executive_summary') this.executiveSummary, @JsonKey(name: 'urgency_level') this.urgencyLevel});
+  const _GlobalSynthesisDto({@JsonKey(name: 'executive_summary') this.executiveSummary, @JsonKey(name: 'urgency_level') this.urgencyLevel, @JsonKey(name: 'user_role') this.userRole, @JsonKey(name: 'user_role_justification') this.userRoleJustification});
   factory _GlobalSynthesisDto.fromJson(Map<String, dynamic> json) => _$GlobalSynthesisDtoFromJson(json);
 
 @override@JsonKey(name: 'executive_summary') final  String? executiveSummary;
 @override@JsonKey(name: 'urgency_level') final  int? urgencyLevel;
+@override@JsonKey(name: 'user_role') final  String? userRole;
+@override@JsonKey(name: 'user_role_justification') final  String? userRoleJustification;
 
 /// Create a copy of GlobalSynthesisDto
 /// with the given fields replaced by the non-null parameter values.
@@ -229,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GlobalSynthesisDto&&(identical(other.executiveSummary, executiveSummary) || other.executiveSummary == executiveSummary)&&(identical(other.urgencyLevel, urgencyLevel) || other.urgencyLevel == urgencyLevel));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GlobalSynthesisDto&&(identical(other.executiveSummary, executiveSummary) || other.executiveSummary == executiveSummary)&&(identical(other.urgencyLevel, urgencyLevel) || other.urgencyLevel == urgencyLevel)&&(identical(other.userRole, userRole) || other.userRole == userRole)&&(identical(other.userRoleJustification, userRoleJustification) || other.userRoleJustification == userRoleJustification));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,executiveSummary,urgencyLevel);
+int get hashCode => Object.hash(runtimeType,executiveSummary,urgencyLevel,userRole,userRoleJustification);
 
 @override
 String toString() {
-  return 'GlobalSynthesisDto(executiveSummary: $executiveSummary, urgencyLevel: $urgencyLevel)';
+  return 'GlobalSynthesisDto(executiveSummary: $executiveSummary, urgencyLevel: $urgencyLevel, userRole: $userRole, userRoleJustification: $userRoleJustification)';
 }
 
 
@@ -249,7 +253,7 @@ abstract mixin class _$GlobalSynthesisDtoCopyWith<$Res> implements $GlobalSynthe
   factory _$GlobalSynthesisDtoCopyWith(_GlobalSynthesisDto value, $Res Function(_GlobalSynthesisDto) _then) = __$GlobalSynthesisDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'executive_summary') String? executiveSummary,@JsonKey(name: 'urgency_level') int? urgencyLevel
+@JsonKey(name: 'executive_summary') String? executiveSummary,@JsonKey(name: 'urgency_level') int? urgencyLevel,@JsonKey(name: 'user_role') String? userRole,@JsonKey(name: 'user_role_justification') String? userRoleJustification
 });
 
 
@@ -266,11 +270,13 @@ class __$GlobalSynthesisDtoCopyWithImpl<$Res>
 
 /// Create a copy of GlobalSynthesisDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? executiveSummary = freezed,Object? urgencyLevel = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? executiveSummary = freezed,Object? urgencyLevel = freezed,Object? userRole = freezed,Object? userRoleJustification = freezed,}) {
   return _then(_GlobalSynthesisDto(
 executiveSummary: freezed == executiveSummary ? _self.executiveSummary : executiveSummary // ignore: cast_nullable_to_non_nullable
 as String?,urgencyLevel: freezed == urgencyLevel ? _self.urgencyLevel : urgencyLevel // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,userRole: freezed == userRole ? _self.userRole : userRole // ignore: cast_nullable_to_non_nullable
+as String?,userRoleJustification: freezed == userRoleJustification ? _self.userRoleJustification : userRoleJustification // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

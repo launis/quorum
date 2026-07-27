@@ -317,6 +317,7 @@ _OutputProfile _$OutputProfileFromJson(
         'organization_id',
         'name',
         'description',
+        'user_role_label',
         'custom_preface',
         'visible_metadata',
         'visible_block_extensions',
@@ -349,6 +350,10 @@ _OutputProfile _$OutputProfileFromJson(
       ),
       description: $checkedConvert(
         'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      userRoleLabel: $checkedConvert(
+        'user_role_label',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       customPreface: $checkedConvert(
@@ -426,6 +431,7 @@ _OutputProfile _$OutputProfileFromJson(
   fieldKeyMap: const {
     'workflowId': 'workflow_id',
     'organizationId': 'organization_id',
+    'userRoleLabel': 'user_role_label',
     'customPreface': 'custom_preface',
     'visibleMetadata': 'visible_metadata',
     'visibleBlockExtensions': 'visible_block_extensions',
@@ -449,6 +455,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'organization_id': instance.organizationId,
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
+  'user_role_label': instance.userRoleLabel?.toJson(),
   'custom_preface': instance.customPreface?.toJson(),
   'visible_metadata': instance.visibleMetadata,
   'visible_block_extensions': instance.visibleBlockExtensions
@@ -496,6 +503,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
       allowedKeys: const [
         'name',
         'description',
+        'user_role_label',
         'custom_preface',
         'visible_metadata',
         'visible_block_extensions',
@@ -518,6 +526,10 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
       ),
       description: $checkedConvert(
         'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      userRoleLabel: $checkedConvert(
+        'user_role_label',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       customPreface: $checkedConvert(
@@ -593,6 +605,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     return val;
   },
   fieldKeyMap: const {
+    'userRoleLabel': 'user_role_label',
     'customPreface': 'custom_preface',
     'visibleMetadata': 'visible_metadata',
     'visibleBlockExtensions': 'visible_block_extensions',
@@ -612,6 +625,7 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
 ) => <String, dynamic>{
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
+  'user_role_label': instance.userRoleLabel?.toJson(),
   'custom_preface': instance.customPreface?.toJson(),
   'visible_metadata': instance.visibleMetadata,
   'visible_block_extensions': instance.visibleBlockExtensions

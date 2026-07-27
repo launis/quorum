@@ -92,6 +92,7 @@ abstract class OutputProfile with _$OutputProfile {
     String? organizationId,
     required I18nText name,
     I18nText? description,
+    @JsonKey(name: 'user_role_label') I18nText? userRoleLabel,
     @JsonKey(name: 'custom_preface') I18nText? customPreface,
     @Default(['date', 'organization']) List<String> visibleMetadata,
     @Default([]) List<XaiExtensionType> visibleBlockExtensions,
@@ -123,6 +124,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
   const factory EmbeddedOutputProfile({
     required I18nText name,
     I18nText? description,
+    @JsonKey(name: 'user_role_label') I18nText? userRoleLabel,
     @JsonKey(name: 'custom_preface') I18nText? customPreface,
     @Default(['date', 'organization']) List<String> visibleMetadata,
     @Default([]) List<XaiExtensionType> visibleBlockExtensions,

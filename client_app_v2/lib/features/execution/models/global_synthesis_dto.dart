@@ -10,6 +10,8 @@ abstract class GlobalSynthesisDto with _$GlobalSynthesisDto {
   const factory GlobalSynthesisDto({
     @JsonKey(name: 'executive_summary') String? executiveSummary,
     @JsonKey(name: 'urgency_level') int? urgencyLevel,
+    @JsonKey(name: 'user_role') String? userRole,
+    @JsonKey(name: 'user_role_justification') String? userRoleJustification,
   }) = _GlobalSynthesisDto;
 
   factory GlobalSynthesisDto.fromJson(Map<String, dynamic> json) =>
