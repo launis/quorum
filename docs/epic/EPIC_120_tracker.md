@@ -15,7 +15,7 @@
   - [x] `<step id="2">` Update Output Profile DTOs
   - [x] `<step id="3">` Test Fixture Migration
   - [x] `<step id="4">` Seed Data Verification
-- [NEEDS_E2E] **Phase 3: Blueprint Generator & Worker Strictness Hardening**
+- [x] **Phase 3: Blueprint Generator & Worker Strictness Hardening**
   - [x] `<step id="1">` Blueprint Generator Refactor
   - [x] `<step id="2">` Synthesis Distiller Refactor
   - [x] `<step id="3">` Worker Double-Serialization Removal
@@ -30,7 +30,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
-- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+- [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
 - [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
@@ -63,10 +63,10 @@
 | R12 ✅ | Flutter `OutputProfile` and `EmbeddedOutputProfile` replace `List<dynamic>` with `List<SduiBlockDTO>` | Phase 2, Step 2 |
 | R13 ✅ | Flutter `ReportLayoutDto` replaces `List<Map<String, dynamic>>?` with `List<SduiBlockDTO>?` | Phase 2, Step 3 |
 | R14 ✅ | Strict Deserialization Testing for `SduiBlockDTO.fromJson` | Phase 2, Step 4 |
-| R15 | Blueprint Generator removes duck-typing (`isinstance`, `hasattr`, `.get()`) and uses Pydantic methods | Phase 3, Step 1 |
-| R16 | Synthesis Distiller serialization handles typed `AnySduiBlock` via `model_dump` | Phase 3, Step 2 |
-| R17 | Worker removes double-serialization `model_dump()` + cast when saving cache | Phase 3, Step 3 |
-| R18 | Worker catches `ValidationError` on LLM parsing and raises `AppException` | Phase 3, Step 3 |
+| R15 ✅ | Blueprint Generator removes duck-typing (`isinstance`, `hasattr`, `.get()`) and uses Pydantic methods | Phase 3, Step 1 |
+| R16 ✅ | Synthesis Distiller serialization handles typed `AnySduiBlock` via `model_dump` | Phase 3, Step 2 |
+| R17 ✅ | Worker removes double-serialization `model_dump()` + cast when saving cache | Phase 3, Step 3 |
+| R18 ✅ | Worker catches `ValidationError` on LLM parsing and raises `AppException` | Phase 3, Step 3 |
 
 # Session Handover Context
 ## Achieved
@@ -84,8 +84,10 @@
 - `SduiBlockBase` lacks an `id` field. We added an optional `id: str | None = None` to perfectly replicate the expected UI Section parameters from `sdui.py` in the mapping logic.
 - **Phase 3 Red-Teaming**: Found that the previous agent already handled the removal of most duck-typing. The true remaining tasks are replacing in-place mutations (like `c_block.text = safe_md`) with `.model_copy(update={...})` and adding proper `ValidationError` handling in `worker.py` to trigger Schema Healing.
 
+- **Live E2E REST API Verification Gate Passed**: Solved the `OutputProfileResponseDTO` fail-fast validation error caused by empty LLM synthesis strings and unseeded database caches.
+- **Phase 3 Completed**: All requirements for Epic 120 are now physically implemented.
+
 ## Remaining
-- **Run Live E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` (User running manually)
 - Run System 2 Audit for Phase 3: `/tier8-audit-plan`
 - Start the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`
 

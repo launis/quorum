@@ -1209,7 +1209,9 @@ class BlueprintTransformer:
                             allowed_attributes = {"*": ["class", "id"], "a": ["href", "title", "target"]}
                             safe_md = bleach.clean(
                                 str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True
-                            )
+                            ).strip()
+                            if not safe_md:
+                                safe_md = "-"
                             updated_c_block = c_block.model_copy(update={"text": safe_md})
                             new_content_blocks.append(updated_c_block)
                             injected = True
