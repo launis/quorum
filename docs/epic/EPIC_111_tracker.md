@@ -52,13 +52,13 @@
 ### Phase 1C: Backend Worker & Jinja Template Migration
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\03_phase1c_backend_worker_jinja_plan.md]`
 
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\03_phase1c_backend_worker_jinja_plan.md]`
-- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\03_phase1c_backend_worker_jinja_plan.md]`
-  - [ ] Step 1: REFACTOR WORKER.PY SLOP DETECTION
-  - [ ] Step 2: PURGE HASATTR FROM WORKER.PY
-  - [ ] Step 3: MIGRATE JINJA TEMPLATE
-  - [ ] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
-- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\03_phase1c_backend_worker_jinja_plan.md]`
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\03_phase1c_backend_worker_jinja_plan.md]`
+- [x] **[OK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\03_phase1c_backend_worker_jinja_plan.md]`
+  - [x] Step 1: REFACTOR WORKER.PY SLOP DETECTION
+  - [x] Step 2: PURGE HASATTR FROM WORKER.PY
+  - [x] Step 3: MIGRATE JINJA TEMPLATE
+  - [x] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
+- [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\03_phase1c_backend_worker_jinja_plan.md]`
 
 ---
 
@@ -260,16 +260,23 @@
   - Fixed `worker.py` SLOP penalty detection to read from `layouts` instead of deprecated `penalties_applied` (Phase 1C step).
   - Purged `report_data.content_blocks` references from `report_template.jinja2` (Phase 1C step).
   - Refactored mock data payload in `test_flattener.py` to use `layouts` containing `MatrixScorecardRowDTO` (Phase 2A step).
+- **Phase 1C Implementation successfully completed**.
+  - Purged legacy `hasattr()` and dictionary checks from `worker.py`.
+  - Refactored slop penalty detection in `worker.py` to inspect blocks purely using `.model_dump()`.
+  - Fixed dictionary attribute exception bug in `worker.py` execution handler by validating to `ExecutionRecord`.
+  - Stripped business logic from `report_template.jinja2`, rendering `score_display_label` directly.
+  - Passed strict backend audit tests.
 
 ## Learned
 - **Architecture Invariants**: Strict compliance enforced via `backend_audit_loop.py` and `flutter_audit_loop.py`. Fallbacks in `blueprint.py` ensure `ReportLayoutDTO(preset_view="default")` handles matrix-only inputs securely.
 - **TDD Requirement**: Code coverage thresholds correctly verified (0 coverage loss, 81.17% coverage achieved).
 - Phase 3 is a placeholder — the Tier 1 Planner must be re-invoked after Phases 0–2C to generate its detailed plan based on the post-refactor codebase state.
 - **Fail-Fast Enforcement**: Deprecating fields in Phase 1A broke downstream template rendering and tests. To strictly honor the Universal Quality Gate, these must be fixed immediately rather than leaving the build broken until later phases.
+- Validating Firestore outputs directly to Pydantic models avoids runtime exceptions in deeply nested exception handlers (such as `step_states` accessed as an attribute on a dictionary).
 
 ## Remaining
-- Proceed to **Phase 1C: Backend Worker & Jinja Template Migration**.
-- Start with `/tier2-execute` for `03_phase1c_backend_worker_jinja_plan.md`.
+- Proceed to **Phase 1D: Frontend DTO and Initial UI Refactoring**.
+- Start with `/tier0-research-plan` and then `/tier2-execute` for `04_phase1d_frontend_dto_ui_plan.md`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\03_phase1c_backend_worker_jinja_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`

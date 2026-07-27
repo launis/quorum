@@ -138,3 +138,46 @@ async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
 
             await generate_profile_synthesis_and_pdf_task("exe_1234567890123456")
             mock_repo.get_execution.assert_called_once_with("exe_1234567890123456")
+
+
+@pytest.mark.asyncio
+async def test_generate_pdf_task_slop_penalty_ignores_metadata() -> None:
+    from unittest.mock import MagicMock
+
+    from backend_v2.worker import generate_pdf_task
+
+    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+            mock_repo = AsyncMock()
+            mock_repo_class.return_value = mock_repo
+
+            mock_repo.get_execution.return_value = {
+                "id": "exe_1234567890123456",
+                "workflow_id": "wf_1234567890123456",
+                "status": "PENDING",
+                "step_states": {},
+            }
+
+            with patch("backend_v2.worker.BlueprintTransformer") as mock_transformer_class:
+                mock_transformer = AsyncMock()
+                mock_transformer_class.return_value = mock_transformer
+
+                mock_dto = MagicMock()
+                mock_layout = MagicMock()
+                mock_layout.metadata = None
+                mock_layout.synthesis_blocks = [{"text": "this is bad PENALTY_SLOP: too generic"}]
+                mock_dto.layouts = [mock_layout]
+                mock_transformer.build_report_dto.return_value = mock_dto
+
+                with patch("backend_v2.worker.PdfReportService") as mock_pdf_class:
+                    mock_pdf = AsyncMock()
+                    mock_pdf_class.return_value = mock_pdf
+                    mock_pdf.generate_execution_pdf.return_value = b"pdf"
+
+                    with patch("backend_v2.worker.get_storage_driver") as mock_storage_class:
+                        mock_storage = AsyncMock()
+                        mock_storage_class.return_value = mock_storage
+                        mock_storage.save.return_value = "saved.pdf"
+
+                        await generate_pdf_task("exe_1234567890123456")
+                        assert mock_repo.update_execution.call_count >= 1

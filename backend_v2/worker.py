@@ -447,7 +447,7 @@ async def generate_pdf_task(
         for layout in dto.layouts:
             if layout.synthesis_blocks:
                 for block in layout.synthesis_blocks:
-                    if isinstance(block, dict) and "text" in block:
+                    if "text" in block:
                         text = block["text"]
                         if isinstance(text, str) and "PENALTY_SLOP:" in text:
                             has_slop_penalty = True
@@ -462,7 +462,8 @@ async def generate_pdf_task(
             # Update DB ExecutionRecord metadata for frontend quick querying
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                new_meta = dict(exec_record_local.metadata)
+                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
+                new_meta = dict(exec_record_local.metadata) if exec_record_local.metadata else {}
                 new_meta["has_slop_warning"] = True
                 await repo.update_execution(execution_id, {"metadata": new_meta})
         else:
@@ -486,6 +487,7 @@ async def generate_pdf_task(
 
         exec_record_local = await repo.get_execution(execution_id, hydrate=False)
         if exec_record_local:
+            exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
             if v_step_id in exec_record_local.step_states:
                 old_state = exec_record_local.step_states[v_step_id]
                 new_states = dict(exec_record_local.step_states)
@@ -514,6 +516,7 @@ async def generate_pdf_task(
             updates["completed_at"] = datetime.now(UTC).isoformat()
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
+                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     new_states = dict(exec_record_local.step_states)
@@ -600,6 +603,7 @@ async def generate_profile_synthesis_and_pdf_task(
             v_step_id = f"sys_render_{profile_id}"
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
+                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
                 old_state = exec_record_local.step_states.get(v_step_id)
                 if old_state:
                     updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING.value})
@@ -854,35 +858,31 @@ async def generate_profile_synthesis_and_pdf_task(
         import typing
 
         sec_dict: dict[str, list[dict[str, Any]]] = {}
-        if synthesis_res and hasattr(synthesis_res, "section_syntheses"):
+        if synthesis_res and synthesis_res.section_syntheses:
             for sec in synthesis_res.section_syntheses:
-                raw_blocks = sec.content_blocks if hasattr(sec, "content_blocks") else []
+                raw_blocks = sec.content_blocks if sec.content_blocks else []
                 sec_dict[sec.layout_id] = typing.cast(
                     list[dict[str, Any]],
-                    [cb.model_dump(exclude_none=True) if hasattr(cb, "model_dump") else cb for cb in raw_blocks],
+                    [cb.model_dump(exclude_none=True) for cb in raw_blocks],
                 )
 
-        raw_content = (
-            synthesis_res.content_blocks
-            if synthesis_res and hasattr(synthesis_res, "content_blocks") and synthesis_res.content_blocks
-            else []
-        )
+        raw_content = synthesis_res.content_blocks if synthesis_res and synthesis_res.content_blocks else []
         # Concatenate SDUI text blocks into synthesized_markdown for PDF rendering
         flat_md_parts = []
         for b in raw_content:
-            b_dict = b.model_dump(exclude_none=True) if hasattr(b, "model_dump") else b
-            if isinstance(b_dict, dict) and "text" in b_dict:
+            b_dict = b.model_dump(exclude_none=True)
+            if "text" in b_dict:
                 flat_md_parts.append(str(b_dict["text"]))
 
         cache = RenderedSynthesisCache(
             synthesized_markdown="\n\n".join(flat_md_parts),
             content_blocks=typing.cast(
                 list[dict[str, Any]],
-                [b.model_dump(exclude_none=True) if hasattr(b, "model_dump") else b for b in raw_content],
+                [b.model_dump(exclude_none=True) for b in raw_content],
             ),
             section_syntheses=sec_dict,
             row_explanations={item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
-            if row_expl_res and hasattr(row_expl_res, "explanations")
+            if row_expl_res and row_expl_res.explanations
             else {},
         )
 
@@ -920,6 +920,7 @@ async def generate_profile_synthesis_and_pdf_task(
             updates["completed_at"] = datetime.now(UTC).isoformat()
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
+                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     updated_state = old_state.model_copy(

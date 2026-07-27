@@ -301,13 +301,13 @@
                     <div class="card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                             <h3 style="margin: 0; color: #1a1a1a; font-size: 16px;">{{ axis.name }}</h3>
-                        {% if axis.score != None %}
+                        {% if axis.score_display_label %}
                         <div style="display: flex; align-items: center; gap: 8px;">
                             {% if axis.contextual_override %}
                             <span style="color: #f57c00; font-size: 12px; font-weight: 500;">⚠️ {{ l10n.evidence_rejected }}</span>
                             {% endif %}
                             <div style="background-color: #e3f2fd; color: #1976D2; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 14px;">
-                                {{ "%.1f"|format(axis.score) }}{% if axis.scale_max is not none and axis.scale_min is not none and axis.scale_max > axis.scale_min %} / {{ "%.1f"|format(axis.scale_max) }}{% endif %}
+                                {{ axis.score_display_label }}
                             </div>
                         </div>
                         {% endif %}
@@ -672,8 +672,8 @@
                         {% endif %}
                         {% if 'score' in visible_cols %}
                         <td style="padding: 10px; font-weight: bold; color: #1565C0; vertical-align: top;">
-                            {% if axis.score != None %}
-                                {{ "%.1f"|format(axis.score) }}{% if axis.scale_max != None and axis.scale_max > (axis.scale_min or 0) %} / {{ "%.1f"|format(axis.scale_max) }}{% endif %}
+                            {% if axis.score_display_label %}
+                                {{ axis.score_display_label }}
                             {% else %}
                                 -
                             {% endif %}
