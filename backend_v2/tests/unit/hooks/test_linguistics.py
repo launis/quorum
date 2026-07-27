@@ -85,3 +85,61 @@ def test_scan_report_for_slop_detects_patterns():
     words = ["delve into", "tapestry"]
     res = scan_report_for_slop(report, words)
     assert set(res) == {"delve into", "tapestry"}
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_missing_user_only_graceful():
+    state = HookState(
+        workflow_id="w1",
+        execution_id="e1",
+        # Missing chat_log_user_only
+        inputs={
+            "chat_log": "**user**: delve into this.\n\n**ai**: yes.",
+        },
+        global_context_vars={"language": "en"},
+        metadata={},
+    )
+
+    deps = MagicMock()
+    deps.system_repo = AsyncMock()
+    deps.system_repo.get_system_config.return_value = {
+        "id": "sys_e0b2a3c4d5e6f7a8",
+        "slug": "lexicon",
+        "type": "performative_lexicons",
+        "lexicon_configs": {
+            "en": {
+                "language_code": "en",
+                "language_name": "English",
+                "fuzz_threshold": 90.0,
+                "words": ["delve into"],
+            }
+        },
+    }
+    result = await detect_performative_patterns(state, deps)
+
+    assert result.success
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_missing_lexicon_config():
+    from backend_v2.exceptions import AppException
+
+    state = HookState(
+        workflow_id="w1",
+        execution_id="e1",
+        inputs={
+            "chat_log_user_only": "delve into this.",
+        },
+        global_context_vars={"language": "en"},
+        metadata={},
+    )
+
+    deps = MagicMock()
+    deps.system_repo = AsyncMock()
+    # Missing lexicon config entirely
+    deps.system_repo.get_system_config.return_value = None
+
+    with pytest.raises(AppException) as exc_info:
+        await detect_performative_patterns(state, deps)
+
+    assert exc_info.value.status_code == 500

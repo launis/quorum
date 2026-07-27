@@ -77,3 +77,31 @@ def test_citation_extraction_item_dto_new_fields() -> None:
     )
     assert item.knowledge_gap == "Need more info"
     assert item.search_rationale == "To be certain"
+
+
+def test_report_data_dto_rejects_legacy_fields() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    from backend_v2.models.v2_core import ReportDataDTO
+
+    # Test 1: evaluative_matrices is forbidden
+    with pytest.raises(ValidationError) as exc_info:
+        ReportDataDTO.model_validate(
+            {"workflow_id": "wf_1", "execution_id": "exe_1", "profile_id": "prof_1", "evaluative_matrices": []}
+        )
+    assert "evaluative_matrices" in str(exc_info.value)
+
+    # Test 2: content_blocks is forbidden
+    with pytest.raises(ValidationError) as exc_info2:
+        ReportDataDTO.model_validate(
+            {"workflow_id": "wf_1", "execution_id": "exe_1", "profile_id": "prof_1", "content_blocks": []}
+        )
+    assert "content_blocks" in str(exc_info2.value)
+
+    # Test 3: penalties_applied is forbidden
+    with pytest.raises(ValidationError) as exc_info3:
+        ReportDataDTO.model_validate(
+            {"workflow_id": "wf_1", "execution_id": "exe_1", "profile_id": "prof_1", "penalties_applied": []}
+        )
+    assert "penalties_applied" in str(exc_info3.value)
