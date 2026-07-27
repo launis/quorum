@@ -7,7 +7,7 @@ import tempfile
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from backend_v2.models.v2_core import I18nText, ReportDataDTO, Workflow, ScorecardAtomDTO, MatrixScorecardRowDTO
+from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, ReportDataDTO, ScorecardAtomDTO, Workflow
 
 
 class WorkflowFactory(ModelFactory[Workflow]):
@@ -33,10 +33,12 @@ class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     results = []
     hydrated_references = {}
 
+
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
     __model__ = ScorecardAtomDTO
     exact_quotes = []
     __set_as_default_factory_for_type__ = True
+
 
 class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     __model__ = MatrixScorecardRowDTO
