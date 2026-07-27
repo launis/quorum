@@ -83,15 +83,15 @@
 - [x] **[OK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\05_phase1e_frontend_renderer_plan.md]`
   - [x] Step 1: PURGE FALLBACK RENDERING LOGIC
   - [x] Step 2: TESTING STRATEGY & QUALITY GATE PLAN
-- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\05_phase1e_frontend_renderer_plan.md]`
+- [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\05_phase1e_frontend_renderer_plan.md]`
 
 ---
 
 ### Integration Checkpoint: Full-Stack Validation (After Phase 1)
 
-- [ ] **[NOK]** Run full backend audit: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
-- [ ] **[NOK]** Run full frontend audit: `uv run python scripts/flutter_audit_loop.py client_app_v2/`
-- [ ] **[NOK]** Cross-domain DTO parity: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/models/ --build`
+- [x] **[OK]** Run full backend audit: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
+- [x] **[OK]** Run full frontend audit: `uv run python scripts/flutter_audit_loop.py client_app_v2/`
+- [x] **[OK]** Cross-domain DTO parity: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/models/ --build`
 
 ---
 
@@ -282,6 +282,8 @@
   - Fixed formatting logic in `atom_matrix_table_widget_test.dart` mockup data to explicitly supply `scoreDisplayLabel`.
   - Successfully updated golden image snapshots via `flutter test --update-goldens`.
   - Passed all flutter unit tests and flutter audit loop.
+- **Phase 1E Tier 8 Audit successfully completed**. Verified Dumb Painter logic compliance and absolute removal of fallback logic.
+- **Phase 1 Full-Stack Integration Checkpoint successfully completed**. Both global backend audit (`backend_audit_loop.py`) and global frontend audit (`flutter_audit_loop.py`) passed perfectly.
 
 ## Learned
 - **Architecture Invariants**: Strict compliance enforced via `backend_audit_loop.py` and `flutter_audit_loop.py`. Fallbacks in `blueprint.py` ensure `ReportLayoutDTO(preset_view="default")` handles matrix-only inputs securely.
@@ -293,8 +295,8 @@
 - **UI Render Determinism**: When backend schemas are structurally altered (e.g. relying entirely on `scoreDisplayLabel`), it directly impacts rendering logic resulting in minor pixel adjustments requiring test data mocks to explicitly mirror the backend's Dumb Painter exactness, and Flutter golden tests must be updated to prevent snapshot test failures.
 
 ## Remaining
-- Proceed to **Phase 1E: Frontend Renderer Purge - Tier 8 Audit**.
-- Execute `/tier8-audit-plan` for `05_phase1e_frontend_renderer_plan.md`.
+- Proceed to **Phase 2A: Polyfactory Strictness & Global Test Hardening (Batch 1)**.
+- Execute `/tier0-research-plan` for `06_phase2a_test_strictness_batch1_plan.md`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\05_phase1e_frontend_renderer_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\06_phase2a_test_strictness_batch1_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`

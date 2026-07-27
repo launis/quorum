@@ -12,19 +12,19 @@ void main() {
     WidgetTester tester,
   ) async {
     final matrices = [
-        const MatrixScorecardRowDto(
-          blockId: 'block_1',
-          labelI18n: const I18nText(
-            translations: {'fi': 'Kognitio', 'en': 'Cognition'},
-          ),
-          name: 'Cognition',
-          score: 3.5,
-          scaleMax: 5.0,
-          scoreDisplayLabel: '3.5 / 5.0',
-          trueAtoms: 5,
-          totalAtoms: 10,
-          levelBreakdown: {'1': '3 / 5', '2': '2 / 5'},
+      const MatrixScorecardRowDto(
+        blockId: 'block_1',
+        labelI18n: const I18nText(
+          translations: {'fi': 'Kognitio', 'en': 'Cognition'},
         ),
+        name: 'Cognition',
+        score: 3.5,
+        scaleMax: 5.0,
+        scoreDisplayLabel: '3.5 / 5.0',
+        trueAtoms: 5,
+        totalAtoms: 10,
+        levelBreakdown: {'1': '3 / 5', '2': '2 / 5'},
+      ),
     ];
 
     await tester.pumpWidget(

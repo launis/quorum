@@ -462,7 +462,11 @@ async def generate_pdf_task(
             # Update DB ExecutionRecord metadata for frontend quick querying
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
+                exec_record_local = (
+                    ExecutionRecord.model_validate(exec_record_local, strict=False)
+                    if isinstance(exec_record_local, dict)
+                    else exec_record_local
+                )
                 new_meta = dict(exec_record_local.metadata) if exec_record_local.metadata else {}
                 new_meta["has_slop_warning"] = True
                 await repo.update_execution(execution_id, {"metadata": new_meta})
@@ -487,7 +491,11 @@ async def generate_pdf_task(
 
         exec_record_local = await repo.get_execution(execution_id, hydrate=False)
         if exec_record_local:
-            exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
+            exec_record_local = (
+                ExecutionRecord.model_validate(exec_record_local, strict=False)
+                if isinstance(exec_record_local, dict)
+                else exec_record_local
+            )
             if v_step_id in exec_record_local.step_states:
                 old_state = exec_record_local.step_states[v_step_id]
                 new_states = dict(exec_record_local.step_states)
@@ -516,7 +524,11 @@ async def generate_pdf_task(
             updates["completed_at"] = datetime.now(UTC).isoformat()
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
+                exec_record_local = (
+                    ExecutionRecord.model_validate(exec_record_local, strict=False)
+                    if isinstance(exec_record_local, dict)
+                    else exec_record_local
+                )
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     new_states = dict(exec_record_local.step_states)
@@ -603,7 +615,11 @@ async def generate_profile_synthesis_and_pdf_task(
             v_step_id = f"sys_render_{profile_id}"
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
+                exec_record_local = (
+                    ExecutionRecord.model_validate(exec_record_local, strict=False)
+                    if isinstance(exec_record_local, dict)
+                    else exec_record_local
+                )
                 old_state = exec_record_local.step_states.get(v_step_id)
                 if old_state:
                     updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING.value})
@@ -920,7 +936,11 @@ async def generate_profile_synthesis_and_pdf_task(
             updates["completed_at"] = datetime.now(UTC).isoformat()
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False) if isinstance(exec_record_local, dict) else exec_record_local
+                exec_record_local = (
+                    ExecutionRecord.model_validate(exec_record_local, strict=False)
+                    if isinstance(exec_record_local, dict)
+                    else exec_record_local
+                )
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     updated_state = old_state.model_copy(
