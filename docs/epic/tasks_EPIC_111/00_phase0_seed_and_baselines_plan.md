@@ -24,7 +24,7 @@ Ensure the database is cleanly re-seeded without legacy definitions causing test
   
   <step id="3" name="RECORD FRONTEND BASELINE">
     <action>Run the flutter test suite to establish a pristine frontend state baseline.</action>
-    <command>dart run test</command>
+    <command>uv run python scripts/flutter_audit_loop.py client_app_v2/</command>
   </step>
 
   <step id="4" name="TESTING STRATEGY & QUALITY GATE PLAN">

@@ -10,12 +10,12 @@
 ### Phase 0: Seed Data & Database Prerequisite
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]`
 
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]`
-- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]`
-  - [ ] Step 1: RUN DATABASE SEEDING
-  - [ ] Step 2: RECORD BACKEND BASELINE
-  - [ ] Step 3: RECORD FRONTEND BASELINE
-  - [ ] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]`
+- [x] **[OK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]`
+  - [x] Step 1: RUN DATABASE SEEDING
+  - [x] Step 2: RECORD BACKEND BASELINE
+  - [x] Step 3: RECORD FRONTEND BASELINE
+  - [x] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
 - [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]`
 
 ---
@@ -261,4 +261,4 @@
 - Begin with Phase 0 Red-Teaming.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`

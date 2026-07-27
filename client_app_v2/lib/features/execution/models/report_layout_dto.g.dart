@@ -6,115 +6,115 @@ part of 'report_layout_dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_ReportLayoutDto _$ReportLayoutDtoFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  '_ReportLayoutDto',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
+_ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_ReportLayoutDto',
       json,
-      allowedKeys: const [
-        'preset_view',
-        'title',
-        'description',
-        'axes',
-        'text_delivery_mode',
-        'is_synthesis_enabled',
-        'synthesis',
-        'synthesis_blocks',
-        'matrix_column_labels',
-        'extension_labels',
-        'metadata',
-      ],
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'preset_view',
+            'title',
+            'description',
+            'axes',
+            'text_delivery_mode',
+            'is_synthesis_enabled',
+            'synthesis',
+            'synthesis_blocks',
+            'matrix_column_labels',
+            'extension_labels',
+          ],
+        );
+        final val = _ReportLayoutDto(
+          presetView: $checkedConvert(
+            'preset_view',
+            (v) =>
+                $enumDecodeNullable(
+                  _$PresetViewEnumMap,
+                  v,
+                  unknownValue: PresetView.defaultView,
+                ) ??
+                PresetView.defaultView,
+          ),
+          title: $checkedConvert(
+            'title',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          description: $checkedConvert(
+            'description',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          axes: $checkedConvert(
+            'axes',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map(
+                      (e) => MatrixScorecardRowDto.fromJson(
+                        e as Map<String, dynamic>,
+                      ),
+                    )
+                    .toList() ??
+                const [],
+          ),
+          textDeliveryMode: $checkedConvert(
+            'text_delivery_mode',
+            (v) =>
+                $enumDecodeNullable(
+                  _$TextDeliveryModeEnumMap,
+                  v,
+                  unknownValue: TextDeliveryMode.full,
+                ) ??
+                TextDeliveryMode.full,
+          ),
+          isSynthesisEnabled: $checkedConvert(
+            'is_synthesis_enabled',
+            (v) => v as bool? ?? true,
+          ),
+          synthesis: $checkedConvert(
+            'synthesis',
+            (v) => v == null
+                ? null
+                : SynthesisConfigDto.fromJson(v as Map<String, dynamic>),
+          ),
+          synthesisBlocks: $checkedConvert(
+            'synthesis_blocks',
+            (v) => (v as List<dynamic>?)
+                ?.map((e) => e as Map<String, dynamic>)
+                .toList(),
+          ),
+          matrixColumnLabels: $checkedConvert(
+            'matrix_column_labels',
+            (v) =>
+                (v as Map<String, dynamic>?)?.map(
+                  (k, e) =>
+                      MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+                ) ??
+                const {},
+          ),
+          extensionLabels: $checkedConvert(
+            'extension_labels',
+            (v) =>
+                (v as Map<String, dynamic>?)?.map(
+                  (k, e) =>
+                      MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+                ) ??
+                const {},
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'presetView': 'preset_view',
+        'textDeliveryMode': 'text_delivery_mode',
+        'isSynthesisEnabled': 'is_synthesis_enabled',
+        'synthesisBlocks': 'synthesis_blocks',
+        'matrixColumnLabels': 'matrix_column_labels',
+        'extensionLabels': 'extension_labels',
+      },
     );
-    final val = _ReportLayoutDto(
-      presetView: $checkedConvert(
-        'preset_view',
-        (v) =>
-            $enumDecodeNullable(
-              _$PresetViewEnumMap,
-              v,
-              unknownValue: PresetView.defaultView,
-            ) ??
-            PresetView.defaultView,
-      ),
-      title: $checkedConvert(
-        'title',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      description: $checkedConvert(
-        'description',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      axes: $checkedConvert(
-        'axes',
-        (v) =>
-            (v as List<dynamic>?)
-                ?.map(
-                  (e) =>
-                      MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
-                )
-                .toList() ??
-            const [],
-      ),
-      textDeliveryMode: $checkedConvert(
-        'text_delivery_mode',
-        (v) =>
-            $enumDecodeNullable(
-              _$TextDeliveryModeEnumMap,
-              v,
-              unknownValue: TextDeliveryMode.full,
-            ) ??
-            TextDeliveryMode.full,
-      ),
-      isSynthesisEnabled: $checkedConvert(
-        'is_synthesis_enabled',
-        (v) => v as bool? ?? true,
-      ),
-      synthesis: $checkedConvert(
-        'synthesis',
-        (v) => v == null
-            ? null
-            : SynthesisConfigDto.fromJson(v as Map<String, dynamic>),
-      ),
-      synthesisBlocks: $checkedConvert(
-        'synthesis_blocks',
-        (v) => (v as List<dynamic>?)
-            ?.map((e) => e as Map<String, dynamic>)
-            .toList(),
-      ),
-      matrixColumnLabels: $checkedConvert(
-        'matrix_column_labels',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ) ??
-            const {},
-      ),
-      extensionLabels: $checkedConvert(
-        'extension_labels',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ) ??
-            const {},
-      ),
-      metadata: $checkedConvert('metadata', (v) => v as Map<String, dynamic>?),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'presetView': 'preset_view',
-    'textDeliveryMode': 'text_delivery_mode',
-    'isSynthesisEnabled': 'is_synthesis_enabled',
-    'synthesisBlocks': 'synthesis_blocks',
-    'matrixColumnLabels': 'matrix_column_labels',
-    'extensionLabels': 'extension_labels',
-  },
-);
 
 Map<String, dynamic> _$ReportLayoutDtoToJson(
   _ReportLayoutDto instance,
@@ -133,7 +133,6 @@ Map<String, dynamic> _$ReportLayoutDtoToJson(
   'extension_labels': instance.extensionLabels.map(
     (k, e) => MapEntry(k, e.toJson()),
   ),
-  'metadata': instance.metadata,
 };
 
 const _$PresetViewEnumMap = {

@@ -33,6 +33,9 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'global_synthesis',
         'results',
         'hydrated_references',
+        'evaluative_matrices',
+        'informational_matrices',
+        'content_blocks',
         'visible_metadata',
         'layouts',
         'matrix_visible_columns',
@@ -45,6 +48,7 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'reasoning_tokens',
         'mcp_tool_audit',
         'grouped_extensions',
+        'penalties_applied',
       ],
     );
     final val = _ReportDataDto(
@@ -119,6 +123,28 @@ _ReportDataDto _$ReportDataDtoFromJson(
             ) ??
             const {},
       ),
+      evaluativeMatrices: $checkedConvert(
+        'evaluative_matrices',
+        (v) => (v as List<dynamic>?)
+            ?.map(
+              (e) => MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+      ),
+      informationalMatrices: $checkedConvert(
+        'informational_matrices',
+        (v) => (v as List<dynamic>?)
+            ?.map(
+              (e) => MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+      ),
+      contentBlocks: $checkedConvert(
+        'content_blocks',
+        (v) => (v as List<dynamic>?)
+            ?.map((e) => e as Map<String, dynamic>)
+            .toList(),
+      ),
       visibleMetadata: $checkedConvert(
         'visible_metadata',
         (v) =>
@@ -174,6 +200,11 @@ _ReportDataDto _$ReportDataDtoFromJson(
           (k, e) => MapEntry(k, e as List<dynamic>),
         ),
       ),
+      penaltiesApplied: $checkedConvert(
+        'penalties_applied',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
     );
     return val;
   },
@@ -195,6 +226,9 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'globalMetrics': 'global_metrics',
     'globalSynthesis': 'global_synthesis',
     'hydratedReferences': 'hydrated_references',
+    'evaluativeMatrices': 'evaluative_matrices',
+    'informationalMatrices': 'informational_matrices',
+    'contentBlocks': 'content_blocks',
     'visibleMetadata': 'visible_metadata',
     'matrixVisibleColumns': 'matrix_visible_columns',
     'createdAt': 'created_at',
@@ -206,6 +240,7 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'reasoningTokens': 'reasoning_tokens',
     'mcpToolAudit': 'mcp_tool_audit',
     'groupedExtensions': 'grouped_extensions',
+    'penaltiesApplied': 'penalties_applied',
   },
 );
 
@@ -233,6 +268,13 @@ Map<String, dynamic> _$ReportDataDtoToJson(_ReportDataDto instance) =>
       'hydrated_references': instance.hydratedReferences.map(
         (k, e) => MapEntry(k, e.toJson()),
       ),
+      'evaluative_matrices': instance.evaluativeMatrices
+          ?.map((e) => e.toJson())
+          .toList(),
+      'informational_matrices': instance.informationalMatrices
+          ?.map((e) => e.toJson())
+          .toList(),
+      'content_blocks': instance.contentBlocks,
       'visible_metadata': instance.visibleMetadata,
       'layouts': instance.layouts.map((e) => e.toJson()).toList(),
       'matrix_visible_columns': instance.matrixVisibleColumns,
@@ -245,4 +287,5 @@ Map<String, dynamic> _$ReportDataDtoToJson(_ReportDataDto instance) =>
       'reasoning_tokens': instance.reasoningTokens,
       'mcp_tool_audit': instance.mcpToolAudit.map((e) => e.toJson()).toList(),
       'grouped_extensions': instance.groupedExtensions,
+      'penalties_applied': instance.penaltiesApplied,
     };
