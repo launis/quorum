@@ -130,7 +130,7 @@
   - [x] Step 2: NEGATIVE TESTING: WORKER SLOP DETECTION
   - [x] Step 3: NEGATIVE TESTING: LINGUISTICS HOOK
   - [x] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
-- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`
+- [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`
 
 ---
 
@@ -328,10 +328,11 @@
   - Added negative test to `test_worker.py` ensuring slop penalty ignores blocks with `metadata` missing `"penalty_type"` without crashing.
   - Added negative tests to `test_linguistics.py` ensuring `detect_performative_patterns` gracefully handles missing `chat_log_user_only` and missing/empty performative Lexicon configurations.
   - Passed Universal Quality Gate (`backend_audit_loop.py` --test) strictly with >80% coverage and zero regression errors.
+- **Phase 2C Tier 8 Audit successfully completed**. Verified strict legacy field removal testing and successful integration without regressions.
 
 ## Remaining
-- Proceed to **Phase 2C Audit**.
-- Execute `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]`.
+- Invoke Tier 1 Planner for Phase 3 placeholder plan.
+- Execute `/tier1-planner @[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\08_phase2c_test_strictness_batch3_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier1-planner --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\09_phase3_full_stack_integration_placeholder.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
