@@ -63,9 +63,9 @@ To resolve Domain Modeling Leakages and SDUI Anti-Patterns identified during arc
    - Update `OutputProfile` (L1287) to include `user_role_label: I18nText | None`. 
    - Update `blueprint.py` to deterministically assemble the extracted role and label into an SDUI MarkdownBlock. No new LLM DAG steps are required; the existing structured output generation for global synthesis will fulfill this DTO constraint naturally.
    - **Fail-Fast Service-Layer Enforcement**: `blueprint.py` MUST enforce a profile-conditional Fail-Fast gate: when the active `OutputProfile` has `user_role_label` configured (not None), and `global_synthesis.user_role` resolves to `None`, blueprint MUST raise `AppException(status_code=500, message="Fail-Fast: OutputProfile requires user_role but synthesis returned None")` — triggering the Retry/DLQ pipeline.
+   - **System Prompt Mandate**: You MUST update `SYNTHESIS_SDUI_MANDATES` or the equivalent prompt in `backend_v2/models/prompts/hook_prompts.py` to explicitly instruct the LLM to deduce and populate `user_role` and `user_role_justification`. Without explicit prompt instructions, the LLM will output `null`, causing the Fail-Fast gate to crash the execution into an infinite DLQ retry loop.
 
-> [!WARNING]
-> **User Role Extraction Ambiguity (HIGH-RISK UNKNOWN)**: The mechanism for extracting `user_role` from the LLM is underspecified. The implementation plan MUST explicitly define: (a) Which LLM strategy/model handles role extraction, (b) What Pydantic schema the LLM must output for the role, (c) Whether this is a new DAG step or part of the existing synthesis step, and (d) How `user_role_justification` is populated. Without this, the executing agent will hallucinate the implementation.
+*(Note: The previous "User Role Extraction Ambiguity" HIGH-RISK UNKNOWN is now fully resolved by defining the schema in `GlobalSynthesisDTO`, the prompt in `hook_prompts.py`, and the extraction strategy via the existing global synthesis DAG step).*
 
 ### Phase 1: OutputProfile Configuration in `seed_data.json`
 We will surgically modify the target `OutputProfile` (e.g., `holistic_audit`) in @[c:\src\quorum\backend_v2\seed\seed_data.json] to include:
