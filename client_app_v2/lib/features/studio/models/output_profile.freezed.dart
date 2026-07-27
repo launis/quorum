@@ -11,910 +11,6 @@ part of 'output_profile.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-SduiBlockDTO _$SduiBlockDTOFromJson(
-  Map<String, dynamic> json
-) {
-        switch (json['block_type']) {
-                  case 'paragraph':
-          return SduiParagraphBlock.fromJson(
-            json
-          );
-                case 'bullet_list':
-          return SduiBulletListBlock.fromJson(
-            json
-          );
-                case 'alert_box':
-          return SduiAlertBoxBlock.fromJson(
-            json
-          );
-                case 'hero_insight':
-          return SduiHeroInsightBlock.fromJson(
-            json
-          );
-                case 'markdown':
-          return SduiMarkdownBlock.fromJson(
-            json
-          );
-        
-          default:
-            throw CheckedFromJsonException(
-  json,
-  'block_type',
-  'SduiBlockDTO',
-  'Invalid union type "${json['block_type']}"!'
-);
-        }
-      
-}
-
-/// @nodoc
-mixin _$SduiBlockDTO {
-
-
-
-  /// Serializes this SduiBlockDTO to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiBlockDTO);
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'SduiBlockDTO()';
-}
-
-
-}
-
-/// @nodoc
-class $SduiBlockDTOCopyWith<$Res>  {
-$SduiBlockDTOCopyWith(SduiBlockDTO _, $Res Function(SduiBlockDTO) __);
-}
-
-
-/// Adds pattern-matching-related methods to [SduiBlockDTO].
-extension SduiBlockDTOPatterns on SduiBlockDTO {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SduiParagraphBlock value)?  paragraph,TResult Function( SduiBulletListBlock value)?  bulletList,TResult Function( SduiAlertBoxBlock value)?  alertBox,TResult Function( SduiHeroInsightBlock value)?  heroInsight,TResult Function( SduiMarkdownBlock value)?  markdown,required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case SduiParagraphBlock() when paragraph != null:
-return paragraph(_that);case SduiBulletListBlock() when bulletList != null:
-return bulletList(_that);case SduiAlertBoxBlock() when alertBox != null:
-return alertBox(_that);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that);case SduiMarkdownBlock() when markdown != null:
-return markdown(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SduiParagraphBlock value)  paragraph,required TResult Function( SduiBulletListBlock value)  bulletList,required TResult Function( SduiAlertBoxBlock value)  alertBox,required TResult Function( SduiHeroInsightBlock value)  heroInsight,required TResult Function( SduiMarkdownBlock value)  markdown,}){
-final _that = this;
-switch (_that) {
-case SduiParagraphBlock():
-return paragraph(_that);case SduiBulletListBlock():
-return bulletList(_that);case SduiAlertBoxBlock():
-return alertBox(_that);case SduiHeroInsightBlock():
-return heroInsight(_that);case SduiMarkdownBlock():
-return markdown(_that);}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SduiParagraphBlock value)?  paragraph,TResult? Function( SduiBulletListBlock value)?  bulletList,TResult? Function( SduiAlertBoxBlock value)?  alertBox,TResult? Function( SduiHeroInsightBlock value)?  heroInsight,TResult? Function( SduiMarkdownBlock value)?  markdown,}){
-final _that = this;
-switch (_that) {
-case SduiParagraphBlock() when paragraph != null:
-return paragraph(_that);case SduiBulletListBlock() when bulletList != null:
-return bulletList(_that);case SduiAlertBoxBlock() when alertBox != null:
-return alertBox(_that);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that);case SduiMarkdownBlock() when markdown != null:
-return markdown(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<int> citations,  List<String> exactQuotes)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)?  alertBox,TResult Function( String text,  List<int> citations,  List<String> exactQuotes)?  heroInsight,TResult Function( String text)?  markdown,required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case SduiParagraphBlock() when paragraph != null:
-return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
-return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
-return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
-return markdown(_that.text);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<int> citations,  List<String> exactQuotes)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)  alertBox,required TResult Function( String text,  List<int> citations,  List<String> exactQuotes)  heroInsight,required TResult Function( String text)  markdown,}) {final _that = this;
-switch (_that) {
-case SduiParagraphBlock():
-return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock():
-return bulletList(_that.items);case SduiAlertBoxBlock():
-return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock():
-return heroInsight(_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock():
-return markdown(_that.text);}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<int> citations,  List<String> exactQuotes)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String text,  String severity,  List<int> citations,  List<String> exactQuotes)?  alertBox,TResult? Function( String text,  List<int> citations,  List<String> exactQuotes)?  heroInsight,TResult? Function( String text)?  markdown,}) {final _that = this;
-switch (_that) {
-case SduiParagraphBlock() when paragraph != null:
-return paragraph(_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
-return bulletList(_that.items);case SduiAlertBoxBlock() when alertBox != null:
-return alertBox(_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock() when heroInsight != null:
-return heroInsight(_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
-return markdown(_that.text);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-
-@JsonSerializable(disallowUnrecognizedKeys: true)
-class SduiParagraphBlock extends SduiBlockDTO {
-  const SduiParagraphBlock({required this.text, final  List<int> citations = const [], final  List<String> exactQuotes = const [], final  String? $type}): _citations = citations,_exactQuotes = exactQuotes,$type = $type ?? 'paragraph',super._();
-  factory SduiParagraphBlock.fromJson(Map<String, dynamic> json) => _$SduiParagraphBlockFromJson(json);
-
- final  String text;
- final  List<int> _citations;
-@JsonKey() List<int> get citations {
-  if (_citations is EqualUnmodifiableListView) return _citations;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_citations);
-}
-
- final  List<String> _exactQuotes;
-@JsonKey() List<String> get exactQuotes {
-  if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_exactQuotes);
-}
-
-
-@JsonKey(name: 'block_type')
-final String $type;
-
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$SduiParagraphBlockCopyWith<SduiParagraphBlock> get copyWith => _$SduiParagraphBlockCopyWithImpl<SduiParagraphBlock>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$SduiParagraphBlockToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiParagraphBlock&&(identical(other.text, text) || other.text == text)&&const DeepCollectionEquality().equals(other._citations, _citations)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,text,const DeepCollectionEquality().hash(_citations),const DeepCollectionEquality().hash(_exactQuotes));
-
-@override
-String toString() {
-  return 'SduiBlockDTO.paragraph(text: $text, citations: $citations, exactQuotes: $exactQuotes)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $SduiParagraphBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
-  factory $SduiParagraphBlockCopyWith(SduiParagraphBlock value, $Res Function(SduiParagraphBlock) _then) = _$SduiParagraphBlockCopyWithImpl;
-@useResult
-$Res call({
- String text, List<int> citations, List<String> exactQuotes
-});
-
-
-
-
-}
-/// @nodoc
-class _$SduiParagraphBlockCopyWithImpl<$Res>
-    implements $SduiParagraphBlockCopyWith<$Res> {
-  _$SduiParagraphBlockCopyWithImpl(this._self, this._then);
-
-  final SduiParagraphBlock _self;
-  final $Res Function(SduiParagraphBlock) _then;
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,Object? exactQuotes = null,}) {
-  return _then(SduiParagraphBlock(
-text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
-as List<String>,
-  ));
-}
-
-
-}
-
-/// @nodoc
-
-@JsonSerializable(disallowUnrecognizedKeys: true)
-class SduiBulletListBlock extends SduiBlockDTO {
-  const SduiBulletListBlock({required final  List<SduiBulletListItemDTO> items, final  String? $type}): _items = items,$type = $type ?? 'bullet_list',super._();
-  factory SduiBulletListBlock.fromJson(Map<String, dynamic> json) => _$SduiBulletListBlockFromJson(json);
-
- final  List<SduiBulletListItemDTO> _items;
- List<SduiBulletListItemDTO> get items {
-  if (_items is EqualUnmodifiableListView) return _items;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_items);
-}
-
-
-@JsonKey(name: 'block_type')
-final String $type;
-
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$SduiBulletListBlockCopyWith<SduiBulletListBlock> get copyWith => _$SduiBulletListBlockCopyWithImpl<SduiBulletListBlock>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$SduiBulletListBlockToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiBulletListBlock&&const DeepCollectionEquality().equals(other._items, _items));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_items));
-
-@override
-String toString() {
-  return 'SduiBlockDTO.bulletList(items: $items)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $SduiBulletListBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
-  factory $SduiBulletListBlockCopyWith(SduiBulletListBlock value, $Res Function(SduiBulletListBlock) _then) = _$SduiBulletListBlockCopyWithImpl;
-@useResult
-$Res call({
- List<SduiBulletListItemDTO> items
-});
-
-
-
-
-}
-/// @nodoc
-class _$SduiBulletListBlockCopyWithImpl<$Res>
-    implements $SduiBulletListBlockCopyWith<$Res> {
-  _$SduiBulletListBlockCopyWithImpl(this._self, this._then);
-
-  final SduiBulletListBlock _self;
-  final $Res Function(SduiBulletListBlock) _then;
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? items = null,}) {
-  return _then(SduiBulletListBlock(
-items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
-as List<SduiBulletListItemDTO>,
-  ));
-}
-
-
-}
-
-/// @nodoc
-
-@JsonSerializable(disallowUnrecognizedKeys: true)
-class SduiAlertBoxBlock extends SduiBlockDTO {
-  const SduiAlertBoxBlock({required this.text, required this.severity, final  List<int> citations = const [], final  List<String> exactQuotes = const [], final  String? $type}): _citations = citations,_exactQuotes = exactQuotes,$type = $type ?? 'alert_box',super._();
-  factory SduiAlertBoxBlock.fromJson(Map<String, dynamic> json) => _$SduiAlertBoxBlockFromJson(json);
-
- final  String text;
- final  String severity;
- final  List<int> _citations;
-@JsonKey() List<int> get citations {
-  if (_citations is EqualUnmodifiableListView) return _citations;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_citations);
-}
-
- final  List<String> _exactQuotes;
-@JsonKey() List<String> get exactQuotes {
-  if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_exactQuotes);
-}
-
-
-@JsonKey(name: 'block_type')
-final String $type;
-
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$SduiAlertBoxBlockCopyWith<SduiAlertBoxBlock> get copyWith => _$SduiAlertBoxBlockCopyWithImpl<SduiAlertBoxBlock>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$SduiAlertBoxBlockToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiAlertBoxBlock&&(identical(other.text, text) || other.text == text)&&(identical(other.severity, severity) || other.severity == severity)&&const DeepCollectionEquality().equals(other._citations, _citations)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,text,severity,const DeepCollectionEquality().hash(_citations),const DeepCollectionEquality().hash(_exactQuotes));
-
-@override
-String toString() {
-  return 'SduiBlockDTO.alertBox(text: $text, severity: $severity, citations: $citations, exactQuotes: $exactQuotes)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $SduiAlertBoxBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
-  factory $SduiAlertBoxBlockCopyWith(SduiAlertBoxBlock value, $Res Function(SduiAlertBoxBlock) _then) = _$SduiAlertBoxBlockCopyWithImpl;
-@useResult
-$Res call({
- String text, String severity, List<int> citations, List<String> exactQuotes
-});
-
-
-
-
-}
-/// @nodoc
-class _$SduiAlertBoxBlockCopyWithImpl<$Res>
-    implements $SduiAlertBoxBlockCopyWith<$Res> {
-  _$SduiAlertBoxBlockCopyWithImpl(this._self, this._then);
-
-  final SduiAlertBoxBlock _self;
-  final $Res Function(SduiAlertBoxBlock) _then;
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? severity = null,Object? citations = null,Object? exactQuotes = null,}) {
-  return _then(SduiAlertBoxBlock(
-text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,severity: null == severity ? _self.severity : severity // ignore: cast_nullable_to_non_nullable
-as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
-as List<String>,
-  ));
-}
-
-
-}
-
-/// @nodoc
-
-@JsonSerializable(disallowUnrecognizedKeys: true)
-class SduiHeroInsightBlock extends SduiBlockDTO {
-  const SduiHeroInsightBlock({required this.text, final  List<int> citations = const [], final  List<String> exactQuotes = const [], final  String? $type}): _citations = citations,_exactQuotes = exactQuotes,$type = $type ?? 'hero_insight',super._();
-  factory SduiHeroInsightBlock.fromJson(Map<String, dynamic> json) => _$SduiHeroInsightBlockFromJson(json);
-
- final  String text;
- final  List<int> _citations;
-@JsonKey() List<int> get citations {
-  if (_citations is EqualUnmodifiableListView) return _citations;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_citations);
-}
-
- final  List<String> _exactQuotes;
-@JsonKey() List<String> get exactQuotes {
-  if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_exactQuotes);
-}
-
-
-@JsonKey(name: 'block_type')
-final String $type;
-
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$SduiHeroInsightBlockCopyWith<SduiHeroInsightBlock> get copyWith => _$SduiHeroInsightBlockCopyWithImpl<SduiHeroInsightBlock>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$SduiHeroInsightBlockToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiHeroInsightBlock&&(identical(other.text, text) || other.text == text)&&const DeepCollectionEquality().equals(other._citations, _citations)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,text,const DeepCollectionEquality().hash(_citations),const DeepCollectionEquality().hash(_exactQuotes));
-
-@override
-String toString() {
-  return 'SduiBlockDTO.heroInsight(text: $text, citations: $citations, exactQuotes: $exactQuotes)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $SduiHeroInsightBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
-  factory $SduiHeroInsightBlockCopyWith(SduiHeroInsightBlock value, $Res Function(SduiHeroInsightBlock) _then) = _$SduiHeroInsightBlockCopyWithImpl;
-@useResult
-$Res call({
- String text, List<int> citations, List<String> exactQuotes
-});
-
-
-
-
-}
-/// @nodoc
-class _$SduiHeroInsightBlockCopyWithImpl<$Res>
-    implements $SduiHeroInsightBlockCopyWith<$Res> {
-  _$SduiHeroInsightBlockCopyWithImpl(this._self, this._then);
-
-  final SduiHeroInsightBlock _self;
-  final $Res Function(SduiHeroInsightBlock) _then;
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,Object? exactQuotes = null,}) {
-  return _then(SduiHeroInsightBlock(
-text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
-as List<String>,
-  ));
-}
-
-
-}
-
-/// @nodoc
-
-@JsonSerializable(disallowUnrecognizedKeys: true)
-class SduiMarkdownBlock extends SduiBlockDTO {
-  const SduiMarkdownBlock({required this.text, final  String? $type}): $type = $type ?? 'markdown',super._();
-  factory SduiMarkdownBlock.fromJson(Map<String, dynamic> json) => _$SduiMarkdownBlockFromJson(json);
-
- final  String text;
-
-@JsonKey(name: 'block_type')
-final String $type;
-
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$SduiMarkdownBlockCopyWith<SduiMarkdownBlock> get copyWith => _$SduiMarkdownBlockCopyWithImpl<SduiMarkdownBlock>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$SduiMarkdownBlockToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiMarkdownBlock&&(identical(other.text, text) || other.text == text));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,text);
-
-@override
-String toString() {
-  return 'SduiBlockDTO.markdown(text: $text)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $SduiMarkdownBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
-  factory $SduiMarkdownBlockCopyWith(SduiMarkdownBlock value, $Res Function(SduiMarkdownBlock) _then) = _$SduiMarkdownBlockCopyWithImpl;
-@useResult
-$Res call({
- String text
-});
-
-
-
-
-}
-/// @nodoc
-class _$SduiMarkdownBlockCopyWithImpl<$Res>
-    implements $SduiMarkdownBlockCopyWith<$Res> {
-  _$SduiMarkdownBlockCopyWithImpl(this._self, this._then);
-
-  final SduiMarkdownBlock _self;
-  final $Res Function(SduiMarkdownBlock) _then;
-
-/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? text = null,}) {
-  return _then(SduiMarkdownBlock(
-text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
-mixin _$SduiBulletListItemDTO {
-
- String get text; List<int> get citations; List<String> get exactQuotes;
-/// Create a copy of SduiBulletListItemDTO
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$SduiBulletListItemDTOCopyWith<SduiBulletListItemDTO> get copyWith => _$SduiBulletListItemDTOCopyWithImpl<SduiBulletListItemDTO>(this as SduiBulletListItemDTO, _$identity);
-
-  /// Serializes this SduiBulletListItemDTO to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-
-
-@override
-String toString() {
-  return 'SduiBulletListItemDTO(text: $text, citations: $citations, exactQuotes: $exactQuotes)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $SduiBulletListItemDTOCopyWith<$Res>  {
-  factory $SduiBulletListItemDTOCopyWith(SduiBulletListItemDTO value, $Res Function(SduiBulletListItemDTO) _then) = _$SduiBulletListItemDTOCopyWithImpl;
-@useResult
-$Res call({
- String text, List<int> citations, List<String> exactQuotes
-});
-
-
-
-
-}
-/// @nodoc
-class _$SduiBulletListItemDTOCopyWithImpl<$Res>
-    implements $SduiBulletListItemDTOCopyWith<$Res> {
-  _$SduiBulletListItemDTOCopyWithImpl(this._self, this._then);
-
-  final SduiBulletListItemDTO _self;
-  final $Res Function(SduiBulletListItemDTO) _then;
-
-/// Create a copy of SduiBulletListItemDTO
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? text = null,Object? citations = null,Object? exactQuotes = null,}) {
-  return _then(_self.copyWith(
-text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,citations: null == citations ? _self.citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,exactQuotes: null == exactQuotes ? _self.exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
-as List<String>,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [SduiBulletListItemDTO].
-extension SduiBulletListItemDTOPatterns on SduiBulletListItemDTO {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SduiBulletListItemDTO value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _SduiBulletListItemDTO() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SduiBulletListItemDTO value)  $default,){
-final _that = this;
-switch (_that) {
-case _SduiBulletListItemDTO():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SduiBulletListItemDTO value)?  $default,){
-final _that = this;
-switch (_that) {
-case _SduiBulletListItemDTO() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String text,  List<int> citations,  List<String> exactQuotes)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _SduiBulletListItemDTO() when $default != null:
-return $default(_that.text,_that.citations,_that.exactQuotes);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String text,  List<int> citations,  List<String> exactQuotes)  $default,) {final _that = this;
-switch (_that) {
-case _SduiBulletListItemDTO():
-return $default(_that.text,_that.citations,_that.exactQuotes);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String text,  List<int> citations,  List<String> exactQuotes)?  $default,) {final _that = this;
-switch (_that) {
-case _SduiBulletListItemDTO() when $default != null:
-return $default(_that.text,_that.citations,_that.exactQuotes);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-
-@JsonSerializable(disallowUnrecognizedKeys: true)
-class _SduiBulletListItemDTO implements SduiBulletListItemDTO {
-  const _SduiBulletListItemDTO({required this.text, final  List<int> citations = const [], final  List<String> exactQuotes = const []}): _citations = citations,_exactQuotes = exactQuotes;
-  factory _SduiBulletListItemDTO.fromJson(Map<String, dynamic> json) => _$SduiBulletListItemDTOFromJson(json);
-
-@override final  String text;
- final  List<int> _citations;
-@override@JsonKey() List<int> get citations {
-  if (_citations is EqualUnmodifiableListView) return _citations;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_citations);
-}
-
- final  List<String> _exactQuotes;
-@override@JsonKey() List<String> get exactQuotes {
-  if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_exactQuotes);
-}
-
-
-/// Create a copy of SduiBulletListItemDTO
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$SduiBulletListItemDTOCopyWith<_SduiBulletListItemDTO> get copyWith => __$SduiBulletListItemDTOCopyWithImpl<_SduiBulletListItemDTO>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$SduiBulletListItemDTOToJson(this, );
-}
-
-
-
-@override
-String toString() {
-  return 'SduiBulletListItemDTO(text: $text, citations: $citations, exactQuotes: $exactQuotes)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$SduiBulletListItemDTOCopyWith<$Res> implements $SduiBulletListItemDTOCopyWith<$Res> {
-  factory _$SduiBulletListItemDTOCopyWith(_SduiBulletListItemDTO value, $Res Function(_SduiBulletListItemDTO) _then) = __$SduiBulletListItemDTOCopyWithImpl;
-@override @useResult
-$Res call({
- String text, List<int> citations, List<String> exactQuotes
-});
-
-
-
-
-}
-/// @nodoc
-class __$SduiBulletListItemDTOCopyWithImpl<$Res>
-    implements _$SduiBulletListItemDTOCopyWith<$Res> {
-  __$SduiBulletListItemDTOCopyWithImpl(this._self, this._then);
-
-  final _SduiBulletListItemDTO _self;
-  final $Res Function(_SduiBulletListItemDTO) _then;
-
-/// Create a copy of SduiBulletListItemDTO
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,Object? exactQuotes = null,}) {
-  return _then(_SduiBulletListItemDTO(
-text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
-as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
-as List<int>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
-as List<String>,
-  ));
-}
-
-
-}
-
 
 /// @nodoc
 mixin _$OutputLayoutBlock {
@@ -1661,7 +757,7 @@ $I18nTextCopyWith<$Res>? get toneInstruction {
 /// @nodoc
 mixin _$OutputProfile {
 
-@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description;@JsonKey(name: 'custom_preface') I18nText? get customPreface; List<String> get visibleMetadata; List<XaiExtensionType> get visibleBlockExtensions; List<XaiExtensionType> get visibleWorkflowExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction; String? get language; List<OutputLayoutBlock> get layouts;@JsonKey(name: 'content_blocks') List<dynamic> get contentBlocks;
+@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description;@JsonKey(name: 'custom_preface') I18nText? get customPreface; List<String> get visibleMetadata; List<XaiExtensionType> get visibleBlockExtensions; List<XaiExtensionType> get visibleWorkflowExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction; String? get language; List<OutputLayoutBlock> get layouts;@JsonKey(name: 'content_blocks') List<SduiBlockDTO> get contentBlocks;
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1687,7 +783,7 @@ abstract mixin class $OutputProfileCopyWith<$Res>  {
   factory $OutputProfileCopyWith(OutputProfile value, $Res Function(OutputProfile) _then) = _$OutputProfileCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<dynamic> contentBlocks
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks
 });
 
 
@@ -1725,7 +821,7 @@ as ScoringStrategy?,toneInstruction: freezed == toneInstruction ? _self.toneInst
 as I18nText?,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,contentBlocks: null == contentBlocks ? _self.contentBlocks : contentBlocks // ignore: cast_nullable_to_non_nullable
-as List<dynamic>,
+as List<SduiBlockDTO>,
   ));
 }
 /// Create a copy of OutputProfile
@@ -1855,7 +951,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<dynamic> contentBlocks)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
 return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.layouts,_that.contentBlocks);case _:
@@ -1876,7 +972,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<dynamic> contentBlocks)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile():
 return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.layouts,_that.contentBlocks);case _:
@@ -1896,7 +992,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<dynamic> contentBlocks)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
 return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.layouts,_that.contentBlocks);case _:
@@ -1911,7 +1007,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _OutputProfile extends OutputProfile {
-  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, @JsonKey(name: 'custom_preface') this.customPreface, final  List<String> visibleMetadata = const ['date', 'organization'], final  List<XaiExtensionType> visibleBlockExtensions = const [], final  List<XaiExtensionType> visibleWorkflowExtensions = const [], @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'tone_instruction') this.toneInstruction, this.language, final  List<OutputLayoutBlock> layouts = const [], @JsonKey(name: 'content_blocks') final  List<dynamic> contentBlocks = const []}): _visibleMetadata = visibleMetadata,_visibleBlockExtensions = visibleBlockExtensions,_visibleWorkflowExtensions = visibleWorkflowExtensions,_layouts = layouts,_contentBlocks = contentBlocks,super._();
+  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, @JsonKey(name: 'custom_preface') this.customPreface, final  List<String> visibleMetadata = const ['date', 'organization'], final  List<XaiExtensionType> visibleBlockExtensions = const [], final  List<XaiExtensionType> visibleWorkflowExtensions = const [], @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'tone_instruction') this.toneInstruction, this.language, final  List<OutputLayoutBlock> layouts = const [], @JsonKey(name: 'content_blocks') final  List<SduiBlockDTO> contentBlocks = const []}): _visibleMetadata = visibleMetadata,_visibleBlockExtensions = visibleBlockExtensions,_visibleWorkflowExtensions = visibleWorkflowExtensions,_layouts = layouts,_contentBlocks = contentBlocks,super._();
   factory _OutputProfile.fromJson(Map<String, dynamic> json) => _$OutputProfileFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1956,8 +1052,8 @@ class _OutputProfile extends OutputProfile {
   return EqualUnmodifiableListView(_layouts);
 }
 
- final  List<dynamic> _contentBlocks;
-@override@JsonKey(name: 'content_blocks') List<dynamic> get contentBlocks {
+ final  List<SduiBlockDTO> _contentBlocks;
+@override@JsonKey(name: 'content_blocks') List<SduiBlockDTO> get contentBlocks {
   if (_contentBlocks is EqualUnmodifiableListView) return _contentBlocks;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_contentBlocks);
@@ -1990,7 +1086,7 @@ abstract mixin class _$OutputProfileCopyWith<$Res> implements $OutputProfileCopy
   factory _$OutputProfileCopyWith(_OutputProfile value, $Res Function(_OutputProfile) _then) = __$OutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<dynamic> contentBlocks
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks
 });
 
 
@@ -2028,7 +1124,7 @@ as ScoringStrategy?,toneInstruction: freezed == toneInstruction ? _self.toneInst
 as I18nText?,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,contentBlocks: null == contentBlocks ? _self._contentBlocks : contentBlocks // ignore: cast_nullable_to_non_nullable
-as List<dynamic>,
+as List<SduiBlockDTO>,
   ));
 }
 
@@ -2084,7 +1180,7 @@ $I18nTextCopyWith<$Res>? get toneInstruction {
 /// @nodoc
 mixin _$EmbeddedOutputProfile {
 
- I18nText get name; I18nText? get description;@JsonKey(name: 'custom_preface') I18nText? get customPreface; List<String> get visibleMetadata; List<XaiExtensionType> get visibleBlockExtensions; List<XaiExtensionType> get visibleWorkflowExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction; String? get language; List<OutputLayoutBlock> get layouts;@JsonKey(name: 'content_blocks') List<dynamic> get contentBlocks;
+ I18nText get name; I18nText? get description;@JsonKey(name: 'custom_preface') I18nText? get customPreface; List<String> get visibleMetadata; List<XaiExtensionType> get visibleBlockExtensions; List<XaiExtensionType> get visibleWorkflowExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction; String? get language; List<OutputLayoutBlock> get layouts;@JsonKey(name: 'content_blocks') List<SduiBlockDTO> get contentBlocks;
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2110,7 +1206,7 @@ abstract mixin class $EmbeddedOutputProfileCopyWith<$Res>  {
   factory $EmbeddedOutputProfileCopyWith(EmbeddedOutputProfile value, $Res Function(EmbeddedOutputProfile) _then) = _$EmbeddedOutputProfileCopyWithImpl;
 @useResult
 $Res call({
- I18nText name, I18nText? description,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<dynamic> contentBlocks
+ I18nText name, I18nText? description,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks
 });
 
 
@@ -2144,7 +1240,7 @@ as ScoringStrategy?,toneInstruction: freezed == toneInstruction ? _self.toneInst
 as I18nText?,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,contentBlocks: null == contentBlocks ? _self.contentBlocks : contentBlocks // ignore: cast_nullable_to_non_nullable
-as List<dynamic>,
+as List<SduiBlockDTO>,
   ));
 }
 /// Create a copy of EmbeddedOutputProfile
@@ -2274,7 +1370,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<dynamic> contentBlocks)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile() when $default != null:
 return $default(_that.name,_that.description,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.layouts,_that.contentBlocks);case _:
@@ -2295,7 +1391,7 @@ return $default(_that.name,_that.description,_that.customPreface,_that.visibleMe
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<dynamic> contentBlocks)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)  $default,) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile():
 return $default(_that.name,_that.description,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.layouts,_that.contentBlocks);case _:
@@ -2315,7 +1411,7 @@ return $default(_that.name,_that.description,_that.customPreface,_that.visibleMe
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<dynamic> contentBlocks)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  I18nText? description, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)?  $default,) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile() when $default != null:
 return $default(_that.name,_that.description,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.layouts,_that.contentBlocks);case _:
@@ -2330,7 +1426,7 @@ return $default(_that.name,_that.description,_that.customPreface,_that.visibleMe
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _EmbeddedOutputProfile extends EmbeddedOutputProfile {
-  const _EmbeddedOutputProfile({required this.name, this.description, @JsonKey(name: 'custom_preface') this.customPreface, final  List<String> visibleMetadata = const ['date', 'organization'], final  List<XaiExtensionType> visibleBlockExtensions = const [], final  List<XaiExtensionType> visibleWorkflowExtensions = const [], @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'tone_instruction') this.toneInstruction, this.language, final  List<OutputLayoutBlock> layouts = const [], @JsonKey(name: 'content_blocks') final  List<dynamic> contentBlocks = const []}): _visibleMetadata = visibleMetadata,_visibleBlockExtensions = visibleBlockExtensions,_visibleWorkflowExtensions = visibleWorkflowExtensions,_layouts = layouts,_contentBlocks = contentBlocks,super._();
+  const _EmbeddedOutputProfile({required this.name, this.description, @JsonKey(name: 'custom_preface') this.customPreface, final  List<String> visibleMetadata = const ['date', 'organization'], final  List<XaiExtensionType> visibleBlockExtensions = const [], final  List<XaiExtensionType> visibleWorkflowExtensions = const [], @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'tone_instruction') this.toneInstruction, this.language, final  List<OutputLayoutBlock> layouts = const [], @JsonKey(name: 'content_blocks') final  List<SduiBlockDTO> contentBlocks = const []}): _visibleMetadata = visibleMetadata,_visibleBlockExtensions = visibleBlockExtensions,_visibleWorkflowExtensions = visibleWorkflowExtensions,_layouts = layouts,_contentBlocks = contentBlocks,super._();
   factory _EmbeddedOutputProfile.fromJson(Map<String, dynamic> json) => _$EmbeddedOutputProfileFromJson(json);
 
 @override final  I18nText name;
@@ -2371,8 +1467,8 @@ class _EmbeddedOutputProfile extends EmbeddedOutputProfile {
   return EqualUnmodifiableListView(_layouts);
 }
 
- final  List<dynamic> _contentBlocks;
-@override@JsonKey(name: 'content_blocks') List<dynamic> get contentBlocks {
+ final  List<SduiBlockDTO> _contentBlocks;
+@override@JsonKey(name: 'content_blocks') List<SduiBlockDTO> get contentBlocks {
   if (_contentBlocks is EqualUnmodifiableListView) return _contentBlocks;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_contentBlocks);
@@ -2405,7 +1501,7 @@ abstract mixin class _$EmbeddedOutputProfileCopyWith<$Res> implements $EmbeddedO
   factory _$EmbeddedOutputProfileCopyWith(_EmbeddedOutputProfile value, $Res Function(_EmbeddedOutputProfile) _then) = __$EmbeddedOutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
- I18nText name, I18nText? description,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<dynamic> contentBlocks
+ I18nText name, I18nText? description,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks
 });
 
 
@@ -2439,7 +1535,7 @@ as ScoringStrategy?,toneInstruction: freezed == toneInstruction ? _self.toneInst
 as I18nText?,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,contentBlocks: null == contentBlocks ? _self._contentBlocks : contentBlocks // ignore: cast_nullable_to_non_nullable
-as List<dynamic>,
+as List<SduiBlockDTO>,
   ));
 }
 

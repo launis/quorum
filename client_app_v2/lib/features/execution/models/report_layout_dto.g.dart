@@ -82,7 +82,7 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(Map<String, dynamic> json) =>
           synthesisBlocks: $checkedConvert(
             'synthesis_blocks',
             (v) => (v as List<dynamic>?)
-                ?.map((e) => e as Map<String, dynamic>)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
                 .toList(),
           ),
           matrixColumnLabels: $checkedConvert(
@@ -126,7 +126,7 @@ Map<String, dynamic> _$ReportLayoutDtoToJson(
   'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
   'is_synthesis_enabled': instance.isSynthesisEnabled,
   'synthesis': instance.synthesis?.toJson(),
-  'synthesis_blocks': instance.synthesisBlocks,
+  'synthesis_blocks': instance.synthesisBlocks?.map((e) => e.toJson()).toList(),
   'matrix_column_labels': instance.matrixColumnLabels.map(
     (k, e) => MapEntry(k, e.toJson()),
   ),

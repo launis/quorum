@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReportLayoutDto {
 
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView get presetView; I18nText? get title; I18nText? get description; List<MatrixScorecardRowDto> get axes;@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode get textDeliveryMode;@JsonKey(name: 'is_synthesis_enabled') bool get isSynthesisEnabled; SynthesisConfigDto? get synthesis;@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? get synthesisBlocks;@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> get matrixColumnLabels;@JsonKey(name: 'extension_labels') Map<String, I18nText> get extensionLabels;
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView get presetView; I18nText? get title; I18nText? get description; List<MatrixScorecardRowDto> get axes;@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode get textDeliveryMode;@JsonKey(name: 'is_synthesis_enabled') bool get isSynthesisEnabled; SynthesisConfigDto? get synthesis;@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? get synthesisBlocks;@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> get matrixColumnLabels;@JsonKey(name: 'extension_labels') Map<String, I18nText> get extensionLabels;
 /// Create a copy of ReportLayoutDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $ReportLayoutDtoCopyWith<$Res>  {
   factory $ReportLayoutDtoCopyWith(ReportLayoutDto value, $Res Function(ReportLayoutDto) _then) = _$ReportLayoutDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDto? synthesis,@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? synthesisBlocks,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDto? synthesis,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels
 });
 
 
@@ -68,7 +68,7 @@ as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _sel
 as TextDeliveryMode,isSynthesisEnabled: null == isSynthesisEnabled ? _self.isSynthesisEnabled : isSynthesisEnabled // ignore: cast_nullable_to_non_nullable
 as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDto?,synthesisBlocks: freezed == synthesisBlocks ? _self.synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
-as List<Map<String, dynamic>>?,matrixColumnLabels: null == matrixColumnLabels ? _self.matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
+as List<SduiBlockDTO>?,matrixColumnLabels: null == matrixColumnLabels ? _self.matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, I18nText>,extensionLabels: null == extensionLabels ? _self.extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, I18nText>,
   ));
@@ -191,7 +191,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportLayoutDto() when $default != null:
 return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks,_that.matrixColumnLabels,_that.extensionLabels);case _:
@@ -212,7 +212,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDto():
 return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks,_that.matrixColumnLabels,_that.extensionLabels);case _:
@@ -232,7 +232,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<Map<String, dynamic>>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDto? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDto() when $default != null:
 return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks,_that.matrixColumnLabels,_that.extensionLabels);case _:
@@ -247,7 +247,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.axes,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportLayoutDto implements ReportLayoutDto {
-  const _ReportLayoutDto({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) this.presetView = PresetView.defaultView, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) this.textDeliveryMode = TextDeliveryMode.full, @JsonKey(name: 'is_synthesis_enabled') this.isSynthesisEnabled = true, this.synthesis, @JsonKey(name: 'synthesis_blocks') final  List<Map<String, dynamic>>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels') final  Map<String, I18nText> matrixColumnLabels = const {}, @JsonKey(name: 'extension_labels') final  Map<String, I18nText> extensionLabels = const {}}): _axes = axes,_synthesisBlocks = synthesisBlocks,_matrixColumnLabels = matrixColumnLabels,_extensionLabels = extensionLabels;
+  const _ReportLayoutDto({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) this.presetView = PresetView.defaultView, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) this.textDeliveryMode = TextDeliveryMode.full, @JsonKey(name: 'is_synthesis_enabled') this.isSynthesisEnabled = true, this.synthesis, @JsonKey(name: 'synthesis_blocks') final  List<SduiBlockDTO>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels') final  Map<String, I18nText> matrixColumnLabels = const {}, @JsonKey(name: 'extension_labels') final  Map<String, I18nText> extensionLabels = const {}}): _axes = axes,_synthesisBlocks = synthesisBlocks,_matrixColumnLabels = matrixColumnLabels,_extensionLabels = extensionLabels;
   factory _ReportLayoutDto.fromJson(Map<String, dynamic> json) => _$ReportLayoutDtoFromJson(json);
 
 @override@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) final  PresetView presetView;
@@ -263,8 +263,8 @@ class _ReportLayoutDto implements ReportLayoutDto {
 @override@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) final  TextDeliveryMode textDeliveryMode;
 @override@JsonKey(name: 'is_synthesis_enabled') final  bool isSynthesisEnabled;
 @override final  SynthesisConfigDto? synthesis;
- final  List<Map<String, dynamic>>? _synthesisBlocks;
-@override@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? get synthesisBlocks {
+ final  List<SduiBlockDTO>? _synthesisBlocks;
+@override@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? get synthesisBlocks {
   final value = _synthesisBlocks;
   if (value == null) return null;
   if (_synthesisBlocks is EqualUnmodifiableListView) return _synthesisBlocks;
@@ -313,7 +313,7 @@ abstract mixin class _$ReportLayoutDtoCopyWith<$Res> implements $ReportLayoutDto
   factory _$ReportLayoutDtoCopyWith(_ReportLayoutDto value, $Res Function(_ReportLayoutDto) _then) = __$ReportLayoutDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDto? synthesis,@JsonKey(name: 'synthesis_blocks') List<Map<String, dynamic>>? synthesisBlocks,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDto? synthesis,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels
 });
 
 
@@ -340,7 +340,7 @@ as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _sel
 as TextDeliveryMode,isSynthesisEnabled: null == isSynthesisEnabled ? _self.isSynthesisEnabled : isSynthesisEnabled // ignore: cast_nullable_to_non_nullable
 as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDto?,synthesisBlocks: freezed == synthesisBlocks ? _self._synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
-as List<Map<String, dynamic>>?,matrixColumnLabels: null == matrixColumnLabels ? _self._matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
+as List<SduiBlockDTO>?,matrixColumnLabels: null == matrixColumnLabels ? _self._matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, I18nText>,extensionLabels: null == extensionLabels ? _self._extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, I18nText>,
   ));

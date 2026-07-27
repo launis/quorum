@@ -6,196 +6,6 @@ part of 'output_profile.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-SduiParagraphBlock _$SduiParagraphBlockFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  'SduiParagraphBlock',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      allowedKeys: const ['text', 'citations', 'exact_quotes', 'block_type'],
-    );
-    final val = SduiParagraphBlock(
-      text: $checkedConvert('text', (v) => v as String),
-      citations: $checkedConvert(
-        'citations',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
-            const [],
-      ),
-      exactQuotes: $checkedConvert(
-        'exact_quotes',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
-      $type: $checkedConvert('block_type', (v) => v as String?),
-    );
-    return val;
-  },
-  fieldKeyMap: const {'exactQuotes': 'exact_quotes', r'$type': 'block_type'},
-);
-
-Map<String, dynamic> _$SduiParagraphBlockToJson(SduiParagraphBlock instance) =>
-    <String, dynamic>{
-      'text': instance.text,
-      'citations': instance.citations,
-      'exact_quotes': instance.exactQuotes,
-      'block_type': instance.$type,
-    };
-
-SduiBulletListBlock _$SduiBulletListBlockFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('SduiBulletListBlock', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['items', 'block_type']);
-      final val = SduiBulletListBlock(
-        items: $checkedConvert(
-          'items',
-          (v) => (v as List<dynamic>)
-              .map(
-                (e) =>
-                    SduiBulletListItemDTO.fromJson(e as Map<String, dynamic>),
-              )
-              .toList(),
-        ),
-        $type: $checkedConvert('block_type', (v) => v as String?),
-      );
-      return val;
-    }, fieldKeyMap: const {r'$type': 'block_type'});
-
-Map<String, dynamic> _$SduiBulletListBlockToJson(
-  SduiBulletListBlock instance,
-) => <String, dynamic>{
-  'items': instance.items.map((e) => e.toJson()).toList(),
-  'block_type': instance.$type,
-};
-
-SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  'SduiAlertBoxBlock',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      allowedKeys: const [
-        'text',
-        'severity',
-        'citations',
-        'exact_quotes',
-        'block_type',
-      ],
-    );
-    final val = SduiAlertBoxBlock(
-      text: $checkedConvert('text', (v) => v as String),
-      severity: $checkedConvert('severity', (v) => v as String),
-      citations: $checkedConvert(
-        'citations',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
-            const [],
-      ),
-      exactQuotes: $checkedConvert(
-        'exact_quotes',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
-      $type: $checkedConvert('block_type', (v) => v as String?),
-    );
-    return val;
-  },
-  fieldKeyMap: const {'exactQuotes': 'exact_quotes', r'$type': 'block_type'},
-);
-
-Map<String, dynamic> _$SduiAlertBoxBlockToJson(SduiAlertBoxBlock instance) =>
-    <String, dynamic>{
-      'text': instance.text,
-      'severity': instance.severity,
-      'citations': instance.citations,
-      'exact_quotes': instance.exactQuotes,
-      'block_type': instance.$type,
-    };
-
-SduiHeroInsightBlock _$SduiHeroInsightBlockFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  'SduiHeroInsightBlock',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      allowedKeys: const ['text', 'citations', 'exact_quotes', 'block_type'],
-    );
-    final val = SduiHeroInsightBlock(
-      text: $checkedConvert('text', (v) => v as String),
-      citations: $checkedConvert(
-        'citations',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
-            const [],
-      ),
-      exactQuotes: $checkedConvert(
-        'exact_quotes',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
-      $type: $checkedConvert('block_type', (v) => v as String?),
-    );
-    return val;
-  },
-  fieldKeyMap: const {'exactQuotes': 'exact_quotes', r'$type': 'block_type'},
-);
-
-Map<String, dynamic> _$SduiHeroInsightBlockToJson(
-  SduiHeroInsightBlock instance,
-) => <String, dynamic>{
-  'text': instance.text,
-  'citations': instance.citations,
-  'exact_quotes': instance.exactQuotes,
-  'block_type': instance.$type,
-};
-
-SduiMarkdownBlock _$SduiMarkdownBlockFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('SduiMarkdownBlock', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['text', 'block_type']);
-      final val = SduiMarkdownBlock(
-        text: $checkedConvert('text', (v) => v as String),
-        $type: $checkedConvert('block_type', (v) => v as String?),
-      );
-      return val;
-    }, fieldKeyMap: const {r'$type': 'block_type'});
-
-Map<String, dynamic> _$SduiMarkdownBlockToJson(SduiMarkdownBlock instance) =>
-    <String, dynamic>{'text': instance.text, 'block_type': instance.$type};
-
-_SduiBulletListItemDTO _$SduiBulletListItemDTOFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate('_SduiBulletListItemDTO', json, ($checkedConvert) {
-  $checkKeys(json, allowedKeys: const ['text', 'citations', 'exact_quotes']);
-  final val = _SduiBulletListItemDTO(
-    text: $checkedConvert('text', (v) => v as String),
-    citations: $checkedConvert(
-      'citations',
-      (v) =>
-          (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
-          const [],
-    ),
-    exactQuotes: $checkedConvert(
-      'exact_quotes',
-      (v) =>
-          (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-    ),
-  );
-  return val;
-}, fieldKeyMap: const {'exactQuotes': 'exact_quotes'});
-
-Map<String, dynamic> _$SduiBulletListItemDTOToJson(
-  _SduiBulletListItemDTO instance,
-) => <String, dynamic>{
-  'text': instance.text,
-  'citations': instance.citations,
-  'exact_quotes': instance.exactQuotes,
-};
-
 _OutputLayoutBlock _$OutputLayoutBlockFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -484,145 +294,143 @@ const _$HistoricalContextModeEnumMap = {
   HistoricalContextMode.slidingWindow3: 'SLIDING_WINDOW_3',
 };
 
-_OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
-    $checkedCreate(
-      '_OutputProfile',
+_OutputProfile _$OutputProfileFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_OutputProfile',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
       json,
-      ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'id',
-            'slug',
-            'workflow_id',
-            'organization_id',
-            'name',
-            'description',
-            'custom_preface',
-            'visible_metadata',
-            'visible_block_extensions',
-            'visible_workflow_extensions',
-            'max_extension_items',
-            'display_scale',
-            'include_diagnostic_scorecard',
-            'strictness_level',
-            'scoring_strategy',
-            'tone_instruction',
-            'language',
-            'layouts',
-            'content_blocks',
-          ],
-        );
-        final val = _OutputProfile(
-          id: $checkedConvert(
-            'id',
-            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
-          ),
-          slug: $checkedConvert('slug', (v) => v as String? ?? ''),
-          workflowId: $checkedConvert(
-            'workflow_id',
-            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
-          ),
-          organizationId: $checkedConvert(
-            'organization_id',
-            (v) => v as String?,
-          ),
-          name: $checkedConvert(
-            'name',
-            (v) => I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          description: $checkedConvert(
-            'description',
-            (v) =>
-                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          customPreface: $checkedConvert(
-            'custom_preface',
-            (v) =>
-                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          visibleMetadata: $checkedConvert(
-            'visible_metadata',
-            (v) =>
-                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-                const ['date', 'organization'],
-          ),
-          visibleBlockExtensions: $checkedConvert(
-            'visible_block_extensions',
-            (v) =>
-                (v as List<dynamic>?)
-                    ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
-                    .toList() ??
-                const [],
-          ),
-          visibleWorkflowExtensions: $checkedConvert(
-            'visible_workflow_extensions',
-            (v) =>
-                (v as List<dynamic>?)
-                    ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
-                    .toList() ??
-                const [],
-          ),
-          maxExtensionItems: $checkedConvert(
-            'max_extension_items',
-            (v) => (v as num?)?.toInt(),
-          ),
-          displayScale: $checkedConvert(
-            'display_scale',
-            (v) => v as String? ?? 'original',
-          ),
-          includeDiagnosticScorecard: $checkedConvert(
-            'include_diagnostic_scorecard',
-            (v) => v as bool? ?? false,
-          ),
-          strictnessLevel: $checkedConvert(
-            'strictness_level',
-            (v) => (v as num?)?.toInt(),
-          ),
-          scoringStrategy: $checkedConvert(
-            'scoring_strategy',
-            (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
-          ),
-          toneInstruction: $checkedConvert(
-            'tone_instruction',
-            (v) =>
-                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          language: $checkedConvert('language', (v) => v as String?),
-          layouts: $checkedConvert(
-            'layouts',
-            (v) =>
-                (v as List<dynamic>?)
-                    ?.map(
-                      (e) =>
-                          OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
-                    )
-                    .toList() ??
-                const [],
-          ),
-          contentBlocks: $checkedConvert(
-            'content_blocks',
-            (v) => v as List<dynamic>? ?? const [],
-          ),
-        );
-        return val;
-      },
-      fieldKeyMap: const {
-        'workflowId': 'workflow_id',
-        'organizationId': 'organization_id',
-        'customPreface': 'custom_preface',
-        'visibleMetadata': 'visible_metadata',
-        'visibleBlockExtensions': 'visible_block_extensions',
-        'visibleWorkflowExtensions': 'visible_workflow_extensions',
-        'maxExtensionItems': 'max_extension_items',
-        'displayScale': 'display_scale',
-        'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
-        'strictnessLevel': 'strictness_level',
-        'scoringStrategy': 'scoring_strategy',
-        'toneInstruction': 'tone_instruction',
-        'contentBlocks': 'content_blocks',
-      },
+      allowedKeys: const [
+        'id',
+        'slug',
+        'workflow_id',
+        'organization_id',
+        'name',
+        'description',
+        'custom_preface',
+        'visible_metadata',
+        'visible_block_extensions',
+        'visible_workflow_extensions',
+        'max_extension_items',
+        'display_scale',
+        'include_diagnostic_scorecard',
+        'strictness_level',
+        'scoring_strategy',
+        'tone_instruction',
+        'language',
+        'layouts',
+        'content_blocks',
+      ],
     );
+    final val = _OutputProfile(
+      id: $checkedConvert(
+        'id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
+      slug: $checkedConvert('slug', (v) => v as String? ?? ''),
+      workflowId: $checkedConvert(
+        'workflow_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
+      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      name: $checkedConvert(
+        'name',
+        (v) => I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      description: $checkedConvert(
+        'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      customPreface: $checkedConvert(
+        'custom_preface',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      visibleMetadata: $checkedConvert(
+        'visible_metadata',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const ['date', 'organization'],
+      ),
+      visibleBlockExtensions: $checkedConvert(
+        'visible_block_extensions',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                .toList() ??
+            const [],
+      ),
+      visibleWorkflowExtensions: $checkedConvert(
+        'visible_workflow_extensions',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                .toList() ??
+            const [],
+      ),
+      maxExtensionItems: $checkedConvert(
+        'max_extension_items',
+        (v) => (v as num?)?.toInt(),
+      ),
+      displayScale: $checkedConvert(
+        'display_scale',
+        (v) => v as String? ?? 'original',
+      ),
+      includeDiagnosticScorecard: $checkedConvert(
+        'include_diagnostic_scorecard',
+        (v) => v as bool? ?? false,
+      ),
+      strictnessLevel: $checkedConvert(
+        'strictness_level',
+        (v) => (v as num?)?.toInt(),
+      ),
+      scoringStrategy: $checkedConvert(
+        'scoring_strategy',
+        (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
+      ),
+      toneInstruction: $checkedConvert(
+        'tone_instruction',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      language: $checkedConvert('language', (v) => v as String?),
+      layouts: $checkedConvert(
+        'layouts',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      contentBlocks: $checkedConvert(
+        'content_blocks',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'workflowId': 'workflow_id',
+    'organizationId': 'organization_id',
+    'customPreface': 'custom_preface',
+    'visibleMetadata': 'visible_metadata',
+    'visibleBlockExtensions': 'visible_block_extensions',
+    'visibleWorkflowExtensions': 'visible_workflow_extensions',
+    'maxExtensionItems': 'max_extension_items',
+    'displayScale': 'display_scale',
+    'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
+    'strictnessLevel': 'strictness_level',
+    'scoringStrategy': 'scoring_strategy',
+    'toneInstruction': 'tone_instruction',
+    'contentBlocks': 'content_blocks',
+  },
+);
 
 Map<String, dynamic> _$OutputProfileToJson(
   _OutputProfile instance,
@@ -649,7 +457,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
-  'content_blocks': instance.contentBlocks,
+  'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
 };
 
 const _$XaiExtensionTypeEnumMap = {
@@ -767,7 +575,11 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
       ),
       contentBlocks: $checkedConvert(
         'content_blocks',
-        (v) => v as List<dynamic>? ?? const [],
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
       ),
     );
     return val;
@@ -808,5 +620,5 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
-  'content_blocks': instance.contentBlocks,
+  'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
 };

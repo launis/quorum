@@ -5,6 +5,7 @@ import 'matrix_scorecard_dto.dart';
 import 'synthesis_config_dto.dart';
 import '../../../shared/models/i18n_text.dart';
 import '../../../core/models/enums.dart';
+import '../../../shared/models/sdui_block_dto.dart';
 
 part 'report_layout_dto.freezed.dart';
 part 'report_layout_dto.g.dart';
@@ -29,8 +30,7 @@ abstract class ReportLayoutDto with _$ReportLayoutDto {
     @Default(true)
     bool isSynthesisEnabled,
     SynthesisConfigDto? synthesis,
-    @JsonKey(name: 'synthesis_blocks')
-    List<Map<String, dynamic>>? synthesisBlocks,
+    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
     @JsonKey(name: 'matrix_column_labels')
     @Default({})
     Map<String, I18nText> matrixColumnLabels,

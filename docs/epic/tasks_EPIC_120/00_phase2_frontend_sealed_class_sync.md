@@ -14,12 +14,17 @@ This plan synchronizes the Flutter `SduiBlockDTO` sealed class with the backend'
   <constraint invariant="the_zero_compromise_pledge">Do not use fallbackUnion in Freezed. Missing data or bad types must crash the Freezed parser natively.</constraint>
   <step id="1" name="Extract SduiBlockDTO to Shared Layer">
     <action>Create `@[c:\src\quorum\client_app_v2\lib\shared\models\sdui_block_dto.dart]`.</action>
-    <action>Move the existing `SduiBlockDTO` sealed class from `output_profile.dart` into this new file, using `@Freezed(unionKey: 'block_type')`.</action>
-    <action>Add the 4 missing types from Python's AnySduiBlock: `quote_card`, `warning_card`, `n_a_card`, and `grid`, matching the Python schema exactly.</action>
+    <action>Move the existing `SduiBlockDTO` sealed class AND `SduiBulletListItemDTO` from `output_profile.dart` into this new file, using `@Freezed(unionKey: 'block_type')` for the sealed class.</action>
+    <action>Add the 4 missing types from Python's AnySduiBlock matching the schema exactly:
+      - `quote_card` (quote: String, source_aliases: List&lt;String&gt;, citations: List&lt;dynamic&gt;)
+      - `warning_card` (message: String, quote_text: String?)
+      - `n_a_card` (short_circuit_reason_tda_ids: List&lt;String&gt;, message: String)
+      - `grid` (items: List&lt;dynamic&gt;)
+    </action>
   </step>
   <step id="2" name="Rewire Studio Imports">
     <action>Modify `@[c:\src\quorum\client_app_v2\lib\features\studio\models\output_profile.dart]`.</action>
-    <demolish>REMOVE: Existing inline `SduiBlockDTO` sealed class definition and its subclasses.</demolish>
+    <demolish>REMOVE: Existing inline `SduiBlockDTO` sealed class definition, its subclasses, AND `SduiBulletListItemDTO`.</demolish>
     <demolish>REMOVE: `List<dynamic> contentBlocks` in both OutputProfile and EmbeddedOutputProfile.</demolish>
     <action>Import `../../../shared/models/sdui_block_dto.dart`.</action>
     <action>Replace `List<dynamic> contentBlocks` with `@Default([]) List<SduiBlockDTO> contentBlocks`.</action>

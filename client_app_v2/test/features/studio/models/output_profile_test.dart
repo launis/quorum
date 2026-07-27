@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/shared/models/sdui_block_dto.dart';
 
 void main() {
   group('OutputLayoutBlock JSON Parsing', () {

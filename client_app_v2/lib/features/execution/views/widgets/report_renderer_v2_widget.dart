@@ -3,6 +3,7 @@ import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/shared/models/sdui_block_dto.dart';
 
 import 'package:client_app/features/execution/views/widgets/xai_axis_telemetry_grid.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -146,20 +147,23 @@ class ReportRendererV2Widget extends StatelessWidget {
       // 4. Layout Synthesis Blocks
       if (layout.synthesisBlocks != null) {
         for (final block in layout.synthesisBlocks!) {
-          if (block['block_type'] == 'markdown' ||
-              block['block_type'] == 'paragraph') {
-            final text = block['text'] as String?;
-            if (text != null && text.isNotEmpty) {
-              widgets.add(
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s24,
-                    vertical: AppSpacing.s8,
-                  ),
-                  child: OutputRenderer(markdownContent: text),
+          String? text;
+          if (block is SduiMarkdownBlock) {
+            text = block.text;
+          } else if (block is SduiParagraphBlock) {
+            text = block.text;
+          }
+
+          if (text != null && text.isNotEmpty) {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s24,
+                  vertical: AppSpacing.s8,
                 ),
-              );
-            }
+                child: OutputRenderer(markdownContent: text),
+              ),
+            );
           }
         }
       }
