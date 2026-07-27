@@ -30,7 +30,9 @@
 ## 2. Architectural Impact & Compliance Matrix
 
 ### Deprecations & Sunset List (`What We Will REMOVE`)
-- **None**: This Epic is purely additive to the seed data configuration. No domain code or existing templates will be deprecated.
+- **Domain Model Refactoring (Separation of Concerns)**: The `matrix_visible_columns` field is currently incorrectly housed inside `SynthesisConfigDTO` (L1050 in `v2_core.py`), which is a Domain Modeling Leakage. This Epic will deprecate that placement and add the field natively to `OutputLayoutBlock` (L1248 in `v2_core.py`), as column structures are visual constructs, not LLM synthesis parameters. **NOTE**: `OutputLayoutBlock` does NOT currently have this field — it must be explicitly added to the Pydantic model.
+- **Dead Code in `blueprint.py`**: Two instances of `matrix_visible_columns` fallback logic exist: L248 (`syn_profile = None` causes the fallback to ALWAYS trigger) and L1430 (reads from `SynthesisConfigDTO.synthesis`). Both must be updated to read from `OutputLayoutBlock` after the refactoring.
+- **Jinja Template Duct-Tape**: `report_template.jinja2` L557 contains a fallback `if report_data.matrix_visible_columns else [default_list]` that violates the Zero-Compromise Pledge. This must be removed; the backend MUST always provide `matrix_visible_columns` deterministically.
 
 ### Retained SSOT Invariants (`What We Will RETAIN`)
 - **`seed_data.json` Sovereignty**: The `OutputProfile` definition within the seed data remains the absolute authority over what is printed.
@@ -46,12 +48,32 @@
 
 ## 3. Phased Execution Plan (Implementation Strategy)
 
+### Phase 0: Domain Model Refactoring (Separation of Concerns)
+To resolve Domain Modeling Leakages and SDUI Anti-Patterns identified during architecture review, you MUST refactor the Pydantic schemas before updating the seed data:
+1. **Matrix Columns Strict SDUI Relocation**: 
+   - **REMOVE** `matrix_visible_columns` from `SynthesisConfigDTO` (@[c:\src\quorum\backend_v2\models\v2_core.py#L1050-L1053]).
+   - **ADD** `matrix_visible_columns: list[str] = Field(default_factory=lambda: ["label", "score", "distribution", "row_explanation", "quotes"])` to `OutputLayoutBlock` (L1248-L1284).
+   - **ADD** `matrix_visible_columns: list[str]` to `ReportLayoutDTO` (L1057-L1078). This is the runtime DTO that Jinja and Flutter consume.
+   - **HARD DEPRECATION**: Completely REMOVE `matrix_visible_columns` from `ReportDataDTO` (L1204) to prevent SSOT duplication. 
+   - Update `backend_v2/services/blueprint.py` to read `matrix_visible_columns` exclusively from the `3d_matrix` layout block and propagate it to `ReportLayoutDTO`. Remove the dead code (`syn_profile = None`) that forces fallbacks at L246-248 and L1429-1430.
+   - Update `backend_v2/templates/report_template.jinja2` (L557) to stop reading `report_data.matrix_visible_columns`. It MUST dynamically find the layout where `preset_view == '3d_matrix'` and extract `layout.matrix_visible_columns`.
+
+2. **User Role Strict Extraction (Fail-Fast Compliance)**: 
+   - Update `GlobalSynthesisDTO` (L1156 in `v2_core.py`) to include `user_role: str | None` and `user_role_justification: str | None`. (These MUST remain `str | None` to support other profiles without breaking).
+   - Update `OutputProfile` (L1287) to include `user_role_label: I18nText | None`. 
+   - Update `blueprint.py` to deterministically assemble the extracted role and label into an SDUI MarkdownBlock. No new LLM DAG steps are required; the existing structured output generation for global synthesis will fulfill this DTO constraint naturally.
+   - **Fail-Fast Service-Layer Enforcement**: `blueprint.py` MUST enforce a profile-conditional Fail-Fast gate: when the active `OutputProfile` has `user_role_label` configured (not None), and `global_synthesis.user_role` resolves to `None`, blueprint MUST raise `AppException(status_code=500, message="Fail-Fast: OutputProfile requires user_role but synthesis returned None")` — triggering the Retry/DLQ pipeline.
+
+> [!WARNING]
+> **User Role Extraction Ambiguity (HIGH-RISK UNKNOWN)**: The mechanism for extracting `user_role` from the LLM is underspecified. The implementation plan MUST explicitly define: (a) Which LLM strategy/model handles role extraction, (b) What Pydantic schema the LLM must output for the role, (c) Whether this is a new DAG step or part of the existing synthesis step, and (d) How `user_role_justification` is populated. Without this, the executing agent will hallucinate the implementation.
+
 ### Phase 1: OutputProfile Configuration in `seed_data.json`
 We will surgically modify the target `OutputProfile` (e.g., `holistic_audit`) in @[c:\src\quorum\backend_v2\seed\seed_data.json] to include:
 
 1. **Expanded Header Metadata**:
    Update the `visible_metadata` array to include more general data points.
    **CRITICAL**: Field keys MUST match the existing codebase defaults (`user`, `scoring_engine`, `strictness`) — NOT invented suffixed variants.
+   **NOTE**: The `OutputProfile` Pydantic model (L1302-L1304 in `v2_core.py`) already defines these defaults: `["date", "organization", "user", "scoring_engine", "strictness"]`. The only NEW addition in the seed data is `execution_id`. The `context_mapper.py` must also be verified to ensure it hydrates the `execution_id` key into the metadata dictionary.
    ```json
    "visible_metadata": [
      "date",
@@ -79,10 +101,9 @@ We will surgically modify the target `OutputProfile` (e.g., `holistic_audit`) in
     }
    ```
 
-3. **User Role in Synthesis**:
-   Configure the `tone_instruction` of the `OutputProfile` to instruct the LLM in a **language-agnostic** manner. The LLM's output language is controlled by `OutputProfile.language` — the instruction itself MUST be in English (the system language):
-   *"Evaluate the user's overarching persona and output exactly one final paragraph starting with '**User Role: [Role Name]**. [Justification].' Write in the target output language."*
-   The LLM will automatically produce Finnish output if `language: "fi"` — no hardcoded Finnish strings in the prompt.
+3. **User Role in Synthesis (Strict SDUI Payload)**:
+   The LLM must NOT be instructed to output localized UI prefixes. We will rely on the backend refactoring (Phase 0) to extract the role strictly and assemble it via SDUI.
+   Configure the `OutputProfile` with a new `user_role_label` (e.g. `I18nText` mapping to "User Role:" / "Käyttäjärooli:"). The backend will append the LLM's extracted role to this static label deterministically.
 
 4. **XAI Extensions & Multi-Layout Sequence (Scatter Chart + Matrix)**:
    Configure the `layouts` array to enforce the exact rendering order (Summary -> Chart -> Matrix). We define multiple layout blocks:
@@ -95,21 +116,12 @@ We will surgically modify the target `OutputProfile` (e.g., `holistic_audit`) in
      ],
    **NOTE**: Finnish labels ("ARJEN VINKKI", "VASTA-ARGUMENTTI", "KORJAAVAT TOIMENPITEET") belong exclusively in `extension_labels`, NOT in `visible_block_extensions`. The extension keys MUST be valid `XaiExtensionType` enum members.
 
-   **Mandatory**: `matrix_visible_columns` belongs inside the `synthesis` object nested within a layout block, NOT at the `OutputProfile` root level (the `OutputProfile` model does not have this field; `extra='forbid'` will crash):
+   **Mandatory (Post-Refactoring)**: After refactoring `v2_core.py`, `matrix_visible_columns` belongs at the root of the `3d_matrix` layout block, resolving the Separation of Concerns violation:
    ```json
    "layouts": [
       {
         "preset_view": "text_only",
         "is_synthesis_enabled": true,
-        "synthesis": {
-           "matrix_visible_columns": [
-             "label",
-             "distribution",
-             "row_explanation",
-             "normalized_score",
-             "score"
-           ]
-        },
         "title": { "default_locale": "en", "translations": { "en": "SUMMARY", "fi": "YHTEENVETO" } }
       },
       {
@@ -122,6 +134,13 @@ We will surgically modify the target `OutputProfile` (e.g., `holistic_audit`) in
         "preset_view": "3d_matrix",
         "is_synthesis_enabled": false,
         "title": { "default_locale": "en", "translations": { "en": "MATRIX SUMMARY", "fi": "YHTEENVETO / MATRIX SUMMARY" } },
+        "matrix_visible_columns": [
+          "label",
+          "distribution",
+          "row_explanation",
+          "normalized_score",
+          "score"
+        ],
         "extension_labels": {
            "justification": {
              "default_locale": "en",
@@ -150,15 +169,49 @@ We will surgically modify the target `OutputProfile` (e.g., `holistic_audit`) in
             "translations": { "en": "Distribution", "fi": "Tasojakauma" }
           }
         }
-     }
+      },
+      {
+        "preset_view": "1d_metrics",
+        "is_synthesis_enabled": false,
+        "title": { "default_locale": "en", "translations": { "en": "GLOBAL SCORE", "fi": "KOKONAISKESKIARVO" } },
+        "target_blocks": ["global_score_block"]
+      },
+      {
+        "preset_view": "text_only",
+        "is_synthesis_enabled": false,
+        "title": { "default_locale": "en", "translations": { "en": "PENALTIES & AUDIT TRAIL", "fi": "RANGAISTUKSET & AUDIT TRAIL" } },
+        "target_blocks": ["penalties_block", "audit_trail_block"]
+      },
+      {
+        "preset_view": "1d_metrics",
+        "is_synthesis_enabled": false,
+        "title": { "default_locale": "en", "translations": { "en": "JARGON RATIO", "fi": "JARGON-SANOJEN SUHTEELLISUUS" } },
+        "target_blocks": ["jargon_ratio_block"]
+      },
+      {
+        "preset_view": "text_only",
+        "is_synthesis_enabled": false,
+        "title": { "default_locale": "en", "translations": { "en": "SOURCES", "fi": "TULOSTETTAVAT LÄHTEET" } },
+        "target_blocks": ["printable_sources_block"]
+      }
    ]
    ```
 
-### Phase 2: Database Re-seeding & Verification
+### Phase 2: Backend Context Mappers & Blueprint Hydration
+To ensure the JSON data structures defined in Phase 1 actually receive runtime data, the backend mapping pipeline must be updated:
+1. **Context Mapper (`backend_v2/services/orchestrator/context_mapper.py`)**: Update the mapping logic to extract `user`, `scoring_engine`, `strictness`, and `execution_id` from the raw `Execution` state and inject them into the `metadata` dictionary of the outgoing DTO.
+2. **SDUI Blueprint Strategy Registry (`backend_v2/services/blueprint.py`)**: 
+   - Implement data hydration handlers for the new explicit layouts. 
+   - **STRATEGY PATTERN MANDATE**: You MUST NOT use `if/elif` chains to resolve `target_blocks`. Implement a `TARGET_BLOCK_HYDRATORS: dict[str, Callable]` registry inside the service. When `blueprint.py` encounters `target_blocks=["jargon_ratio_block"]`, it must execute `TARGET_BLOCK_HYDRATORS["jargon_ratio_block"](...)`. This enforces the Open-Closed Principle.
+   - **TECHNICAL DEBT CLEANUP**: The existing penalty handling at `blueprint.py` L1534-1552 already exhibits this if/elif anti-pattern and MUST be refactored into this new Registry pattern as part of this Epic.
+3. **`normalized_score` Column Rendering**: The Jinja template (`report_template.jinja2`) and the Flutter matrix widget currently do NOT have explicit rendering logic for the `normalized_score` column. Phase 2 MUST add a conditional rendering block for `normalized_score` (the green percentage pill) in the Jinja template alongside `distribution`, `score`, `label`, and `row_explanation`.
+4. **Dead Code Cleanup**: Remove the dead `syn_profile = None` assignment at `blueprint.py` L246-248 and the redundant fallback at L1429-1430. After Phase 0 refactoring, `matrix_visible_columns` should be read from the resolved `OutputLayoutBlock` for the `3d_matrix` preset.
+
+### Phase 3: Database Re-seeding & Verification
 - Execute `uv run python backend_v2/seed/run_seed.py local` to forcefully overwrite `db_v2.json` with the new schema.
 - Run a test execution to verify that `blueprint.py` successfully parses the new profile and generates a `ReportDataDTO` that renders identically to the legacy format.
 
-### Phase 3: Flutter UI Implementation (View-Only Parity)
+### Phase 4: Flutter UI Implementation (View-Only Parity)
 To enforce the Zero Exception Mandate, the Flutter client will render the matrix strictly as a view-only component, perfectly mirroring the PDF output.
 - **UI Interaction**: The previously planned in-place interactive atom editing (drill-downs, bottom sheets) is explicitly removed from the matrix SDUI rendering flow.
 - **External Edit Link**: Any functionality to override atoms will be handled via a separate, external link (e.g., routing the user to a dedicated admin view), keeping the core SDUI report visually identical to the static PDF document.
@@ -188,6 +241,9 @@ To enforce the Zero Exception Mandate, the Flutter client will render the matrix
 
 - **Multi-Language Preview** — Previewing content blocks in different locales requires ICU template resolution infrastructure not yet available in the Studio frontend.
 - **Schema Drift** — If the `OutputProfile` Pydantic model evolves between planning and execution, the proposed seed JSON snippets must be re-verified against the live model.
+- *(RESOLVED)* **User Role Extraction Gap** — Resolved via keeping schema optionality (`str | None`) to avoid False Unification, but mandating a strict Fail-Fast service-layer gate in `blueprint.py`, allowing the existing synthesis engine to extract the role deterministically in a single pass.
+- *(RESOLVED)* **`ReportDataDTO.matrix_visible_columns` Sunset** — Resolved by mandating complete removal (Hard Deprecation) and updating Jinja and Blueprint to extract strictly from layout blocks, maintaining strict SSOT.
+- **`normalized_score` Rendering Coverage** — The Jinja template currently lacks explicit rendering logic for the `normalized_score` column key. If the template is not updated alongside the seed data, the column will silently be ignored in the PDF output.
 
 ## 6. Identified Missing Parity Requirements (Red-Teaming)
 
@@ -196,8 +252,9 @@ During historical analysis of the legacy PDF and old Jinja templates, several cr
 1. **Missing Matrix Columns**: The old template explicitly rendered `normalized_score` (the green percentage pill) alongside `distribution`. This has been added to `matrix_visible_columns` in the plan.
 2. **Missing XAI Extensions**: The PDF contains dynamic synthesis blocks for "ARJEN VINKKI", "VASTA-ARGUMENTTI", and "KORJAAVAT TOIMENPITEET". These have been added to `visible_block_extensions` and `extension_labels` in the plan.
 3. **Execution ID in Metadata**: The PDF header displays `ID: exe_...`. The `visible_metadata` array must be updated to include `execution_id` alongside `date` and `organization`.
-4. **Global Score (Kokonaiskeskiarvo)**: The PDF renders a large "Kokonaiskeskiarvo 19.30/100" at the bottom of the Summary card. The backend SDUI mapping (via `blueprint.py`) must ensure this is passed to the frontend (likely via a `score_display_label` or a specific SDUI block), strictly adhering to the Dumb Painter KI.
-5. **Penalties & System Audit Trail (New SDUI Definition)**: While the visual design of the legacy Jinja templates (red box for penalties, audit trail layout) will be maintained, their **definition and data delivery must be done completely in the new SDUI way**. They must be explicitly mapped as standard SDUI layout blocks inside the `OutputProfile`, rather than relying on legacy fallback arrays like `penalties_applied` or `mcp_tool_audit`. **Crucially, strict Flutter/UI and PDF parity MUST be maintained.** The Flutter client will render these mapped SDUI blocks identically to the PDF.
-6. **Jargon/Slop Ratio Scale (Jargon-sanojen suhteellisuus)**: The report must show the ratio of AI jargon words versus other words. Its visual design matches the old template, but its **definition is handled purely in the new SDUI format** (e.g., converted into a specific matrix item or layout block by the backend). The Flutter UI must replicate this visual scale exactly based on the SDUI payload.
-7. **Printable Sources (Tulostettavat lähteet)**: The report must explicitly print the source URLs/references used. Its visual design matches the old template, but its **definition is handled purely in the new SDUI format** (e.g., as a dedicated source list SDUI block). The Flutter UI must also render these sources at the end of the document via the new SDUI pipeline with identical styling.
+4. **Global Score (Kokonaiskeskiarvo)**: The PDF renders a large "Kokonaiskeskiarvo 19.30/100" at the bottom of the Summary card. The backend SDUI mapping must ensure this is passed to the frontend as an explicitly mapped `1d_metrics` SDUI layout block. This has been added to the Phase 1 JSON plan.
+5. **Penalties & System Audit Trail (New SDUI Definition)**: While the visual design of the legacy Jinja templates (red box for penalties, audit trail layout) will be maintained, their **definition and data delivery must be done completely in the new SDUI way**. They must be explicitly mapped as standard SDUI layout blocks inside the `OutputProfile`, rather than relying on legacy fallback arrays like `penalties_applied` or `mcp_tool_audit`. This has been added to the Phase 1 JSON plan as a `text_only` block with mapped `target_blocks`.
+6. **Jargon/Slop Ratio Scale (Jargon-sanojen suhteellisuus)**: The report must show the ratio of AI jargon words versus other words. Its visual design matches the old template, but its definition is handled purely as an explicitly mapped `1d_metrics` layout block by the backend. This has been added to the Phase 1 JSON plan.
+7. **Printable Sources (Tulostettavat lähteet)**: The report must explicitly print the source URLs/references used. Its visual design matches the old template, but its definition is handled purely as an explicitly mapped `text_only` layout block. This has been added to the Phase 1 JSON plan.
+8. **If/Elif Spaghetti in Penalty Handling (Technical Debt)**: The existing penalty handling in `blueprint.py` (L1534-1552) uses a hardcoded `if/elif` chain. This MUST be refactored into the new Registry/Strategy pattern (`TARGET_BLOCK_HYDRATORS`) introduced in Phase 2, ensuring all layout block and penalty hydration logic follows the Open-Closed Principle.
 8. **Universal Enforcement (Ei poikkeuksia)**: ALL outputs and reports, without exception, must be rendered using this exact new methodology. No legacy fallbacks or alternative rendering paths are permitted to bypass this strict SDUI pipeline.
