@@ -41,6 +41,7 @@ class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     results: list[Any] = []
     hydrated_references: dict[str, Any] = {}
     mcp_tool_audit: list[Any] = []
+    matrix_visible_columns: list[str] = ["label", "score", "distribution", "row_explanation"]
 
 
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
@@ -53,6 +54,7 @@ class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     __model__ = MatrixScorecardRowDTO
     scorecard_atoms: dict[str, Any] = {}
     cited_web_citation: str | None = None
+    score_display_label: str | None = "5.0 / 10.0"
     __set_as_default_factory_for_type__ = True
 
 
