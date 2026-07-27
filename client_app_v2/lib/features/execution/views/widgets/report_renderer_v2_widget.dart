@@ -242,7 +242,7 @@ class ReportRendererV2Widget extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '${axis.score!.toStringAsFixed(1)}${axis.scaleMax != null && axis.scaleMax! > (axis.scaleMin ?? 0) ? ' / ${axis.scaleMax!.toStringAsFixed(1)}' : ''}',
+                                axis.scoreDisplayLabel ?? '-',
                                 style: Theme.of(context).textTheme.titleSmall
                                     ?.copyWith(
                                       color: Theme.of(

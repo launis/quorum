@@ -255,9 +255,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                       Expanded(
                         flex: 1,
                         child: Text(
-                          m.score == null
-                              ? '-'
-                              : '${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                          m.scoreDisplayLabel ?? '-',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -328,9 +326,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
             children: [
               if (visibleColumns.contains('score'))
                 Text(
-                  m.score == null
+                  m.scoreDisplayLabel == null
                       ? '${l10n.score}: -'
-                      : '${l10n.score}: ${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                      : '${l10n.score}: ${m.scoreDisplayLabel}',
                 ),
               if (visibleColumns.contains('normalized_score') &&
                   m.normalizedScore != null)

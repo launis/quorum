@@ -5,15 +5,13 @@ import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 
 /// The master entrypoint component for the Diagnostic Scorecard UI.
 class DiagnosticScorecardWidget extends StatelessWidget {
-  final List<MatrixScorecardRowDto> evaluativeMatrices;
-  final List<MatrixScorecardRowDto> informationalMatrices;
+  final List<MatrixScorecardRowDto> axes;
   final List<String> visibleColumns;
   final String executionId;
 
   const DiagnosticScorecardWidget({
     super.key,
-    required this.evaluativeMatrices,
-    required this.informationalMatrices,
+    required this.axes,
     required this.visibleColumns,
     required this.executionId,
   });
@@ -23,7 +21,7 @@ class DiagnosticScorecardWidget extends StatelessWidget {
     if (visibleColumns.isEmpty) {
       return const SizedBox(); // Matrix skipped if visibleColumns is empty
     }
-    if (evaluativeMatrices.isEmpty && informationalMatrices.isEmpty) {
+    if (axes.isEmpty) {
       return const SizedBox(); // Scorecard not applicable
     }
 
@@ -34,7 +32,7 @@ class DiagnosticScorecardWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           AtomMatrixTableWidget(
-            matrices: [...evaluativeMatrices, ...informationalMatrices],
+            matrices: axes,
             visibleColumns: visibleColumns,
             executionId: executionId,
           ),

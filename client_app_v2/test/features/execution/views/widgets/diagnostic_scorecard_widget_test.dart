@@ -17,7 +17,7 @@ void main() {
           locale: const Locale('en'),
           home: const Scaffold(
             body: DiagnosticScorecardWidget(
-              evaluativeMatrices: [
+              axes: [
                 MatrixScorecardRowDto(
                   blockId: 'm1',
                   labelI18n: const I18nText(
@@ -31,7 +31,6 @@ void main() {
                   levelBreakdown: {'Level 1': '2 / 2'},
                 ),
               ],
-              informationalMatrices: [],
               visibleColumns: const [
                 'label',
                 'score',
@@ -64,8 +63,7 @@ void main() {
         locale: const Locale('en'),
         home: const Scaffold(
           body: DiagnosticScorecardWidget(
-            evaluativeMatrices: [],
-            informationalMatrices: [],
+            axes: [],
             visibleColumns: const [
               'label',
               'score',

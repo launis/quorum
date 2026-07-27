@@ -65,13 +65,13 @@
 ### Phase 1D: Frontend DTO and Initial UI Refactoring
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]`
 
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]`
-- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]`
-  - [ ] Step 1: UPDATE FLUTTER REPORT DTO
-  - [ ] Step 2: REFACTOR DIAGNOSTIC SCORECARD WIDGET
-  - [ ] Step 3: REFACTOR EXECUTION REPORT VIEW
-  - [ ] Step 4: REFACTOR EXECUTION VIEW
-  - [ ] Step 5: TESTING STRATEGY & QUALITY GATE PLAN
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]`
+- [x] **[OK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]`
+  - [x] Step 1: UPDATE FLUTTER REPORT DTO
+  - [x] Step 2: REFACTOR DIAGNOSTIC SCORECARD WIDGET
+  - [x] Step 3: REFACTOR EXECUTION REPORT VIEW
+  - [x] Step 4: REFACTOR EXECUTION VIEW
+  - [x] Step 5: TESTING STRATEGY & QUALITY GATE PLAN
 - [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]`
 
 ---
@@ -266,6 +266,11 @@
   - Fixed dictionary attribute exception bug in `worker.py` execution handler by validating to `ExecutionRecord`.
   - Stripped business logic from `report_template.jinja2`, rendering `score_display_label` directly.
   - Passed strict backend audit tests.
+- **Phase 1D Implementation successfully completed**.
+  - Verified `ReportDataV2Dto`, `execution_report_view.dart`, and `execution_view.dart` were already refactored for the DTO cleanup and `axes` extraction via layouts.
+  - Stripped conditional `scaleMax > scaleMin` formatting from `atom_matrix_table_widget.dart` and `report_renderer_v2_widget.dart`, enforcing Dumb Painter rules to strictly render `scoreDisplayLabel`.
+  - Refactored `DiagnosticScorecardWidget` to accept an `axes` list and pass it down, along with updating its unit test.
+  - Executed full `flutter_audit_loop.py` and strictly passed `flutter test` for affected widgets.
 
 ## Learned
 - **Architecture Invariants**: Strict compliance enforced via `backend_audit_loop.py` and `flutter_audit_loop.py`. Fallbacks in `blueprint.py` ensure `ReportLayoutDTO(preset_view="default")` handles matrix-only inputs securely.
@@ -275,8 +280,8 @@
 - Validating Firestore outputs directly to Pydantic models avoids runtime exceptions in deeply nested exception handlers (such as `step_states` accessed as an attribute on a dictionary).
 
 ## Remaining
-- Proceed to **Phase 1D: Frontend DTO and Initial UI Refactoring**.
-- Start with `/tier0-research-plan` and then `/tier2-execute` for `04_phase1d_frontend_dto_ui_plan.md`.
+- Proceed to **Phase 1D: Audit**.
+- Execute `/tier8-audit-plan` for `04_phase1d_frontend_dto_ui_plan.md` to ensure all architectural rules (especially Dumb Painter) were followed.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md] @[c:\src\quorum\docs\epic\EPIC_111_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
