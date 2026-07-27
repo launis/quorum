@@ -39,6 +39,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** The frontend must never map semantic business models directly into layout arrays nor perform scaling math for score presentation.
 - **Enforcement:** All structural UI elements (including matrices and penalties) are strictly mapped into `ReportLayoutDTO` arrays by the backend. The frontend iterates through the flat `layouts` structure rather than relying on legacy component-specific arrays. Furthermore, all mathematical evaluations of scores (e.g., displaying "5.0 / 10.0" versus "-") are computed exclusively on the backend and sent as a pre-computed `score_display_label`. The frontend strictly acts as a Dumb Painter for these pre-computed strings, preserving deterministic rendering parity across web and PDF views.
 
+### 2.9. Strict SDUI Polymorphic Serialization
+- **Law:** Dynamic UI block arrays must never rely on unstructured dictionaries or duck-typing.
+- **Enforcement:** All dynamic UI layout blocks (e.g., within reports or profiles) MUST be strictly typed using the polymorphic `AnySduiBlock` (Python Pydantic discriminated union) and `SduiBlockDTO` (Flutter Freezed sealed class). Every block MUST possess a discrete `block_type` discriminator. If an unrecognized `block_type` is received by the frontend, the Freezed parser MUST fail-fast (triggering the App Error Boundary) rather than silently dropping or misinterpreting the block, ensuring 100% schema fidelity across boundaries.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

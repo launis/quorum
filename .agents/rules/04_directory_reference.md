@@ -50,12 +50,12 @@
     
     <module path="backend_v2/services/">
         <responsibility>CORE BUSINESS LOGIC & ORCHESTRATION (PILLAR 3 & PILLAR 6)</responsibility>
-        <key_domains>blueprint.py, studio/ (Ontology Management), execution.py, auth.py (Identity), llm_task_executor.py, orchestrator/ (DAG, Context, engines/, extractive_sensor_service.py, topological_evaluator.py, result_projector.py, sliding_window_linker.py), mcp/ (Tool Execution), document_extraction.py, web_fetcher.py, sdui_mapper_service.py, pdf_generator.py, pii_analyzer.py, usage_service.py, progress.py, translation_service.py, chat_parser.py, source_verification_service.py</key_domains>
+        <key_domains>blueprint.py, studio/ (Ontology), execution.py, auth.py, orchestrator/ (engines/, strategies/, DAG logic), mcp/, document_extraction.py, web_fetcher.py, sdui_mapper_service.py, pdf_generator.py, pii_analyzer.py, usage_service.py, progress.py, translation_service.py, chat_parser.py, source_verification_service.py</key_domains>
     </module>
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
-        <key_domains>domain/ (SSOT DB shapes), dtos/ (API boundaries - legacy dtos/report eradicated), prompts/ (LLM templates), v2_core.py (Core Execution Models), enums.py</key_domains>
+        <key_domains>domain/ (SSOT DB shapes), dtos/ (API boundaries), view/ (SDUI Polymorphic Blocks), prompts/ (LLM templates), v2_core.py, state.py, enums.py</key_domains>
     </module>
 
     <module path="backend_v2/core/">
@@ -100,7 +100,7 @@
     
     <module path="client_app_v2/lib/shared/">
         <responsibility>SHARED UI WIDGETS & CROSS-DOMAIN MODELS</responsibility>
-        <key_domains>widgets/ (e.g. i18n_text_field.dart), models/ (e.g. i18n_text.dart)</key_domains>
+        <key_domains>widgets/ (e.g. i18n_text_field.dart), models/ (e.g. i18n_text.dart, sdui_block_dto.dart)</key_domains>
     </module>
     
     <module path="client_app_v2/lib/l10n/">

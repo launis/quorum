@@ -33,8 +33,8 @@
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
 - [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_120_database_driven_sdui_templates.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
@@ -78,6 +78,7 @@
 - **Completed Tier 0 Research and System 2 Analysis for Phase 3.**
 - **Completed Tier 2 Execution for Phase 3**: Refactored `blueprint.py`, `synthesis_distiller.py`, and `worker.py` to eliminate duck typing, fix in-place model mutations, and enforce Fail-Fast `ValidationError` handling.
 - **Integration Checkpoint Passed**: Both `backend_audit_loop.py --test` and SDUI Parity Tests passed successfully.
+- **Completed Tier 7 Architecture Sync**: Created the `strict_sdui_polymorphic_serialization` Knowledge Item. Updated `.agents/rules/04_directory_reference.md` and `docs/architecture/04_server_driven_ui_and_presentation.md` to reflect the exact physical mapping and architectural invariants for SDUI.
 
 ## Learned
 - **Anti-TDD Trap Active**: Refactored existing mock dicts (like `{"type": "markdown", "content": "..."}`) into actual `MarkdownBlock` types (`{"block_type": "markdown", "text": "..."}`) directly because the legacy dict implementation breaks new schemas.
@@ -89,7 +90,7 @@
 - **Phase 3 Audit Completed**: Passed all quality gates (Coverage 81.28%) and generated `plan_audit_report_phase3.md`.
 
 ## Remaining
-- Start the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`
+- Final Epic Audit: `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_120_database_driven_sdui_templates.md]`
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_120_tracker.md]" --workflow=/tier7-describe-architecture`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_120_tracker.md]" --workflow=/tier8-audit-epic`
