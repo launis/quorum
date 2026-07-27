@@ -440,6 +440,7 @@ async def test_render_execution_json() -> None:
                 arq_pool=arq_pool,
             )
 
+    assert isinstance(data, dict)
     assert data["workflow_id"] == "wf_1"
     assert data["profile_id"] == "prof_1"
     assert mime == "application/json"
@@ -553,7 +554,7 @@ async def test_override_atom_success() -> None:
     step_state = ExecutionStepState(
         id="sr_1_step",
         label="Label",
-        status="PASSED",
+        status=ExecutionStatus.PASSED,
         scorecard_atoms={"tda_1": atom},
     )
 
@@ -616,7 +617,7 @@ async def test_get_execution_export_bytes_success() -> None:
         "step_1": ExecutionStepState(
             id="step_1",
             label="Step 1",
-            status="PASSED",
+            status=ExecutionStatus.PASSED,
             scorecard_atoms={
                 "atom_1": ScorecardAtomDTO(
                     atom_id="atom_1",
@@ -706,7 +707,7 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
         "step_1": ExecutionStepState(
             id="step_1",
             label="Step 1",
-            status="PASSED",
+            status=ExecutionStatus.PASSED,
             scorecard_atoms={
                 "atom_1": ScorecardAtomDTO(
                     atom_id="atom_1",
@@ -719,7 +720,6 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
                             quote="Found quote",
                             verified_source_ids=[],
                             unverified_aliases=["src1"],
-                            surrounding_context=None,
                         )
                     ],
                     internal_logic_en=ReasoningStepDTO(

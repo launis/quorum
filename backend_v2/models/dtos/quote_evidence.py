@@ -95,8 +95,10 @@ class QuoteEvidenceDTO(V2CoreBase):
         registry = info.context.get("alias_registry", {})
 
         # Original input could be in 'source_alias' string or list
-        raw_aliases = data.get("source_alias", [])
-        if isinstance(raw_aliases, str):
+        raw_aliases = data.get("source_alias")
+        if raw_aliases is None:
+            raw_aliases = []
+        elif isinstance(raw_aliases, str):
             if not raw_aliases.strip():
                 raw_aliases = []
             else:

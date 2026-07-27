@@ -40,6 +40,7 @@ class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     __model__ = ReportDataDTO
     results: list[Any] = []
     hydrated_references: dict[str, Any] = {}
+    mcp_tool_audit: list[Any] = []
 
 
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
@@ -51,6 +52,7 @@ class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
 class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     __model__ = MatrixScorecardRowDTO
     scorecard_atoms: dict[str, Any] = {}
+    cited_web_citation: str | None = None
     __set_as_default_factory_for_type__ = True
 
 
