@@ -446,7 +446,7 @@ def mock_repo_sdui() -> AsyncMock:
                         "steps": [],
                         "target_blocks": ["*"],
                         "description": None,
-                        "synthesis": {"target_blocks": ["*"]},
+                        "synthesis": {},
                     }
                 ],
                 "display_scale": "original",

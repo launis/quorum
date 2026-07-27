@@ -610,12 +610,18 @@ class BlueprintTransformer:
                         if uid in mcp_audit_map:
                             clustered_row_sources.append(mcp_audit_map[uid])
 
+            score_display_label = "-"
+            if score_float is not None:
+                max_val = display_scale_max if display_scale_max is not None else 100.0
+                score_display_label = f"{score_float:.1f} / {max_val:.1f}"
+
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
                 name=axis_name,
                 label_i18n=pb_meta.label,
                 description=axis_description,
                 score=score_float,
+                score_display_label=score_display_label,
                 scale_min=display_scale_min,
                 scale_max=display_scale_max,
                 normalized_score=float(norm_score) if norm_score is not None else None,
@@ -763,6 +769,14 @@ class BlueprintTransformer:
                         extension_labels=layout_def.extension_labels,
                     )
                 )
+        if not layouts_list and all_parsed_matrices:
+            layouts_list.append(
+                ReportLayoutDTO(
+                    preset_view="default",
+                    axes=list(all_parsed_matrices.values()),
+                )
+            )
+
         return layouts_list
 
     async def build_report_dto(
@@ -1399,6 +1413,21 @@ class BlueprintTransformer:
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
 
+            if resolved_preface_md:
+                content_blocks.insert(0, {"block_type": "markdown", "text": resolved_preface_md, "id": "preface_md"})
+
+            if content_blocks:
+                target_layout = next((lay for lay in layouts_list if lay.is_synthesis_enabled), None)
+                if not target_layout and layouts_list:
+                    target_layout = layouts_list[0]
+
+                if target_layout:
+                    new_blocks = content_blocks
+                    if target_layout.synthesis_blocks:
+                        new_blocks = content_blocks + target_layout.synthesis_blocks
+                    idx = layouts_list.index(target_layout)
+                    layouts_list[idx] = target_layout.model_copy(update={"synthesis_blocks": new_blocks})
+
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
 
             # Run dynamic performative AI jargon (slop) scanning if enabled
@@ -1506,6 +1535,24 @@ class BlueprintTransformer:
                     effective_penalty = min(effective_penalty, 0.40)
                     recalc_final = base_avg * (1.0 - effective_penalty)
                     global_score = float(round(max(0.0, recalc_final), 1))
+
+            if penalties_applied:
+                penalty_blocks = []
+                for p_str in penalties_applied:
+                    penalty_blocks.append(
+                        {
+                            "block_type": "alert_box",
+                            "severity": "error",
+                            "text": f"Penalty applied: {p_str}",
+                        }
+                    )
+                layouts_list.insert(
+                    0,
+                    ReportLayoutDTO(
+                        preset_view="text_only",
+                        synthesis_blocks=penalty_blocks,
+                    ),
+                )
 
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,
