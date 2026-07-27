@@ -11,8 +11,8 @@ void main() {
         'claim_label': 'Test Claim',
         'extracted_facts': {'fact1': 'value'},
         'exact_quotes': [
-          {'quote_text': 'quote 1'},
-          {'quote_text': 'quote 2'},
+          {'quote': 'quote 1'},
+          {'quote': 'quote 2'},
         ],
         'internal_logic_en': {
           'step_1_identify_premise': 'p',
