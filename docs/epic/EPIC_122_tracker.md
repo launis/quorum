@@ -25,7 +25,7 @@
 - [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]` (Report: `@[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_audit_report.md]`)
 
 ### Phase 1: OutputProfile Configuration in seed_data.json
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`
 - [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`
   - [ ] `2_1`: Update Target OutputProfile in Seed Data
   - [ ] `2_2`: Configure layouts Array
@@ -118,17 +118,17 @@
 - Implemented Phase 0 Frontend DTO Parity Step 1_2: SynthesisConfigDto and ReportDataDto Cleanup.
 - Implemented Phase 0 Frontend DTO Parity Step 1_3: GlobalSynthesisDto and OutputProfile Updates.
 - Completed Tier 8 Audit for Phase 0 Frontend execution and generated the audit report at `@[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_audit_report.md]`.
+- Executed Tier 0 (Red-Teaming) on Phase 1 Implementation Plan `@[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`.
 
 ## Learned
 - **Baseline State Snapshot**:
-  - (RESOLVED in Step 1_2) The frontend `SynthesisConfigDto` and `ReportDataDto` previously contained `matrixVisibleColumns` and have now been aligned with backend changes.
-  - The `OutputProfile` (specifically `holistic_audit`) in `seed_data.json` currently uses the old structure and lacks the required layout definitions and metadata extensions.
+  - The `OutputProfile` (specifically `holistic_audit` with id `prf_5d6e7f8091a2b3c4`) in `seed_data.json` currently uses the old structure and lacks the required layout definitions and metadata extensions.
 - **Audit Findings**:
-  - The Phase 0 Frontend DTO Parity plan execution initially FAILED the Tier 8 audit because the `matrix_visible_columns` field was not removed from the `SynthesisConfigDTO` inside `c:\src\quorum\client_app_v2\lib\features\studio\models\output_profile.dart`.
-  - (RESOLVED): Removed `matrix_visible_columns` from `SynthesisConfigDTO` and deleted the outdated rendering logic in `synthesis_editor_card.dart`. Frontend build and audit loop now pass 100%.
+  - The original Phase 1 plan lacked safeguards against context window saturation when modifying the massive 10,000+ line `seed_data.json` file.
+  - (RESOLVED): Mutated the Phase 1 implementation plan to enforce dynamic line-bounds extraction using a Python script in `scratch/` before invoking structural replacements. This guarantees `multi_replace_file_content` will not trigger `Context Amnesia`.
 
 ## Remaining
-- Proceed to Phase 1: OutputProfile Configuration in seed_data.json by running its Red-Teaming phase (`/tier0-research-plan`).
+- Proceed to Phase 1: OutputProfile Configuration in seed_data.json by running its Execution phase (`/tier2-execute`).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md] @[c:\src\quorum\docs\epic\EPIC_122_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\03_seed_vault.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md] @[c:\src\quorum\docs\epic\EPIC_122_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\03_seed_vault.md]"`
