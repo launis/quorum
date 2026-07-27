@@ -949,6 +949,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
     )
 
     score: float | None = Field(default=None, description="Raw scaled score.")
+    score_display_label: str | None = None
     scale_min: float | None = Field(default=None, description="Minimum possible score.")
     scale_max: float | None = Field(default=None, description="Maximum possible score.")
     normalized_score: float | None = Field(default=None, description="Normalized score (0-100) if evaluative.")
@@ -1195,16 +1196,6 @@ class ReportDataDTO(V2CoreBase):
         default_factory=dict, description="O(1) Dictionary: tda_id -> Static text."
     )
 
-    # LEGACY FIELDS (Deprecated but kept for UI transition compatibility)
-    evaluative_matrices: list[MatrixScorecardRowDTO] | None = Field(
-        default=None, description="Matrices that impact the final grade."
-    )
-    informational_matrices: list[MatrixScorecardRowDTO] | None = Field(
-        default=None, description="Matrices strictly for informational/tracking purposes."
-    )
-    content_blocks: list[dict[str, Any]] | None = Field(
-        default=None, description="Global synthesis SDUI content blocks"
-    )
     visible_metadata: list[str] = Field(
         default_factory=list, description="Fields visible on the UI and PDF cover header."
     )
@@ -1229,10 +1220,6 @@ class ReportDataDTO(V2CoreBase):
 
     grouped_extensions: dict[str, list[Any]] | None = Field(
         default_factory=dict, description="Centrally grouped XAI extensions (e.g. 'citation': [...])"
-    )
-
-    penalties_applied: list[str] = Field(
-        default_factory=list, description="List of penalty warnings formatted for print."
     )
 
     @model_validator(mode="after")

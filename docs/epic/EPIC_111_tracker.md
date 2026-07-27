@@ -16,20 +16,21 @@
   - [x] Step 2: RECORD BACKEND BASELINE
   - [x] Step 3: RECORD FRONTEND BASELINE
   - [x] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
-- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]`
+- [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]`
 
 ---
 
 ### Phase 1A: Backend DTO Strictness & Blueprint Migration
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\01_phase1a_backend_dto_blueprint_plan.md]`
 
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\01_phase1a_backend_dto_blueprint_plan.md]`
-- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\01_phase1a_backend_dto_blueprint_plan.md]`
-  - [ ] Step 1: ERADICATE LEGACY FIELDS FROM REPORTDATADTO
-  - [ ] Step 2: ADD SCORE DISPLAY LABEL TO MATRIXSCORECARDROWDTO
-  - [ ] Step 3: REFACTOR BLUEPRINT GENERATOR - MATRICES & PENALTIES
-  - [ ] Step 4: REFACTOR BLUEPRINT GENERATOR - CONTENT BLOCKS
-  - [ ] Step 5: TESTING STRATEGY & QUALITY GATE PLAN
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\01_phase1a_backend_dto_blueprint_plan.md]`
+- [x] **[OK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\01_phase1a_backend_dto_blueprint_plan.md]`
+  - [x] Step 1: ERADICATE LEGACY FIELDS FROM REPORTDATADTO
+  - [x] Step 2: ADD SCORE DISPLAY LABEL TO MATRIXSCORECARDROWDTO
+  - [x] Step 2b: SDUI CONTRACT SYNCHRONIZATION (FLUTTER DTOs)
+  - [x] Step 3: REFACTOR BLUEPRINT GENERATOR - MATRICES & PENALTIES
+  - [x] Step 4: REFACTOR BLUEPRINT GENERATOR - CONTENT BLOCKS
+  - [x] Step 5: TESTING STRATEGY & QUALITY GATE PLAN
 - [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\01_phase1a_backend_dto_blueprint_plan.md]`
 
 ---
@@ -257,8 +258,8 @@
 - Context Amnesia Prevention mandate: Phase 2 test purges are chunked across 3 batches (2A/2B/2C) with handover boundaries.
 
 ## Remaining
-- Execute all 10 phases following the mandatory workflow loop.
-- Begin with Phase 0 Red-Teaming.
+- Execute remaining 9 phases following the mandatory workflow loop.
+- Begin with Phase 1A Red-Teaming.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\00_phase0_seed_and_baselines_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\01_phase1a_backend_dto_blueprint_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`

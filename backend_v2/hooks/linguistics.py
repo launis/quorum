@@ -168,12 +168,18 @@ def scan_report_for_slop(
     # Collect texts
     texts_to_scan: list[str] = []
 
-    if report_dto.content_blocks:
-        for block in report_dto.content_blocks:
-            if "text" in block and isinstance(block["text"], str):
-                texts_to_scan.append(block["text"])
+    if report_dto.layouts:
+        for layout in report_dto.layouts:
+            if layout.synthesis_blocks:
+                for block in layout.synthesis_blocks:
+                    if isinstance(block, dict) and "text" in block and isinstance(block["text"], str):
+                        texts_to_scan.append(block["text"])
 
-    all_matrices = (report_dto.evaluative_matrices or []) + (report_dto.informational_matrices or [])
+    all_matrices = []
+    if report_dto.layouts:
+        for layout in report_dto.layouts:
+            if layout.axes:
+                all_matrices.extend(layout.axes)
     for row in all_matrices:
         texts_to_scan.append(row.row_explanation)
         if row.coaching:

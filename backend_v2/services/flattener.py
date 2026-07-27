@@ -35,7 +35,11 @@ class FlatFileService:
             flat_record["global_score"] = report_dto.global_score
             flat_record["has_warning"] = report_dto.has_warning
 
-            matrices = (report_dto.evaluative_matrices or []) + (report_dto.informational_matrices or [])
+            matrices = []
+            if report_dto.layouts:
+                for layout in report_dto.layouts:
+                    if layout.axes:
+                        matrices.extend(layout.axes)
             for matrix in matrices:
                 matrix_prefix = f"matrix_{matrix.block_id}"
                 flat_record[f"{matrix_prefix}_score"] = matrix.score

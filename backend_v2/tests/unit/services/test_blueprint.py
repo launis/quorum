@@ -446,6 +446,7 @@ def mock_repo_sdui() -> AsyncMock:
                         "steps": [],
                         "target_blocks": ["*"],
                         "description": None,
+                        "synthesis": {"target_blocks": ["*"]},
                     }
                 ],
                 "display_scale": "original",
@@ -521,9 +522,11 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
         status=ExecutionStatus.PASSED,
         profile_syntheses={
             "prf_1234abcd1234abcd": RenderedSynthesisCache(
-                content_blocks=[
-                    {"type": "markdown", "content": "### Title\\n<script>alert('xss');</script>Some content."}
-                ]
+                section_syntheses={
+                    "layout_0_1d_metrics": [
+                        {"type": "markdown", "content": "### Title\\n<script>alert('xss');</script>Some content."}
+                    ]
+                }
             )
         },
         execution_trace=[
@@ -557,9 +560,11 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
     dto = await transformer.build_report_dto("exe_1111111122222222")
     assert dto.has_warning is True
 
-    assert dto.content_blocks is not None
-    assert len(dto.content_blocks) > 0
-    safe_md = dto.content_blocks[0]["content"]
+    assert dto.layouts is not None
+    assert len(dto.layouts) > 0
+    assert dto.layouts[0].synthesis_blocks is not None
+    assert len(dto.layouts[0].synthesis_blocks) > 0
+    safe_md = dto.layouts[0].synthesis_blocks[0]["content"]
 
     assert "Some content." in safe_md
 

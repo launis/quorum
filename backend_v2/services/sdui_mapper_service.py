@@ -58,20 +58,6 @@ class SduiMapperService:
 
         sections: list[UiSection] = []
 
-        # Phase B1: Map global content_blocks to MARKDOWN_BLOCK sections
-        if report.content_blocks:
-            title_summary = I18nText(default_locale="fi", translations={"fi": "Yhteenveto", "en": "Summary"}).resolve(
-                lang
-            )
-            sections.append(
-                UiSection(
-                    id="global_content",
-                    type=SectionType.MARKDOWN_BLOCK,
-                    title=title_summary,
-                    data=report.content_blocks,
-                )
-            )
-
         # Phase B1: Layout-Driven Mapping
         for idx, layout in enumerate(report.layouts):
             # Phase B1: ScoreCard Translation

@@ -42,11 +42,6 @@ abstract class ReportDataDto with _$ReportDataDto {
     @JsonKey(name: 'hydrated_references')
     @Default({})
     Map<String, HydratedAtomDTO> hydratedReferences,
-    @JsonKey(name: 'evaluative_matrices')
-    List<MatrixScorecardRowDto>? evaluativeMatrices,
-    @JsonKey(name: 'informational_matrices')
-    List<MatrixScorecardRowDto>? informationalMatrices,
-    @JsonKey(name: 'content_blocks') List<Map<String, dynamic>>? contentBlocks,
     @JsonKey(name: 'visible_metadata')
     @Default([])
     List<String> visibleMetadata,
@@ -66,9 +61,6 @@ abstract class ReportDataDto with _$ReportDataDto {
     List<McpAuditTraceDto> mcpToolAudit,
     @JsonKey(name: 'grouped_extensions')
     Map<String, List<dynamic>>? groupedExtensions,
-    @JsonKey(name: 'penalties_applied')
-    @Default([])
-    List<String> penaltiesApplied,
   }) = _ReportDataDto;
 
   factory ReportDataDto.fromJson(Map<String, dynamic> json) =>

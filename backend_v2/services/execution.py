@@ -760,10 +760,10 @@ class ExecutionService:
         summary_rows: list[dict[str, Any]] = []
         if report_dto:
             matrices = []
-            if report_dto.evaluative_matrices:
-                matrices.extend(report_dto.evaluative_matrices)
-            if report_dto.informational_matrices:
-                matrices.extend(report_dto.informational_matrices)
+            if report_dto.layouts:
+                for layout in report_dto.layouts:
+                    if layout.axes:
+                        matrices.extend(layout.axes)
 
             for matrix in matrices:
                 score = matrix.score
@@ -1267,12 +1267,14 @@ class ExecutionService:
 
         view = mapper.map_report_to_sdui(dto, execution_id=execution_id)
 
-        # Fallback if there are content blocks containing markdown text for the title
+        # Fallback if there are synthesis blocks containing markdown text for the title
         title_summary = ""
-        if dto.content_blocks:
-            for block in dto.content_blocks:
-                if block.get("type") in ("markdown", "paragraph"):
-                    title_summary += block.get("text", "") + " "
+        if dto.layouts:
+            for layout in dto.layouts:
+                if layout.synthesis_blocks:
+                    for block in layout.synthesis_blocks:
+                        if isinstance(block, dict) and block.get("type") in ("markdown", "paragraph"):
+                            title_summary += block.get("text", "") + " "
 
         if title_summary:
             view = view.model_copy(update={"title": title_summary.strip()[:100]})

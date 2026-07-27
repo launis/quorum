@@ -6,6 +6,8 @@ Delete legacy fields (`content_blocks`, `evaluative_matrices`, `informational_ma
 ## Target Files
 - `@[c:\src\quorum\backend_v2\models\v2_core.py]` (Modify)
 - `@[c:\src\quorum\backend_v2\services\blueprint.py]` (Modify)
+- `@[c:\src\quorum\client_app_v2\lib\core\models\report_data_dto.dart]` (Modify)
+- `@[c:\src\quorum\client_app_v2\lib\core\models\matrix_scorecard_row_dto.dart]` (Modify)
 
 ```xml
 <execution_protocol level="2_execute">
@@ -22,11 +24,18 @@ Delete legacy fields (`content_blocks`, `evaluative_matrices`, `informational_ma
     <action>Add `score_display_label: str | None = None` to enable pure Dumb Painter UI rendering where the frontend does not evaluate math conditions.</action>
   </step>
   
+  <step id="2b" name="SDUI CONTRACT SYNCHRONIZATION (FLUTTER DTOs)">
+    <action>Modify `@[c:\src\quorum\client_app_v2\lib\core\models\report_data_dto.dart]` to remove the identical legacy fields (`contentBlocks`, `evaluativeMatrices`, `informationalMatrices`, `penaltiesApplied`).</action>
+    <action>Modify `@[c:\src\quorum\client_app_v2\lib\core\models\matrix_scorecard_row_dto.dart]` to add `String? scoreDisplayLabel`.</action>
+    <constraint invariant="sdui_contract_fracture_prevention">Freezed models must exactly match the updated Python Pydantic models to prevent deserialization crashes.</constraint>
+  </step>
+  
   <step id="3" name="REFACTOR BLUEPRINT GENERATOR - MATRICES & PENALTIES">
     <action>Modify `@[c:\src\quorum\backend_v2\services\blueprint.py]`. Refactor the SDUI generator (around `build_report_dto`) to route 100% of the dynamic report data exclusively through the `layouts` array.</action>
     <action>Matrices MUST be injected into `ReportLayoutDTO`'s `axes` array.</action>
     <action>Penalties MUST be assembled into a `ReportLayoutDTO` with `preset_view="text_only"` and mapped into `synthesis_blocks` (e.g. `alert_box`).</action>
     <action>Compute `score_display_label` internally (e.g. "5.0 / 10.0" or "-") and assign it to `MatrixScorecardRowDTO`.</action>
+    <constraint>If the profile has no `layouts` defined, explicitly generate a fallback `ReportLayoutDTO` (preset_view="default") to prevent matrices from being silently dropped.</constraint>
   </step>
   
   <step id="4" name="REFACTOR BLUEPRINT GENERATOR - CONTENT BLOCKS">
@@ -36,9 +45,10 @@ Delete legacy fields (`content_blocks`, `evaluative_matrices`, `informational_ma
   </step>
 
   <step id="5" name="TESTING STRATEGY & QUALITY GATE PLAN">
-    <action>Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test`</action>
-    <action>Tests for Blueprint must pass, though test data mocks will be broken and need fixing in Phase 2. Run strictly localized unit tests for `v2_core.py` and `blueprint.py`.</action>
+    <action>Fix unit test mocks in Pytest that rely on the removed legacy fields in `ReportDataDTO` so that `backend_audit_loop.py` passes immediately.</action>
     <action>Write negative tests confirming `ReportDataDTO` fails validation if legacy fields are passed in.</action>
+    <action>Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test`</action>
+    <action>Run `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build` to re-generate the Freezed models and verify the Dart frontend parses the new DTO contracts.</action>
   </step>
 </execution_protocol>
 ```
