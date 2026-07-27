@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 import 'package:client_app/features/execution/views/widgets/atom_matrix_table_widget.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
@@ -26,7 +27,7 @@ class DiagnosticScorecardWidget extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: AppSpacing.p24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,

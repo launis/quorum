@@ -11,7 +11,7 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
 
 import 'package:client_app/features/execution/models/execution_record.dart';
-
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'dart:convert';
 
 /// **Live Execution SDUI Screen**
@@ -117,11 +117,11 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
         // Sticky Status Header
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: AppSpacing.p16,
             child: Card(
               color: _getStatusColor(context, status),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: AppSpacing.p16,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -132,8 +132,8 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             status == 'queued' ||
                             resumeMutation.isLoading)
                           SizedBox(
-                            width: 24,
-                            height: 24,
+                            width: AppSpacing.s24,
+                            height: AppSpacing.s24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: status == 'failed'
@@ -151,7 +151,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             Icons.error,
                             color: Theme.of(context).colorScheme.onError,
                           ),
-                        const SizedBox(width: 16),
+                        AppSpacing.w16,
                         Expanded(
                           child: Text(
                             AppLocalizations.of(
@@ -181,14 +181,14 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                     if (status == 'running' ||
                         status == 'pending' ||
                         status == 'queued') ...[
-                      const SizedBox(height: 16),
+                      AppSpacing.h16,
                       LinearProgressIndicator(
                         value: (record.progress ?? 0) / 100.0,
                         backgroundColor: Theme.of(context).colorScheme.surface,
                       ),
                       if (record.statusMessage != null &&
                           record.statusMessage!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
+                        AppSpacing.h8,
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -222,17 +222,17 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
+                horizontal: AppSpacing.s16,
+                vertical: AppSpacing.s8,
               ),
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: AppSpacing.p12,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   border: Border.all(
                     color: Theme.of(context).colorScheme.outlineVariant,
                   ),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
                 ),
                 child: Row(
                   children: [
@@ -240,7 +240,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                       Icons.warning_amber_rounded,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.s12),
                     Expanded(
                       child: Text(
                         AppLocalizations.of(context)!.auditDriftWarning(
@@ -262,8 +262,8 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
+                horizontal: AppSpacing.s16,
+                vertical: AppSpacing.s8,
               ),
               child: GlobalErrorView(
                 error: AppException(
@@ -290,8 +290,8 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
+                horizontal: AppSpacing.s16,
+                vertical: AppSpacing.s8,
               ),
               child: ExecutionTimeline(
                 steps: stepStatesList,
@@ -314,7 +314,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           // ALWAYS show Raw Data JSON on completion if Heavy Fetch failed
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: AppSpacing.p16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -325,14 +325,14 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.h16,
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: AppSpacing.p16,
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
                       ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppSpacing.s8),
                       border: Border.all(
                         color: Theme.of(context).colorScheme.outlineVariant,
                       ),

@@ -232,14 +232,16 @@ class ReportRendererV2Widget extends StatelessWidget {
                           if (axis.score != null)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
+                                horizontal: AppSpacing.s12,
+                                vertical: AppSpacing.s4,
                               ),
                               decoration: BoxDecoration(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.s12,
+                                ),
                               ),
                               child: Text(
                                 axis.scoreDisplayLabel ?? '-',
@@ -254,13 +256,13 @@ class ReportRendererV2Widget extends StatelessWidget {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      AppSpacing.h8,
 
                       // 2. Axis Description
                       if (axis.description != null &&
                           axis.description!.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
+                          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
                           child: Text(
                             axis.description!,
                             style: Theme.of(context).textTheme.bodySmall
@@ -277,8 +279,11 @@ class ReportRendererV2Widget extends StatelessWidget {
                       if (presetView == PresetView.metrics1d &&
                           axis.uiPlotRatio != null)
                         Container(
-                          height: 12,
-                          margin: const EdgeInsets.only(top: 4, bottom: 12),
+                          height: AppSpacing.s12,
+                          margin: const EdgeInsets.only(
+                            top: AppSpacing.s4,
+                            bottom: AppSpacing.s12,
+                          ),
                           decoration: BoxDecoration(
                             color: Theme.of(
                               context,
@@ -315,7 +320,7 @@ class ReportRendererV2Widget extends StatelessWidget {
     }
 
     if (widgets.isEmpty) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     return ListView(

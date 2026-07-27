@@ -149,7 +149,7 @@
 
 - [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies for all legacy SDUI fields (`content_blocks`, `evaluative_matrices`, `informational_matrices`, `penalties_applied`). (Verified: Clean)
 - [x] **[OK] Tier 2 Hardening (Backend)**: `/tier2-hardening-backend @[c:\src\quorum\backend_v2\models\v2_core.py] @[c:\src\quorum\backend_v2\services\blueprint.py] @[c:\src\quorum\backend_v2\services\execution.py] @[c:\src\quorum\backend_v2\services\flattener.py] @[c:\src\quorum\backend_v2\hooks\linguistics.py] @[c:\src\quorum\backend_v2\services\sdui_mapper_service.py] @[c:\src\quorum\backend_v2\worker.py] @[c:\src\quorum\backend_v2\templates\report_template.jinja2]`
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: `/tier2-hardening-frontend @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_data_v2_dto.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\diagnostic_scorecard_widget.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_report_view.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_view.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart]`
+- [x] **[OK] Tier 2 Hardening (Frontend)**: `/tier2-hardening-frontend @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_data_v2_dto.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\diagnostic_scorecard_widget.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_report_view.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_view.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart]`
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain after legacy field eradication. Grep the entire codebase for residual references to `content_blocks`, `evaluative_matrices`, `informational_matrices`, `penalties_applied` on `ReportDataDTO`. (Verified: Clean)
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic. Run: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
@@ -158,7 +158,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs (e.g., `score_display_label` Dumb Painter pattern, penalty-as-layout SDUI pattern) in `<appDataDir>/knowledge/`.
+- [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs (e.g., `score_display_label` Dumb Painter pattern, penalty-as-layout SDUI pattern) in `<appDataDir>/knowledge/`.
 - [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ---
@@ -356,14 +356,25 @@
   - Successfully ran `test_sdui_semantic_parity.py` passing 100% parity.
 - **Phase 3 Full-Stack Integration Checkpoint officially PASSED**. All global quality gates and strict parity checks have cleared perfectly.
 
+- **Tier 2 Hardening (Frontend) successfully completed**.
+  - Audited `report_data_v2_dto.dart`, `diagnostic_scorecard_widget.dart`, `execution_report_view.dart`, `execution_view.dart`, and `report_renderer_v2_widget.dart` against Phase 9 standards.
+  - Eradicated magic number dimensions and padding by replacing them with `AppSpacing` tokens (`design_token_absolute_rule`).
+  - Purged hardcoded colors by utilizing `Theme.of(context).colorScheme` (`design_token_absolute_rule`).
+  - Enforced strict widget text styling using `Theme.of(context).textTheme`.
+  - Replaced forbidden `SizedBox.shrink()` with `SizedBox()` (`sized_box_shrink_ban`).
+  - Successfully passed the global `flutter_audit_loop.py` execution post-hardening with zero issues.
+
+- **Tier 2 Hardening (Knowledge) successfully completed**.
+  - Created new Knowledge Item `ki_dumb_painter_penalty_layout.md` strictly in XML for Dumb Painter layout and Score Display Label mapping per Epic 111 remaining steps.
+  - Audited and refactored `ki_context_enriched_decompose_verify.md` into strict Quorum XML format (`<domain_boundary>`, `<rule_block>`, etc.).
+  - Verified `ki_agent_context_quarantine.md` and `ki_epic_lifecycle_workflow.md` were already properly XML-structured.
+  - Successfully marked all remaining Knowledge Items as completed in `hardening_ki_state.json`.
+
 ## Remaining
 - Execute Post-Implementation Gates:
-  - Proxy Sunset & Consumer Migration
-  - Tier 2 Hardening (Backend)
-  - Tier 2 Hardening (Frontend)
-  - Pre-Delete Audit
-  - Semantic Coverage & Zero-Loss Audit
-  - Final E2E REST API Verification Gate
+- [x] Create a Knowledge Item (KI) for new SSOTs (e.g., `score_display_label` Dumb Painter pattern, penalty-as-layout SDUI pattern).
+  - As-Built Architectural Sync (`/tier7-describe-architecture`).
+  - Final Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-hardening-frontend --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md]"`
+`/tier5-resume --workflow=/tier7-describe-architecture --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md]"`

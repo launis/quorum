@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/execution/controllers/report_controller.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -257,17 +258,17 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: _buildAppBarTitle(context, reportAsync.value, locale),
         centerTitle: true,
         actions: [
           _isDownloadingContext
               ? const Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: AppSpacing.p16,
                   child: SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: AppSpacing.s24,
+                    height: AppSpacing.s24,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 )
@@ -278,10 +279,10 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
                 ),
           _isDownloadingPdf
               ? const Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: AppSpacing.p16,
                   child: SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: AppSpacing.s24,
+                    height: AppSpacing.s24,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 )
@@ -295,12 +296,12 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isDownloadingExcel ? null : _downloadExcel,
         icon: _isDownloadingExcel
-            ? const SizedBox(
-                width: 20,
-                height: 20,
+            ? SizedBox(
+                width: AppSpacing.s24,
+                height: AppSpacing.s24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               )
             : const Icon(Icons.table_chart),
@@ -344,15 +345,14 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const CircularProgressIndicator(),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               Consumer(
                 builder: (context, ref, child) {
                   final statusMsg = ref.watch(renderStatusProvider);
                   return Text(
                     statusMsg ?? '',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 14,
                     ),
                   );
                 },
@@ -371,7 +371,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
   ) {
     return Text(
       '${AppLocalizations.of(context)!.report}: ${widget.executionId}${widget.variant != 'default' ? ' (${widget.variant})' : ''}',
-      style: const TextStyle(fontSize: 16),
+      style: Theme.of(context).textTheme.titleMedium,
     );
   }
 }
