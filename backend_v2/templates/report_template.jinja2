@@ -554,7 +554,13 @@
         {% endif %}
 
         <!-- Yhteenveto / Matrix Summary Table -->
-        {% set visible_cols = report_data.matrix_visible_columns if report_data.matrix_visible_columns else ['label', 'score', 'distribution', 'row_explanation'] %}
+        {% set matrix_layout = none %}
+        {% for lay in report_data.layouts %}
+            {% if lay.preset_view == '3d_matrix' %}
+                {% set matrix_layout = lay %}
+            {% endif %}
+        {% endfor %}
+        {% set visible_cols = matrix_layout.matrix_visible_columns if matrix_layout else [] %}
         {% if visible_cols %}
         <div style="page-break-before: always; margin-top: 30px;">
 

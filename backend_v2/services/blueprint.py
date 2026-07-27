@@ -243,9 +243,12 @@ class BlueprintTransformer:
 
         # Safe attribute access using V2 Models
         display_scale = profile.display_scale
-        syn_profile = None
-        fallback_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
-        matrix_visible_cols = syn_profile.matrix_visible_columns if syn_profile else fallback_cols
+        matrix_visible_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
+        if profile.layouts:
+            for lay in profile.layouts:
+                if lay.preset_view == "3d_matrix" and lay.matrix_visible_columns:
+                    matrix_visible_cols = lay.matrix_visible_columns
+                    break
 
         for dto in results:
             step_id = dto.step_id
@@ -1253,7 +1256,7 @@ class BlueprintTransformer:
             synthesis_cfg = None
             if profile.layouts:
                 for lay in profile.layouts:
-                    if getattr(lay, "synthesis", None):
+                    if lay.synthesis:
                         synthesis_cfg = lay.synthesis
                         break
 
@@ -1420,15 +1423,6 @@ class BlueprintTransformer:
                 else workflow_obj.default_scoring_strategy
             ).value
 
-            syn = None
-            if profile.layouts:
-                for lay in profile.layouts:
-                    if getattr(lay, "synthesis", None):
-                        syn = lay.synthesis
-                        break
-            fallback_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
-            matrix_visible_cols = syn.matrix_visible_columns if syn else fallback_cols
-
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
@@ -1480,6 +1474,31 @@ class BlueprintTransformer:
                 lexicon = target_lexicon.words
                 fuzz_threshold = target_lexicon.fuzz_threshold
 
+            global_synth = None
+            if isinstance(synthesis_md, dict):
+                user_role_val = synthesis_md.get("user_role")
+                user_role_just = synthesis_md.get("user_role_justification")
+                exec_summary = synthesis_md.get("executive_summary")
+                urgency = synthesis_md.get("urgency_level")
+                if any(v is not None for v in (user_role_val, user_role_just, exec_summary, urgency)):
+                    from backend_v2.models.v2_core import GlobalSynthesisDTO
+
+                    global_synth = GlobalSynthesisDTO(
+                        executive_summary=exec_summary,
+                        urgency_level=urgency,
+                        user_role=user_role_val,
+                        user_role_justification=user_role_just,
+                    )
+
+            if profile.user_role_label and (not global_synth or not global_synth.user_role):
+                msg = (
+                    "Fail-Fast: OutputProfile requires a user_role_label but LLM synthesis failed to extract user_role."
+                )
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+
+            if should_scan_slop:
                 # Build a temporary ReportDataDTO for the slop scanner
                 temp_dto = ReportDataDTO(
                     strictness_level=strictness_level,
@@ -1507,9 +1526,9 @@ class BlueprintTransformer:
                     reasoning_tokens=r_tokens,
                     mcp_tool_audit=mcp_audit_data,
                     grouped_extensions=grouped_extensions,
-                    matrix_visible_columns=matrix_visible_cols,
                     results=v2_results,
                     hydrated_references=v2_hydrated_refs,
+                    global_synthesis=global_synth,
                 )
                 slop_phrases = scan_report_for_slop(temp_dto, lexicon, fuzz_threshold)
 
@@ -1599,9 +1618,9 @@ class BlueprintTransformer:
                 reasoning_tokens=r_tokens,
                 mcp_tool_audit=mcp_audit_data,
                 grouped_extensions=grouped_extensions,
-                matrix_visible_columns=matrix_visible_cols,
                 results=v2_results,
                 hydrated_references=v2_hydrated_refs,
+                global_synthesis=global_synth,
             )
             return report_dto
         except Exception as e:

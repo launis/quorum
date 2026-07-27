@@ -54,6 +54,13 @@ class OutputProfileCreateDTO(V2CoreBase):
     name: Annotated[I18nText, Field(..., description="Localized name.")]
     description: Annotated[I18nText | None, Field(default=None, description="Localized description.")]
     custom_preface: Annotated[I18nText | None, Field(default=None, description="Rich text preface.")]
+    user_role_label: Annotated[
+        I18nText | None,
+        Field(
+            default=None,
+            description="Optional localized label prefixing the user role context (e.g., 'Target audience:').",
+        ),
+    ]
     tone_instruction: Annotated[
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
@@ -135,6 +142,13 @@ class OutputProfileUpdateDTO(V2CoreBase):
     name: Annotated[I18nText | None, Field(default=None, description="Localized name.")]
     description: Annotated[I18nText | None, Field(default=None, description="Localized description.")]
     custom_preface: Annotated[I18nText | None, Field(default=None, description="Rich text preface.")]
+    user_role_label: Annotated[
+        I18nText | None,
+        Field(
+            default=None,
+            description="Optional localized label prefixing the user role context (e.g., 'Target audience:').",
+        ),
+    ]
     tone_instruction: Annotated[
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
@@ -218,6 +232,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     name: I18nText
     description: I18nText | None = None
     custom_preface: I18nText | None = None
+    user_role_label: I18nText | None = None
     tone_instruction: I18nText | None = None
     language: str | None = None
 

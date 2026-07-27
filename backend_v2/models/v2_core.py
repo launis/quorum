@@ -1047,10 +1047,6 @@ class SynthesisConfigDTO(V2CoreBase):
     allowed_mcp_tools: list[str] = Field(
         default_factory=list, description="Enabled MCP tool identifiers for pre-fetch synthesis phase."
     )
-    matrix_visible_columns: list[str] = Field(
-        default_factory=lambda: ["label", "score", "distribution", "row_explanation", "quotes"],
-        description="Visible columns for the global matrix summary table.",
-    )
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 
 
@@ -1075,6 +1071,10 @@ class ReportLayoutDTO(V2CoreBase):
     extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
         default_factory=dict,
         description="Optional mapping of XAI extension identifiers to localized labels.",
+    )
+    matrix_visible_columns: list[str] = Field(
+        default_factory=list,
+        description="Visible columns for this matrix UI.",
     )
 
 
@@ -1158,6 +1158,10 @@ class GlobalSynthesisDTO(V2CoreBase):
 
     executive_summary: Annotated[str | None, Field(default=None, description="High-level synthesized summary")]
     urgency_level: Annotated[int | None, Field(default=None)]
+    user_role: Annotated[str | None, Field(default=None, description="Extracted targeted user role for the output.")]
+    user_role_justification: Annotated[
+        str | None, Field(default=None, description="LLM justification for role mapping.")
+    ]
 
 
 class ReportDataDTO(V2CoreBase):
@@ -1201,9 +1205,6 @@ class ReportDataDTO(V2CoreBase):
         default_factory=list, description="Fields visible on the UI and PDF cover header."
     )
     layouts: list[ReportLayoutDTO] = Field(default_factory=list)
-    matrix_visible_columns: list[str] = Field(
-        default_factory=lambda: ["label", "score", "distribution", "row_explanation", "quotes"]
-    )
 
     # Execution Diagnostic Metadata
     created_at: datetime | None = None
@@ -1282,6 +1283,10 @@ class OutputLayoutBlock(V2CoreBase):
         default_factory=dict,
         description="Optional mapping of XAI extension identifiers to localized labels.",
     )
+    matrix_visible_columns: list[str] = Field(
+        default_factory=list,
+        description="Visible columns for this matrix UI.",
+    )
 
 
 class OutputProfile(V2CoreBase):
@@ -1293,6 +1298,9 @@ class OutputProfile(V2CoreBase):
     organization_id: str | None = Field(default=None, description="Tenant organization ID.")
     name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
+    user_role_label: I18nText | None = Field(
+        default=None, description="Optional localized label prefixing the user role context (e.g., 'Target audience:')."
+    )
     custom_preface: I18nText | None = Field(
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
