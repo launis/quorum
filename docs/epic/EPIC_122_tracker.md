@@ -22,7 +22,7 @@
   - [x] `1_2`: SynthesisConfigDto and ReportDataDto Cleanup
   - [x] `1_3`: GlobalSynthesisDto and OutputProfile Updates
   - [x] `1_4`: Testing & Quality Gate Plan
-- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]`
+- [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md]` (Report: `@[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_audit_report.md]`)
 
 ### Phase 1: OutputProfile Configuration in seed_data.json
 - [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`
@@ -117,14 +117,18 @@
 - Implemented Phase 0 Frontend DTO Parity Step 1_1: OutputLayoutBlock and ReportLayoutDto Parity.
 - Implemented Phase 0 Frontend DTO Parity Step 1_2: SynthesisConfigDto and ReportDataDto Cleanup.
 - Implemented Phase 0 Frontend DTO Parity Step 1_3: GlobalSynthesisDto and OutputProfile Updates.
+- Completed Tier 8 Audit for Phase 0 Frontend execution and generated the audit report at `@[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_audit_report.md]`.
 
 ## Learned
 - **Baseline State Snapshot**:
   - (RESOLVED in Step 1_2) The frontend `SynthesisConfigDto` and `ReportDataDto` previously contained `matrixVisibleColumns` and have now been aligned with backend changes.
   - The `OutputProfile` (specifically `holistic_audit`) in `seed_data.json` currently uses the old structure and lacks the required layout definitions and metadata extensions.
+- **Audit Findings**:
+  - The Phase 0 Frontend DTO Parity plan execution initially FAILED the Tier 8 audit because the `matrix_visible_columns` field was not removed from the `SynthesisConfigDTO` inside `c:\src\quorum\client_app_v2\lib\features\studio\models\output_profile.dart`.
+  - (RESOLVED): Removed `matrix_visible_columns` from `SynthesisConfigDTO` and deleted the outdated rendering logic in `synthesis_editor_card.dart`. Frontend build and audit loop now pass 100%.
 
 ## Remaining
-- Proceed to Phase 1: OutputProfile Configuration in seed_data.json.
+- Proceed to Phase 1: OutputProfile Configuration in seed_data.json by running its Red-Teaming phase (`/tier0-research-plan`).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_dto_parity_plan.md] @[c:\src\quorum\docs\epic\EPIC_122_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md] @[c:\src\quorum\docs\epic\EPIC_122_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\03_seed_vault.md]"`

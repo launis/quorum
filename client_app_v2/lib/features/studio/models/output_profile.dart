@@ -67,9 +67,6 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     @Default(['pdf', 'raw_json']) List<String> allowedExports,
     @Default(true) bool omitEmptySections,
     @Default([]) List<String> allowedMcpTools,
-    @Default(['label', 'score', 'distribution', 'row_explanation'])
-    @JsonKey(name: 'matrix_visible_columns')
-    List<String> matrixVisibleColumns,
     @JsonKey(name: 'model_strategy') String? modelStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     @JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,
