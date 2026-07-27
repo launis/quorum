@@ -16,12 +16,13 @@ Execute global regression audits for both backend and frontend, particularly foc
     <action>Execute `test_sdui_semantic_parity.py` using `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py` to ensure 100% semantic parity between Jinja PDFs and Flutter UI.</action>
     <constraint>The test was already updated in Phase 2A to remove `factory_use_construct=True`. If the test fails, debug the failures ensuring strict adherence to the Dumb Painter pattern. The test must pass without any validation bypasses.</constraint>
     <constraint invariant="anti_tdd_trap">If the test fails, fix the underlying logic, but DO NOT revert to legacy hacks.</constraint>
+    <constraint invariant="strict_markdown_parity_mandate">If Jinja PDF and Flutter UI diverge, you MUST NOT fix the issue by injecting HTML tags or layout concatenations into the Python DTOs. All fixes MUST reside exclusively in `report_template.jinja2` or the Flutter Widgets (`client_app_v2/...`).</constraint>
   </step>
 
   <step id="2" name="TESTING STRATEGY & QUALITY GATE PLAN">
     <action>Run the global backend audit: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`</action>
-    <action>Run the cross-domain DTO parity build: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/models/ --build`</action>
-    <constraint>You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md`.</constraint>
+    <action>Run the global frontend parity & testing loop: `uv run python scripts/flutter_audit_loop.py client_app_v2/`</action>
+    <constraint>You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md`, explicitly avoiding "Fake Green" localized testing.</constraint>
   </step>
 </execution_protocol>
 ```
