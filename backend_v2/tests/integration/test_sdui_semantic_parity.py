@@ -3,11 +3,19 @@ import os
 import shutil
 import subprocess
 import tempfile
+from typing import Any
 
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, ReportDataDTO, ScorecardAtomDTO, Workflow
+from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.v2_core import (
+    I18nText,
+    MatrixScorecardRowDTO,
+    ReportDataDTO,
+    ScorecardAtomDTO,
+    Workflow,
+)
 
 
 class WorkflowFactory(ModelFactory[Workflow]):
@@ -30,20 +38,33 @@ class I18nTextFactory(ModelFactory[I18nText]):
 
 class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     __model__ = ReportDataDTO
-    results = []
-    hydrated_references = {}
+    results: list[Any] = []
+    hydrated_references: dict[str, Any] = {}
 
 
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
     __model__ = ScorecardAtomDTO
-    exact_quotes = []
+    exact_quotes: list[Any] = []
     __set_as_default_factory_for_type__ = True
 
 
 class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     __model__ = MatrixScorecardRowDTO
-    scorecard_atoms = {}
+    scorecard_atoms: dict[str, Any] = {}
     __set_as_default_factory_for_type__ = True
+
+
+class QuoteEvidenceDTOFactory(ModelFactory[QuoteEvidenceDTO]):
+    __model__ = QuoteEvidenceDTO
+    __set_as_default_factory_for_type__ = True
+
+    @classmethod
+    def _create_model(cls, *args: Any, **kwargs: Any) -> QuoteEvidenceDTO:
+        kwargs.pop("_build_context", None)
+        for arg in args:
+            if isinstance(arg, dict):
+                arg.pop("_build_context", None)
+        return cls.__model__.model_validate(kwargs, context={"alias_engine": "dummy"})
 
 
 @pytest.mark.asyncio

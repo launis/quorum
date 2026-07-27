@@ -291,7 +291,9 @@
   - Removed legacy fields `content_blocks` and `penalties_applied` from `ReportDataDTOFactory` updates.
   - Refactored `test_execution.py` Mock structures to eliminate `evaluative_matrices` and `informational_matrices` array initializations.
   - Neutralized atomic nested generation within the factories to satisfy strict `ReportDataDTO` referential integrity checks (e.g., `hydrated_references` alignment).
-  - Both unit tests and Pytest-Flutter integration tests passed locally.
+  - Fixed Mypy type-hint strictness errors in `test_sdui_semantic_parity.py` Polyfactory configs by annotating dictionary and list attributes with `typing.Any`.
+  - Safely bypassed Pydantic V2 `@model_validator(mode="before")` context missing crashes during `ReportDataDTO` generation by implementing `QuoteEvidenceDTOFactory` that injects a dummy `alias_engine` context in `_create_model`.
+  - Both unit tests and Pytest-Flutter integration tests passed locally. Passed the Universal Quality Gate (`backend_audit_loop.py`) strictly.
 
 ## Learned
 - **Architecture Invariants**: Strict compliance enforced via `backend_audit_loop.py` and `flutter_audit_loop.py`. Fallbacks in `blueprint.py` ensure `ReportLayoutDTO(preset_view="default")` handles matrix-only inputs securely.
@@ -301,6 +303,7 @@
 - Validating Firestore outputs directly to Pydantic models avoids runtime exceptions in deeply nested exception handlers (such as `step_states` accessed as an attribute on a dictionary).
 - The transition from Flutter Widget fallbacks (`DiagnosticScorecardWidget`) to pure SDUI layout mapping (`ReportRendererV2Widget`) eliminates the need for hardcoded instantiation, adhering to the "Dumb Painter" principle perfectly.
 - **UI Render Determinism**: When backend schemas are structurally altered (e.g. relying entirely on `scoreDisplayLabel`), it directly impacts rendering logic resulting in minor pixel adjustments requiring test data mocks to explicitly mirror the backend's Dumb Painter exactness, and Flutter golden tests must be updated to prevent snapshot test failures.
+- **Polyfactory Pydantic V2 Limitations**: Polyfactory struggles with Pydantic V2 `mode="before"` validators requiring a context dict. Safely overriding `_create_model` on a target factory (like `QuoteEvidenceDTOFactory`) prevents generation crashes without violating strictness (`factory_use_construct=True`).
 
 ## Remaining
 - Proceed to **Phase 2A: Polyfactory Strictness & Global Test Hardening (Batch 1)** Audit.
