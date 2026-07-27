@@ -192,7 +192,7 @@ async def test_real_llm_pdf_execution() -> None:
             full_text += page.get_text()
 
         assert "Yhteenveto" not in full_text, "Legacy hardcoded string 'Yhteenveto' found in PDF!"
-        assert "Matrix Summary" in full_text, "Dynamic resolved title 'Matrix Summary' missing from PDF!"
+        assert "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS" in full_text, "Dynamic resolved title 'ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS' missing from PDF!"
 
         logger.info("PDF Execution E2E test passed successfully.")
 

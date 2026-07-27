@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import io
+import json
 import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
+import pandas as pd
 from arq.connections import ArqRedis
 from pydantic import ValidationError
 
@@ -46,6 +50,7 @@ from backend_v2.models.v2_core import (
     FrozenContext,
     HumanOverrideDTO,
     HumanOverrideRequest,
+    JobAcceptedDTO,
     PromptBlock,
     ReportDataDTO,
     Step,
@@ -56,6 +61,7 @@ from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.flattener import FlatFileService
 from backend_v2.services.pdf_generator import PdfReportService
+from backend_v2.services.sdui_mapper_service import SduiMapperService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.services.usage_service import UsageService
 
@@ -685,12 +691,6 @@ class ExecutionService:
         Raises:
             AppException: If parsing fails or storage access fails.
         """
-        import io
-        import json
-        from pathlib import Path
-
-        import pandas as pd
-
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
         # 1. Strict Fail-Fast Validation
@@ -946,8 +946,6 @@ class ExecutionService:
         if not found_step_id:
             raise AppException(f"Atom '{atom_id}' not found in any step_states", status_code=404)
 
-        from datetime import datetime, timezone
-
         override_dto = HumanOverrideDTO(
             new_status=payload.new_status,
             reason=payload.reason,
@@ -1104,8 +1102,6 @@ class ExecutionService:
             else:
                 active_message = "Valmistellaan tulostusta..."
 
-            from backend_v2.models.v2_core import JobAcceptedDTO
-
             return (
                 JobAcceptedDTO(status=ExecutionStatus.PENDING, message=active_message, execution_id=execution_id),
                 "application/json",
@@ -1261,8 +1257,6 @@ class ExecutionService:
     ) -> dict[str, Any]:
         """Get the SDUI view components for an execution."""
         dto = await self.get_report_dto(initiator, execution_id)
-        from backend_v2.services.sdui_mapper_service import SduiMapperService
-
         mapper = SduiMapperService()
 
         view = mapper.map_report_to_sdui(dto, execution_id=execution_id)

@@ -147,12 +147,12 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies for all legacy SDUI fields (`content_blocks`, `evaluative_matrices`, `informational_matrices`, `penalties_applied`).
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: `/tier2-hardening-backend @[c:\src\quorum\backend_v2\models\v2_core.py] @[c:\src\quorum\backend_v2\services\blueprint.py] @[c:\src\quorum\backend_v2\services\execution.py] @[c:\src\quorum\backend_v2\services\flattener.py] @[c:\src\quorum\backend_v2\hooks\linguistics.py] @[c:\src\quorum\backend_v2\services\sdui_mapper_service.py] @[c:\src\quorum\backend_v2\worker.py] @[c:\src\quorum\backend_v2\templates\report_template.jinja2]`
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies for all legacy SDUI fields (`content_blocks`, `evaluative_matrices`, `informational_matrices`, `penalties_applied`). (Verified: Clean)
+- [x] **[OK] Tier 2 Hardening (Backend)**: `/tier2-hardening-backend @[c:\src\quorum\backend_v2\models\v2_core.py] @[c:\src\quorum\backend_v2\services\blueprint.py] @[c:\src\quorum\backend_v2\services\execution.py] @[c:\src\quorum\backend_v2\services\flattener.py] @[c:\src\quorum\backend_v2\hooks\linguistics.py] @[c:\src\quorum\backend_v2\services\sdui_mapper_service.py] @[c:\src\quorum\backend_v2\worker.py] @[c:\src\quorum\backend_v2\templates\report_template.jinja2]`
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: `/tier2-hardening-frontend @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_data_v2_dto.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\diagnostic_scorecard_widget.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_report_view.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\execution_view.dart] @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart]`
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain after legacy field eradication. Grep the entire codebase for residual references to `content_blocks`, `evaluative_matrices`, `informational_matrices`, `penalties_applied` on `ReportDataDTO`.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic. Run: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
-- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain after legacy field eradication. Grep the entire codebase for residual references to `content_blocks`, `evaluative_matrices`, `informational_matrices`, `penalties_applied` on `ReportDataDTO`. (Verified: Clean)
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic. Run: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
+- [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ---
 
@@ -366,4 +366,4 @@
   - Final E2E REST API Verification Gate
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md]"`
+`/tier5-resume --workflow=/tier2-hardening-frontend --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md]"`

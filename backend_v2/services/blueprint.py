@@ -5,7 +5,6 @@ import re
 from typing import Any
 
 import bleach
-from pydantic import BaseModel, ConfigDict
 
 from backend_v2.database.interfaces import (
     IComponentRepository,
@@ -18,7 +17,12 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.linguistics import scan_report_for_slop
-from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO, LightweightMatrixOutput, ReasoningStepDTO
+from backend_v2.models.dtos.lightweight_matrix import (
+    AtomEvaluationItemDTO,
+    LightweightMatrixOutput,
+    MatrixEvaluationItemDTO,
+    ReasoningStepDTO,
+)
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import ExecutionStatus, SystemConfigID, SystemLocale, VirtualSystemStepID, VisualIntent
@@ -457,12 +461,6 @@ class BlueprintTransformer:
             used_evidence_ids_set = set()
 
             if "quotes" in matrix_visible_cols:
-
-                class MatrixTraceItemDTO(BaseModel):
-                    model_config = ConfigDict(extra="ignore")
-                    atom_id: str
-                    semantic_reasoning: str = ""
-
                 step_evals_map = {}
                 for r_dto in results:
                     if r_dto.step_id == step_id and r_dto.block_id == "evaluations" and isinstance(r_dto.payload, list):
@@ -488,7 +486,7 @@ class BlueprintTransformer:
                                     try:
                                         if is_matrix:
                                             # Strict validation for Matrix Output
-                                            val_data = MatrixTraceItemDTO.model_validate(ev_data)
+                                            val_data = MatrixEvaluationItemDTO.model_validate(ev_data)
 
                                             r_step = ReasoningStepDTO(
                                                 step_1_identify_premise="",

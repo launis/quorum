@@ -14,6 +14,7 @@ import logfire
 from arq.connections import RedisSettings
 
 import backend_v2.hooks  # noqa: F401
+from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.core.registry import TaskRegistry
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
@@ -22,6 +23,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
+from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
@@ -34,8 +36,10 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
+from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
@@ -759,10 +763,6 @@ async def generate_profile_synthesis_and_pdf_task(
         synthesis_block_id = synthesis_cfg.synthesis_block_id if synthesis_cfg else None
         row_explanations_block_id = synthesis_cfg.row_explanations_block_id if synthesis_cfg else None
 
-        from backend_v2.core.hook_registry import HookDependencies, HookState
-        from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
-        from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
-
         hook_state = HookState(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
@@ -813,8 +813,6 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 pb = PromptBlock.model_validate(pb_dict, strict=False)
                 sys_prompt = pb.ai_description or ""
-
-                from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
                 compiler = PromptCompiler()
 

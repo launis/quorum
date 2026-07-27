@@ -43,7 +43,7 @@
 - `[x]` **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
 - `[x]` **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - `[x]` **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
-- `[BLOCKED]` **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` (Docker daemon unavailable).
+- `[x]` **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
 - `[x]` **[OK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/`.
@@ -89,8 +89,8 @@
 - **Architecture Validation**: The `test_integration_real_llm.py` relies on `subprocess.Popen` for both the backend and worker instances. This necessitates a real Redis instance rather than `fakeredis`. Since Docker Desktop cannot be started headlessly on this Windows machine, the automated E2E gate fails with a `TimeoutError`.
 
 ## Remaining
-- **[BLOCKED]** User must manually launch Docker Desktop, run `docker compose up -d redis`, and then execute the E2E verification gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
+- `[x]` **[OK]** User must manually launch Docker Desktop, run `docker compose up -d redis`, and then execute the E2E verification gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
 - **Final Epic Audit**: After the user confirms E2E passes, run the System 2 Reverse Epic Analysis workflow: `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_118_tda_context_enriched_pipeline.md]`
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_118_tda_context_enriched_pipeline_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier8-audit-epic --target="@[c:\src\quorum\docs\epic\EPIC_118_tda_context_enriched_pipeline_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`

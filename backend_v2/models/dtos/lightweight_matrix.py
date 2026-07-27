@@ -297,6 +297,13 @@ class ReasoningStepDTO(V2CoreBase):
     step_4_final_conclusion: Annotated[str, Field(description="Synthesize steps 1-3 into a final logical conclusion.")]
 
 
+class MatrixEvaluationItemDTO(V2CoreBase):
+    """Strict schema for individual matrix evaluation items."""
+
+    atom_id: str
+    semantic_reasoning: str = ""
+
+
 class AtomEvaluationItemDTO(V2CoreBase):
     """Strict schema for individual atom evaluations in the waterfall pipeline.
 
