@@ -7,7 +7,7 @@ import tempfile
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from backend_v2.models.v2_core import I18nText, ReportDataDTO, Workflow
+from backend_v2.models.v2_core import I18nText, ReportDataDTO, Workflow, ScorecardAtomDTO, MatrixScorecardRowDTO
 
 
 class WorkflowFactory(ModelFactory[Workflow]):
@@ -30,6 +30,18 @@ class I18nTextFactory(ModelFactory[I18nText]):
 
 class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     __model__ = ReportDataDTO
+    results = []
+    hydrated_references = {}
+
+class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
+    __model__ = ScorecardAtomDTO
+    exact_quotes = []
+    __set_as_default_factory_for_type__ = True
+
+class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
+    __model__ = MatrixScorecardRowDTO
+    scorecard_atoms = {}
+    __set_as_default_factory_for_type__ = True
 
 
 @pytest.mark.asyncio
@@ -51,29 +63,22 @@ async def test_sdui_semantic_parity() -> None:
         pdf_path = None
 
         # Generate dynamic SDUI mock using Polyfactory
-        dto = ReportDataDTOFactory.build(factory_use_construct=True)
+        dto = ReportDataDTOFactory.build()
         dto = dto.model_copy(
             update={
-                "content_blocks": [],
-                "penalties_applied": [],
                 "profile_name": I18nText(default_locale="en", translations={"en": "English test"}),
             }
         )  # Clear random dicts and explicitly mock profile_name to prevent Jinja crashes and ensure parity
-
-        from backend_v2.models.v2_core import MatrixScorecardRowDTO
-
-        class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
-            __model__ = MatrixScorecardRowDTO
 
         new_layouts = []
         for layout in dto.layouts:
             axes = list(layout.axes)
             if layout.preset_view in ("radar_3d", "3d_complex"):
                 while len(axes) < 3:
-                    axes.append(MatrixScorecardRowDTOFactory.build(factory_use_construct=True))
+                    axes.append(MatrixScorecardRowDTOFactory.build())
             elif layout.preset_view in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
                 while len(axes) < 2:
-                    axes.append(MatrixScorecardRowDTOFactory.build(factory_use_construct=True))
+                    axes.append(MatrixScorecardRowDTOFactory.build())
             new_layouts.append(layout.model_copy(update={"synthesis_blocks": None, "axes": axes}))
 
         dto = dto.model_copy(update={"layouts": new_layouts})

@@ -419,8 +419,6 @@ async def test_render_execution_json() -> None:
 
     # Mocking BlueprintTransformer
     mock_dto = Mock()
-    mock_dto.evaluative_matrices = []
-    mock_dto.informational_matrices = []
     mock_dto.layouts = []
     mock_dto.has_warning = False
     mock_dto.model_dump.return_value = {"workflow_id": "wf_1", "profile_id": "prof_1"}
