@@ -29,6 +29,7 @@ from backend_v2.models.enums import ExecutionStatus, SystemConfigID, SystemLocal
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
+    I18nText,
     MatrixScorecardRowDTO,
     MCPAuditTrace,
     OutputLayoutBlock,
@@ -39,7 +40,13 @@ from backend_v2.models.v2_core import (
     ScorecardAtomDTO,
     SystemConfigPerformativeLexicons,
 )
-from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.models.view.sdui import (
+    AlertBlock,
+    AnySduiBlock,
+    HeroInsightBlock,
+    MarkdownBlock,
+    ParagraphBlock,
+)
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
@@ -475,7 +482,7 @@ class BlueprintTransformer:
                         l_val = int(scale.score)
                         l_name = level_names.get(str(l_val), f"Taso {l_val}")
                         for claim in scale.claims:
-                            claim_label = claim.label.resolve(locale) if hasattr(claim.label, "resolve") else "Väite"
+                            claim_label = claim.label.resolve(locale) if isinstance(claim.label, I18nText) else "Väite"
                             for tda in claim.tda_assertions:
                                 atom_id = tda.tda_id
                                 ev_data = step_evals_map.get(atom_id)
@@ -940,12 +947,19 @@ class BlueprintTransformer:
 
                 # Retrieve authenticity score from step_detector payload in context_variables
                 step_det = cv.get("step_detector")
-                if isinstance(step_det, dict) and "raw_score" in step_det:
-                    val = step_det.get("raw_score")
-                    if val is not None:
-                        authenticity_score = float(val)
-                elif step_det is not None and hasattr(step_det, "raw_score") and step_det.raw_score is not None:
-                    authenticity_score = float(step_det.raw_score)
+                if step_det is not None:
+                    from pydantic import ValidationError
+
+                    from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+
+                    try:
+                        det_out = LightweightMatrixOutput.model_validate(step_det, strict=False)
+                        if det_out.raw_score is not None:
+                            authenticity_score = float(det_out.raw_score)
+                    except ValidationError as ve:
+                        logger.warning(
+                            "[BlueprintTransformer] Non-fatal schema mismatch in step_detector payload: %s", ve
+                        )
 
                 if authenticity_score is None:
                     # Dynamically resolve authenticity score from the performativity detector step in the folded trace
@@ -995,14 +1009,20 @@ class BlueprintTransformer:
 
                 # Retrieve performative phrases count from step_linguistics payload in context_variables
                 step_ling = cv.get("step_linguistics")
-                if isinstance(step_ling, dict) and "performative_patterns" in step_ling:
-                    patterns = step_ling.get("performative_patterns")
-                    if isinstance(patterns, list):
-                        performative_phrases_count = len(patterns)
-                elif step_ling is not None and hasattr(step_ling, "performative_patterns"):
-                    patterns = step_ling.performative_patterns
-                    if isinstance(patterns, list):
-                        performative_phrases_count = len(patterns)
+                if step_ling is not None:
+                    from pydantic import ValidationError
+
+                    from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+
+                    try:
+                        ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
+                        patterns = ling_out.performative_patterns
+                        if isinstance(patterns, list):
+                            performative_phrases_count = len(patterns)
+                    except ValidationError as ve:
+                        logger.warning(
+                            "[BlueprintTransformer] Non-fatal schema mismatch in step_linguistics payload: %s", ve
+                        )
 
                 if performative_phrases_count is None:
                     # Dynamically resolve linguistics performative patterns count from decision events in execution trace
@@ -1243,17 +1263,15 @@ class BlueprintTransformer:
                 compiler = PromptCompiler()
                 resolved_preamble = compiler.resolve_i18n(synthesis_cfg.preamble_text, locale)
                 if resolved_preamble:
-                    from backend_v2.models.view.sdui import MarkdownBlock
-
                     content_blocks.insert(0, MarkdownBlock(id="preamble", text=resolved_preamble))
 
             if synthesis_cfg and synthesis_cfg.enable_pii_masking:
                 for idx, cb in enumerate(content_blocks):
-                    if hasattr(cb, "text") and isinstance(cb.text, str):
+                    if isinstance(cb, (MarkdownBlock, ParagraphBlock, AlertBlock, HeroInsightBlock)):
                         content_blocks[idx] = cb.model_copy(update={"text": self._apply_pii_masking(cb.text)})
                 for _layout_id, sec_blocks in section_syntheses.items():
                     for idx, sb in enumerate(sec_blocks):
-                        if hasattr(sb, "text") and isinstance(sb.text, str):
+                        if isinstance(sb, (MarkdownBlock, ParagraphBlock, AlertBlock, HeroInsightBlock)):
                             sec_blocks[idx] = sb.model_copy(update={"text": self._apply_pii_masking(sb.text)})
 
             if not injected and synthesis_block_id and profile.content_blocks:
@@ -1415,8 +1433,6 @@ class BlueprintTransformer:
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
 
-                from backend_v2.models.view.sdui import MarkdownBlock
-
                 content_blocks.insert(0, MarkdownBlock(id="preface_md", text=resolved_preface_md))
 
             if content_blocks:
@@ -1539,8 +1555,6 @@ class BlueprintTransformer:
                     global_score = float(round(max(0.0, recalc_final), 1))
 
             if penalties_applied:
-                from backend_v2.models.view.sdui import AlertBlock
-
                 penalty_blocks: list[AnySduiBlock] = []
                 for p_str in penalties_applied:
                     penalty_blocks.append(

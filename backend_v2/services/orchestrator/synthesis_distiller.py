@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from fastapi import status
+from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -35,10 +36,10 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
     Returns:
         A stringified JSON dump stripped of extraneous AI inference variables.
     """
-    if hasattr(v, "model_dump"):
+    if isinstance(v, BaseModel):
         v = v.model_dump(mode="json")
     elif isinstance(v, list):
-        v = [item.model_dump(mode="json") if hasattr(item, "model_dump") else item for item in v]
+        v = [item.model_dump(mode="json") if isinstance(item, BaseModel) else item for item in v]
 
     if not isinstance(v, (dict, list)):
         return str(v)
