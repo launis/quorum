@@ -13,12 +13,8 @@ This plan refactors the SDUI block consumers (Blueprint and Worker) to handle ty
   <constraint invariant="frozen_state_mutability">In-place dictionary mutation is forbidden on Pydantic models; use model_copy or reinstantiation.</constraint>
   <step id="1" name="Blueprint Generator Refactor">
     <action>Modify `@[c:\src\quorum\backend_v2\services\blueprint.py]`.</action>
-    <demolish>REMOVE: `isinstance(cb, dict)` checks in both `content_blocks` loop and `section_syntheses` PII masking loop.</demolish>
-    <demolish>REMOVE: `.copy()` calls on dict elements, replace with `.model_copy()`.</demolish>
-    <demolish>REMOVE: `hasattr(cache_b, "copy")`.</demolish>
-    <demolish>REMOVE: `c_block.get("id")` raw dict access; redesign lookup logic since `SduiBlockBase` lacks an `id` field.</demolish>
-    <demolish>REMOVE: Inline dict construction (e.g., `{"block_type": "markdown"...}`); replace with `MarkdownBlock(...)` instantiation.</demolish>
-    <demolish>REMOVE: `c_block["text"] = safe_md` mutation; replace with `MarkdownBlock(text=safe_md)` reconstruction.</demolish>
+    <demolish>REMOVE: `getattr(c_block, "id", None)` access; replace with strict `c_block.id` access since `SduiBlockBase` now correctly has an `id` field.</demolish>
+    <demolish>REMOVE: `c_block.text = safe_md` in-place mutation; replace with `c_block.model_copy(update={"text": safe_md})` to respect frozen Pydantic models.</demolish>
   </step>
   <step id="2" name="Synthesis Distiller Refactor">
     <action>Modify `@[c:\src\quorum\backend_v2\services\orchestrator\synthesis_distiller.py]`.</action>
@@ -27,9 +23,7 @@ This plan refactors the SDUI block consumers (Blueprint and Worker) to handle ty
   </step>
   <step id="3" name="Worker Double-Serialization Removal">
     <action>Modify `@[c:\src\quorum\backend_v2\worker.py]`.</action>
-    <demolish>REMOVE: Explicit `.model_dump()` + `typing.cast(list[dict[str, Any]], ...)` pattern when storing `content_blocks` and `sec_dict` into `RenderedSynthesisCache`.</demolish>
-    <action>Store the `AnySduiBlock` objects directly into the cache.</action>
-    <action>Ensure `pydantic.ValidationError` is caught during LLM response parsing into `SynthesisSectionDTO` and repackaged into an `AppException` to trigger Schema Healing.</action>
+    <action>Catch `pydantic.ValidationError` (and `ExceptionGroup` containing it) inside the `generate_profile_synthesis_and_pdf_task` exception handler. Repackage it into an `AppException` with `ErrorCodes.VALIDATION_FAILED` to enforce the Fail-Fast mandate.</action>
   </step>
 </execution_protocol>
 ```
