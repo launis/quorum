@@ -9447,9 +9447,26 @@
       },
       "visible_metadata": [
         "date",
-        "organization"
+        "execution_id",
+        "organization",
+        "user",
+        "scoring_engine",
+        "strictness"
       ],
-      "visible_block_extensions": [
+      "custom_preface": {
+        "default_locale": "fi",
+        "translations": {
+          "en": "Executive Summary & Audit Report",
+          "fi": "Johdon Yhteenveto & Auditointiraportti"
+        }
+      },
+      "user_role_label": {
+        "default_locale": "fi",
+        "translations": {
+          "en": "User Role",
+          "fi": "Käyttäjärooli"
+        }
+      },      "visible_block_extensions": [
         "justification",
         "coaching",
         "falsification",
@@ -9462,6 +9479,35 @@
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "layouts": [
+        {
+          "preset_view": "text_only",
+          "is_synthesis_enabled": true,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "SUMMARY",
+              "fi": "YHTEENVETO"
+            }
+          }
+        },
+        {
+          "preset_view": "2d_compare",
+          "is_synthesis_enabled": true,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "DETAILED SCORING ASSESSMENT",
+              "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS"
+            }
+          },
+          "description": {
+            "default_locale": "en",
+            "translations": {
+              "en": "Data verifiability and logical structure.",
+              "fi": "Datan todennettavuus ja looginen rakenne."
+            }
+          }
+        },
         {
           "preset_view": "3d_matrix",
           "title": {
@@ -9802,15 +9848,15 @@
           }
         },
         {
-          "preset_view": "2d_compare",
-          "title": {
-            "default_locale": "en",
-            "translations": {
-              "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS",
-              "en": "DETAILED SCORING MATRIX"
-            }
-          },
-          "description": {
+        "preset_view": "1d_metrics",
+        "is_synthesis_enabled": false,
+        "title": {
+          "default_locale": "en",
+          "translations": {
+            "en": "GLOBAL SCORE",
+            "fi": "KOKONAISKESKIARVO"
+          }
+        },          "description": {
             "default_locale": "fi",
             "translations": {
               "en": "Measurement of Unfounded Assumptions, Internal Contradictions, and Post-Hoc Rationalization.",
@@ -9818,11 +9864,9 @@
             }
           },
           "steps": [],
-          "target_blocks": [
-            "blk_6b8c766185294f7e",
-            "blk_f6e286f050c94d60"
-          ],
-          "text_delivery_mode": "none",
+        "target_blocks": [
+          "global_score_block"
+        ],          "text_delivery_mode": "none",
           "synthesis": {
             "system_prompt": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text.",
             "length_constraint": 800,
@@ -9968,15 +10012,15 @@
           }
         },
         {
-          "preset_view": "text_only",
-          "title": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "Kognitiivinen syvyys",
-              "en": "Cognitive Depth"
-            }
-          },
-          "description": {
+        "preset_view": "text_only",
+        "is_synthesis_enabled": false,
+        "title": {
+          "default_locale": "en",
+          "translations": {
+            "en": "PENALTIES & AUDIT TRAIL",
+            "fi": "RANGAISTUKSET & AUDIT TRAIL"
+          }
+        },          "description": {
             "default_locale": "fi",
             "translations": {
               "fi": "Arvioi kognitiivisen prosessoinnin ja tekemisen syvyyttä.",
@@ -9984,10 +10028,10 @@
             }
           },
           "steps": [],
-          "target_blocks": [
-            "blk_f921c7c0989b47e8"
-          ],
-          "text_delivery_mode": "full",
+        "target_blocks": [
+          "penalties_block",
+          "audit_trail_block"
+        ],          "text_delivery_mode": "full",
           "synthesis": {
             "system_prompt": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text.",
             "length_constraint": 500,
@@ -10133,15 +10177,15 @@
           }
         },
         {
-          "preset_view": "text_only",
-          "title": {
-            "default_locale": "fi",
-            "translations": {
-              "fi": "Best Practices -yhteensopivuus",
-              "en": "Best Practices Compliance"
-            }
-          },
-          "description": {
+        "preset_view": "1d_metrics",
+        "is_synthesis_enabled": false,
+        "title": {
+          "default_locale": "en",
+          "translations": {
+            "en": "JARGON RATIO",
+            "fi": "JARGON-SANOJEN SUHTEELLISUUS"
+          }
+        },          "description": {
             "default_locale": "fi",
             "translations": {
               "fi": "Mittaa tiedon jäljitettävyyttä ja ankkurointia luotettaviin lähteisiin.",
@@ -10149,10 +10193,9 @@
             }
           },
           "steps": [],
-          "target_blocks": [
-            "blk_fb15f8dcf23f4865"
-          ],
-          "text_delivery_mode": "full",
+        "target_blocks": [
+          "jargon_ratio_block"
+        ],          "text_delivery_mode": "full",
           "synthesis": {
             "system_prompt": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text.",
             "length_constraint": 500,
@@ -10939,6 +10982,18 @@
               }
             }
           }
+        },
+        {
+          "preset_view": "text_only",
+          "is_synthesis_enabled": false,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "SOURCES",
+              "fi": "TULOSTETTAVAT LÄHTEET"
+            }
+          },
+          "target_blocks": ["printable_sources_block"]
         }
       ],
       "max_extension_items": 4,

@@ -26,11 +26,11 @@
 
 ### Phase 1: OutputProfile Configuration in seed_data.json
 - [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`
-- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`
-  - [ ] `2_1`: Update Target OutputProfile in Seed Data
-  - [ ] `2_2`: Configure layouts Array
-  - [ ] `2_3`: Testing & Quality Gate Plan
-- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`
+- [x] **[OK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`
+  - [x] `2_1`: Update Target OutputProfile in Seed Data
+  - [x] `2_2`: Configure layouts Array
+  - [x] `2_3`: Testing & Quality Gate Plan
+- [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]` (Report: `@[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_audit_report.md]`)
 
 ### Phase 2: Backend Context Mappers & Blueprint Hydration (Placeholder)
 - [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\03_phase2_backend_mappers_placeholder.md]`
@@ -98,15 +98,15 @@
 | R17 | Add `userRole` and `userRoleJustification` to `GlobalSynthesisDto` in frontend | 1_3 | ✅ Done |
 | R18 | Add `userRoleLabel` to `OutputProfile` in frontend | 1_3 | ✅ Done |
 | R19 | Run flutter build runner for Phase 0 | 1_4 | ✅ Done |
-| R20 | Add metadata to `visible_metadata` array in seed data `OutputProfile` | 2_1 | ⏳ Pending |
-| R21 | Set `custom_preface` with default and translations in seed data | 2_1 | ⏳ Pending |
-| R22 | Add `user_role_label` in seed data | 2_1 | ⏳ Pending |
-| R23 | Add extensions to `visible_block_extensions` in seed data | 2_1 | ⏳ Pending |
-| R24 | Configure `layouts` sequence in seed data (summary, chart, matrix) | 2_2 | ⏳ Pending |
-| R25 | Configure `3d_matrix` layout block in seed data with columns and labels | 2_2 | ⏳ Pending |
-| R26 | Add `1d_metrics` blocks (Global Score, Jargon Ratio) in seed data | 2_2 | ⏳ Pending |
-| R27 | Add `text_only` blocks (Penalties & Audit Trail, Sources) in seed data | 2_2 | ⏳ Pending |
-| R28 | Run seed dry-run command to validate JSON integrity | 2_3 | ⏳ Pending |
+| R20 | Add metadata to `visible_metadata` array in seed data `OutputProfile` | 2_1 | ✅ Done |
+| R21 | Set `custom_preface` with default and translations in seed data | 2_1 | ✅ Done |
+| R22 | Add `user_role_label` in seed data | 2_1 | ✅ Done |
+| R23 | Add extensions to `visible_block_extensions` in seed data | 2_1 | ✅ Done |
+| R24 | Configure `layouts` sequence in seed data (summary, chart, matrix) | 2_2 | ✅ Done |
+| R25 | Configure `3d_matrix` layout block in seed data with columns and labels | 2_2 | ✅ Done |
+| R26 | Add `1d_metrics` blocks (Global Score, Jargon Ratio) in seed data | 2_2 | ✅ Done |
+| R27 | Add `text_only` blocks (Penalties & Audit Trail, Sources) in seed data | 2_2 | ✅ Done |
+| R28 | Run seed dry-run command to validate JSON integrity | 2_3 | ✅ Done |
 
 # Session Handover Context
 ## Achieved
@@ -119,6 +119,8 @@
 - Implemented Phase 0 Frontend DTO Parity Step 1_3: GlobalSynthesisDto and OutputProfile Updates.
 - Completed Tier 8 Audit for Phase 0 Frontend execution and generated the audit report at `@[c:\src\quorum\docs\epic\tasks_EPIC_122\01_phase0_frontend_audit_report.md]`.
 - Executed Tier 0 (Red-Teaming) on Phase 1 Implementation Plan `@[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md]`.
+- Executed Phase 1 to surgically mutate `seed_data.json` without breaking context window bounds.
+- Completed Tier 8 Audit for Phase 1 and generated the audit report at `@[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_audit_report.md]`.
 
 ## Learned
 - **Baseline State Snapshot**:
@@ -126,9 +128,10 @@
 - **Audit Findings**:
   - The original Phase 1 plan lacked safeguards against context window saturation when modifying the massive 10,000+ line `seed_data.json` file.
   - (RESOLVED): Mutated the Phase 1 implementation plan to enforce dynamic line-bounds extraction using a Python script in `scratch/` before invoking structural replacements. This guarantees `multi_replace_file_content` will not trigger `Context Amnesia`.
+  - The JSON was safely updated, and `uv run python backend_v2/seed/run_seed.py local --dry-run` successfully verified the schema structure.
 
 ## Remaining
-- Proceed to Phase 1: OutputProfile Configuration in seed_data.json by running its Execution phase (`/tier2-execute`).
+- Proceed to Phase 2: Backend Context Mappers & Blueprint Hydration (Placeholder) by running its Red-Teaming phase (`/tier0-research-plan`).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\tasks_EPIC_122\02_phase1_output_profile_seed_plan.md] @[c:\src\quorum\docs\epic\EPIC_122_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\03_seed_vault.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_122\03_phase2_backend_mappers_placeholder.md] @[c:\src\quorum\docs\epic\EPIC_122_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`

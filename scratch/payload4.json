@@ -1,0 +1,23 @@
+{
+  "TargetFile": "c:\\src\\quorum\\backend_v2\\seed\\seed_data.json",
+  "Instruction": "Fix formatting and append SOURCES block",
+  "Description": "Append SOURCES block to layouts",
+  "ReplacementChunks": [
+    {
+      "TargetContent": "      {          \"preset_view\": \"3d_matrix\",",
+      "ReplacementContent": "        {\n          \"preset_view\": \"3d_matrix\",",
+      "StartLine": 9490,
+      "EndLine": 9495,
+      "AllowMultiple": false
+    },
+    {
+      "TargetContent": "        }\n      ],\n      \"max_extension_items\": 4,",
+      "ReplacementContent": "        },\n        {\n          \"preset_view\": \"text_only\",\n          \"is_synthesis_enabled\": false,\n          \"title\": {\n            \"default_locale\": \"en\",\n            \"translations\": {\n              \"en\": \"SOURCES\",\n              \"fi\": \"TULOSTETTAVAT LÄHTEET\"\n            }\n          },\n          \"target_blocks\": [\"printable_sources_block\"]\n        }\n      ],\n      \"max_extension_items\": 4,",
+      "StartLine": 10950,
+      "EndLine": 10970,
+      "AllowMultiple": false
+    }
+  ],
+  "toolSummary": "Append SOURCES block",
+  "toolAction": "Append SOURCES"
+}

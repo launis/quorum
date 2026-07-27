@@ -1,0 +1,438 @@
+      "layouts": [
+        {
+          "preset_view": "text_only",
+          "is_synthesis_enabled": true,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "SUMMARY",
+              "fi": "YHTEENVETO"
+            }
+          }
+        },
+        {
+          "preset_view": "2d_compare",
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "DETAILED SCORING ASSESSMENT",
+              "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS"
+            }
+          },
+          "description": {
+            "default_locale": "en",
+            "translations": {
+              "en": "Data verifiability and logical structure.",
+              "fi": "Datan todennettavuus ja looginen rakenne."
+            }
+          },
+          "steps": [],
+          "target_blocks": [
+            "blk_c5804a9143c34cb1",
+            "blk_b476f89fb732448c"
+          ],
+          "text_delivery_mode": "none",
+          "synthesis": {
+            "system_prompt": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text.",
+            "length_constraint": 800,
+            "preamble_text": {
+              "default_locale": "en",
+              "translations": {
+                "en": "Causal Mechanics (Pearl), Falsification (Popper), and Epistemic Humility",
+                "fi": "Mekanismien ymmärrys (Pearl), falsifikaatio (Popper) ja episteeminen nöyryys"
+              }
+            },
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf",
+              "raw_json",
+              "xlsx"
+            ],
+            "omit_empty_sections": true,
+            "historical_context_mode": "DISABLED",
+            "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
+          },
+          "matrix_column_labels": {
+            "label": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Matriisi",
+                "en": "Matrix"
+              }
+            },
+            "score": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Pisteet",
+                "en": "Score"
+              }
+            },
+            "distribution": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Jakauma",
+                "en": "Distribution"
+              }
+            },
+            "row_explanation": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Selite",
+                "en": "Explanation"
+              }
+            },
+            "quotes": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Lainaukset (quotes)",
+                "en": "Quotes (quotes)"
+              }
+            },
+            "normalized_score": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Skaalattu",
+                "en": "Normalized"
+              }
+            }
+          },
+          "extension_labels": {
+            "citation": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "VIITTEET",
+                "en": "CITATIONS"
+              }
+            },
+            "justification": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "PERUSTELUT",
+                "en": "JUSTIFICATIONS"
+              }
+            },
+            "falsification": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "⚖️ VASTA-ARGUMENTTI",
+                "en": "⚖️ COUNTER-ARGUMENT"
+              }
+            },
+            "theory_link": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "📚 TEOREETTINEN YHTEYS",
+                "en": "📚 THEORETICAL LINK"
+              }
+            },
+            "risk_flag": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "⚠️ VAKAVA RISKI HAVAITTU",
+                "en": "⚠️ SEVERE RISK DETECTED"
+              }
+            },
+            "coaching": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "💡 ARJEN VINKKI",
+                "en": "💡 DAILY TIP"
+              }
+            },
+            "missing_context": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "🔍 PUUTTUVA KONTEKSTI",
+                "en": "🔍 MISSING CONTEXT"
+              }
+            },
+            "remediation_steps": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "🛠️ KORJAAVAT TOIMENPITEET",
+                "en": "🛠️ REMEDIATION STEPS"
+              }
+            },
+            "emotional_sentiment": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "🎭 EMOTIONAALINEN SÄVY",
+                "en": "🎭 EMOTIONAL SENTIMENT"
+              }
+            },
+            "confidence": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "LUOTETTAVUUS JA VARMUUS",
+                "en": "RELIABILITY AND CONFIDENCE"
+              }
+            },
+            "variance_validation": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "🤖 VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
+                "en": "🤖 VARIANCE (COGNITIVE VS. MECHANICAL)"
+              }
+            }
+          },
+          "is_synthesis_enabled": true
+        },
+        {
+          "preset_view": "3d_matrix",
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "MATRIX SUMMARY",
+              "fi": "YHTEENVETO / MATRIX SUMMARY"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Structural Logic (Toulmin), Cognitive Bias (Kahneman), and Performativity Risk (Goodhart)",
+              "fi": " Looginen perusta (Toulmin), ajatteluvääristymät (Kahneman) ja suorituskykyharha (Goodhart)"
+            }
+          },
+          "steps": [],
+          "target_blocks": [
+            "blk_440a5fef9331451b",
+            "blk_53f32679aa514fcb",
+            "blk_109dab5b6b3f403a"
+          ],
+          "text_delivery_mode": "none",
+          "synthesis": {
+            "system_prompt": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text.",
+            "length_constraint": 800,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi vastauksesi tilannekohtaisiin arviointeihin. Sen tavoitteena on auttaa sinua ymmärtämään vahvuutesi ja kehityskohteesi tekoälyn hyödyntämisessä.\n\n**Huomioi lukiessasi**\n\nAnalyysi ei ole absoluuttinen totuus, vaan suuntaa antava katsaus tämänhetkiseen osaamiseesi. Tekoälytaidot kehittyvät jatkuvasti kokeilemalla ja oppimalla.",
+                "en": "**Your AI Skills Report**\n\nThis report analyzes your responses to situational assessments. Its goal is to help you understand your strengths and areas for development in utilizing AI.\n\n**Note when reading**\n\nThe analysis is not an absolute truth, but an indicative overview of your current skills. AI skills are constantly developing through experimentation and learning."
+              }
+            },
+            "tone_instruction": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "<system_directive>\n  <role>Senior Executive Coach</role>\n  <objective>Produce a clear, coherent, and highly concrete executive summary of the entire evaluation.</objective>\n  <rules>\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 4-paragraph coaching structure in every output:\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength.\n      PARAGRAPH 2 (The Interaction Role): You MUST start this paragraph by explicitly highlighting the user's assigned interaction role using EXACTLY the raw enum value from the data (e.g., \"**Käyttäjän Rooli: ROLE_ARCHITECT**\"). DO NOT translate the enum value. Provide a concrete justification for why this specific role was assigned.\n      PARAGRAPH 3 (The Cross-Examined Risk): Combine at least two distinct XAI findings to highlight logical blind spots.\n      PARAGRAPH 4 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps.\n    </rule>\n    <rule>EVIDENCE MANDATE (CRITICAL): You MUST anchor every major analytical claim to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion.</rule>\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'.</rule>\n  </rules>\n</system_directive>",
+                "en": "<system_directive>\n  <role>Senior Executive Coach</role>\n  <objective>Produce a clear, coherent, and highly concrete executive summary of the entire evaluation.</objective>\n  <rules>\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 4-paragraph coaching structure in every output:\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength.\n      PARAGRAPH 2 (The Interaction Role): You MUST start this paragraph by explicitly highlighting the user's assigned interaction role using EXACTLY the raw enum value from the data (e.g., \"**User Role: ROLE_ARCHITECT**\"). DO NOT translate the enum value. Provide a concrete justification for why this specific role was assigned.\n      PARAGRAPH 3 (The Cross-Examined Risk): Combine at least two distinct XAI findings to highlight logical blind spots.\n      PARAGRAPH 4 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps.\n    </rule>\n    <rule>EVIDENCE MANDATE (CRITICAL): You MUST anchor every major analytical claim to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion.</rule>\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'.</rule>\n  </rules>\n</system_directive>"
+              }
+            },
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf",
+              "xlsx"
+            ],
+            "omit_empty_sections": false,
+            "historical_context_mode": "DISABLED",
+            "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
+          },
+          "matrix_column_labels": {
+            "label": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Matriisi",
+                "en": "Matrix"
+              }
+            },
+            "score": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Pisteet",
+                "en": "Score"
+              }
+            },
+            "distribution": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Jakauma",
+                "en": "Distribution"
+              }
+            },
+            "row_explanation": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Selite",
+                "en": "Explanation"
+              }
+            },
+            "quotes": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Lainaukset (quotes)",
+                "en": "Quotes (quotes)"
+              }
+            },
+            "normalized_score": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Skaalattu",
+                "en": "Normalized"
+              }
+            }
+          },
+          "extension_labels": {
+            "citation": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "VIITTEET",
+                "en": "CITATIONS"
+              }
+            },
+            "justification": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "PERUSTELUT",
+                "en": "JUSTIFICATIONS"
+              }
+            },
+            "falsification": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "⚖️ VASTA-ARGUMENTTI",
+                "en": "⚖️ COUNTER-ARGUMENT"
+              }
+            },
+            "theory_link": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "📚 TEOREETTINEN YHTEYS",
+                "en": "📚 THEORETICAL LINK"
+              }
+            },
+            "risk_flag": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "⚠️ VAKAVA RISKI HAVAITTU",
+                "en": "⚠️ SEVERE RISK DETECTED"
+              }
+            },
+            "coaching": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "💡 ARJEN VINKKI",
+                "en": "💡 DAILY TIP"
+              }
+            },
+            "missing_context": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "🔍 PUUTTUVA KONTEKSTI",
+                "en": "🔍 MISSING CONTEXT"
+              }
+            },
+            "remediation_steps": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "🛠️ KORJAAVAT TOIMENPITEET",
+                "en": "🛠️ REMEDIATION STEPS"
+              }
+            },
+            "emotional_sentiment": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "🎭 EMOTIONAALINEN SÄVY",
+                "en": "🎭 EMOTIONAL SENTIMENT"
+              }
+            },
+            "confidence": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "LUOTETTAVUUS JA VARMUUS",
+                "en": "RELIABILITY AND CONFIDENCE"
+              }
+            },
+            "variance_validation": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "🤖 VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
+                "en": "🤖 VARIANCE (COGNITIVE VS. MECHANICAL)"
+              }
+            }
+          },
+          "is_synthesis_enabled": false,
+          "matrix_visible_columns": [
+            "label",
+            "distribution",
+            "row_explanation",
+            "normalized_score",
+            "score"
+          ]
+        },
+        {
+          "preset_view": "1d_metrics",
+          "is_synthesis_enabled": false,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "GLOBAL SCORE",
+              "fi": "KOKONAISKESKIARVO"
+            }
+          },
+          "target_blocks": [
+            "global_score_block"
+          ]
+        },
+        {
+          "preset_view": "text_only",
+          "is_synthesis_enabled": false,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "PENALTIES & AUDIT TRAIL",
+              "fi": "RANGAISTUKSET & AUDIT TRAIL"
+            }
+          },
+          "target_blocks": [
+            "penalties_block",
+            "audit_trail_block"
+          ]
+        },
+        {
+          "preset_view": "1d_metrics",
+          "is_synthesis_enabled": false,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "JARGON RATIO",
+              "fi": "JARGON-SANOJEN SUHTEELLISUUS"
+            }
+          },
+          "target_blocks": [
+            "jargon_ratio_block"
+          ]
+        },
+        {
+          "preset_view": "text_only",
+          "is_synthesis_enabled": false,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "SOURCES",
+              "fi": "TULOSTETTAVAT LÄHTEET"
+            }
+          },
+          "target_blocks": [
+            "printable_sources_block"
+          ]
+        }
+      ],
+      "max_extension_items": 4,
+      "id": "prf_5d6e7f8091a2b3c4",
+      "slug": "holistic_audit",
+      "workflow_id": "wf_9d68c573802341db",
+      "organization_id": "SYSTEM",
+      "content_blocks": [],
+      "custom_preface": {
+        "default_locale": "fi",
+        "translations": {
+          "en": "Executive Summary & Audit Report",
+          "fi": "Johdon Yhteenveto & Auditointiraportti"
+        }
+      },
+      "user_role_label": {
+        "default_locale": "fi",
+        "translations": {
+          "en": "User Role",
+          "fi": "Käyttäjärooli"
+        }
+      }

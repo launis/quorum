@@ -1,0 +1,4 @@
+      "visible_metadata": [
+        "date",
+        "organization"
+      ],
