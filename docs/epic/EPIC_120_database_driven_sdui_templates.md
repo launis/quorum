@@ -33,10 +33,11 @@ These fields represent the last `Any`/`dynamic` contamination in the entire SDUI
 - **`ReportLayoutDTO.synthesis_blocks: list[dict[str, Any]] | None`** — Same as above, preserving `| None` semantics.
 - **`RenderedSynthesisCache.content_blocks: list[dict[str, Any]]`** — Replaced with `content_blocks: list[AnySduiBlock]`.
 - **`RenderedSynthesisCache.section_syntheses: dict[str, list[dict[str, Any]]]`** — Replaced with `section_syntheses: dict[str, list[AnySduiBlock]]`.
+- **`OutputProfileCreateDTO.content_blocks`**, **`OutputProfileUpdateDTO.content_blocks`**, **`OutputProfileResponseDTO.content_blocks`** — All three DTOs in `@[c:\src\quorum\backend_v2\models\dtos\output_profile.py]` are replaced from `list[dict[str, Any]]` to `list[AnySduiBlock]`.
 - **Flutter `List<dynamic> contentBlocks`** — In both `OutputProfile` and `EmbeddedOutputProfile` Freezed models, replaced with the shared `SduiBlockDTO` sealed class.
 - **Flutter `List<Map<String, dynamic>>? synthesisBlocks`** — In `ReportLayoutDto`, replaced with `List<SduiBlockDTO>?` (preserving nullable semantics).
 - **Unstructured Type Definitions**: After this Epic, ZERO instances of `dict[str, Any]` or `List<dynamic>` remain in any SDUI-related model.
-- **Duck-typing remnants in `blueprint.py`**: All `hasattr()`, `isinstance(cb, dict)`, `c_block.get("id")`, and inline raw dict construction (`{"block_type": ..., "text": ...}`) MUST be replaced with typed model operations.
+- **Duck-typing remnants in `blueprint.py`**: All `hasattr()`, `isinstance(cb, dict)`, `c_block.get("id")`, and inline raw dict construction (`{"block_type": ..., "text": ...}`) MUST be replaced with typed model operations — including both the content_blocks loop (line ~1248) AND the PII masking loop (line ~1252) which contains a second `isinstance(sb, dict)` check.
 
 ### Retained SSOT Invariants (What We Will RETAIN)
 - **`layouts: list[OutputLayoutBlock]`** — The core structural rendering configuration remains exactly as-is. `OutputLayoutBlock` is NOT legacy — it is a Phase 9 strict Pydantic model with well-defined Literal types (`preset_view`, `text_delivery_mode`) and is the established mechanism for admin report ordering.
@@ -66,6 +67,12 @@ These fields represent the last `Any`/`dynamic` contamination in the entire SDUI
 > [!WARNING]
 > **Scope Boundary: Admin Studio Block Builder UI is OUT OF SCOPE.** Building a drag-and-drop block builder UI is a new feature that MUST NOT be mixed with structural refactoring. If desired, it should be a separate Epic (e.g., EPIC 121) that builds on top of the typed foundation this Epic establishes.
 
+> [!CAUTION]
+> **Atomic Execution Mandate (Phase 1 & Phase 4):** Changing `v2_core.py` to use strict Pydantic models (Phase 1) will immediately crash the entire backend test suite because the legacy mock tests still use unstructured dictionaries. Therefore, **Phase 1 and Phase 4 (Test Fixture Migration) MUST be executed atomically in the same deployment window.** Do not merge Phase 1 without also applying Phase 4 test fixes.
+
+> [!CAUTION]
+> **MANDATORY Phase Execution Order: Phase 2 (Flutter) MUST be executed BEFORE Phase 1 (Backend).** The Flutter `SduiBlockDTO` sealed class currently has only 5 types while Python's `AnySduiBlock` has 9. Deploying backend type changes first will cause the backend to emit `quote_card`, `warning_card`, `n_a_card`, and `grid` block types that the Flutter client cannot parse, resulting in an immediate `disallowUnrecognizedKeys` crash (White Screen of Death). Tier 1 Planners MUST NOT follow numeric phase order blindly.
+
 ### Phase 1: Backend Model Strictness Hardening
 - **Target**: `@[c:\src\quorum\backend_v2\models\v2_core.py]`
 - **Import**: `from backend_v2.models.view.sdui import AnySduiBlock` (view layer → safe for Core; NEVER import from `dtos/synthesis.py` to avoid circular dependency).
@@ -85,19 +92,29 @@ These fields represent the last `Any`/`dynamic` contamination in the entire SDUI
 ### Phase 2: Frontend Freezed Sealed Class Synchronization
 - **CRITICAL**: `SduiBlockDTO` MUST be defined in `shared/models/` (NOT inside `features/studio/`). Both `features/studio/` (`OutputProfile`, `OutputLayoutBlock`) and `features/execution/` (`ReportLayoutDto`) consume this type. Placing it inside a feature directory would create a cross-feature dependency, violating Flutter feature isolation.
 
-> [!WARNING]
-> **Flutter Sealed Class Parity Gap**: The Python `AnySduiBlock` includes **9 types** (`HeroInsightBlock`, `ParagraphBlock`, `BulletListBlock`, `AlertBlock`, `MarkdownBlock`, `SduiQuoteCard`, `SduiWarningCard`, `SduiNACard`, `SduiGridBlock`), but the current Flutter `SduiBlockDTO` only defines **5 types**. The 4 missing types (`quoteCard`, `warningCard`, `naCard`, `grid`) MUST be added to the Flutter sealed class. Failure to add them means the Freezed parser will crash with an `UnrecognizedUnionKey` error when the backend sends one of these block types.
+> [!CAUTION]
+> **Red-Team Finding (Tier 0 Parity Gap)**: Sending a block like `SduiQuoteCard` without updating the Flutter `SduiBlockDTO` sealed class will cause a strict `disallowUnrecognizedKeys` Freezed exception on the client, resulting in a white screen. The Python `AnySduiBlock` includes **9 types** (`HeroInsightBlock`, `ParagraphBlock`, `BulletListBlock`, `AlertBlock`, `MarkdownBlock`, `SduiQuoteCard`, `SduiWarningCard`, `SduiNACard`, `SduiGridBlock`), but the current Flutter `SduiBlockDTO` only defines **5 types**. The 4 missing types (`quoteCard`, `warningCard`, `naCard`, `grid`) MUST be added to the Flutter sealed class. Phase 2 is an absolute prerequisite to Phase 1 deployment.
 
 - **Step 2a — Extract to shared layer**:
   - **Target**: `@[c:\src\quorum\client_app_v2\lib\shared\models\sdui_block_dto.dart]` [NEW]
-  - Extract the existing `SduiBlockDTO` sealed class from `@[c:\src\quorum\client_app_v2\lib\features\studio\models\output_profile.dart]` into a new shared file, using `@Freezed(unionKey: 'block_type')` with ALL concrete types matching the Python `AnySduiBlock` union: `ParagraphBlock`, `BulletListBlock`, `AlertBlock`, `HeroInsightBlock`, `MarkdownBlock`, `QuoteCardBlock`, `WarningCardBlock`, `NACardBlock`, `GridBlock`.
+  - Extract the existing `SduiBlockDTO` sealed class from `@[c:\src\quorum\client_app_v2\lib\features\studio\models\output_profile.dart]` into a new shared file, using `@Freezed(unionKey: 'block_type')`.
+  - Add the 4 missing types so they EXACTLY match the Python `AnySduiBlock` types. You MUST specify the exact `@FreezedUnionValue` matching the Python snake_case discriminator, and you MUST define all required fields to mirror Python `sdui.py`:
+    - `@FreezedUnionValue('quote_card')` with `String quote`, `List<String> sourceAliases`, and `List<dynamic> citations`.
+    - `@FreezedUnionValue('warning_card')` with `String message` and `String? quoteText`.
+    - `@FreezedUnionValue('n_a_card')` with `List<String> shortCircuitReasonTdaIds` and `String message`.
+    - `@FreezedUnionValue('grid')` with `List<dynamic> items`.
 - **Step 2b — Rewire studio imports**:
   - **Target**: `@[c:\src\quorum\client_app_v2\lib\features\studio\models\output_profile.dart]`
   - Remove the inline `SduiBlockDTO` definition and replace with `import '../../../shared/models/sdui_block_dto.dart';`.
   - Replace `List<dynamic> contentBlocks` with `@Default([]) List<SduiBlockDTO> contentBlocks` in both `OutputProfile` (line ~162) and `EmbeddedOutputProfile` (line ~191).
+  - **Nullability Semantics Note**: The Studio-side `OutputLayoutBlock.synthesisBlocks` is already typed as non-nullable `List<SduiBlockDTO>` with `@Default([])` (admin editing always has a list). This is intentionally DIFFERENT from the Execution-side `ReportLayoutDto.synthesisBlocks` which is nullable `List<SduiBlockDTO>?` (to distinguish "not yet executed" from "executed with empty output"). Both are correct for their respective domains.
 - **Step 2c — Rewire execution imports**:
   - **Target**: `@[c:\src\quorum\client_app_v2\lib\features\execution\models\report_layout_dto.dart]`
   - Replace `List<Map<String, dynamic>>? synthesisBlocks` with `List<SduiBlockDTO>? synthesisBlocks` by importing from `shared/models/sdui_block_dto.dart`. **PRESERVE nullable `?`** to maintain the `null` vs `[]` semantic distinction used by the report renderer.
+- **Step 2d — Strict Deserialization Testing**:
+  - **Target**: `@[c:\src\quorum\client_app_v2\test\shared\models\sdui_block_dto_test.dart]` [NEW]
+  - Write explicit Unit Tests verifying that `SduiBlockDTO.fromJson` correctly deserializes all 9 specific block types.
+  - Write negative Unit Tests verifying that unknown or malformed `block_type` strings explicitly crash the Freezed parser (Fail-Fast).
 - Execute `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`.
 
 ### Phase 3: Blueprint Generator & Worker Strictness Hardening
@@ -105,14 +122,19 @@ These fields represent the last `Any`/`dynamic` contamination in the entire SDUI
 - Refactor `content_blocks` processing (lines ~888-897) to work with typed `AnySduiBlock` objects instead of raw dicts.
 - Eliminate all `.copy()` calls on dict elements — use `block.model_copy()` for Pydantic-typed blocks.
 - Eliminate `hasattr(cache_b, "copy")` duck-typing (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1173]`) — replace with `cache_b.model_copy()`.
-- Eliminate `c_block.get("id")` raw dict access (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1169]`) — replace with typed attribute access.
-- Eliminate `isinstance(cb, dict)` duck-typing (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1248]`) — all blocks are now typed `AnySduiBlock`, iterate directly.
+- Eliminate `c_block.get("id")` raw dict access (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1169]`) — replace with typed attribute access (e.g., `getattr(c_block, 'id', None)` for `SduiBlockBase` which does not define an `id` field — see Finding note below).
+- Eliminate `isinstance(cb, dict)` duck-typing at BOTH locations: the content_blocks loop (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1248]`) AND the section_syntheses PII masking loop (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1252]`). After migration, all blocks are typed `AnySduiBlock` — iterate directly via attribute access.
 - Eliminate inline raw dict construction at lines ~1244 and ~1415 (e.g., `{"block_type": "markdown", "text": resolved_preamble, "id": "preamble"}`) — replace with `MarkdownBlock(block_type="markdown", text=resolved_preamble)` model instantiation.
-- Eliminate `c_block["text"] = safe_md` in-place dict mutation (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1212]`) — replace with `c_block.model_copy(update={...})` or reconstruct as a new `MarkdownBlock`.
+- Eliminate `c_block["text"] = safe_md` in-place dict mutation (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1212]`) — since `V2CoreBase` enforces `frozen=True`, in-place mutation is forbidden. Replace with `MarkdownBlock(text=safe_md)` reconstruction.
+
+> [!IMPORTANT]
+> **`SduiBlockBase` does NOT define an `id` field.** The current `c_block.get("id") == synthesis_block_id` duck-typing at blueprint.py L1169 relies on an ad-hoc `id` key that is NOT part of the `SduiBlockBase` schema. After migration, this logic MUST be redesigned. Options: (1) Add an optional `id: str | None = None` field to `SduiBlockBase`, or (2) Use a separate lookup mechanism (e.g., block index or a dedicated `SynthesisPlaceholderBlock` type). This is a design decision the implementation plan must resolve.
+
 - **Target**: `@[c:\src\quorum\backend_v2\services\orchestrator\synthesis_distiller.py]`
-- Refactor `json.dumps(best_cache.content_blocks, ensure_ascii=False)` (`@[c:\src\quorum\backend_v2\services\orchestrator\synthesis_distiller.py#L169]`) — After migration, `content_blocks` are `list[AnySduiBlock]` which cannot be directly serialized via `json.dumps`. Use `[b.model_dump(mode='json') for b in best_cache.content_blocks]` or the `TypeAdapter` pattern.
+- Refactor `json.dumps(best_cache.content_blocks, ensure_ascii=False)` (`@[c:\src\quorum\backend_v2\services\orchestrator\synthesis_distiller.py#L169]`) — After migration, `content_blocks` are `list[AnySduiBlock]` which cannot be directly serialized via `json.dumps`. Use `json.dumps([b.model_dump(mode='json') for b in best_cache.content_blocks], ensure_ascii=False)` or the `TypeAdapter` pattern.
 - **Target**: `@[c:\src\quorum\backend_v2\worker.py]`
-- Update synthesis result handling (lines ~877-893) to use typed `AnySduiBlock` instead of raw dict manipulation.
+- **CRITICAL Double-Serialization Anti-Pattern**: Worker.py at lines ~877-896 currently takes typed `AnySduiBlock` objects from `SynthesisOutputDTO.content_blocks`, immediately calls `.model_dump()` to convert them back to dicts, then stores them in `RenderedSynthesisCache.content_blocks`. After EPIC 120 types the cache field as `list[AnySduiBlock]`, this explicit `model_dump()` + `typing.cast(list[dict[str, Any]], ...)` pattern MUST be removed entirely — store the typed objects directly. Failure to remove the cast will cause a `ValidationError` since the cache field no longer accepts raw dicts.
+- The same double-serialization applies to `sec_dict` construction at lines ~878-881 for `section_syntheses`. After migration, store the `AnySduiBlock` objects directly without the `model_dump()` downcast.
 - **CRITICAL**: Enforce strict error handling for `ValidationError`. When parsing the LLM response into `SynthesisSectionDTO` (or similar containing `AnySduiBlock`), you MUST catch `pydantic.ValidationError` and package it into an internal `AppException`. This is required to trigger the orchestrator's automated "Schema Healing" / LLM Adaptive Retry loop. If unhandled, a hallucinated block type will crash the worker process entirely into DLQ (Dead Letter Queue).
 - Execute `uv run python scripts/backend_audit_loop.py backend_v2/ --test`.
 
@@ -156,5 +178,6 @@ These fields represent the last `Any`/`dynamic` contamination in the entire SDUI
 > [!NOTE]
 > The following features are intentionally deferred to prevent mixing structural refactoring with feature addition (per `ZERO-BEHAVIORAL CHANGE FALSIFICATION` gate).
 
-- **EPIC 121 (Proposed): Admin Studio Block Builder UI** — A drag-and-drop visual editor allowing Admins to construct and reorder `layouts` and `content_blocks` within `OutputProfile`. Builds on the typed foundation established by this Epic.
+- **EPIC 121 (Proposed): Admin Studio Block Builder UI** — A drag-and-drop visual editor allowing Admins to construct and reorder `layouts` and `content_blocks` within `OutputProfile`. Builds on the typed foundation this Epic establishes.
 - **Typed `synthesis_blocks` inside `synthesis` configs in `seed_data.json`** — The runtime synthesis engine produces these blocks dynamically. Full seed data migration of synthesis outputs is deferred until the synthesis pipeline is stabilized.
+- **Pre-existing `list[Any]` Strictness Leaks in `AnySduiBlock` Subtypes** — `SduiGridBlock.items: list[Any]` (`@[c:\src\quorum\backend_v2\models\view\sdui.py#L591]`) and `SduiQuoteCard.citations: list[Any]` (`@[c:\src\quorum\backend_v2\models\view\sdui.py#L560]`) use `list[Any]` instead of strictly typed lists. While EPIC 120's DoD correctly targets `dict[str, Any]` and `List<dynamic>` elimination, these `list[Any]` fields represent a secondary strictness leak that should be addressed in a future hardening pass once the grid/quote data shapes stabilize.

@@ -1,0 +1,10 @@
+- `[/]` Step 1: Harden blueprint.py
+  - `[ ]` REMOVE: `hasattr(cache_b, "copy")`, `isinstance(cb, dict)`, and inline dict constructions like `{"block_type": "markdown"}`.
+  - `[ ]` Iterate directly over `AnySduiBlock` lists. Use `model_copy()` instead of `.copy()`. Construct `MarkdownBlock(...)` models instead of raw dicts.
+- `[ ]` Step 2: Harden synthesis_distiller.py
+  - `[ ]` Refactor `json.dumps(best_cache.content_blocks)` to serialize the Pydantic models (e.g., `[b.model_dump(mode='json') for b in best_cache.content_blocks]`).
+- `[ ]` Step 3: Harden worker.py
+  - `[ ]` Refactor synthesis extraction to expect and return strictly typed blocks.
+  - `[ ]` Ensure `pydantic.ValidationError` is caught during LLM parsing and wrapped in an `AppException` to trigger Adaptive Schema Healing.
+- `[ ]` Step 4: Testing & Quality Gate Plan
+  - `[ ]` Run backend audit loop: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`.
