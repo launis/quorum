@@ -98,13 +98,12 @@
 ### Phase 2A: Polyfactory Strictness & Global Test Hardening (Batch 1)
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\06_phase2a_test_strictness_batch1_plan.md]`
 
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\06_phase2a_test_strictness_batch1_plan.md]`
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\06_phase2a_test_strictness_batch1_plan.md]`
 - [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\06_phase2a_test_strictness_batch1_plan.md]`
   - [ ] Step 1: UPDATE REPORT DATA DTO FACTORY (IMPLICIT)
-  - [ ] Step 2: REMOVE FACTORY BYPASSES (BATCH 1)
-  - [ ] Step 3: REMOVE LEGACY MOCK DATA (BATCH 1)
-  - [ ] Step 4: UPDATE GOLDEN JSON
-  - [ ] Step 5: TESTING STRATEGY & QUALITY GATE PLAN
+  - [ ] Step 2: REMOVE FACTORY BYPASSES & LEGACY MOCK DATA
+  - [ ] Step 3: UPDATE GOLDEN JSON & COMPILE
+  - [ ] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
 - [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\06_phase2a_test_strictness_batch1_plan.md]`
 
 ---
@@ -284,6 +283,9 @@
   - Passed all flutter unit tests and flutter audit loop.
 - **Phase 1E Tier 8 Audit successfully completed**. Verified Dumb Painter logic compliance and absolute removal of fallback logic.
 - **Phase 1 Full-Stack Integration Checkpoint successfully completed**. Both global backend audit (`backend_audit_loop.py`) and global frontend audit (`flutter_audit_loop.py`) passed perfectly.
+- **Phase 2A Tier 0 Red-Teaming successfully completed**.
+  - Verified `test_flattener.py` and `test_sdui_mapper_service.py` were already refactored for Polyfactory strictness and legacy mocks in earlier phases.
+  - Surgically updated the plan to remove Pydantic `extra='forbid'` violations from `test_sdui_semantic_parity.py` and strictly purge legacy fields from Mock setups in `test_execution.py`.
 
 ## Learned
 - **Architecture Invariants**: Strict compliance enforced via `backend_audit_loop.py` and `flutter_audit_loop.py`. Fallbacks in `blueprint.py` ensure `ReportLayoutDTO(preset_view="default")` handles matrix-only inputs securely.
@@ -295,8 +297,8 @@
 - **UI Render Determinism**: When backend schemas are structurally altered (e.g. relying entirely on `scoreDisplayLabel`), it directly impacts rendering logic resulting in minor pixel adjustments requiring test data mocks to explicitly mirror the backend's Dumb Painter exactness, and Flutter golden tests must be updated to prevent snapshot test failures.
 
 ## Remaining
-- Proceed to **Phase 2A: Polyfactory Strictness & Global Test Hardening (Batch 1)**.
-- Execute `/tier0-research-plan` for `06_phase2a_test_strictness_batch1_plan.md`.
+- Proceed to **Phase 2A: Polyfactory Strictness & Global Test Hardening (Batch 1)** Execution.
+- Execute `/tier2-execute` for `06_phase2a_test_strictness_batch1_plan.md`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\06_phase2a_test_strictness_batch1_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\06_phase2a_test_strictness_batch1_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
