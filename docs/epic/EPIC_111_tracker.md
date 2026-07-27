@@ -72,7 +72,7 @@
   - [x] Step 3: REFACTOR EXECUTION REPORT VIEW
   - [x] Step 4: REFACTOR EXECUTION VIEW
   - [x] Step 5: TESTING STRATEGY & QUALITY GATE PLAN
-- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]`
+- [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md]`
 
 ---
 
@@ -271,6 +271,7 @@
   - Stripped conditional `scaleMax > scaleMin` formatting from `atom_matrix_table_widget.dart` and `report_renderer_v2_widget.dart`, enforcing Dumb Painter rules to strictly render `scoreDisplayLabel`.
   - Refactored `DiagnosticScorecardWidget` to accept an `axes` list and pass it down, along with updating its unit test.
   - Executed full `flutter_audit_loop.py` and strictly passed `flutter test` for affected widgets.
+- **Phase 1D Tier 8 Audit successfully completed**. Verified Zero-Math SDUI compliance on frontend.
 
 ## Learned
 - **Architecture Invariants**: Strict compliance enforced via `backend_audit_loop.py` and `flutter_audit_loop.py`. Fallbacks in `blueprint.py` ensure `ReportLayoutDTO(preset_view="default")` handles matrix-only inputs securely.
@@ -278,10 +279,11 @@
 - Phase 3 is a placeholder — the Tier 1 Planner must be re-invoked after Phases 0–2C to generate its detailed plan based on the post-refactor codebase state.
 - **Fail-Fast Enforcement**: Deprecating fields in Phase 1A broke downstream template rendering and tests. To strictly honor the Universal Quality Gate, these must be fixed immediately rather than leaving the build broken until later phases.
 - Validating Firestore outputs directly to Pydantic models avoids runtime exceptions in deeply nested exception handlers (such as `step_states` accessed as an attribute on a dictionary).
+- The transition from Flutter Widget fallbacks (`DiagnosticScorecardWidget`) to pure SDUI layout mapping (`ReportRendererV2Widget`) eliminates the need for hardcoded instantiation, adhering to the "Dumb Painter" principle perfectly.
 
 ## Remaining
-- Proceed to **Phase 1D: Audit**.
-- Execute `/tier8-audit-plan` for `04_phase1d_frontend_dto_ui_plan.md` to ensure all architectural rules (especially Dumb Painter) were followed.
+- Proceed to **Phase 1E: Frontend Renderer Purge**.
+- Execute `/tier0-research-plan` for `05_phase1e_frontend_renderer_plan.md` to validate the plan.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\04_phase1d_frontend_dto_ui_plan.md] @[c:\src\quorum\docs\epic\EPIC_111_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\05_phase1e_frontend_renderer_plan.md] @[c:\src\quorum\docs\epic\EPIC_111_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\02_flutter_desktop.md]"`
