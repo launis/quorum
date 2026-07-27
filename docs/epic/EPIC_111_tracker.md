@@ -38,7 +38,7 @@
 ### Phase 1B: Backend Services Consumers Refactoring
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\02_phase1b_backend_services_plan.md]`
 
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\02_phase1b_backend_services_plan.md]`
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\02_phase1b_backend_services_plan.md]`
 - [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\02_phase1b_backend_services_plan.md]`
   - [ ] Step 1: REFACTOR EXECUTION.PY EXCEL EXPORT
   - [ ] Step 2: REFACTOR FLATTENER.PY
@@ -254,15 +254,17 @@
 - Computed and exposed `score_display_label` in `MatrixScorecardRowDTO` (Python and Flutter).
 - Refactored Blueprint Generator to map matrices strictly to `layouts.axes` and penalties to `text_only` layout synthesis blocks.
 - Successfully completed Phase 1A Tier 8 Audit verifying strict compliance to Phase 9 standards.
+- Completed Phase 1B Tier 0 Research: Validated that Phase 1B code consumers are already migrated to `layouts`; rewritten the Phase 1B execution plan to focus strictly on Negative Testing.
 
 ## Learned
 - **Architecture Invariants**: Strict compliance enforced via `backend_audit_loop.py` and `flutter_audit_loop.py`. Fallbacks in `blueprint.py` ensure `ReportLayoutDTO(preset_view="default")` handles matrix-only inputs securely.
 - **TDD Requirement**: Code coverage thresholds correctly verified (0 coverage loss).
 - Phase 3 is a placeholder — the Tier 1 Planner must be re-invoked after Phases 0–2C to generate its detailed plan based on the post-refactor codebase state.
+- **Codebase State**: The codebase was proactively refactored ahead of Phase 1B; Phase 1B now solely executes testing validations.
 
 ## Remaining
-- Proceed to **Phase 1B: Backend Services Consumers Refactoring**.
-- Start with `/tier0-research-plan` for `02_phase1b_consumers_refactor_plan.md`.
+- Proceed to **Phase 1B: Backend Services Consumers Refactoring** (Execution of the testing plan).
+- Start with `/tier2-execute` for `02_phase1b_backend_services_plan.md`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\02_phase1b_consumers_refactor_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\02_phase1b_backend_services_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`

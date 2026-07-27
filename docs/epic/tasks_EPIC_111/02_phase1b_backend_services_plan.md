@@ -13,29 +13,20 @@ Refactor consumers of the legacy fields (`execution.py`, `flattener.py`, `lingui
 <execution_protocol level="2_execute">
   <constraint invariant="the_duct_tape_ban">No empty dicts `{}` on failure, or using `.get("key", default)` to suppress missing data.</constraint>
   
-  <step id="1" name="REFACTOR EXECUTION.PY EXCEL EXPORT">
-    <action>Modify `@[c:\src\quorum\backend_v2\services\execution.py]`. Refactor Excel export summary rows which consume `evaluative_matrices`/`informational_matrices`. They must now extract matrices from `layouts`.</action>
-    <action>Purge `.get()` coalescing patterns for `content_blocks`. Rewrite to use explicit `is not None` and dictionary `in` operator checks.</action>
-    <demolish>REMOVE: `content_blocks` `.get()` coalescing patterns.</demolish>
+  <step id="1" name="VERIFY REFACTORINGS (ALREADY COMPLETED)">
+    <action>Verify that `execution.py`, `flattener.py`, `linguistics.py`, and `sdui_mapper_service.py` no longer use `content_blocks` or `evaluative_matrices` and correctly use `layouts`. (Note: This was completed in a previous phase, so no code changes should be needed here).</action>
   </step>
 
-  <step id="2" name="REFACTOR FLATTENER.PY">
-    <action>Modify `@[c:\src\quorum\backend_v2\services\flattener.py]`. Refactor matrix flattening to extract matrices from `layouts` instead of legacy `evaluative_matrices`.</action>
-    <demolish>REMOVE: `evaluative_matrices or []` coalescing fallback.</demolish>
+  <step id="2" name="NEGATIVE TESTING: LINGUISTICS HOOK">
+    <action>Modify `@[c:\src\quorum\backend_v2\tests\unit\hooks\test_linguistics.py]`. Add tests for `scan_report_for_slop`.</action>
+    <action>Add Negative Test 1: Handle `layouts` being completely empty or missing.</action>
+    <action>Add Negative Test 2: Handle `layouts` where `synthesis_blocks` exist but have no `text` fields or are malformed.</action>
+    <action>Add Positive Test: Verify it correctly detects performative patterns in `synthesis_blocks` and `axes.row_explanation`.</action>
   </step>
 
-  <step id="3" name="REFACTOR LINGUISTICS.PY">
-    <action>Modify `@[c:\src\quorum\backend_v2\hooks\linguistics.py]`. Refactor linguistic matrix analysis (slop detection) to extract texts from `report_dto.layouts` (`synthesis_blocks` and `axes`).</action>
-    <demolish>REMOVE: `evaluative_matrices or []` coalescing fallback.</demolish>
-  </step>
-
-  <step id="4" name="REFACTOR SDUI MAPPER SERVICE">
-    <action>Modify `@[c:\src\quorum\backend_v2\services\sdui_mapper_service.py]`. Remove direct `content_blocks` mapping, as content is now inherently covered by `layouts` mapping.</action>
-  </step>
-
-  <step id="5" name="TESTING STRATEGY & QUALITY GATE PLAN">
-    <action>Run localized Pytest unit tests for the modified files.</action>
-    <action>Ensure negative tests are added to `test_linguistics.py` to handle missing/empty `layouts`.</action>
+  <step id="3" name="QUALITY GATE PLAN">
+    <action>Run localized Pytest for `test_linguistics.py`.</action>
+    <action>Run global backend audit: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`</action>
   </step>
 </execution_protocol>
 ```
