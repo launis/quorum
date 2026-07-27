@@ -111,12 +111,12 @@
 ### Phase 2B: Polyfactory Strictness & Global Test Hardening (Batch 2)
 **Plan**: `@[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]`
 
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]`
-- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]`
-  - [ ] Step 1: REMOVE FACTORY BYPASSES (BATCH 2)
-  - [ ] Step 2: REMOVE LEGACY MOCK DATA (BATCH 2)
-  - [ ] Step 3: UPDATE JSON FIXTURE
-  - [ ] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
+- [x] **[OK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]`
+- [x] **[OK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_111_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]`
+  - [x] Step 1: REMOVE FACTORY BYPASSES (BATCH 2)
+  - [x] Step 2: REMOVE LEGACY MOCK DATA (BATCH 2)
+  - [x] Step 3: UPDATE JSON FIXTURE
+  - [x] Step 4: TESTING STRATEGY & QUALITY GATE PLAN
 - [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]`
 
 ---
@@ -295,6 +295,10 @@
   - Safely bypassed Pydantic V2 `@model_validator(mode="before")` context missing crashes during `ReportDataDTO` generation by implementing `QuoteEvidenceDTOFactory` that injects a dummy `alias_engine` context in `_create_model`.
   - Both unit tests and Pytest-Flutter integration tests passed locally. Passed the Universal Quality Gate (`backend_audit_loop.py`) strictly.
 - **Phase 2A Tier 8 Audit successfully completed**. Verified strict Polyfactory adherence, no legacy test bypasses remain, and resolved random property generation crashes in SDUI Parity pipelines.
+- **Phase 2B Tier 0 Red-Teaming successfully completed**.
+  - Verified `factory_use_construct=True` is fully purged from the codebase and removed obsolete Step 1.
+  - Enforced `fragmented_quality_gates_prevention` by replacing localized testing with the global `backend_audit_loop.py --test` command.
+  - Mitigated context window amnesia by applying explicit line boundaries (`#L1-L75`) to large JSON fixture references.
 
 ## Learned
 - **Architecture Invariants**: Strict compliance enforced via `backend_audit_loop.py` and `flutter_audit_loop.py`. Fallbacks in `blueprint.py` ensure `ReportLayoutDTO(preset_view="default")` handles matrix-only inputs securely.
@@ -308,9 +312,16 @@
 - **Flaky UI Tests due to Polyfactory Randomness**: In strict semantic parity tests (Jinja vs Flutter), Polyfactory generating random arrays or strings (like `mcp_tool_audit` or `cited_web_citation`) can trigger Flutter localizations (e.g., "Verified from Google sources") that the backend PDF template ignores, breaking semantic parity. These fields must be explicitly nulled in the factory (`mcp_tool_audit: list[Any] = []`).
 - **Strict Validator Resilience**: Pydantic V2 fields typed as `list | None = None` allow explicit `None` injections (e.g. `{"source_alias": None}`). Data validators using `.get("key", [])` will return `None`, causing `TypeError` on iteration. Validators MUST explicitly coalesce `None` to `[]` (`.get("key") or []`) to guarantee Fail-Fast resilience.
 
+- **Phase 2B Implementation successfully completed**.
+  - Verified `factory_use_construct=True` was previously purged.
+  - Purged legacy array fields (`evaluative_matrices`, `informational_matrices`, `content_blocks`) from `mock_dto` setups in `test_execution_render_bug.py`.
+  - Safely retained `penalties_applied` within trace `scoring_result` dictionaries in `test_blueprint.py` and `test_epic_chain_e2e.py` as it strictly represents internal execution flow per R4 & R17 invariants.
+  - Sliced and purged legacy fields out of `report_data_dto_fixture.json`.
+  - Passed Universal Quality Gate (`backend_audit_loop.py` --test) strictly with >80% coverage and zero regression errors.
+
 ## Remaining
-- Proceed to **Phase 2B: Polyfactory Strictness & Global Test Hardening (Batch 2)** Red-Teaming.
-- Execute `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]`.
+- Proceed to **Phase 2B Tier 8 Audit**.
+- Execute `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_111\07_phase2b_test_strictness_batch2_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
