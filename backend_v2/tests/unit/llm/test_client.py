@@ -15,6 +15,7 @@ from backend_v2.llm.client import LLMClient
 
 class DummyConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
+    id: str = "mock_abcdef1234"
     provider: str = "openai"
     model_name: str = "pytest-model-1"
     temperature: float = 0.0
@@ -61,7 +62,7 @@ async def test_finops_circuit_breaker_missing_usage(mock_create_provider: MagicM
 
     mock_provider.generate.return_value = mock_response
 
-    client = LLMClient(config=cast(Any, DummyConfig()))
+    client = LLMClient(config=DummyConfig().model_dump())
 
     # Circuit Breaker must trigger AgentExecutionError (CRITICAL)
     with pytest.raises(AgentExecutionError) as exc:
@@ -102,7 +103,7 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
 
     mock_provider.generate.side_effect = [mock_fail_response, mock_success_response]
 
-    client = LLMClient(config=cast(Any, DummyConfig()))
+    client = LLMClient(config=DummyConfig().model_dump())
     messages = [{"role": "user", "content": "Evaluate text"}]
 
     from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -162,7 +163,7 @@ async def test_client_delegates_to_caching_service(mock_prepare: AsyncMock, mock
     c = DummyConfig()
     c.caching_strategy = "ephemeral"
     c.provider = "anthropic"
-    client = LLMClient(config=cast(Any, c))
+    client = LLMClient(config=c.model_dump())
 
     messages = [{"role": "system", "content": "Hello"}, {"role": "user", "content": "Test"}]
     await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
@@ -184,7 +185,7 @@ async def test_client_bubbles_up_service_unavailable_error(mock_create_provider:
     mock_provider.generate = AsyncMock(side_effect=ServiceUnavailableError(message="Rate Limit", details=None))
     mock_create_provider.return_value = mock_provider
 
-    client = LLMClient(config=cast(Any, DummyConfig()))
+    client = LLMClient(config=DummyConfig().model_dump())
     messages = [{"role": "user", "content": "Test"}]
 
     # It MUST raise ServiceUnavailableError directly, NOT AgentExecutionError or LLMSchemaValidationError
@@ -206,7 +207,7 @@ async def test_client_bubbles_up_upstream_timeout_error(mock_create_provider: Ma
     )
     mock_create_provider.return_value = mock_provider
 
-    client = LLMClient(config=cast(Any, DummyConfig()))
+    client = LLMClient(config=DummyConfig().model_dump())
     messages = [{"role": "user", "content": "Test"}]
 
     with pytest.raises(AppException) as exc_info:
@@ -248,7 +249,7 @@ async def test_client_parses_strict_enum_from_json(mock_create_provider: MagicMo
     }
     mock_provider.generate.return_value = mock_response
 
-    client = LLMClient(config=cast(Any, DummyConfig()))
+    client = LLMClient(config=DummyConfig().model_dump())
     messages = [{"role": "user", "content": "Test"}]
 
     # This will raise LLMSchemaValidationError if the bug is present, failing the test if we assert it succeeds.
@@ -270,7 +271,7 @@ async def test_client_run_chat_success(mock_create_provider: MagicMock) -> None:
     mock_response.tool_calls = None
     mock_provider.generate.return_value = mock_response
 
-    client = LLMClient(config=cast(Any, DummyConfig()))
+    client = LLMClient(config=DummyConfig().model_dump())
     messages = [{"role": "user", "content": "Test"}]
 
     res = await client.run_chat(messages=messages, model="test-model")
@@ -292,7 +293,7 @@ async def test_client_run_chat_cache_miss_fallback(mock_create_provider: MagicMo
 
     c = DummyConfig()
     c.caching_strategy = "ephemeral"
-    client = LLMClient(config=cast(Any, c))
+    client = LLMClient(config=c.model_dump())
     messages = [{"role": "user", "content": "Test"}]
 
     with patch(
@@ -347,7 +348,7 @@ async def test_client_run_structured_task_cache_miss_fallback(mock_create_provid
 
     c = DummyConfig()
     c.caching_strategy = "ephemeral"
-    client = LLMClient(config=cast(Any, c))
+    client = LLMClient(config=c.model_dump())
     messages = [{"role": "user", "content": "Test"}]
 
     with patch(

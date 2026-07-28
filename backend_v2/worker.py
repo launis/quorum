@@ -134,10 +134,7 @@ async def execute_workflow_job(
                 )
 
             # Enforce schema validation
-            if isinstance(execution_data, dict):
-                exec_record = ExecutionRecord.model_validate(execution_data, strict=False)
-            else:
-                exec_record = execution_data
+            exec_record = ExecutionRecord.model_validate(execution_data, strict=False)
 
             # Dynamic Strictness Level resolution
             profile_id = exec_record.output_profile_id
@@ -278,7 +275,7 @@ async def execute_workflow_job(
                     await repository.update_execution(
                         exec_id,
                         {
-                            "status": ExecutionStatus.RUNNING.value,  # keep execution running until PDF is done
+                            "status": ExecutionStatus.RUNNING,  # keep execution running until PDF is done
                             "step_states": step_states_dict,
                             "duration_ms": duration_ms,
                             "models_used": models_used,
@@ -299,7 +296,7 @@ async def execute_workflow_job(
                     await repository.update_execution(
                         exec_id,
                         {
-                            "status": ExecutionStatus.PASSED.value,
+                            "status": ExecutionStatus.PASSED,
                             "completed_at": datetime.now(UTC).isoformat(),
                             "duration_ms": duration_ms,
                             "models_used": models_used,
@@ -334,7 +331,7 @@ async def execute_workflow_job(
                     await repository.update_execution(
                         exec_id,
                         {
-                            "status": ExecutionStatus.FAILED.value,
+                            "status": ExecutionStatus.FAILED,
                             "error": str(e),
                             "completed_at": datetime.now(UTC).isoformat(),
                         },
@@ -355,7 +352,7 @@ async def execute_workflow_job(
                     await repository.update_execution(
                         exec_id,
                         {
-                            "status": ExecutionStatus.FAILED.value,
+                            "status": ExecutionStatus.FAILED,
                             "error": "Task execution was cancelled or timed out.",
                             "completed_at": datetime.now(UTC).isoformat(),
                         },
@@ -427,11 +424,7 @@ async def generate_pdf_task(
             return
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
-        execution_record = (
-            ExecutionRecord.model_validate(execution_dict, strict=False)
-            if isinstance(execution_dict, dict)
-            else execution_dict  # noqa: E501
-        )
+        execution_record = ExecutionRecord.model_validate(execution_dict, strict=False)
 
         # 0b. Get explicit locale via Execution
         if execution_record.metadata and "target_locale" in execution_record.metadata:
@@ -468,11 +461,7 @@ async def generate_pdf_task(
             # Update DB ExecutionRecord metadata for frontend quick querying
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                exec_record_local = (
-                    ExecutionRecord.model_validate(exec_record_local, strict=False)
-                    if isinstance(exec_record_local, dict)
-                    else exec_record_local
-                )
+                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
                 new_meta = dict(exec_record_local.metadata) if exec_record_local.metadata else {}
                 new_meta["has_slop_warning"] = True
                 await repo.update_execution(execution_id, {"metadata": new_meta})
@@ -493,19 +482,15 @@ async def generate_pdf_task(
 
         updates: dict[str, Any] = {}
         updates["pdf_report_path"] = saved_path
-        updates["status"] = ExecutionStatus.PASSED.value
+        updates["status"] = ExecutionStatus.PASSED
 
         exec_record_local = await repo.get_execution(execution_id, hydrate=False)
         if exec_record_local:
-            exec_record_local = (
-                ExecutionRecord.model_validate(exec_record_local, strict=False)
-                if isinstance(exec_record_local, dict)
-                else exec_record_local
-            )
+            exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
             if v_step_id in exec_record_local.step_states:
                 old_state = exec_record_local.step_states[v_step_id]
                 new_states = dict(exec_record_local.step_states)
-                new_states[v_step_id] = old_state.model_copy(update={"status": ExecutionStatus.PASSED.value})
+                new_states[v_step_id] = old_state.model_copy(update={"status": ExecutionStatus.PASSED})
                 exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
             updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
 
@@ -525,21 +510,17 @@ async def generate_pdf_task(
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
             updates = {}
-            updates["status"] = ExecutionStatus.FAILED.value
+            updates["status"] = ExecutionStatus.FAILED
             updates["error"] = f"PDF Generation failed: {str(e)}"
             updates["completed_at"] = datetime.now(UTC).isoformat()
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                exec_record_local = (
-                    ExecutionRecord.model_validate(exec_record_local, strict=False)
-                    if isinstance(exec_record_local, dict)
-                    else exec_record_local
-                )
+                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     new_states = dict(exec_record_local.step_states)
                     new_states[v_step_id] = old_state.model_copy(
-                        update={"status": ExecutionStatus.FAILED.value, "last_error": str(e)}
+                        update={"status": ExecutionStatus.FAILED, "last_error": str(e)}
                     )
                     exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
                 updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
@@ -603,11 +584,7 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
-        execution = (
-            ExecutionRecord.model_validate(execution_data, strict=False)
-            if isinstance(execution_data, dict)
-            else execution_data  # noqa: E501
-        )
+        execution = ExecutionRecord.model_validate(execution_data, strict=False)
 
         syntheses = execution.profile_syntheses if execution.profile_syntheses is not None else {}
         has_synthesis = profile_id in syntheses
@@ -621,14 +598,10 @@ async def generate_profile_synthesis_and_pdf_task(
             v_step_id = f"sys_render_{profile_id}"
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                exec_record_local = (
-                    ExecutionRecord.model_validate(exec_record_local, strict=False)
-                    if isinstance(exec_record_local, dict)
-                    else exec_record_local
-                )
+                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
                 old_state = exec_record_local.step_states.get(v_step_id)
                 if old_state:
-                    updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING.value})
+                    updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING})
                 else:
                     updated_state = ExecutionStepState(id=v_step_id, label=msg, status=ExecutionStatus.RUNNING)
                 new_states = dict(exec_record_local.step_states)
@@ -947,20 +920,16 @@ async def generate_profile_synthesis_and_pdf_task(
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
             updates: dict[str, Any] = {}
-            updates["status"] = ExecutionStatus.FAILED.value
+            updates["status"] = ExecutionStatus.FAILED
             updates["error"] = f"Text Synthesis failed: {str(e)}"
             updates["completed_at"] = datetime.now(UTC).isoformat()
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
-                exec_record_local = (
-                    ExecutionRecord.model_validate(exec_record_local, strict=False)
-                    if isinstance(exec_record_local, dict)
-                    else exec_record_local
-                )
+                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     updated_state = old_state.model_copy(
-                        update={"status": ExecutionStatus.FAILED.value, "last_error": str(e)}
+                        update={"status": ExecutionStatus.FAILED, "last_error": str(e)}
                     )
                     new_step_states = dict(exec_record_local.step_states)
                     new_step_states[v_step_id] = updated_state

@@ -110,6 +110,11 @@
         <mandatory_pattern>Force the Fail-Fast pipeline by using `.model_validate()`, Rust-based `.model_validate_json()`, `.model_dump()`, and `@field_validator`. Use `model_config = ConfigDict(extra='forbid', strict=True)` to reject unstructured AI outputs instantly. Any structure not matching the strict model must CRASH immediately with a `ValidationError`.</mandatory_pattern>
     </rule_block>
 
+    <rule_block id="strict_enum_hydration_and_validation">
+        <banned_pattern>Using `.value` to extract strings/ints from Enums when updating or instantiating Pydantic models (e.g., `model_copy(update={"status": Status.PASSED.value})`), or wrapping model hydration in `isinstance(data, dict)` checks.</banned_pattern>
+        <mandatory_pattern>Pydantic models MUST receive the native Enum object so Rust can handle coercion. `.value` is ONLY permitted for primitive variable assignments, standard library logging (e.g. `extra={"error_code": ...}`), and raw `AppException` dictionaries to prevent JSON serialization errors. Hydration points MUST be unconditional (no `isinstance` guarding).</mandatory_pattern>
+    </rule_block>
+
     <rule_block id="zero_legacy_fallback_hacks">
         <banned_pattern>Adding `@model_validator(mode="before")` or optional union types (`| None`) to Pydantic models purely to silently scrub or appease old V1 legacy payload fields (e.g., `task_key`) from crashing `extra='forbid'`.</banned_pattern>
         <mandatory_pattern>NEVER bypass Pydantic `extra='forbid'` strictness to accommodate dirty databases. If historical data causes validation crashes, the root cause MUST be fixed at the source by wiping the seed data (via `uv run python backend_v2/seed/run_seed.py local`). Pydantic models must remain mathematically pure to the V2 spec.</mandatory_pattern>

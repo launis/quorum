@@ -158,6 +158,9 @@
 - Executed an ad-hoc bug fix to add `user_role_label` to `EmbeddedOutputProfile` in `backend_v2/models/v2_core.py`.
 - Passed the `backend_audit_loop.py` for the domain models after the bug fix.
 - Completed Tier 8 Audit for the bug fix, producing a clean trace.
+- Encountered SDUI Freezed deserialization crash on Flutter client due to unexpected `id` property from backend `SduiBlockBase`.
+- Created and executed ad-hoc bug fix to inject `String? id` into `SduiBlockDTO` union classes, regenerating Freezed models to achieve Cross-Domain DTO Parity.
+- Completed Tier 8 Audit for the SDUI bug fix, producing a clean trace. Tests for `SduiBlockDTO` are fully passing.
 
 ## Learned
 - **Baseline State Snapshot**:

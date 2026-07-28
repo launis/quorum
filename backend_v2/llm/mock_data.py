@@ -283,6 +283,10 @@ MOCK_SYNTHESIS_OUTPUT = SynthesisOutputDTO(
     cited_sources=[],
     section_syntheses=[],
     xai_highlights=[],
+    user_role="Mock Analyst",
+    user_role_justification="Default mock role assignment",
+    executive_summary="This is a mock executive summary for testing.",
+    urgency_level=1,
 )
 
 MOCK_INPUT_PROCESSING_OUTPUT = InputProcessingOutputDTO(

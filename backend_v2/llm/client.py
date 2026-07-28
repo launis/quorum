@@ -39,10 +39,10 @@ class LLMClient:
 
     def __init__(self, config: dict[str, Any] | LLMProviderConfig | None = None) -> None:
         self._config: LLMProviderConfig | None
-        if isinstance(config, dict):
+        if config is not None:
             self._config = LLMProviderConfig.model_validate(config)
         else:
-            self._config = config
+            self._config = None
         self.model_config: dict[str, Any] | None = None
         self._initialize()
 

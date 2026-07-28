@@ -29,9 +29,6 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     hydration_source: HydrationInputSourceDTO | None = None
 
     for _key, result in state.global_context_vars.items():
-        if not isinstance(result, dict):
-            continue
-
         try:
             # Strict validation attempts to parse the result into the DTO sieve directly
             candidate = HydrationInputSourceDTO.model_validate(result)

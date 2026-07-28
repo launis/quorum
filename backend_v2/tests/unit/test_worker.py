@@ -60,7 +60,12 @@ async def test_execute_workflow_job_success() -> None:
         "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_output_profile_by_id.return_value = None
-
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "status": "PENDING",
+        "step_states": {},
+    }
     from backend_v2.models.enums import ExecutionStatus
     from backend_v2.models.v2_core import ExecutionRecord
 

@@ -83,25 +83,23 @@ def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     for valid_dto in hydrated_state.steps:
-        if isinstance(valid_dto.payload, dict):
-            try:
-                wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
-                payloads.append(wrapper)
-            except ValidationError as e:
-                msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO payload in execution snapshot: {e}"
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                ) from e
+        try:
+            wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
+            payloads.append(wrapper)
+        except ValidationError as e:
+            msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO payload in execution snapshot: {e}"
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
 
     # Add explicitly injected top-level dict inputs
     for extra_dict in [hydrated_state.inputs, hydrated_state.raw_inputs]:
-        if isinstance(extra_dict, dict):
-            try:
-                wrapper = ScoringPayloadWrapper.model_validate(extra_dict)
-                payloads.append(wrapper)
-            except ValidationError as e:
-                logger.debug("[ScoringHook] Extra dict skipped (not a ScoringPayloadWrapper): %s", e)
+        try:
+            wrapper = ScoringPayloadWrapper.model_validate(extra_dict)
+            payloads.append(wrapper)
+        except ValidationError as e:
+            logger.debug("[ScoringHook] Extra dict skipped (not a ScoringPayloadWrapper): %s", e)
 
     return payloads
 

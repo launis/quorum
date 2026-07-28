@@ -1181,7 +1181,7 @@ class BlueprintTransformer:
                 if "results" in dto.payload and isinstance(dto.payload["results"], list):
                     for r_dict in dto.payload["results"]:
                         v2_results.append(AtomResultDTO.model_validate(r_dict))
-                if "hydrated_references" in dto.payload and isinstance(dto.payload["hydrated_references"], dict):
+                if "hydrated_references" in dto.payload and dto.payload["hydrated_references"]:
                     for k, v_dict in dto.payload["hydrated_references"].items():
                         v2_hydrated_refs[k] = HydratedAtomDTO.model_validate(v_dict)
 
@@ -1527,9 +1527,7 @@ class BlueprintTransformer:
                 fuzz_threshold = target_lexicon.fuzz_threshold
 
             global_synth = None
-            if profile_cache and any(
-                v is not None for v in (profile_cache.user_role, profile_cache.executive_summary)
-            ):
+            if profile_cache and any(v is not None for v in (profile_cache.user_role, profile_cache.executive_summary)):
                 from backend_v2.models.v2_core import GlobalSynthesisDTO
 
                 global_synth = GlobalSynthesisDTO(
