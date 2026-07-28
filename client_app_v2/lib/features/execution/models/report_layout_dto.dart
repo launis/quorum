@@ -20,6 +20,7 @@ abstract class ReportLayoutDto with _$ReportLayoutDto {
     I18nText? title,
     I18nText? description,
     @Default([]) List<MatrixScorecardRowDto> axes,
+    @JsonKey(name: 'target_blocks') List<String>? targetBlocks,
     @JsonKey(
       name: 'text_delivery_mode',
       unknownEnumValue: TextDeliveryMode.full,

@@ -12,12 +12,20 @@ Before proceeding to the Post-Implementation Gates, a full end-to-end (E2E) vali
 
 ```xml
 <execution_protocol level="2_execute">
-  <step id="5_1" name="Full-Stack Integration Verification">
-    <action>Run the Backend and Frontend on a simulated `full_context` DAG payload to verify the pipeline.</action>
-    <action>Assert that all 3 layout arrays (`summary`, `matrix`, `penalties_block`) are properly hydrated in the backend response.</action>
-    <action>Use the `RUN_LIVE_E2E="true"` test flag for API validation against real endpoints to guarantee the OutputProfile modifications are robust against real data.</action>
+  <step id="5_1" name="Mocked SDUI Semantic Parity Verification (KI Mandate)">
+    <action>Run the E2E SDUI Semantic Parity script to dynamically verify that the Flutter rendering perfectly matches the Jinja PDF generation using Polyfactory mock data.</action>
+    <action>Execute: `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`</action>
+    <action>Assert that the Flutter tester acts as an E2E compilation firewall, verifying that all schema changes in the backend align with the frontend Dart Freezed classes.</action>
+  </step>
+  
+  <step id="5_2" name="Live E2E Verification (Final Epic Verification Gate)">
+    <action>Use the `RUN_LIVE_E2E="true"` test flag to perform a full live API verification against real endpoints, guaranteeing the OutputProfile modifications are robust against real backend data hydration.</action>
     <action>Execute: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`</action>
     <action>Record the output logs and verify the end-to-end trace completes successfully without SDUI layout hydration errors.</action>
+  </step>
+  
+  <step id="5_3" name="Context Handover">
+    <action>Since this execution completes the phase, explicitly instruct the user to run `/tier5-session-handover` to preserve architectural context for the next iteration.</action>
   </step>
 </execution_protocol>
 ```
