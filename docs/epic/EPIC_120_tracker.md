@@ -19,6 +19,20 @@
   - [x] `<step id="1">` Blueprint Generator Refactor
   - [x] `<step id="2">` Synthesis Distiller Refactor
   - [x] `<step id="3">` Worker Double-Serialization Removal
+- [ ] **Phase 5: Absolute Enforcement of "Dumb Painter" Rule (Localization)**
+  - [ ] `<step id="1">` Eradicate frontend translation key guessing
+  - [ ] `<step id="2">` Implement SSOT localization in Backend
+- [ ] **Phase 6: Universal Fail-Fast & Fallback Eradication (Zero Compromise Pledge)**
+  - [ ] `<step id="1">` Eradicate `.get()` and `getattr()` fallback chains in Service layer
+  - [ ] `<step id="2">` Define missing attributes strictly in Pydantic models (e.g., `SduiBlockBase`)
+- [ ] **Phase 7: Data Duplication & Legacy Flat Field Eradication**
+  - [ ] `<step id="1">` Delete legacy flat presentation fields (coaching, falsification) from Backend DTOs
+  - [ ] `<step id="2">` Delete legacy flat presentation fields from Frontend Freezed DTOs
+  - [ ] `<step id="3">` Eradicate frontend UI fallback logic targeting deleted fields
+- [ ] **Phase 8: PDF Jinja Macro Parity & Silent Failure Prevention**
+  - [ ] `<step id="1">` Update `render_sdui_blocks` macro in `report_template.jinja2`
+  - [ ] `<step id="2">` Implement CSS/HTML mappings for new block severities
+  - [ ] `<step id="3">` Update integration tests to assert PDF Jinja macro parity
 
 ### Integration Checkpoint: Full-Stack Validation
 - [x] **[OK]** Backend Audit Loop Passes (`uv run python scripts/backend_audit_loop.py backend_v2/ --test`)
@@ -67,6 +81,10 @@
 | R16 ✅ | Synthesis Distiller serialization handles typed `AnySduiBlock` via `model_dump` | Phase 3, Step 2 |
 | R17 ✅ | Worker removes double-serialization `model_dump()` + cast when saving cache | Phase 3, Step 3 |
 | R18 ✅ | Worker catches `ValidationError` on LLM parsing and raises `AppException` | Phase 3, Step 3 |
+| R19 ⬜ | Eradicate frontend translation key guessing & enforce backend SSOT localization | Phase 5, Step 1 & 2 |
+| R20 ⬜ | Eradicate `.get()` and `getattr()` fallbacks, enforcing Fail-Fast | Phase 6, Step 1 & 2 |
+| R21 ⬜ | Delete flat presentation fields (coaching, etc.) from DTOs to enforce SDUI SSOT | Phase 7, Step 1-3 |
+| R22 ⬜ | Update PDF Jinja `render_sdui_blocks` macro to support new block types | Phase 8, Step 1-3 |
 
 # Session Handover Context
 ## Achieved
@@ -92,7 +110,10 @@
 - The rigorous Phase 9 architectural standards ensured the Tier 8 audit passed cleanly, highlighting the value of strict `AnySduiBlock` sealed classes and `disallowUnrecognizedKeys` boundaries.
 
 ## Remaining
-- **None.** All tasks in EPIC 120 have been completed and audited.
+- **Phase 5**: "Dumb Painter" localization enforcement is now pending.
+- **Phase 6**: Universal Fail-Fast & Fallback Eradication is now pending.
+- **Phase 7**: Data Duplication & Legacy Flat Field Eradication is now pending.
+- **Phase 8**: PDF Jinja Macro Parity & Silent Failure Prevention is now pending.
 
 ## Resume Command
-*(Epic Complete. Start a new workflow using `/tier0-create-epic` or `/tier4-bug-hunting`)*
+*(Epic 120 Phase 5-8 Pending. Start execution using `/tier2-execute`)*

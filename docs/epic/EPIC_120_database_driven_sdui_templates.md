@@ -47,7 +47,9 @@ These fields represent the last `Any`/`dynamic` contamination in the entire SDUI
 - **Opaque Stripe IDs**: All blocks and profiles continue to use opaque `id` mapping.
 
 ### Legacy Support Ban (Zero Backward Compatibility)
-- **Old Execution Traces**: There is ZERO requirement to support or render old execution traces that contain untyped `content_blocks` data as raw dicts. After re-seeding, old payloads must fail-fast. Do NOT write any Pydantic `@model_validator` fallbacks, migrations, or Python `try/except` chains to maintain backward compatibility.
+- **Old Execution Traces & Outputs**: There is ZERO requirement to support or render old execution traces or output profile configurations that contain untyped, legacy, or missing data.
+- **Backend Fallback Ban**: After re-seeding, old payloads MUST Fail-Fast. Do NOT write any Pydantic `@model_validator` fallbacks, migrations, or Python `try/except` chains to maintain backward compatibility.
+- **Frontend Dart/Freezed Null-Safety Ban**: You MUST NOT abuse Dart's Null Safety features (e.g., changing required fields to nullable `String?`) or use Freezed `@Default("Fallback")` values to keep old database data alive. If a field is semantically required by the new domain logic, it MUST be required in the Freezed model. If an old document is missing the field, the Flutter client MUST crash loudly (e.g., `CheckedFromJsonException` or White Screen of Death) to explicitly signal data corruption, rather than silently rendering a patched shadow-state.
 
 ### Compliance & Modernity Gates (Quorum 2026 Invariants)
 - **Pydantic Strictness**: The `AnySduiBlock` Discriminated Union MUST use `Field(discriminator='block_type')` with `ConfigDict(strict=True, extra='forbid')` on each concrete block type.
@@ -122,7 +124,7 @@ These fields represent the last `Any`/`dynamic` contamination in the entire SDUI
 - Refactor `content_blocks` processing (lines ~888-897) to work with typed `AnySduiBlock` objects instead of raw dicts.
 - Eliminate all `.copy()` calls on dict elements — use `block.model_copy()` for Pydantic-typed blocks.
 - Eliminate `hasattr(cache_b, "copy")` duck-typing (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1173]`) — replace with `cache_b.model_copy()`.
-- Eliminate `c_block.get("id")` raw dict access (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1169]`) — replace with typed attribute access (e.g., `getattr(c_block, 'id', None)` for `SduiBlockBase` which does not define an `id` field — see Finding note below).
+- Eliminate `c_block.get("id")` raw dict access (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1169]`). **CRITICAL**: Do NOT replace this with `getattr(c_block, 'id', None)`. Using `getattr` with a default is a fallback anti-pattern that violates the `zero_service_layer_fallbacks` rule just like `.get()`. You must use direct typed attribute access (e.g., `c_block.id`), and if the property is missing, the system MUST crash deterministically.
 - Eliminate `isinstance(cb, dict)` duck-typing at BOTH locations: the content_blocks loop (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1248]`) AND the section_syntheses PII masking loop (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1252]`). After migration, all blocks are typed `AnySduiBlock` — iterate directly via attribute access.
 - Eliminate inline raw dict construction at lines ~1244 and ~1415 (e.g., `{"block_type": "markdown", "text": resolved_preamble, "id": "preamble"}`) — replace with `MarkdownBlock(block_type="markdown", text=resolved_preamble)` model instantiation.
 - Eliminate `c_block["text"] = safe_md` in-place dict mutation (`@[c:\src\quorum\backend_v2\services\blueprint.py#L1212]`) — since `V2CoreBase` enforces `frozen=True`, in-place mutation is forbidden. Replace with `MarkdownBlock(text=safe_md)` reconstruction.
@@ -145,6 +147,37 @@ These fields represent the last `Any`/`dynamic` contamination in the entire SDUI
 - Identify all tests (e.g., `test_tier4_profile_dto_bug.py`, `test_blueprint.py`, `test_worker.py`, `test_sdui_semantic_parity.py`) that mock `content_blocks` or `synthesis_blocks` payload data using raw dictionaries.
 - Rewrite these mock fixtures to either instantiate proper `AnySduiBlock` (e.g., `ParagraphBlock(text="...")`) models directly, or if mocking JSON payloads, ensure the dictionaries include a valid `block_type` discriminator field. Failure to update test mocks will result in massive `ValidationError` crashes across the test suite due to the new `strict=True` enforcement.
 - Execute full audit and re-seed: `uv run python backend_v2/seed/run_seed.py local`.
+
+### Phase 5: Absolute Enforcement of "Dumb Painter" Rule (Localization)
+- **Problem**: Epic incorrectly instructed Flutter to guess whether an SDUI block's text field is a translation key. This violates the "Dumb Painter" rule and SDUI's core principle.
+- **Correction Mandate**: The backend is 100% responsible for Single Source of Truth localization. The frontend must only render blindly.
+- **Action**: 
+  - Eradicate any frontend logic that checks for translation keys or attempts to resolve them dynamically based on text content.
+  - Ensure the backend translates all strings before populating the `text` fields of `AnySduiBlock` (e.g. `MarkdownBlock`, `ParagraphBlock`), or uses a strict `I18nText` object structure if dynamic client-side language switching is required.
+
+### Phase 6: Universal Fail-Fast & Fallback Eradication (Zero Compromise Pledge)
+- **Problem**: Legacy codebase habits introduced fallback chains (like `data.get("key", "Fallback")` or `getattr(obj, "key", None)`) to hide configuration errors and missing data. These silent bypasses violate the `zero_service_layer_fallbacks` and `the_zero_compromise_pledge` rules, leading to untraceable shadow-states.
+- **Correction Mandate**: Enforce strict Quorum 2026 deterministic failure at every boundary. If data is malformed or missing, the run must crash loudly.
+- **Action**:
+  - Eradicate all instances of `.get(key, default)` and `getattr(obj, key, default)` used to paper over missing schema attributes in the Service and Controller layers.
+  - If a key or attribute is strictly required, access it directly (e.g., `data["key"]` or `obj.key`). If it is missing, let Python raise a `KeyError` or `AttributeError`, which must then be wrapped and raised as a structured, RFC 7807 compliant `AppException`.
+  - Validate that all required fields are explicitly defined in Pydantic models (e.g., fixing `SduiBlockBase` by officially adding missing attributes rather than guessing them).
+
+### Phase 7: Data Duplication & Legacy Flat Field Eradication
+- **Problem**: Adding new polymorphic SDUI blocks to represent presentation logic leaves old flat string fields (e.g., `coaching`, `falsification`) haunting the DTOs. This creates duplicate sources of truth and ambiguity for frontend rendering, violating the SSOT principle.
+- **Correction Mandate**: Enforce the `the_no_legacy_mandate` and `ssot_reuse_mandate`. The frontend is a Dumb Painter and must rely solely on the polymorphic `AnySduiBlock` arrays (e.g., `synthesis_blocks`) for rendering content.
+- **Action**:
+  - Identify and ruthlessly delete all legacy flat presentation string fields (like `coaching`, `falsification`, etc.) from both Backend (e.g., `MatrixScorecardRowDTO` and other Pydantic DTOs) and Frontend (Freezed DTOs).
+  - Ensure the Blueprint Generator exclusively relies on embedding these concepts into proper `AnySduiBlock` structures (like `inner_sdui_blocks`) instead of assigning them to flat DTO properties.
+  - Fail-Fast check: The Dart frontend must not contain any fallback UI logic attempting to read these deleted fields if an SDUI block is missing.
+
+### Phase 8: PDF Jinja Macro Parity & Silent Failure Prevention
+- **Problem**: Adding new `AnySduiBlock` types (like `quote_card`, `warning_card`, `n_a_card`, `grid`) in Phase 2 causes a Silent Failure in PDF generation if the `render_sdui_blocks` macro in `backend_v2/templates/report_template.jinja2` is not synchronously updated. Jinja ignores unmapped blocks without crashing, violating E2E SDUI Parity.
+- **Correction Mandate**: Enforce strict E2E SDUI Parity between Flutter and PDF rendering. Every block type that can be rendered in the Flutter UI MUST have a corresponding explicit mapping in the Jinja macro.
+- **Action**:
+  - Audit `report_template.jinja2` and update the `{% macro render_sdui_blocks(blocks) %}` macro to include explicit `{% elif block.block_type == '...' %}` branches for all new SDUI block types introduced.
+  - Implement HTML structure and CSS mappings corresponding to the block severities (e.g., info, warning) to achieve visual parity with the Flutter components.
+  - Add or update integration tests (like `test_enum_parity.py`) to mathematically assert that the PDF Jinja template maps 1:1 with all registered SDUI blocks, preventing future silent failures.
 
 ---
 
