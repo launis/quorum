@@ -804,9 +804,14 @@ async def generate_profile_synthesis_and_pdf_task(
                     sys_prompt += "\n<omit_empty_sections>true</omit_empty_sections>"
 
                 client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
+                matrix_context = ""
+                if matrices_to_explain:
+                    matrix_context = (
+                        f"\n\nMATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2, ensure_ascii=False)}"
+                    )
                 synth_messages: list[dict[str, Any]] = [
                     {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": f"DATA TO SYNTHESIZE:\n{distilled_inputs}"},
+                    {"role": "user", "content": f"DATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"},
                 ]
                 t_synth = tg.create_task(
                     client.run_structured_task(
@@ -864,6 +869,8 @@ async def generate_profile_synthesis_and_pdf_task(
             row_explanations={item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
             if row_expl_res and row_expl_res.explanations
             else {},
+            xai_highlights=synthesis_res.xai_highlights if synthesis_res else [],
+            cited_sources=synthesis_res.cited_sources if synthesis_res else [],
             executive_summary=synthesis_res.executive_summary if synthesis_res else None,
             urgency_level=synthesis_res.urgency_level if synthesis_res else None,
             user_role=synthesis_res.user_role if synthesis_res else None,

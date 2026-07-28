@@ -235,7 +235,9 @@ def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], lang
     return title_map
 
 
-def _assemble_matrices_to_explain(available_dtos: list[StepOutputDTO]) -> list[dict[str, Any]]:
+def _assemble_matrices_to_explain(
+    available_dtos: list[StepOutputDTO], title_map: dict[str, str]
+) -> list[dict[str, Any]]:
     """Assemble the matrices_to_explain list by extracting quotes from Epic 94 evaluated_atoms.
 
     Epic 94 Enriched Atom Graph migration: Extracts directly from MatrixScorecardRowDTO structures.
@@ -275,6 +277,7 @@ def _assemble_matrices_to_explain(available_dtos: list[StepOutputDTO]) -> list[d
                 matrices_to_explain_map[block_id] = {
                     "real_matrix_id": block_id,
                     "matrix_id": matrix_alias,
+                    "matrix_label": title_map.get(block_id.lower(), block_id),
                     "score": payload["normalized_score"],
                     "justification": justification_text,
                 }
@@ -413,7 +416,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         consolidated_distilled_parts.append(f'<source id="{short_alias}" title="{step_title}">\n{v_str}\n</source>')
 
     # Phase 2, Milestone 1.5: Assemble matrices_to_explain
-    matrices_to_explain = _assemble_matrices_to_explain(available_dtos)
+    matrices_to_explain = _assemble_matrices_to_explain(available_dtos, title_map)
 
     return HookResult(
         success=True,

@@ -83,10 +83,18 @@ def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     for valid_dto in hydrated_state.steps:
+        if valid_dto.payload is None:
+            continue
         try:
             wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
             payloads.append(wrapper)
         except ValidationError as e:
+            # If the payload is a primitive (e.g. bool, str) it's not a ScoringPayloadWrapper, skip it.
+            # We only want to crash if it's a dict that failed strict validation.
+            if not isinstance(valid_dto.payload, dict):
+                logger.debug("[ScoringHook] Primitive payload skipped: %s", valid_dto.payload)
+                continue
+
             msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO payload in execution snapshot: {e}"
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(

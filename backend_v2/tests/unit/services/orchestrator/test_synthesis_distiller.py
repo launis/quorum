@@ -120,7 +120,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
             },
         ),
     ]
-    result = _assemble_matrices_to_explain(dtos)
+    result = _assemble_matrices_to_explain(dtos, title_map={})
 
     assert len(result) == 1
     assert result[0]["matrix_id"] == "MX-0"
@@ -140,7 +140,7 @@ def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
             payload={"normalized_score": 78.5},
         ),
     ]
-    result = _assemble_matrices_to_explain(dtos)
+    result = _assemble_matrices_to_explain(dtos, title_map={})
     assert len(result) == 0
 
 
@@ -154,7 +154,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
             payload={"normalized_score": 78.5, "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": []}]},
         ),
     ]
-    result = _assemble_matrices_to_explain(dtos)
+    result = _assemble_matrices_to_explain(dtos, title_map={})
     assert len(result) == 0
 
 
@@ -180,6 +180,6 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
             },
         ),
     ]
-    result = _assemble_matrices_to_explain(dtos)
+    result = _assemble_matrices_to_explain(dtos, title_map={})
     assert len(result) == 1
     assert result[0]["score"] == 50.0  # First entry wins
