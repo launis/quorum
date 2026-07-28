@@ -33,6 +33,7 @@ from backend_v2.models.enums import (
     LaxHistoricalContextMode,
     LaxPromptBlockCategory,
     LaxScoringStrategy,
+    LaxTargetBlockType,
     LaxXaiExtensionType,
     ScoringStrategy,
     SDUIComponentType,
@@ -1056,6 +1057,9 @@ class ReportLayoutDTO(V2CoreBase):
     description: I18nText | None = Field(default=None)
     is_synthesis_enabled: bool = Field(default=True)
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
+    target_blocks: list[str | LaxTargetBlockType] | None = Field(
+        default=None, description="Optional explicit block IDs targeted by this layout."
+    )
     text_delivery_mode: Literal["full", "titles_only", "none"] = Field(
         default="full", description="Granularity of text output for this layout."
     )
@@ -1256,7 +1260,7 @@ class OutputLayoutBlock(V2CoreBase):
     title: I18nText | None = Field(default=None, description="Optional localized layout title.")
     description: I18nText | None = Field(default=None, description="Optional localized layout description.")
     steps: list[str] = Field(default_factory=list, description="List of step IDs providing the axes.")
-    target_blocks: list[str] = Field(
+    target_blocks: list[str | LaxTargetBlockType] = Field(
         default_factory=list, description="Optional explicit block IDs to plot, filtering and ordering the axes."
     )
     text_delivery_mode: Literal["full", "titles_only", "none"] = Field(

@@ -103,6 +103,16 @@ class ComponentType(StrEnum):
     HIDDEN = "hidden"
 
 
+class TargetBlockType(StrEnum):
+    """Explicit layout hydration target blocks for SDUI."""
+
+    GLOBAL_SCORE_BLOCK = "global_score_block"
+    PENALTIES_BLOCK = "penalties_block"
+    AUDIT_TRAIL_BLOCK = "audit_trail_block"
+    JARGON_RATIO_BLOCK = "jargon_ratio_block"
+    PRINTABLE_SOURCES_BLOCK = "printable_sources_block"
+
+
 class VisualIntent(StrEnum):
     """UI intent mapping for SDUI visual rendering."""
 
@@ -567,6 +577,7 @@ LaxRiskLevel = Annotated[RiskLevel, Field(strict=False)]
 LaxSimulationType = Annotated[SimulationType, Field(strict=False)]
 LaxRoleClassification = Annotated[RoleClassification, Field(strict=False)]
 LaxInteractionStrategy = Annotated[InteractionStrategy, Field(strict=False)]
+LaxTargetBlockType = Annotated[TargetBlockType, Field(strict=False)]
 
 
 class SpecialAliasChoices(StrEnum):

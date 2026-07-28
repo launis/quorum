@@ -25,7 +25,14 @@ from backend_v2.models.dtos.lightweight_matrix import (
 )
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
-from backend_v2.models.enums import ExecutionStatus, SystemConfigID, SystemLocale, VirtualSystemStepID, VisualIntent
+from backend_v2.models.enums import (
+    ExecutionStatus,
+    SystemConfigID,
+    SystemLocale,
+    TargetBlockType,
+    VirtualSystemStepID,
+    VisualIntent,
+)
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     EmbeddedOutputProfile,
@@ -84,6 +91,16 @@ class BlueprintTransformer:
         self.output_profile_repo = output_profile_repo
         self.identity_repo = identity_repo
         self.system_repo = system_repo
+
+        from collections.abc import Callable
+
+        self._target_block_hydrators: dict[str, Callable[..., list[AnySduiBlock]]] = {
+            TargetBlockType.PENALTIES_BLOCK: self._hydrate_penalties_block,
+            TargetBlockType.GLOBAL_SCORE_BLOCK: self._hydrate_global_score_block,
+            TargetBlockType.AUDIT_TRAIL_BLOCK: self._hydrate_audit_trail_block,
+            TargetBlockType.JARGON_RATIO_BLOCK: self._hydrate_jargon_ratio_block,
+            TargetBlockType.PRINTABLE_SOURCES_BLOCK: self._hydrate_printable_sources_block,
+        }
 
     @staticmethod
     def _clean_hallucinated_numbers(text: str) -> str:
@@ -700,6 +717,40 @@ class BlueprintTransformer:
 
         return evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms
 
+    def _hydrate_penalties_block(self, **kwargs: Any) -> list[AnySduiBlock]:
+        """Hydrates penalty visual blocks with CRITICAL_OVERRIDE intent."""
+        penalties_applied: list[str] = kwargs.get("penalties_applied", [])
+        if not penalties_applied:
+            return []
+
+        penalty_blocks: list[AnySduiBlock] = []
+        for p_str in penalties_applied:
+            penalty_blocks.append(
+                AlertBlock(
+                    severity=VisualIntent.CRITICAL_OVERRIDE.value,
+                    text=f"Penalty applied: {p_str}",
+                    exact_quotes=[],
+                    citations=[],
+                )
+            )
+        return penalty_blocks
+
+    def _hydrate_global_score_block(self, **kwargs: Any) -> list[AnySduiBlock]:
+        """Placeholder for future global score hydration logic."""
+        return []
+
+    def _hydrate_audit_trail_block(self, **kwargs: Any) -> list[AnySduiBlock]:
+        """Placeholder for future audit trail hydration logic."""
+        return []
+
+    def _hydrate_jargon_ratio_block(self, **kwargs: Any) -> list[AnySduiBlock]:
+        """Placeholder for future jargon ratio hydration logic."""
+        return []
+
+    def _hydrate_printable_sources_block(self, **kwargs: Any) -> list[AnySduiBlock]:
+        """Placeholder for future printable sources hydration logic."""
+        return []
+
     def _build_layouts(
         self,
         layout_defs: list[OutputLayoutBlock],
@@ -771,6 +822,7 @@ class BlueprintTransformer:
                         description=layout_desc,
                         is_synthesis_enabled=layout_def.is_synthesis_enabled,
                         axes=axes,
+                        target_blocks=target_blocks,
                         text_delivery_mode=text_delivery_mode,
                         synthesis=synthesis_config,
                         synthesis_blocks=section_blocks,
@@ -1573,24 +1625,34 @@ class BlueprintTransformer:
                     recalc_final = base_avg * (1.0 - effective_penalty)
                     global_score = float(round(max(0.0, recalc_final), 1))
 
-            if penalties_applied:
-                penalty_blocks: list[AnySduiBlock] = []
-                for p_str in penalties_applied:
-                    penalty_blocks.append(
-                        AlertBlock(
-                            severity="warning",
-                            text=f"Penalty applied: {p_str}",
-                            exact_quotes=[],
-                            citations=[],
-                        )
-                    )
-                layouts_list.insert(
-                    0,
-                    ReportLayoutDTO(
-                        preset_view="text_only",
-                        synthesis_blocks=penalty_blocks,
-                    ),
-                )
+            # Phase 2: Post-process explicit layout target blocks via Strategy Pattern
+            for layout in layouts_list:
+                if layout.target_blocks and "*" not in layout.target_blocks:
+                    new_synthesis_blocks = list(layout.synthesis_blocks) if layout.synthesis_blocks else []
+                    modified_blocks = False
+                    for target_k in layout.target_blocks:
+                        if target_k in self._target_block_hydrators:
+                            hydrated_blocks = self._target_block_hydrators[str(target_k)](
+                                execution=execution,
+                                locale=locale,
+                                penalties_applied=penalties_applied,
+                                mcp_audit_data=mcp_audit_data,
+                                global_score=global_score,
+                            )
+                            if hydrated_blocks:
+                                new_synthesis_blocks.extend(hydrated_blocks)
+                                modified_blocks = True
+                        elif target_k in [e.value for e in TargetBlockType]:
+                            msg_fmt = f"Fail-Fast: Hydrator missing for TargetBlockType '{target_k}'"
+                            logger.error("[BlueprintTransformer] %s", msg_fmt)
+                            raise AppException(
+                                message=msg_fmt,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+                    if modified_blocks:
+                        idx = layouts_list.index(layout)
+                        layouts_list[idx] = layout.model_copy(update={"synthesis_blocks": new_synthesis_blocks})
 
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,

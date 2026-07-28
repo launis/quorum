@@ -520,7 +520,7 @@ class AlertBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="alert_box")
     block_type: Literal["alert_box"] = "alert_box"
-    severity: Annotated[Literal["info", "warning"], Field(default="info")]
+    severity: Annotated[Literal["info", "warning", "critical_override"], Field(default="info")]
     text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
     exact_quotes: Annotated[list[str], Field(default_factory=list)]
     citations: Annotated[list[int], Field(default_factory=list)]
