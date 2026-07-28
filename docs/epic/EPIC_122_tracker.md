@@ -155,6 +155,9 @@
 - Completed Tier 8 Audit for Phase 4 Flutter UI execution and generated the audit report at `@[c:\src\quorum\docs\epic\tasks_EPIC_122\05_phase4_flutter_ui_audit_report.md]`.
 - Executed Tier 0 (Red-Teaming) on Phase 5 Integration Checkpoint Plan `@[c:\src\quorum\docs\epic\tasks_EPIC_122\06_integration_checkpoint_plan.md]`.
 - Mutated the plan to include Mocked SDUI Semantic Parity Verification using Polyfactory to act as an E2E compilation firewall, adhering to KI rules.
+- Executed an ad-hoc bug fix to add `user_role_label` to `EmbeddedOutputProfile` in `backend_v2/models/v2_core.py`.
+- Passed the `backend_audit_loop.py` for the domain models after the bug fix.
+- Completed Tier 8 Audit for the bug fix, producing a clean trace.
 
 ## Learned
 - **Baseline State Snapshot**:
@@ -168,10 +171,11 @@
   - The database re-seeding completed successfully, dropping all tables and upserting the updated registries without schema validation errors.
   - Blueprint parsing and test execution passed successfully via `uv run pytest backend_v2/tests/ -k "blueprint"` validating backend models correctly parse the new layout combinations.
   - Phase 4 audit successfully proved the eradication of the `IconButton` and rendering of the `normalized_score` as a visual percentage pill using `theme.colorScheme.tertiaryContainer`. `flutter_audit_loop.py` and negative widget test coverage were flawlessly green.
+  - Encountered and resolved an `extra_forbidden` Pydantic crash in the `Workflow` API caused by `user_role_label` being missing from the `EmbeddedOutputProfile` schema.
 
 ## Remaining
 - Execute Integration Checkpoint.
 - Red-team and execute Post-Implementation Gates.
 
 ## Resume Command
-`/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\06_integration_checkpoint_plan.md]`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_122\06_integration_checkpoint_plan.md]" --workflow=/tier2-execute`

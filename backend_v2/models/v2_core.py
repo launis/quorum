@@ -1350,6 +1350,9 @@ class EmbeddedOutputProfile(V2CoreBase):
 
     name: I18nText = Field(description="Localized name of the profile.")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
+    user_role_label: I18nText | None = Field(
+        default=None, description="Optional localized label prefixing the user role context."
+    )
     custom_preface: I18nText | None = Field(
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
