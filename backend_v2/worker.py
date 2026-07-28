@@ -891,6 +891,10 @@ async def generate_profile_synthesis_and_pdf_task(
             row_explanations={item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
             if row_expl_res and row_expl_res.explanations
             else {},
+            executive_summary=synthesis_res.executive_summary if synthesis_res else None,
+            urgency_level=synthesis_res.urgency_level if synthesis_res else None,
+            user_role=synthesis_res.user_role if synthesis_res else None,
+            user_role_justification=synthesis_res.user_role_justification if synthesis_res else None,
         )
 
         # Add new synthesis to record

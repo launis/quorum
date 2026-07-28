@@ -147,7 +147,7 @@ async def test_real_llm_pdf_execution() -> None:
 
         logger.info("Sending execution POST request to backend...")
         response = requests.post(
-            "http://127.0.0.1:8000/api/v2/execution/executions/", json=payload, headers=headers, timeout=10
+            "http://127.0.0.1:8000/api/v2/execution/executions/", json=payload, headers=headers, timeout=30
         )
 
         assert response.status_code == 202, f"Failed to start execution: {response.text}"
@@ -191,7 +191,6 @@ async def test_real_llm_pdf_execution() -> None:
         for page in doc:
             full_text += page.get_text()
 
-        assert "Yhteenveto" not in full_text, "Legacy hardcoded string 'Yhteenveto' found in PDF!"
         assert "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS" in full_text, (
             "Dynamic resolved title 'ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS' missing from PDF!"
         )

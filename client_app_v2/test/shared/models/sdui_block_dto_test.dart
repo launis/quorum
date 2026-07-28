@@ -171,5 +171,16 @@ void main() {
 
       expect(() => SduiBlockDTO.fromJson(json), throwsException);
     });
+
+    test('reproduces bug: successfully parses id key when present', () {
+      final json = {
+        'block_type': 'paragraph',
+        'id': 'blk_123',
+        'text': 'Hello',
+      };
+
+      final block = SduiBlockDTO.fromJson(json);
+      expect(block, isA<SduiParagraphBlock>());
+    });
   });
 }

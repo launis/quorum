@@ -105,7 +105,16 @@ class SynthesisOutputDTO(V2CoreBase):
         cited_sources: List of references or citations found.
         section_syntheses: List of synthesized sections, mapped by their Layout ID.
         xai_highlights: The deduplicated insight items per extension category.
+        user_role: Extracted targeted user role for the output.
+        user_role_justification: LLM justification for role mapping.
+        executive_summary: High-level synthesized summary.
+        urgency_level: Estimated urgency level.
     """
+
+    user_role: Annotated[str | None, Field(default="Yleinen yleisö", description="Extracted targeted user role for the output. If unknown, default to a generic role.")]
+    user_role_justification: Annotated[str | None, Field(default="Inferred from general context.", description="LLM justification for role mapping.")]
+    executive_summary: Annotated[str | None, Field(default="Executive summary.", description="High-level synthesized summary")]
+    urgency_level: Annotated[int | None, Field(default=1)]
 
     content_blocks: Annotated[
         list[AnySduiBlock],

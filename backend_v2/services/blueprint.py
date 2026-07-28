@@ -1527,20 +1527,35 @@ class BlueprintTransformer:
                 fuzz_threshold = target_lexicon.fuzz_threshold
 
             global_synth = None
-            if isinstance(synthesis_md, dict):
-                user_role_val = synthesis_md.get("user_role")
-                user_role_just = synthesis_md.get("user_role_justification")
-                exec_summary = synthesis_md.get("executive_summary")
-                urgency = synthesis_md.get("urgency_level")
-                if any(v is not None for v in (user_role_val, user_role_just, exec_summary, urgency)):
-                    from backend_v2.models.v2_core import GlobalSynthesisDTO
+            if profile_cache and any(
+                v is not None for v in (profile_cache.user_role, profile_cache.executive_summary)
+            ):
+                from backend_v2.models.v2_core import GlobalSynthesisDTO
 
-                    global_synth = GlobalSynthesisDTO(
-                        executive_summary=exec_summary,
-                        urgency_level=urgency,
-                        user_role=user_role_val,
-                        user_role_justification=user_role_just,
-                    )
+                global_synth = GlobalSynthesisDTO(
+                    executive_summary=profile_cache.executive_summary or "Executive summary.",
+                    urgency_level=profile_cache.urgency_level or 1,
+                    user_role=profile_cache.user_role or "Yleinen yleisö",
+                    user_role_justification=profile_cache.user_role_justification or "Inferred from general context.",
+                )
+            else:
+                for md_source in [synthesis_md, original_synthesis_md]:
+                    if isinstance(md_source, dict):
+                        user_role_val = md_source.get("user_role") or "Yleinen yleisö"
+                        user_role_just = md_source.get("user_role_justification") or "Inferred from general context."
+                        exec_summary = md_source.get("executive_summary") or "Executive summary."
+                        urgency = md_source.get("urgency_level") or 1
+
+                        if any(v is not None for v in (user_role_val, user_role_just, exec_summary, urgency)):
+                            from backend_v2.models.v2_core import GlobalSynthesisDTO
+
+                            global_synth = GlobalSynthesisDTO(
+                                executive_summary=exec_summary,
+                                urgency_level=urgency,
+                                user_role=user_role_val,
+                                user_role_justification=user_role_just,
+                            )
+                            break
 
             if profile.user_role_label and (not global_synth or not global_synth.user_role):
                 msg = (

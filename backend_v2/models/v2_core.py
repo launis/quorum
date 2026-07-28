@@ -1563,6 +1563,10 @@ class RenderedSynthesisCache(V2CoreBase):
     row_curated_quotes: dict[str, list[str]] = Field(default_factory=dict, description="Curated quotes by matrix ID")
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
     xai_highlights: list[XaiHighlightItem] = Field(default_factory=list, description="Generated XAI highlight boxes")
+    executive_summary: str | None = Field(default=None, description="Global executive summary")
+    urgency_level: int | None = Field(default=None, description="Urgency level")
+    user_role: str | None = Field(default=None, description="User role")
+    user_role_justification: str | None = Field(default=None, description="User role justification")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
