@@ -46,21 +46,20 @@
 - [x] **[OK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\04_phase3_database_reseeding_placeholder.md]`
 - [x] **[OK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\04_phase3_database_reseeding_placeholder.md]` (Skipped Placeholder)
 
-### Phase 4: Flutter UI Implementation (View-Only Parity) (Placeholder)
-- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\05_phase4_flutter_ui_placeholder.md]`
-- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\05_phase4_flutter_ui_placeholder.md]`
-- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\05_phase4_flutter_ui_placeholder.md]`
+### Phase 4: Flutter UI Implementation (View-Only Parity)
+- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\05_phase4_flutter_ui_plan.md]`
+- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\05_phase4_flutter_ui_plan.md]`
+- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\05_phase4_flutter_ui_plan.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] **[NOK] Full-Stack Validation Completed**
+- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\06_integration_checkpoint_plan.md]`
+- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\06_integration_checkpoint_plan.md]`
+- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\06_integration_checkpoint_plan.md]`
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
-- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+- [ ] **[NOK] Red-Teaming**: `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\07_post_implementation_gates_plan.md]`
+- [ ] **[NOK] Execution**: `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_122\07_post_implementation_gates_plan.md]`
+- [ ] **[NOK] Audit**: `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_122\07_post_implementation_gates_plan.md]`
 
 ### Documentation & Knowledge Item Update
 - [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/`.
@@ -138,6 +137,10 @@
 - Executed Phase 3: Database Re-seeding & Verification.
 - Ran `uv run python backend_v2/seed/run_seed.py local` to wipe and re-seed the local database with the updated OutputProfile schema.
 - Marked Phase 3 as complete in the tracker.
+- Generated the Tier 1 implementation plan for Phase 4 (Flutter UI Implementation).
+- Rewrote the Tier 1 implementation plan for Phase 4 to include the missing External Edit Link strategy and Normalized Score rendering requirements.
+- Generated the Tier 1 implementation plan for Phase 5 (Integration Checkpoint).
+- Generated the Tier 1 implementation plan for Phase 6 (Post-Implementation Gates).
 
 ## Learned
 - **Baseline State Snapshot**:
@@ -152,7 +155,9 @@
   - Blueprint parsing and test execution passed successfully via `uv run pytest backend_v2/tests/ -k "blueprint"` validating backend models correctly parse the new layout combinations.
 
 ## Remaining
-- Invoke the Tier 1 Planner to generate the detailed implementation plan for Phase 4: Flutter UI Implementation (View-Only Parity).
+- Red-team and execute Phase 4: Flutter UI Implementation (View-Only Parity).
+- Red-team and execute Integration Checkpoint.
+- Red-team and execute Post-Implementation Gates.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier1-planner --target="@[c:\src\quorum\docs\epic\EPIC_122_legacy_parity_output_profile.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_122\05_phase4_flutter_ui_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
