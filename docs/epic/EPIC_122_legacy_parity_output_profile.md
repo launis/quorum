@@ -205,7 +205,7 @@ We will surgically modify the target `OutputProfile` (e.g., `holistic_audit`) in
 
 ### Phase 2: Backend Context Mappers & Blueprint Hydration
 To ensure the JSON data structures defined in Phase 1 actually receive runtime data, the backend mapping pipeline must be updated:
-1. **Context Mapper (`backend_v2/services/orchestrator/context_mapper.py`)**: Update the mapping logic to extract `user`, `scoring_engine`, `strictness`, and `execution_id` from the raw `Execution` state and inject them into the `metadata` dictionary of the outgoing DTO.
+1. **Report Data Hydration (`backend_v2/services/blueprint.py`)**: Ensure `execution.id` is explicitly mapped to the `execution_id` field of `ReportDataDTO`. (Note: The outgoing DTO uses strictly typed explicit fields like `user_name` and `execution_id`, NOT a loose `metadata` dictionary. The frontend uses the `visible_metadata` array from the profile to determine which of these explicit fields to render).
 2. **SDUI Blueprint Strategy Registry (`backend_v2/services/blueprint.py`)**: 
    - Implement data hydration handlers for the new explicit layouts. 
    - **STRATEGY PATTERN MANDATE**: You MUST NOT use `if/elif` chains to resolve `target_blocks`. Implement a `TARGET_BLOCK_HYDRATORS: dict[TargetBlockType, Callable]` registry inside the service. When `blueprint.py` encounters `target_blocks=["jargon_ratio_block"]`, it must execute `TARGET_BLOCK_HYDRATORS[TargetBlockType.JARGON_RATIO_BLOCK](...)`. The registry MUST raise `AppException(status_code=500)` on unrecognized keys (Fail-Fast). This enforces the Open-Closed Principle.

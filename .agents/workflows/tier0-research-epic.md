@@ -56,7 +56,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
         Analyze the Epic through the Quorum "Panel of Architects":
         - Global System Architect: Does this Epic violate any "Catastrophic System Bans" (e.g., legacy fallbacks, bypasses of Fail-Fast)? Does it maintain the Single Source of Truth (SSOT)?
         - Backend/Data Architect: Are the proposed data structures deterministic? Are we forcing dynamic API shapes into static persistence layers improperly?
-        - SDUI &amp; Frontend Architect: Does this maintain strict Server-Driven UI parity? Are we relying on frontend business logic where the backend should be responsible?
+        - SDUI &amp; Frontend Architect: Does this maintain strict Server-Driven UI parity across ALL presentation targets (especially Backend PDF / Jinja macros)? Are we relying on frontend business logic? Any new SDUI blocks MUST mandate synchronous Jinja mapping to prevent Silent Failures.
         - AI &amp; Orchestration Architect: Are LLM interactions properly cached, deterministic, and isolated? Does the design avoid dynamic prompts in favor of strict PromptBlocks and Unified Model Garden multiplexing?
       </constraint>
       <constraint name="MODERNITY ARCHITECT (QUORUM 2026 INVARIANTS)">
@@ -73,6 +73,10 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
         * Hardcoded thresholds in business logic → `settings.py` central sovereignty
         * Frontend-side business logic → Backend SDUI with ICU Markdown parity
         * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading
+        * `List<dynamic>`, `dict[str, Any]` or `Any` inside lists → Pydantic Discriminated Unions / Dart 3 Sealed Classes (`@Freezed(unionKey: ...)`)
+        * `data.get("key", default)`, `getattr(obj, "key", default)` and `hasattr()` duck-typing → Direct typed attribute access + Fail-Fast crash (`KeyError` / `AttributeError`)
+        * Pydantic "Double-Serialization" (e.g. `.model_dump()` + downcasting to dict for caching) → Native storing and passing of typed objects
+        * Dart Freezed `@Default("Fallback")` and `fallbackUnion: 'unknown'` → Strictly forbidden. Unknown schema MUST crash the view (e.g. `CheckedFromJsonException`)
       </constraint>
       <action>Evaluate the business value against the risk of architectural drift.</action>
     </step>
@@ -83,9 +87,10 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
         Answer these mandatory questions:
         - Does this Epic introduce any "Duct-Tape" solutions, hidden fallbacks, or silent error suppression instead of deterministic Fail-Fast logic?
         - Are the boundary contracts (e.g., API payloads, LLM prompts) strictly defined, or is there ambiguity that will cause hallucination or parsing crashes?
-        - If the Epic requires data migration, is the transition atomic and safe without creating "False Unifications"?
+        - **Atomic Data & Test Migration**: If the Epic requires data migration or model strictness enforcements, are these changes bound ATOMICALLY to the updating of test mock data (fixtures) and seed data (`seed_data.json`) within the exact same phase? (Failing to do so will instantly crash the test suite and trap executing agents in an unrecoverable failure loop).
         - Does the Epic account for transient failures (e.g., network, LLM rate limits) using the established retry loops and DLQ strategies instead of generic try/except blocks?
-        - Are we duplicating existing cognitive features or SSOT elements unnecessarily?
+        - **Legacy Flat Field Eradication (SSOT)**: When migrating presentation logic into polymorphic structures (e.g. SDUI blocks), does the Epic explicitly demand the ruthless deletion of the old flat DTO fields (like legacy `coaching` or `falsification` strings) to prevent two sources of truth?
+        - **MANDATORY Phase Execution Order**: Does the Epic identify the critical deployment sequence caused by strictness enforcements? (e.g. Must the consumer/Frontend be updated to support new strict models BEFORE the producer/Backend starts sending them, to prevent strict parsing crashes?)
       </constraint>
       <gate name="ZERO-BEHAVIORAL CHANGE FALSIFICATION">Does this Epic illegally mix structural refactoring with new feature additions? If so, flag this as an architectural violation and demand they be split into separate phases.</gate>
     </step>
