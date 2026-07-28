@@ -76,7 +76,9 @@ class ContextMapper:
 
     @staticmethod
     def build_global_mapping(
-        workflow_data: Workflow | None = None, selected_layouts: list[OutputLayoutBlock] | None = None
+        workflow_data: Workflow | None = None,
+        selected_layouts: list[OutputLayoutBlock] | None = None,
+        execution_id: str | None = None,
     ) -> str:
         """Builds a global mapping cheatsheet across the entire workflow if needed.
 
@@ -85,10 +87,13 @@ class ContextMapper:
         Args:
             workflow_data: The full workflow graph definition.
             selected_layouts: Target output formats selected for the report.
+            execution_id: Identifier of the current execution.
 
         Returns:
             str: The compiled global mapping instructions string.
         """
         # MVP: currently step-level IDs are injected at JSON assembly in synthesis.py
         # This will be extended when global cross-matrix blocks are added.
+        if execution_id:
+            return f"=== GLOBAL CONTEXT ===\nExecution ID: {execution_id}\n======================\n"
         return ""
