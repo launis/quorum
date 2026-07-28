@@ -19,6 +19,7 @@ void main() {
         ),
         name: 'Cognition',
         score: 3.5,
+        normalizedScore: 80.0,
         scaleMax: 5.0,
         scoreDisplayLabel: '3.5 / 5.0',
         trueAtoms: 5,
@@ -59,6 +60,50 @@ void main() {
     expect(find.text('3.5 / 5.0'), findsOneWidget);
     expect(find.text('1 - T1: 3 / 5'), findsOneWidget);
     expect(find.text('2 - T2: 2 / 5'), findsOneWidget);
+    expect(find.textContaining('80.0'), findsOneWidget);
+  });
+
+  testWidgets('AtomMatrixTableWidget renders - when normalized_score is null', (
+    WidgetTester tester,
+  ) async {
+    final matrices = [
+      const MatrixScorecardRowDto(
+        blockId: 'block_1',
+        labelI18n: const I18nText(
+          translations: {'fi': 'Kognitio', 'en': 'Cognition'},
+        ),
+        name: 'Cognition',
+        score: 3.5,
+        scaleMax: 5.0,
+        scoreDisplayLabel: '3.5 / 5.0',
+        trueAtoms: 5,
+        totalAtoms: 10,
+        levelBreakdown: {'1': '3 / 5', '2': '2 / 5'},
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(800, 600)),
+            child: Scaffold(
+              body: AtomMatrixTableWidget(
+                matrices: matrices,
+                visibleColumns: const ['normalized_score'],
+                executionId: 'test_execution_1',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(find.text('-'), findsOneWidget);
   });
 
   testWidgets(
@@ -246,6 +291,9 @@ void main() {
       expect(find.text('👨‍⚖️ Ihmisen päätös (EU AI Act)'), findsOneWidget);
       expect(find.textContaining('Human thinks it is PASS'), findsOneWidget);
       expect(find.byType(RichText), findsWidgets);
+
+      // Verify that the IconButton for overriding is removed
+      expect(find.byType(IconButton), findsNothing);
     },
   );
 }

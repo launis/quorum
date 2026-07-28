@@ -18,24 +18,26 @@ Update the Flutter matrix rendering to enforce the "Zero Exception Mandate" by m
   <constraint invariant="design_token_absolute_rule">Exclusively use global Design Tokens (e.g., AppSpacing.p16, Theme.of(context).textTheme). ANY use of hardcoded numeric doubles for heights, widths, or padding is STRICTLY PROHIBITED.</constraint>
 
   <step id="4_1" name="Remove In-Place Atom Editing and Add External Link Strategy">
-    <action>Modify `@[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\atom_matrix_table_widget.dart]` to remove all interactive UI elements (e.g., the `IconButton` that triggers `HumanOverrideDialog`) and any associated override rendering logic inside the matrix row.</action>
+    <action>Modify `@[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\atom_matrix_table_widget.dart]` to remove all interactive UI elements (specifically the `IconButton` that triggers `HumanOverrideDialog`).</action>
     <action>Remove the `HumanOverrideDialog` import from `atom_matrix_table_widget.dart`.</action>
-    <action>Note: The Epic specifies that Atom Overrides will be handled via a separate, external link (e.g., routing the user to a dedicated admin view). Since `atom_matrix_table_widget.dart` is just the view component, ensure it does not contain local edit buttons anymore. This component is now strictly view-only.</action>
+    <action>Note: The Epic specifies that Atom Overrides will be handled via a separate, external link. The matrix is now view-only, meaning we cannot edit it here. HOWEVER, you MUST preserve the read-only visual rendering of the `overrideBox` and the `hasOverride` calculation so users can still see that a human overrode the AI. Do NOT hide the data.</action>
     <demolish>REMOVE: `import 'package:client_app/features/execution/views/widgets/human_override_dialog.dart';`</demolish>
-    <demolish>REMOVE: The `hasOverride` calculation and `overrideBox` widget rendering logic inside `_buildQuotesColumn`.</demolish>
-    <demolish>REMOVE: The `IconButton` inside `_buildQuotesColumn` that calls `showDialog(...)` and its associated `ScaffoldMessenger` logic.</demolish>
-    <demolish>REPLACE WITH: Simple AI evidence rendering without human override fading/boxes.</demolish>
+    <demolish>REMOVE: ONLY the `IconButton` inside `_buildQuotesColumn` that calls `showDialog(...)` and its associated `ScaffoldMessenger` logic.</demolish>
+    <demolish>PRESERVE: The `hasOverride` calculation, fading logic, and `overrideBox` widget rendering, as they are required for read-only visibility.</demolish>
   </step>
 
   <step id="4_2" name="Update Normalized Score Rendering">
-    <action>Update the rendering of the `normalized_score` column in `atom_matrix_table_widget.dart` (and its mobile view) to render as a "green percentage pill" (e.g., using a `Container` with a green background and rounded corners) rather than plain blue text, for parity with the PDF template.</action>
-    <action>Ensure it explicitly uses a `Container` with rounded edges matching the backend Jinja template visual design for normalized score.</action>
+    <action>Update the rendering of the `normalized_score` column in `atom_matrix_table_widget.dart` (and its mobile view) to render as a percentage pill rather than plain blue text, for parity with the PDF template.</action>
+    <action>CRITICAL TOKEN COMPLIANCE: Do NOT use hardcoded colors like `Colors.green` or magic padding numbers. You MUST use semantic theme tokens (e.g., `theme.colorScheme.tertiaryContainer` for the background and `theme.colorScheme.onTertiaryContainer` for text, assuming tertiary maps to success/green in this app's semantic palette, or whatever the local equivalent is) and global spacing tokens (if applicable).</action>
+    <action>Graceful Fallback: Ensure the rendering handles a null `normalized_score` safely without crashing or rendering an empty green box.</action>
     <demolish>REMOVE: The plain blue text rendering for `normalized_score` in both `_buildDataTable` and `_buildMobileList`.</demolish>
-    <demolish>REPLACE WITH: Green percentage pill Container styling.</demolish>
+    <demolish>REPLACE WITH: Percentage pill Container styling strictly utilizing Theme context colors and avoiding magic numbers.</demolish>
   </step>
 
   <step id="4_3" name="Testing &amp; Quality Gate Plan">
-    <action>Run the Flutter audit loop on the modified file to ensure no compilation errors or linter warnings: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart`.</action>
+    <action>Update the associated widget tests to ensure the `IconButton` is verified as removed, and that a null `normalized_score` falls back correctly (Negative Path Testing).</action>
+    <action>Run the Flutter audit loop on BOTH the modified widget file and the test file to ensure no compilation errors or linter warnings: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart`.</action>
+    <action>Execute the test file to guarantee coverage does not drop.</action>
   </step>
 </execution_protocol>
 ```

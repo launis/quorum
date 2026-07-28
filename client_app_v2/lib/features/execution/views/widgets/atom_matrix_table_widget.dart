@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
-import 'package:client_app/features/execution/views/widgets/human_override_dialog.dart';
 import 'package:client_app/theme/app_colors.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -241,14 +241,30 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                     if (visibleColumns.contains('normalized_score'))
                       Expanded(
                         flex: 1,
-                        child: Text(
-                          m.normalizedScore != null
-                              ? '${m.normalizedScore!.toStringAsFixed(1)} %'
-                              : '-',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: m.normalizedScore != null
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.s8,
+                                    vertical: AppSpacing.s4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.tertiaryContainer,
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.s8,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '${m.normalizedScore!.toStringAsFixed(1)} %',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          theme.colorScheme.onTertiaryContainer,
+                                    ),
+                                  ),
+                                )
+                              : const Text('-'),
                         ),
                       ),
                     if (visibleColumns.contains('score'))
@@ -332,11 +348,29 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                 ),
               if (visibleColumns.contains('normalized_score') &&
                   m.normalizedScore != null)
-                Text(
-                  '100 %: ${m.normalizedScore!.toStringAsFixed(1)} %',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s4),
+                  child: Row(
+                    children: [
+                      const Text('100 %: '),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s8,
+                          vertical: AppSpacing.s4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.tertiaryContainer,
+                          borderRadius: BorderRadius.circular(AppSpacing.s8),
+                        ),
+                        child: Text(
+                          '${m.normalizedScore!.toStringAsFixed(1)} %',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onTertiaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               if (visibleColumns.contains('row_explanation'))
@@ -534,40 +568,6 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.gavel, size: 16),
-                                        tooltip: 'Yliohjaa päätös',
-                                        onPressed: () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (ctx) =>
-                                                HumanOverrideDialog(
-                                                  atom: atom,
-                                                  executionId: executionId,
-                                                ),
-                                          ).then((wasSaved) {
-                                            if (wasSaved == true) {
-                                              // Triggers a refresh of the report view optimally
-                                              // by invalidating the reportProvider.
-                                              // In a real app we'd dispatch an event or use ref.invalidate
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Päätös yliohjattu! Päivitä raportti nähdäksesi muutokset.',
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          });
-                                        },
-                                        constraints: const BoxConstraints(
-                                          minWidth: 24,
-                                          minHeight: 24,
-                                        ),
-                                        padding: EdgeInsets.zero,
                                       ),
                                     ],
                                   ),
