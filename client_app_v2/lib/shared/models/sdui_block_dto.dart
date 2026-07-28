@@ -11,6 +11,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('paragraph')
   const factory SduiBlockDTO.paragraph({
+    String? id,
     required String text,
     @Default([]) List<int> citations,
     @JsonKey(name: 'exact_quotes') @Default([]) List<String> exactQuotes,
@@ -19,12 +20,14 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('bullet_list')
   const factory SduiBlockDTO.bulletList({
+    String? id,
     required List<SduiBulletListItemDTO> items,
   }) = SduiBulletListBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('alert_box')
   const factory SduiBlockDTO.alertBox({
+    String? id,
     required String text,
     required String severity,
     @Default([]) List<int> citations,
@@ -34,6 +37,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('hero_insight')
   const factory SduiBlockDTO.heroInsight({
+    String? id,
     required String text,
     @Default([]) List<int> citations,
     @JsonKey(name: 'exact_quotes') @Default([]) List<String> exactQuotes,
@@ -41,12 +45,13 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('markdown')
-  const factory SduiBlockDTO.markdown({required String text}) =
+  const factory SduiBlockDTO.markdown({String? id, required String text}) =
       SduiMarkdownBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('quote_card')
   const factory SduiBlockDTO.quoteCard({
+    String? id,
     required String quote,
     @JsonKey(name: 'source_aliases') required List<String> sourceAliases,
     required List<dynamic> citations,
@@ -55,6 +60,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('warning_card')
   const factory SduiBlockDTO.warningCard({
+    String? id,
     required String message,
     @JsonKey(name: 'quote_text') String? quoteText,
   }) = SduiWarningCardBlock;
@@ -62,6 +68,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('n_a_card')
   const factory SduiBlockDTO.nACard({
+    String? id,
     @JsonKey(name: 'short_circuit_reason_tda_ids')
     required List<String> shortCircuitReasonTdaIds,
     required String message,
@@ -69,7 +76,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('grid')
-  const factory SduiBlockDTO.grid({required List<dynamic> items}) =
+  const factory SduiBlockDTO.grid({String? id, required List<dynamic> items}) =
       SduiGridBlock;
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
