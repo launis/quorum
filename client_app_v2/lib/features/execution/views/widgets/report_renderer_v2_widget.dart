@@ -9,6 +9,7 @@ import 'package:client_app/features/execution/views/widgets/xai_axis_telemetry_g
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/shared/widgets/logic_radar_chart.dart';
+import 'package:client_app/features/execution/views/widgets/xai_extensions_box.dart';
 
 // Phase 3, Step 2: Create ReportRendererV2Widget
 class ReportRendererV2Widget extends StatelessWidget {
@@ -321,6 +322,12 @@ class ReportRendererV2Widget extends StatelessWidget {
           ),
         );
       }
+    }
+    if (payload.groupedExtensions != null &&
+        payload.groupedExtensions!.isNotEmpty) {
+      widgets.add(
+        XAIExtensionsBox(groupedExtensions: payload.groupedExtensions!),
+      );
     }
 
     if (widgets.isEmpty) {

@@ -279,7 +279,7 @@ class TestPhase2PipelineUnification:
                 payload={"normalized_score": 60.0, "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": []}]},
             ),
         ]
-        result = _assemble_matrices_to_explain(dtos)
+        result = _assemble_matrices_to_explain(dtos, title_map={})
         # blk_m1 has quotes, blk_m2 has empty quotes
         assert len(result) == 1
         assert result[0]["matrix_id"] == "MX-0"

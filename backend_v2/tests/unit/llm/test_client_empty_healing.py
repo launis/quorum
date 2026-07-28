@@ -1,4 +1,3 @@
-from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -10,6 +9,7 @@ from backend_v2.llm.client import LLMClient
 
 class DummyConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
+    id: str = "llm_abc123456"
     provider: str = "openai"
     model_name: str = "pytest-model-1"
     temperature: float = 0.0
@@ -43,7 +43,7 @@ async def test_client_empty_content_raises_schema_error_for_healing(mock_create_
 
     mock_provider.generate.return_value = mock_response
 
-    client = LLMClient(config=cast(Any, DummyConfig()))
+    client = LLMClient(config=DummyConfig().model_dump())
 
     with pytest.raises(LLMSchemaValidationError) as exc:
         await client.run_structured_task(messages=[{"role": "user", "content": "hello"}], response_model=DummyModel)
