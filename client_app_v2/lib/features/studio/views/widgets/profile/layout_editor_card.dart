@@ -527,23 +527,17 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
       children: [
         _DictionaryMapEditor(
           title: 'Matrix Column Labels',
-          map: layout.matrixColumnLabels ?? {},
+          map: layout.matrixColumnLabels,
           onChanged: (newMap) {
-            updateLayout(
-              layout.copyWith(
-                matrixColumnLabels: newMap.isEmpty ? null : newMap,
-              ),
-            );
+            updateLayout(layout.copyWith(matrixColumnLabels: newMap));
           },
         ),
         AppSpacing.h16,
         _DictionaryMapEditor(
           title: 'Extension Labels',
-          map: layout.extensionLabels ?? {},
+          map: layout.extensionLabels,
           onChanged: (newMap) {
-            updateLayout(
-              layout.copyWith(extensionLabels: newMap.isEmpty ? null : newMap),
-            );
+            updateLayout(layout.copyWith(extensionLabels: newMap));
           },
         ),
       ],

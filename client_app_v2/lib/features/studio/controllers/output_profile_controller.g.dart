@@ -191,7 +191,7 @@ final class OutputProfileFormProvider
   }
 }
 
-String _$outputProfileFormHash() => r'4c1e8c2c678d9428527c1c244b396f3f0ddc5244';
+String _$outputProfileFormHash() => r'28fa3b61bac25ccdf46177ed49f0017149a5f2c6';
 
 final class OutputProfileFormFamily extends $Family
     with

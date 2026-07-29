@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OutputLayoutBlock {
 
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks;@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode get textDeliveryMode;@JsonKey(name: 'is_synthesis_enabled') bool get isSynthesisEnabled; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> get synthesisBlocks;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'matrix_column_labels') Map<String, I18nText>? get matrixColumnLabels;@JsonKey(name: 'matrix_visible_columns') List<String> get matrixVisibleColumns;@JsonKey(name: 'extension_labels') Map<String, I18nText>? get extensionLabels;
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks;@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode get textDeliveryMode;@JsonKey(name: 'is_synthesis_enabled') bool get isSynthesisEnabled; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> get synthesisBlocks;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> get matrixColumnLabels;@JsonKey(name: 'matrix_visible_columns') List<String> get matrixVisibleColumns;@JsonKey(name: 'extension_labels') Map<String, I18nText> get extensionLabels;
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $OutputLayoutBlockCopyWith<$Res>  {
   factory $OutputLayoutBlockCopyWith(OutputLayoutBlock value, $Res Function(OutputLayoutBlock) _then) = _$OutputLayoutBlockCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> synthesisBlocks,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText>? matrixColumnLabels,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns,@JsonKey(name: 'extension_labels') Map<String, I18nText>? extensionLabels
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> synthesisBlocks,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels
 });
 
 
@@ -58,7 +58,7 @@ class _$OutputLayoutBlockCopyWithImpl<$Res>
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? isSynthesisEnabled = null,Object? synthesis = freezed,Object? synthesisBlocks = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? matrixColumnLabels = freezed,Object? matrixVisibleColumns = null,Object? extensionLabels = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? isSynthesisEnabled = null,Object? synthesis = freezed,Object? synthesisBlocks = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? matrixColumnLabels = null,Object? matrixVisibleColumns = null,Object? extensionLabels = null,}) {
   return _then(_self.copyWith(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as PresetView,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -71,10 +71,10 @@ as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore:
 as SynthesisConfigDTO?,synthesisBlocks: null == synthesisBlocks ? _self.synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
 as List<SduiBlockDTO>,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
 as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
-as ScoringStrategy?,matrixColumnLabels: freezed == matrixColumnLabels ? _self.matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
-as Map<String, I18nText>?,matrixVisibleColumns: null == matrixVisibleColumns ? _self.matrixVisibleColumns : matrixVisibleColumns // ignore: cast_nullable_to_non_nullable
-as List<String>,extensionLabels: freezed == extensionLabels ? _self.extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
-as Map<String, I18nText>?,
+as ScoringStrategy?,matrixColumnLabels: null == matrixColumnLabels ? _self.matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
+as Map<String, I18nText>,matrixVisibleColumns: null == matrixVisibleColumns ? _self.matrixVisibleColumns : matrixVisibleColumns // ignore: cast_nullable_to_non_nullable
+as List<String>,extensionLabels: null == extensionLabels ? _self.extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
+as Map<String, I18nText>,
   ));
 }
 /// Create a copy of OutputLayoutBlock
@@ -195,7 +195,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText>? matrixColumnLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'extension_labels')  Map<String, I18nText>? extensionLabels)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock() when $default != null:
 return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks,_that.strictnessLevel,_that.scoringStrategy,_that.matrixColumnLabels,_that.matrixVisibleColumns,_that.extensionLabels);case _:
@@ -216,7 +216,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText>? matrixColumnLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'extension_labels')  Map<String, I18nText>? extensionLabels)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)  $default,) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock():
 return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks,_that.strictnessLevel,_that.scoringStrategy,_that.matrixColumnLabels,_that.matrixVisibleColumns,_that.extensionLabels);case _:
@@ -236,7 +236,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText>? matrixColumnLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'extension_labels')  Map<String, I18nText>? extensionLabels)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full)  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'is_synthesis_enabled')  bool isSynthesisEnabled,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO> synthesisBlocks, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock() when $default != null:
 return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.isSynthesisEnabled,_that.synthesis,_that.synthesisBlocks,_that.strictnessLevel,_that.scoringStrategy,_that.matrixColumnLabels,_that.matrixVisibleColumns,_that.extensionLabels);case _:
@@ -251,7 +251,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _OutputLayoutBlock extends OutputLayoutBlock {
-  const _OutputLayoutBlock({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) this.presetView = PresetView.defaultView, this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) this.textDeliveryMode = TextDeliveryMode.full, @JsonKey(name: 'is_synthesis_enabled') this.isSynthesisEnabled = true, this.synthesis, @JsonKey(name: 'synthesis_blocks') final  List<SduiBlockDTO> synthesisBlocks = const [], @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'matrix_column_labels') final  Map<String, I18nText>? matrixColumnLabels, @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const [], @JsonKey(name: 'extension_labels') final  Map<String, I18nText>? extensionLabels}): _steps = steps,_targetBlocks = targetBlocks,_synthesisBlocks = synthesisBlocks,_matrixColumnLabels = matrixColumnLabels,_matrixVisibleColumns = matrixVisibleColumns,_extensionLabels = extensionLabels,super._();
+  const _OutputLayoutBlock({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) this.presetView = PresetView.defaultView, this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], @JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) this.textDeliveryMode = TextDeliveryMode.full, @JsonKey(name: 'is_synthesis_enabled') this.isSynthesisEnabled = true, this.synthesis, @JsonKey(name: 'synthesis_blocks') final  List<SduiBlockDTO> synthesisBlocks = const [], @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'matrix_column_labels') final  Map<String, I18nText> matrixColumnLabels = const {}, @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const [], @JsonKey(name: 'extension_labels') final  Map<String, I18nText> extensionLabels = const {}}): _steps = steps,_targetBlocks = targetBlocks,_synthesisBlocks = synthesisBlocks,_matrixColumnLabels = matrixColumnLabels,_matrixVisibleColumns = matrixVisibleColumns,_extensionLabels = extensionLabels,super._();
   factory _OutputLayoutBlock.fromJson(Map<String, dynamic> json) => _$OutputLayoutBlockFromJson(json);
 
 @override@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) final  PresetView presetView;
@@ -283,13 +283,11 @@ class _OutputLayoutBlock extends OutputLayoutBlock {
 
 @override@JsonKey(name: 'strictness_level') final  int? strictnessLevel;
 @override@JsonKey(name: 'scoring_strategy') final  ScoringStrategy? scoringStrategy;
- final  Map<String, I18nText>? _matrixColumnLabels;
-@override@JsonKey(name: 'matrix_column_labels') Map<String, I18nText>? get matrixColumnLabels {
-  final value = _matrixColumnLabels;
-  if (value == null) return null;
+ final  Map<String, I18nText> _matrixColumnLabels;
+@override@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> get matrixColumnLabels {
   if (_matrixColumnLabels is EqualUnmodifiableMapView) return _matrixColumnLabels;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
+  return EqualUnmodifiableMapView(_matrixColumnLabels);
 }
 
  final  List<String> _matrixVisibleColumns;
@@ -299,13 +297,11 @@ class _OutputLayoutBlock extends OutputLayoutBlock {
   return EqualUnmodifiableListView(_matrixVisibleColumns);
 }
 
- final  Map<String, I18nText>? _extensionLabels;
-@override@JsonKey(name: 'extension_labels') Map<String, I18nText>? get extensionLabels {
-  final value = _extensionLabels;
-  if (value == null) return null;
+ final  Map<String, I18nText> _extensionLabels;
+@override@JsonKey(name: 'extension_labels') Map<String, I18nText> get extensionLabels {
   if (_extensionLabels is EqualUnmodifiableMapView) return _extensionLabels;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
+  return EqualUnmodifiableMapView(_extensionLabels);
 }
 
 
@@ -335,7 +331,7 @@ abstract mixin class _$OutputLayoutBlockCopyWith<$Res> implements $OutputLayoutB
   factory _$OutputLayoutBlockCopyWith(_OutputLayoutBlock value, $Res Function(_OutputLayoutBlock) _then) = __$OutputLayoutBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> synthesisBlocks,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText>? matrixColumnLabels,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns,@JsonKey(name: 'extension_labels') Map<String, I18nText>? extensionLabels
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode', unknownEnumValue: TextDeliveryMode.full) TextDeliveryMode textDeliveryMode,@JsonKey(name: 'is_synthesis_enabled') bool isSynthesisEnabled, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO> synthesisBlocks,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels
 });
 
 
@@ -352,7 +348,7 @@ class __$OutputLayoutBlockCopyWithImpl<$Res>
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? isSynthesisEnabled = null,Object? synthesis = freezed,Object? synthesisBlocks = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? matrixColumnLabels = freezed,Object? matrixVisibleColumns = null,Object? extensionLabels = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? isSynthesisEnabled = null,Object? synthesis = freezed,Object? synthesisBlocks = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? matrixColumnLabels = null,Object? matrixVisibleColumns = null,Object? extensionLabels = null,}) {
   return _then(_OutputLayoutBlock(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as PresetView,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -365,10 +361,10 @@ as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore:
 as SynthesisConfigDTO?,synthesisBlocks: null == synthesisBlocks ? _self._synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
 as List<SduiBlockDTO>,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
 as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
-as ScoringStrategy?,matrixColumnLabels: freezed == matrixColumnLabels ? _self._matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
-as Map<String, I18nText>?,matrixVisibleColumns: null == matrixVisibleColumns ? _self._matrixVisibleColumns : matrixVisibleColumns // ignore: cast_nullable_to_non_nullable
-as List<String>,extensionLabels: freezed == extensionLabels ? _self._extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
-as Map<String, I18nText>?,
+as ScoringStrategy?,matrixColumnLabels: null == matrixColumnLabels ? _self._matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
+as Map<String, I18nText>,matrixVisibleColumns: null == matrixVisibleColumns ? _self._matrixVisibleColumns : matrixVisibleColumns // ignore: cast_nullable_to_non_nullable
+as List<String>,extensionLabels: null == extensionLabels ? _self._extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
+as Map<String, I18nText>,
   ));
 }
 

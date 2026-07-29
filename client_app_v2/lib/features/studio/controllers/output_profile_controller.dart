@@ -238,16 +238,38 @@ class OutputProfileForm extends _$OutputProfileForm {
         description: isEmptyI18n(profileWithId.description)
             ? null
             : profileWithId.description,
+        userRoleLabel: isEmptyI18n(profileWithId.userRoleLabel)
+            ? null
+            : profileWithId.userRoleLabel,
+        customPreface: isEmptyI18n(profileWithId.customPreface)
+            ? null
+            : profileWithId.customPreface,
+        toneInstruction: isEmptyI18n(profileWithId.toneInstruction)
+            ? null
+            : profileWithId.toneInstruction,
         layouts: profileWithId.layouts.map((l) {
+          Map<String, I18nText> sanitizeMap(Map<String, I18nText> map) {
+            final sanitizedMap = <String, I18nText>{};
+            map.forEach((k, v) {
+              if (!isEmptyI18n(v)) sanitizedMap[k] = v;
+            });
+            return sanitizedMap;
+          }
+
           return l.copyWith(
             title: isEmptyI18n(l.title) ? null : l.title,
             description: isEmptyI18n(l.description) ? null : l.description,
+            matrixColumnLabels: sanitizeMap(l.matrixColumnLabels),
+            extensionLabels: sanitizeMap(l.extensionLabels),
             synthesis: l.synthesis == null
                 ? null
                 : l.synthesis!.copyWith(
                     preambleText: isEmptyI18n(l.synthesis!.preambleText)
                         ? null
                         : l.synthesis!.preambleText,
+                    toneInstruction: isEmptyI18n(l.synthesis!.toneInstruction)
+                        ? null
+                        : l.synthesis!.toneInstruction,
                   ),
           );
         }).toList(),

@@ -27,6 +27,16 @@ void main() {
         'Some insight',
       );
     });
+
+    test('Should parse empty JSON and default maps to {}', () {
+      final jsonPayload = <String, dynamic>{};
+
+      final block = OutputLayoutBlock.fromJson(jsonPayload);
+
+      expect(block, isNotNull);
+      expect(block.matrixColumnLabels, isEmpty);
+      expect(block.extensionLabels, isEmpty);
+    });
   });
 
   group('EmbeddedOutputProfile JSON Parsing', () {
@@ -79,7 +89,6 @@ void main() {
         'allowed_exports': ['pdf'],
         'omit_empty_sections': true,
         'allowed_mcp_tools': [],
-        'matrix_visible_columns': ['label'],
         'synthesis_block_id': 'blk_8f7e6d5c4b3a2019',
       };
 

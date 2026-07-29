@@ -77,10 +77,8 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('grid')
-  const factory SduiBlockDTO.grid({
-    String? id,
-    required List<String> items,
-  }) = SduiGridBlock;
+  const factory SduiBlockDTO.grid({String? id, required List<String> items}) =
+      SduiGridBlock;
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
       _$SduiBlockDTOFromJson(json);

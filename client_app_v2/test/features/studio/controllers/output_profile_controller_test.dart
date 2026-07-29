@@ -1,0 +1,118 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:riverpod/riverpod.dart';
+import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
+
+// Mock controller to intercept saveProfile and prevent API calls
+class MockOutputProfilesController extends OutputProfilesController {
+  @override
+  Future<OutputProfile> saveProfile(String id, OutputProfile payload) async {
+    // Just return the payload without making network calls
+    return payload;
+  }
+}
+
+void main() {
+  group('OutputProfileForm Sanitization Tests', () {
+    test(
+      'submit sanitizes empty I18nText fields across all optional properties',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            outputProfilesControllerProvider.overrideWith(
+              () => MockOutputProfilesController(),
+            ),
+          ],
+        );
+
+        final emptyI18n = const I18nText(
+          defaultLocale: 'en',
+          translations: {'en': ''},
+        );
+        final profile = OutputProfile(
+          id: 'test_id',
+          workflowId: 'wf_1',
+          name: const I18nText(
+            defaultLocale: 'en',
+            translations: {'en': 'Valid Name'},
+          ),
+          description: emptyI18n,
+          userRoleLabel: emptyI18n,
+          customPreface: emptyI18n,
+          toneInstruction: emptyI18n,
+          layouts: [
+            OutputLayoutBlock(
+              title: emptyI18n,
+              description: emptyI18n,
+              matrixColumnLabels: {'col1': emptyI18n},
+              extensionLabels: {'ext1': emptyI18n},
+              synthesis: SynthesisConfigDTO(
+                preambleText: emptyI18n,
+                toneInstruction: emptyI18n,
+              ),
+            ),
+          ],
+        );
+
+        final formProvider = outputProfileFormProvider('test_id');
+        final formNotifier = container.read(formProvider.notifier);
+
+        await formNotifier.submit(profile);
+        final sanitized = formNotifier.state.value!;
+        expect(
+          sanitized.description,
+          isNull,
+          reason: 'description should be sanitized',
+        );
+        expect(
+          sanitized.userRoleLabel,
+          isNull,
+          reason: 'userRoleLabel should be sanitized',
+        );
+        expect(
+          sanitized.customPreface,
+          isNull,
+          reason: 'customPreface should be sanitized',
+        );
+        expect(
+          sanitized.toneInstruction,
+          isNull,
+          reason: 'toneInstruction should be sanitized',
+        );
+
+        final layout = sanitized.layouts.first;
+        expect(
+          layout.title,
+          isNull,
+          reason: 'layout.title should be sanitized',
+        );
+        expect(
+          layout.description,
+          isNull,
+          reason: 'layout.description should be sanitized',
+        );
+        expect(
+          layout.synthesis?.preambleText,
+          isNull,
+          reason: 'layout.synthesis.preambleText should be sanitized',
+        );
+        expect(
+          layout.synthesis?.toneInstruction,
+          isNull,
+          reason: 'layout.synthesis.toneInstruction should be sanitized',
+        );
+        expect(
+          layout.matrixColumnLabels,
+          isEmpty,
+          reason: 'layout.matrixColumnLabels should be sanitized to empty map',
+        );
+        expect(
+          layout.extensionLabels,
+          isEmpty,
+          reason: 'layout.extensionLabels should be sanitized to empty map',
+        );
+      },
+    );
+  });
+}
