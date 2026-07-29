@@ -113,11 +113,12 @@ This Epic achieves visual restoration through **pure dynamic SDUI**. The backend
 - **CHECKPOINT**: Ensure `uv run python scripts/backend_audit_loop.py backend_v2/services/blueprint.py --test` passes and `git commit`.
 
 ### Phase 5: Producer Logic (Backend SDUI Hydration - Part 2: Row Extensions & Cleanup)
-- **Target**: `@[c:\src\quorum\backend_v2\services\blueprint.py]`, `@[c:\src\quorum\backend_v2\models\v2_core.py]`
-- **AlertBlock Transformation**: During matrix extraction in `blueprint.py`, transform the textual fields from the trace payload (`ext.coaching`, `ext.falsification`, `ext.remediation_steps`, `ext.missing_context`, `ext.emotional_sentiment`, `ext.theory_link`, `ext.risk_flag`) into `AlertBlock` models. Use **Strict Attribute Referencing** (`if ext.coaching:` where `ext = matrix_payload.extensions`). Do NOT reference these fields on the `row_dto` anymore, as they are being deleted from `MatrixScorecardRowDTO`.
+- **Target**: `@[c:\src\quorum\backend_v2\services\blueprint.py]`, `@[c:\src\quorum\backend_v2\models\v2_core.py]`, `@[c:\src\quorum\backend_v2\services\sdui_mapper_service.py]`, `@[c:\src\quorum\backend_v2\templates\report_template.jinja2]`
+- **AlertBlock Transformation**: During matrix extraction in `blueprint.py` (around line 687), transform the textual fields from the trace payload (`ext_dict`) into `AlertBlock` models. Use **Strict Attribute Referencing** and programmatic mapping from string keys to `XaiExtensionType` enums to extract the `I18nText` from `extension_labels`. Format the `AlertBlock` text string exactly as `text = f"**{label_str}**: {ext_val}"`.
+- **Exhaustive Severity Mapping**: Map extensions to `AlertBlock.severity` exhaustively: `falsification`, `missing_context`, `variance_validation`, `authenticity_evaluation` -> `warning`; `risk_flag` -> `error`; `remediation_steps` -> `success`; all others (e.g. `coaching`, `justification`, `theory_link`, `citation`, `emotional_sentiment`) -> `info`.
 - **CRITICAL ARCHITECTURE INVARIANT**: Do NOT hardcode Finnish strings or emojis (specifically `"**💡 Arjen Vinkki:**"`) in Python. You MUST dynamically read the localized label from the matrix's `extension_labels` mapping. Emojis are purposefully stripped because the `AlertBlock` `severity` parameter (specifically, `info`) will command the Flutter frontend to render the appropriate native icon automatically.
 - **Migration Boundary**: ALL `grouped_extensions` population logic in `blueprint.py` (30+ references) MUST be removed entirely.
-- **`ReportDataDTO.grouped_extensions` Field Deletion**: After blueprint logic is refactored, the `grouped_extensions` field MUST be physically deleted from `ReportDataDTO` and its Flutter equivalent.
+- **`ReportDataDTO.grouped_extensions` Field Deletion**: After blueprint logic is refactored, the `grouped_extensions` field MUST be physically deleted from `ReportDataDTO` (and its Flutter equivalent). You MUST also strictly delete the legacy `xai_extensions` section generation in `sdui_mapper_service.py` (lines 131-142) and the `grouped_extensions` Jinja loops from `report_template.jinja2` (lines 410-430), enforcing the Tripartite Boundary.
 - **CHECKPOINT**: Execute `backend_audit_loop.py` and `git commit`.
 
 ### Phase 6: Consumer Logic (Frontend & PDF Rendering)
@@ -146,7 +147,7 @@ This Epic achieves visual restoration through **pure dynamic SDUI**. The backend
 
 ### Phase 8: Multilingual & Localization (i18n) Verification
 To guarantee complete multilingual support across all textual generation sources, the implementation MUST adhere to the following routing:
-- **Database Source (`extension_labels`)**: Because `AlertBlock.text` expects a `str`, `blueprint.py` MUST resolve the `I18nText` object from `extension_labels` using the current Execution's `target_language` before injecting it into the SDUI block (for illustrative purposes only: `label = ext_labels[type].get_translation(execution.target_language)`). The backend MUST ALWAYS provide the fully resolved string — the frontend NEVER performs translation lookups on SDUI block content.
+- **Database Source (`extension_labels`)**: Because `AlertBlock.text` expects a `str`, `blueprint.py` MUST resolve the `I18nText` object from `extension_labels` using the current Execution's `target_language` before injecting it into the SDUI block (for illustrative purposes only: `label_obj = ext_labels.get(XaiExtensionType(type)); label_str = label_obj.resolve(execution.target_language)`). The backend MUST ALWAYS provide the fully resolved string — the frontend NEVER performs translation lookups on SDUI block content.
 - **Prompt Directory Features (`models/prompts`)**: If any textual prefixes (specifically: "Jargon Ratio:") are injected via static prompt configurations, the backend MUST utilize the localized properties matching the `target_language` rather than hardcoding.
 
 > [!CAUTION]
