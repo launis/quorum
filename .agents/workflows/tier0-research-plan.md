@@ -52,6 +52,12 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
+    
+    <rule_block id="anti_ambiguity_mandate">
+      <banned_pattern>Accepting "e.g." or other ambiguous shorthands, visual string examples, or generic file paths in the Implementation Plan.</banned_pattern>
+      <mandatory_pattern>You MUST actively mutate the Implementation Plan to be strictly programmatic and deterministic. 1) You MUST NEVER allow "e.g." in the document. Replace it with explicit and exhaustive lists, or phrases like "such as" or "specifically mapped to". 2) Lock exact data models. 3) Require EXACT relative paths. 4) Replace visual string examples like `"A" -> "B"` with strict programmatic rules. 5) Require exact rendering locations in the UI tree.</mandatory_pattern>
+      <catastrophic_reason>Ambiguity and "e.g." shorthands cause downstream implementation agents to hallucinate scope, leading to unverified logic paths and immediate Fail-Fast system crashes.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="0_research_plan">
@@ -72,8 +78,9 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       </constraint>
       <constraint name="QUORUM MODERNITY GATE">
         Ruthlessly audit the plan against Quorum anti-patterns. If ANY are detected, mutate the plan to enforce the mandated replacement:
-        * Ambiguous examples ("e.g., SduiBlock") → Explicit locked types (e.g., `SduiMarkdownBlock`)
-        * Hidden Scope file paths ("e.g., test.json") → Exact relative paths for ALL affected files
+        * The "e.g." ban: Using "e.g." introduces fatal ambiguity. You MUST rewrite any "e.g." into explicit and exhaustive lists, or use phrases like "specifically mapped to" or "such as".
+        * Ambiguous examples ("such as SduiBlock") → Explicit locked types (specifically `SduiMarkdownBlock`)
+        * Hidden Scope file paths ("such as test.json") → Exact relative paths for ALL affected files
         * Visual string transformations (`"A" -> "B"`) → Programmatic data manipulation directives
         * Implicit rendering instructions ("add a check") → Exact UI tree positioning ("BEFORE macro X")
         * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)

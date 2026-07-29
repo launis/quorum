@@ -38,8 +38,9 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
     <rule_block id="anti_ambiguity_mandate">
-      <mandatory_pattern>Implementation plans MUST be strictly programmatic and deterministic. 1) NEVER use "(e.g., MarkdownBlock)" when specifying data models; you MUST lock the exact type. 2) NEVER use generic paths like "update mock files (e.g., file.json)"; list EXACT relative paths. 3) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 4) ALWAYS specify exact rendering locations in the UI tree (e.g., "BEFORE macro X").</mandatory_pattern>
-      <catastrophic_reason>Ambiguity and "Hidden Scope" in plans lead to implementation agents guessing wrong paths, missing test fixtures, or mapping incorrect SDUI blocks, which causes immediate Fail-Fast system crashes.</catastrophic_reason>
+      <banned_pattern>Using "e.g." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
+      <mandatory_pattern>Implementation plans MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g." in the generated document. When providing examples or mappings, use explicit and exhaustive lists, or phrases like "such as" or "specifically mapped to". 2) NEVER use "(such as MarkdownBlock)" when specifying data models; lock the exact type. 3) NEVER use generic paths; list EXACT relative paths. 4) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 5) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
+      <catastrophic_reason>Ambiguity and "Hidden Scope" in plans lead to implementation agents guessing wrong paths, missing test fixtures, or mapping incorrect SDUI blocks. "e.g." introduces an incomplete list, causing agents to hallucinate scope and trigger immediate Fail-Fast crashes.</catastrophic_reason>
     </rule_block>
   </context_rules>
   
