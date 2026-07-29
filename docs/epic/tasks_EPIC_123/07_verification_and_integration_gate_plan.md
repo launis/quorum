@@ -14,7 +14,7 @@ Source: @[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui
 <execution_protocol level="2_execute">
   <constraint invariant="universal_fail_fast">Any remaining reference to grouped_extensions is a BLOCKING failure.</constraint>
   <step id="1" name="COMPLETE grouped_extensions Eradication Verification">
-    <action>Use `grep_search` to verify that ZERO references to `grouped_extensions` or `groupedExtensions` remain in `@[c:\src\quorum\backend_v2\services\blueprint.py]`, `@[c:\src\quorum\backend_v2\services\sdui_mapper_service.py]`, `@[c:\src\quorum\backend_v2\templates\report_template.jinja2]`, and the entire `@[c:\src\quorum\client_app_v2\lib]` directory.</action>
+    <action>Use `grep_search` to verify that ZERO references to `grouped_extensions` or `groupedExtensions` remain in the ENTIRE `@[c:\src\quorum\backend_v2]` and `@[c:\src\quorum\client_app_v2]` directories (specifically targeting models, tests, services, and templates). Do NOT limit the search to isolated files.</action>
   </step>
   <step id="2" name="Database Wipe &amp; Seed">
     <action>Since the removal of `grouped_extensions` is a breaking schema change, wipe the local database and re-seed by executing the command: `uv run python backend_v2/seed/run_seed.py local`</action>
@@ -24,8 +24,8 @@ Source: @[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui
     <action>Execute `uv run python scripts/flutter_audit_loop.py --build` to synchronize Freezed DTOs and verify widget compilation.</action>
   </step>
   <step id="4" name="Testing &amp; Quality Gate Plan">
-    <action>Execute E2E Live REST API verification gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`</action>
-    <action>Verify SDUI Semantic Parity (Epic 123 Core Mandate) by running the E2E Golden Fixture pipeline as per KI guidelines (generating random Polyfactory fixtures and passing to Flutter via `--dart-define=GOLDEN_PATH=...`).</action>
+    <action>Execute E2E Live REST API verification gate (must include both positive and negative validation scenarios per `anti_happy_path_mandate`): `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`</action>
+    <action>Verify SDUI Semantic Parity (Epic 123 Core Mandate) by executing the programmatic test orchestrator: `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`. This script dynamically handles the Polyfactory fixtures and Flutter testing automatically.</action>
   </step>
 </execution_protocol>
 ```

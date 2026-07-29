@@ -45,10 +45,7 @@ void main() {
           'translations': {'en': 'Test', 'fi': 'Testi'},
         },
         'inner_sdui_blocks': [
-          {
-            'block_type': 'markdown',
-            'text': 'Matrix Markdown'
-          }
+          {'block_type': 'markdown', 'text': 'Matrix Markdown'},
         ],
         'evaluated_atoms': [
           {

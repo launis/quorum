@@ -133,9 +133,7 @@ void main() {
     test('parses grid block correctly', () {
       final json = {
         'block_type': 'grid',
-        'items': [
-          {'foo': 'bar'},
-        ],
+        'items': ['foo'],
       };
 
       final block = SduiBlockDTO.fromJson(json);
@@ -143,7 +141,7 @@ void main() {
       expect(block, isA<SduiGridBlock>());
       if (block is SduiGridBlock) {
         expect(block.items.length, 1);
-        expect(block.items.first['foo'], 'bar');
+        expect(block.items.first, 'foo');
       }
     });
 

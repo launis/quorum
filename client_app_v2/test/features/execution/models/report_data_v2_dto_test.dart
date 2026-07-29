@@ -17,10 +17,7 @@ void main() {
           'duration_ms': 1500,
         },
         'inner_sdui_blocks': [
-          {
-            'block_type': 'markdown',
-            'text': 'Report Markdown'
-          }
+          {'block_type': 'markdown', 'text': 'Report Markdown'},
         ],
 
         'results': [
@@ -74,10 +71,7 @@ void main() {
             'duration_ms': 1500,
           },
           'inner_sdui_blocks': [
-            {
-              'block_type': 'markdown',
-              'text': 'Unrecognized test markdown'
-            }
+            {'block_type': 'markdown', 'text': 'Unrecognized test markdown'},
           ],
           'results': <dynamic>[],
           'hydrated_references': <String, dynamic>{},

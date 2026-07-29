@@ -398,7 +398,7 @@
                     {% endif %}
                     {% if axis.confidence is not none %}
                         <div style="margin-top: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; color: #3949ab;">
-                            {{ l10n.reportConfidenceTitle.replace('{confidence}', "%.0f"|format(axis.confidence * 100)) }}
+                            {{ l10n.reportConfidenceTitle.replace('{value}', "%.0f"|format(axis.confidence * 100)) }}
                         </div>
                     {% endif %}
 

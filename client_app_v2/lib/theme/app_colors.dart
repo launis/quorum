@@ -20,6 +20,8 @@ class AppColors {
         return intentInfo;
       case VisualIntent.neutral:
         return intentNeutral;
+      case VisualIntent.error:
+        return intentCriticalOverride;
     }
   }
 }
