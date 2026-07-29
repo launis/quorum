@@ -7,14 +7,11 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   final MatrixScorecardRowDto axis;
   final TextDeliveryMode textDeliveryMode;
   final bool showQuote;
-  final Map<String, List<dynamic>> groupedExtensions;
-
   const XAIAxisTelemetryGrid({
     super.key,
     required this.axis,
     required this.textDeliveryMode,
     required this.showQuote,
-    required this.groupedExtensions,
   });
 
   @override
@@ -181,12 +178,10 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
     }
 
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
 
     final List<Widget> boxes = [];
 
-    if (axis.confidence != null &&
-        groupedExtensions.containsKey('confidence')) {
+    if (axis.confidence != null) {
       boxes.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
@@ -199,61 +194,6 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
               color: Colors.indigo,
               fontSize: 12,
             ),
-          ),
-        ),
-      );
-    }
-
-    if (axis.riskFlag == true) {
-      boxes.add(
-        Container(
-          margin: const EdgeInsets.only(bottom: 12.0),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.errorContainer,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            l10n.reportRiskFlagTitle,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onErrorContainer,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Epic 10: Preserve in Payload, Hide in View.
-    // User Mandate: XAI extensions (Coaching, Falsification, etc.) are never rendered
-    // at the fragmented matrix level in the UI. They are strictly reserved for the global synthesis block.
-    // The data remains intact within the ScorecardRow DTO for API JSON exports.
-
-    if (axis.emotionalSentiment != null &&
-        axis.emotionalSentiment!.isNotEmpty) {
-      boxes.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Text(
-            '${l10n.reportEmotionalSentimentTitle}: ${axis.emotionalSentiment!}',
-            style: const TextStyle(
-              fontSize: 13,
-              fontStyle: FontStyle.italic,
-              color: Colors.pink,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (axis.theoryLink != null && axis.theoryLink!.isNotEmpty) {
-      boxes.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Text(
-            '${l10n.reportTheoryLinkTitle}: ${axis.theoryLink!}',
-            style: const TextStyle(fontSize: 13, color: Colors.blue),
           ),
         ),
       );

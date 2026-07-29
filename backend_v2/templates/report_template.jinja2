@@ -396,6 +396,12 @@
                             {% endif %}
                         {% endif %}
                     {% endif %}
+                    
+                    {% if axis.inner_sdui_blocks %}
+                        <div style="margin-top: 15px;">
+                            {{ render_sdui_blocks(axis.inner_sdui_blocks) }}
+                        </div>
+                    {% endif %}
                 </div>
             {% endfor %}
             {% endif %}

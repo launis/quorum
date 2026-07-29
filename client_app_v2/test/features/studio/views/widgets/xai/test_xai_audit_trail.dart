@@ -36,7 +36,6 @@ void main() {
                 axis: axis,
                 textDeliveryMode: TextDeliveryMode.full,
                 showQuote: true,
-                groupedExtensions: const {},
               ),
             ),
           ),

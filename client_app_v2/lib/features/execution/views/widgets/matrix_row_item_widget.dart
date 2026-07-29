@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/features/execution/models/tda_state.dart';
+import 'package:client_app/features/execution/views/widgets/sdui_blocks_renderer.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Renders a single matrix row enforcing the Zero-Math UI mandate.
@@ -100,6 +101,10 @@ class MatrixRowItemWidget extends StatelessWidget {
                 ],
                 const SizedBox(height: 8.0),
                 _buildLevelRow(context),
+                if (matrix.innerSduiBlocks.isNotEmpty) ...[
+                  const SizedBox(height: 12.0),
+                  SduiBlocksRenderer(blocks: matrix.innerSduiBlocks),
+                ],
               ],
             ),
           ),
