@@ -396,7 +396,12 @@
                             {% endif %}
                         {% endif %}
                     {% endif %}
-                    
+                    {% if axis.confidence is not none %}
+                        <div style="margin-top: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; color: #3949ab;">
+                            {{ l10n.reportConfidenceTitle.replace('{confidence}', "%.0f"|format(axis.confidence * 100)) }}
+                        </div>
+                    {% endif %}
+
                     {% if axis.inner_sdui_blocks %}
                         <div style="margin-top: 15px;">
                             {{ render_sdui_blocks(axis.inner_sdui_blocks) }}
