@@ -10,7 +10,7 @@ from backend_v2.models.dtos.base import BaseDTO
 class TraceMatrixExtensionsDTO(BaseDTO):
     """Strict schema for trace matrix extensions."""
 
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
 
     coaching: Annotated[str | None, Field(default=None)] = None
     falsification: Annotated[str | None, Field(default=None)] = None
@@ -31,7 +31,7 @@ class TraceMatrixExtensionsDTO(BaseDTO):
 class TraceMatrixPayloadDTO(BaseDTO):
     """Strict hydration schema for extracting matrix payloads from execution trace."""
 
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
 
     raw_score: Annotated[float | None, Field(description="The raw score calculated")] = None
     normalized_score: Annotated[float | None, Field(description="The normalized score")] = None
@@ -46,7 +46,7 @@ class TraceMatrixPayloadDTO(BaseDTO):
 class TraceScoringPayloadDTO(BaseDTO):
     """Strict hydration schema for extracting scoring results in BlueprintTransformer."""
 
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
 
     total_score: Annotated[float | None, Field(description="The total score")] = None
     final_score: Annotated[float | None, Field(description="The final computed score")] = None

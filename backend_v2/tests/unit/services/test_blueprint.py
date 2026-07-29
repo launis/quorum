@@ -195,7 +195,27 @@ def mock_repo_transformer() -> Any:
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default", "fi": "Default"}),
             display_scale="original",
-            layouts=[OutputLayoutBlock(preset_view="1d_metrics", target_blocks=["blk_1234abcd1234abcd"])],
+            layouts=[
+                OutputLayoutBlock(
+                    preset_view="1d_metrics",
+                    target_blocks=["blk_1234abcd1234abcd"],
+                    extension_labels={
+                        XaiExtensionType.REMEDIATION_STEPS: I18nText(
+                            default_locale="en", translations={"en": "Remediation", "fi": "Korjaus"}
+                        ),
+                        XaiExtensionType.COACHING: I18nText(
+                            default_locale="en", translations={"en": "Coaching", "fi": "Vinkki"}
+                        ),
+                        XaiExtensionType.RISK_FLAG: I18nText(
+                            default_locale="en", translations={"en": "Risk", "fi": "Riski"}
+                        ),
+                    },
+                )
+            ],
+            visible_block_extensions=[],
+            visible_workflow_extensions=[],
+            max_extension_items=2,
+            strictness_level=85,
         )
     ]
 
@@ -524,7 +544,9 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
             "prf_1234abcd1234abcd": RenderedSynthesisCache(
                 section_syntheses={
                     "layout_0_1d_metrics": [
-                        {"block_type": "markdown", "text": "### Title\\n<script>alert('xss');</script>Some content."}
+                        __import__("backend_v2.models.view.sdui", fromlist=["MarkdownBlock"]).MarkdownBlock(
+                            text="### Title\n<script>alert('xss');</script>Some content."
+                        )
                     ]
                 }
             )
@@ -564,6 +586,9 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
     assert len(dto.layouts) > 0
     assert dto.layouts[0].synthesis_blocks is not None
     assert len(dto.layouts[0].synthesis_blocks) > 0
+    from backend_v2.models.view.sdui import MarkdownBlock
+
+    assert isinstance(dto.layouts[0].synthesis_blocks[0], MarkdownBlock)
     safe_md = dto.layouts[0].synthesis_blocks[0].text
 
     assert "Some content." in safe_md
@@ -830,6 +855,11 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     grid_block = matrix.inner_sdui_blocks[0]
     alert_block = matrix.inner_sdui_blocks[1]
 
+    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock
+
+    assert isinstance(grid_block, SduiGridBlock)
+    assert isinstance(alert_block, AlertBlock)
+
     assert "Mechanical: 1" in grid_block.items[0]
     assert "Cognitive: 4.0" in grid_block.items[1]
     assert "Variance: 1.2" in grid_block.items[2]
@@ -1021,6 +1051,11 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
 
     grid_block = matrix.inner_sdui_blocks[0]
     alert_block = matrix.inner_sdui_blocks[1]
+
+    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock
+
+    assert isinstance(grid_block, SduiGridBlock)
+    assert isinstance(alert_block, AlertBlock)
 
     assert "Cognitive: 2.5111" in grid_block.items[1]
     # target mechanical is 3.0, variance is 0.4889
@@ -1395,3 +1430,207 @@ async def test_blueprint_sdui_layout_terminology_override(mock_repo_transformer:
 
     assert layout.extension_labels is not None
     assert layout.extension_labels[XaiExtensionType.COACHING].translations["fi"] == "Vinkki"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_missing_extension_label_raises_error(mock_repo_transformer: MagicMock) -> None:
+    """Verify that a missing label_obj for an XAI extension correctly crashes with ConfigurationError."""
+    # Setup execution trace with an extension that has no mapping in the profile
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000015",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.PASSED,
+        active_profile_id="prf_dddd1111dddd1111",
+        execution_trace=[
+            TraceEvent(
+                step_name="step_1",
+                event_type="output",
+                content={
+                    "blk_0000000000000001": {
+                        "raw_score": 4.0,
+                        "extensions": {
+                            "missing_context": "This is missing context",
+                        },
+                    }
+                },
+            )
+        ],
+        metadata={"target_locale": "fi"},
+    )
+
+    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
+        [
+            {
+                "id": "blk_0000000000000001",
+                "slug": "matrix_test",
+                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "category_id": "matrix",
+                "type": "float",
+                "is_evaluative": True,
+                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "computed_min": 0,
+                "computed_max": 5,
+                "scales": [
+                    {
+                        "score": 0,
+                        "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Claim"}},
+                                "ai_description": "test",
+                            }
+                        ],
+                    },
+                    {
+                        "score": 5,
+                        "name": {"default_locale": "en", "translations": {"en": "Five"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Claim"}},
+                                "ai_description": "test",
+                            }
+                        ],
+                    },
+                ],
+            }
+        ]
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [
+        OutputProfile(
+            id="prf_dddd1111dddd1111",
+            slug="default",
+            workflow_id="wf_1234abcd1234abcd",
+            name=I18nText(default_locale="en", translations={"en": "Default"}),
+            display_scale="original",
+            layouts=[
+                OutputLayoutBlock(
+                    preset_view="text_only",
+                    target_blocks=["*"],
+                    # Intentionally omitting extension_labels to trigger ConfigurationError
+                )
+            ],
+            visible_block_extensions=[],
+            visible_workflow_extensions=[],
+            max_extension_items=2,
+            strictness_level=85,
+        )
+    ]
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000098")
+
+    assert "Missing extension label configuration for missing_context" in str(exc_info.value)
+    assert exc_info.value.details["extension_key"] == "missing_context"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_missing_coaching_label_raises_error(mock_repo_transformer: MagicMock) -> None:
+    """Verify that a missing label_obj for the COACHING XAI extension crashes with ConfigurationError."""
+    # Setup execution trace with coaching extension that has no mapping
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000097",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.PASSED,
+        active_profile_id="prf_dddd1111dddd1111",
+        execution_trace=[
+            TraceEvent(
+                step_name="step_1",
+                event_type="output",
+                content={
+                    "blk_0000000000000001": {
+                        "raw_score": 4.0,
+                        "extensions": {
+                            "coaching": "This is a coaching tip",
+                        },
+                    }
+                },
+            )
+        ],
+        metadata={"target_locale": "fi"},
+    )
+
+    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
+        [
+            {
+                "id": "blk_0000000000000001",
+                "slug": "matrix_test",
+                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "category_id": "matrix",
+                "type": "float",
+                "is_evaluative": True,
+                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "computed_min": 0,
+                "computed_max": 5,
+                "scales": [
+                    {
+                        "score": 0,
+                        "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Claim"}},
+                                "ai_description": "test",
+                            }
+                        ],
+                    },
+                    {
+                        "score": 5,
+                        "name": {"default_locale": "en", "translations": {"en": "Five"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Claim"}},
+                                "ai_description": "test",
+                            }
+                        ],
+                    },
+                ],
+            }
+        ]
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [
+        OutputProfile(
+            id="prf_dddd1111dddd1111",
+            slug="default",
+            workflow_id="wf_1234abcd1234abcd",
+            name=I18nText(default_locale="en", translations={"en": "Default"}),
+            display_scale="original",
+            layouts=[
+                OutputLayoutBlock(
+                    preset_view="text_only",
+                    target_blocks=["*"],
+                    # Intentionally omitting extension_labels to trigger ConfigurationError
+                )
+            ],
+            visible_block_extensions=[],
+            visible_workflow_extensions=[],
+            max_extension_items=2,
+            strictness_level=85,
+        )
+    ]
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000097")
+
+    assert "Missing extension label configuration for coaching" in str(exc_info.value)
+    assert exc_info.value.details["extension_key"] == "coaching"

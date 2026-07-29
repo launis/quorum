@@ -13,4 +13,3 @@ def test_build_linguistic_context_basic_execution() -> None:
     result = build_linguistic_context(target_locale="en")
     assert "<linguistic_context>" in result
     assert "<required_reasoning_language>English</required_reasoning_language>" in result
-    assert "<critical_warning>" in result

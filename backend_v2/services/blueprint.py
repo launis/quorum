@@ -15,7 +15,7 @@ from backend_v2.database.interfaces import (
     ISystemRepository,
     IWorkflowRepository,
 )
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.hooks.linguistics import scan_report_for_slop
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
@@ -694,11 +694,12 @@ class BlueprintTransformer:
                                     label_obj = layout_block.extension_labels[ext_enum]
                                     break
 
-                        label_str = (
-                            label_obj.resolve(execution.target_language)
-                            if label_obj
-                            else ext_key.replace("_", " ").title()
-                        )
+                        if not label_obj:
+                            raise ConfigurationError(
+                                f"Missing extension label configuration for {ext_key}",
+                                details={"extension_key": ext_key},
+                            )
+                        label_str = label_obj.resolve(locale)
 
                         severity: Literal["info", "warning", "critical_override", "success", "error"] = "info"
                         if ext_enum in (
