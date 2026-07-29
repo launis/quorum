@@ -182,14 +182,8 @@ def scan_report_for_slop(
                 all_matrices.extend(layout.axes)
     for row in all_matrices:
         texts_to_scan.append(row.row_explanation)
-        if row.coaching:
-            texts_to_scan.append(row.coaching)
-        if row.remediation_steps:
-            texts_to_scan.append(row.remediation_steps)
         if row.semantic_reasoning:
             texts_to_scan.append(row.semantic_reasoning)
-        if row.falsification:
-            texts_to_scan.append(row.falsification)
 
     for raw_text in texts_to_scan:
         text_lower = raw_text.lower()

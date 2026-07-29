@@ -1,67 +1,67 @@
 {
-  "workflow_id": "VFfemlvobuyWjjiTttCl",
-  "execution_id": "qFvNFpadxrDfcAFejzHU",
-  "scoring_strategy": "lRMMkEIdqJcNCqtAAAlF",
-  "user_name": null,
-  "scoring_engine_name": null,
-  "strictness_level": 3255,
-  "local_time_str": null,
-  "custom_preface_md": "vtNntHAVZObXFuhsFbcE",
-  "profile_id": "TtytNcfukhwwXTnlFnpV",
-  "profile_name": {
-    "default_locale": "en",
-    "translations": {
-      "en": "Test Profile"
+    "workflow_id": "VFfemlvobuyWjjiTttCl",
+    "execution_id": "qFvNFpadxrDfcAFejzHU",
+    "scoring_strategy": "lRMMkEIdqJcNCqtAAAlF",
+    "user_name": null,
+    "scoring_engine_name": null,
+    "strictness_level": 3255,
+    "local_time_str": null,
+    "custom_preface_md": "vtNntHAVZObXFuhsFbcE",
+    "profile_id": "TtytNcfukhwwXTnlFnpV",
+    "profile_name": {
+        "default_locale": "en",
+        "translations": {
+            "en": "Test Profile"
+        }
+    },
+    "available_profiles": {
+        "prof_1": {
+            "default_locale": "en",
+            "translations": {
+                "en": "Test Profile"
+            }
+        }
+    },
+    "global_score": null,
+    "has_warning": false,
+    "visible_metadata": [
+        "TVdzWSuOpkSzogdoVxpj"
+    ],
+    "layouts": [],
+    "matrix_visible_columns": [
+        "flaXfZsSblGliFdVFEKU"
+    ],
+    "created_at": "2015-08-05T19:09:01",
+    "org_name": null,
+    "cost_estimate": 2.50030013766107,
+    "total_tokens": 8619,
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "reasoning_tokens": null,
+    "mcp_tool_audit": [
+        {
+            "id": null,
+            "tool_id": "ihsLruQFFBfyuFqtlsFP",
+            "step_name": "hZfEqMqZwwmTlkYTkIra",
+            "claim_text": null,
+            "query": "wMaHFiVPxiRPcotsFEXM",
+            "knowledge_gap": "FsjPFonqAcszxwtrruEP",
+            "search_rationale": "SgDGKFbCpvIJSOIDaekf",
+            "reasoning": "EsIHxdAvMJWHPvwKFzNq",
+            "response_summary": "odjvEnHfpWFhkqMePUsf",
+            "source_urls": [
+                "cZxqrDpfrpYSgLpSWYoy"
+            ],
+            "impacted_axis_names": [
+                "HvuCUHbzRuNhaQhFZScD"
+            ],
+            "timestamp": "2001-09-05T00:07:01",
+            "duration_ms": 5601
+        }
+    ],
+    "grouped_extensions": {
+        "YUuVDnGIliBNqyNOKOzV": [
+            "e393e3"
+        ]
     }
-  },
-  "available_profiles": {
-    "prof_1": {
-      "default_locale": "en",
-      "translations": {
-        "en": "Test Profile"
-      }
-    }
-  },
-  "global_score": null,
-  "has_warning": false,
-  "visible_metadata": [
-    "TVdzWSuOpkSzogdoVxpj"
-  ],
-  "layouts": [],
-  "matrix_visible_columns": [
-    "flaXfZsSblGliFdVFEKU"
-  ],
-  "created_at": "2015-08-05T19:09:01",
-  "org_name": null,
-  "cost_estimate": 2.50030013766107,
-  "total_tokens": 8619,
-  "prompt_tokens": null,
-  "completion_tokens": null,
-  "reasoning_tokens": null,
-  "mcp_tool_audit": [
-    {
-      "id": null,
-      "tool_id": "ihsLruQFFBfyuFqtlsFP",
-      "step_name": "hZfEqMqZwwmTlkYTkIra",
-      "claim_text": null,
-      "query": "wMaHFiVPxiRPcotsFEXM",
-      "knowledge_gap": "FsjPFonqAcszxwtrruEP",
-      "search_rationale": "SgDGKFbCpvIJSOIDaekf",
-      "reasoning": "EsIHxdAvMJWHPvwKFzNq",
-      "response_summary": "odjvEnHfpWFhkqMePUsf",
-      "source_urls": [
-        "cZxqrDpfrpYSgLpSWYoy"
-      ],
-      "impacted_axis_names": [
-        "HvuCUHbzRuNhaQhFZScD"
-      ],
-      "timestamp": "2001-09-05T00:07:01",
-      "duration_ms": 5601
-    }
-  ],
-  "grouped_extensions": {
-    "YUuVDnGIliBNqyNOKOzV": [
-      "e393e3"
-    ]
-  }
 }

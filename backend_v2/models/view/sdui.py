@@ -4,6 +4,7 @@ from typing import Annotated, Any, Literal
 from pydantic import AliasChoices, ConfigDict, Field, StringConstraints
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.enums import LaxUiVariant, VisualIntent
 
 StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -121,6 +122,20 @@ class SystemNotification(V2CoreBase):
     level: StrictStr = "info"
 
 
+class SectionType(StrEnum):
+    SCORE_CARD = "SCORE_CARD"
+    MARKDOWN_BLOCK = "MARKDOWN_BLOCK"
+    USAGE_STATS = "USAGE_STATS"
+    MATRIX_BLOCK = "MATRIX_BLOCK"
+
+
+class UiSection(V2CoreBase):
+    id: str
+    type: SectionType
+    title: str
+    data: Any
+
+
 class ReportView(V2CoreBase):
     """Top-level View Model for the Execution Report mapped strictly for client rendering.
 
@@ -137,7 +152,10 @@ class ReportView(V2CoreBase):
     view_id: Annotated[StrictStr, Field(..., description="The Execution ID")]
     title: Annotated[StrictStr, Field(default="Auditintiraportti", description="Page title")] = "Auditintiraportti"
     status_theme: Annotated[
-        StrictStr, Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
+        VisualIntent, Field(default=VisualIntent.SUCCESS, description="Visual theme: 'success' | 'warning' | 'danger'")
+    ]
+    sections: Annotated[
+        list[UiSection], Field(default_factory=list, description="Legacy sections array for backward compatibility")
     ]
     inner_sdui_blocks: Annotated[
         list[AnySduiBlock], Field(default_factory=list, description="Ordered list of SDUI components")
@@ -183,7 +201,7 @@ class AssessmentView(V2CoreBase):
     sessionId: Annotated[StrictStr, Field(..., description="Execution ID")]
     statusLabel: Annotated[StrictStr, Field(..., description="Human-readable status")]
     uiVariant: Annotated[
-        Literal["default", "success", "warning", "error", "neutral"],
+        LaxUiVariant,
         Field(..., description="UI Theme: default, success, warning, error, neutral"),
     ]
     statusMessage: Annotated[StrictStr, Field(..., description="Contextual status message")]
@@ -514,7 +532,7 @@ class SduiQuoteCard(SduiBlockBase):
     ]
     source_aliases: Annotated[list[str], Field(default_factory=list, description="Resolved source aliases.")]
     citations: Annotated[
-        list[Any], Field(default_factory=list, description="Fallback for LLM hallucinated citations field.")
+        list[int], Field(default_factory=list, description="Fallback for LLM hallucinated citations field.")
     ]
 
 
@@ -545,7 +563,7 @@ class SduiGridBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="grid")
     block_type: Literal["grid"] = "grid"
-    items: Annotated[list[Any], Field(default_factory=list, description="Items in the grid.")]
+    items: Annotated[list[str], Field(default_factory=list, description="Items in the grid.")]
 
 
 AnySduiBlock = Annotated[

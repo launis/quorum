@@ -10,7 +10,9 @@ from fastapi.testclient import TestClient
 from backend_v2.api.dependencies import get_current_user_from_header, get_execution_service
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.enums import VisualIntent
 from backend_v2.models.v2_core import ReportDataDTO
+from backend_v2.models.view.sdui import ReportView
 
 # Basic mock for user
 mock_user = TokenData(id="test-user-id", role=UserRole.ROOT, organization_id="root_org")
@@ -57,15 +59,15 @@ def test_get_execution_sdui_returns_view(override_dependencies: Any, mock_execut
     """Integration test for /sdui SDUI view endpoint."""
     client = TestClient(app)
 
-    mock_sdui_view: dict[str, Any] = {
-        "view_id": "test_execution_123",
-        "title": "SDUI Raportti",
-        "status_theme": "success",
-        "sections": [],
-        "metrics": None,
-        "system_notification": None,
-        "references": [],
-    }
+    mock_sdui_view = ReportView(
+        view_id="test_execution_123",
+        title="SDUI Raportti",
+        status_theme=VisualIntent.SUCCESS,
+        sections=[],
+        metrics=None,
+        system_notification=None,
+        references=[],
+    )
     mock_execution_service.get_sdui_view.return_value = mock_sdui_view
 
     response = client.get("/api/v2/execution/executions/test_execution_123/sdui")

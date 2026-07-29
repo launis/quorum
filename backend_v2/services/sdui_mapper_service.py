@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import I18nText, ReportDataDTO
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
@@ -54,7 +54,7 @@ class SduiMapperService:
         if report.strictness_level is not None:
             metrics["strictness_level"] = report.strictness_level
 
-        status_theme = "warning" if report.has_warning else "success"
+        status_theme = VisualIntent.WARNING if report.has_warning else VisualIntent.SUCCESS
 
         sections: list[UiSection] = []
 
@@ -184,4 +184,5 @@ class SduiMapperService:
             metrics=metrics,
             status_theme=status_theme,
             sections=sections,
+            inner_sdui_blocks=[],
         )

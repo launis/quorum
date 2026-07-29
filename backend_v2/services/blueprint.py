@@ -469,7 +469,13 @@ class BlueprintTransformer:
                             ) from v_err
                 axis_level_breakdown = clean_level_dict
 
-            ext_dict = matrix_payload.extensions or {}
+            ext_data = matrix_payload.extensions
+            if isinstance(ext_data, dict):
+                ext_dict: dict[str, Any] = ext_data
+            elif ext_data is not None and hasattr(ext_data, "model_dump"):
+                ext_dict = ext_data.model_dump()
+            else:
+                ext_dict = {}
 
             if False:
                 if b_id not in row_explanations_cache:
@@ -655,17 +661,10 @@ class BlueprintTransformer:
                 total_atoms=total_atoms,
                 row_explanation=self._clean_hallucinated_numbers(final_explanation),
                 evidence_type=self._coerce_str(ext_dict.get("evidence_type")),  # type: ignore[arg-type]
-                missing_context=self._coerce_str(ext_dict.get("missing_context")) or "",
                 cited_source_id=self._coerce_str(ext_dict.get("source_id")),
                 cited_text_quote=self._coerce_str(ext_dict.get("citation")),
                 cited_web_citation=self._coerce_str(ext_dict.get("google_citation")),
-                coaching=self._coerce_str(ext_dict.get("coaching")),
                 confidence=self._coerce_float(ext_dict.get("confidence")),
-                falsification=self._coerce_str(ext_dict.get("falsification")),
-                risk_flag=self._coerce_bool(ext_dict.get("risk_flag")),
-                remediation_steps=self._coerce_str(ext_dict.get("remediation_steps")),
-                emotional_sentiment=self._coerce_str(ext_dict.get("emotional_sentiment")),
-                theory_link=self._coerce_str(ext_dict.get("theory_link")),
                 contextual_override=self._coerce_bool(ext_dict.get("contextual_override")),
                 semantic_reasoning=(
                     self._coerce_str(ext_dict.get("semantic_reasoning"))
@@ -1526,43 +1525,6 @@ class BlueprintTransformer:
                 lexicon = target_lexicon.words
                 fuzz_threshold = target_lexicon.fuzz_threshold
 
-            global_synth = None
-            if profile_cache and any(v is not None for v in (profile_cache.user_role, profile_cache.executive_summary)):
-                from backend_v2.models.v2_core import GlobalSynthesisDTO
-
-                global_synth = GlobalSynthesisDTO(
-                    executive_summary=profile_cache.executive_summary or "Executive summary.",
-                    urgency_level=profile_cache.urgency_level or 1,
-                    user_role=profile_cache.user_role or "Yleinen yleisö",
-                    user_role_justification=profile_cache.user_role_justification or "Inferred from general context.",
-                )
-            else:
-                for md_source in [synthesis_md, original_synthesis_md]:
-                    if isinstance(md_source, dict):
-                        user_role_val = md_source.get("user_role") or "Yleinen yleisö"
-                        user_role_just = md_source.get("user_role_justification") or "Inferred from general context."
-                        exec_summary = md_source.get("executive_summary") or "Executive summary."
-                        urgency = md_source.get("urgency_level") or 1
-
-                        if any(v is not None for v in (user_role_val, user_role_just, exec_summary, urgency)):
-                            from backend_v2.models.v2_core import GlobalSynthesisDTO
-
-                            global_synth = GlobalSynthesisDTO(
-                                executive_summary=exec_summary,
-                                urgency_level=urgency,
-                                user_role=user_role_val,
-                                user_role_justification=user_role_just,
-                            )
-                            break
-
-            if profile.user_role_label and (not global_synth or not global_synth.user_role):
-                msg = (
-                    "Fail-Fast: OutputProfile requires a user_role_label but LLM synthesis failed to extract user_role."
-                )
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
-
             if should_scan_slop:
                 # Build a temporary ReportDataDTO for the slop scanner
                 temp_dto = ReportDataDTO(
@@ -1593,7 +1555,6 @@ class BlueprintTransformer:
                     grouped_extensions=grouped_extensions,
                     results=v2_results,
                     hydrated_references=v2_hydrated_refs,
-                    global_synthesis=global_synth,
                 )
                 slop_phrases = scan_report_for_slop(temp_dto, lexicon, fuzz_threshold)
 
@@ -1695,7 +1656,6 @@ class BlueprintTransformer:
                 grouped_extensions=grouped_extensions,
                 results=v2_results,
                 hydrated_references=v2_hydrated_refs,
-                global_synthesis=global_synth,
             )
             return report_dto
         except Exception as e:

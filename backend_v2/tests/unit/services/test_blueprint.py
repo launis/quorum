@@ -977,9 +977,7 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
                     "blk_1234abcd1234abcd": {
                         "raw_score": 4.0,
                         "extensions": {
-                            "coaching": "This is raw coaching tip",
-                            "justification": "This is raw justification",
-                            "remediation_steps": "This is raw remediation",
+                            "semantic_reasoning": "This is semantic reasoning",
                         },
                     },
                 },
