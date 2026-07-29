@@ -55,9 +55,10 @@
   - [x] Step 2: Database Wipe & Seed
   - [x] Step 3: Verification Gates
   - [x] Step 4: Testing & Quality Gate Plan (Live E2E SKIPPED)
+- [x] **[OK]** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\07_verification_and_integration_gate_plan.md]`
 
 ### Phase 8: Multilingual & Localization (i18n) Verification
-- [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\08_multilingual_localization_verification_plan.md]`
+- [x] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\08_multilingual_localization_verification_plan.md]`
 - [ ] **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\08_multilingual_localization_verification_plan.md]`
   - [ ] Step 1: Database Source Verification
   - [ ] Step 2: Prompt Directives Verification
@@ -153,17 +154,19 @@
 - Executed Tier 0 Research Plan for Phase 7. Red-teaming found hidden search scopes, ambiguous test instructions, and missing negative assertions. Mutated the plan to enforce global grep boundaries and precise programmatic test orchestration.
 - Executed Tier 2 Execution Plan for Phase 7: Verified `grouped_extensions` eradication with ZERO findings globally. Wiped and seeded the database locally. Executed Backend Quality Gate. Fixed exhaustive match error in Dart for `VisualIntent` and updated DTO tests. Executed Flutter Code Generation and static analysis successfully.
 - Executed Backend SDUI Semantic Parity integration testing with mock Golden Polyfactory inputs. Fixed Jinja template missing token matching (replaced `{confidence}` with `{value}` to sync with localization).
+- Successfully executed Phase 7 Post-Implementation Audit (`tier8-audit-plan`). Confirmed ZERO references to `grouped_extensions` via forensic grep in backend and frontend. Validated that `backend_audit_loop.py` and `flutter_audit_loop.py` pass 100% of Phase 9 requirements. Generated `plan_audit_report.md` reflecting total compliance.
+- Executed Tier 0 Research Plan for Phase 8. Red-teamed the localization verification plan. Mutated the plan to enforce Fail-Fast `ConfigurationError` instead of silent string fallbacks in `blueprint.py`, removed redundant natural language instructions in `linguistic_directives.py`, and explicitly mandated removing the hardcoded 'Käyttäjän Rooli' Finnish string from Enum localization flows and prompts.
 
 ## Learned
 - **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 
 - Python AST script parsing is vastly superior to `multi_replace_file_content` for stripping unicode prefixes in large JSONs.
 - The `test_enum_parity.py` file was a hallucination; the correct file is `test_enums.py`. All Pydantic models must use strict `Field(...)` or `Field(default=None)` definitions instead of bare `Optional` or `| None = None` to enforce Quorum 2026 strictness.
 - E2E Live LLM Testing was skipped due to cost/time constraints and will be executed manually or deferred to post-epic validation. Phase 7 is marked `[NEEDS_E2E]` as per architectural checklist instructions.
+- The prompt directives had redundant instructions that violated the XML structural sovereignty mandate. String fallbacks for Enum translations silently mask misconfigurations and must be replaced with strict `ConfigurationError` crashes. 'Käyttäjän Rooli' was hardcoded inside the `seed_data.json` system prompt for the coach.
 
 ## Remaining
-- Execute `/tier8-audit-plan` for Phase 7 to mathematically verify we satisfied all constraints without breaking invariants.
-- Execute Tier 0 and Tier 2 for Phase 8 (Multilingual & Localization Verification).
+- Execute Tier 2 for Phase 8 (Multilingual & Localization Verification).
 - Complete Post-Implementation Gates (`/tier2-hardening-backend`, `/tier2-hardening-frontend`, `/tier7-describe-architecture`, `/tier8-audit-epic`).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_123\07_verification_and_integration_gate_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_123\08_multilingual_localization_verification_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
