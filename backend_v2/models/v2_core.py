@@ -1196,8 +1196,6 @@ class ReportDataDTO(V2CoreBase):
     )
     layouts: list[ReportLayoutDTO] = Field(default_factory=list)
 
-    grouped_extensions: Any | None = Field(default=None, description="Legacy grouped extensions array.")
-
     # Execution Diagnostic Metadata
     created_at: datetime | None = None
     org_name: str | None = None

@@ -128,19 +128,6 @@ class SduiMapperService:
                 )
             )
 
-        if report.grouped_extensions:
-            title_ext = I18nText(
-                default_locale="fi", translations={"fi": "Laajennettu Analytiikka", "en": "Extended Analytics"}
-            ).resolve(lang)
-            sections.append(
-                UiSection(
-                    id="xai_extensions",
-                    type=SectionType.USAGE_STATS,
-                    title=title_ext,
-                    data=report.grouped_extensions,
-                )
-            )
-
         # Phase 3a: Map N_A outcomes to SDUI N_A Cards
         na_blocks = []
 

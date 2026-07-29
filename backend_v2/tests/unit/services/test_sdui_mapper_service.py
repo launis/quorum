@@ -78,7 +78,6 @@ def test_map_report_to_sdui_complete() -> None:
         has_warning=True,
         layouts=[layout],
         mcp_tool_audit=[audit_trace],
-        grouped_extensions={"metadata": ["test"]},
     )
 
     view = mapper.map_report_to_sdui(report, execution_id="exe_123")
@@ -89,8 +88,8 @@ def test_map_report_to_sdui_complete() -> None:
     assert view.metrics["global_score"] == 90.0
     assert view.metrics["strictness_level"] == 80
 
-    # Sections: layout scorecard (1), layout synthesis (1), mcp (1), extensions (1) -> total 4
-    assert len(view.sections) == 4
+    # Sections: layout scorecard (1), layout synthesis (1), mcp (1) -> total 3
+    assert len(view.sections) == 3
 
     # Check Layout Scorecard
     assert view.sections[0].id == "layout_scorecard_0"
@@ -110,10 +109,6 @@ def test_map_report_to_sdui_complete() -> None:
     # Check MCP
     assert view.sections[2].id == "xai_mcp_audit"
     assert view.sections[2].type == SectionType.USAGE_STATS
-
-    # Check Extensions
-    assert view.sections[3].id == "xai_extensions"
-    assert view.sections[3].type == SectionType.USAGE_STATS
 
 
 def test_map_report_to_sdui_empty() -> None:

@@ -726,7 +726,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         },
         metadata={"target_locale": "en"},
     )
-    
+
     mock_repo_transformer.get_workflow.return_value = dict_to_obj(
         {
             "id": "wf_1234abcd1234abcd",
@@ -760,8 +760,26 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 "description": {"default_locale": "en", "translations": {"en": "Desc"}},
                 "label": {"default_locale": "en", "translations": {"en": "Label"}},
                 "scales": [
-                    {"score": 1, "name": {"default_locale": "en", "translations": {"en": "Min"}}, "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "claim"}]},
-                    {"score": 5, "name": {"default_locale": "en", "translations": {"en": "Max"}}, "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "claim"}]}
+                    {
+                        "score": 1,
+                        "name": {"default_locale": "en", "translations": {"en": "Min"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "ai_description": "claim",
+                            }
+                        ],
+                    },
+                    {
+                        "score": 5,
+                        "name": {"default_locale": "en", "translations": {"en": "Max"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "ai_description": "claim",
+                            }
+                        ],
+                    },
                 ],
             }
         ]
@@ -808,14 +826,14 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     assert len(dto.layouts) == 1
     matrix = dto.layouts[0].axes[0]
     assert len(matrix.inner_sdui_blocks) == 2
-    
+
     grid_block = matrix.inner_sdui_blocks[0]
     alert_block = matrix.inner_sdui_blocks[1]
-    
+
     assert "Mechanical: 1" in grid_block.items[0]
     assert "Cognitive: 4.0" in grid_block.items[1]
     assert "Variance: 1.2" in grid_block.items[2]
-    
+
     assert alert_block.severity == "warning"
     assert "MISALIGNED_SYCOPHANCY" in alert_block.text
 
@@ -1000,43 +1018,30 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert len(dto.layouts) == 1
     matrix = dto.layouts[0].axes[0]
     assert len(matrix.inner_sdui_blocks) == 2
-    
+
     grid_block = matrix.inner_sdui_blocks[0]
     alert_block = matrix.inner_sdui_blocks[1]
-    
+
     assert "Cognitive: 2.5111" in grid_block.items[1]
     # target mechanical is 3.0, variance is 0.4889
     assert "Variance: 0.4889" in grid_block.items[2] or "Variance: 0.4888" in grid_block.items[2]
-    
+
     assert alert_block.severity == "info"
     assert "ALIGNED" in alert_block.text
 
 
-async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo_transformer: Any) -> None:
-    """Verify that if a synthesis cache is active, raw extensions are skipped entirely
-    even if the cache has NO curated highlights for a specific category (leaving it empty).
-    """
-    from backend_v2.models.dtos.synthesis import XaiHighlightItem
-    from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
+@pytest.mark.asyncio
+async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_transformer: Any) -> None:
+    """Verify that matrix payload extensions instantiate AlertBlock in inner_sdui_blocks."""
+    from backend_v2.models.enums import ExecutionStatus
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import (
-        ExecutionRecord,
-        RenderedSynthesisCache,
-    )
+    from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.view.sdui import AlertBlock
 
-    # Active cache exists, but ONLY contains remediation_steps, NO coaching or justification
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
-        id="exe_0000000000000014",
+        id="exe_0000000000000015",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
-        profile_syntheses={
-            "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                synthesized_markdown="Global MD",
-                xai_highlights=[
-                    XaiHighlightItem(extension_type="remediation_steps", content="This is curated remediation")
-                ],
-            )
-        },
         execution_trace=[
             TraceEvent(
                 step_name="step_test",
@@ -1045,7 +1050,9 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
                     "blk_1234abcd1234abcd": {
                         "raw_score": 4.0,
                         "extensions": {
-                            "semantic_reasoning": "This is semantic reasoning",
+                            "remediation_steps": "Do this to fix.",
+                            "risk_flag": True,
+                            "missing_context": "",  # Should be ignored because truthy check fails
                         },
                     },
                 },
@@ -1065,36 +1072,72 @@ async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo
         system_repo=mock_repo_transformer,
     )
 
-    # Mock visible extensions for this test and restore after
-    profiles = mock_repo_transformer.get_all_output_profiles.return_value
-    orig_exts = profiles[0].visible_block_extensions
-    profiles[0] = profiles[0].model_copy(
-        update={
-            "visible_block_extensions": [
-                XaiExtensionType.JUSTIFICATION,
-                XaiExtensionType.COACHING,
-                XaiExtensionType.REMEDIATION_STEPS,
-            ]
-        }
+    dto = await transformer.build_report_dto("exe_0000000000000015", accept_language="en")
+    assert len(dto.layouts) > 0
+    matrix = dto.layouts[0].axes[0]
+
+    alert_blocks = [b for b in matrix.inner_sdui_blocks if isinstance(b, AlertBlock)]
+    assert len(alert_blocks) == 2
+
+    remediation_alert = next((b for b in alert_blocks if b.severity == "success"), None)
+    assert remediation_alert is not None
+    assert "Do this to fix" in remediation_alert.text
+
+    risk_alert = next((b for b in alert_blocks if b.severity == "error"), None)
+    assert risk_alert is not None
+    assert "True" in risk_alert.text
+
+
+@pytest.mark.asyncio
+async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transformer: Any) -> None:
+    """Verify fallback language logic when target language is unknown."""
+    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.view.sdui import AlertBlock
+
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000016",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="step_test",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 4.0,
+                        "extensions": {
+                            "coaching": "Good job.",
+                        },
+                    },
+                },
+            )
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "unknown_lang"},  # Unknown language
     )
-    try:
-        dto = await transformer.build_report_dto("exe_0000000000000014", accept_language="en")
-    finally:
-        profiles[0] = profiles[0].model_copy(update={"visible_block_extensions": orig_exts})
 
-    # Check that remediation_steps has only the curated item
-    assert dto.grouped_extensions is not None
-    assert "remediation_steps" in dto.grouped_extensions
-    remediation_items = dto.grouped_extensions["remediation_steps"]
-    assert len(remediation_items) == 1
-    assert remediation_items[0]["content"] == "This is curated remediation"
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
 
-    # Check that coaching and justification have NO items (raw tips are skipped entirely)
-    assert dto.grouped_extensions is not None
-    assert "coaching" in dto.grouped_extensions
-    assert len(dto.grouped_extensions["coaching"]) == 0
-    assert "justification" in dto.grouped_extensions
-    assert len(dto.grouped_extensions["justification"]) == 0
+    dto = await transformer.build_report_dto("exe_0000000000000016", accept_language="en")
+    matrix = dto.layouts[0].axes[0]
+
+    alert_blocks = [b for b in matrix.inner_sdui_blocks if isinstance(b, AlertBlock)]
+    assert len(alert_blocks) == 1
+
+    coaching_alert = alert_blocks[0]
+    assert coaching_alert.severity == "info"
+    # It should fallback to title casing or default locale if missing.
+    assert "Coaching" in coaching_alert.text
 
 
 @pytest.mark.asyncio

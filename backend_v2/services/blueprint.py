@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Any
+from typing import Any, Literal
 
 import bleach
 
@@ -32,6 +32,7 @@ from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
     VisualIntent,
+    XaiExtensionType,
 )
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
@@ -218,7 +219,6 @@ class BlueprintTransformer:
         locale: str,
         blocks_by_id: dict[str, PromptBlock],
         workflow_steps: dict[str, Any],
-        grouped_extensions: dict[str, list[Any]],
         profile: OutputProfile | EmbeddedOutputProfile,
         row_explanations_cache: dict[str, str],
         workflow_ext_values: list[str],
@@ -239,14 +239,15 @@ class BlueprintTransformer:
         Args:
             results: Folded state trace output.
             locale: Desired output locale.
-            blocks_by_id: Dictionary mapping prompt block ID to its PromptBlock model.
-            workflow_steps: Dictionary of step IDs to StepRule models.
-            grouped_extensions: Dictionary to accumulate dynamic XAI extensions.
-            profile: The resolved OutputProfile model.
+            blocks_by_id: Map of PromptBlock IDs to their definitions.
+            workflow_steps: Map of step IDs to step definitions.
+            profile: The OutputProfile determining which extensions and layouts are valid.
             row_explanations_cache: Rendered explanations to override raw LLM justification.
             workflow_ext_values: List of requested workflow-level extension types.
+            rejected_evq_ids: Set of IDs for rejected evidence quotes.
+            mcp_audit_map: Map of audit trace ID to trace model.
             source_identity_manifest: Optional map of source ID to display names.
-            execution: Optional ExecutionRecord model.
+            execution: The execution record.
 
         Returns:
             A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms).
@@ -679,41 +680,56 @@ class BlueprintTransformer:
                 evaluated_atoms=evaluated_atoms_list,
                 clustered_row_sources=clustered_row_sources,
                 used_evidence_ids=list(used_evidence_ids_set),
+                inner_sdui_blocks=[],
             )
+
+            for ext_key, ext_val in ext_dict.items():
+                if ext_val:
+                    try:
+                        ext_enum = XaiExtensionType(ext_key)
+                        label_obj = None
+                        if hasattr(profile, "layouts"):
+                            for layout_block in profile.layouts:
+                                if layout_block.extension_labels and ext_enum in layout_block.extension_labels:
+                                    label_obj = layout_block.extension_labels[ext_enum]
+                                    break
+
+                        label_str = (
+                            label_obj.resolve(execution.target_language)
+                            if label_obj
+                            else ext_key.replace("_", " ").title()
+                        )
+
+                        severity: Literal["info", "warning", "critical_override", "success", "error"] = "info"
+                        if ext_enum in (
+                            XaiExtensionType.FALSIFICATION,
+                            XaiExtensionType.MISSING_CONTEXT,
+                            XaiExtensionType.VARIANCE_VALIDATION,
+                            XaiExtensionType.AUTHENTICITY_EVALUATION,
+                        ):
+                            severity = "warning"
+                        elif ext_enum == XaiExtensionType.RISK_FLAG:
+                            severity = "error"
+                        elif ext_enum == XaiExtensionType.REMEDIATION_STEPS:
+                            severity = "success"
+
+                        alert = AlertBlock(
+                            severity=severity,
+                            text=f"**{label_str}**: {ext_val}",
+                            exact_quotes=[],
+                            citations=[],
+                        )
+                        row_dto.inner_sdui_blocks.append(alert)
+                    except ValueError:
+                        pass
 
             unique_k = f"{step_id}_{b_id}"
             all_parsed_matrices[unique_k] = row_dto
-
-            for ext_key, ext_val in ext_dict.items():
-                if ext_val and ext_key in grouped_extensions:
-                    # Curation of Matrix Extensions, Step 3: Skip raw step-level extensions if curated synthesis exists/has run
-                    if has_synthesis_cache:
-                        continue
-                    if any(item.get("_is_synthesized") for item in grouped_extensions[ext_key]):
-                        continue
-                    grouped_extensions[ext_key].append(
-                        {
-                            "axis_name": axis_name,
-                            ext_key: ext_val,
-                            "_score": score_float,
-                        }
-                    )
 
             if pb_meta.is_evaluative:
                 evaluative_matrices.append(row_dto)
             else:
                 informational_matrices.append(row_dto)
-
-        # Sort and limit extensions
-        max_items = profile.max_extension_items
-        if max_items is not None and max_items > 0:
-            for ext_key in grouped_extensions:
-                if ext_key in workflow_ext_values:
-                    continue
-                synthesized = [x for x in grouped_extensions[ext_key] if x.get("_is_synthesized")]
-                raw_items = [x for x in grouped_extensions[ext_key] if not x.get("_is_synthesized")]
-                combined = synthesized + raw_items
-                grouped_extensions[ext_key] = combined[:max_items]
 
         return evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms
 
@@ -908,16 +924,9 @@ class BlueprintTransformer:
             available_profiles_map[resolved_pid] = profile.name
 
         profile_name_dict = profile.name
-
-        block_ext_values = (
-            [v.value for v in profile.visible_block_extensions] if profile.visible_block_extensions else []
-        )
         workflow_ext_values = (
             [v.value for v in profile.visible_workflow_extensions] if profile.visible_workflow_extensions else []
         )
-        grouped_extensions: dict[str, list[Any]] = {
-            ext: [] for ext in block_ext_values + workflow_ext_values if ext != "source_id"
-        }
 
         all_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
         blocks_by_id: dict[str, PromptBlock] = {}
@@ -947,7 +956,6 @@ class BlueprintTransformer:
         profile_cache = execution.profile_syntheses.get(resolved_pid)
         original_synthesis_md = synthesis_md
         section_syntheses: dict[str, list[AnySduiBlock]] = {}
-        xai_highlights_cache: list[Any] = []
         content_blocks: list[AnySduiBlock] = (
             [b.model_copy(deep=True) for b in profile.content_blocks] if profile.content_blocks else []
         )
@@ -959,7 +967,6 @@ class BlueprintTransformer:
             if not content_blocks and profile_cache.content_blocks:
                 content_blocks = [b.model_copy(deep=True) for b in profile_cache.content_blocks]
             synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
-            xai_highlights_cache = profile_cache.xai_highlights or []
 
             if profile_cache.executive_summary:
                 content_blocks.append(
@@ -975,36 +982,6 @@ class BlueprintTransformer:
                 )
         else:
             synthesis_md = original_synthesis_md
-
-        for highlight in xai_highlights_cache:
-            t_name = highlight.extension_type
-            if not t_name:
-                logger.error(
-                    "[BlueprintTransformer] %s: Fail-Fast: Cached XaiHighlightItem missing 'extension_type'.",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                )
-                raise AppException(
-                    message="Fail-Fast: Cached XaiHighlightItem missing 'extension_type'.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-            group_key = t_name.lower().replace(" ", "_")
-            grouped_extensions.setdefault(group_key, [])
-            grouped_extensions[group_key].append(
-                {group_key: highlight.content, "content": highlight.content, "_score": -999.0, "_is_synthesized": True}
-            )
-
-        report_context_dict = execution.context_variables.get("report_context")
-        if isinstance(report_context_dict, dict):
-            output_exts = report_context_dict.get("output_extensions", [])
-            if isinstance(output_exts, list):
-                for ext in output_exts:
-                    if isinstance(ext, dict) and ext.get("extension_type") in workflow_ext_values:
-                        e_type = ext.get("extension_type")
-                        if e_type in grouped_extensions:
-                            ext_copy = ext.copy()
-                            ext_copy["_is_synthesized"] = True
-                            grouped_extensions[e_type].append(ext_copy)
 
         if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
             has_warning = True
@@ -1089,7 +1066,6 @@ class BlueprintTransformer:
                 locale=locale,
                 blocks_by_id=blocks_by_id,
                 workflow_steps=workflow_steps_map,
-                grouped_extensions=grouped_extensions,
                 profile=profile,
                 row_explanations_cache=row_explanations_cache,
                 workflow_ext_values=workflow_ext_values,
@@ -1103,7 +1079,7 @@ class BlueprintTransformer:
         )
 
         for wf_ext in workflow_ext_values:
-            if wf_ext == "variance_validation" and wf_ext in grouped_extensions and not grouped_extensions[wf_ext]:
+            if wf_ext == "variance_validation":
                 authenticity_score = None
                 performative_phrases_count = None
 
@@ -1599,7 +1575,6 @@ class BlueprintTransformer:
                     completion_tokens=c_tokens,
                     reasoning_tokens=r_tokens,
                     mcp_tool_audit=mcp_audit_data,
-                    grouped_extensions=grouped_extensions,
                     results=v2_results,
                     hydrated_references=v2_hydrated_refs,
                 )
@@ -1700,7 +1675,6 @@ class BlueprintTransformer:
                 completion_tokens=c_tokens,
                 reasoning_tokens=r_tokens,
                 mcp_tool_audit=mcp_audit_data,
-                grouped_extensions=grouped_extensions,
                 results=v2_results,
                 hydrated_references=v2_hydrated_refs,
             )

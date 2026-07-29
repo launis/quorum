@@ -41,7 +41,7 @@
 
 ### Phase 5: Producer Logic (Backend SDUI Hydration - Part 2: Row Extensions & Cleanup)
 - [x] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\05_backend_sdui_hydration_part2_plan.md]`
-- [ ] **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\05_backend_sdui_hydration_part2_plan.md]`
+- [x] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\05_backend_sdui_hydration_part2_plan.md]`
 
 ### Phase 6: Consumer Logic (Frontend & PDF Rendering)
 - [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\06_frontend_pdf_rendering_plan.md]`
@@ -98,7 +98,7 @@
 | R15 | Run `backend_audit_loop.py` on `backend_v2/models/` and perform atomic commit | Phase 2, Step 7 | [x] |
 | R16 | Atomically mirror Python schema changes in Dart Freezed models and update Dart mock fixtures | Phase 3 | [x] |
 | R17 | Refactor blueprint logic to map global synthesis and variance data directly into SDUI blocks | Phase 4 | [x] |
-| R18 | Refactor blueprint logic to transform trace extensions into AlertBlocks and delete all grouped_extensions logic | Phase 5, Steps 1-3 | [ ] |
+| R18 | Refactor blueprint logic to transform trace extensions into AlertBlocks and delete all grouped_extensions logic | Phase 5, Steps 1-3 | [x] |
 | R19 | Wire Flutter and Jinja templates to consume `inner_sdui_blocks` and delete legacy XAI widget code | Phase 6, Steps 1-5 | [ ] |
 | R20 | Verify schema integrity, wipe local DB, and run E2E live tests | Phase 7 (Placeholder) | [ ] |
 | R21 | Verify strict adherence to SDUI Dumb Painter mandate for multilingual content | Phase 8 (Placeholder) | [ ] |
@@ -126,6 +126,7 @@
 - Updated the Master Epic Document (`EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md`) to reflect the Phase 3 Flutter and Phase 4 Backend Red-Teaming corrections.
 - Executed Phase 4 Backend SDUI Hydration Part 1: successfully injected global synthesis into typed `ParagraphBlock`s, mapped `variance_validation` directly into `SduiGridBlock` and `AlertBlock` on target matrix rows without dictionary parsing, fixed Unit Tests, and passed 100% backend audit loop metrics.
 - Generated Tier 1 micro-chunked implementation plans for Phase 5 and Phase 6.
+- Executed Phase 5 Backend SDUI Hydration Part 2: successfully ported `XaiExtensionType` parsing to instantiate `AlertBlock` components within the new unified polymorphic structure. Removed `grouped_extensions` references globally. Fixed structural regressions and verified the architecture with the backend audit loop.
 
 ## Learned
 - **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 
@@ -136,4 +137,4 @@
 - Invoke Tier 1 Planner to generate detailed execution plans for Phase 7 & 8 once Phase 5 and 6 are completed.
 
 ## Resume Command
-`/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\05_backend_sdui_hydration_part2_plan.md] @[c:\src\quorum\docs\epic\EPIC_123_tracker.md]`
+`/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\06_frontend_pdf_rendering_plan.md] @[c:\src\quorum\docs\epic\EPIC_123_tracker.md]`
