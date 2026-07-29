@@ -52,9 +52,9 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     </rule_block>
     
     <rule_block id="anti_ambiguity_mandate">
-      <banned_pattern>Using "e.g." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
-      <mandatory_pattern>Implementation plans MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g." in the generated document. When providing examples or mappings, use explicit and exhaustive lists, or phrases like "such as" or "specifically mapped to". 2) Lock exact types. 3) List ALL EXACT relative file paths. 4) Use programmatic manipulation rules (no `"A" -> "B"`). 5) Specify EXACT relative rendering locations in UI trees.</mandatory_pattern>
-      <catastrophic_reason>Ambiguity causes executing agents to hallucinate scope. "e.g." introduces an incomplete list, resulting in WSOD crashes when strictness encounters untyped or missing test fixture updates.</catastrophic_reason>
+      <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
+      <mandatory_pattern>Implementation plans MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g.", "such as", "like", or "etc." in the generated document. When providing examples or mappings, use explicit and exhaustive lists with phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) Lock exact types. 3) List ALL EXACT relative file paths. 4) Use programmatic manipulation rules (no `"A" -> "B"`). 5) Specify EXACT relative rendering locations in UI trees.</mandatory_pattern>
+      <catastrophic_reason>Ambiguity causes executing agents to hallucinate scope. Ambiguous terms introduce incomplete lists, resulting in WSOD crashes when strictness encounters untyped or missing test fixture updates.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="refactoring_fidelity_mandate">

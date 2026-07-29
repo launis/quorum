@@ -43,9 +43,9 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
     <rule_block id="anti_ambiguity_mandate">
-      <banned_pattern>Accepting "e.g." or other ambiguous shorthands, visual string examples, or generic file paths in the Epic.</banned_pattern>
-      <mandatory_pattern>You MUST actively mutate the Epic to be strictly programmatic and deterministic. 1) You MUST NEVER allow "e.g." in the document. Replace it with explicit and exhaustive lists, or phrases like "such as" or "specifically mapped to". 2) Lock exact data models. 3) Require EXACT relative paths. 4) Replace visual string examples like `"A" -> "B"` with strict programmatic rules. 5) Require exact rendering locations in the UI tree.</mandatory_pattern>
-      <catastrophic_reason>Ambiguity and "e.g." shorthands cause downstream implementation agents to hallucinate scope, leading to unverified logic paths and immediate Fail-Fast system crashes.</catastrophic_reason>
+      <banned_pattern>Accepting "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths in the Epic.</banned_pattern>
+      <mandatory_pattern>You MUST actively mutate the Epic to be strictly programmatic and deterministic. 1) You MUST NEVER allow "e.g.", "such as", "like", or "etc." in the document. Replace them with explicit and exhaustive lists using phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) Lock exact data models. 3) Require EXACT relative paths. 4) Replace visual string examples like `"A" -> "B"` with strict programmatic rules. 5) Require exact rendering locations in the UI tree.</mandatory_pattern>
+      <catastrophic_reason>Ambiguity and shorthands cause downstream implementation agents to hallucinate scope, leading to unverified logic paths and immediate Fail-Fast system crashes.</catastrophic_reason>
     </rule_block>
   </context_rules>
   
