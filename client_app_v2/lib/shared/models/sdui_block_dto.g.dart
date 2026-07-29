@@ -325,9 +325,7 @@ SduiGridBlock _$SduiGridBlockFromJson(Map<String, dynamic> json) =>
         id: $checkedConvert('id', (v) => v as String?),
         items: $checkedConvert(
           'items',
-          (v) => (v as List<dynamic>)
-              .map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
-              .toList(),
+          (v) => (v as List<dynamic>).map((e) => e as String).toList(),
         ),
         $type: $checkedConvert('block_type', (v) => v as String?),
       );
@@ -337,7 +335,7 @@ SduiGridBlock _$SduiGridBlockFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SduiGridBlockToJson(SduiGridBlock instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'items': instance.items.map((e) => e.toJson()).toList(),
+      'items': instance.items,
       'block_type': instance.$type,
     };
 

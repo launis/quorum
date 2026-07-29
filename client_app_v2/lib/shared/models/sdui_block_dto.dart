@@ -79,7 +79,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @FreezedUnionValue('grid')
   const factory SduiBlockDTO.grid({
     String? id,
-    required List<SduiBlockDTO> items,
+    required List<String> items,
   }) = SduiGridBlock;
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>

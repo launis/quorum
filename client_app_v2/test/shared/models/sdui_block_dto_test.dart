@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
+import 'package:client_app/core/models/enums.dart';
 
 void main() {
   group('SduiBlockDTO strict deserialization', () {
@@ -46,7 +47,7 @@ void main() {
       final json = {
         'block_type': 'alert_box',
         'text': 'Warning',
-        'severity': 'high',
+        'severity': 'warning',
       };
 
       final block = SduiBlockDTO.fromJson(json);
@@ -54,7 +55,7 @@ void main() {
       expect(block, isA<SduiAlertBoxBlock>());
       if (block is SduiAlertBoxBlock) {
         expect(block.text, 'Warning');
-        expect(block.severity, 'high');
+        expect(block.severity, AlertSeverity.warning);
       }
     });
 
