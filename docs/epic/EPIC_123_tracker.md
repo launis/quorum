@@ -6,13 +6,13 @@
 ## Phase Execution Status
 
 ### Phase 1: Database Seed Restoration
-- [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\01_database_seed_restoration_plan.md]`
-- [ ] **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\01_database_seed_restoration_plan.md]`
-  - [ ] Step 1: Restore Holistic Audit Profile Synthesis Prompt
-  - [ ] Step 2: Set Row Explanations Block ID
-  - [ ] Step 3: Remove Emojis from Extension Labels
-  - [ ] Step 4: Sync Test Fixtures
-  - [ ] Step 5: Testing & Quality Gate Plan
+- [x] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\01_database_seed_restoration_plan.md]`
+- [x] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\01_database_seed_restoration_plan.md]`
+  - [x] Step 1: Restore Holistic Audit Profile Synthesis Prompt
+  - [x] Step 2: Set Row Explanations Block ID
+  - [x] Step 3: Remove Emojis from Extension Labels
+  - [x] Step 4: Sync Test Fixtures
+  - [x] Step 5: Testing & Quality Gate Plan
 
 ### Phase 2: Python Backend Schema & Enum Migration
 - [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\02_python_backend_schema_migration_plan.md]`
@@ -71,12 +71,12 @@
 
 | ID | Requirement | Mapped Step | Status |
 |---|---|---|---|
-| R1 | Restore holistic audit profile synthesis prompt from commit `22b16208` | Phase 1, Step 1 | [ ] |
-| R2 | Set `row_explanations_block_id` on matrix layouts with synthesis | Phase 1, Step 2 | [ ] |
-| R3 | Ensure `3d_matrix` layout block explicitly contains `matrix_visible_columns` array | Phase 1, Step 2 | [ ] |
-| R4 | Remove Unicode emojis and space from `extension_labels` (all 12 locations) | Phase 1, Step 3 | [ ] |
-| R5 | Sync test fixtures (`report_data_dto_fixture.json`, `exe_c0bc_inputs.json`) to match stripped labels | Phase 1, Step 4 | [ ] |
-| R6 | Run `backend_audit_loop.py` on `seed_data.json` and perform atomic commit | Phase 1, Step 5 | [ ] |
+| R1 | Restore holistic audit profile synthesis prompt from commit `22b16208` | Phase 1, Step 1 | [x] |
+| R2 | Set `row_explanations_block_id` on matrix layouts with synthesis | Phase 1, Step 2 | [x] |
+| R3 | Ensure `3d_matrix` layout block explicitly contains `matrix_visible_columns` array | Phase 1, Step 2 | [x] |
+| R4 | Remove Unicode emojis and space from `extension_labels` (all 12 locations) | Phase 1, Step 3 | [x] |
+| R5 | Sync test fixtures (`report_data_dto_fixture.json`, `exe_c0bc_inputs.json`) to match stripped labels | Phase 1, Step 4 | [x] |
+| R6 | Run `backend_audit_loop.py` on `seed_data.json` and perform atomic commit | Phase 1, Step 5 | [x] |
 | R7 | Add `ERROR = "error"` to `VisualIntent` | Phase 2, Step 1 | [ ] |
 | R8 | Expand `AlertBlock.severity` to include `success` and `error` | Phase 2, Step 1 | [ ] |
 | R9 | Create `UiVariant(StrEnum)` and refactor `AssessmentView.uiVariant` and `ReportView.status_theme` | Phase 2, Step 1 | [ ] |
@@ -98,14 +98,19 @@
 - Parsed the EPIC 123 document and generated the micro-chunked Tier 1 implementation plans for Phase 1 and Phase 2.
 - Created placeholders for Phases 3-8 to prevent Context Amnesia.
 - Generated the official `EPIC_123_tracker.md` to govern the migration execution.
+- Executed Phase 1: Database Seed Restoration.
+- Restored `YHTEENVETO` layout synthesis block without XML.
+- Mapped `row_explanations_block_id` using exact Stripe opaque ID `sp_fb1b8e908bf24c1f`.
+- Cleaned emojis across `seed_data.json` and test fixtures.
+- Fixed a semantic parity bug in `report_template.jinja2` by rendering `xaiGlobalExtensionsHeader` and removing the hardcoded puzzle piece emoji.
 
 ## Learned
-- **Baseline State Snapshot**: The workspace contains legacy flat string fields on `MatrixScorecardRowDTO` and `GlobalSynthesisDTO` which need to be replaced with `inner_sdui_blocks` for strict SDUI compliance. The `seed_data.json` currently has emoji prefixes in `extension_labels` which must be stripped, and the `3d_matrix` columns must be explicitly defined. The system is operating in Planning Mode and no codebase edits have occurred yet.
-- The `TraceMatrixPayloadDTO.extensions` is currently a loose `dict` which risks duck-typing and needs strict Pydantic V2 schema (`TraceMatrixExtensionsDTO`).
+- **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 
+- Python AST script parsing is vastly superior to `multi_replace_file_content` for stripping unicode prefixes in large JSONs.
 
 ## Remaining
-- Proceed to Red-Team/Research Phase 1 using `/tier0-research-plan`.
-- Execute Phase 1 using `/tier2-execute`.
+- Proceed to Tier 8 Plan Audit for Phase 1.
+- Proceed to Tier 0 Research Plan for Phase 2.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_123\01_database_seed_restoration_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\implementation_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`

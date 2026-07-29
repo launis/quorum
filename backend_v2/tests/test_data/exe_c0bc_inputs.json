@@ -1,1 +1,6 @@
-{"chat_log": "\nAgent: Hei! Kuinka voin auttaa t\u00e4n\u00e4\u00e4n?\nUser: Tarvitsen apua laskun maksamisessa.\nAgent: Selv\u00e4 juttu. Mik\u00e4 on laskun numero?\nUser: Se on 12345.\nAgent: Kiitos, maksu on nyt k\u00e4sitelty.\n", "product_text": "Testi lopputuote.", "document_date": "2026-06-25T07:38:55+03:00", "reflection_text": "T\u00e4m\u00e4 on testi reflektioteksti, jotta j\u00e4rjestelm\u00e4 ei kaadu tyhj\u00e4\u00e4n sy\u00f6tteeseen. Olen miettinyt t\u00e4t\u00e4 asiaa syv\u00e4llisesti ja koen ett\u00e4 t\u00e4m\u00e4 on eritt\u00e4in t\u00e4rke\u00e4\u00e4 oppimisen kannalta."}
+{
+  "chat_log": "\nAgent: Hei! Kuinka voin auttaa tänään?\nUser: Tarvitsen apua laskun maksamisessa.\nAgent: Selvä juttu. Mikä on laskun numero?\nUser: Se on 12345.\nAgent: Kiitos, maksu on nyt käsitelty.\n",
+  "product_text": "Testi lopputuote.",
+  "document_date": "2026-06-25T07:38:55+03:00",
+  "reflection_text": "Tämä on testi reflektioteksti, jotta järjestelmä ei kaadu tyhjään syötteeseen. Olen miettinyt tätä asiaa syvällisesti ja koen että tämä on erittäin tärkeää oppimisen kannalta."
+}

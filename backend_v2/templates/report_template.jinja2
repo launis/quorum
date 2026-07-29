@@ -408,16 +408,17 @@
         {% endfor %}
 
         {% if report_data.grouped_extensions %}
+            <h2 style="font-size: 20px; color: #1a237e; margin-top: 32px; border-bottom: 2px solid #1a237e; padding-bottom: 8px;">{{ l10n.xaiGlobalExtensionsHeader }}</h2>
             {% set ext_title_map = {
                 'citation': 'VIITTEET',
                 'justification': 'PERUSTELUT',
-                'falsification': '⚖️ VASTA-ARGUMENTTI',
-                'theory_link': '📚 TEOREETTINEN YHTEYS',
-                'risk_flag': '⚠️ VAKAVA RISKI HAVAITTU',
-                'coaching': '💡 ARJEN VINKKI',
-                'missing_context': '🔍 PUUTTUVA KONTEKSTI',
-                'remediation_steps': '🛠️ KORJAAVAT TOIMENPITEET',
-                'emotional_sentiment': '🎭 EMOTIONAALINEN SÄVY',
+                'falsification': 'VASTA-ARGUMENTTI',
+                'theory_link': 'TEOREETTINEN YHTEYS',
+                'risk_flag': 'VAKAVA RISKI HAVAITTU',
+                'coaching': 'ARJEN VINKKI',
+                'missing_context': 'PUUTTUVA KONTEKSTI',
+                'remediation_steps': 'KORJAAVAT TOIMENPITEET',
+                'emotional_sentiment': 'EMOTIONAALINEN SÄVY',
                 'variance_validation': l10n.xaiVarianceValidationTitle
             } %}
 
@@ -452,7 +453,6 @@
                     <div class="card" style="border: 2px solid {{ card_border }}; background-color: {{ card_bg }}; border-radius: 8px; margin-bottom: 16px; padding: 0; overflow: hidden; page-break-inside: avoid;">
                         <div style="background-color: transparent; padding: 12px 16px; border-bottom: 1px solid {{ card_border }}; display: flex; align-items: center; justify-content: space-between;">
                             <h2 style="color: {{ header_text }}; margin: 0; font-size: 15px; font-weight: 600;">
-                                <span style="margin-right: 8px;">🧩</span>
                                 {% if ext_key in ext_title_map %}{{ ext_title_map[ext_key] }}{% else %}{{ ext_key | upper | replace('_', ' ') }}{% endif %}
                             </h2>
                             <span style="color: {{ header_text }}; font-size: 12px;">▼</span>
