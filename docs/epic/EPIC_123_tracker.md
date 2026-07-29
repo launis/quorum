@@ -26,10 +26,12 @@
   - [x] Step 7: Testing & Quality Gate Plan
 
 ### Phase 3: Flutter Frontend Schema, Enum & Mock Migration
-- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
+- [ ] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
+- [ ] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
 
 ### Phase 4: Producer Logic (Backend SDUI Hydration - Part 1: Global & Variance)
-- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
+- [ ] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\04_backend_sdui_hydration_part1_plan.md]`
+- [ ] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\04_backend_sdui_hydration_part1_plan.md]`
 
 ### Phase 5: Producer Logic (Backend SDUI Hydration - Part 2: Row Extensions & Cleanup)
 - [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
@@ -86,8 +88,8 @@
 | R13 | Fix SDUI List[Any] Leaks: Update `SduiGridBlock.items` to `list[str]` and `SduiQuoteCard.citations` to `list[int]` | Phase 2, Step 5 | [x] |
 | R14 | Update Python test fixtures to remove legacy flat fields and match `inner_sdui_blocks` schema; add `test_parity_ui_variant()` | Phase 2, Step 6 | [x] |
 | R15 | Run `backend_audit_loop.py` on `backend_v2/models/` and perform atomic commit | Phase 2, Step 7 | [x] |
-| R16 | Atomically mirror Python schema changes in Dart Freezed models and update Dart mock fixtures | Phase 3 (Placeholder) | [ ] |
-| R17 | Refactor blueprint logic to map global synthesis and variance data directly into SDUI blocks | Phase 4 (Placeholder) | [ ] |
+| R16 | Atomically mirror Python schema changes in Dart Freezed models and update Dart mock fixtures | Phase 3 | [ ] |
+| R17 | Refactor blueprint logic to map global synthesis and variance data directly into SDUI blocks | Phase 4 | [ ] |
 | R18 | Refactor blueprint logic to transform trace extensions into AlertBlocks and delete all grouped_extensions logic | Phase 5 (Placeholder) | [ ] |
 | R19 | Wire Flutter and Jinja templates to consume `inner_sdui_blocks` and delete legacy XAI widget code | Phase 6 (Placeholder) | [ ] |
 | R20 | Verify schema integrity, wipe local DB, and run E2E live tests | Phase 7 (Placeholder) | [ ] |
@@ -96,7 +98,8 @@
 # Session Handover Context
 ## Achieved
 - Parsed the EPIC 123 document and generated the micro-chunked Tier 1 implementation plans for Phase 1 and Phase 2.
-- Created placeholders for Phases 3-8 to prevent Context Amnesia.
+- Generated Tier 1 micro-chunked implementation plans for Phase 3 and Phase 4.
+- Created placeholders for Phases 5-8 to prevent Context Amnesia.
 - Generated the official `EPIC_123_tracker.md` to govern the migration execution.
 - Executed Phase 1: Database Seed Restoration.
 - Restored `YHTEENVETO` layout synthesis block without XML.
@@ -113,7 +116,10 @@
 - The `test_enum_parity.py` file was a hallucination; the correct file is `test_enums.py`. All Pydantic models must use strict `Field(...)` or `Field(default=None)` definitions instead of bare `Optional` or `| None = None` to enforce Quorum 2026 strictness.
 
 ## Remaining
-- Proceed to Tier 1 Planner to generate plans for Phase 3 and beyond.
+- Execute Tier 8 Audit Plan for Phase 2: `@[c:\src\quorum\docs\epic\tasks_EPIC_123\02_python_backend_schema_migration_plan.md]`
+- Execute Phase 3 Flutter Frontend Schema Migration.
+- Execute Phase 4 Backend SDUI Hydration Part 1.
+- Re-invoke Tier 1 Planner later for Phases 5-8 once Phases 3-4 are completed.
 
 ## Resume Command
-`/tier1-planner @[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md]`
+`/tier5-resume --workflow /tier8-audit-plan --target @[c:\src\quorum\docs\epic\EPIC_123_tracker.md]`
