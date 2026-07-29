@@ -107,17 +107,8 @@ class StudioOutputProfileService:
         workflow = await self.workflow_service.get_workflow(initiator, profile.workflow_id)
         all_steps = await self.workflow_service.list_steps(initiator)
 
-        task_blueprints = {rule.task_blueprint for rule in workflow.steps}
-        allowed_blocks = set()
-
-        for step in all_steps:
-            if step.id in task_blueprints:
-                if step.role_block_id:
-                    allowed_blocks.add(step.role_block_id)
-                if step.extraction_protocol_block_id:
-                    allowed_blocks.add(step.extraction_protocol_block_id)
-                if step.criteria_block_ids:
-                    allowed_blocks.update(step.criteria_block_ids)
+        # Delegate permission calculation to the Domain Model
+        allowed_blocks = workflow.get_allowed_layout_targets(all_steps)
 
         for layout in profile.layouts:
             for comp in layout.target_blocks:

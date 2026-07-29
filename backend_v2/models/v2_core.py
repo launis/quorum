@@ -38,6 +38,7 @@ from backend_v2.models.enums import (
     ScoringStrategy,
     SDUIComponentType,
     StrictnessAnchor,
+    TargetBlockType,
     VisualIntent,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields
@@ -1476,6 +1477,33 @@ class Workflow(V2CoreBase):
                     raise ValueError(msg)
 
         return self
+
+    def get_allowed_layout_targets(self, hydrated_steps: list[Step]) -> set[str]:
+        """Calculates all allowed layout targets including system blocks.
+
+        Args:
+            hydrated_steps: List of full Step objects from the database.
+
+        Returns:
+            A set of allowed block IDs and system TargetBlockTypes.
+        """
+        allowed_blocks = set()
+
+        # 1. Add blocks from the hydrated steps that belong to this workflow
+        task_blueprints = {rule.task_blueprint for rule in self.steps}
+        for step in hydrated_steps:
+            if step.id in task_blueprints:
+                if step.role_block_id:
+                    allowed_blocks.add(step.role_block_id)
+                if step.extraction_protocol_block_id:
+                    allowed_blocks.add(step.extraction_protocol_block_id)
+                if step.criteria_block_ids:
+                    allowed_blocks.update(step.criteria_block_ids)
+
+        # 2. Add system blocks natively supported by the architecture
+        allowed_blocks.update([e.value for e in TargetBlockType])
+
+        return allowed_blocks
 
 
 class FrozenContext(V2CoreBase):
