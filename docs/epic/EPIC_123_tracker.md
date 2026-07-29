@@ -65,7 +65,7 @@
   - [x] Step 3: Dynamic Enums Verification
   - [x] Step 4: Extension Anchoring Mandate
   - [x] Step 5: Testing & Quality Gate Plan
-- [ ] **[NOK]** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\08_multilingual_localization_verification_plan.md]`
+- [ ] **[NOK]** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\08_multilingual_localization_verification_plan.md]` (Quality Gate fixed, ready for re-audit)
 
 ### Integration Checkpoint: Full-Stack Validation
 - [ ] **[NOK]** Run full E2E UI verification against Backend/Frontend after Phase 6.
@@ -171,5 +171,5 @@
 - Complete Post-Implementation Gates (`/tier2-hardening-backend`, `/tier2-hardening-frontend`, `/tier7-describe-architecture`, `/tier8-audit-epic`).
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_123\08_multilingual_localization_verification_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_123\08_multilingual_localization_verification_plan.md] @[c:\src\quorum\docs\epic\EPIC_123_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
 
