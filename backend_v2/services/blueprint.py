@@ -53,6 +53,7 @@ from backend_v2.models.view.sdui import (
     HeroInsightBlock,
     MarkdownBlock,
     ParagraphBlock,
+    SduiGridBlock,
 )
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
@@ -744,11 +745,11 @@ class BlueprintTransformer:
 
     def _hydrate_jargon_ratio_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Placeholder for future jargon ratio hydration logic."""
-        return []
+        return [ParagraphBlock(text="Jargon ratio placeholder", exact_quotes=[], citations=[])]
 
     def _hydrate_printable_sources_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Placeholder for future printable sources hydration logic."""
-        return []
+        return [ParagraphBlock(text="Printable sources placeholder", exact_quotes=[], citations=[])]
 
     def _build_layouts(
         self,
@@ -959,6 +960,19 @@ class BlueprintTransformer:
                 content_blocks = [b.model_copy(deep=True) for b in profile_cache.content_blocks]
             synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
             xai_highlights_cache = profile_cache.xai_highlights or []
+
+            if profile_cache.executive_summary:
+                content_blocks.append(
+                    ParagraphBlock(text=profile_cache.executive_summary, exact_quotes=[], citations=[])
+                )
+            if profile_cache.user_role:
+                content_blocks.append(
+                    ParagraphBlock(text=f"**User Role:** {profile_cache.user_role}", exact_quotes=[], citations=[])
+                )
+            if profile_cache.user_role_justification:
+                content_blocks.append(
+                    ParagraphBlock(text=profile_cache.user_role_justification, exact_quotes=[], citations=[])
+                )
         else:
             synthesis_md = original_synthesis_md
 
@@ -991,6 +1005,102 @@ class BlueprintTransformer:
                             ext_copy = ext.copy()
                             ext_copy["_is_synthesized"] = True
                             grouped_extensions[e_type].append(ext_copy)
+
+        if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
+            has_warning = True
+
+        global_score = None
+        penalties_applied: list[str] = []
+        if isinstance(scoring_out, dict):
+            try:
+                score_dto = TraceScoringPayloadDTO.model_validate(scoring_out)
+                t_score = score_dto.total_score
+                global_score = float(round(float(t_score), 1)) if t_score is not None else None
+                raw_penalties = score_dto.penalties_applied
+                if isinstance(raw_penalties, list):
+                    for p in raw_penalties:
+                        p_str = str(p)
+                        if p_str.startswith("PENALTY_SECURITY:") or p_str.startswith("PENALTY_POST_HOC:"):
+                            penalties_applied.append(p_str)
+                        else:
+                            # Enforce Zero-Compromise Check: fail fast on legacy/unsupported penalty format
+                            msg_legacy = f"Zero-Compromise Check Failed: Legacy or unsupported penalty string detected: '{p_str}'"
+                            logger.error("[BlueprintTransformer] %s", msg_legacy)
+                            raise AppException(
+                                message=msg_legacy,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+            except Exception as e:
+                logger.error(
+                    "[BlueprintTransformer] %s: Scoring payload extraction failed: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    e,
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=f"Scoring payload extraction failed: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+
+        # Epic 88 Phase 6: Pass rejected_evq_ids to the matrix extractor
+        rejected_evq_ids: set[str] = set()
+        if execution.execution_trace:
+            for ev in execution.execution_trace:
+                if ev.event_type == "evidence_override" and isinstance(ev.content, dict):
+                    if ev.content.get("user_rejected") is True:
+                        evq_id = ev.content.get("evq_id")
+                        if isinstance(evq_id, str):
+                            rejected_evq_ids.add(evq_id)
+
+        mcp_audit_map: dict[str, MCPAuditTrace] = {}
+        if execution.frozen_context and execution.frozen_context.mcp_tool_audit:
+            for trace in execution.frozen_context.mcp_tool_audit:
+                if trace.id:
+                    mcp_audit_map[trace.id] = trace
+
+        v2_results: list[Any] = []
+        v2_hydrated_refs: dict[str, Any] = {}
+
+        from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO
+
+        for dto in results:
+            if isinstance(dto.payload, dict):
+                if "results" in dto.payload and isinstance(dto.payload["results"], list):
+                    for r_dict in dto.payload["results"]:
+                        v2_results.append(AtomResultDTO.model_validate(r_dict))
+                if "hydrated_references" in dto.payload and dto.payload["hydrated_references"]:
+                    for k, v_dict in dto.payload["hydrated_references"].items():
+                        v2_hydrated_refs[k] = HydratedAtomDTO.model_validate(v_dict)
+
+        workflow_steps_map = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
+        row_explanations_cache: dict[str, str] = {}
+        row_curated_quotes_cache: dict[str, list[str]] = {}
+
+        if profile_cache and profile_cache.row_explanations:
+            row_explanations_cache = profile_cache.row_explanations
+        if profile_cache and profile_cache.row_curated_quotes:
+            row_curated_quotes_cache = profile_cache.row_curated_quotes
+
+        evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms = (
+            self._extract_matrices_and_extensions(
+                results=results,
+                locale=locale,
+                blocks_by_id=blocks_by_id,
+                workflow_steps=workflow_steps_map,
+                grouped_extensions=grouped_extensions,
+                profile=profile,
+                row_explanations_cache=row_explanations_cache,
+                workflow_ext_values=workflow_ext_values,
+                row_curated_quotes_cache=row_curated_quotes_cache,
+                has_synthesis_cache=bool(profile_cache),
+                rejected_evq_ids=rejected_evq_ids,
+                mcp_audit_map=mcp_audit_map,
+                source_identity_manifest=None,
+                execution=execution,
+            )
+        )
 
         for wf_ext in workflow_ext_values:
             if wf_ext == "variance_validation" and wf_ext in grouped_extensions and not grouped_extensions[wf_ext]:
@@ -1106,111 +1216,48 @@ class BlueprintTransformer:
                     performative_phrases_count=performative_phrases_count,
                 )
 
-                dynamic_ext = {
-                    "extension_type": "variance_validation",
-                    "mechanical_metric_ref": "performative_phrases_count",
-                    "cognitive_metric_ref": "llm_authenticity_score",
-                    "variance_score": float(variance_res["variance_score"]),
-                    "alignment_verdict": str(variance_res["alignment_verdict"]),
-                    "_is_synthesized": True,
-                }
-                grouped_extensions[wf_ext].append(dynamic_ext)
-
-        if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
-            has_warning = True
-
-        global_score = None
-        penalties_applied: list[str] = []
-        if isinstance(scoring_out, dict):
-            try:
-                score_dto = TraceScoringPayloadDTO.model_validate(scoring_out)
-                t_score = score_dto.total_score
-                global_score = float(round(float(t_score), 1)) if t_score is not None else None
-                raw_penalties = score_dto.penalties_applied
-                if isinstance(raw_penalties, list):
-                    for p in raw_penalties:
-                        p_str = str(p)
-                        if p_str.startswith("PENALTY_SECURITY:") or p_str.startswith("PENALTY_POST_HOC:"):
-                            penalties_applied.append(p_str)
-                        else:
-                            # Enforce Zero-Compromise Check: fail fast on legacy/unsupported penalty format
-                            msg_legacy = f"Zero-Compromise Check Failed: Legacy or unsupported penalty string detected: '{p_str}'"
-                            logger.error("[BlueprintTransformer] %s", msg_legacy)
-                            raise AppException(
-                                message=msg_legacy,
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            )
-            except Exception as e:
-                logger.error(
-                    "[BlueprintTransformer] %s: Scoring payload extraction failed: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    e,
-                    exc_info=True,
+                grid_block = SduiGridBlock(
+                    items=[
+                        f"Mechanical: {performative_phrases_count}",
+                        f"Cognitive: {authenticity_score}",
+                        f"Variance: {float(variance_res['variance_score'])}",
+                    ]
                 )
-                raise AppException(
-                    message=f"Scoring payload extraction failed: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
+                alert_block = AlertBlock(
+                    severity="warning" if str(variance_res["alignment_verdict"]) != "ALIGNED" else "info",
+                    text=f"Alignment Verdict: {variance_res['alignment_verdict']}",
+                    exact_quotes=[],
+                    citations=[],
+                )
 
-        # Epic 88 Phase 6: Pass rejected_evq_ids to the matrix extractor
-        rejected_evq_ids: set[str] = set()
-        if execution.execution_trace:
-            for ev in execution.execution_trace:
-                if ev.event_type == "evidence_override" and isinstance(ev.content, dict):
-                    if ev.content.get("user_rejected") is True:
-                        evq_id = ev.content.get("evq_id")
-                        if isinstance(evq_id, str):
-                            rejected_evq_ids.add(evq_id)
+                performativity_step_ids = {
+                    step.id for step in workflow_obj.steps if step.task_blueprint == "sp_7f9649114d2344dc"
+                }
+                target_matrix_key = None
+                for k in all_parsed_matrices.keys():
+                    for s_id in performativity_step_ids:
+                        if k.startswith(f"{s_id}_"):
+                            target_matrix_key = k
+                            break
+                    if target_matrix_key:
+                        break
 
-        mcp_audit_map: dict[str, MCPAuditTrace] = {}
-        if execution.frozen_context and execution.frozen_context.mcp_tool_audit:
-            for trace in execution.frozen_context.mcp_tool_audit:
-                if trace.id:
-                    mcp_audit_map[trace.id] = trace
+                if target_matrix_key and target_matrix_key in all_parsed_matrices:
+                    row = all_parsed_matrices[target_matrix_key]
+                    new_inner = list(row.inner_sdui_blocks)
+                    new_inner.extend([grid_block, alert_block])
 
-        v2_results: list[Any] = []
-        v2_hydrated_refs: dict[str, Any] = {}
+                    updated_row = row.model_copy(update={"inner_sdui_blocks": new_inner})
+                    all_parsed_matrices[target_matrix_key] = updated_row
 
-        from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO
-
-        for dto in results:
-            if isinstance(dto.payload, dict):
-                if "results" in dto.payload and isinstance(dto.payload["results"], list):
-                    for r_dict in dto.payload["results"]:
-                        v2_results.append(AtomResultDTO.model_validate(r_dict))
-                if "hydrated_references" in dto.payload and dto.payload["hydrated_references"]:
-                    for k, v_dict in dto.payload["hydrated_references"].items():
-                        v2_hydrated_refs[k] = HydratedAtomDTO.model_validate(v_dict)
-
-        workflow_steps_map = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
-        row_explanations_cache: dict[str, str] = {}
-        row_curated_quotes_cache: dict[str, list[str]] = {}
-
-        if profile_cache and profile_cache.row_explanations:
-            row_explanations_cache = profile_cache.row_explanations
-        if profile_cache and profile_cache.row_curated_quotes:
-            row_curated_quotes_cache = profile_cache.row_curated_quotes
-
-        evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms = (
-            self._extract_matrices_and_extensions(
-                results=results,
-                locale=locale,
-                blocks_by_id=blocks_by_id,
-                workflow_steps=workflow_steps_map,
-                grouped_extensions=grouped_extensions,
-                profile=profile,
-                row_explanations_cache=row_explanations_cache,
-                workflow_ext_values=workflow_ext_values,
-                row_curated_quotes_cache=row_curated_quotes_cache,
-                has_synthesis_cache=bool(profile_cache),
-                rejected_evq_ids=rejected_evq_ids,
-                mcp_audit_map=mcp_audit_map,
-                source_identity_manifest=None,
-                execution=execution,
-            )
-        )
+                    for i, m in enumerate(evaluative_matrices):
+                        if m.block_id == row.block_id and m.name == row.name:
+                            evaluative_matrices[i] = updated_row
+                            break
+                    for i, m in enumerate(informational_matrices):
+                        if m.block_id == row.block_id and m.name == row.name:
+                            informational_matrices[i] = updated_row
+                            break
 
         modified_step_states = False
         new_step_states = dict(execution.step_states)

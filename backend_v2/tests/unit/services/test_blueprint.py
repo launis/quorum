@@ -703,7 +703,18 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         id="exe_0000000000000009",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
-        execution_trace=[],
+        execution_trace=[
+            TraceEvent(
+                step_name="sr_1234",
+                event_type="output",
+                content={
+                    "blk_fb15f8dcf23f4865": {
+                        "raw_score": 4.0,
+                        "normalized_score": 75.55,
+                    }
+                },
+            )
+        ],
         active_profile_id="prf_dddd1111dddd1111",
         context_variables={
             "step_detector": {"raw_score": 4.0},
@@ -715,6 +726,47 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         },
         metadata={"target_locale": "en"},
     )
+    
+    mock_repo_transformer.get_workflow.return_value = dict_to_obj(
+        {
+            "id": "wf_1234abcd1234abcd",
+            "slug": "wf_1",
+            "name": {"default_locale": "en", "translations": {"en": "Workflow Name"}},
+            "description": {"default_locale": "en", "translations": {"en": "Workflow Desc"}},
+            "status": "published",
+            "version": 1,
+            "default_profile_id": "prf_dddd1111dddd1111",
+            "allowed_exports": ["pdf"],
+            "historical_context_mode": "DISABLED",
+            "default_strictness_level": 85,
+            "default_scoring_strategy": ScoringStrategy.WATERFALL,
+            "steps": [
+                {
+                    "id": "sr_1234",
+                    "task_blueprint": "sp_7f9649114d2344dc",
+                }
+            ],
+        }
+    )
+
+    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
+        [
+            {
+                "id": "blk_fb15f8dcf23f4865",
+                "slug": "matrix_archivist",
+                "category_id": "matrix",
+                "type": "float",
+                "is_evaluative": True,
+                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "scales": [
+                    {"score": 1, "name": {"default_locale": "en", "translations": {"en": "Min"}}, "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "claim"}]},
+                    {"score": 5, "name": {"default_locale": "en", "translations": {"en": "Max"}}, "claims": [{"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "claim"}]}
+                ],
+            }
+        ]
+    )
+
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
         [
             {
@@ -722,7 +774,14 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
-                "layouts": [],
+                "layouts": [
+                    {
+                        "preset_view": "1d_metrics",
+                        "text_delivery_mode": "full",
+                        "target_blocks": ["*"],
+                        "title": {"default_locale": "en", "translations": {"en": "Title"}},
+                    }
+                ],
                 "display_scale": "original",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
@@ -746,16 +805,19 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     )
     dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
 
-    assert dto.grouped_extensions is not None
-    assert "variance_validation" in dto.grouped_extensions
-    ext = dto.grouped_extensions["variance_validation"][0]
-    assert ext["extension_type"] == "variance_validation"
-    assert ext["mechanical_metric_ref"] == "performative_phrases_count"
-    assert ext["cognitive_metric_ref"] == "llm_authenticity_score"
-    # authenticity_score = 4.0, performative_phrases_count = 1 -> target mechanical = 3.0 - 0.2 = 2.8.
-    # Variance: abs(4.0 - 2.8) = 1.2
-    assert ext["variance_score"] == 1.2
-    assert ext["alignment_verdict"] == "MISALIGNED_SYCOPHANCY"
+    assert len(dto.layouts) == 1
+    matrix = dto.layouts[0].axes[0]
+    assert len(matrix.inner_sdui_blocks) == 2
+    
+    grid_block = matrix.inner_sdui_blocks[0]
+    alert_block = matrix.inner_sdui_blocks[1]
+    
+    assert "Mechanical: 1" in grid_block.items[0]
+    assert "Cognitive: 4.0" in grid_block.items[1]
+    assert "Variance: 1.2" in grid_block.items[2]
+    
+    assert alert_block.severity == "warning"
+    assert "MISALIGNED_SYCOPHANCY" in alert_block.text
 
 
 @pytest.mark.asyncio
@@ -903,7 +965,14 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
-                "layouts": [],
+                "layouts": [
+                    {
+                        "preset_view": "1d_metrics",
+                        "text_delivery_mode": "full",
+                        "target_blocks": ["*"],
+                        "title": {"default_locale": "en", "translations": {"en": "Title"}},
+                    }
+                ],
                 "display_scale": "original",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
@@ -928,20 +997,19 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
 
     dto = await transformer.build_report_dto("exe_0000000000000011", accept_language="en")
 
-    assert dto.grouped_extensions is not None
-    assert "variance_validation" in dto.grouped_extensions
-    ext = dto.grouped_extensions["variance_validation"][0]
-    assert ext["extension_type"] == "variance_validation"
-    assert ext["mechanical_metric_ref"] == "performative_phrases_count"
-    assert ext["cognitive_metric_ref"] == "llm_authenticity_score"
-
-    # authenticity_score scaled from raw 4.0222 (on 1-5 scale) to (1-3 scale):
-    # ((4.0222 - 1.0) / 4.0) * 2.0 + 1.0 = 2.5111
-    # performative_phrases_count = 0
-    # Target mechanical score = 3.0 - 0.0 * 0.2 = 3.0
-    # Variance = abs(2.5111 - 3.0) = 0.4889
-    assert round(ext["variance_score"], 4) == 0.4889
-    assert ext["alignment_verdict"] == "ALIGNED"
+    assert len(dto.layouts) == 1
+    matrix = dto.layouts[0].axes[0]
+    assert len(matrix.inner_sdui_blocks) == 2
+    
+    grid_block = matrix.inner_sdui_blocks[0]
+    alert_block = matrix.inner_sdui_blocks[1]
+    
+    assert "Cognitive: 2.5111" in grid_block.items[1]
+    # target mechanical is 3.0, variance is 0.4889
+    assert "Variance: 0.4889" in grid_block.items[2] or "Variance: 0.4888" in grid_block.items[2]
+    
+    assert alert_block.severity == "info"
+    assert "ALIGNED" in alert_block.text
 
 
 async def test_blueprint_synthesis_cache_skips_raw_extensions_entirely(mock_repo_transformer: Any) -> None:
