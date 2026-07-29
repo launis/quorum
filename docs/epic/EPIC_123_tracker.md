@@ -1,0 +1,111 @@
+# EPIC 123 Tracker: Legacy Matrix Synthesis and Pure SDUI Parity
+
+**Source Epic**: `@[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md]`
+**Task Directory**: `@[c:\src\quorum\docs\epic\tasks_EPIC_123/]`
+
+## Phase Execution Status
+
+### Phase 1: Database Seed Restoration
+- [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\01_database_seed_restoration_plan.md]`
+- [ ] **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\01_database_seed_restoration_plan.md]`
+  - [ ] Step 1: Restore Holistic Audit Profile Synthesis Prompt
+  - [ ] Step 2: Set Row Explanations Block ID
+  - [ ] Step 3: Remove Emojis from Extension Labels
+  - [ ] Step 4: Sync Test Fixtures
+  - [ ] Step 5: Testing & Quality Gate Plan
+
+### Phase 2: Python Backend Schema & Enum Migration
+- [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\02_python_backend_schema_migration_plan.md]`
+- [ ] **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\02_python_backend_schema_migration_plan.md]`
+  - [ ] Step 1: Update Enums and Literals
+  - [ ] Step 2: Migrate TraceMatrixPayloadDTO and TraceMatrixExtensionsDTO
+  - [ ] Step 3: Migrate MatrixScorecardRowDTO and Delete Legacy Fields
+  - [ ] Step 4: Delete GlobalSynthesisDTO and Migrate Views
+  - [ ] Step 5: Fix SDUI List[Any] Leaks
+  - [ ] Step 6: Update Test Fixtures and Parity Checks
+  - [ ] Step 7: Testing & Quality Gate Plan
+
+### Phase 3: Flutter Frontend Schema, Enum & Mock Migration
+- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
+
+### Phase 4: Producer Logic (Backend SDUI Hydration - Part 1: Global & Variance)
+- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
+
+### Phase 5: Producer Logic (Backend SDUI Hydration - Part 2: Row Extensions & Cleanup)
+- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
+
+### Phase 6: Consumer Logic (Frontend & PDF Rendering)
+- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
+
+### Phase 7: Verification & E2E Integration Gate
+- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
+
+### Phase 8: Multilingual & Localization (i18n) Verification
+- [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
+
+### Integration Checkpoint: Full-Stack Validation
+- [ ] **[NOK]** Run full E2E UI verification against Backend/Frontend after Phase 6.
+
+### Post-Implementation Gates
+- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
+- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+
+### Documentation & Knowledge Item Update
+- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/`.
+- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+
+### Final Epic Audit
+- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+
+## Instructions for the Execution Agent
+- Atomic commit mandates apply per file or logical block changed.
+- Seeding environment commands: Use `uv run python backend_v2/seed/run_seed.py local` to wipe/seed database.
+- Use explicit `@-reference` syntax for all target files.
+- You MUST update the `/tier5-resume` command at the bottom of this tracker before handing over the session. Additionally, whenever you finish a milestone, pause for user feedback, or complete a session, you MUST automatically output the `/tier5-resume` command in your chat response so the user can easily copy-paste it to continue. The mandatory workflow loop is: `/tier0-research-plan` (Phase N) -> `/tier2-execute` (Phase N) -> `/tier8-audit-plan` (Phase N) -> `/tier0-research-plan` (Phase N+1). Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`.
+
+## Requirements Traceability Matrix
+
+| ID | Requirement | Mapped Step | Status |
+|---|---|---|---|
+| R1 | Restore holistic audit profile synthesis prompt from commit `22b16208` | Phase 1, Step 1 | [ ] |
+| R2 | Set `row_explanations_block_id` on matrix layouts with synthesis | Phase 1, Step 2 | [ ] |
+| R3 | Ensure `3d_matrix` layout block explicitly contains `matrix_visible_columns` array | Phase 1, Step 2 | [ ] |
+| R4 | Remove Unicode emojis and space from `extension_labels` (all 12 locations) | Phase 1, Step 3 | [ ] |
+| R5 | Sync test fixtures (`report_data_dto_fixture.json`, `exe_c0bc_inputs.json`) to match stripped labels | Phase 1, Step 4 | [ ] |
+| R6 | Run `backend_audit_loop.py` on `seed_data.json` and perform atomic commit | Phase 1, Step 5 | [ ] |
+| R7 | Add `ERROR = "error"` to `VisualIntent` | Phase 2, Step 1 | [ ] |
+| R8 | Expand `AlertBlock.severity` to include `success` and `error` | Phase 2, Step 1 | [ ] |
+| R9 | Create `UiVariant(StrEnum)` and refactor `AssessmentView.uiVariant` and `ReportView.status_theme` | Phase 2, Step 1 | [ ] |
+| R10 | Create strict `TraceMatrixExtensionsDTO` with `extra="forbid"` and update `TraceMatrixPayloadDTO.extensions` | Phase 2, Step 2 | [ ] |
+| R11 | Update `MatrixScorecardRowDTO` to include `inner_sdui_blocks` and delete legacy XAI string fields (retain `confidence`) | Phase 2, Step 3 | [ ] |
+| R12 | Delete `GlobalSynthesisDTO` and `global_synthesis` field from `ReportDataDTO` | Phase 2, Step 4 | [ ] |
+| R13 | Fix SDUI List[Any] Leaks: Update `SduiGridBlock.items` to `list[str]` and `SduiQuoteCard.citations` to `list[int]` | Phase 2, Step 5 | [ ] |
+| R14 | Update Python test fixtures to remove legacy flat fields and match `inner_sdui_blocks` schema; add `test_parity_ui_variant()` | Phase 2, Step 6 | [ ] |
+| R15 | Run `backend_audit_loop.py` on `backend_v2/models/` and perform atomic commit | Phase 2, Step 7 | [ ] |
+| R16 | Atomically mirror Python schema changes in Dart Freezed models and update Dart mock fixtures | Phase 3 (Placeholder) | [ ] |
+| R17 | Refactor blueprint logic to map global synthesis and variance data directly into SDUI blocks | Phase 4 (Placeholder) | [ ] |
+| R18 | Refactor blueprint logic to transform trace extensions into AlertBlocks and delete all grouped_extensions logic | Phase 5 (Placeholder) | [ ] |
+| R19 | Wire Flutter and Jinja templates to consume `inner_sdui_blocks` and delete legacy XAI widget code | Phase 6 (Placeholder) | [ ] |
+| R20 | Verify schema integrity, wipe local DB, and run E2E live tests | Phase 7 (Placeholder) | [ ] |
+| R21 | Verify strict adherence to SDUI Dumb Painter mandate for multilingual content | Phase 8 (Placeholder) | [ ] |
+
+# Session Handover Context
+## Achieved
+- Parsed the EPIC 123 document and generated the micro-chunked Tier 1 implementation plans for Phase 1 and Phase 2.
+- Created placeholders for Phases 3-8 to prevent Context Amnesia.
+- Generated the official `EPIC_123_tracker.md` to govern the migration execution.
+
+## Learned
+- **Baseline State Snapshot**: The workspace contains legacy flat string fields on `MatrixScorecardRowDTO` and `GlobalSynthesisDTO` which need to be replaced with `inner_sdui_blocks` for strict SDUI compliance. The `seed_data.json` currently has emoji prefixes in `extension_labels` which must be stripped, and the `3d_matrix` columns must be explicitly defined. The system is operating in Planning Mode and no codebase edits have occurred yet.
+- The `TraceMatrixPayloadDTO.extensions` is currently a loose `dict` which risks duck-typing and needs strict Pydantic V2 schema (`TraceMatrixExtensionsDTO`).
+
+## Remaining
+- Proceed to Red-Team/Research Phase 1 using `/tier0-research-plan`.
+- Execute Phase 1 using `/tier2-execute`.
+
+## Resume Command
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_123\01_database_seed_restoration_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
