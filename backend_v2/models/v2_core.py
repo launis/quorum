@@ -968,14 +968,11 @@ class MatrixScorecardRowDTO(V2CoreBase):
     cited_web_citation: str | None = None
 
     # XAI Output Extensions
-    coaching: str | None = None
     confidence: float | None = None
-    falsification: str | None = None
-    missing_context: str | None = None
-    risk_flag: bool | None = None
-    remediation_steps: str | None = None
-    emotional_sentiment: str | None = None
-    theory_link: str | None = None
+
+    inner_sdui_blocks: list[AnySduiBlock] = Field(
+        default_factory=list, description="Strict SDUI components rendered for this row."
+    )
 
     contextual_override: bool | None = Field(default=None, description="Whether contextual override was applied.")
     semantic_reasoning: str | None = Field(
@@ -1157,17 +1154,6 @@ class ExecutionMetricsDTO(BaseModel):
     duration_ms: Annotated[int, Field(default=0, description="Execution duration in milliseconds for observability")]
 
 
-class GlobalSynthesisDTO(V2CoreBase):
-    """Data structure for high-level synthesized reports."""
-
-    executive_summary: Annotated[str | None, Field(default=None, description="High-level synthesized summary")]
-    urgency_level: Annotated[int | None, Field(default=None)]
-    user_role: Annotated[str | None, Field(default=None, description="Extracted targeted user role for the output.")]
-    user_role_justification: Annotated[
-        str | None, Field(default=None, description="LLM justification for role mapping.")
-    ]
-
-
 class ReportDataDTO(V2CoreBase):
     workflow_id: str
     execution_id: str = Field(description="The execution's opaque Stripe ID.")
@@ -1194,8 +1180,8 @@ class ReportDataDTO(V2CoreBase):
 
     # NEW FIELDS FROM EPIC 91.5 (Strict Topological DAG Execution Model)
     global_metrics: ExecutionMetricsDTO | None = Field(default=None)
-    global_synthesis: GlobalSynthesisDTO | None = Field(
-        default=None, description="Stores the final synthesized output of the document."
+    inner_sdui_blocks: list[AnySduiBlock] = Field(
+        default_factory=list, description="Stores the final structured SDUI blocks."
     )
     results: list[AtomResultDTO] = Field(
         default_factory=list,
@@ -1222,10 +1208,6 @@ class ReportDataDTO(V2CoreBase):
     # MCP Tool Loop Audit Trail (XAI Evidence for Frontend)
     mcp_tool_audit: list[MCPAuditTrace] = Field(
         default_factory=list, description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
-    )
-
-    grouped_extensions: dict[str, list[Any]] | None = Field(
-        default_factory=dict, description="Centrally grouped XAI extensions (e.g. 'citation': [...])"
     )
 
     @model_validator(mode="after")

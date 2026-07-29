@@ -8,31 +8,6 @@ from backend_v2.models.core_base import V2CoreBase
 StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
-class SectionType(StrEnum):
-    """Enum representing the Server-Driven UI section layout types."""
-
-    SCORE_CARD = "SCORE_CARD"
-    MARKDOWN_BLOCK = "MARKDOWN_BLOCK"
-    TIMELINE_FEED = "TIMELINE_FEED"
-    HEADER = "HEADER"
-    KEY_METRICS = "KEY_METRICS"
-    EVIDENCE_LIST = "EVIDENCE_LIST"
-    KEY_VALUE_GRID = "KEY_VALUE_GRID"
-    DATA_TABLE = "DATA_TABLE"
-    ACCORDION = "ACCORDION"
-    USAGE_STATS = "USAGE_STATS"
-    HIGHLIGHT_BOXES = "HIGHLIGHT_BOXES"
-    LOGIC_ANALYSIS = "LOGIC_ANALYSIS"
-    STRESS_TEST = "STRESS_TEST"
-    CAUSAL_ANALYSIS = "CAUSAL_ANALYSIS"
-    PERFORMATIVITY_CHECK = "PERFORMATIVITY_CHECK"
-    FACT_CHECK = "FACT_CHECK"
-    PROFILER_ANALYSIS = "PROFILER_ANALYSIS"
-    ARCHIVIST_CHECK = "ARCHIVIST_CHECK"
-    DRIVER_PROFILE = "DRIVER_PROFILE"
-    SECURITY_CHECK = "SECURITY_CHECK"
-
-
 class Authenticity(StrEnum):
     """Enum representing driver authenticity levels."""
 
@@ -132,27 +107,6 @@ class EvidenceList(V2CoreBase):
     total_count: int
 
 
-class UiSection(V2CoreBase):
-    """Abstract UI Section mapped via Server-Driven UI schemas.
-
-    Attributes:
-        id: Section unique logical string.
-        type: Presentational render type of component.
-        title: Globalized human visible header key.
-        data: Highly flexible context payloads.
-    """
-
-    id: Annotated[StrictStr, Field(..., description="Unique identifier for the section (e.g. 'verdict-card')")]
-    type: Annotated[SectionType, Field(..., description="Determines which UI component to render")]
-    title: Annotated[StrictStr, Field(..., description="User-facing title of the section")]
-    data: Annotated[
-        Any,
-        Field(
-            default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)"
-        ),
-    ]
-
-
 class SystemNotification(V2CoreBase):
     """Server-Driven Notification for the Report Header.
 
@@ -185,7 +139,9 @@ class ReportView(V2CoreBase):
     status_theme: Annotated[
         StrictStr, Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
     ]
-    sections: Annotated[list[UiSection], Field(default_factory=list, description="Ordered list of UI sections")]
+    inner_sdui_blocks: Annotated[
+        list[AnySduiBlock], Field(default_factory=list, description="Ordered list of SDUI components")
+    ]
     metrics: Annotated[
         dict[str, Any] | None, Field(default=None, description="Global audit metrics (Word Count, etc.)")
     ]
@@ -520,7 +476,7 @@ class AlertBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="alert_box")
     block_type: Literal["alert_box"] = "alert_box"
-    severity: Annotated[Literal["info", "warning", "critical_override"], Field(default="info")]
+    severity: Annotated[Literal["info", "warning", "critical_override", "success", "error"], Field(default="info")]
     text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
     exact_quotes: Annotated[list[str], Field(default_factory=list)]
     citations: Annotated[list[int], Field(default_factory=list)]

@@ -23,7 +23,8 @@ from backend_v2.models.prompts.field_prompts import (
     DESC_EXACT_QUOTES,
     DESC_REASONING_TRACE,
 )
-from backend_v2.models.v2_core import GlobalSynthesisDTO, PromptBlock
+from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.view.sdui import HeroInsightBlock, MarkdownBlock
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
@@ -251,7 +252,7 @@ class StrippedBaseMatrixXAI(BaseModel):
 
 @register_sdui_schema("markdown")
 class MarkdownSchemaStrategy(SchemaBuilderStrategy):
-    """Returns the static GlobalSynthesisDTO."""
+    """Returns the static MarkdownBlock."""
 
     def build_schema(
         self,
@@ -266,12 +267,12 @@ class MarkdownSchemaStrategy(SchemaBuilderStrategy):
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
     ) -> type[BaseModel]:
-        return GlobalSynthesisDTO
+        return MarkdownBlock
 
 
 @register_sdui_schema("hero_insight")
 class HeroInsightSchemaStrategy(SchemaBuilderStrategy):
-    """Returns the static GlobalSynthesisDTO for hero_insight."""
+    """Returns the static HeroInsightBlock."""
 
     def build_schema(
         self,
@@ -286,7 +287,7 @@ class HeroInsightSchemaStrategy(SchemaBuilderStrategy):
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
     ) -> type[BaseModel]:
-        return GlobalSynthesisDTO
+        return HeroInsightBlock
 
 
 @register_sdui_schema("grid")

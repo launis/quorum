@@ -121,6 +121,17 @@ class VisualIntent(StrEnum):
     CRITICAL_OVERRIDE = "critical_override"
     INFO = "info"
     NEUTRAL = "NEUTRAL"
+    ERROR = "error"
+
+
+class UiVariant(StrEnum):
+    """UI display style variant mapping for SDUI."""
+
+    DEFAULT = "default"
+    SUCCESS = "success"
+    WARNING = "warning"
+    ERROR = "error"
+    NEUTRAL = "neutral"
 
 
 class XaiExtensionType(StrEnum):
@@ -552,6 +563,7 @@ class ScoringStrategy(StrEnum):
 
 # --- Lax Type Aliases (Pydantic V2) ---
 LaxSearchStatus = Annotated[SearchStatus, Field(strict=False)]
+LaxUiVariant = Annotated[UiVariant, Field(strict=False)]
 LaxExecutionProfile = Annotated[ExecutionProfile, Field(strict=False)]
 LaxLLMCachingStrategy = Annotated[LLMCachingStrategy, Field(strict=False)]
 LaxLLMProviderName = Annotated[LLMProviderName, Field(strict=False)]

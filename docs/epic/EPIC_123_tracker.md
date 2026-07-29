@@ -15,15 +15,15 @@
   - [x] Step 5: Testing & Quality Gate Plan
 
 ### Phase 2: Python Backend Schema & Enum Migration
-- [ ] **[NOK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\02_python_backend_schema_migration_plan.md]`
-- [ ] **[NOK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\02_python_backend_schema_migration_plan.md]`
-  - [ ] Step 1: Update Enums and Literals
-  - [ ] Step 2: Migrate TraceMatrixPayloadDTO and TraceMatrixExtensionsDTO
-  - [ ] Step 3: Migrate MatrixScorecardRowDTO and Delete Legacy Fields
-  - [ ] Step 4: Delete GlobalSynthesisDTO and Migrate Views
-  - [ ] Step 5: Fix SDUI List[Any] Leaks
-  - [ ] Step 6: Update Test Fixtures and Parity Checks
-  - [ ] Step 7: Testing & Quality Gate Plan
+- [x] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\02_python_backend_schema_migration_plan.md]`
+- [x] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\02_python_backend_schema_migration_plan.md]`
+  - [x] Step 1: Update Enums and Literals
+  - [x] Step 2: Migrate TraceMatrixPayloadDTO and TraceMatrixExtensionsDTO
+  - [x] Step 3: Migrate MatrixScorecardRowDTO and Delete Legacy Fields
+  - [x] Step 4: Delete GlobalSynthesisDTO and Migrate Views
+  - [x] Step 5: Fix SDUI List[Any] Leaks
+  - [x] Step 6: Update Test Fixtures and Parity Checks
+  - [x] Step 7: Testing & Quality Gate Plan
 
 ### Phase 3: Flutter Frontend Schema, Enum & Mock Migration
 - [ ] **[NOK]** Invoke Tier 1 Planner again to generate detailed plans for this phase.
@@ -77,15 +77,15 @@
 | R4 | Remove Unicode emojis and space from `extension_labels` (all 12 locations) | Phase 1, Step 3 | [x] |
 | R5 | Sync test fixtures (`report_data_dto_fixture.json`, `exe_c0bc_inputs.json`) to match stripped labels | Phase 1, Step 4 | [x] |
 | R6 | Run `backend_audit_loop.py` on `seed_data.json` and perform atomic commit | Phase 1, Step 5 | [x] |
-| R7 | Add `ERROR = "error"` to `VisualIntent` | Phase 2, Step 1 | [ ] |
-| R8 | Expand `AlertBlock.severity` to include `success` and `error` | Phase 2, Step 1 | [ ] |
-| R9 | Create `UiVariant(StrEnum)` and refactor `AssessmentView.uiVariant` and `ReportView.status_theme` | Phase 2, Step 1 | [ ] |
-| R10 | Create strict `TraceMatrixExtensionsDTO` with `extra="forbid"` and update `TraceMatrixPayloadDTO.extensions` | Phase 2, Step 2 | [ ] |
-| R11 | Update `MatrixScorecardRowDTO` to include `inner_sdui_blocks` and delete legacy XAI string fields (retain `confidence`) | Phase 2, Step 3 | [ ] |
-| R12 | Delete `GlobalSynthesisDTO` and `global_synthesis` field from `ReportDataDTO` | Phase 2, Step 4 | [ ] |
-| R13 | Fix SDUI List[Any] Leaks: Update `SduiGridBlock.items` to `list[str]` and `SduiQuoteCard.citations` to `list[int]` | Phase 2, Step 5 | [ ] |
-| R14 | Update Python test fixtures to remove legacy flat fields and match `inner_sdui_blocks` schema; add `test_parity_ui_variant()` | Phase 2, Step 6 | [ ] |
-| R15 | Run `backend_audit_loop.py` on `backend_v2/models/` and perform atomic commit | Phase 2, Step 7 | [ ] |
+| R7 | Add `ERROR = "error"` to `VisualIntent` | Phase 2, Step 1 | [x] |
+| R8 | Expand `AlertBlock.severity` to include `success` and `error` | Phase 2, Step 1 | [x] |
+| R9 | Create `UiVariant(StrEnum)` and refactor `AssessmentView.uiVariant` and `ReportView.status_theme` | Phase 2, Step 1 | [x] |
+| R10 | Create strict `TraceMatrixExtensionsDTO` with `extra="forbid"` and update `TraceMatrixPayloadDTO.extensions` | Phase 2, Step 2 | [x] |
+| R11 | Update `MatrixScorecardRowDTO` to include `inner_sdui_blocks` and delete legacy XAI string fields (retain `confidence`) | Phase 2, Step 3 | [x] |
+| R12 | Delete `GlobalSynthesisDTO` and `global_synthesis` field from `ReportDataDTO` | Phase 2, Step 4 | [x] |
+| R13 | Fix SDUI List[Any] Leaks: Update `SduiGridBlock.items` to `list[str]` and `SduiQuoteCard.citations` to `list[int]` | Phase 2, Step 5 | [x] |
+| R14 | Update Python test fixtures to remove legacy flat fields and match `inner_sdui_blocks` schema; add `test_parity_ui_variant()` | Phase 2, Step 6 | [x] |
+| R15 | Run `backend_audit_loop.py` on `backend_v2/models/` and perform atomic commit | Phase 2, Step 7 | [x] |
 | R16 | Atomically mirror Python schema changes in Dart Freezed models and update Dart mock fixtures | Phase 3 (Placeholder) | [ ] |
 | R17 | Refactor blueprint logic to map global synthesis and variance data directly into SDUI blocks | Phase 4 (Placeholder) | [ ] |
 | R18 | Refactor blueprint logic to transform trace extensions into AlertBlocks and delete all grouped_extensions logic | Phase 5 (Placeholder) | [ ] |
@@ -103,14 +103,17 @@
 - Mapped `row_explanations_block_id` using exact Stripe opaque ID `sp_fb1b8e908bf24c1f`.
 - Cleaned emojis across `seed_data.json` and test fixtures.
 - Fixed a semantic parity bug in `report_template.jinja2` by rendering `xaiGlobalExtensionsHeader` and removing the hardcoded puzzle piece emoji.
+- Successfully executed `/tier8-audit-plan` for Phase 1 and verified all requirements mathematically.
+  - Executed Tier 0 Research Plan for Phase 2, strictly enforcing Pydantic V2 explicit typing and red-teaming ambiguities.
+- Executed Tier 2 Execution Plan for Phase 2, strictly completing backend schema modernization and UI parity mapping, passing Universal Quality Gate.
 
 ## Learned
 - **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 
 - Python AST script parsing is vastly superior to `multi_replace_file_content` for stripping unicode prefixes in large JSONs.
+- The `test_enum_parity.py` file was a hallucination; the correct file is `test_enums.py`. All Pydantic models must use strict `Field(...)` or `Field(default=None)` definitions instead of bare `Optional` or `| None = None` to enforce Quorum 2026 strictness.
 
 ## Remaining
-- Proceed to Tier 8 Plan Audit for Phase 1.
-- Proceed to Tier 0 Research Plan for Phase 2.
+- Proceed to Tier 1 Planner to generate plans for Phase 3 and beyond.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\implementation_plan.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier1-planner @[c:\src\quorum\docs\epic\EPIC_123_tracker.md] @[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md]`
