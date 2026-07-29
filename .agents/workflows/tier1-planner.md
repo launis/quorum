@@ -51,6 +51,12 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="anti_ambiguity_mandate">
+      <banned_pattern>Using "(e.g.)" examples for types, file paths, or UI positions, or using visual string examples instead of programmatic rules.</banned_pattern>
+      <mandatory_pattern>Implementation plans MUST be deterministic. 1) Lock exact types (no "e.g., MarkdownBlock"). 2) List ALL EXACT relative file paths (no "e.g., tests/file.py"). 3) Use programmatic manipulation rules (no `"A" -> "B"`). 4) Specify EXACT relative rendering locations in UI trees.</mandatory_pattern>
+      <catastrophic_reason>Ambiguity causes executing agents to hallucinate scope, resulting in WSOD crashes when Pydantic strictness encounters untyped or missing test fixture updates.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="refactoring_fidelity_mandate">
       <banned_pattern>Mixing functional new features with structural refactoring operations in the same plan step, or moving core files without leaving deprecated proxies.</banned_pattern>
       <mandatory_pattern>If the Epic involves refactoring or moving files, you MUST enforce the "Zero Behavioral Change Mandate" for those phases. Refactoring is strictly a STRUCTURAL reorganization; do not mix new feature additions with structural file movements in the same plan. Furthermore, you MUST perform a Pre-Flight Fragmentation Audit (checking for existing standalone files before creating new ones) and use the "Import Proxy Pattern" (if moving a core file breaks hundreds of imports, temporarily retain proxy methods in the original location to keep the system compilable. ALL such proxy methods MUST be explicitly marked with `@deprecated` annotations. Do NOT plan massive dummy "Facade" files that live forever; preserve the immediate routing contract ONLY during the transition phase).</mandatory_pattern>

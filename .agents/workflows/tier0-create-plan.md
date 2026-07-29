@@ -37,6 +37,10 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
+    <rule_block id="anti_ambiguity_mandate">
+      <mandatory_pattern>Implementation plans MUST be strictly programmatic and deterministic. 1) NEVER use "(e.g., MarkdownBlock)" when specifying data models; you MUST lock the exact type. 2) NEVER use generic paths like "update mock files (e.g., file.json)"; list EXACT relative paths. 3) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 4) ALWAYS specify exact rendering locations in the UI tree (e.g., "BEFORE macro X").</mandatory_pattern>
+      <catastrophic_reason>Ambiguity and "Hidden Scope" in plans lead to implementation agents guessing wrong paths, missing test fixtures, or mapping incorrect SDUI blocks, which causes immediate Fail-Fast system crashes.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="0_create_plan">

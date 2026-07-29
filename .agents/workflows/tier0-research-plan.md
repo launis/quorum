@@ -72,6 +72,10 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       </constraint>
       <constraint name="QUORUM MODERNITY GATE">
         Ruthlessly audit the plan against Quorum anti-patterns. If ANY are detected, mutate the plan to enforce the mandated replacement:
+        * Ambiguous examples ("e.g., SduiBlock") → Explicit locked types (e.g., `SduiMarkdownBlock`)
+        * Hidden Scope file paths ("e.g., test.json") → Exact relative paths for ALL affected files
+        * Visual string transformations (`"A" -> "B"`) → Programmatic data manipulation directives
+        * Implicit rendering instructions ("add a check") → Exact UI tree positioning ("BEFORE macro X")
         * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)
         * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
         * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
