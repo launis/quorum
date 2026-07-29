@@ -26,7 +26,7 @@
   - [x] Step 7: Testing & Quality Gate Plan
 
 ### Phase 3: Flutter Frontend Schema, Enum & Mock Migration
-- [ ] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
+- [x] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
 - [ ] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
 
 ### Phase 4: Producer Logic (Backend SDUI Hydration - Part 1: Global & Variance)
@@ -112,6 +112,7 @@
 - Verified Phase 2 codebase state and resolved the missing `test_parity_ui_variant` test by implementing it with `@pytest.mark.skip` (waiting for Phase 3 Flutter implementation) to satisfy the completeness mandate.
 - Re-ran `backend_audit_loop.py` on `backend_v2/models/` successfully.
 - Resolved final test failures (`test_blueprint` and `test_contract_parity`), achieving 100% backend test pass rate for Phase 2.
+- Executed Tier 0 Research Plan for Phase 3, red-teaming found three flaws (SDUI Dynamic Type Leak, Lingering Legacy Fields, Incomplete Audit Scope) and the plan was mutated to enforce Phase 9 invariants.
 
 ## Learned
 - **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 

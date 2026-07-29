@@ -32,6 +32,8 @@ This plan migrates the Dart Freezed models and Enums to perfectly mirror the Pyt
     <step id="3" name="REPORT DATA V2 DTO MIGRATION">
       <action>Modify @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_data_v2_dto.dart].</action>
       <demolish>REMOVE: `globalSynthesis` field from `ReportDataDto`.</demolish>
+      <demolish>REMOVE: `groupedExtensions` field from `ReportDataDto`.</demolish>
+      <action>Change `innerSduiBlocks` from `List<dynamic>` to strictly `List<SduiBlockDTO>`.</action>
       <action>Delete the file @[c:\src\quorum\client_app_v2\lib\features\execution\models\global_synthesis_dto.dart] to entirely remove `GlobalSynthesisDto`.</action>
       <constraint invariant="sdui_contract_fracture_prevention">Verify these changes mirror Phase 2 exactly.</constraint>
     </step>
@@ -45,13 +47,13 @@ This plan migrates the Dart Freezed models and Enums to perfectly mirror the Pyt
 
     <step id="5" name="TEST FIXTURE SYNC">
       <action>Update test files to align with the new schema constraints.</action>
-      <action>Modify @[c:\src\quorum\client_app_v2\test\features\execution\models\matrix_scorecard_dto_test.dart] and @[c:\src\quorum\client_app_v2\test\features\execution\models\report_data_v2_dto_test.dart] to remove all deleted fields from mock JSON structures and use valid enum strings.</action>
+      <action>Modify @[c:\src\quorum\client_app_v2\test\features\execution\models\matrix_scorecard_dto_test.dart] and @[c:\src\quorum\client_app_v2\test\features\execution\models\report_data_v2_dto_test.dart] to remove all deleted fields from mock JSON structures, use valid enum strings, and ensure all `innerSduiBlocks` are valid objects with a `block_type` discriminator.</action>
       <constraint invariant="anti_tdd_trap">Do not patch the domain code if a test fails. Rewrite the mock JSON fixtures to comply with the new Phase 9 architecture.</constraint>
     </step>
 
     <step id="6" name="QUALITY GATE &amp; COMMIT">
-      <action>Run the flutter audit script targeting the modified domain directories:</action>
-      <action>`uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/models client_app_v2/lib/core/models client_app_v2/lib/shared/models --build`</action>
+      <action>Run the flutter audit script targeting the modified domain directories and their tests:</action>
+      <action>`uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/models client_app_v2/lib/core/models client_app_v2/lib/shared/models client_app_v2/test/features/execution/models --build`</action>
       <constraint invariant="atomic_checkpoint_mandate">If the audit script passes, explicitly instruct the user to atomic commit these frontend DTO changes before proceeding to Phase 4.</constraint>
     </step>
   </execution_protocol>
