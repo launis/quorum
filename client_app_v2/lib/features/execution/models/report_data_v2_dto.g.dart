@@ -30,7 +30,7 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'global_score',
         'has_warning',
         'global_metrics',
-        'global_synthesis',
+        'inner_sdui_blocks',
         'results',
         'hydrated_references',
         'visible_metadata',
@@ -43,7 +43,6 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'completion_tokens',
         'reasoning_tokens',
         'mcp_tool_audit',
-        'grouped_extensions',
       ],
     );
     final val = _ReportDataDto(
@@ -93,11 +92,13 @@ _ReportDataDto _$ReportDataDtoFromJson(
             ? null
             : ExecutionMetricsDTO.fromJson(v as Map<String, dynamic>),
       ),
-      globalSynthesis: $checkedConvert(
-        'global_synthesis',
-        (v) => v == null
-            ? null
-            : GlobalSynthesisDto.fromJson(v as Map<String, dynamic>),
+      innerSduiBlocks: $checkedConvert(
+        'inner_sdui_blocks',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
       ),
       results: $checkedConvert(
         'results',
@@ -162,12 +163,6 @@ _ReportDataDto _$ReportDataDtoFromJson(
                 .toList() ??
             const [],
       ),
-      groupedExtensions: $checkedConvert(
-        'grouped_extensions',
-        (v) => (v as Map<String, dynamic>?)?.map(
-          (k, e) => MapEntry(k, e as List<dynamic>),
-        ),
-      ),
     );
     return val;
   },
@@ -187,7 +182,7 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'globalScore': 'global_score',
     'hasWarning': 'has_warning',
     'globalMetrics': 'global_metrics',
-    'globalSynthesis': 'global_synthesis',
+    'innerSduiBlocks': 'inner_sdui_blocks',
     'hydratedReferences': 'hydrated_references',
     'visibleMetadata': 'visible_metadata',
     'createdAt': 'created_at',
@@ -198,43 +193,42 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'completionTokens': 'completion_tokens',
     'reasoningTokens': 'reasoning_tokens',
     'mcpToolAudit': 'mcp_tool_audit',
-    'groupedExtensions': 'grouped_extensions',
   },
 );
 
-Map<String, dynamic> _$ReportDataDtoToJson(_ReportDataDto instance) =>
-    <String, dynamic>{
-      'execution_id': instance.executionId,
-      'workflow_id': instance.workflowId,
-      'scoring_strategy': instance.scoringStrategy,
-      'user_name': instance.userName,
-      'scoring_engine_name': instance.scoringEngineName,
-      'strictness_level': instance.strictnessLevel,
-      'local_time_str': instance.localTimeStr,
-      'custom_preface_md': instance.customPrefaceMd,
-      'profile_id': instance.profileId,
-      'profile_name': instance.profileName?.toJson(),
-      'profile_description': instance.profileDescription?.toJson(),
-      'available_profiles': instance.availableProfiles.map(
-        (k, e) => MapEntry(k, e.toJson()),
-      ),
-      'global_score': instance.globalScore,
-      'has_warning': instance.hasWarning,
-      'global_metrics': instance.globalMetrics?.toJson(),
-      'global_synthesis': instance.globalSynthesis?.toJson(),
-      'results': instance.results.map((e) => e.toJson()).toList(),
-      'hydrated_references': instance.hydratedReferences.map(
-        (k, e) => MapEntry(k, e.toJson()),
-      ),
-      'visible_metadata': instance.visibleMetadata,
-      'layouts': instance.layouts.map((e) => e.toJson()).toList(),
-      'created_at': instance.createdAt,
-      'org_name': instance.orgName,
-      'cost_estimate': instance.costEstimate,
-      'total_tokens': instance.totalTokens,
-      'prompt_tokens': instance.promptTokens,
-      'completion_tokens': instance.completionTokens,
-      'reasoning_tokens': instance.reasoningTokens,
-      'mcp_tool_audit': instance.mcpToolAudit.map((e) => e.toJson()).toList(),
-      'grouped_extensions': instance.groupedExtensions,
-    };
+Map<String, dynamic> _$ReportDataDtoToJson(
+  _ReportDataDto instance,
+) => <String, dynamic>{
+  'execution_id': instance.executionId,
+  'workflow_id': instance.workflowId,
+  'scoring_strategy': instance.scoringStrategy,
+  'user_name': instance.userName,
+  'scoring_engine_name': instance.scoringEngineName,
+  'strictness_level': instance.strictnessLevel,
+  'local_time_str': instance.localTimeStr,
+  'custom_preface_md': instance.customPrefaceMd,
+  'profile_id': instance.profileId,
+  'profile_name': instance.profileName?.toJson(),
+  'profile_description': instance.profileDescription?.toJson(),
+  'available_profiles': instance.availableProfiles.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
+  'global_score': instance.globalScore,
+  'has_warning': instance.hasWarning,
+  'global_metrics': instance.globalMetrics?.toJson(),
+  'inner_sdui_blocks': instance.innerSduiBlocks.map((e) => e.toJson()).toList(),
+  'results': instance.results.map((e) => e.toJson()).toList(),
+  'hydrated_references': instance.hydratedReferences.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
+  'visible_metadata': instance.visibleMetadata,
+  'layouts': instance.layouts.map((e) => e.toJson()).toList(),
+  'created_at': instance.createdAt,
+  'org_name': instance.orgName,
+  'cost_estimate': instance.costEstimate,
+  'total_tokens': instance.totalTokens,
+  'prompt_tokens': instance.promptTokens,
+  'completion_tokens': instance.completionTokens,
+  'reasoning_tokens': instance.reasoningTokens,
+  'mcp_tool_audit': instance.mcpToolAudit.map((e) => e.toJson()).toList(),
+};

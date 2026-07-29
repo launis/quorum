@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'sdui_block_dto.freezed.dart';
 part 'sdui_block_dto.g.dart';
@@ -29,7 +30,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   const factory SduiBlockDTO.alertBox({
     String? id,
     required String text,
-    required String severity,
+    required AlertSeverity severity,
     @Default([]) List<int> citations,
     @JsonKey(name: 'exact_quotes') @Default([]) List<String> exactQuotes,
   }) = SduiAlertBoxBlock;
@@ -54,7 +55,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     String? id,
     required String quote,
     @JsonKey(name: 'source_aliases') required List<String> sourceAliases,
-    required List<dynamic> citations,
+    required List<int> citations,
   }) = SduiQuoteCardBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -76,7 +77,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('grid')
-  const factory SduiBlockDTO.grid({String? id, required List<dynamic> items}) =
+  const factory SduiBlockDTO.grid({String? id, required List<SduiBlockDTO> items}) =
       SduiGridBlock;
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>

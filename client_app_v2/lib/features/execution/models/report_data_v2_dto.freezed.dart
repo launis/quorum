@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReportDataDto {
 
-@JsonKey(name: 'execution_id') String get executionId;@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'scoring_strategy') String? get scoringStrategy;@JsonKey(name: 'user_name') String? get userName;@JsonKey(name: 'scoring_engine_name') String? get scoringEngineName;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'local_time_str') String? get localTimeStr;@JsonKey(name: 'custom_preface_md') String? get customPrefaceMd;@JsonKey(name: 'profile_id') String get profileId;@JsonKey(name: 'profile_name') I18nText? get profileName;@JsonKey(name: 'profile_description') I18nText? get profileDescription;@JsonKey(name: 'available_profiles') Map<String, I18nText> get availableProfiles;@JsonKey(name: 'global_score') double? get globalScore;@JsonKey(name: 'has_warning') bool get hasWarning;@JsonKey(name: 'global_metrics') ExecutionMetricsDTO? get globalMetrics;@JsonKey(name: 'global_synthesis') GlobalSynthesisDto? get globalSynthesis;@JsonKey(name: 'results') List<AtomResultDTO> get results;@JsonKey(name: 'hydrated_references') Map<String, HydratedAtomDTO> get hydratedReferences;@JsonKey(name: 'visible_metadata') List<String> get visibleMetadata; List<ReportLayoutDto> get layouts;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'org_name') String? get orgName;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'total_tokens') int? get totalTokens;@JsonKey(name: 'prompt_tokens') int? get promptTokens;@JsonKey(name: 'completion_tokens') int? get completionTokens;@JsonKey(name: 'reasoning_tokens') int? get reasoningTokens;@JsonKey(name: 'mcp_tool_audit') List<McpAuditTraceDto> get mcpToolAudit;@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>>? get groupedExtensions;
+@JsonKey(name: 'execution_id') String get executionId;@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'scoring_strategy') String? get scoringStrategy;@JsonKey(name: 'user_name') String? get userName;@JsonKey(name: 'scoring_engine_name') String? get scoringEngineName;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'local_time_str') String? get localTimeStr;@JsonKey(name: 'custom_preface_md') String? get customPrefaceMd;@JsonKey(name: 'profile_id') String get profileId;@JsonKey(name: 'profile_name') I18nText? get profileName;@JsonKey(name: 'profile_description') I18nText? get profileDescription;@JsonKey(name: 'available_profiles') Map<String, I18nText> get availableProfiles;@JsonKey(name: 'global_score') double? get globalScore;@JsonKey(name: 'has_warning') bool get hasWarning;@JsonKey(name: 'global_metrics') ExecutionMetricsDTO? get globalMetrics;@JsonKey(name: 'inner_sdui_blocks') List<SduiBlockDTO> get innerSduiBlocks;@JsonKey(name: 'results') List<AtomResultDTO> get results;@JsonKey(name: 'hydrated_references') Map<String, HydratedAtomDTO> get hydratedReferences;@JsonKey(name: 'visible_metadata') List<String> get visibleMetadata; List<ReportLayoutDto> get layouts;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'org_name') String? get orgName;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'total_tokens') int? get totalTokens;@JsonKey(name: 'prompt_tokens') int? get promptTokens;@JsonKey(name: 'completion_tokens') int? get completionTokens;@JsonKey(name: 'reasoning_tokens') int? get reasoningTokens;@JsonKey(name: 'mcp_tool_audit') List<McpAuditTraceDto> get mcpToolAudit;
 /// Create a copy of ReportDataDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $ReportDataDtoCopyWith<ReportDataDto> get copyWith => _$ReportDataDtoCopyWithImp
 
 @override
 String toString() {
-  return 'ReportDataDto(executionId: $executionId, workflowId: $workflowId, scoringStrategy: $scoringStrategy, userName: $userName, scoringEngineName: $scoringEngineName, strictnessLevel: $strictnessLevel, localTimeStr: $localTimeStr, customPrefaceMd: $customPrefaceMd, profileId: $profileId, profileName: $profileName, profileDescription: $profileDescription, availableProfiles: $availableProfiles, globalScore: $globalScore, hasWarning: $hasWarning, globalMetrics: $globalMetrics, globalSynthesis: $globalSynthesis, results: $results, hydratedReferences: $hydratedReferences, visibleMetadata: $visibleMetadata, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, groupedExtensions: $groupedExtensions)';
+  return 'ReportDataDto(executionId: $executionId, workflowId: $workflowId, scoringStrategy: $scoringStrategy, userName: $userName, scoringEngineName: $scoringEngineName, strictnessLevel: $strictnessLevel, localTimeStr: $localTimeStr, customPrefaceMd: $customPrefaceMd, profileId: $profileId, profileName: $profileName, profileDescription: $profileDescription, availableProfiles: $availableProfiles, globalScore: $globalScore, hasWarning: $hasWarning, globalMetrics: $globalMetrics, innerSduiBlocks: $innerSduiBlocks, results: $results, hydratedReferences: $hydratedReferences, visibleMetadata: $visibleMetadata, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit)';
 }
 
 
@@ -41,11 +41,11 @@ abstract mixin class $ReportDataDtoCopyWith<$Res>  {
   factory $ReportDataDtoCopyWith(ReportDataDto value, $Res Function(ReportDataDto) _then) = _$ReportDataDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'scoring_strategy') String? scoringStrategy,@JsonKey(name: 'user_name') String? userName,@JsonKey(name: 'scoring_engine_name') String? scoringEngineName,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'local_time_str') String? localTimeStr,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'profile_description') I18nText? profileDescription,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'global_metrics') ExecutionMetricsDTO? globalMetrics,@JsonKey(name: 'global_synthesis') GlobalSynthesisDto? globalSynthesis,@JsonKey(name: 'results') List<AtomResultDTO> results,@JsonKey(name: 'hydrated_references') Map<String, HydratedAtomDTO> hydratedReferences,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata, List<ReportLayoutDto> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<McpAuditTraceDto> mcpToolAudit,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>>? groupedExtensions
+@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'scoring_strategy') String? scoringStrategy,@JsonKey(name: 'user_name') String? userName,@JsonKey(name: 'scoring_engine_name') String? scoringEngineName,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'local_time_str') String? localTimeStr,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'profile_description') I18nText? profileDescription,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'global_metrics') ExecutionMetricsDTO? globalMetrics,@JsonKey(name: 'inner_sdui_blocks') List<SduiBlockDTO> innerSduiBlocks,@JsonKey(name: 'results') List<AtomResultDTO> results,@JsonKey(name: 'hydrated_references') Map<String, HydratedAtomDTO> hydratedReferences,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata, List<ReportLayoutDto> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<McpAuditTraceDto> mcpToolAudit
 });
 
 
-$I18nTextCopyWith<$Res>? get profileName;$I18nTextCopyWith<$Res>? get profileDescription;$ExecutionMetricsDTOCopyWith<$Res>? get globalMetrics;$GlobalSynthesisDtoCopyWith<$Res>? get globalSynthesis;
+$I18nTextCopyWith<$Res>? get profileName;$I18nTextCopyWith<$Res>? get profileDescription;$ExecutionMetricsDTOCopyWith<$Res>? get globalMetrics;
 
 }
 /// @nodoc
@@ -58,7 +58,7 @@ class _$ReportDataDtoCopyWithImpl<$Res>
 
 /// Create a copy of ReportDataDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? executionId = null,Object? workflowId = null,Object? scoringStrategy = freezed,Object? userName = freezed,Object? scoringEngineName = freezed,Object? strictnessLevel = freezed,Object? localTimeStr = freezed,Object? customPrefaceMd = freezed,Object? profileId = null,Object? profileName = freezed,Object? profileDescription = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? hasWarning = null,Object? globalMetrics = freezed,Object? globalSynthesis = freezed,Object? results = null,Object? hydratedReferences = null,Object? visibleMetadata = null,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? groupedExtensions = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? executionId = null,Object? workflowId = null,Object? scoringStrategy = freezed,Object? userName = freezed,Object? scoringEngineName = freezed,Object? strictnessLevel = freezed,Object? localTimeStr = freezed,Object? customPrefaceMd = freezed,Object? profileId = null,Object? profileName = freezed,Object? profileDescription = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? hasWarning = null,Object? globalMetrics = freezed,Object? innerSduiBlocks = null,Object? results = null,Object? hydratedReferences = null,Object? visibleMetadata = null,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,}) {
   return _then(_self.copyWith(
 executionId: null == executionId ? _self.executionId : executionId // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
@@ -75,8 +75,8 @@ as I18nText?,availableProfiles: null == availableProfiles ? _self.availableProfi
 as Map<String, I18nText>,globalScore: freezed == globalScore ? _self.globalScore : globalScore // ignore: cast_nullable_to_non_nullable
 as double?,hasWarning: null == hasWarning ? _self.hasWarning : hasWarning // ignore: cast_nullable_to_non_nullable
 as bool,globalMetrics: freezed == globalMetrics ? _self.globalMetrics : globalMetrics // ignore: cast_nullable_to_non_nullable
-as ExecutionMetricsDTO?,globalSynthesis: freezed == globalSynthesis ? _self.globalSynthesis : globalSynthesis // ignore: cast_nullable_to_non_nullable
-as GlobalSynthesisDto?,results: null == results ? _self.results : results // ignore: cast_nullable_to_non_nullable
+as ExecutionMetricsDTO?,innerSduiBlocks: null == innerSduiBlocks ? _self.innerSduiBlocks : innerSduiBlocks // ignore: cast_nullable_to_non_nullable
+as List<SduiBlockDTO>,results: null == results ? _self.results : results // ignore: cast_nullable_to_non_nullable
 as List<AtomResultDTO>,hydratedReferences: null == hydratedReferences ? _self.hydratedReferences : hydratedReferences // ignore: cast_nullable_to_non_nullable
 as Map<String, HydratedAtomDTO>,visibleMetadata: null == visibleMetadata ? _self.visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
 as List<String>,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
@@ -88,8 +88,7 @@ as int?,promptTokens: freezed == promptTokens ? _self.promptTokens : promptToken
 as int?,completionTokens: freezed == completionTokens ? _self.completionTokens : completionTokens // ignore: cast_nullable_to_non_nullable
 as int?,reasoningTokens: freezed == reasoningTokens ? _self.reasoningTokens : reasoningTokens // ignore: cast_nullable_to_non_nullable
 as int?,mcpToolAudit: null == mcpToolAudit ? _self.mcpToolAudit : mcpToolAudit // ignore: cast_nullable_to_non_nullable
-as List<McpAuditTraceDto>,groupedExtensions: freezed == groupedExtensions ? _self.groupedExtensions : groupedExtensions // ignore: cast_nullable_to_non_nullable
-as Map<String, List<dynamic>>?,
+as List<McpAuditTraceDto>,
   ));
 }
 /// Create a copy of ReportDataDto
@@ -127,18 +126,6 @@ $ExecutionMetricsDTOCopyWith<$Res>? get globalMetrics {
 
   return $ExecutionMetricsDTOCopyWith<$Res>(_self.globalMetrics!, (value) {
     return _then(_self.copyWith(globalMetrics: value));
-  });
-}/// Create a copy of ReportDataDto
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$GlobalSynthesisDtoCopyWith<$Res>? get globalSynthesis {
-    if (_self.globalSynthesis == null) {
-    return null;
-  }
-
-  return $GlobalSynthesisDtoCopyWith<$Res>(_self.globalSynthesis!, (value) {
-    return _then(_self.copyWith(globalSynthesis: value));
   });
 }
 }
@@ -222,10 +209,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'scoring_strategy')  String? scoringStrategy, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'profile_description')  I18nText? profileDescription, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'global_metrics')  ExecutionMetricsDTO? globalMetrics, @JsonKey(name: 'global_synthesis')  GlobalSynthesisDto? globalSynthesis, @JsonKey(name: 'results')  List<AtomResultDTO> results, @JsonKey(name: 'hydrated_references')  Map<String, HydratedAtomDTO> hydratedReferences, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata,  List<ReportLayoutDto> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<McpAuditTraceDto> mcpToolAudit, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>>? groupedExtensions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'scoring_strategy')  String? scoringStrategy, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'profile_description')  I18nText? profileDescription, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'global_metrics')  ExecutionMetricsDTO? globalMetrics, @JsonKey(name: 'inner_sdui_blocks')  List<SduiBlockDTO> innerSduiBlocks, @JsonKey(name: 'results')  List<AtomResultDTO> results, @JsonKey(name: 'hydrated_references')  Map<String, HydratedAtomDTO> hydratedReferences, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata,  List<ReportLayoutDto> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<McpAuditTraceDto> mcpToolAudit)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportDataDto() when $default != null:
-return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.localTimeStr,_that.customPrefaceMd,_that.profileId,_that.profileName,_that.profileDescription,_that.availableProfiles,_that.globalScore,_that.hasWarning,_that.globalMetrics,_that.globalSynthesis,_that.results,_that.hydratedReferences,_that.visibleMetadata,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.groupedExtensions);case _:
+return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.localTimeStr,_that.customPrefaceMd,_that.profileId,_that.profileName,_that.profileDescription,_that.availableProfiles,_that.globalScore,_that.hasWarning,_that.globalMetrics,_that.innerSduiBlocks,_that.results,_that.hydratedReferences,_that.visibleMetadata,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit);case _:
   return orElse();
 
 }
@@ -243,10 +230,10 @@ return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.u
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'scoring_strategy')  String? scoringStrategy, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'profile_description')  I18nText? profileDescription, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'global_metrics')  ExecutionMetricsDTO? globalMetrics, @JsonKey(name: 'global_synthesis')  GlobalSynthesisDto? globalSynthesis, @JsonKey(name: 'results')  List<AtomResultDTO> results, @JsonKey(name: 'hydrated_references')  Map<String, HydratedAtomDTO> hydratedReferences, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata,  List<ReportLayoutDto> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<McpAuditTraceDto> mcpToolAudit, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>>? groupedExtensions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'scoring_strategy')  String? scoringStrategy, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'profile_description')  I18nText? profileDescription, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'global_metrics')  ExecutionMetricsDTO? globalMetrics, @JsonKey(name: 'inner_sdui_blocks')  List<SduiBlockDTO> innerSduiBlocks, @JsonKey(name: 'results')  List<AtomResultDTO> results, @JsonKey(name: 'hydrated_references')  Map<String, HydratedAtomDTO> hydratedReferences, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata,  List<ReportLayoutDto> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<McpAuditTraceDto> mcpToolAudit)  $default,) {final _that = this;
 switch (_that) {
 case _ReportDataDto():
-return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.localTimeStr,_that.customPrefaceMd,_that.profileId,_that.profileName,_that.profileDescription,_that.availableProfiles,_that.globalScore,_that.hasWarning,_that.globalMetrics,_that.globalSynthesis,_that.results,_that.hydratedReferences,_that.visibleMetadata,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.groupedExtensions);case _:
+return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.localTimeStr,_that.customPrefaceMd,_that.profileId,_that.profileName,_that.profileDescription,_that.availableProfiles,_that.globalScore,_that.hasWarning,_that.globalMetrics,_that.innerSduiBlocks,_that.results,_that.hydratedReferences,_that.visibleMetadata,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -263,10 +250,10 @@ return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.u
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'scoring_strategy')  String? scoringStrategy, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'profile_description')  I18nText? profileDescription, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'global_metrics')  ExecutionMetricsDTO? globalMetrics, @JsonKey(name: 'global_synthesis')  GlobalSynthesisDto? globalSynthesis, @JsonKey(name: 'results')  List<AtomResultDTO> results, @JsonKey(name: 'hydrated_references')  Map<String, HydratedAtomDTO> hydratedReferences, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata,  List<ReportLayoutDto> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<McpAuditTraceDto> mcpToolAudit, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>>? groupedExtensions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'scoring_strategy')  String? scoringStrategy, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'profile_description')  I18nText? profileDescription, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'global_metrics')  ExecutionMetricsDTO? globalMetrics, @JsonKey(name: 'inner_sdui_blocks')  List<SduiBlockDTO> innerSduiBlocks, @JsonKey(name: 'results')  List<AtomResultDTO> results, @JsonKey(name: 'hydrated_references')  Map<String, HydratedAtomDTO> hydratedReferences, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata,  List<ReportLayoutDto> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<McpAuditTraceDto> mcpToolAudit)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportDataDto() when $default != null:
-return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.localTimeStr,_that.customPrefaceMd,_that.profileId,_that.profileName,_that.profileDescription,_that.availableProfiles,_that.globalScore,_that.hasWarning,_that.globalMetrics,_that.globalSynthesis,_that.results,_that.hydratedReferences,_that.visibleMetadata,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.groupedExtensions);case _:
+return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.localTimeStr,_that.customPrefaceMd,_that.profileId,_that.profileName,_that.profileDescription,_that.availableProfiles,_that.globalScore,_that.hasWarning,_that.globalMetrics,_that.innerSduiBlocks,_that.results,_that.hydratedReferences,_that.visibleMetadata,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit);case _:
   return null;
 
 }
@@ -278,7 +265,7 @@ return $default(_that.executionId,_that.workflowId,_that.scoringStrategy,_that.u
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportDataDto implements ReportDataDto {
-  const _ReportDataDto({@JsonKey(name: 'execution_id') required this.executionId, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'user_name') this.userName, @JsonKey(name: 'scoring_engine_name') this.scoringEngineName, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'local_time_str') this.localTimeStr, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'profile_description') this.profileDescription, @JsonKey(name: 'available_profiles') final  Map<String, I18nText> availableProfiles = const {}, @JsonKey(name: 'global_score') this.globalScore, @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'global_metrics') this.globalMetrics, @JsonKey(name: 'global_synthesis') this.globalSynthesis, @JsonKey(name: 'results') final  List<AtomResultDTO> results = const [], @JsonKey(name: 'hydrated_references') final  Map<String, HydratedAtomDTO> hydratedReferences = const {}, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const [], final  List<ReportLayoutDto> layouts = const [], @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<McpAuditTraceDto> mcpToolAudit = const [], @JsonKey(name: 'grouped_extensions') final  Map<String, List<dynamic>>? groupedExtensions}): _availableProfiles = availableProfiles,_results = results,_hydratedReferences = hydratedReferences,_visibleMetadata = visibleMetadata,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_groupedExtensions = groupedExtensions;
+  const _ReportDataDto({@JsonKey(name: 'execution_id') required this.executionId, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'user_name') this.userName, @JsonKey(name: 'scoring_engine_name') this.scoringEngineName, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'local_time_str') this.localTimeStr, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'profile_description') this.profileDescription, @JsonKey(name: 'available_profiles') final  Map<String, I18nText> availableProfiles = const {}, @JsonKey(name: 'global_score') this.globalScore, @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'global_metrics') this.globalMetrics, @JsonKey(name: 'inner_sdui_blocks') final  List<SduiBlockDTO> innerSduiBlocks = const [], @JsonKey(name: 'results') final  List<AtomResultDTO> results = const [], @JsonKey(name: 'hydrated_references') final  Map<String, HydratedAtomDTO> hydratedReferences = const {}, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const [], final  List<ReportLayoutDto> layouts = const [], @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<McpAuditTraceDto> mcpToolAudit = const []}): _availableProfiles = availableProfiles,_innerSduiBlocks = innerSduiBlocks,_results = results,_hydratedReferences = hydratedReferences,_visibleMetadata = visibleMetadata,_layouts = layouts,_mcpToolAudit = mcpToolAudit;
   factory _ReportDataDto.fromJson(Map<String, dynamic> json) => _$ReportDataDtoFromJson(json);
 
 @override@JsonKey(name: 'execution_id') final  String executionId;
@@ -302,7 +289,13 @@ class _ReportDataDto implements ReportDataDto {
 @override@JsonKey(name: 'global_score') final  double? globalScore;
 @override@JsonKey(name: 'has_warning') final  bool hasWarning;
 @override@JsonKey(name: 'global_metrics') final  ExecutionMetricsDTO? globalMetrics;
-@override@JsonKey(name: 'global_synthesis') final  GlobalSynthesisDto? globalSynthesis;
+ final  List<SduiBlockDTO> _innerSduiBlocks;
+@override@JsonKey(name: 'inner_sdui_blocks') List<SduiBlockDTO> get innerSduiBlocks {
+  if (_innerSduiBlocks is EqualUnmodifiableListView) return _innerSduiBlocks;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_innerSduiBlocks);
+}
+
  final  List<AtomResultDTO> _results;
 @override@JsonKey(name: 'results') List<AtomResultDTO> get results {
   if (_results is EqualUnmodifiableListView) return _results;
@@ -345,15 +338,6 @@ class _ReportDataDto implements ReportDataDto {
   return EqualUnmodifiableListView(_mcpToolAudit);
 }
 
- final  Map<String, List<dynamic>>? _groupedExtensions;
-@override@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>>? get groupedExtensions {
-  final value = _groupedExtensions;
-  if (value == null) return null;
-  if (_groupedExtensions is EqualUnmodifiableMapView) return _groupedExtensions;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
-}
-
 
 /// Create a copy of ReportDataDto
 /// with the given fields replaced by the non-null parameter values.
@@ -370,7 +354,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ReportDataDto(executionId: $executionId, workflowId: $workflowId, scoringStrategy: $scoringStrategy, userName: $userName, scoringEngineName: $scoringEngineName, strictnessLevel: $strictnessLevel, localTimeStr: $localTimeStr, customPrefaceMd: $customPrefaceMd, profileId: $profileId, profileName: $profileName, profileDescription: $profileDescription, availableProfiles: $availableProfiles, globalScore: $globalScore, hasWarning: $hasWarning, globalMetrics: $globalMetrics, globalSynthesis: $globalSynthesis, results: $results, hydratedReferences: $hydratedReferences, visibleMetadata: $visibleMetadata, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, groupedExtensions: $groupedExtensions)';
+  return 'ReportDataDto(executionId: $executionId, workflowId: $workflowId, scoringStrategy: $scoringStrategy, userName: $userName, scoringEngineName: $scoringEngineName, strictnessLevel: $strictnessLevel, localTimeStr: $localTimeStr, customPrefaceMd: $customPrefaceMd, profileId: $profileId, profileName: $profileName, profileDescription: $profileDescription, availableProfiles: $availableProfiles, globalScore: $globalScore, hasWarning: $hasWarning, globalMetrics: $globalMetrics, innerSduiBlocks: $innerSduiBlocks, results: $results, hydratedReferences: $hydratedReferences, visibleMetadata: $visibleMetadata, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit)';
 }
 
 
@@ -381,11 +365,11 @@ abstract mixin class _$ReportDataDtoCopyWith<$Res> implements $ReportDataDtoCopy
   factory _$ReportDataDtoCopyWith(_ReportDataDto value, $Res Function(_ReportDataDto) _then) = __$ReportDataDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'scoring_strategy') String? scoringStrategy,@JsonKey(name: 'user_name') String? userName,@JsonKey(name: 'scoring_engine_name') String? scoringEngineName,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'local_time_str') String? localTimeStr,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'profile_description') I18nText? profileDescription,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'global_metrics') ExecutionMetricsDTO? globalMetrics,@JsonKey(name: 'global_synthesis') GlobalSynthesisDto? globalSynthesis,@JsonKey(name: 'results') List<AtomResultDTO> results,@JsonKey(name: 'hydrated_references') Map<String, HydratedAtomDTO> hydratedReferences,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata, List<ReportLayoutDto> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<McpAuditTraceDto> mcpToolAudit,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>>? groupedExtensions
+@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'scoring_strategy') String? scoringStrategy,@JsonKey(name: 'user_name') String? userName,@JsonKey(name: 'scoring_engine_name') String? scoringEngineName,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'local_time_str') String? localTimeStr,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'profile_description') I18nText? profileDescription,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'global_metrics') ExecutionMetricsDTO? globalMetrics,@JsonKey(name: 'inner_sdui_blocks') List<SduiBlockDTO> innerSduiBlocks,@JsonKey(name: 'results') List<AtomResultDTO> results,@JsonKey(name: 'hydrated_references') Map<String, HydratedAtomDTO> hydratedReferences,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata, List<ReportLayoutDto> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<McpAuditTraceDto> mcpToolAudit
 });
 
 
-@override $I18nTextCopyWith<$Res>? get profileName;@override $I18nTextCopyWith<$Res>? get profileDescription;@override $ExecutionMetricsDTOCopyWith<$Res>? get globalMetrics;@override $GlobalSynthesisDtoCopyWith<$Res>? get globalSynthesis;
+@override $I18nTextCopyWith<$Res>? get profileName;@override $I18nTextCopyWith<$Res>? get profileDescription;@override $ExecutionMetricsDTOCopyWith<$Res>? get globalMetrics;
 
 }
 /// @nodoc
@@ -398,7 +382,7 @@ class __$ReportDataDtoCopyWithImpl<$Res>
 
 /// Create a copy of ReportDataDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? executionId = null,Object? workflowId = null,Object? scoringStrategy = freezed,Object? userName = freezed,Object? scoringEngineName = freezed,Object? strictnessLevel = freezed,Object? localTimeStr = freezed,Object? customPrefaceMd = freezed,Object? profileId = null,Object? profileName = freezed,Object? profileDescription = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? hasWarning = null,Object? globalMetrics = freezed,Object? globalSynthesis = freezed,Object? results = null,Object? hydratedReferences = null,Object? visibleMetadata = null,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? groupedExtensions = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? executionId = null,Object? workflowId = null,Object? scoringStrategy = freezed,Object? userName = freezed,Object? scoringEngineName = freezed,Object? strictnessLevel = freezed,Object? localTimeStr = freezed,Object? customPrefaceMd = freezed,Object? profileId = null,Object? profileName = freezed,Object? profileDescription = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? hasWarning = null,Object? globalMetrics = freezed,Object? innerSduiBlocks = null,Object? results = null,Object? hydratedReferences = null,Object? visibleMetadata = null,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,}) {
   return _then(_ReportDataDto(
 executionId: null == executionId ? _self.executionId : executionId // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
@@ -415,8 +399,8 @@ as I18nText?,availableProfiles: null == availableProfiles ? _self._availableProf
 as Map<String, I18nText>,globalScore: freezed == globalScore ? _self.globalScore : globalScore // ignore: cast_nullable_to_non_nullable
 as double?,hasWarning: null == hasWarning ? _self.hasWarning : hasWarning // ignore: cast_nullable_to_non_nullable
 as bool,globalMetrics: freezed == globalMetrics ? _self.globalMetrics : globalMetrics // ignore: cast_nullable_to_non_nullable
-as ExecutionMetricsDTO?,globalSynthesis: freezed == globalSynthesis ? _self.globalSynthesis : globalSynthesis // ignore: cast_nullable_to_non_nullable
-as GlobalSynthesisDto?,results: null == results ? _self._results : results // ignore: cast_nullable_to_non_nullable
+as ExecutionMetricsDTO?,innerSduiBlocks: null == innerSduiBlocks ? _self._innerSduiBlocks : innerSduiBlocks // ignore: cast_nullable_to_non_nullable
+as List<SduiBlockDTO>,results: null == results ? _self._results : results // ignore: cast_nullable_to_non_nullable
 as List<AtomResultDTO>,hydratedReferences: null == hydratedReferences ? _self._hydratedReferences : hydratedReferences // ignore: cast_nullable_to_non_nullable
 as Map<String, HydratedAtomDTO>,visibleMetadata: null == visibleMetadata ? _self._visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
 as List<String>,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
@@ -428,8 +412,7 @@ as int?,promptTokens: freezed == promptTokens ? _self.promptTokens : promptToken
 as int?,completionTokens: freezed == completionTokens ? _self.completionTokens : completionTokens // ignore: cast_nullable_to_non_nullable
 as int?,reasoningTokens: freezed == reasoningTokens ? _self.reasoningTokens : reasoningTokens // ignore: cast_nullable_to_non_nullable
 as int?,mcpToolAudit: null == mcpToolAudit ? _self._mcpToolAudit : mcpToolAudit // ignore: cast_nullable_to_non_nullable
-as List<McpAuditTraceDto>,groupedExtensions: freezed == groupedExtensions ? _self._groupedExtensions : groupedExtensions // ignore: cast_nullable_to_non_nullable
-as Map<String, List<dynamic>>?,
+as List<McpAuditTraceDto>,
   ));
 }
 
@@ -468,18 +451,6 @@ $ExecutionMetricsDTOCopyWith<$Res>? get globalMetrics {
 
   return $ExecutionMetricsDTOCopyWith<$Res>(_self.globalMetrics!, (value) {
     return _then(_self.copyWith(globalMetrics: value));
-  });
-}/// Create a copy of ReportDataDto
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$GlobalSynthesisDtoCopyWith<$Res>? get globalSynthesis {
-    if (_self.globalSynthesis == null) {
-    return null;
-  }
-
-  return $GlobalSynthesisDtoCopyWith<$Res>(_self.globalSynthesis!, (value) {
-    return _then(_self.copyWith(globalSynthesis: value));
   });
 }
 }

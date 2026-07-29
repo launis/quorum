@@ -251,11 +251,41 @@ enum VisualIntent {
   success,
   @JsonValue('warning')
   warning,
+  @JsonValue('error')
+  error,
   @JsonValue('critical_override')
   criticalOverride,
   @JsonValue('info')
   info,
   @JsonValue('NEUTRAL')
+  neutral,
+}
+
+@JsonEnum()
+enum AlertSeverity {
+  @JsonValue('info')
+  info,
+  @JsonValue('warning')
+  warning,
+  @JsonValue('critical_override')
+  criticalOverride,
+  @JsonValue('success')
+  success,
+  @JsonValue('error')
+  error,
+}
+
+@JsonEnum()
+enum UiVariant {
+  @JsonValue('default')
+  defaultVariant,
+  @JsonValue('success')
+  success,
+  @JsonValue('warning')
+  warning,
+  @JsonValue('error')
+  error,
+  @JsonValue('neutral')
   neutral,
 }
 

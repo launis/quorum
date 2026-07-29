@@ -27,7 +27,13 @@
 
 ### Phase 3: Flutter Frontend Schema, Enum & Mock Migration
 - [x] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
-- [ ] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
+- [x] **[OK]** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
+  - [x] Step 1: ENUM SYNCHRONIZATION
+  - [x] Step 2: SDUI BLOCK DTO MIGRATION
+  - [x] Step 3: REPORT DATA V2 DTO MIGRATION
+  - [x] Step 4: MATRIX SCORECARD DTO MIGRATION
+  - [x] Step 5: TEST FIXTURE SYNC
+  - [x] Step 6: QUALITY GATE & COMMIT
 
 ### Phase 4: Producer Logic (Backend SDUI Hydration - Part 1: Global & Variance)
 - [ ] **[OK]** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_123\04_backend_sdui_hydration_part1_plan.md]`
@@ -88,7 +94,7 @@
 | R13 | Fix SDUI List[Any] Leaks: Update `SduiGridBlock.items` to `list[str]` and `SduiQuoteCard.citations` to `list[int]` | Phase 2, Step 5 | [x] |
 | R14 | Update Python test fixtures to remove legacy flat fields and match `inner_sdui_blocks` schema; add `test_parity_ui_variant()` | Phase 2, Step 6 | [x] |
 | R15 | Run `backend_audit_loop.py` on `backend_v2/models/` and perform atomic commit | Phase 2, Step 7 | [x] |
-| R16 | Atomically mirror Python schema changes in Dart Freezed models and update Dart mock fixtures | Phase 3 | [ ] |
+| R16 | Atomically mirror Python schema changes in Dart Freezed models and update Dart mock fixtures | Phase 3 | [x] |
 | R17 | Refactor blueprint logic to map global synthesis and variance data directly into SDUI blocks | Phase 4 | [ ] |
 | R18 | Refactor blueprint logic to transform trace extensions into AlertBlocks and delete all grouped_extensions logic | Phase 5 (Placeholder) | [ ] |
 | R19 | Wire Flutter and Jinja templates to consume `inner_sdui_blocks` and delete legacy XAI widget code | Phase 6 (Placeholder) | [ ] |
@@ -113,6 +119,7 @@
 - Re-ran `backend_audit_loop.py` on `backend_v2/models/` successfully.
 - Resolved final test failures (`test_blueprint` and `test_contract_parity`), achieving 100% backend test pass rate for Phase 2.
 - Executed Tier 0 Research Plan for Phase 3, red-teaming found three flaws (SDUI Dynamic Type Leak, Lingering Legacy Fields, Incomplete Audit Scope) and the plan was mutated to enforce Phase 9 invariants.
+- Executed Tier 2 Execution Plan for Phase 3: Synchronized enums, updated SDUI Block DTOs to replace List<dynamic> with typed models, removed legacy fields from MatrixScorecardRowDto, deleted GlobalSynthesisDto, updated mock fixtures, and passed Flutter static analysis.
 
 ## Learned
 - **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 
@@ -120,9 +127,8 @@
 - The `test_enum_parity.py` file was a hallucination; the correct file is `test_enums.py`. All Pydantic models must use strict `Field(...)` or `Field(default=None)` definitions instead of bare `Optional` or `| None = None` to enforce Quorum 2026 strictness.
 
 ## Remaining
-- Execute Phase 3 Flutter Frontend Schema, Enum & Mock Migration: `@[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
-- Execute Phase 4 Backend SDUI Hydration Part 1.
+- Execute Phase 4 Backend SDUI Hydration Part 1: `@[c:\src\quorum\docs\epic\tasks_EPIC_123\04_backend_sdui_hydration_part1_plan.md]`
 - Re-invoke Tier 1 Planner later for Phases 5-8 once Phases 3-4 are completed.
 
 ## Resume Command
-`/tier5-resume --workflow /tier0-research-plan --target @[c:\src\quorum\docs\epic\tasks_EPIC_123\03_flutter_frontend_schema_migration_plan.md]`
+`/tier5-resume --workflow /tier0-research-plan --target @[c:\src\quorum\docs\epic\tasks_EPIC_123\04_backend_sdui_hydration_part1_plan.md]`

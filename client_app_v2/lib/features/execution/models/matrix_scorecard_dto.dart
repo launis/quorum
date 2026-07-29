@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/tda_state.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/shared/models/sdui_block_dto.dart';
 
 part 'matrix_scorecard_dto.freezed.dart';
 part 'matrix_scorecard_dto.g.dart';
@@ -135,15 +136,10 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'evidence_type') EvidenceType? evidenceType,
     @JsonKey(name: 'tda_state') TDAState? tdaState,
 
-    // Epic 6: XAI Output Extensions
-    String? coaching,
     double? confidence,
-    String? falsification,
-    @JsonKey(name: 'missing_context') String? missingContext,
-    @JsonKey(name: 'risk_flag') bool? riskFlag,
-    @JsonKey(name: 'remediation_steps') String? remediationSteps,
-    @JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,
-    @JsonKey(name: 'theory_link') String? theoryLink,
+    @JsonKey(name: 'inner_sdui_blocks')
+    @Default([])
+    List<SduiBlockDTO> innerSduiBlocks,
 
     @JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown,
     @JsonKey(name: 'level_names') Map<String, String>? levelNames,
@@ -156,7 +152,6 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'contextual_override') bool? contextualOverride,
     @JsonKey(name: 'semantic_reasoning') String? semanticReasoning,
 
-    // Epic 88: Unified Forensic Traceability
     @JsonKey(name: 'evaluated_atoms')
     @Default([])
     List<ScorecardAtomDto> evaluatedAtoms,
@@ -172,7 +167,7 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
   factory MatrixScorecardRowDto.fromJson(Map<String, dynamic> json) =>
       _$MatrixScorecardRowDtoFromJson(json);
 
-  // Epic 88 Phase 3: Smart Getter for UI grouping by level
+  // Smart Getter for UI grouping by level
   Map<int, List<ScorecardAtomDto>> get atomsByLevel {
     final Map<int, List<ScorecardAtomDto>> grouped = {};
     for (final atom in evaluatedAtoms) {

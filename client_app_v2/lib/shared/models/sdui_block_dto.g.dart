@@ -99,7 +99,10 @@ SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(
     final val = SduiAlertBoxBlock(
       id: $checkedConvert('id', (v) => v as String?),
       text: $checkedConvert('text', (v) => v as String),
-      severity: $checkedConvert('severity', (v) => v as String),
+      severity: $checkedConvert(
+        'severity',
+        (v) => $enumDecode(_$AlertSeverityEnumMap, v),
+      ),
       citations: $checkedConvert(
         'citations',
         (v) =>
@@ -122,11 +125,19 @@ Map<String, dynamic> _$SduiAlertBoxBlockToJson(SduiAlertBoxBlock instance) =>
     <String, dynamic>{
       'id': instance.id,
       'text': instance.text,
-      'severity': instance.severity,
+      'severity': _$AlertSeverityEnumMap[instance.severity]!,
       'citations': instance.citations,
       'exact_quotes': instance.exactQuotes,
       'block_type': instance.$type,
     };
+
+const _$AlertSeverityEnumMap = {
+  AlertSeverity.info: 'info',
+  AlertSeverity.warning: 'warning',
+  AlertSeverity.criticalOverride: 'critical_override',
+  AlertSeverity.success: 'success',
+  AlertSeverity.error: 'error',
+};
 
 SduiHeroInsightBlock _$SduiHeroInsightBlockFromJson(
   Map<String, dynamic> json,
@@ -215,7 +226,10 @@ SduiQuoteCardBlock _$SduiQuoteCardBlockFromJson(Map<String, dynamic> json) =>
             'source_aliases',
             (v) => (v as List<dynamic>).map((e) => e as String).toList(),
           ),
-          citations: $checkedConvert('citations', (v) => v as List<dynamic>),
+          citations: $checkedConvert(
+            'citations',
+            (v) => (v as List<dynamic>).map((e) => (e as num).toInt()).toList(),
+          ),
           $type: $checkedConvert('block_type', (v) => v as String?),
         );
         return val;
@@ -309,7 +323,12 @@ SduiGridBlock _$SduiGridBlockFromJson(Map<String, dynamic> json) =>
       $checkKeys(json, allowedKeys: const ['id', 'items', 'block_type']);
       final val = SduiGridBlock(
         id: $checkedConvert('id', (v) => v as String?),
-        items: $checkedConvert('items', (v) => v as List<dynamic>),
+        items: $checkedConvert(
+          'items',
+          (v) => (v as List<dynamic>)
+              .map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+              .toList(),
+        ),
         $type: $checkedConvert('block_type', (v) => v as String?),
       );
       return val;
@@ -318,7 +337,7 @@ SduiGridBlock _$SduiGridBlockFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SduiGridBlockToJson(SduiGridBlock instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'items': instance.items,
+      'items': instance.items.map((e) => e.toJson()).toList(),
       'block_type': instance.$type,
     };
 

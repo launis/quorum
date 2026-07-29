@@ -16,6 +16,12 @@ void main() {
           'short_circuited_na': 2,
           'duration_ms': 1500,
         },
+        'inner_sdui_blocks': [
+          {
+            'block_type': 'markdown',
+            'text': 'Report Markdown'
+          }
+        ],
 
         'results': [
           {
@@ -67,6 +73,12 @@ void main() {
             'short_circuited_na': 2,
             'duration_ms': 1500,
           },
+          'inner_sdui_blocks': [
+            {
+              'block_type': 'markdown',
+              'text': 'Unrecognized test markdown'
+            }
+          ],
           'results': <dynamic>[],
           'hydrated_references': <String, dynamic>{},
           'scoring_strategy': 'WATERFALL', // SDUI Extra Key
@@ -96,6 +108,12 @@ void main() {
           "short_circuited_na": 0,
           "duration_ms": 100
         },
+        "inner_sdui_blocks": [
+          {
+            "block_type": "markdown",
+            "text": "Parse background test markdown"
+          }
+        ],
         "results": [],
         "hydrated_references": {}
       }

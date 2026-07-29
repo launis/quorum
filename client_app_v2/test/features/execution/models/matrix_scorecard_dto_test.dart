@@ -44,6 +44,12 @@ void main() {
           'default_locale': 'en',
           'translations': {'en': 'Test', 'fi': 'Testi'},
         },
+        'inner_sdui_blocks': [
+          {
+            'block_type': 'markdown',
+            'text': 'Matrix Markdown'
+          }
+        ],
         'evaluated_atoms': [
           {
             'atom_id': 'atm_1',

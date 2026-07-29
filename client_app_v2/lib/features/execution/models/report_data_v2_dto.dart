@@ -7,10 +7,10 @@ import 'matrix_scorecard_dto.dart';
 import 'report_layout_dto.dart';
 import 'atom_result_dto.dart';
 import 'execution_metrics_dto.dart';
-import 'execution_metrics_dto.dart';
 
 import 'hydrated_atom_dto.dart';
 import '../../../shared/models/i18n_text.dart';
+import '../../../shared/models/sdui_block_dto.dart';
 
 part 'report_data_v2_dto.freezed.dart';
 part 'report_data_v2_dto.g.dart';
@@ -38,7 +38,7 @@ abstract class ReportDataDto with _$ReportDataDto {
     @JsonKey(name: 'global_metrics') ExecutionMetricsDTO? globalMetrics,
     @JsonKey(name: 'inner_sdui_blocks')
     @Default([])
-    List<dynamic> innerSduiBlocks,
+    List<SduiBlockDTO> innerSduiBlocks,
     @JsonKey(name: 'results') @Default([]) List<AtomResultDTO> results,
     @JsonKey(name: 'hydrated_references')
     @Default({})
@@ -57,8 +57,6 @@ abstract class ReportDataDto with _$ReportDataDto {
     @JsonKey(name: 'mcp_tool_audit')
     @Default([])
     List<McpAuditTraceDto> mcpToolAudit,
-    @JsonKey(name: 'grouped_extensions')
-    Map<String, List<dynamic>>? groupedExtensions,
   }) = _ReportDataDto;
 
   factory ReportDataDto.fromJson(Map<String, dynamic> json) =>
