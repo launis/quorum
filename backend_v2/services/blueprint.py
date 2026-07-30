@@ -935,6 +935,7 @@ class BlueprintTransformer:
                         synthesis=synthesis_config,
                         synthesis_blocks=section_blocks,
                         matrix_column_labels=layout_def.matrix_column_labels,
+                        matrix_visible_columns=layout_def.matrix_visible_columns,
                         extension_labels=profile_extension_labels,
                     )
                 )
@@ -1628,18 +1629,6 @@ class BlueprintTransformer:
 
                 content_blocks.insert(0, MarkdownBlock(id="preface_md", text=resolved_preface_md))
 
-            if content_blocks:
-                target_layout = next((lay for lay in layouts_list if lay.is_synthesis_enabled), None)
-                if not target_layout and layouts_list:
-                    target_layout = layouts_list[0]
-
-                if target_layout:
-                    new_blocks = content_blocks
-                    if target_layout.synthesis_blocks:
-                        new_blocks = content_blocks + target_layout.synthesis_blocks
-                    idx = layouts_list.index(target_layout)
-                    layouts_list[idx] = target_layout.model_copy(update={"synthesis_blocks": new_blocks})
-
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
 
             # Run dynamic performative AI jargon (slop) scanning if enabled
@@ -1692,6 +1681,7 @@ class BlueprintTransformer:
                     org_name=org_name,
                     global_score=0.0,
                     has_warning=has_warning,
+                    inner_sdui_blocks=content_blocks,
                     visible_metadata=visible_metadata,
                     layouts=layouts_list,
                     cost_estimate=cost,
@@ -1794,6 +1784,7 @@ class BlueprintTransformer:
                 org_name=org_name,
                 global_score=global_score,
                 has_warning=has_warning,
+                inner_sdui_blocks=content_blocks,
                 visible_metadata=visible_metadata,
                 layouts=layouts_list,
                 cost_estimate=cost,
