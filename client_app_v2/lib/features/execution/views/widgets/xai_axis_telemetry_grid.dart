@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/theme/app_colors.dart';
 
 class XAIAxisTelemetryGrid extends StatelessWidget {
   final MatrixScorecardRowDto axis;
@@ -17,7 +19,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (textDeliveryMode == TextDeliveryMode.none) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     return Column(
@@ -25,7 +27,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildMainContent(context),
-        const SizedBox(height: 12),
+        AppSpacing.h12,
         _buildTelemetryGrid(context),
       ],
     );
@@ -57,6 +59,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
     }
 
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,99 +71,112 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             children: [
               if (axis.evidenceType != null) ...[
                 Padding(
-                  padding: const EdgeInsets.only(top: 2.0, right: 8.0),
-                  child: _buildEvidenceIcon(axis.evidenceType!),
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.s2,
+                    right: AppSpacing.s8,
+                  ),
+                  child: _buildEvidenceIcon(context, axis.evidenceType!),
                 ),
               ],
               Expanded(
                 child: Text(
                   axis.rowExplanation,
-                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
             ],
           ),
         if (hasQuote)
           Container(
-            margin: const EdgeInsets.only(top: 12.0),
-            padding: const EdgeInsets.all(12.0),
+            margin: const EdgeInsets.only(top: AppSpacing.s12),
+            padding: const EdgeInsets.all(AppSpacing.s12),
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.1),
+              color: AppColors.intentNeutral.withValues(alpha: 0.1),
               border: const Border(
-                left: BorderSide(color: Colors.grey, width: 4),
+                left: BorderSide(
+                  color: AppColors.intentNeutral,
+                  width: AppSpacing.s4,
+                ),
               ),
             ),
             child: Text(
               l10n.reportQuoteTitle(axis.citedTextQuote!),
-              style: const TextStyle(
-                fontSize: 14,
+              style: theme.textTheme.bodyMedium?.copyWith(
                 fontStyle: FontStyle.italic,
-                color: Colors.black87,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),
         if (hasExplanation)
           Container(
-            margin: const EdgeInsets.only(top: 12.0),
-            padding: const EdgeInsets.all(12.0),
+            margin: const EdgeInsets.only(top: AppSpacing.s12),
+            padding: const EdgeInsets.all(AppSpacing.s12),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: AppColors.intentWarning.withValues(alpha: 0.1),
               border: const Border(
-                left: BorderSide(color: Colors.orange, width: 4),
+                left: BorderSide(
+                  color: AppColors.intentWarning,
+                  width: AppSpacing.s4,
+                ),
               ),
               borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(8.0),
-                bottomRight: Radius.circular(8.0),
+                topRight: Radius.circular(AppSpacing.s8),
+                bottomRight: Radius.circular(AppSpacing.s8),
               ),
             ),
             child: Text(
               l10n.reportSemanticExplanationTitle(axis.semanticReasoning!),
-              style: const TextStyle(
-                fontSize: 14,
+              style: theme.textTheme.bodyMedium?.copyWith(
                 fontStyle: FontStyle.italic,
-                color: Colors.black87,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),
         if (hasSourceId)
           Padding(
-            padding: const EdgeInsets.only(top: 8.0),
+            padding: const EdgeInsets.only(top: AppSpacing.s8),
             child: Text(
               l10n.reportFrameworkReference(axis.citedSourceId!),
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.blueGrey,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.intentInfo,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
         if (hasWebCitation)
           Container(
-            margin: const EdgeInsets.only(top: 8.0),
+            margin: const EdgeInsets.only(top: AppSpacing.s8),
             padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 8.0,
+              horizontal: AppSpacing.s12,
+              vertical: AppSpacing.s8,
             ),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+              color: AppColors.intentSuccess.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppSpacing.s6),
+              border: Border.all(
+                color: AppColors.intentSuccess.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Padding(
-                  padding: EdgeInsets.only(top: 2.0),
-                  child: Icon(Icons.verified, size: 16, color: Colors.green),
+                  padding: EdgeInsets.only(top: AppSpacing.s2),
+                  child: Icon(
+                    Icons.verified,
+                    size: AppSpacing.s16,
+                    color: AppColors.intentSuccess,
+                  ),
                 ),
-                const SizedBox(width: 8),
+                AppSpacing.w8,
                 Expanded(
                   child: Text(
                     l10n.reportGoogleVerified(axis.citedWebCitation!),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.green,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.intentSuccess,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -174,25 +190,25 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
 
   Widget _buildTelemetryGrid(BuildContext context) {
     if (textDeliveryMode != TextDeliveryMode.full) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     final List<Widget> boxes = [];
 
     if (axis.confidence != null) {
       boxes.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
+          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
           child: Text(
             l10n.reportConfidenceTitle(
               (axis.confidence! * 100).toStringAsFixed(0),
             ),
-            style: const TextStyle(
+            style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.indigo,
-              fontSize: 12,
+              color: theme.colorScheme.primary,
             ),
           ),
         ),
@@ -210,22 +226,23 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildEvidenceIcon(EvidenceType type) {
+  Widget _buildEvidenceIcon(BuildContext context, EvidenceType type) {
+    final theme = Theme.of(context);
     return switch (type) {
       EvidenceType.explicitQuote => const Icon(
         Icons.check_circle,
-        color: Colors.green,
-        size: 16,
+        color: AppColors.intentSuccess,
+        size: AppSpacing.s16,
       ),
       EvidenceType.impliedIntent => const Icon(
         Icons.warning,
-        color: Colors.orange,
-        size: 16,
+        color: AppColors.intentWarning,
+        size: AppSpacing.s16,
       ),
-      EvidenceType.noEvidence => const Icon(
+      EvidenceType.noEvidence => Icon(
         Icons.cancel,
-        color: Colors.red,
-        size: 16,
+        color: theme.colorScheme.error,
+        size: AppSpacing.s16,
       ),
     };
   }
