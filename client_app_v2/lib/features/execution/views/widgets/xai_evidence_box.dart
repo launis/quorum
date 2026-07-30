@@ -6,6 +6,8 @@ import 'package:client_app/core/logging/logger_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/theme/app_colors.dart';
 
 /// Renders the XAI Evidence Box — clickable source URLs from MCP Tool Loop searches.
 /// Follows Flat MVC (§5): Zero logic, pure data mapping from McpAuditTraceDto.
@@ -20,30 +22,35 @@ class XAIEvidenceBox extends ConsumerWidget {
     if (traces.isEmpty) return const SizedBox();
 
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Card(
       elevation: 3,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s16,
+        vertical: AppSpacing.s16,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
       child: ExpansionTile(
         initiallyExpanded: true,
-        leading: Icon(Icons.fact_check, color: Colors.teal.shade700),
+        leading: Icon(Icons.fact_check, color: theme.colorScheme.primary),
         title: Text(
           l10n.xaiEvidenceTitle,
-          style: TextStyle(
-            fontSize: 16,
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: Colors.teal.shade800,
+            color: theme.colorScheme.primary,
           ),
         ),
         children: [
-          const Divider(height: 1),
+          const Divider(height: 1.0),
           ...traces.asMap().entries.map((entry) {
             final index = entry.key;
             final audit = entry.value;
             return _buildAuditEntry(context, ref, audit, index);
           }),
-          const SizedBox(height: 8),
+          AppSpacing.h8,
         ],
       ),
     );
@@ -56,34 +63,36 @@ class XAIEvidenceBox extends ConsumerWidget {
     int index,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     try {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s16,
+          vertical: AppSpacing.s8,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (audit.claimText != null && audit.claimText!.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: AppSpacing.s8),
                 child: Text.rich(
                   TextSpan(
                     children: [
                       TextSpan(
                         text: '${l10n.xaiEvidenceClaim}: ',
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.teal.shade800,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                       TextSpan(
                         text: '"${audit.claimText}"',
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontStyle: FontStyle.italic,
-                          color: Colors.grey.shade900,
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -94,8 +103,12 @@ class XAIEvidenceBox extends ConsumerWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.search, size: 18, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
+                Icon(
+                  Icons.search,
+                  size: AppSpacing.s16,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                AppSpacing.w8,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,20 +116,21 @@ class XAIEvidenceBox extends ConsumerWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
+                          horizontal: AppSpacing.s6,
+                          vertical: AppSpacing.s2,
                         ),
-                        margin: const EdgeInsets.only(bottom: 4),
+                        margin: const EdgeInsets.only(bottom: AppSpacing.s4),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.blue.shade200),
+                          color: AppColors.intentInfo.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppSpacing.s4),
+                          border: Border.all(
+                            color: AppColors.intentInfo.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Text(
                           audit.toolId,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.blue.shade800,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.intentInfo,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'monospace',
                           ),
@@ -124,8 +138,7 @@ class XAIEvidenceBox extends ConsumerWidget {
                       ),
                       Text(
                         '${l10n.xaiEvidenceQuery}: "${audit.query}"',
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -134,16 +147,18 @@ class XAIEvidenceBox extends ConsumerWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
+                    horizontal: AppSpacing.s8,
+                    vertical: AppSpacing.s2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppSpacing.s12),
                   ),
                   child: Text(
                     '${l10n.xaiEvidenceDuration}: ${audit.durationMs}ms',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -152,23 +167,24 @@ class XAIEvidenceBox extends ConsumerWidget {
             // Reasoning (Language specific LLM explanation)
             if (audit.reasoning.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 8, left: 26),
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.s8,
+                  left: AppSpacing.s24,
+                ),
                 child: Text.rich(
                   TextSpan(
                     children: [
                       TextSpan(
                         text: '${l10n.xaiEvidenceReasoning}: ',
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: theme.textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.teal.shade800,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                       TextSpan(
                         text: audit.reasoning,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade900,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
                           height: 1.4,
                         ),
                       ),
@@ -180,12 +196,14 @@ class XAIEvidenceBox extends ConsumerWidget {
             // Summary (if present) - Raw tool response
             if (audit.responseSummary.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 8, left: 26),
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.s8,
+                  left: AppSpacing.s24,
+                ),
                 child: Text(
                   audit.responseSummary,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade700,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,
                     height: 1.4,
                   ),
@@ -195,43 +213,46 @@ class XAIEvidenceBox extends ConsumerWidget {
             // Impacted Axes (if present)
             if (audit.impactedAxisNames.isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.only(top: 8, left: 26),
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.s8,
+                  left: AppSpacing.s24,
+                ),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
+                    horizontal: AppSpacing.s8,
+                    vertical: AppSpacing.s6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.green.shade200),
+                    color: AppColors.intentSuccess.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.s6),
+                    border: Border.all(
+                      color: AppColors.intentSuccess.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.auto_awesome,
-                        size: 14,
-                        color: Colors.green.shade700,
+                        size: AppSpacing.s12,
+                        color: AppColors.intentSuccess,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppSpacing.s6),
                       Expanded(
                         child: Text.rich(
                           TextSpan(
                             children: [
                               TextSpan(
                                 text: '${l10n.xaiEvidenceImpactedAxes} ',
-                                style: TextStyle(
-                                  fontSize: 11,
+                                style: theme.textTheme.labelSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.green.shade800,
+                                  color: AppColors.intentSuccess,
                                 ),
                               ),
                               TextSpan(
                                 text: audit.impactedAxisNames.join(', '),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.green.shade900,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: AppColors.intentSuccess,
                                 ),
                               ),
                             ],
@@ -247,39 +268,45 @@ class XAIEvidenceBox extends ConsumerWidget {
             // Source URLs as clickable chips
             if (audit.sourceUrls.isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.only(top: 8, left: 26),
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.s8,
+                  left: AppSpacing.s24,
+                ),
                 child: Text(
                   l10n.xaiEvidenceSources,
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: theme.textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.teal.shade600,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(top: 4, left: 26),
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.s4,
+                  left: AppSpacing.s24,
+                ),
                 child: Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
+                  spacing: AppSpacing.s8,
+                  runSpacing: AppSpacing.s4,
                   children: audit.sourceUrls.map((url) {
                     return ActionChip(
-                      avatar: const Icon(
+                      avatar: Icon(
                         Icons.link,
-                        size: 14,
-                        color: Colors.blue,
+                        size: AppSpacing.s12,
+                        color: AppColors.intentInfo,
                       ),
                       label: Text(
                         _truncateUrl(url),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.blue,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.intentInfo,
                         ),
                       ),
                       onPressed: () => _launchUrl(url, ref),
-                      backgroundColor: Colors.blue.withValues(alpha: 0.08),
+                      backgroundColor: AppColors.intentInfo.withValues(
+                        alpha: 0.08,
+                      ),
                       side: BorderSide(
-                        color: Colors.blue.withValues(alpha: 0.2),
+                        color: AppColors.intentInfo.withValues(alpha: 0.2),
                       ),
                     );
                   }).toList(),
@@ -287,7 +314,8 @@ class XAIEvidenceBox extends ConsumerWidget {
               ),
             ],
 
-            if (index < traces.length - 1) const Divider(height: 24),
+            if (index < traces.length - 1)
+              const Divider(height: AppSpacing.s24),
           ],
         ),
       );
