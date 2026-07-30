@@ -41,12 +41,12 @@ void main() {
           userRoleLabel: emptyI18n,
           customPreface: emptyI18n,
           toneInstruction: emptyI18n,
+          extensionLabels: {'ext1': emptyI18n},
           layouts: [
             OutputLayoutBlock(
               title: emptyI18n,
               description: emptyI18n,
               matrixColumnLabels: {'col1': emptyI18n},
-              extensionLabels: {'ext1': emptyI18n},
               synthesis: SynthesisConfigDTO(
                 preambleText: emptyI18n,
                 toneInstruction: emptyI18n,
@@ -80,6 +80,11 @@ void main() {
           isNull,
           reason: 'toneInstruction should be sanitized',
         );
+        expect(
+          sanitized.extensionLabels,
+          isEmpty,
+          reason: 'profile.extensionLabels should be sanitized to empty map',
+        );
 
         final layout = sanitized.layouts.first;
         expect(
@@ -106,11 +111,6 @@ void main() {
           layout.matrixColumnLabels,
           isEmpty,
           reason: 'layout.matrixColumnLabels should be sanitized to empty map',
-        );
-        expect(
-          layout.extensionLabels,
-          isEmpty,
-          reason: 'layout.extensionLabels should be sanitized to empty map',
         );
       },
     );

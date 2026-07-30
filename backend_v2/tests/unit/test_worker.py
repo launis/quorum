@@ -149,8 +149,8 @@ async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_missing_language() -> None:
-    from backend_v2.worker import generate_profile_synthesis_and_pdf_task
     from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.worker import generate_profile_synthesis_and_pdf_task
 
     with pytest.raises(AppException) as exc_info:
         await generate_profile_synthesis_and_pdf_task("exe_1234567890123456", None)

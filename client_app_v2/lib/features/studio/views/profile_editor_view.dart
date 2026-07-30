@@ -92,17 +92,19 @@ class ProfileEditorView extends HookConsumerWidget {
     useMemoized(() {
       if (payload.outputProfiles.isEmpty) {
         Future.microtask(() {
-          final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+          final newProfiles = Map<String, OutputProfile>.from(
             payload.outputProfiles,
           );
-          newProfiles['default'] = const EmbeddedOutputProfile(
-            name: I18nText(
+          newProfiles['default'] = OutputProfile(
+            id: 'default',
+            workflowId: payload.id,
+            name: const I18nText(
               defaultLocale: 'en',
               translations: {'fi': 'Oletusraportti', 'en': 'Default Report'},
             ),
-            visibleBlockExtensions: [],
-            visibleWorkflowExtensions: [],
-            layouts: [
+            visibleBlockExtensions: const [],
+            visibleWorkflowExtensions: const [],
+            layouts: const [
               OutputLayoutBlock(
                 presetView: PresetView.metrics1d,
                 title: I18nText(defaultLocale: 'en'),
@@ -171,17 +173,19 @@ class ProfileEditorView extends HookConsumerWidget {
                   return;
                 }
 
-                final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+                final newProfiles = Map<String, OutputProfile>.from(
                   payload.outputProfiles,
                 );
-                newProfiles[newId] = const EmbeddedOutputProfile(
-                  name: I18nText(
+                newProfiles[newId] = OutputProfile(
+                  id: newId,
+                  workflowId: payload.id,
+                  name: const I18nText(
                     defaultLocale: 'en',
                     translations: {'fi': 'Uusi profiili', 'en': 'New Profile'},
                   ),
-                  visibleBlockExtensions: [],
-                  visibleWorkflowExtensions: [],
-                  layouts: [],
+                  visibleBlockExtensions: const [],
+                  visibleWorkflowExtensions: const [],
+                  layouts: const [],
                 );
 
                 ref
@@ -270,15 +274,15 @@ class ProfileEditorView extends HookConsumerWidget {
     AppLocalizations l10n,
     Workflow payload,
     String profileId,
-    EmbeddedOutputProfile profileDef,
+    OutputProfile profileDef,
     Set<String> allowedBlockIds,
     AsyncValue<List<dynamic>> promptBlocksState,
     AsyncValue<List<String>> availableExtensionsState,
   ) {
     final layouts = List<OutputLayoutBlock>.from(profileDef.layouts);
 
-    void rebuildProfile(EmbeddedOutputProfile updatedProfile) {
-      final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+    void rebuildProfile(OutputProfile updatedProfile) {
+      final newProfiles = Map<String, OutputProfile>.from(
         payload.outputProfiles,
       );
       newProfiles[profileId] = updatedProfile;
@@ -340,7 +344,7 @@ class ProfileEditorView extends HookConsumerWidget {
                               ),
                               onPressed: () {
                                 final newProfiles =
-                                    Map<String, EmbeddedOutputProfile>.from(
+                                    Map<String, OutputProfile>.from(
                                       payload.outputProfiles,
                                     );
                                 newProfiles.remove(profileId);

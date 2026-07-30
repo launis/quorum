@@ -1114,7 +1114,6 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
     assert len(dto.layouts) > 0
     matrix = dto.layouts[0].axes[0]
 
-    from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
     accordion_blocks = [b for b in matrix.inner_sdui_blocks if getattr(b, "block_type", "") == "accordion"]
     assert len(accordion_blocks) == 2
 
@@ -1181,7 +1180,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     assert coaching_accordion.severity == "success"
     # It should fallback to title casing or default locale if missing.
     assert "Coaching" in coaching_accordion.title
-    
+
     coaching_alert = next((b for b in coaching_accordion.children if isinstance(b, AlertBlock)), None)
     assert coaching_alert is not None
     assert coaching_alert.severity == "info"

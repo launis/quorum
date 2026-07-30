@@ -35,31 +35,29 @@ void main() {
 
       expect(block, isNotNull);
       expect(block.matrixColumnLabels, isEmpty);
-      expect(block.extensionLabels, isEmpty);
     });
   });
 
-  group('EmbeddedOutputProfile JSON Parsing', () {
-    test(
-      'Should parse EmbeddedOutputProfile with language and content_blocks',
-      () {
-        final jsonPayload = {
-          'name': {
-            'default_locale': 'en',
-            'translations': {'en': 'Test Profile'},
-          },
-          'language': 'fi',
-          'content_blocks': [
-            {'id': 'blk_123', 'block_type': 'markdown', 'text': 'test'},
-          ],
-        };
+  group('OutputProfile Additional JSON Parsing', () {
+    test('Should parse OutputProfile with language and content_blocks', () {
+      final jsonPayload = {
+        'id': 'op_1234567890abcdef',
+        'workflow_id': 'wf_9d68c573802341db',
+        'name': {
+          'default_locale': 'en',
+          'translations': {'en': 'Test Profile'},
+        },
+        'language': 'fi',
+        'content_blocks': [
+          {'id': 'blk_123', 'block_type': 'markdown', 'text': 'test'},
+        ],
+      };
 
-        final profile = EmbeddedOutputProfile.fromJson(jsonPayload);
+      final profile = OutputProfile.fromJson(jsonPayload);
 
-        expect(profile, isNotNull);
-        // We can't expect the fields yet as they don't exist, but we expect it not to throw.
-      },
-    );
+      expect(profile, isNotNull);
+      expect(profile.language, 'fi');
+    });
   });
 
   group('OutputProfile JSON Parsing', () {

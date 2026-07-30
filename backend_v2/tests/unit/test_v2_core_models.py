@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
-from backend_v2.models.v2_core import OutputProfile, ExecutionRecord, MCPAuditTrace, PromptBlock
+from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace, OutputProfile, PromptBlock
 
 
 def test_prompt_block_fail_fast_on_corrupt_type() -> None:
@@ -40,6 +40,9 @@ from typing import Any
 def test_embedded_output_profile_description_parsing() -> None:
     # 1. Success case with valid I18nText
     valid_data: dict[str, Any] = {
+        "id": "prf_1234567890123456",
+        "slug": "test-profile",
+        "workflow_id": "wf_9d68c573802341db",
         "name": {"default_locale": "en", "translations": {"en": "My Profile", "fi": "My Profile"}},
         "description": {
             "default_locale": "en",
@@ -54,6 +57,9 @@ def test_embedded_output_profile_description_parsing() -> None:
 
     # 2. Fail-fast case with invalid description
     invalid_data: dict[str, Any] = {
+        "id": "prf_1234567890123456",
+        "slug": "test-profile",
+        "workflow_id": "wf_9d68c573802341db",
         "name": {"default_locale": "en", "translations": {"en": "My Profile", "fi": "My Profile"}},
         "description": "This is a simple string instead of I18nText dict",
         "display_scale": "original",

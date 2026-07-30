@@ -270,12 +270,15 @@ async def test_start_execution_success() -> None:
     executor_mock = Mock()
     arq_pool = AsyncMock()
 
+    out_prof_repo_mock = AsyncMock()
+    out_prof_repo_mock.get_output_profile_by_id.return_value = {"id": "prof_1", "workflow_id": "wf_1"}
+
     service = ExecutionService(
         exec_repo=repo_mock,
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        output_profile_repo=out_prof_repo_mock,
         identity_repo=repo_mock,
         system_repo=repo_mock,
         usage_service=AsyncMock(),
@@ -292,7 +295,6 @@ async def test_start_execution_success() -> None:
     mock_wf.id = "wf_1"
     mock_wf.version = 1
     mock_wf.default_profile_id = "prof_1"
-    mock_wf.output_profiles = {"prof_1": Mock()}
     mock_wf.expected_inputs = []
     mock_wf.steps = []
     mock_wf.organization_id = "org_1"

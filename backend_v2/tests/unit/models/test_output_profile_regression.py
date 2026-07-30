@@ -26,6 +26,9 @@ def test_output_profile_response_dto_schema_parity() -> None:
 def test_embedded_output_profile_schema_parity() -> None:
     """Proof of success: OutputProfile should accept extension_labels and user_role_mappings."""
     payload = {
+        "id": "prf_1234567890123456",
+        "slug": "test-profile",
+        "workflow_id": "wf_9d68c573802341db",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "layouts": [],
         "user_role_mappings": {"ROLE_ARCHITECT": {"default_locale": "en", "translations": {"en": "Navigator"}}},
@@ -54,6 +57,9 @@ def test_output_profile_response_dto_negative_extra_keys() -> None:
 def test_embedded_output_profile_negative_wrong_type() -> None:
     """Proof of failure: user_role_mappings must be dict, not list."""
     payload = {
+        "id": "prf_1234567890123456",
+        "slug": "test-profile",
+        "workflow_id": "wf_9d68c573802341db",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "layouts": [],
         "user_role_mappings": [{"ROLE_ARCHITECT": {"default_locale": "en", "translations": {"en": "Navigator"}}}],

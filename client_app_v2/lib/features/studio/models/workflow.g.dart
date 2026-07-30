@@ -562,7 +562,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
             (v as Map<String, dynamic>?)?.map(
               (k, e) => MapEntry(
                 k,
-                EmbeddedOutputProfile.fromJson(e as Map<String, dynamic>),
+                OutputProfile.fromJson(e as Map<String, dynamic>),
               ),
             ) ??
             const {},

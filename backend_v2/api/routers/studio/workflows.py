@@ -24,7 +24,7 @@ router = APIRouter(prefix="/workflows", tags=["Admin Studio V2 - Workflows"])
 @router.get("/", response_model=list[WorkflowResponseDTO])
 async def get_workflows(
     current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
-) -> list[Workflow]:
+) -> list[WorkflowResponseDTO]:
     """Retrieve all V2 dynamic workflow definition blocks securely via SSOT Service Layer.
 
     Args:
@@ -41,7 +41,9 @@ async def get_workflows(
 
 
 @router.post("/", response_model=WorkflowResponseDTO)
-async def create_workflow(current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep) -> Workflow:
+async def create_workflow(
+    current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
+) -> WorkflowResponseDTO:
     """Create a new Workflow draft securely via SSOT Service Layer.
 
     Args:
@@ -60,7 +62,7 @@ async def create_workflow(current_user: CurrentUserDep, studio_workflow_service:
 @router.get("/{id}", response_model=WorkflowResponseDTO)
 async def get_workflow(
     id: str, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
-) -> Workflow:
+) -> WorkflowResponseDTO:
     """Retrieve a specific workflow definition by id securely via SSOT Service Layer.
 
     Args:
@@ -124,7 +126,7 @@ async def get_workflow_available_extensions(
 @router.post("/{id}/clone", response_model=WorkflowResponseDTO)
 async def clone_workflow(
     id: str, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
-) -> Workflow:
+) -> WorkflowResponseDTO:
     """Deep clone a workflow block securely via SSOT Service Layer.
 
     Args:
@@ -145,7 +147,7 @@ async def clone_workflow(
 @router.put("/{id}", response_model=WorkflowResponseDTO)
 async def save_workflow(
     id: str, data: Workflow, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
-) -> Workflow:
+) -> WorkflowResponseDTO:
     """Append or update a workflow definition block securely via SSOT Service Layer.
 
     Args:

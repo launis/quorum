@@ -134,7 +134,7 @@ abstract class Workflow with _$Workflow {
     @Default(false) bool isPublic,
     String? organizationId,
     @Default({}) Map<String, dynamic> uiSchema,
-    @Default({}) Map<String, EmbeddedOutputProfile> outputProfiles,
+    @Default({}) Map<String, OutputProfile> outputProfiles,
     @Default("default") String defaultProfileId,
     @JsonKey(name: 'default_strictness_level')
     @Default(50)

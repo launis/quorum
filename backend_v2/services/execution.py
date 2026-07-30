@@ -496,7 +496,12 @@ class ExecutionService:
 
         # Fail-Fast: Resolve and Validate Output Profile immediately at ingress
         resolved_profile_id = payload.profile_id or workflow.default_profile_id
-        if not workflow.output_profiles or resolved_profile_id not in workflow.output_profiles:
+        if not resolved_profile_id:
+            msg = f"No profile_id provided and workflow '{workflow.id}' has no default_profile_id."
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        profile_dict = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
+        if not profile_dict or profile_dict.get("workflow_id") != workflow.id:
             msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
