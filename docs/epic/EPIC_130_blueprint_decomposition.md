@@ -50,12 +50,15 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 ### Compliance & Modernity Gates
 | Gate | Status |
 |---|---|
-| Pydantic V2 `ConfigDict(strict=True, extra='forbid')` | ✅ No new models introduced |
+| Pydantic V2 Strictness | ✅ `AdapterContext` MUST use `model_config = ConfigDict(strict=True, extra='forbid', frozen=True)` |
 | Cross-Domain DTO Parity | ✅ No DTO changes — Flutter untouched |
 | Fail-Fast SDUI Serialization | ✅ Maintained — adapters produce strictly typed `AnySduiBlock` |
-| Zero Duct Tape Rule | ✅ Adapter rules are explicit dictionaries, not `.get()` fallbacks |
-| RFC-7807 Dual-Reporting | ✅ All `AppException` raises preceded by `logger.error` |
-| PEP 257 Google-Style Docstrings | ✅ All new adapter classes and functions documented |
+| Zero Duct Tape Rule | ✅ Adapter rules are explicit dictionaries, not `.get()` fallbacks. All `**kwargs: Any` signatures MUST be replaced with typed `AdapterContext` DTO parameters |
+| RFC-7807 Dual-Reporting | ✅ All `AppException` raises preceded by `logger.error`. All bare `except Exception:` catch-alls in extracted code MUST be replaced with typed exception handlers |
+| PEP 257 & Docstring Fail-Fast | ✅ All new adapter classes and functions documented using Google-style docstrings. Explicit `Raises:` blocks are REQUIRED. Do NOT repeat type hints in text descriptions |
+| Terminology Ban | ✅ The word "Epic" (or "EPIC") MUST NOT be used in any source code comments, docstrings, or logs |
+| `type: ignore` Zero-Tolerance | ✅ Extracted adapter code MUST NOT carry forward any `# type: ignore` annotations from `blueprint.py`. Specifically, `severity` parameters MUST use `VisualIntent` enum values instead of bare strings |
+| `inline_imports_ban` | ✅ All adapter files MUST place imports at the top of the file. Inline imports from `blueprint.py` MUST NOT be perpetuated |
 
 ### Producer-Consumer Integration Check
 | Producer | Consumer | Contract |
@@ -63,102 +66,61 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 | Adapter `xai_highlights_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (specifically `AccordionBlock` with nested `AlertBlock` children) |
 | Adapter `penalties_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (specifically `AlertBlock` with `CRITICAL_OVERRIDE` severity) |
 | Adapter `executive_summary_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (specifically `ParagraphBlock` instances) |
-| Service `matrix_extractor.py` | `blueprint.py` orchestrator | Returns structured tuples of `MatrixScorecardRowDTO` lists and `ScorecardAtomDTO` maps |
+| Service `matrix_extractor.py` | `blueprint.py` orchestrator | Returns `tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO], dict[str, dict[str, ScorecardAtomDTO]]]` — specifically `(evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms)` |
 | `blueprint.py` orchestrator | `pdf_generator.py`, Flutter client | Returns `ReportDataDTO` (unchanged contract) |
+
+### Namespace Clarification
+- **`services/sdui_mapper_service.py`** remains at its current location. It handles a different concern (Report View mapping for the Flutter SDUI client) than the adapter layer (individual block construction). These are intentionally separate namespaces and MUST NOT be merged.
 
 ---
 
 ## 3. Phased Execution Plan (Implementation Strategy)
 
-### Phase 1: Foundation — New Directory Structure & Base Adapter
-
+### Phase 1: Foundation — New Directory Structure, Typed Protocol & AdapterContext DTO
 **Target Directory**: `backend_v2/services/sdui/adapters/`
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\__init__.py]`
-Empty package init file.
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\__init__.py]`
-Empty package init file.
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\base_adapter.py]`
-Defines the abstract base class `BaseSduiAdapter` with a single abstract `build()` classmethod returning `list[AnySduiBlock]`. All concrete adapters inherit from this. Estimated size: 20-30 lines.
+1. Create `@[c:\src\quorum\backend_v2\services\sdui\__init__.py]`
+2. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\__init__.py]`
+3. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\base_adapter.py]` defining:
+   - A frozen Pydantic DTO `AdapterContext` containing the strictly typed fields that adapters need (specifically: `execution: ExecutionRecord`, `locale: str`, `penalties_applied: list[str]`, `mcp_audit_data: list[MCPAuditTrace]`, `global_score: float | None`, `accumulated_extensions: dict[str, list[dict[str, str]]]`, `profile: OutputProfile | EmbeddedOutputProfile`).
+   - **MANDATORY**: `AdapterContext` MUST use `model_config = ConfigDict(frozen=True, strict=True, extra="forbid")` to adhere to the `frozen_state_mutability` invariant, preventing downstream side effects.
+   - A `Protocol` class `SduiAdapterProtocol` with a single `@staticmethod build(context: AdapterContext) -> list[AnySduiBlock]` method.
+   - **MANDATORY**: The dispatch table in `blueprint.py` (`_target_block_hydrators`) MUST be updated from `Callable[..., list[AnySduiBlock]]` to `dict[str, type[SduiAdapterProtocol]]` to enforce typed dispatch.
+4. **MANDATORY CODE QUALITY GATE**: All adapter files MUST:
+   - Place ALL imports at the top of the file (no inline imports).
+   - Use typed exception handlers (specifically `except ValueError`, `except ValidationError` or `KeyError`) — bare `except Exception:` is strictly forbidden.
+   - Use `VisualIntent` enum values for severity parameters — bare string literals with `# type: ignore[arg-type]` are strictly forbidden.
+   - Use strict dictionary key access (`RULES[key]`) — `.get(key, default)` fallbacks are strictly forbidden.
 
 ### Phase 2: Extract XAI Highlights Adapter (Proof of Concept)
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]`
-This file contains BOTH the aesthetic rules AND the adapter logic for the XAI highlights report section. Structure:
-1. **Module-Level Rules Dictionary** (`XAI_AESTHETICS_RULES`): Maps extension type keywords to `{"accordion_severity": str, "icon_name": str, "alert_severity": str}` tuples. Replaces the hardcoded `if "risk" in lower_ext` chains.
-2. **`XaiHighlightsAdapter(BaseSduiAdapter)` class**: Single `build()` classmethod that accepts `synthesis_cache`, `profile`, and `locale`, groups `XaiHighlightItem` instances by `extension_type`, looks up aesthetics from the rules dictionary, and returns `list[AnySduiBlock]`.
-
-Estimated size: 60-80 lines.
-
-#### [MODIFY] `@[c:\src\quorum\backend_v2\services\blueprint.py]`
-- Delete `_hydrate_grouped_extensions_block` method (lines 781-859, approximately 80 lines).
-- Replace its call site in `_build_layouts` / `build_report_dto` with `XaiHighlightsAdapter.build(...)`.
+1. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]`.
+   - **MANDATORY**: Lookups for aesthetics MUST use strict dictionary key access (specifically `XAI_AESTHETICS_RULES[extension_type]`). Fallbacks using `.get()` are strictly forbidden to ensure Fail-Fast `KeyError` crashes on unknown extension types.
+   - **MANDATORY**: The `except Exception:` catch-all at [blueprint.py#L815](file:///c:/src/quorum/backend_v2/services/blueprint.py#L815) MUST be replaced with `except ValueError` re-raised as `AppException(ErrorCodes.VALIDATION_FAILED)`.
+   - **MANDATORY**: The `severity` strings at [blueprint.py#L840](file:///c:/src/quorum/backend_v2/services/blueprint.py#L840) and [blueprint.py#L850](file:///c:/src/quorum/backend_v2/services/blueprint.py#L850) (currently `# type: ignore[arg-type]`) MUST be replaced with `VisualIntent` enum values.
+   - **MANDATORY**: The inline import `from backend_v2.models.enums import XaiExtensionType` at [blueprint.py#L800](file:///c:/src/quorum/backend_v2/services/blueprint.py#L800) MUST be placed at the top of the adapter file.
+2. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py#L781-L859]`: Delete `_hydrate_grouped_extensions_block` and route to the new adapter.
+3. **ATOMIC TEST MIGRATION**: Update `@[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py]` to point mock assertions to `XaiHighlightsAdapter.build`.
 
 ### Phase 3: Extract Penalties Adapter
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\penalties_adapter.py]`
-1. **Module-Level Rules**: Penalty prefix mapping and severity constants.
-2. **`PenaltiesAdapter(BaseSduiAdapter)` class**: Accepts `penalties_applied: list[str]`, returns `list[AnySduiBlock]` (specifically `AlertBlock` with `CRITICAL_OVERRIDE` severity).
-
-Estimated size: 30-40 lines.
-
-#### [MODIFY] `@[c:\src\quorum\backend_v2\services\blueprint.py]`
-- Delete `_hydrate_penalties_block` method (lines 747-763).
-- Replace with `PenaltiesAdapter.build(...)`.
+1. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\penalties_adapter.py]`.
+2. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py#L747-L763]`: Delete `_hydrate_penalties_block` and route to the adapter.
+3. **ATOMIC TEST MIGRATION**: Migrate penalty tests in `test_blueprint.py` to target the new adapter file.
 
 ### Phase 4: Extract Executive Summary Adapter
+1. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\executive_summary_adapter.py]`.
+2. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py#L1072-L1095]`: Delete inline summary logic and route to the adapter.
+3. **ATOMIC TEST MIGRATION**: Update associated summary tests.
 
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\executive_summary_adapter.py]`
-1. **Module-Level Rules**: User role prefix labels, paragraph styling constants.
-2. **`ExecutiveSummaryAdapter(BaseSduiAdapter)` class**: Accepts `profile_cache`, `profile`, and `locale`. Produces the executive summary `ParagraphBlock`, user role `ParagraphBlock`, and user role justification `ParagraphBlock`.
-
-Estimated size: 50-70 lines.
-
-#### [MODIFY] `@[c:\src\quorum\backend_v2\services\blueprint.py]`
-- Delete inline executive summary construction logic (lines 1072-1095).
-- Replace with `ExecutiveSummaryAdapter.build(...)`.
-
-### Phase 5: Extract Remaining Placeholder Adapters
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\audit_trail_adapter.py]`
-Replaces the empty `_hydrate_audit_trail_block` placeholder. Estimated size: 20-30 lines.
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\jargon_ratio_adapter.py]`
-Replaces the empty `_hydrate_jargon_ratio_block` placeholder. Estimated size: 20-30 lines.
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\printable_sources_adapter.py]`
-Replaces the empty `_hydrate_printable_sources_block` placeholder. Estimated size: 20-30 lines.
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\adapters\global_score_adapter.py]`
-Replaces the empty `_hydrate_global_score_block` placeholder. Estimated size: 20-30 lines.
-
-#### [MODIFY] `@[c:\src\quorum\backend_v2\services\blueprint.py]`
-- Delete all four placeholder `_hydrate_*` methods (lines 765-779).
-- Replace with adapter calls.
+### Phase 5: DEFERRED — Placeholder Adapters (No Extraction Until Real Logic Exists)
+**STATUS: DEFERRED.** The methods `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, and `_hydrate_printable_sources_block` at [blueprint.py#L765-L779](file:///c:/src/quorum/backend_v2/services/blueprint.py#L765-L779) are currently empty placeholders returning `[]` or dummy text. Extracting empty methods into separate adapter files is pure churn with zero architectural value.
 
 ### Phase 6: Decompose `_extract_matrices_and_extensions` God Method
-
-> [!WARNING]
-> This is the most complex and highest-risk phase. It decomposes the 530-line method into dedicated components. This phase MUST be executed with extreme caution, running the full backend audit loop after each sub-step.
-
-#### [NEW] `@[c:\src\quorum\backend_v2\services\sdui\matrix_extractor.py]`
-1. **Module-Level Rules**: Scale display constants, visual intent mappings.
-2. **`MatrixExtractorService` class**: Contains the core matrix parsing logic currently in `_extract_matrices_and_extensions`. Specifically:
-   - LLM trace parsing and `TraceMatrixPayloadDTO` validation.
-   - Score normalization and `ui_plot_ratio` calculation.
-   - Scale label resolution and `level_names` mapping.
-   - `MatrixScorecardRowDTO` construction.
-   - `ScorecardAtomDTO` assembly from evaluation data.
-*Architectural Note: This is explicitly NOT an SDUI Adapter because it returns `tuple[list[MatrixScorecardRowDTO], ...]`, not `list[AnySduiBlock]`. It sits one layer above the adapters in the `sdui` module.*
-
-Estimated size: 200-250 lines (the irreducible complexity of matrix parsing).
-
-#### [MODIFY] `@[c:\src\quorum\backend_v2\services\blueprint.py]`
-- Delete `_extract_matrices_and_extensions` (lines 218-745).
-- Replace with `MatrixExtractorService.extract(...)` call in `build_report_dto`.
-- `blueprint.py` is reduced to approximately 800-900 lines (from 1815).
+1. Create `@[c:\src\quorum\backend_v2\services\sdui\matrix_extractor.py]` containing a **stateless utility class** `MatrixExtractorService` with a single `@staticmethod extract(...)` method.
+   - **Return type (exact)**: `tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO], dict[str, dict[str, ScorecardAtomDTO]]]` — specifically `(evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms)`.
+   - **MANDATORY**: `MatrixExtractorService` MUST be a stateless utility class, NOT an injected service. It MUST NOT be added to `BlueprintTransformer.__init__` as a constructor parameter. This maintains zero behavioral change at the integration level.
+   - **MANDATORY**: The 15 raw parameters of `_extract_matrices_and_extensions` MUST be wrapped in a frozen Pydantic DTO (e.g., `MatrixExtractionContext`) to act as a structured state envelope. Passing 15 raw parameters is strictly forbidden by the `structured_state_envelopes_mandate` (Python Backend Architecture).
+   - **MANDATORY**: Parsing the `TraceMatrixPayloadDTO` from the LLM results MUST rely exclusively on Pydantic's native `.model_validate()` or `TypeAdapter()`. Manual dictionary scraping or `isinstance(data, dict)` checks are strictly forbidden per `strict_pydantic_v2_rust`.
+2. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py#L218-L745]`: Delete the 530-line God Method and replace with a call to `MatrixExtractorService.extract(...)`.
+3. **ATOMIC TEST MIGRATION**: Update matrix extraction tests to import from `matrix_extractor.py`.
 
 ### Phase 7: Verification & E2E Integration Gate
 
@@ -171,13 +133,16 @@ Estimated size: 200-250 lines (the irreducible complexity of matrix parsing).
 ## 4. Definition of Done (DoD) & Verification Plan
 
 ### Definition of Done (DoD)
-1. `blueprint.py` contains ZERO direct `AccordionBlock`, `AlertBlock`, or `ParagraphBlock` instantiation. All SDUI block construction is delegated to adapters.
-2. `blueprint.py` is reduced from 1815 lines to approximately 800-900 lines.
-3. Every adapter file in `backend_v2/services/sdui/adapters/` is self-contained: it has its own module-level rules dictionary AND its own adapter class.
-4. No adapter file exceeds 250 lines.
-5. All existing 1173 unit tests pass without modification.
+1. `blueprint.py` contains ZERO direct `AccordionBlock`, `AlertBlock`, or `ParagraphBlock` instantiation for the extracted adapters.
+2. `blueprint.py` is reduced from 1815 lines to approximately 1000-1100 lines.
+3. Every adapter file in `backend_v2/services/sdui/adapters/` is self-contained: it has its own module-level rules dictionary and strictly uses explicit Key-Access (`RULES[key]`) rather than `.get()`.
+4. **Atomic Test Migration**: Any tests previously asserting on private methods are updated in the exact same phase. No test suite breakage between phases.
+5. The `ReportDataDTO` JSON output is byte-identical before and after refactoring (verified by snapshot testing).
 6. MyPy strict passes with zero new `# type: ignore` annotations.
-7. The `ReportDataDTO` JSON output is byte-identical before and after refactoring (verified by snapshot testing).
+7. Zero bare `except Exception:` catch-alls in any adapter file. All exception handlers MUST use typed exceptions and explicitly state them in the `Raises:` section of the Google-style docstring.
+8. The word "Epic" (or "EPIC") does NOT appear in any added code, docstrings, or comments.
+9. Zero inline imports in any adapter file. All imports MUST be at the top of the file.
+10. The dispatch table `_target_block_hydrators` uses `dict[str, type[SduiAdapterProtocol]]` instead of `Callable[..., list[AnySduiBlock]]`.
 
 ### Automated Unit Tests
 ```bash
@@ -185,9 +150,9 @@ uv run python scripts/backend_audit_loop.py backend_v2 --test
 ```
 
 New unit tests to be added:
-- `backend_v2/tests/unit/test_xai_highlights_adapter.py`: Tests aesthetic rule lookup independently (no Blueprint dependencies).
-- `backend_v2/tests/unit/test_penalties_adapter.py`: Tests penalty block construction independently.
-- `backend_v2/tests/unit/test_executive_summary_adapter.py`: Tests summary block construction independently.
+- `backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py`: Tests aesthetic rule lookup independently (no Blueprint dependencies).
+- `backend_v2/tests/unit/services/sdui/adapters/test_penalties_adapter.py`: Tests penalty block construction independently.
+- `backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py`: Tests summary block construction independently.
 
 ### Manual Verification Steps
 1. Run a full execution and generate a PDF report. Visually compare against `@[c:\src\quorum\docs\jwvastaus\raportti 2.pdf]` to confirm identical output.
