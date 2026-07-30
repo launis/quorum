@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/theme/app_colors.dart';
 
 class SduiBlocksRenderer extends StatelessWidget {
   final List<SduiBlockDTO> blocks;
@@ -9,7 +11,7 @@ class SduiBlocksRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (blocks.isEmpty) return const SizedBox.shrink();
+    if (blocks.isEmpty) return const SizedBox();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -31,40 +33,41 @@ class SduiBlocksRenderer extends StatelessWidget {
 
         if (text != null && text.isNotEmpty) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: const EdgeInsets.only(bottom: AppSpacing.s8),
             child: OutputRenderer(markdownContent: text),
           );
         }
-        return const SizedBox.shrink();
+        return const SizedBox();
       }).toList(),
     );
   }
 
   Widget _buildAccordion(BuildContext context, SduiAccordionBlock block) {
+    final theme = Theme.of(context);
     Color headerColor;
     Color bgColor;
     IconData? icon;
 
     switch (block.severity) {
       case 'success':
-        headerColor = Colors.green.shade800;
-        bgColor = Colors.green.shade50;
+        headerColor = AppColors.intentSuccess;
+        bgColor = AppColors.intentSuccess.withValues(alpha: 0.1);
         icon = Icons.build;
         break;
       case 'warning':
-        headerColor = Colors.orange.shade800;
-        bgColor = Colors.orange.shade50;
+        headerColor = AppColors.intentWarning;
+        bgColor = AppColors.intentWarning.withValues(alpha: 0.1);
         icon = Icons.warning;
         break;
       case 'error':
-        headerColor = Colors.red.shade800;
-        bgColor = Colors.red.shade50;
+        headerColor = theme.colorScheme.error;
+        bgColor = theme.colorScheme.errorContainer;
         icon = Icons.error;
         break;
       case 'info':
       default:
-        headerColor = Colors.blue.shade800;
-        bgColor = Colors.blue.shade50;
+        headerColor = AppColors.intentInfo;
+        bgColor = AppColors.intentInfo.withValues(alpha: 0.1);
         icon = Icons.info;
         break;
     }
@@ -74,24 +77,25 @@ class SduiBlocksRenderer extends StatelessWidget {
 
     return Card(
       elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
+      ),
       color: bgColor,
       child: ExpansionTile(
         initiallyExpanded: true,
         leading: Icon(icon, color: headerColor),
         title: Text(
           block.title,
-          style: TextStyle(
-            fontSize: 16,
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: headerColor,
           ),
         ),
         children: [
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(12.0),
+            color: theme.colorScheme.surface,
+            padding: const EdgeInsets.all(AppSpacing.s12),
             child: SduiBlocksRenderer(blocks: block.children),
           ),
         ],
@@ -100,64 +104,68 @@ class SduiBlocksRenderer extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, SduiHeaderBlock block) {
+    final theme = Theme.of(context);
     return Card(
       elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 16.0),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.green, width: 2),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+        side: BorderSide(color: AppColors.intentSuccess, width: AppSpacing.s2),
       ),
-      color: Colors.grey.shade50,
+      color: theme.colorScheme.surfaceContainerLowest,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.s16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               block.title,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
+            AppSpacing.h12,
             if (block.badges.isNotEmpty)
               Wrap(
                 alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
+                spacing: AppSpacing.s8,
+                runSpacing: AppSpacing.s8,
                 children: block.badges
                     .map(
                       (b) => Chip(
                         label: Text(
                           b,
-                          style: const TextStyle(
+                          style: theme.textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: Colors.indigo,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
-                        backgroundColor: Colors.indigo.shade50,
-                        side: BorderSide(color: Colors.indigo.shade200),
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        side: BorderSide(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
                       ),
                     )
                     .toList(),
               ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             if (block.metadataLines.isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: block.metadataLines
                     .map(
                       (line) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4.0),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s4),
                         child: OutputRenderer(markdownContent: line),
                       ),
                     )
                     .toList(),
               ),
             if (block.costs != null || block.tokens != null) ...[
-              const Divider(height: 24, thickness: 1),
+              const Divider(height: AppSpacing.s24),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -166,14 +174,13 @@ class SduiBlocksRenderer extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Meta Costs',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
                           Text(
-                            block.costs!,
-                            style: const TextStyle(fontSize: 12),
+                            'Meta Costs',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
+                          Text(block.costs!, style: theme.textTheme.labelSmall),
                         ],
                       ),
                     ),
@@ -182,14 +189,16 @@ class SduiBlocksRenderer extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Meta Tokens',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           ...block.tokens!.entries.map(
                             (e) => Text(
                               '${e.key}: ${e.value}',
-                              style: const TextStyle(fontSize: 12),
+                              style: theme.textTheme.labelSmall,
                             ),
                           ),
                         ],
@@ -200,13 +209,16 @@ class SduiBlocksRenderer extends StatelessWidget {
             ],
             if (block.customPrefaceMd != null &&
                 block.customPrefaceMd!.isNotEmpty) ...[
-              const SizedBox(height: 24),
+              AppSpacing.h24,
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.s16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.blue, width: 2),
-                  borderRadius: BorderRadius.circular(8),
+                  color: theme.colorScheme.surface,
+                  border: Border.all(
+                    color: AppColors.intentInfo,
+                    width: AppSpacing.s2,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
                 ),
                 child: OutputRenderer(markdownContent: block.customPrefaceMd!),
               ),
