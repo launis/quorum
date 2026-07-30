@@ -70,7 +70,7 @@ enum PresetView {
   defaultView,
 }
 
-/// Execution Routing Modes mapping (Epic 35)
+/// Execution Routing Modes mapping
 /// STRICT PARITY MANDATE: Must match backend Pydantic string equivalents.
 enum RoutingMode {
   @JsonValue('standard')
@@ -81,7 +81,7 @@ enum RoutingMode {
   parallelRouting,
 }
 
-/// Epic 42: Strictness evaluation evidence type
+/// Strictness evaluation evidence type
 @JsonEnum()
 enum EvidenceType {
   @JsonValue('EXPLICIT_QUOTE')
@@ -92,7 +92,7 @@ enum EvidenceType {
   noEvidence,
 }
 
-/// Epic 43: Multi-Engine Scoring Strategies
+/// Multi-Engine Scoring Strategies
 @JsonEnum()
 enum ScoringStrategy {
   @JsonValue('WATERFALL')
@@ -105,7 +105,7 @@ enum ScoringStrategy {
   pureMath,
 }
 
-/// Epic 46: Strictness Level Enums
+/// Strictness Level Enums
 @JsonEnum()
 enum StrictnessLevel {
   @JsonValue(0)
@@ -144,7 +144,7 @@ extension StrictnessLevelExtension on StrictnessLevel {
   }
 }
 
-/// Epic 48: Aggregation constraint for TDA Assertions
+/// Aggregation constraint for TDA Assertions
 @JsonEnum()
 enum AggregationMode {
   @JsonValue('EXISTS')
