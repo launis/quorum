@@ -2,6 +2,9 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
+import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -73,6 +76,88 @@ void main() {
 
         // Verify client was called
         verify(() => mockClient.deletePromptBlock(id)).called(1);
+      },
+    );
+  });
+
+  group('WorkflowsController Form & Serialization (Bug Fix 422)', () {
+    final validWorkflow = Workflow(
+      id: 'wf_0123456789abcdef',
+      slug: 'test-wf',
+      name: const I18nText(translations: {'en': 'Test'}),
+      description: const I18nText(translations: {'en': 'Test Desc'}),
+      outputProfiles: {},
+    );
+
+    test(
+      'Positive: saveWorkflow strips output_profiles from payload',
+      () async {
+        when(() => mockClient.getWorkflows()).thenAnswer((_) async => []);
+        when(
+          () => mockClient.saveWorkflow(any(), any()),
+        ).thenAnswer((_) async => validWorkflow.toJson());
+
+        final controller = container.read(workflowsControllerProvider.notifier);
+        await controller.saveWorkflow('wf_0123456789abcdef', validWorkflow);
+
+        final captured = verify(
+          () => mockClient.saveWorkflow('wf_0123456789abcdef', captureAny()),
+        ).captured;
+
+        final payload = captured.first as Map<String, dynamic>;
+        expect(payload.containsKey('output_profiles'), isFalse);
+      },
+    );
+
+    test(
+      'Negative 1: 422 Error rolls back optimistic UI and throws AppException',
+      () async {
+        when(() => mockClient.getWorkflows()).thenAnswer((_) async => []);
+
+        final appError = AppException(
+          extensions: const {'error_code': 'VALIDATION_ERROR'},
+          detail: '1 validation error: extra_forbidden',
+          status: 422,
+        );
+
+        when(() => mockClient.saveWorkflow(any(), any())).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/studio/workflows/wf_0123456789abcdef'),
+            error: appError,
+          ),
+        );
+
+        final controller = container.read(workflowsControllerProvider.notifier);
+
+        expect(
+          () => controller.saveWorkflow('wf_0123456789abcdef', validWorkflow),
+          throwsA(
+            isA<AppException>()
+                .having((e) => e.status, 'status', 422)
+                .having((e) => e.detail, 'detail', contains('extra_forbidden')),
+          ),
+        );
+      },
+    );
+
+    test(
+      'Negative 2: WorkflowForm submit throws AppException for empty ID',
+      () async {
+        final form = container.read(workflowFormProvider('new').notifier);
+        final emptyWorkflow = validWorkflow.copyWith(id: '');
+
+        await form.submit(emptyWorkflow);
+
+        final state = container.read(workflowFormProvider('new'));
+        expect(state.hasError, isTrue);
+        expect(
+          state.error,
+          isA<AppException>().having(
+            (e) => e.detail,
+            'detail',
+            contains('Workflow ID is required'),
+          ),
+        );
       },
     );
   });

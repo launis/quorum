@@ -162,7 +162,12 @@ class WorkflowsController extends _$WorkflowsController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.saveWorkflow(id, returnData.toJson());
+      
+      // Enforce strict SDUI boundary: Strip joined relation data before mutating base entity
+      final jsonPayload = returnData.toJson();
+      jsonPayload.remove('output_profiles');
+      
+      final rawResponse = await client.saveWorkflow(id, jsonPayload);
       final str = jsonEncode(rawResponse);
       final verifiedWorkflow = await Workflow.parseInBackground(str);
 
