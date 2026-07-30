@@ -3,6 +3,8 @@ import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/theme/app_colors.dart';
+import 'package:client_app/features/execution/views/widgets/sdui_alert_box_widget.dart';
+import 'package:client_app/features/execution/views/widgets/sdui_grid_widget.dart';
 
 class SduiBlocksRenderer extends StatelessWidget {
   final List<SduiBlockDTO> blocks;
@@ -22,6 +24,12 @@ class SduiBlocksRenderer extends StatelessWidget {
         }
         if (block is SduiHeaderBlock) {
           return _buildHeader(context, block);
+        }
+        if (block is SduiAlertBoxBlock) {
+          return SduiAlertBoxWidget(block: block);
+        }
+        if (block is SduiGridBlock) {
+          return SduiGridWidget(block: block);
         }
 
         String? text;

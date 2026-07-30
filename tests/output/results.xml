@@ -1,1 +1,21 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="378.471" timestamp="2026-07-30T18:16:42.083330+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.integration.test_integration_real_llm" name="test_real_llm_pdf_execution" time="378.370" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.447" timestamp="2026-07-30T19:21:51.315850+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.unit.models.test_synthesis_schema_vertex_ai" name="test_synthesis_schema_does_not_contain_complex_blocks" time="0.266"><failure message="AssertionError: Schema contains forbidden complex block SduiGridBlock&#10;assert 'SduiGridBlock' not in &quot;{'$defs': {...': 'object'}&quot;&#10;  &#10;  'SduiGridBlock' is contained here:&#10;  ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ...&#10;  &#10;  ...Full output truncated (3 lines hidden), use '-vv' to show">def test_synthesis_schema_does_not_contain_complex_blocks() -&gt; None:
+        """Test that SynthesisOutputDTO json schema is constrained.
+    
+        Vertex AI throws a 400 'too many states for serving' if the schema contains
+        massive polymorphic unions like SduiGridBlock or HeroInsightBlock.
+        """
+        from backend_v2.models.dtos.synthesis import SynthesisOutputDTO
+    
+        schema = SynthesisOutputDTO.model_json_schema()
+        schema_str = str(schema)
+    
+&gt;       assert "SduiGridBlock" not in schema_str, "Schema contains forbidden complex block SduiGridBlock"
+E       AssertionError: Schema contains forbidden complex block SduiGridBlock
+E       assert 'SduiGridBlock' not in "{'$defs': {...': 'object'}"
+E         
+E         'SduiGridBlock' is contained here:
+E         ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+backend_v2\tests\unit\models\test_synthesis_schema_vertex_ai.py:12: AssertionError</failure></testcase></testsuite></testsuites>

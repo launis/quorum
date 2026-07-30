@@ -83,8 +83,11 @@
 - [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
-
+- [ ] **[IN PROGRESS]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+  - Phase 1 audited. Found 1 gap (R1).
+  - Phase 2 audited. 0 gaps found. See `@[c:\src\quorum\docs\epic\EPIC_123_audit_report.md]`.
+  - Phase 3 audited. Found 1 gap (R13). See `@[c:\src\quorum\docs\epic\EPIC_123_audit_report.md]`.
+  - Phase 4-7 audited. Gaps found (R25, R28, R30) have been remediated (grouped_extensions removed, SduiAlertBoxWidget and SduiGridWidget created, Jinja loop verified).
 ## Instructions for the Execution Agent
 - Atomic commit mandates apply per file or logical block changed.
 - Seeding environment commands: Use `uv run python backend_v2/seed/run_seed.py local` to wipe/seed database.
@@ -95,7 +98,7 @@
 
 | ID | Requirement | Mapped Step | Status |
 |---|---|---|---|
-| R1 | Restore holistic audit profile synthesis prompt from commit `22b16208` | Phase 1, Step 1 | [x] |
+| R1 | Restore holistic audit profile synthesis prompt from commit `22b16208` | Phase 1, Step 1 | [FAIL] |
 | R2 | Set `row_explanations_block_id` on matrix layouts with synthesis | Phase 1, Step 2 | [x] |
 | R3 | Ensure `3d_matrix` layout block explicitly contains `matrix_visible_columns` array | Phase 1, Step 2 | [x] |
 | R4 | Remove Unicode emojis and space from `extension_labels` (all 12 locations) | Phase 1, Step 3 | [x] |
@@ -159,7 +162,8 @@
 - Executed Tier 0 Research Plan for Phase 8. Red-teamed the localization verification plan. Mutated the plan to enforce Fail-Fast `ConfigurationError` instead of silent string fallbacks in `blueprint.py`, removed redundant natural language instructions in `linguistic_directives.py`, and explicitly mandated removing the hardcoded 'Käyttäjän Rooli' Finnish string from Enum localization flows and prompts.
 - Executed Tier 2 Execution Plan for Phase 8. Implemented ConfigurationError crash tests for missing labels. Updated tests to enforce strict `MarkdownBlock` models instead of legacy raw dicts. Verified Enum l10n mapping and anchoring mandates. Passed all Pytest, MyPy, and Ruff quality gates.
 - Successfully executed Phase 8 Post-Implementation Audit (`tier8-audit-plan`). Verified all Phase 8 requirements mathematically using `backend_audit_loop.py` which passed 1170 unit tests, including explicit `ConfigurationError` crash assertions. Verified that Enum mappings and prompt anchoring mandates were respected.
-
+- Began Final Epic Reverse Audit (`/tier8-audit-epic`). Audited Phase 1 and generated `EPIC_123_audit_report.md`. Discovered R1 failure (preamble and system prompt were not accurately restored from commit `22b16208`).
+- Audited Phase 3 and appended results to `EPIC_123_audit_report.md`. Discovered R13 failure (SduiGridBlock strict type leak).
 ## Learned
 - **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 
 - Python AST script parsing is vastly superior to `multi_replace_file_content` for stripping unicode prefixes in large JSONs.
@@ -167,24 +171,8 @@
 - E2E Live LLM Testing was skipped due to cost/time constraints and will be executed manually or deferred to post-epic validation. Phase 7 is marked `[NEEDS_E2E]` as per architectural checklist instructions.
 - The prompt directives had redundant instructions that violated the XML structural sovereignty mandate. String fallbacks for Enum translations silently mask misconfigurations and must be replaced with strict `ConfigurationError` crashes. 'Käyttäjän Rooli' was hardcoded inside the `seed_data.json` system prompt for the coach.
 - Phase 8 audit confirmed that eradicating dynamic string manipulation for translation ensures Fail-Fast strictness via `ConfigurationError` without sacrificing localization flexibility.
-
-## Session Handover Context
-
-### Achieved
-- Verified and completed "Proxy Sunset & Consumer Migration". Found no deprecated proxies or obsolete imports in the codebase remaining from Phase 5.
-- Executed the full Tier 2 Python Backend Hardening loop on all modified files (`v2_core.py`, `sdui.py`, `enums.py`, `trace.py`, `blueprint.py`, `sdui_mapper_service.py`).
-- All 6 backend files achieved 100% compliance with Quorum V2 Phase 9 standards, zero strictness failures, and passed the backend audit loop natively without needing red-green refactors.
-- Executed the full Tier 2 Flutter Frontend Hardening loop on all 9 explicitly modified files (`enums.dart`, `matrix_scorecard_dto.dart`, `report_data_v2_dto.dart`, `sdui_block_dto.dart`, `matrix_row_item_widget.dart`, `report_renderer_v2_widget.dart`, `sdui_blocks_renderer.dart`, `xai_axis_telemetry_grid.dart`, `xai_evidence_box.dart`).
-- Replaced magic spacing and color variables with centralized design tokens (`AppSpacing` and `AppColors`) across all UI widgets, enforcing the `design_token_absolute_rule`.
-- Eradicated all `internal_language_and_epic_ban` violations, including Finnish comments and hardcoded 'Epic' tracking strings.
-- All 9 Flutter files achieved 100% compliance with Phase 9 standards and passed the flutter audit loop natively.
-
-### Learned
-- The `TargetBlockType.GROUPED_EXTENSIONS_BLOCK` inside `blueprint.py` and `seed_data.json` is still actively used to render `xai_highlights` (which replaced legacy matrix extensions), meaning it is functionally correct and not a deprecated proxy.
-- The `v2_core.py` models are deeply fortified and fully adherent to strict `ConfigDict(frozen=True)` and native Rust coercion pipelines.
-
-### Remaining
-- Complete the final Pre-Delete Audit, Semantic Coverage (Mathematically verify line coverage >90%), and MANDATORY Final E2E REST API Verification Gate.
-
+- During Phase 1 Final Audit, we discovered that `tier8-audit-plan` previously failed to catch that the exact prompt from commit `22b16208` was not properly applied to `seed_data.json`. This proves the value of the Reverse Epic Audit.
+- During Phase 3 Final Audit, we discovered that `SduiGridBlock.items` was typed as `List<String>` instead of strictly `List<SduiBlockDTO>` (R13). This error actually originated in Phase 2 (`list[str]`) and cascaded to Phase 3.
+- **Phase 4-7 Remediation**: Remediated gaps found during the final epic audit. Removed all legacy `grouped_extensions` references in backend hydration. Implemented `SduiAlertBoxWidget` and `SduiGridWidget` in the Flutter frontend for strict polymorphic UI parity without raw dict-parsing. Verified that Jinja PDF template naturally loops over `inner_sdui_blocks`, seamlessly incorporating the global synthesis without manual section parsing.
 ## Resume Command
-`/tier5-resume --workflow=/tier0-create-plan --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier8-audit-epic --target="@[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md]"`

@@ -48,7 +48,6 @@ from backend_v2.models.v2_core import (
     SystemConfigPerformativeLexicons,
 )
 from backend_v2.models.view.sdui import (
-    AccordionBlock,
     AlertBlock,
     AnySduiBlock,
     HeroInsightBlock,
@@ -102,7 +101,6 @@ class BlueprintTransformer:
             TargetBlockType.AUDIT_TRAIL_BLOCK: self._hydrate_audit_trail_block,
             TargetBlockType.JARGON_RATIO_BLOCK: self._hydrate_jargon_ratio_block,
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: self._hydrate_printable_sources_block,
-            TargetBlockType.GROUPED_EXTENSIONS_BLOCK: self._hydrate_grouped_extensions_block,
         }
 
     @staticmethod
@@ -229,7 +227,6 @@ class BlueprintTransformer:
         mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
         source_identity_manifest: dict[str, str] | None = None,
         execution: Any = None,
-        accumulated_extensions: dict[str, list[dict[str, str]]] | None = None,
     ) -> tuple[
         list[MatrixScorecardRowDTO],
         list[MatrixScorecardRowDTO],
@@ -250,7 +247,6 @@ class BlueprintTransformer:
             mcp_audit_map: Map of audit trace ID to trace model.
             source_identity_manifest: Optional map of source ID to display names.
             execution: The execution record.
-            accumulated_extensions: Dictionary to accumulate grouped extensions.
 
         Returns:
             A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms).
@@ -474,13 +470,7 @@ class BlueprintTransformer:
                             ) from v_err
                 axis_level_breakdown = clean_level_dict
 
-            ext_data = matrix_payload.extensions
-            if isinstance(ext_data, dict):
-                ext_dict: dict[str, Any] = ext_data
-            elif ext_data is not None and hasattr(ext_data, "model_dump"):
-                ext_dict = ext_data.model_dump()
-            else:
-                ext_dict = {}
+            ext = matrix_payload.extensions
 
             if False:
                 if b_id not in row_explanations_cache:
@@ -665,15 +655,16 @@ class BlueprintTransformer:
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
                 row_explanation=self._clean_hallucinated_numbers(final_explanation),
-                evidence_type=self._coerce_str(ext_dict.get("evidence_type")),  # type: ignore[arg-type]
-                cited_source_id=self._coerce_str(ext_dict.get("source_id")),
-                cited_text_quote=self._coerce_str(ext_dict.get("citation")),
-                cited_web_citation=self._coerce_str(ext_dict.get("google_citation")),
-                confidence=self._coerce_float(ext_dict.get("confidence")),
-                contextual_override=self._coerce_bool(ext_dict.get("contextual_override")),
+                evidence_type=self._coerce_str(ext.evidence_type) if ext else None,  # type: ignore[arg-type]
+                cited_source_id=self._coerce_str(ext.source_id) if ext else None,
+                cited_text_quote=self._coerce_str(ext.citation) if ext else None,
+                cited_web_citation=self._coerce_str(ext.google_citation) if ext else None,
+                confidence=self._coerce_float(ext.confidence) if ext else None,
+                contextual_override=self._coerce_bool(ext.contextual_override) if ext else None,
                 semantic_reasoning=(
-                    self._coerce_str(ext_dict.get("semantic_reasoning"))
-                    or self._coerce_str(ext_dict.get("justification"))
+                    self._coerce_str(ext.semantic_reasoning)
+                    if ext and ext.semantic_reasoning
+                    else self._coerce_str(matrix_payload.justification)
                 ),
                 level_breakdown=axis_level_breakdown,
                 level_names=level_names,
@@ -686,21 +677,22 @@ class BlueprintTransformer:
                 inner_sdui_blocks=[],
             )
 
-            for ext_key, ext_val in ext_dict.items():
-                if ext_val:
-                    try:
-                        ext_enum = XaiExtensionType(ext_key)
-                        label_obj = profile.extension_labels.get(ext_enum)
+            if ext:
 
+                def _add_ext(key: str, val: Any, row_dto_ref: MatrixScorecardRowDTO) -> None:
+                    if not val:
+                        return
+                    try:
+                        ext_enum = XaiExtensionType(key)
+                        label_obj = profile.extension_labels.get(ext_enum)
                         if not label_obj:
                             raise ConfigurationError(
-                                f"Missing extension label configuration for {ext_key} in profile SSOT",
-                                details={"extension_key": ext_key},
+                                f"Missing extension label configuration for {key} in profile SSOT",
+                                details={"extension_key": key},
                             )
                         label_str = label_obj.resolve(locale)
 
-                        acc_severity: Literal["info", "warning", "critical_override", "success", "error"] = "success"
-                        icon_name = "lightbulb"
+                        acc_severity: Literal["info", "warning", "critical_override", "success", "error"] = "info"
                         if ext_enum in (
                             XaiExtensionType.FALSIFICATION,
                             XaiExtensionType.MISSING_CONTEXT,
@@ -708,51 +700,32 @@ class BlueprintTransformer:
                             XaiExtensionType.AUTHENTICITY_EVALUATION,
                         ):
                             acc_severity = "warning"
-                            icon_name = "balance"
                         elif ext_enum == XaiExtensionType.RISK_FLAG:
                             acc_severity = "error"
-                            icon_name = "warning"
                         elif ext_enum == XaiExtensionType.REMEDIATION_STEPS:
                             acc_severity = "success"
-                            icon_name = "build"
 
                         if ext_enum in profile.visible_block_extensions:
-                            lines = list(
-                                dict.fromkeys(line.strip() for line in str(ext_val).split("\n") if line.strip())
-                            )
-                            if not lines:
-                                continue
-
-                            child_blocks: list[AnySduiBlock] = []
+                            lines = list(dict.fromkeys(line.strip() for line in str(val).split("\n") if line.strip()))
                             for line in lines:
-                                child_blocks.append(
+                                row_dto_ref.inner_sdui_blocks.append(
                                     AlertBlock(
-                                        severity="info",
-                                        text=line,
+                                        severity=acc_severity,
+                                        text=f"**{label_str}**: {line}",
                                         exact_quotes=[],
                                         citations=[],
                                     )
                                 )
-
-                            accordion = AccordionBlock(
-                                title=label_str,
-                                severity=acc_severity,
-                                icon_name=icon_name,
-                                children=child_blocks,
-                            )
-                            row_dto.inner_sdui_blocks.append(accordion)
-                        else:
-                            if accumulated_extensions is not None:
-                                accumulated_extensions.setdefault(ext_key, []).append(
-                                    {
-                                        "severity": acc_severity,
-                                        "label_str": label_str,
-                                        "content": str(ext_val),
-                                        "source_claim": claim_label,
-                                    }
-                                )
                     except ValueError:
                         pass
+
+                _add_ext("coaching", ext.coaching, row_dto)
+                _add_ext("falsification", ext.falsification, row_dto)
+                _add_ext("remediation_steps", ext.remediation_steps, row_dto)
+                _add_ext("missing_context", ext.missing_context, row_dto)
+                _add_ext("emotional_sentiment", ext.emotional_sentiment, row_dto)
+                _add_ext("theory_link", ext.theory_link, row_dto)
+                _add_ext("risk_flag", ext.risk_flag, row_dto)
 
             unique_k = f"{step_id}_{b_id}"
             all_parsed_matrices[unique_k] = row_dto
@@ -797,86 +770,6 @@ class BlueprintTransformer:
     def _hydrate_printable_sources_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Placeholder for future printable sources hydration logic."""
         return [ParagraphBlock(text="Printable sources placeholder", exact_quotes=[], citations=[])]
-
-    def _hydrate_grouped_extensions_block(self, **kwargs: Any) -> list[AnySduiBlock]:
-        """Hydrates accumulated XAI extensions (e.g. coaching, citations) into the end of the report."""
-        profile = kwargs.get("profile")
-        execution = kwargs.get("execution")
-        locale = kwargs.get("locale", "en")
-
-        if not profile:
-            return []
-
-        # Epic 123: If AI Synthesis generated xai_highlights, they REPLACE the raw matrix extensions!
-        synthesis_cache = None
-        if execution and execution.profile_syntheses:
-            pid = profile.id if profile.id else "default"
-            synthesis_cache = execution.profile_syntheses.get(pid)
-
-        max_items = getattr(profile, "max_extension_items", 3)
-        sdui_blocks: list[AnySduiBlock] = []
-
-        if synthesis_cache and synthesis_cache.xai_highlights:
-            from backend_v2.models.enums import XaiExtensionType
-
-            # Group highlights by extension_type
-            grouped_highlights: dict[str, list[Any]] = {}
-            for h in synthesis_cache.xai_highlights:
-                grouped_highlights.setdefault(h.extension_type, []).append(h)
-
-            for ext_type, highlights in grouped_highlights.items():
-                if not highlights:
-                    continue
-
-                try:
-                    ext_enum = XaiExtensionType(ext_type)
-                    ext_label_i18n = profile.extension_labels.get(ext_enum)
-                    group_label_str = ext_label_i18n.resolve(locale) if ext_label_i18n else str(ext_type)
-                except Exception:
-                    group_label_str = str(ext_type)
-
-                lower_ext = ext_type.lower()
-                acc_severity = "success"
-                icon_name = "lightbulb"
-
-                if (
-                    "risk" in lower_ext
-                    or "falsification" in lower_ext
-                    or "penalty" in lower_ext
-                    or "counter" in lower_ext
-                ):
-                    acc_severity = "warning"
-                    icon_name = "balance"
-                elif "action" in lower_ext or "fix" in lower_ext or "correct" in lower_ext:
-                    acc_severity = "success"
-                    icon_name = "build"
-
-                items_to_render = highlights[:max_items]
-                child_blocks: list[AnySduiBlock] = []
-                for item in items_to_render:
-                    severity = "warning" if "risk" in lower_ext or "penalty" in lower_ext else "info"
-                    child_blocks.append(
-                        AlertBlock(
-                            severity=severity,  # type: ignore[arg-type]
-                            text=item.content,
-                            exact_quotes=[],
-                            citations=[],
-                        )
-                    )
-
-                sdui_blocks.append(
-                    AccordionBlock(
-                        title=group_label_str,
-                        severity=acc_severity,  # type: ignore[arg-type]
-                        icon_name=icon_name,
-                        children=child_blocks,
-                    )
-                )
-            return sdui_blocks
-
-        # Strict Requirement: "ei fallback missään tai ikinä"
-        # If there are no AI synthesized xai_highlights, we return nothing.
-        return []
 
     def _build_layouts(
         self,
@@ -1187,8 +1080,6 @@ class BlueprintTransformer:
         if profile_cache and profile_cache.row_curated_quotes:
             row_curated_quotes_cache = profile_cache.row_curated_quotes
 
-        accumulated_extensions: dict[str, list[dict[str, str]]] = {}
-
         evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms = (
             self._extract_matrices_and_extensions(
                 results=results,
@@ -1204,7 +1095,6 @@ class BlueprintTransformer:
                 mcp_audit_map=mcp_audit_map,
                 source_identity_manifest=None,
                 execution=execution,
-                accumulated_extensions=accumulated_extensions,
             )
         )
 
@@ -1772,7 +1662,6 @@ class BlueprintTransformer:
                                 penalties_applied=penalties_applied,
                                 mcp_audit_data=mcp_audit_data,
                                 global_score=global_score,
-                                accumulated_extensions=accumulated_extensions,
                                 profile=profile,
                             )
                             if hydrated_blocks:

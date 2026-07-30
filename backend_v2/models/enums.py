@@ -111,7 +111,6 @@ class TargetBlockType(StrEnum):
     AUDIT_TRAIL_BLOCK = "audit_trail_block"
     JARGON_RATIO_BLOCK = "jargon_ratio_block"
     PRINTABLE_SOURCES_BLOCK = "printable_sources_block"
-    GROUPED_EXTENSIONS_BLOCK = "grouped_extensions_block"
 
 
 class VisualIntent(StrEnum):
