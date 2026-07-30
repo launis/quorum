@@ -71,9 +71,9 @@
 - [x] **[OK]** Run full E2E UI verification against Backend/Frontend after Phase 6. (Performed manually by User)
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies. (Verified: No deprecated proxies exist)
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
@@ -159,6 +159,7 @@
 - Executed Tier 0 Research Plan for Phase 8. Red-teamed the localization verification plan. Mutated the plan to enforce Fail-Fast `ConfigurationError` instead of silent string fallbacks in `blueprint.py`, removed redundant natural language instructions in `linguistic_directives.py`, and explicitly mandated removing the hardcoded 'Käyttäjän Rooli' Finnish string from Enum localization flows and prompts.
 - Executed Tier 2 Execution Plan for Phase 8. Implemented ConfigurationError crash tests for missing labels. Updated tests to enforce strict `MarkdownBlock` models instead of legacy raw dicts. Verified Enum l10n mapping and anchoring mandates. Passed all Pytest, MyPy, and Ruff quality gates.
 - Successfully executed Phase 8 Post-Implementation Audit (`tier8-audit-plan`). Verified all Phase 8 requirements mathematically using `backend_audit_loop.py` which passed 1170 unit tests, including explicit `ConfigurationError` crash assertions. Verified that Enum mappings and prompt anchoring mandates were respected.
+
 ## Learned
 - **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 
 - Python AST script parsing is vastly superior to `multi_replace_file_content` for stripping unicode prefixes in large JSONs.
@@ -167,10 +168,23 @@
 - The prompt directives had redundant instructions that violated the XML structural sovereignty mandate. String fallbacks for Enum translations silently mask misconfigurations and must be replaced with strict `ConfigurationError` crashes. 'Käyttäjän Rooli' was hardcoded inside the `seed_data.json` system prompt for the coach.
 - Phase 8 audit confirmed that eradicating dynamic string manipulation for translation ensures Fail-Fast strictness via `ConfigurationError` without sacrificing localization flexibility.
 
-## Remaining
-- Execute Proxy Sunset & Consumer Migration.
-- Complete Post-Implementation Gates (`/tier2-hardening-backend`, `/tier2-hardening-frontend`, `/tier7-describe-architecture`, `/tier8-audit-epic`).
+## Session Handover Context
+
+### Achieved
+- Verified and completed "Proxy Sunset & Consumer Migration". Found no deprecated proxies or obsolete imports in the codebase remaining from Phase 5.
+- Executed the full Tier 2 Python Backend Hardening loop on all modified files (`v2_core.py`, `sdui.py`, `enums.py`, `trace.py`, `blueprint.py`, `sdui_mapper_service.py`).
+- All 6 backend files achieved 100% compliance with Quorum V2 Phase 9 standards, zero strictness failures, and passed the backend audit loop natively without needing red-green refactors.
+- Executed the full Tier 2 Flutter Frontend Hardening loop on all 9 explicitly modified files (`enums.dart`, `matrix_scorecard_dto.dart`, `report_data_v2_dto.dart`, `sdui_block_dto.dart`, `matrix_row_item_widget.dart`, `report_renderer_v2_widget.dart`, `sdui_blocks_renderer.dart`, `xai_axis_telemetry_grid.dart`, `xai_evidence_box.dart`).
+- Replaced magic spacing and color variables with centralized design tokens (`AppSpacing` and `AppColors`) across all UI widgets, enforcing the `design_token_absolute_rule`.
+- Eradicated all `internal_language_and_epic_ban` violations, including Finnish comments and hardcoded 'Epic' tracking strings.
+- All 9 Flutter files achieved 100% compliance with Phase 9 standards and passed the flutter audit loop natively.
+
+### Learned
+- The `TargetBlockType.GROUPED_EXTENSIONS_BLOCK` inside `blueprint.py` and `seed_data.json` is still actively used to render `xai_highlights` (which replaced legacy matrix extensions), meaning it is functionally correct and not a deprecated proxy.
+- The `v2_core.py` models are deeply fortified and fully adherent to strict `ConfigDict(frozen=True)` and native Rust coercion pipelines.
+
+### Remaining
+- Complete the final Pre-Delete Audit, Semantic Coverage (Mathematically verify line coverage >90%), and MANDATORY Final E2E REST API Verification Gate.
 
 ## Resume Command
 `/tier5-resume --workflow=/tier0-create-plan --target="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
-
