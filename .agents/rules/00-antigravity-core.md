@@ -119,7 +119,7 @@
     </rule_block>
     <rule_block id="database_schema_hallucination">
         <banned_pattern>Autonomously migrating relational SSOT arrays (like `output_profiles`) into embedded nested structures inside other objects (like `workflows`) within `seed_data.json` based on assumptions about Pydantic attributes.</banned_pattern>
-        <mandatory_pattern>The SSOT structure in `seed_data.json` is immutable architectural law. Backend Pydantic models may define nested types (e.g., `EmbeddedOutputProfile`) for API responses or dynamic stitching (e.g., in `studio.py`), but you MUST NEVER physically alter the root persistence arrays in the `seed_data.json` SSOT to match these API shapes without an explicit roadmap mandate.</mandatory_pattern>
+        <mandatory_pattern>The SSOT structure in `seed_data.json` is immutable architectural law. If an API response requires nested data (e.g., workflows containing output_profiles), you MUST build a DTO (e.g., `WorkflowResponseDTO`) rather than embedding anti-pattern duplicate models into the Domain layer or the `seed_data.json`. You MUST NEVER physically alter the root persistence arrays in the `seed_data.json` SSOT to match dynamic API shapes without an explicit roadmap mandate.</mandatory_pattern>
         <catastrophic_reason>Forcing dynamic API structures into static persistence layers breaks Single Source of Truth integrity, crashes Frontend UIs relying on global collections, and causes cascading data corruption across the system.</catastrophic_reason>
     </rule_block>
     <rule_block id="dependency_hallucination_firewall">

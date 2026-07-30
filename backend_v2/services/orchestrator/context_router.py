@@ -99,7 +99,7 @@ class ContextRouter:
                 if ext in validated_trace.extensions:
                     extensions_extracted[ext] = str(validated_trace.extensions[ext])
                 else:
-                    logger.warning("Missing XAI extension: %s. Skipping and omitting from trace.", ext)
+                    logger.debug("Missing XAI extension: %s. Skipping and omitting from trace.", ext)
                     continue
         else:
             # Fallback to include all extensions if no profile is explicitly provided during execution
