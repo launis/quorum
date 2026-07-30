@@ -3,6 +3,7 @@ import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/features/execution/models/tda_state.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_blocks_renderer.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 /// Renders a single matrix row enforcing the Zero-Math UI mandate.
 class MatrixRowItemWidget extends StatelessWidget {
@@ -23,8 +24,11 @@ class MatrixRowItemWidget extends StatelessWidget {
         : theme.colorScheme.surfaceContainerLow;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8.0),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      margin: const EdgeInsets.only(bottom: AppSpacing.s8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s16,
+        vertical: AppSpacing.s12,
+      ),
       decoration: BoxDecoration(
         color: bgColor,
         border: Border.all(
@@ -34,7 +38,7 @@ class MatrixRowItemWidget extends StatelessWidget {
               ? theme.colorScheme.outlineVariant
               : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,7 +58,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                   ),
                 ),
                 if (matrix.rowExplanation.isNotEmpty) ...[
-                  const SizedBox(height: 8.0),
+                  AppSpacing.h8,
                   Text(
                     AppLocalizations.of(context)!.xaiJustification,
                     style: theme.textTheme.labelSmall?.copyWith(
@@ -64,7 +68,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                           : theme.colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 2.0),
+                  AppSpacing.h2,
                   Text(
                     matrix.rowExplanation,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -76,7 +80,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                   ),
                 ],
                 if (isDlq) ...[
-                  const SizedBox(height: 8.0),
+                  AppSpacing.h8,
                   Tooltip(
                     message: (matrix.tdaState as Dlq).backendTrace,
                     child: Row(
@@ -87,7 +91,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                           size: 16,
                           color: Colors.orange.shade800,
                         ),
-                        const SizedBox(width: 4),
+                        AppSpacing.w4,
                         Text(
                           (matrix.tdaState as Dlq).userReason,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -99,16 +103,16 @@ class MatrixRowItemWidget extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 8.0),
+                AppSpacing.h8,
                 _buildLevelRow(context),
                 if (matrix.innerSduiBlocks.isNotEmpty) ...[
-                  const SizedBox(height: 12.0),
+                  AppSpacing.h12,
                   SduiBlocksRenderer(blocks: matrix.innerSduiBlocks),
                 ],
               ],
             ),
           ),
-          const SizedBox(width: 16.0),
+          AppSpacing.w16,
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
@@ -151,21 +155,24 @@ class MatrixRowItemWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final levelMap = matrix.levelBreakdown ?? {};
 
-    // Epic 24: Dynamic level rendering instead of hardcoded 1-6
+    // Dynamic level rendering instead of hardcoded 1-6
     final keys = levelMap.keys.toList()..sort();
 
     return Wrap(
-      spacing: 8.0,
-      runSpacing: 4.0,
+      spacing: AppSpacing.s8,
+      runSpacing: AppSpacing.s4,
       children: keys.map((k) {
         final display = levelMap[k]!;
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s6,
+            vertical: AppSpacing.s2,
+          ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             border: Border.all(color: theme.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(4.0),
+            borderRadius: BorderRadius.circular(AppSpacing.s4),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -176,7 +183,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 4),
+              AppSpacing.w4,
               Text(
                 display,
                 style: theme.textTheme.bodySmall?.copyWith(
