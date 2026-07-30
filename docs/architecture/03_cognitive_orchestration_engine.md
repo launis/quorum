@@ -27,6 +27,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Complex workflows require iterative decomposition and execution.
 - **Enforcement:** The orchestrator employs Two-Pass Atomization to break down high-level tasks into atomic steps. These atomic units are then routed through a DAG (Directed Acyclic Graph) Engine, ensuring dependencies are resolved correctly before dispatching to the Cognitive Execution Engines (such as TDA and Synthesis engines).
 
+### 2.6. Background Execution & Celery Workers
+- **Law:** Heavy cognitive executions must never block the synchronous HTTP request-response cycle.
+- **Enforcement:** The system strictly decouples API entry points from LLM execution utilizing a background worker (`worker.py`). The synchronous FastAPI routes must instantly return an `Execution ID` or a `202 Accepted` status. The orchestration DAG, LLM multiplexing, and heavy synthesis are executed asynchronously by the worker pool, reporting state progression back via the `ExecutionStatus` enum.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

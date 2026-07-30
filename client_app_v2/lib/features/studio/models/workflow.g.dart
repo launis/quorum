@@ -196,6 +196,8 @@ const _$SduiBlockTypeEnumMap = {
   SduiBlockType.quoteCard: 'quote_card',
   SduiBlockType.nACard: 'n_a_card',
   SduiBlockType.grid: 'grid',
+  SduiBlockType.accordion: 'accordion',
+  SduiBlockType.header: 'header',
 };
 
 NodeStrategyLlm _$NodeStrategyLlmFromJson(

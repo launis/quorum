@@ -45,12 +45,24 @@
 
     <module path="backend_v2/api/routers/">
         <responsibility>HTTP REST ENDPOINTS ONLY</responsibility>
-        <key_domains>execution/, iam/, studio/, system/, output_profiles.py</key_domains>
+        <key_domains>execution/, iam/ (Auth Orphan), studio/, system/, output_profiles.py</key_domains>
     </module>
     
     <module path="backend_v2/services/">
-        <responsibility>CORE BUSINESS LOGIC & ORCHESTRATION (PILLAR 3 & PILLAR 6)</responsibility>
-        <key_domains>blueprint.py, studio/ (Ontology), execution.py, auth.py, orchestrator/ (engines/, strategies/, DAG logic), mcp/, document_extraction.py, web_fetcher.py, sdui_mapper_service.py, pdf_generator.py, pii_analyzer.py, usage_service.py, progress.py, translation_service.py, chat_parser.py, source_verification_service.py</key_domains>
+        <responsibility>DECOUPLED PILLAR CAPABILITIES</responsibility>
+        <key_domains>
+          - Pillar 2 (Ontology): studio/, translation_service.py
+          - Pillar 3 (Orchestration): execution.py, web_fetcher.py, mcp/, orchestrator/ (engines/, strategies/, DAG logic)
+          - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py
+          - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py
+          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, source_verification_service.py
+          - Orphan (Missing Capability): auth.py
+        </key_domains>
+    </module>
+    
+    <module path="backend_v2/worker.py">
+        <responsibility>BACKGROUND EXECUTION (PILLAR 3)</responsibility>
+        <key_domains>Celery async task processing and DAG initiation</key_domains>
     </module>
     
     <module path="backend_v2/models/">
@@ -90,7 +102,7 @@
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Admin Canvas), execution/ (Dashboards, SDUI Freezed DTOs: matrix_scorecard_dto.dart, report_layout_dto.dart), auth/</key_domains>
+        <key_domains>studio/ (Pillar 2), execution/ (Pillar 4 SDUI Dashboards & DTOs), auth/ (Orphan)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">

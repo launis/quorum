@@ -241,6 +241,10 @@ enum SduiBlockType {
   nACard,
   @JsonValue('grid')
   grid,
+  @JsonValue('accordion')
+  accordion,
+  @JsonValue('header')
+  header,
 }
 
 /// UI intent mapping for SDUI visual rendering.
