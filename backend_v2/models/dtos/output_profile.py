@@ -249,6 +249,8 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     user_role_label: I18nText | None = None
     tone_instruction: I18nText | None = None
     language: str | None = None
+    user_role_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
+    extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
 
     visible_metadata: Annotated[
         list[str], Field(default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"])

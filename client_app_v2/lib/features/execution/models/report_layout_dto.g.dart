@@ -26,7 +26,6 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(
         'synthesis_blocks',
         'matrix_visible_columns',
         'matrix_column_labels',
-        'extension_labels',
       ],
     );
     final val = _ReportLayoutDto(
@@ -103,15 +102,6 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(
             ) ??
             const {},
       ),
-      extensionLabels: $checkedConvert(
-        'extension_labels',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ) ??
-            const {},
-      ),
     );
     return val;
   },
@@ -123,7 +113,6 @@ _ReportLayoutDto _$ReportLayoutDtoFromJson(
     'synthesisBlocks': 'synthesis_blocks',
     'matrixVisibleColumns': 'matrix_visible_columns',
     'matrixColumnLabels': 'matrix_column_labels',
-    'extensionLabels': 'extension_labels',
   },
 );
 
@@ -141,9 +130,6 @@ Map<String, dynamic> _$ReportLayoutDtoToJson(
   'synthesis_blocks': instance.synthesisBlocks?.map((e) => e.toJson()).toList(),
   'matrix_visible_columns': instance.matrixVisibleColumns,
   'matrix_column_labels': instance.matrixColumnLabels.map(
-    (k, e) => MapEntry(k, e.toJson()),
-  ),
-  'extension_labels': instance.extensionLabels.map(
     (k, e) => MapEntry(k, e.toJson()),
   ),
 };

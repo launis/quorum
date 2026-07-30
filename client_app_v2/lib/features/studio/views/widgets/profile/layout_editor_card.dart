@@ -532,14 +532,6 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
             updateLayout(layout.copyWith(matrixColumnLabels: newMap));
           },
         ),
-        AppSpacing.h16,
-        _DictionaryMapEditor(
-          title: 'Extension Labels',
-          map: layout.extensionLabels,
-          onChanged: (newMap) {
-            updateLayout(layout.copyWith(extensionLabels: newMap));
-          },
-        ),
       ],
     );
   }

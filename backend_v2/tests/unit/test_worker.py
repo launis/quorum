@@ -93,7 +93,9 @@ async def test_execute_workflow_job_success() -> None:
     assert inputs["user_id"] == "usr_1"
     mock_engine.execute_workflow.assert_called_once()
     mock_repo.update_execution.assert_called_once()
-    ctx["redis"].enqueue_job.assert_called_once_with("render_profile_job", "exe_1234567890123456", profile_id="prof_1")
+    ctx["redis"].enqueue_job.assert_called_once_with(
+        "render_profile_job", "exe_1234567890123456", accept_language="fi", profile_id="prof_1"
+    )
 
 
 @pytest.mark.asyncio
@@ -143,6 +145,19 @@ async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
 
             await generate_profile_synthesis_and_pdf_task("exe_1234567890123456", "en")
             mock_repo.get_execution.assert_called_once_with("exe_1234567890123456")
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_and_pdf_task_missing_language() -> None:
+    from backend_v2.worker import generate_profile_synthesis_and_pdf_task
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.enums import ErrorCodes
+
+    with pytest.raises(AppException) as exc_info:
+        await generate_profile_synthesis_and_pdf_task("exe_1234567890123456", None)
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "accept_language" in exc_info.value.message
 
 
 @pytest.mark.asyncio

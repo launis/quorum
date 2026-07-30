@@ -28,7 +28,6 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'scoring_strategy',
         'matrix_column_labels',
         'matrix_visible_columns',
-        'extension_labels',
       ],
     );
     final val = _OutputLayoutBlock(
@@ -110,15 +109,6 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
-      extensionLabels: $checkedConvert(
-        'extension_labels',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ) ??
-            const {},
-      ),
     );
     return val;
   },
@@ -132,7 +122,6 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     'scoringStrategy': 'scoring_strategy',
     'matrixColumnLabels': 'matrix_column_labels',
     'matrixVisibleColumns': 'matrix_visible_columns',
-    'extensionLabels': 'extension_labels',
   },
 );
 
@@ -154,9 +143,6 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(
     (k, e) => MapEntry(k, e.toJson()),
   ),
   'matrix_visible_columns': instance.matrixVisibleColumns,
-  'extension_labels': instance.extensionLabels.map(
-    (k, e) => MapEntry(k, e.toJson()),
-  ),
 };
 
 const _$PresetViewEnumMap = {
@@ -326,6 +312,8 @@ _OutputProfile _$OutputProfileFromJson(
         'scoring_strategy',
         'tone_instruction',
         'language',
+        'user_role_mappings',
+        'extension_labels',
         'layouts',
         'content_blocks',
       ],
@@ -404,6 +392,24 @@ _OutputProfile _$OutputProfileFromJson(
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       language: $checkedConvert('language', (v) => v as String?),
+      userRoleMappings: $checkedConvert(
+        'user_role_mappings',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) =>
+                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+            ) ??
+            const {},
+      ),
+      extensionLabels: $checkedConvert(
+        'extension_labels',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) =>
+                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+            ) ??
+            const {},
+      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -439,6 +445,8 @@ _OutputProfile _$OutputProfileFromJson(
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
+    'userRoleMappings': 'user_role_mappings',
+    'extensionLabels': 'extension_labels',
     'contentBlocks': 'content_blocks',
   },
 );
@@ -468,6 +476,12 @@ Map<String, dynamic> _$OutputProfileToJson(
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
+  'user_role_mappings': instance.userRoleMappings.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
+  'extension_labels': instance.extensionLabels.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
 };
@@ -512,6 +526,8 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'scoring_strategy',
         'tone_instruction',
         'language',
+        'user_role_mappings',
+        'extension_labels',
         'layouts',
         'content_blocks',
       ],
@@ -580,6 +596,24 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       language: $checkedConvert('language', (v) => v as String?),
+      userRoleMappings: $checkedConvert(
+        'user_role_mappings',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) =>
+                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+            ) ??
+            const {},
+      ),
+      extensionLabels: $checkedConvert(
+        'extension_labels',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) =>
+                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+            ) ??
+            const {},
+      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -613,6 +647,8 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
+    'userRoleMappings': 'user_role_mappings',
+    'extensionLabels': 'extension_labels',
     'contentBlocks': 'content_blocks',
   },
 );
@@ -638,6 +674,12 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
+  'user_role_mappings': instance.userRoleMappings.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
+  'extension_labels': instance.extensionLabels.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
 };

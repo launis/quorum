@@ -1345,6 +1345,14 @@ class EmbeddedOutputProfile(V2CoreBase):
     )
     language: str | None = Field(default=None, description="Target output language.")
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+    user_role_mappings: dict[str, I18nText] = Field(
+        default_factory=dict,
+        description="Localized values for RoleClassification enum values.",
+    )
+    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
+        default_factory=dict,
+        description="Localized labels for global XAI highlights.",
+    )
 
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],

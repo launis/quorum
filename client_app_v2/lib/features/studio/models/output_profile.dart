@@ -42,9 +42,6 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     @JsonKey(name: 'matrix_visible_columns')
     @Default([])
     List<String> matrixVisibleColumns,
-    @JsonKey(name: 'extension_labels')
-    @Default({})
-    Map<String, I18nText> extensionLabels,
   }) = _OutputLayoutBlock;
 
   factory OutputLayoutBlock.fromJson(Map<String, dynamic> json) =>
@@ -106,6 +103,12 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     String? language,
+    @JsonKey(name: 'user_role_mappings')
+    @Default({})
+    Map<String, I18nText> userRoleMappings,
+    @JsonKey(name: 'extension_labels')
+    @Default({})
+    Map<String, I18nText> extensionLabels,
     @Default([]) List<OutputLayoutBlock> layouts,
     @JsonKey(name: 'content_blocks')
     @Default([])
@@ -138,6 +141,12 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     String? language,
+    @JsonKey(name: 'user_role_mappings')
+    @Default({})
+    Map<String, I18nText> userRoleMappings,
+    @JsonKey(name: 'extension_labels')
+    @Default({})
+    Map<String, I18nText> extensionLabels,
     @Default([]) List<OutputLayoutBlock> layouts,
     @JsonKey(name: 'content_blocks')
     @Default([])
