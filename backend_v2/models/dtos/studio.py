@@ -24,6 +24,12 @@ class WorkflowResponseDTO(BaseResponseDTO, Workflow):
     organization_id: Annotated[
         str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
     ]
+    output_profiles: Annotated[
+        dict[str, OutputProfile],
+        Field(
+            default_factory=dict, description="Dictionary of fully hydrated OutputProfiles attached to this workflow."
+        ),
+    ]
 
 
 class StepResponseDTO(BaseResponseDTO, Step):

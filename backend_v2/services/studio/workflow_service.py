@@ -14,8 +14,8 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.dtos.studio import WorkflowResponseDTO
 from backend_v2.models.v2_core import (
-    EmbeddedOutputProfile,
     PromptBlock,
     Step,
     Workflow,
@@ -49,7 +49,7 @@ class StudioWorkflowService:
         self.output_profile_repo = output_profile_repo
         self.prompt_block_repo = prompt_block_repo
 
-    async def _stitch_profiles_to_workflows(self, workflows: list[Workflow]) -> list[Workflow]:
+    async def _stitch_profiles_to_workflows(self, workflows: list[Workflow]) -> list[WorkflowResponseDTO]:
         """Stitch profiles to workflows.
 
         Args:
@@ -61,32 +61,21 @@ class StudioWorkflowService:
         all_profiles_data = await self.output_profile_repo.get_all_output_profiles()
         all_profiles = [OutputProfile.model_validate(p, strict=False) for p in all_profiles_data]
 
+        response_dtos = []
         for wf in workflows:
             attached = {}
             for p in all_profiles:
                 if p.workflow_id == wf.id or p.workflow_id == "*":
-                    attached[p.id] = EmbeddedOutputProfile(
-                        name=p.name,
-                        description=p.description,
-                        custom_preface=p.custom_preface,
-                        visible_metadata=list(p.visible_metadata),
-                        visible_block_extensions=list(p.visible_block_extensions),
-                        visible_workflow_extensions=list(p.visible_workflow_extensions),
-                        max_extension_items=p.max_extension_items,
-                        display_scale=p.display_scale,
-                        include_diagnostic_scorecard=p.include_diagnostic_scorecard,
-                        strictness_level=p.strictness_level,
-                        scoring_strategy=p.scoring_strategy,
-                        layouts=list(p.layouts),
-                    )
+                    attached[p.id] = p
 
-            if not isinstance(wf.output_profiles, dict):
-                wf.output_profiles = {}
-            wf.output_profiles.update(attached)
+            wf_dict = wf.model_dump(mode="json")
+            wf_dict["output_profiles"] = attached
+            dto = WorkflowResponseDTO.model_validate(wf_dict, strict=False)
+            response_dtos.append(dto)
 
-        return workflows
+        return response_dtos
 
-    async def list_workflows(self, initiator: TokenData) -> list[Workflow]:
+    async def list_workflows(self, initiator: TokenData) -> list[WorkflowResponseDTO]:
         """List workflows.
 
         Args:
@@ -124,7 +113,7 @@ class StudioWorkflowService:
         filtered = [x for x in workflows if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
         return await self._stitch_profiles_to_workflows(filtered)
 
-    async def get_workflow(self, initiator: TokenData, id: str) -> Workflow:
+    async def get_workflow(self, initiator: TokenData, id: str) -> WorkflowResponseDTO:
         """Get workflow.
 
         Args:
@@ -186,7 +175,7 @@ class StudioWorkflowService:
 
         return sorted(list(extensions))
 
-    async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
+    async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> WorkflowResponseDTO:
         """Save workflow.
 
         Args:
@@ -218,7 +207,9 @@ class StudioWorkflowService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
-        return Workflow.model_validate(saved, strict=False)
+        wf = Workflow.model_validate(saved, strict=False)
+        stitched = await self._stitch_profiles_to_workflows([wf])
+        return stitched[0]
 
     async def delete_workflow(self, initiator: TokenData, id: str) -> None:
         """Delete workflow.
@@ -244,7 +235,7 @@ class StudioWorkflowService:
         enforce_modification_rights(initiator, wf.organization_id)
         await self.workflow_repo.delete_workflow(id)
 
-    async def create_workflow_draft(self, initiator: TokenData) -> Workflow:
+    async def create_workflow_draft(self, initiator: TokenData) -> WorkflowResponseDTO:
         """Create workflow draft.
 
         Args:
@@ -273,7 +264,7 @@ class StudioWorkflowService:
         draft = Workflow.model_validate(draft_dict, strict=False)
         return await self.save_workflow(initiator, new_id, draft)
 
-    async def clone_workflow(self, initiator: TokenData, id: str) -> Workflow:
+    async def clone_workflow(self, initiator: TokenData, id: str) -> WorkflowResponseDTO:
         """Clone workflow.
 
         Args:

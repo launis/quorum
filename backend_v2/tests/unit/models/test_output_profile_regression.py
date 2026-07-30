@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-from backend_v2.models.v2_core import EmbeddedOutputProfile
+from backend_v2.models.v2_core import OutputProfile
 
 
 def test_output_profile_response_dto_schema_parity() -> None:
@@ -24,7 +24,7 @@ def test_output_profile_response_dto_schema_parity() -> None:
 
 
 def test_embedded_output_profile_schema_parity() -> None:
-    """Proof of success: EmbeddedOutputProfile should accept extension_labels and user_role_mappings."""
+    """Proof of success: OutputProfile should accept extension_labels and user_role_mappings."""
     payload = {
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "layouts": [],
@@ -33,7 +33,7 @@ def test_embedded_output_profile_schema_parity() -> None:
     }
 
     # This should now pass without raising extra_forbidden
-    EmbeddedOutputProfile.model_validate(payload)
+    OutputProfile.model_validate(payload)
 
 
 def test_output_profile_response_dto_negative_extra_keys() -> None:
@@ -59,5 +59,5 @@ def test_embedded_output_profile_negative_wrong_type() -> None:
         "user_role_mappings": [{"ROLE_ARCHITECT": {"default_locale": "en", "translations": {"en": "Navigator"}}}],
     }
     with pytest.raises(ValidationError) as exc_info:
-        EmbeddedOutputProfile.model_validate(payload)
+        OutputProfile.model_validate(payload)
     assert "Input should be a valid dictionary" in str(exc_info.value)

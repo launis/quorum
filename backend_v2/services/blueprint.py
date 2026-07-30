@@ -36,7 +36,6 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
-    EmbeddedOutputProfile,
     I18nText,
     MatrixScorecardRowDTO,
     MCPAuditTrace,
@@ -221,7 +220,7 @@ class BlueprintTransformer:
         locale: str,
         blocks_by_id: dict[str, PromptBlock],
         workflow_steps: dict[str, Any],
-        profile: OutputProfile | EmbeddedOutputProfile,
+        profile: OutputProfile,
         row_explanations_cache: dict[str, str],
         workflow_ext_values: list[str],
         row_curated_quotes_cache: dict[str, list[str]],
@@ -691,7 +690,7 @@ class BlueprintTransformer:
                 if ext_val:
                     try:
                         ext_enum = XaiExtensionType(ext_key)
-                        label_obj = getattr(profile, "extension_labels", {}).get(ext_enum)
+                        label_obj = profile.extension_labels.get(ext_enum)
 
                         if not label_obj:
                             raise ConfigurationError(
@@ -700,32 +699,53 @@ class BlueprintTransformer:
                             )
                         label_str = label_obj.resolve(locale)
 
-                        severity: Literal["info", "warning", "critical_override", "success", "error"] = "info"
+                        acc_severity: Literal["info", "warning", "critical_override", "success", "error"] = "success"
+                        icon_name = "lightbulb"
                         if ext_enum in (
                             XaiExtensionType.FALSIFICATION,
                             XaiExtensionType.MISSING_CONTEXT,
                             XaiExtensionType.VARIANCE_VALIDATION,
                             XaiExtensionType.AUTHENTICITY_EVALUATION,
                         ):
-                            severity = "warning"
+                            acc_severity = "warning"
+                            icon_name = "balance"
                         elif ext_enum == XaiExtensionType.RISK_FLAG:
-                            severity = "error"
+                            acc_severity = "error"
+                            icon_name = "warning"
                         elif ext_enum == XaiExtensionType.REMEDIATION_STEPS:
-                            severity = "success"
+                            acc_severity = "success"
+                            icon_name = "build"
 
                         if ext_enum in profile.visible_block_extensions:
-                            alert = AlertBlock(
-                                severity=severity,
-                                text=f"**{label_str}**: {ext_val}",
-                                exact_quotes=[],
-                                citations=[],
+                            lines = list(
+                                dict.fromkeys(line.strip() for line in str(ext_val).split("\n") if line.strip())
                             )
-                            row_dto.inner_sdui_blocks.append(alert)
+                            if not lines:
+                                continue
+
+                            child_blocks: list[AnySduiBlock] = []
+                            for line in lines:
+                                child_blocks.append(
+                                    AlertBlock(
+                                        severity="info",
+                                        text=line,
+                                        exact_quotes=[],
+                                        citations=[],
+                                    )
+                                )
+
+                            accordion = AccordionBlock(
+                                title=label_str,
+                                severity=acc_severity,
+                                icon_name=icon_name,
+                                children=child_blocks,
+                            )
+                            row_dto.inner_sdui_blocks.append(accordion)
                         else:
                             if accumulated_extensions is not None:
                                 accumulated_extensions.setdefault(ext_key, []).append(
                                     {
-                                        "severity": severity,
+                                        "severity": acc_severity,
                                         "label_str": label_str,
                                         "content": str(ext_val),
                                         "source_claim": claim_label,
@@ -939,14 +959,6 @@ class BlueprintTransformer:
                         extension_labels=profile_extension_labels,
                     )
                 )
-        if not layouts_list and all_parsed_matrices:
-            layouts_list.append(
-                ReportLayoutDTO(
-                    preset_view="default",
-                    axes=list(all_parsed_matrices.values()),
-                )
-            )
-
         return layouts_list
 
     async def build_report_dto(
@@ -1383,8 +1395,19 @@ class BlueprintTransformer:
 
         try:
             layouts_list = self._build_layouts(
-                profile.layouts, all_parsed_matrices, section_syntheses, getattr(profile, "extension_labels", {})
+                profile.layouts, all_parsed_matrices, section_syntheses, profile.extension_labels
             )
+
+            if not layouts_list:
+                layouts_list = [
+                    ReportLayoutDTO(
+                        title=I18nText(
+                            default_locale="en", translations={"en": "Default Layout", "fi": "Oletusasettelu"}
+                        ),
+                        preset_view="3d_matrix",
+                        axes=evaluative_matrices,
+                    )
+                ]
 
             injected = False
             if synthesis_block_id and content_blocks:

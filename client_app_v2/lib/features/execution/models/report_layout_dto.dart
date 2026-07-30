@@ -38,6 +38,9 @@ abstract class ReportLayoutDto with _$ReportLayoutDto {
     @JsonKey(name: 'matrix_column_labels')
     @Default({})
     Map<String, I18nText> matrixColumnLabels,
+    @JsonKey(name: 'extension_labels')
+    @Default({})
+    Map<String, I18nText> extensionLabels,
   }) = _ReportLayoutDto;
 
   factory ReportLayoutDto.fromJson(Map<String, dynamic> json) =>

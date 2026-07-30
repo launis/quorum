@@ -26,7 +26,6 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
-    EmbeddedOutputProfile,
     ExecutionRecord,
     FrozenContext,
     PromptBlock,
@@ -327,23 +326,7 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 )
 
-            p = OutputProfile.model_validate(profile_data, strict=False)
-            output_profile = EmbeddedOutputProfile(
-                name=p.name,
-                description=p.description,
-                custom_preface=p.custom_preface,
-                language=p.language,
-                tone_instruction=p.tone_instruction,
-                visible_metadata=list(p.visible_metadata),
-                visible_block_extensions=list(p.visible_block_extensions),
-                visible_workflow_extensions=list(p.visible_workflow_extensions),
-                max_extension_items=p.max_extension_items,
-                display_scale=p.display_scale,
-                include_diagnostic_scorecard=p.include_diagnostic_scorecard,
-                strictness_level=p.strictness_level,
-                scoring_strategy=p.scoring_strategy,
-                layouts=list(p.layouts),
-            )
+            output_profile = OutputProfile.model_validate(profile_data, strict=False)
 
         schema_map: dict[str, str] = {}
         blueprint_labels: dict[str, str] = {}

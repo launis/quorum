@@ -281,7 +281,8 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
     dto = await transformer.build_report_dto("exe_0000000000000002")
 
     assert isinstance(dto, ReportDataDTO)
-    assert len(dto.layouts) == 0
+    assert len(dto.layouts) == 1
+    assert dto.layouts[0].preset_view == "3d_matrix"
 
 
 @pytest.fixture
@@ -1113,14 +1114,19 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
     assert len(dto.layouts) > 0
     matrix = dto.layouts[0].axes[0]
 
-    alert_blocks = [b for b in matrix.inner_sdui_blocks if isinstance(b, AlertBlock)]
-    assert len(alert_blocks) == 2
+    from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
+    accordion_blocks = [b for b in matrix.inner_sdui_blocks if getattr(b, "block_type", "") == "accordion"]
+    assert len(accordion_blocks) == 2
 
-    remediation_alert = next((b for b in alert_blocks if b.severity == "success"), None)
+    remediation_accordion = next((b for b in accordion_blocks if b.severity == "success"), None)
+    assert remediation_accordion is not None
+    remediation_alert = next((b for b in remediation_accordion.children if isinstance(b, AlertBlock)), None)
     assert remediation_alert is not None
     assert "Do this to fix" in remediation_alert.text
 
-    risk_alert = next((b for b in alert_blocks if b.severity == "error"), None)
+    risk_accordion = next((b for b in accordion_blocks if b.severity == "error"), None)
+    assert risk_accordion is not None
+    risk_alert = next((b for b in risk_accordion.children if isinstance(b, AlertBlock)), None)
     assert risk_alert is not None
     assert "True" in risk_alert.text
 
@@ -1168,13 +1174,17 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     dto = await transformer.build_report_dto("exe_0000000000000016", accept_language="en")
     matrix = dto.layouts[0].axes[0]
 
-    alert_blocks = [b for b in matrix.inner_sdui_blocks if isinstance(b, AlertBlock)]
-    assert len(alert_blocks) == 1
+    accordion_blocks = [b for b in matrix.inner_sdui_blocks if getattr(b, "block_type", "") == "accordion"]
+    assert len(accordion_blocks) == 1
 
-    coaching_alert = alert_blocks[0]
-    assert coaching_alert.severity == "info"
+    coaching_accordion = accordion_blocks[0]
+    assert coaching_accordion.severity == "success"
     # It should fallback to title casing or default locale if missing.
-    assert "Coaching" in coaching_alert.text
+    assert "Coaching" in coaching_accordion.title
+    
+    coaching_alert = next((b for b in coaching_accordion.children if isinstance(b, AlertBlock)), None)
+    assert coaching_alert is not None
+    assert coaching_alert.severity == "info"
 
 
 @pytest.mark.asyncio

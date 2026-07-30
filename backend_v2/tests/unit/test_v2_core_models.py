@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
-from backend_v2.models.v2_core import EmbeddedOutputProfile, ExecutionRecord, MCPAuditTrace, PromptBlock
+from backend_v2.models.v2_core import OutputProfile, ExecutionRecord, MCPAuditTrace, PromptBlock
 
 
 def test_prompt_block_fail_fast_on_corrupt_type() -> None:
@@ -48,7 +48,7 @@ def test_embedded_output_profile_description_parsing() -> None:
         "display_scale": "original",
         "layouts": [],
     }
-    profile_success = EmbeddedOutputProfile.model_validate(valid_data)
+    profile_success = OutputProfile.model_validate(valid_data)
     assert profile_success.description is not None
     assert profile_success.description.get("en") == "A valid description"
 
@@ -59,7 +59,7 @@ def test_embedded_output_profile_description_parsing() -> None:
         "display_scale": "original",
     }
     with pytest.raises(ValidationError) as exc_info:
-        EmbeddedOutputProfile.model_validate(invalid_data)
+        OutputProfile.model_validate(invalid_data)
     assert "Input should be a valid dictionary" in str(exc_info.value)
 
 

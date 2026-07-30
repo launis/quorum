@@ -75,7 +75,6 @@ __all__ = [
     "OutputLayoutBlock",
     "SynthesisConfigDTO",
     "OutputProfile",
-    "EmbeddedOutputProfile",
     "JobAcceptedDTO",
     "TDAAssertion",
     "MatrixClaim",
@@ -1332,60 +1331,6 @@ class OutputProfile(V2CoreBase):
     )
 
 
-class EmbeddedOutputProfile(V2CoreBase):
-    """Embedded configuration mapping for workflow output profiles."""
-
-    name: I18nText = Field(description="Localized name of the profile.")
-    description: I18nText | None = Field(default=None, description="Detailed profile context")
-    user_role_label: I18nText | None = Field(
-        default=None, description="Optional localized label prefixing the user role context."
-    )
-    custom_preface: I18nText | None = Field(
-        default=None, description="Rich text preface shown at the very beginning of the report."
-    )
-    language: str | None = Field(default=None, description="Target output language.")
-    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
-    user_role_mappings: dict[str, I18nText] = Field(
-        default_factory=dict,
-        description="Localized values for RoleClassification enum values.",
-    )
-    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
-        default_factory=dict,
-        description="Localized labels for global XAI highlights.",
-    )
-
-    visible_metadata: list[str] = Field(
-        default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
-        description="List of metadata fields visible on the UI and PDF cover header.",
-    )
-    visible_block_extensions: list[LaxXaiExtensionType] = Field(
-        default_factory=list,
-        description="Block-level XAI extensions (per-matrix, LLM-produced).",
-    )
-    visible_workflow_extensions: list[LaxXaiExtensionType] = Field(
-        default_factory=list,
-        description="Workflow-level global extensions (mathematical engines).",
-    )
-    max_extension_items: int | None = Field(
-        default=None,
-        ge=1,
-        description="Max number of items to show per grouped XAI extension. Sorted by severity.",
-    )
-    display_scale: Literal["original", "custom", "normalized_100"] = Field(
-        default="original",
-        description="Selects the source scaling for the scores printed by Blueprint.",
-    )
-    include_diagnostic_scorecard: bool = Field(
-        default=False, description="Enable appending the independent diagnostic scorecard."
-    )
-    strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
-    scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
-    layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
-    content_blocks: list[AnySduiBlock] = Field(
-        default_factory=list, description="Base SDUI content blocks predefined by the profile."
-    )
-
-
 class Workflow(V2CoreBase):
     """Dynamic Directed Acyclic Graph orchestrator model."""
 
@@ -1398,9 +1343,6 @@ class Workflow(V2CoreBase):
     is_public: bool = Field(default=False)
     organization_id: str | None = Field(default=None)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
-    output_profiles: dict[str, EmbeddedOutputProfile] = Field(
-        default_factory=dict, description="Dictionary of named output profiles for reporting."
-    )
     default_profile_id: str = Field(description="The ID of the default output profile to use.")
     default_strictness_level: int = Field(
         default=StrictnessAnchor.STANDARD.value, ge=0, le=100, description="Fallback strictness level."
