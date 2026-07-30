@@ -25,13 +25,10 @@ def test_build_linguistic_context_custom_source() -> None:
 
 
 def test_language_mandate_contains_critical_fields() -> None:
-    """Verify the mandate covers all user-facing XAI extension fields."""
-    assert "justification" in LANGUAGE_MANDATE
-    assert "coaching" in LANGUAGE_MANDATE
-    assert "falsification" in LANGUAGE_MANDATE
-    assert "remediation_steps" in LANGUAGE_MANDATE
-    assert "evaluation_notes" in LANGUAGE_MANDATE
+    """Verify the mandate covers all critical system instruction exceptions."""
     assert "reasoning_trace" in LANGUAGE_MANDATE
+    assert "exact_quotes" in LANGUAGE_MANDATE
+    assert "atom_id" in LANGUAGE_MANDATE
     assert "English" in LANGUAGE_MANDATE
 
 

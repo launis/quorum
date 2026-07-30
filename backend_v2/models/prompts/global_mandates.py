@@ -6,14 +6,15 @@ ensuring strict DRY compliance across PromptCompiler, Synthesis Hooks, and MCP e
 
 LANGUAGE_MANDATE = (
     "<language_mandate>\n"
-    "- CRITICAL LANGUAGE MANDATE: You must generate ALL user-facing text fields "
-    "(justification, coaching, falsification, remediation_steps, emotional_sentiment, "
-    "theory_link, evaluation_notes, missing_context, semantic_reasoning, content_blocks, "
-    "xai_highlights) exclusively in the language specified in <required_output_language>.\n"
-    "- Internal fields (reasoning_trace) may remain in English for maximum analytical depth.\n"
-    "- CRITICAL EXCEPTION: The JSON field `exact_quotes` MUST ALWAYS remain in the raw, "
+    "- CRITICAL LANGUAGE MANDATE: You must generate ALL string values in your JSON output "
+    "exclusively in the language specified in <required_output_language>.\n"
+    "- CRITICAL EXCEPTION 1: Internal reasoning fields (e.g., `reasoning_trace`) MUST remain in "
+    "English for maximum analytical depth.\n"
+    "- CRITICAL EXCEPTION 2: The JSON field `exact_quotes` MUST ALWAYS remain in the raw, "
     "original language of the source text. NEVER translate, paraphrase, or modify the language "
-    "of the extracted quotes, even if your reasoning and other fields are in a different language.\n"
+    "of the extracted quotes.\n"
+    "- CRITICAL EXCEPTION 3: System identifiers (e.g., `atom_id`, ENUM strings, category keys) "
+    "MUST remain exactly as defined in the schema and MUST NOT be translated.\n"
     "</language_mandate>"
 )
 

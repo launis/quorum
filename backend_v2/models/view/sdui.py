@@ -500,6 +500,22 @@ class AlertBlock(SduiBlockBase):
     citations: Annotated[list[int], Field(default_factory=list)]
 
 
+class AccordionBlock(SduiBlockBase):
+    """An accordion block for grouping nested SDUI blocks under a collapsible header."""
+
+    model_config = ConfigDict(title="accordion")
+    block_type: Literal["accordion"] = "accordion"
+    title: Annotated[str, Field(..., description="The title displayed on the accordion header.")]
+    severity: Annotated[
+        Literal["info", "warning", "critical_override", "success", "error", "default"],
+        Field(default="default", description="Color intent for the accordion header."),
+    ]
+    icon_name: Annotated[str | None, Field(default=None, description="Optional icon name for the header.")]
+    children: Annotated[
+        list[AnySduiBlock], Field(default_factory=list, description="Nested SDUI blocks inside the accordion.")
+    ]
+
+
 class MarkdownBlock(SduiBlockBase):
     """Direct Markdown rendering block, bypassing structural SDUI templates.
 
@@ -566,15 +582,38 @@ class SduiGridBlock(SduiBlockBase):
     items: Annotated[list[str], Field(default_factory=list, description="Items in the grid.")]
 
 
+class HeaderBlock(SduiBlockBase):
+    """A visually distinct report header summarizing metadata.
+
+    Attributes:
+        title: Main title of the report profile.
+        badges: Array of small highlighted pills (e.g., scoring engine, strictness).
+        metadata_lines: Array of strings for execution metadata (time, id, user, org).
+        costs: Optional formatted cost string.
+        tokens: Optional dictionary of token usage strings.
+        custom_preface_md: Optional preface markdown text.
+    """
+
+    block_type: Literal["header"] = Field(default="header", frozen=True)
+    title: str = Field(..., description="Main title of the report")
+    badges: list[str] = Field(default_factory=list, description="Highlighted badges")
+    metadata_lines: list[str] = Field(default_factory=list, description="Metadata strings")
+    costs: str | None = Field(default=None, description="Formatted cost string")
+    tokens: dict[str, str] | None = Field(default=None, description="Token usage details")
+    custom_preface_md: str | None = Field(default=None, description="Optional preface markdown")
+
+
 AnySduiBlock = Annotated[
     HeroInsightBlock
     | ParagraphBlock
     | BulletListBlock
     | AlertBlock
+    | AccordionBlock
     | MarkdownBlock
     | SduiQuoteCard
     | SduiWarningCard
     | SduiNACard
-    | SduiGridBlock,
+    | SduiGridBlock
+    | HeaderBlock,
     Field(discriminator="block_type"),
 ]

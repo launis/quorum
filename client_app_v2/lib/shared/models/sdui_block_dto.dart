@@ -26,6 +26,16 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   }) = SduiBulletListBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('accordion')
+  const factory SduiBlockDTO.accordion({
+    String? id,
+    required String title,
+    @Default('default') String severity,
+    @JsonKey(name: 'icon_name') String? iconName,
+    @Default([]) List<SduiBlockDTO> children,
+  }) = SduiAccordionBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('alert_box')
   const factory SduiBlockDTO.alertBox({
     String? id,
@@ -79,6 +89,18 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   @FreezedUnionValue('grid')
   const factory SduiBlockDTO.grid({String? id, required List<String> items}) =
       SduiGridBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('header')
+  const factory SduiBlockDTO.header({
+    String? id,
+    required String title,
+    @Default([]) List<String> badges,
+    @JsonKey(name: 'metadata_lines') @Default([]) List<String> metadataLines,
+    String? costs,
+    Map<String, String>? tokens,
+    @JsonKey(name: 'custom_preface_md') String? customPrefaceMd,
+  }) = SduiHeaderBlock;
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
       _$SduiBlockDTOFromJson(json);

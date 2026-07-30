@@ -36,7 +36,7 @@ class LocalizationService:
     _translations: dict[str, dict[str, str]] = {}
     _loaded: bool = False
 
-    # Path relative to backend root, assuming standard structure
+    # Point to the backend l10n directory
     L10N_DIR: Path = Path(__file__).parent.parent / "l10n"
 
     @classmethod
@@ -72,7 +72,8 @@ class LocalizationService:
                 )
 
             for file_path in json_files:
-                lang_code = file_path.stem  # e.g., 'en', 'fi'
+                # filename is like en.json -> stem is 'en'
+                lang_code = file_path.stem
                 try:
                     with open(file_path, encoding="utf-8") as f:
                         data = json.load(f)

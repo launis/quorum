@@ -1266,10 +1266,6 @@ class OutputLayoutBlock(V2CoreBase):
         default_factory=dict,
         description="Optional mapping of UI column identifiers to localized labels.",
     )
-    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
-        default_factory=dict,
-        description="Optional mapping of XAI extension identifiers to localized labels.",
-    )
     matrix_visible_columns: list[str] = Field(
         default_factory=list,
         description="Visible columns for this matrix UI.",
@@ -1322,6 +1318,14 @@ class OutputProfile(V2CoreBase):
     )
     strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
+    user_role_mappings: dict[str, I18nText] = Field(
+        default_factory=dict,
+        description="Localized values for RoleClassification enum values (e.g. ROLE_ARCHITECT).",
+    )
+    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
+        default_factory=dict,
+        description="Localized labels for global XAI highlights at the profile level.",
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."

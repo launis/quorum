@@ -171,5 +171,5 @@ class SduiMapperService:
             metrics=metrics,
             status_theme=status_theme,
             sections=sections,
-            inner_sdui_blocks=[],
+            inner_sdui_blocks=report.inner_sdui_blocks,
         )

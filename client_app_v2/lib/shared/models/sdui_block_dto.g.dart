@@ -79,6 +79,53 @@ Map<String, dynamic> _$SduiBulletListBlockToJson(
   'block_type': instance.$type,
 };
 
+SduiAccordionBlock _$SduiAccordionBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'SduiAccordionBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'id',
+        'title',
+        'severity',
+        'icon_name',
+        'children',
+        'block_type',
+      ],
+    );
+    final val = SduiAccordionBlock(
+      id: $checkedConvert('id', (v) => v as String?),
+      title: $checkedConvert('title', (v) => v as String),
+      severity: $checkedConvert('severity', (v) => v as String? ?? 'default'),
+      iconName: $checkedConvert('icon_name', (v) => v as String?),
+      children: $checkedConvert(
+        'children',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {'iconName': 'icon_name', r'$type': 'block_type'},
+);
+
+Map<String, dynamic> _$SduiAccordionBlockToJson(SduiAccordionBlock instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'title': instance.title,
+      'severity': instance.severity,
+      'icon_name': instance.iconName,
+      'children': instance.children.map((e) => e.toJson()).toList(),
+      'block_type': instance.$type,
+    };
+
 SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -336,6 +383,72 @@ Map<String, dynamic> _$SduiGridBlockToJson(SduiGridBlock instance) =>
     <String, dynamic>{
       'id': instance.id,
       'items': instance.items,
+      'block_type': instance.$type,
+    };
+
+SduiHeaderBlock _$SduiHeaderBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'SduiHeaderBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'id',
+        'title',
+        'badges',
+        'metadata_lines',
+        'costs',
+        'tokens',
+        'custom_preface_md',
+        'block_type',
+      ],
+    );
+    final val = SduiHeaderBlock(
+      id: $checkedConvert('id', (v) => v as String?),
+      title: $checkedConvert('title', (v) => v as String),
+      badges: $checkedConvert(
+        'badges',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      metadataLines: $checkedConvert(
+        'metadata_lines',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      costs: $checkedConvert('costs', (v) => v as String?),
+      tokens: $checkedConvert(
+        'tokens',
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(k, e as String),
+        ),
+      ),
+      customPrefaceMd: $checkedConvert(
+        'custom_preface_md',
+        (v) => v as String?,
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'metadataLines': 'metadata_lines',
+    'customPrefaceMd': 'custom_preface_md',
+    r'$type': 'block_type',
+  },
+);
+
+Map<String, dynamic> _$SduiHeaderBlockToJson(SduiHeaderBlock instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'title': instance.title,
+      'badges': instance.badges,
+      'metadata_lines': instance.metadataLines,
+      'costs': instance.costs,
+      'tokens': instance.tokens,
+      'custom_preface_md': instance.customPrefaceMd,
       'block_type': instance.$type,
     };
 

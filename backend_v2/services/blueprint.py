@@ -27,8 +27,8 @@ from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
+    LaxXaiExtensionType,
     SystemConfigID,
-    SystemLocale,
     TargetBlockType,
     VirtualSystemStepID,
     VisualIntent,
@@ -49,6 +49,7 @@ from backend_v2.models.v2_core import (
     SystemConfigPerformativeLexicons,
 )
 from backend_v2.models.view.sdui import (
+    AccordionBlock,
     AlertBlock,
     AnySduiBlock,
     HeroInsightBlock,
@@ -102,6 +103,7 @@ class BlueprintTransformer:
             TargetBlockType.AUDIT_TRAIL_BLOCK: self._hydrate_audit_trail_block,
             TargetBlockType.JARGON_RATIO_BLOCK: self._hydrate_jargon_ratio_block,
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: self._hydrate_printable_sources_block,
+            TargetBlockType.GROUPED_EXTENSIONS_BLOCK: self._hydrate_grouped_extensions_block,
         }
 
     @staticmethod
@@ -228,6 +230,7 @@ class BlueprintTransformer:
         mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
         source_identity_manifest: dict[str, str] | None = None,
         execution: Any = None,
+        accumulated_extensions: dict[str, list[dict[str, str]]] | None = None,
     ) -> tuple[
         list[MatrixScorecardRowDTO],
         list[MatrixScorecardRowDTO],
@@ -248,6 +251,7 @@ class BlueprintTransformer:
             mcp_audit_map: Map of audit trace ID to trace model.
             source_identity_manifest: Optional map of source ID to display names.
             execution: The execution record.
+            accumulated_extensions: Dictionary to accumulate grouped extensions.
 
         Returns:
             A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms).
@@ -687,16 +691,11 @@ class BlueprintTransformer:
                 if ext_val:
                     try:
                         ext_enum = XaiExtensionType(ext_key)
-                        label_obj = None
-                        if hasattr(profile, "layouts"):
-                            for layout_block in profile.layouts:
-                                if layout_block.extension_labels and ext_enum in layout_block.extension_labels:
-                                    label_obj = layout_block.extension_labels[ext_enum]
-                                    break
+                        label_obj = getattr(profile, "extension_labels", {}).get(ext_enum)
 
                         if not label_obj:
                             raise ConfigurationError(
-                                f"Missing extension label configuration for {ext_key}",
+                                f"Missing extension label configuration for {ext_key} in profile SSOT",
                                 details={"extension_key": ext_key},
                             )
                         label_str = label_obj.resolve(locale)
@@ -714,13 +713,24 @@ class BlueprintTransformer:
                         elif ext_enum == XaiExtensionType.REMEDIATION_STEPS:
                             severity = "success"
 
-                        alert = AlertBlock(
-                            severity=severity,
-                            text=f"**{label_str}**: {ext_val}",
-                            exact_quotes=[],
-                            citations=[],
-                        )
-                        row_dto.inner_sdui_blocks.append(alert)
+                        if ext_enum in profile.visible_block_extensions:
+                            alert = AlertBlock(
+                                severity=severity,
+                                text=f"**{label_str}**: {ext_val}",
+                                exact_quotes=[],
+                                citations=[],
+                            )
+                            row_dto.inner_sdui_blocks.append(alert)
+                        else:
+                            if accumulated_extensions is not None:
+                                accumulated_extensions.setdefault(ext_key, []).append(
+                                    {
+                                        "severity": severity,
+                                        "label_str": label_str,
+                                        "content": str(ext_val),
+                                        "source_claim": claim_label,
+                                    }
+                                )
                     except ValueError:
                         pass
 
@@ -768,11 +778,92 @@ class BlueprintTransformer:
         """Placeholder for future printable sources hydration logic."""
         return [ParagraphBlock(text="Printable sources placeholder", exact_quotes=[], citations=[])]
 
+    def _hydrate_grouped_extensions_block(self, **kwargs: Any) -> list[AnySduiBlock]:
+        """Hydrates accumulated XAI extensions (e.g. coaching, citations) into the end of the report."""
+        profile = kwargs.get("profile")
+        execution = kwargs.get("execution")
+        locale = kwargs.get("locale", "en")
+
+        if not profile:
+            return []
+
+        # Epic 123: If AI Synthesis generated xai_highlights, they REPLACE the raw matrix extensions!
+        synthesis_cache = None
+        if execution and execution.profile_syntheses:
+            pid = profile.id if profile.id else "default"
+            synthesis_cache = execution.profile_syntheses.get(pid)
+
+        max_items = getattr(profile, "max_extension_items", 3)
+        sdui_blocks: list[AnySduiBlock] = []
+
+        if synthesis_cache and synthesis_cache.xai_highlights:
+            from backend_v2.models.enums import XaiExtensionType
+
+            # Group highlights by extension_type
+            grouped_highlights: dict[str, list[Any]] = {}
+            for h in synthesis_cache.xai_highlights:
+                grouped_highlights.setdefault(h.extension_type, []).append(h)
+
+            for ext_type, highlights in grouped_highlights.items():
+                if not highlights:
+                    continue
+
+                try:
+                    ext_enum = XaiExtensionType(ext_type)
+                    ext_label_i18n = profile.extension_labels.get(ext_enum)
+                    group_label_str = ext_label_i18n.resolve(locale) if ext_label_i18n else str(ext_type)
+                except Exception:
+                    group_label_str = str(ext_type)
+
+                lower_ext = ext_type.lower()
+                acc_severity = "success"
+                icon_name = "lightbulb"
+
+                if (
+                    "risk" in lower_ext
+                    or "falsification" in lower_ext
+                    or "penalty" in lower_ext
+                    or "counter" in lower_ext
+                ):
+                    acc_severity = "warning"
+                    icon_name = "balance"
+                elif "action" in lower_ext or "fix" in lower_ext or "correct" in lower_ext:
+                    acc_severity = "success"
+                    icon_name = "build"
+
+                items_to_render = highlights[:max_items]
+                child_blocks: list[AnySduiBlock] = []
+                for item in items_to_render:
+                    severity = "warning" if "risk" in lower_ext or "penalty" in lower_ext else "info"
+                    child_blocks.append(
+                        AlertBlock(
+                            severity=severity,  # type: ignore[arg-type]
+                            text=item.content,
+                            exact_quotes=[],
+                            citations=[],
+                        )
+                    )
+
+                sdui_blocks.append(
+                    AccordionBlock(
+                        title=group_label_str,
+                        severity=acc_severity,  # type: ignore[arg-type]
+                        icon_name=icon_name,
+                        children=child_blocks,
+                    )
+                )
+            return sdui_blocks
+
+        # Strict Requirement: "ei fallback missään tai ikinä"
+        # If there are no AI synthesized xai_highlights, we return nothing.
+        return []
+
     def _build_layouts(
         self,
         layout_defs: list[OutputLayoutBlock],
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO],
         section_syntheses: dict[str, list[AnySduiBlock]],
+        profile_extension_labels: dict[LaxXaiExtensionType, I18nText],
     ) -> list[ReportLayoutDTO]:
         """Maps generated axes into report layouts based on layout rules.
 
@@ -844,7 +935,7 @@ class BlueprintTransformer:
                         synthesis=synthesis_config,
                         synthesis_blocks=section_blocks,
                         matrix_column_labels=layout_def.matrix_column_labels,
-                        extension_labels=layout_def.extension_labels,
+                        extension_labels=profile_extension_labels,
                     )
                 )
         if not layouts_list and all_parsed_matrices:
@@ -897,11 +988,14 @@ class BlueprintTransformer:
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 
-        locale = accept_language or (
-            execution.metadata.get("target_locale", SystemLocale.EN.value)
-            if isinstance(execution.metadata, dict)
-            else SystemLocale.EN.value
-        )
+        locale = accept_language
+        if not locale and isinstance(execution.metadata, dict):
+            locale = execution.metadata.get("target_locale")
+
+        if not locale:
+            msg = "Strict Fail-Fast Enforced: 'locale' is mandatory (either via accept_language or execution metadata) and cannot be resolved."
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         default_profile_ref = workflow_obj.default_profile_id
         resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
@@ -962,7 +1056,13 @@ class BlueprintTransformer:
         )
 
         if profile_cache:
-            section_syntheses = profile_cache.section_syntheses or {}
+            section_syntheses = profile_cache.section_syntheses
+            if section_syntheses is None:
+                raise AppException(
+                    message="Fail-Fast: section_syntheses cannot be None in profile_cache.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
             # Epic 94: Do NOT overwrite profile.content_blocks with cached synthesis blocks!
             # The OutputProfile is the Single Source of Truth for SDUI layout.
             if not content_blocks and profile_cache.content_blocks:
@@ -974,13 +1074,26 @@ class BlueprintTransformer:
                     ParagraphBlock(text=profile_cache.executive_summary, exact_quotes=[], citations=[])
                 )
             if profile_cache.user_role:
-                content_blocks.append(
-                    ParagraphBlock(text=f"**User Role:** {profile_cache.user_role}", exact_quotes=[], citations=[])
-                )
+                try:
+                    # Validate the role
+                    from backend_v2.models.enums import RoleClassification
+
+                    role_enum = RoleClassification(profile_cache.user_role)
+                    role_val_i18n = profile.user_role_mappings.get(role_enum.value)
+                    if role_val_i18n:
+                        role_val = role_val_i18n.resolve(locale)
+                    else:
+                        role_val = profile_cache.user_role
+                except Exception:
+                    role_val = profile_cache.user_role
+
+                prefix = profile.user_role_label.resolve(locale) if profile.user_role_label else "User Role"
+                content_blocks.append(ParagraphBlock(text=f"**{prefix}:** {role_val}", exact_quotes=[], citations=[]))
             if profile_cache.user_role_justification:
                 content_blocks.append(
                     ParagraphBlock(text=profile_cache.user_role_justification, exact_quotes=[], citations=[])
                 )
+            # xai_highlights are now handled properly by _hydrate_grouped_extensions_block
         else:
             synthesis_md = original_synthesis_md
 
@@ -1061,6 +1174,8 @@ class BlueprintTransformer:
         if profile_cache and profile_cache.row_curated_quotes:
             row_curated_quotes_cache = profile_cache.row_curated_quotes
 
+        accumulated_extensions: dict[str, list[dict[str, str]]] = {}
+
         evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms = (
             self._extract_matrices_and_extensions(
                 results=results,
@@ -1076,6 +1191,7 @@ class BlueprintTransformer:
                 mcp_audit_map=mcp_audit_map,
                 source_identity_manifest=None,
                 execution=execution,
+                accumulated_extensions=accumulated_extensions,
             )
         )
 
@@ -1084,7 +1200,13 @@ class BlueprintTransformer:
                 authenticity_score = None
                 performative_phrases_count = None
 
-                cv = execution.context_variables or {}
+                cv = execution.context_variables
+                if cv is None:
+                    raise AppException(
+                        message="Fail-Fast: context_variables cannot be None in ExecutionRecord.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
 
                 # Retrieve authenticity score from step_detector payload in context_variables
                 step_det = cv.get("step_detector")
@@ -1259,7 +1381,9 @@ class BlueprintTransformer:
             )
 
         try:
-            layouts_list = self._build_layouts(profile.layouts, all_parsed_matrices, section_syntheses)
+            layouts_list = self._build_layouts(
+                profile.layouts, all_parsed_matrices, section_syntheses, getattr(profile, "extension_labels", {})
+            )
 
             injected = False
             if synthesis_block_id and content_blocks:
@@ -1524,7 +1648,7 @@ class BlueprintTransformer:
             )
 
             if should_scan_slop:
-                lang = locale or "en"
+                lang = locale
                 # Fetch system config using proper SystemRepository
                 config_data = await self.system_repo.get_system_config(SystemConfigID.PERFORMATIVE_LEXICONS.value)
                 if not config_data:
@@ -1635,6 +1759,8 @@ class BlueprintTransformer:
                                 penalties_applied=penalties_applied,
                                 mcp_audit_data=mcp_audit_data,
                                 global_score=global_score,
+                                accumulated_extensions=accumulated_extensions,
+                                profile=profile,
                             )
                             if hydrated_blocks:
                                 new_synthesis_blocks.extend(hydrated_blocks)

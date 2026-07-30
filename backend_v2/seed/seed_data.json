@@ -7943,85 +7943,6 @@
                     "en": "Normalized"
                   }
                 }
-              },
-              "extension_labels": {
-                "citation": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VIITTEET",
-                    "en": "CITATIONS"
-                  }
-                },
-                "justification": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "PERUSTELUT",
-                    "en": "JUSTIFICATIONS"
-                  }
-                },
-                "falsification": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VASTA-ARGUMENTTI",
-                    "en": "COUNTER-ARGUMENT"
-                  }
-                },
-                "theory_link": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "TEOREETTINEN YHTEYS",
-                    "en": "THEORETICAL LINK"
-                  }
-                },
-                "risk_flag": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VAKAVA RISKI HAVAITTU",
-                    "en": "SEVERE RISK DETECTED"
-                  }
-                },
-                "coaching": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "ARJEN VINKKI",
-                    "en": "DAILY TIP"
-                  }
-                },
-                "missing_context": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "PUUTTUVA KONTEKSTI",
-                    "en": "MISSING CONTEXT"
-                  }
-                },
-                "remediation_steps": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "KORJAAVAT TOIMENPITEET",
-                    "en": "REMEDIATION STEPS"
-                  }
-                },
-                "emotional_sentiment": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "EMOTIONAALINEN SÄVY",
-                    "en": "EMOTIONAL SENTIMENT"
-                  }
-                },
-                "confidence": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "LUOTETTAVUUS JA VARMUUS",
-                    "en": "RELIABILITY AND CONFIDENCE"
-                  }
-                },
-                "variance_validation": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                    "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
-                  }
-                }
               }
             },
             {
@@ -8108,85 +8029,6 @@
                     "en": "Normalized"
                   }
                 }
-              },
-              "extension_labels": {
-                "citation": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VIITTEET",
-                    "en": "CITATIONS"
-                  }
-                },
-                "justification": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "PERUSTELUT",
-                    "en": "JUSTIFICATIONS"
-                  }
-                },
-                "falsification": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VASTA-ARGUMENTTI",
-                    "en": "COUNTER-ARGUMENT"
-                  }
-                },
-                "theory_link": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "TEOREETTINEN YHTEYS",
-                    "en": "THEORETICAL LINK"
-                  }
-                },
-                "risk_flag": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VAKAVA RISKI HAVAITTU",
-                    "en": "SEVERE RISK DETECTED"
-                  }
-                },
-                "coaching": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "ARJEN VINKKI",
-                    "en": "DAILY TIP"
-                  }
-                },
-                "missing_context": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "PUUTTUVA KONTEKSTI",
-                    "en": "MISSING CONTEXT"
-                  }
-                },
-                "remediation_steps": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "KORJAAVAT TOIMENPITEET",
-                    "en": "REMEDIATION STEPS"
-                  }
-                },
-                "emotional_sentiment": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "EMOTIONAALINEN SÄVY",
-                    "en": "EMOTIONAL SENTIMENT"
-                  }
-                },
-                "confidence": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "LUOTETTAVUUS JA VARMUUS",
-                    "en": "RELIABILITY AND CONFIDENCE"
-                  }
-                },
-                "variance_validation": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                    "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
-                  }
-                }
               }
             },
             {
@@ -8271,85 +8113,6 @@
                   "translations": {
                     "fi": "Skaalattu",
                     "en": "Normalized"
-                  }
-                }
-              },
-              "extension_labels": {
-                "citation": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VIITTEET",
-                    "en": "CITATIONS"
-                  }
-                },
-                "justification": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "PERUSTELUT",
-                    "en": "JUSTIFICATIONS"
-                  }
-                },
-                "falsification": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VASTA-ARGUMENTTI",
-                    "en": "COUNTER-ARGUMENT"
-                  }
-                },
-                "theory_link": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "TEOREETTINEN YHTEYS",
-                    "en": "THEORETICAL LINK"
-                  }
-                },
-                "risk_flag": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VAKAVA RISKI HAVAITTU",
-                    "en": "SEVERE RISK DETECTED"
-                  }
-                },
-                "coaching": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "ARJEN VINKKI",
-                    "en": "DAILY TIP"
-                  }
-                },
-                "missing_context": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "PUUTTUVA KONTEKSTI",
-                    "en": "MISSING CONTEXT"
-                  }
-                },
-                "remediation_steps": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "KORJAAVAT TOIMENPITEET",
-                    "en": "REMEDIATION STEPS"
-                  }
-                },
-                "emotional_sentiment": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "EMOTIONAALINEN SÄVY",
-                    "en": "EMOTIONAL SENTIMENT"
-                  }
-                },
-                "confidence": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "LUOTETTAVUUS JA VARMUUS",
-                    "en": "RELIABILITY AND CONFIDENCE"
-                  }
-                },
-                "variance_validation": {
-                  "default_locale": "fi",
-                  "translations": {
-                    "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                    "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
                   }
                 }
               }
@@ -9467,6 +9230,115 @@
           "fi": "Käyttäjärooli"
         }
       },
+      "user_role_mappings": {
+        "ROLE_ARCHITECT": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Arkkitehti",
+            "en": "Architect"
+          }
+        },
+        "ROLE_DRIVER": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Kuljettaja",
+            "en": "Driver"
+          }
+        },
+        "ROLE_PASSENGER": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Matkustaja",
+            "en": "Passenger"
+          }
+        },
+        "ROLE_NAVIGATOR": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Navigaattori",
+            "en": "Navigator"
+          }
+        }
+      },
+      "extension_labels": {
+        "citation": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "VIITTEET",
+            "en": "CITATIONS"
+          }
+        },
+        "justification": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "PERUSTELUT",
+            "en": "JUSTIFICATIONS"
+          }
+        },
+        "falsification": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "VASTA-ARGUMENTTI",
+            "en": "COUNTER-ARGUMENT"
+          }
+        },
+        "theory_link": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "TEOREETTINEN YHTEYS",
+            "en": "THEORETICAL LINK"
+          }
+        },
+        "risk_flag": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "VAKAVA RISKI HAVAITTU",
+            "en": "SEVERE RISK DETECTED"
+          }
+        },
+        "coaching": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "ARJEN VINKKI",
+            "en": "DAILY TIP"
+          }
+        },
+        "missing_context": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "PUUTTUVA KONTEKSTI",
+            "en": "MISSING CONTEXT"
+          }
+        },
+        "remediation_steps": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "KORJAAVAT TOIMENPITEET",
+            "en": "REMEDIATION STEPS"
+          }
+        },
+        "emotional_sentiment": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "EMOTIONAALINEN SÄVY",
+            "en": "EMOTIONAL SENTIMENT"
+          }
+        },
+        "confidence": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "LUOTETTAVUUS JA VARMUUS",
+            "en": "RELIABILITY AND CONFIDENCE"
+          }
+        },
+        "variance_validation": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
+            "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
+          }
+        }
+      },
       "visible_block_extensions": [
         "justification",
         "coaching",
@@ -9497,8 +9369,8 @@
             "preamble_text": {
               "default_locale": "fi",
               "translations": {
-                "en": "Global Executive Summary",
-                "fi": "Globaali Johdon Yhteenveto"
+                "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi vastauksesi tilannekohtaisiin arviointeihin. Sen tavoitteena on auttaa sinua ymmärtämään vahvuutesi ja kehityskohteesi tekoälyn hyödyntämisessä.\n\n**Huomioi lukiessasi**\n\nAnalyysi ei ole absoluuttinen totuus, vaan suuntaa antava katsaus tämänhetkiseen osaamiseesi. Tekoälytaidot kehittyvät jatkuvasti kokeilemalla ja oppimalla.",
+                "en": "**Your AI Skills Report**\n\nThis report analyzes your responses to situational assessments. Its goal is to help you understand your strengths and areas for development in utilizing AI.\n\n**Note when reading**\n\nThe analysis is not an absolute truth, but an indicative overview of your current skills. AI skills are constantly developing through experimentation and learning."
               }
             }
           }
@@ -9519,185 +9391,21 @@
               "en": "Data verifiability and logical structure.",
               "fi": "Datan todennettavuus ja looginen rakenne."
             }
-          }
-        },
-        {
-          "preset_view": "3d_matrix",
-          "title": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "DETAILED SCORING MATRIX",
-              "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS"
-            }
           },
-          "description": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Structural Logic (Toulmin), Cognitive Bias (Kahneman), and Performativity Risk (Goodhart)",
-              "fi": " Looginen perusta (Toulmin), ajatteluvääristymät (Kahneman) ja suorituskykyharha (Goodhart)"
-            }
-          },
-          "steps": [],
           "target_blocks": [
             "blk_440a5fef9331451b",
             "blk_53f32679aa514fcb",
             "blk_109dab5b6b3f403a"
           ],
-          "text_delivery_mode": "none",
-          "matrix_visible_columns": [
-            "label",
-            "distribution",
-            "row_explanation",
-            "normalized_score",
-            "score"
-          ],
           "synthesis": {
-            "row_explanations_block_id": "sp_fb1b8e908bf24c1f",
+            "row_explanations_block_id": "sp_row_explanations",
             "system_prompt": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text.",
             "length_constraint": 800,
             "preamble_text": {
               "default_locale": "fi",
               "translations": {
-                "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi vastauksesi tilannekohtaisiin arviointeihin. Sen tavoitteena on auttaa sinua ymmärtämään vahvuutesi ja kehityskohteesi tekoälyn hyödyntämisessä.\n\n**Huomioi lukiessasi**\n\nAnalyysi ei ole absoluuttinen totuus, vaan suuntaa antava katsaus tämänhetkiseen osaamiseesi. Tekoälytaidot kehittyvät jatkuvasti kokeilemalla ja oppimalla.",
-                "en": "**Your AI Skills Report**\n\nThis report analyzes your responses to situational assessments. Its goal is to help you understand your strengths and areas for development in utilizing AI.\n\n**Note when reading**\n\nThe analysis is not an absolute truth, but an indicative overview of your current skills. AI skills are constantly developing through experimentation and learning."
-              }
-            },
-            "tone_instruction": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "<system_directive>\n  <role>Senior Executive Coach</role>\n  <objective>Produce a clear, coherent, and highly concrete executive summary of the entire evaluation.</objective>\n  <rules>\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 4-paragraph coaching structure in every output:\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength.\n      PARAGRAPH 2 (The Interaction Role): You MUST start this paragraph by explicitly highlighting the user's assigned interaction role using EXACTLY the raw enum value from the data (e.g., \"**User Role: ROLE_ARCHITECT**\"). DO NOT translate the enum value. Provide a concrete justification for why this specific role was assigned.\n      PARAGRAPH 3 (The Cross-Examined Risk): Combine at least two distinct XAI findings to highlight logical blind spots.\n      PARAGRAPH 4 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps.\n    </rule>\n    <rule>EVIDENCE MANDATE (CRITICAL): You MUST anchor every major analytical claim to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion.</rule>\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'.</rule>\n  </rules>\n</system_directive>",
-                "en": "<system_directive>\n  <role>Senior Executive Coach</role>\n  <objective>Produce a clear, coherent, and highly concrete executive summary of the entire evaluation.</objective>\n  <rules>\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 4-paragraph coaching structure in every output:\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength.\n      PARAGRAPH 2 (The Interaction Role): You MUST start this paragraph by explicitly highlighting the user's assigned interaction role using EXACTLY the raw enum value from the data (e.g., \"**User Role: ROLE_ARCHITECT**\"). DO NOT translate the enum value. Provide a concrete justification for why this specific role was assigned.\n      PARAGRAPH 3 (The Cross-Examined Risk): Combine at least two distinct XAI findings to highlight logical blind spots.\n      PARAGRAPH 4 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps.\n    </rule>\n    <rule>EVIDENCE MANDATE (CRITICAL): You MUST anchor every major analytical claim to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion.</rule>\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'.</rule>\n  </rules>\n</system_directive>"
-              }
-            },
-            "enable_pii_masking": false,
-            "allowed_exports": [
-              "pdf",
-              "xlsx"
-            ],
-            "omit_empty_sections": false,
-            "historical_context_mode": "DISABLED",
-            "synthesis_block_id": "blk_8f7e6d5c4b3a2019"
-          },
-          "matrix_column_labels": {
-            "label": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Matriisi",
-                "en": "Matrix"
-              }
-            },
-            "score": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Pisteet",
-                "en": "Score"
-              }
-            },
-            "distribution": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Jakauma",
-                "en": "Distribution"
-              }
-            },
-            "row_explanation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Selite",
-                "en": "Explanation"
-              }
-            },
-            "quotes": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Lainaukset (quotes)",
-                "en": "Quotes (quotes)"
-              }
-            },
-            "normalized_score": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "Skaalattu",
-                "en": "Normalized"
-              }
-            }
-          },
-          "extension_labels": {
-            "citation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
+                "fi": "**Looginen perusta (Toulmin), ajatteluvääristymät (Kahneman) ja suorituskykyharha (Goodhart)**",
+                "en": "**Structural Logic (Toulmin), Cognitive Bias (Kahneman), and Performativity Risk (Goodhart)**"
               }
             }
           }
@@ -9787,86 +9495,121 @@
                 "en": "Normalized"
               }
             }
+          }
+        },
+        {
+          "preset_view": "2d_compare",
+          "is_synthesis_enabled": true,
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "DETAILED SCORING ASSESSMENT",
+              "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS"
+            }
           },
-          "extension_labels": {
-            "citation": {
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Risk measure of cryptic assumptions, internal contradiction, and post-hoc rationalization.",
+              "fi": "Kryptisten oletusten, sisäisen ristiriitaisuuden ja jälkikäteisen selittelyn riskimitta."
+            }
+          },
+          "target_blocks": [
+            "blk_6b8c766185294f7e",
+            "blk_f6e286f050c94d60"
+          ],
+          "synthesis": {
+            "row_explanations_block_id": "sp_row_explanations",
+            "system_prompt": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text.",
+            "length_constraint": 800,
+            "preamble_text": {
               "default_locale": "fi",
               "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
+                "fi": "**Datan ankkurointi, sisäinen logiikka ja jälkikäteinen selittely**",
+                "en": "**Data anchoring, internal logic, and post-hoc rationalization**"
               }
             }
           }
+        },
+        {
+          "preset_view": "3d_matrix",
+          "title": {
+            "default_locale": "en",
+            "translations": {
+              "en": "MATRIX SUMMARY",
+              "fi": "YHTEENVETO / MATRIX SUMMARY"
+            }
+          },
+          "description": {
+            "default_locale": "en",
+            "translations": {
+              "en": "Detailed explanations and corrective actions.",
+              "fi": "Yksityiskohtaiset selitykset ja korjaavat toimenpiteet."
+            }
+          },
+          "steps": [],
+          "target_blocks": [
+            "blk_440a5fef9331451b",
+            "blk_53f32679aa514fcb",
+            "blk_109dab5b6b3f403a",
+            "blk_c5804a9143c34cb1",
+            "blk_b476f89fb732448c",
+            "blk_6b8c766185294f7e",
+            "blk_f6e286f050c94d60"
+          ],
+          "text_delivery_mode": "none",
+          "matrix_visible_columns": [
+            "label",
+            "distribution",
+            "row_explanation",
+            "normalized_score",
+            "score"
+          ],
+          "matrix_column_labels": {
+            "label": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Matriisi",
+                "en": "Matrix"
+              }
+            },
+            "score": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Pisteet",
+                "en": "Score"
+              }
+            },
+            "distribution": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Jakauma",
+                "en": "Distribution"
+              }
+            },
+            "row_explanation": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Selite",
+                "en": "Explanation"
+              }
+            },
+            "quotes": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Lainaukset (quotes)",
+                "en": "Quotes (quotes)"
+              }
+            },
+            "normalized_score": {
+              "default_locale": "fi",
+              "translations": {
+                "fi": "Skaalattu",
+                "en": "Normalized"
+              }
+            }
+          },
+          "is_synthesis_enabled": false
         },
         {
           "preset_view": "1d_metrics",
@@ -9876,13 +9619,6 @@
             "translations": {
               "en": "GLOBAL SCORE",
               "fi": "KOKONAISKESKIARVO"
-            }
-          },
-          "description": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Measurement of Unfounded Assumptions, Internal Contradictions, and Post-Hoc Rationalization.",
-              "fi": "Kryptisten oletusten, sisäisen ristiriitaisuuden ja jälkikäteisen selittelyn riskimitta."
             }
           },
           "steps": [],
@@ -9951,85 +9687,6 @@
               "translations": {
                 "fi": "Skaalattu",
                 "en": "Normalized"
-              }
-            }
-          },
-          "extension_labels": {
-            "citation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
               }
             }
           }
@@ -10120,85 +9777,6 @@
                 "en": "Normalized"
               }
             }
-          },
-          "extension_labels": {
-            "citation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
-              }
-            }
           }
         },
         {
@@ -10284,85 +9862,6 @@
               "translations": {
                 "fi": "Skaalattu",
                 "en": "Normalized"
-              }
-            }
-          },
-          "extension_labels": {
-            "citation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
               }
             }
           }
@@ -10451,85 +9950,6 @@
                 "en": "Normalized"
               }
             }
-          },
-          "extension_labels": {
-            "citation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
-              }
-            }
           }
         },
         {
@@ -10614,85 +10034,6 @@
               "translations": {
                 "fi": "Skaalattu",
                 "en": "Normalized"
-              }
-            }
-          },
-          "extension_labels": {
-            "citation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
               }
             }
           }
@@ -10781,85 +10122,6 @@
                 "en": "Normalized"
               }
             }
-          },
-          "extension_labels": {
-            "citation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
-              }
-            }
           }
         },
         {
@@ -10929,85 +10191,6 @@
                 "en": "Normalized"
               }
             }
-          },
-          "extension_labels": {
-            "citation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VIITTEET",
-                "en": "CITATIONS"
-              }
-            },
-            "justification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PERUSTELUT",
-                "en": "JUSTIFICATIONS"
-              }
-            },
-            "falsification": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VASTA-ARGUMENTTI",
-                "en": "COUNTER-ARGUMENT"
-              }
-            },
-            "theory_link": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "TEOREETTINEN YHTEYS",
-                "en": "THEORETICAL LINK"
-              }
-            },
-            "risk_flag": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VAKAVA RISKI HAVAITTU",
-                "en": "SEVERE RISK DETECTED"
-              }
-            },
-            "coaching": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "ARJEN VINKKI",
-                "en": "DAILY TIP"
-              }
-            },
-            "missing_context": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "PUUTTUVA KONTEKSTI",
-                "en": "MISSING CONTEXT"
-              }
-            },
-            "remediation_steps": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "KORJAAVAT TOIMENPITEET",
-                "en": "REMEDIATION STEPS"
-              }
-            },
-            "emotional_sentiment": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "EMOTIONAALINEN SÄVY",
-                "en": "EMOTIONAL SENTIMENT"
-              }
-            },
-            "confidence": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "LUOTETTAVUUS JA VARMUUS",
-                "en": "RELIABILITY AND CONFIDENCE"
-              }
-            },
-            "variance_validation": {
-              "default_locale": "fi",
-              "translations": {
-                "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
-                "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
-              }
-            }
           }
         },
         {
@@ -11022,6 +10205,14 @@
           },
           "target_blocks": [
             "printable_sources_block"
+          ]
+        },
+        {
+          "preset_view": "text_only",
+          "is_synthesis_enabled": false,
+          "title": null,
+          "target_blocks": [
+            "grouped_extensions_block"
           ]
         }
       ],

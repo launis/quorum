@@ -562,6 +562,14 @@ async def generate_profile_synthesis_and_pdf_task(
     profile_id: str | None = None,
     redis: Any | None = None,  # noqa: E501
 ) -> None:
+    if not accept_language:
+        msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be None."
+        logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
     """Background Task. Synthesizes Markdown and enqueues PDF generation.
 
     Args:
@@ -738,10 +746,16 @@ async def generate_profile_synthesis_and_pdf_task(
         synthesis_block_id = synthesis_cfg.synthesis_block_id if synthesis_cfg else None
         row_explanations_block_id = synthesis_cfg.row_explanations_block_id if synthesis_cfg else None
 
+        # Inject dynamic locale into metadata so synthesis_distiller translates step titles correctly
+        hook_metadata = dict(metadata)
+        hook_metadata["target_profile_id"] = profile_id
+        if accept_language:
+            hook_metadata["target_locale"] = accept_language
+
         hook_state = HookState(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
-            metadata=metadata,
+            metadata=hook_metadata,
             global_context_vars={},
             inputs={"steps": final_inputs},
         )
@@ -756,9 +770,21 @@ async def generate_profile_synthesis_and_pdf_task(
             system_repo=repo,
         )
         hook_result = await synthesis_distiller_hook(hook_state, hook_deps)  # type: ignore
-        distilled_data = hook_result.state_delta or {}
+        distilled_data = hook_result.state_delta
+        if distilled_data is None:
+            raise AppException(
+                message="Fail-Fast: hook_result.state_delta cannot be None.",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
 
-        distilled_inputs = distilled_data.get("distilled_inputs", "")
+        distilled_inputs = distilled_data.get("distilled_inputs")
+        if distilled_inputs is None:
+            raise AppException(
+                message="Fail-Fast: distilled_inputs missing from state_delta.",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         matrices_to_explain = distilled_data.get("matrices_to_explain", [])
 
         synthesis_model_strategy = synthesis_cfg.model_strategy if synthesis_cfg else "synthesis"
@@ -796,12 +822,38 @@ async def generate_profile_synthesis_and_pdf_task(
                     sys_prompt += f"\n<global_length_constraint_chars>{synthesis_cfg.length_constraint}</global_length_constraint_chars>"
 
                 if synthesis_cfg.tone_instruction:
-                    tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language or "en")
+                    tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language)
                     if tone:
                         sys_prompt += f"\n<tone_instruction>{tone}</tone_instruction>"
 
                 if synthesis_cfg.omit_empty_sections:
                     sys_prompt += "\n<omit_empty_sections>true</omit_empty_sections>"
+
+                from backend_v2.models.prompts.hook_prompts import SYNTHESIS_SDUI_MANDATES, SYNTHESIS_XAI_CURATION
+
+                sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
+
+                if active_profile_dto and (
+                    active_profile_dto.visible_block_extensions or active_profile_dto.visible_workflow_extensions
+                ):
+                    max_ext = active_profile_dto.max_extension_items
+                    if max_ext is None:
+                        raise AppException(
+                            message="Fail-Fast: max_extension_items is mandatory if extensions are visible.",
+                            status_code=400,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
+                    wf_exts = active_profile_dto.visible_workflow_extensions
+                    req_exts = ", ".join([str(e) for e in wf_exts]) if wf_exts else "none"
+                    xai_cur = SYNTHESIS_XAI_CURATION.replace("<max_extension_items>", str(max_ext))
+                    xai_cur = xai_cur.replace("<requested_extensions>", req_exts)
+                    sys_prompt += f"\n\n{xai_cur}"
+                from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+
+                lang_ctx = build_linguistic_context(
+                    source_language="Unknown", target_locale=accept_language, include_mandate=True
+                )
+                sys_prompt += f"\n\n{lang_ctx}"
 
                 client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
                 matrix_context = ""

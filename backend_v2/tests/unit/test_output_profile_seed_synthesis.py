@@ -20,12 +20,14 @@ def test_seed_data_output_profiles_have_synthesis_block_id() -> None:
         layouts = profile.get("layouts", [])
         for idx, layout in enumerate(layouts):
             synthesis = layout.get("synthesis")
-            if synthesis is not None:
+            is_enabled = layout.get("is_synthesis_enabled", False)
+            if synthesis is not None and is_enabled:
                 synthesis_block_id = synthesis.get("synthesis_block_id")
-                if not synthesis_block_id:
+                row_block_id = synthesis.get("row_explanations_block_id")
+                if not synthesis_block_id and not row_block_id:
                     missing_references.append(f"Profile '{profile_id}' ({slug}) layout index {idx}")
 
     assert not missing_references, (
-        "Fail-Fast: The following OutputProfile layouts are missing 'synthesis_block_id': "
+        "Fail-Fast: The following OutputProfile layouts are missing 'synthesis_block_id' and 'row_explanations_block_id': "
         + ", ".join(missing_references)
     )

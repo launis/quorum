@@ -141,7 +141,7 @@ async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
             mock_repo_class.return_value = mock_repo
             mock_repo.get_execution.return_value = None
 
-            await generate_profile_synthesis_and_pdf_task("exe_1234567890123456")
+            await generate_profile_synthesis_and_pdf_task("exe_1234567890123456", "en")
             mock_repo.get_execution.assert_called_once_with("exe_1234567890123456")
 
 

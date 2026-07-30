@@ -199,20 +199,22 @@ def mock_repo_transformer() -> Any:
                 OutputLayoutBlock(
                     preset_view="1d_metrics",
                     target_blocks=["blk_1234abcd1234abcd"],
-                    extension_labels={
-                        XaiExtensionType.REMEDIATION_STEPS: I18nText(
-                            default_locale="en", translations={"en": "Remediation", "fi": "Korjaus"}
-                        ),
-                        XaiExtensionType.COACHING: I18nText(
-                            default_locale="en", translations={"en": "Coaching", "fi": "Vinkki"}
-                        ),
-                        XaiExtensionType.RISK_FLAG: I18nText(
-                            default_locale="en", translations={"en": "Risk", "fi": "Riski"}
-                        ),
-                    },
                 )
             ],
-            visible_block_extensions=[],
+            extension_labels={
+                XaiExtensionType.REMEDIATION_STEPS: I18nText(
+                    default_locale="en", translations={"en": "Remediation", "fi": "Korjaus"}
+                ),
+                XaiExtensionType.COACHING: I18nText(
+                    default_locale="en", translations={"en": "Coaching", "fi": "Vinkki"}
+                ),
+                XaiExtensionType.RISK_FLAG: I18nText(default_locale="en", translations={"en": "Risk", "fi": "Riski"}),
+            },
+            visible_block_extensions=[
+                XaiExtensionType.REMEDIATION_STEPS,
+                XaiExtensionType.COACHING,
+                XaiExtensionType.RISK_FLAG,
+            ],
             visible_workflow_extensions=[],
             max_extension_items=2,
             strictness_level=85,
@@ -579,7 +581,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
         }
     )
 
-    dto = await transformer.build_report_dto("exe_1111111122222222")
+    dto = await transformer.build_report_dto("exe_1111111122222222", accept_language="en")
     assert dto.has_warning is True
 
     assert dto.layouts is not None
@@ -636,7 +638,7 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )  # noqa: E501
-    dto = await transformer.build_report_dto("exe_0000000000000004")
+    dto = await transformer.build_report_dto("exe_0000000000000004", accept_language="en")
 
     # 3 items in, 1 duplicate must be removed → 2 unique
     assert len(dto.mcp_tool_audit) == 2
@@ -712,7 +714,7 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
     )
     mock_repo_sdui.get_execution.return_value = mock_execution
 
-    dto = await transformer.build_report_dto("exe_3333333344444444")
+    dto = await transformer.build_report_dto("exe_3333333344444444", accept_language="en")
 
     assert dto.global_score == 4.5
 
@@ -1393,13 +1395,11 @@ async def test_blueprint_sdui_layout_terminology_override(mock_repo_transformer:
                     matrix_column_labels={
                         "explanation": I18nText(default_locale="fi", translations={"fi": "Selite", "en": "Explanation"})
                     },
-                    extension_labels={
-                        XaiExtensionType.COACHING: I18nText(
-                            default_locale="fi", translations={"fi": "Vinkki", "en": "Tip"}
-                        )
-                    },
                 )
             ],
+            extension_labels={
+                XaiExtensionType.COACHING: I18nText(default_locale="fi", translations={"fi": "Vinkki", "en": "Tip"})
+            },
         )
     ]
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(

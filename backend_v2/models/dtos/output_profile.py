@@ -99,6 +99,20 @@ class OutputProfileCreateDTO(V2CoreBase):
         Literal["original", "custom", "normalized_100"],
         Field(default="original", description="UI rendering scale instruction."),
     ]
+    user_role_mappings: Annotated[
+        dict[str, I18nText],
+        Field(
+            default_factory=dict,
+            description="Localized values for RoleClassification enum values.",
+        ),
+    ]
+    extension_labels: Annotated[
+        dict[LaxXaiExtensionType, I18nText],
+        Field(
+            default_factory=dict,
+            description="Localized labels for global XAI highlights at the profile level.",
+        ),
+    ]
     include_diagnostic_scorecard: Annotated[
         bool, Field(default=False, description="Enable appending the independent diagnostic scorecard.")
     ]

@@ -7,7 +7,6 @@ Adheres to V2 Architecture (De-Generator Policy / SDUI Block Building):
 """
 
 import asyncio
-import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -72,10 +71,14 @@ class PdfReportService:
 
         self.env = Environment(loader=FileSystemLoader(str(template_dir)), undefined=jinja2.StrictUndefined)
 
-        def md_filter(text: Any) -> str:
+        from jinja2 import pass_context
+
+        @pass_context
+        def md_filter(context: Any, text: Any) -> str:
             """Lightweight Custom Markdown Filter for Bold (**) and Italic (*).
 
             Args:
+                context: Jinja2 template context containing l10n.
                 text: Raw text to be parsed as markdown.
 
             Returns:
@@ -85,6 +88,8 @@ class PdfReportService:
                 return ""
             if not isinstance(text, str):
                 text = str(text)
+
+            # Translation is now handled centrally by BlueprintTransformer (SSOT)
 
             return str(markdown.markdown(text, extensions=["extra", "nl2br"]))
 
@@ -212,20 +217,19 @@ class PdfReportService:
 
             printed_at = datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M")
 
-            l10n_dir = Path(__file__).parent.parent.parent / "client_app_v2" / "lib" / "l10n"
-            l10n_dict: dict[str, dict[str, str]] = {"en": {}, "fi": {}}
+            from backend_v2.services.localization import LocalizationService
 
             try:
-                with open(l10n_dir / "app_en.arb", encoding="utf-8") as f:
-                    l10n_dict["en"] = json.load(f)
-                with open(l10n_dir / "app_fi.arb", encoding="utf-8") as f:
-                    l10n_dict["fi"] = json.load(f)
+                LocalizationService.load_if_needed()
             except Exception as e:
-                msg = f"Missing or corrupt .arb L10n files: {e}"
+                msg = f"Failed to load localization: {e}"
                 logger.error("[PdfReportService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise ConfigurationError(msg) from e
 
-            if target_locale not in l10n_dict:
+            lang_simple = target_locale.split("-")[0].lower()
+            l10n = LocalizationService._translations.get(lang_simple)
+
+            if not l10n:
                 msg = f"Locale '{target_locale}' is not supported in .arb L10n files."
                 logger.error("[PdfReportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise CompliantAppException(
@@ -233,8 +237,6 @@ class PdfReportService:
                     message=msg,
                     status_code=400,
                 )
-
-            l10n = l10n_dict[target_locale]
 
             html_content = template.render(
                 execution_id=execution_id,

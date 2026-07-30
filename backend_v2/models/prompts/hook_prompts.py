@@ -48,16 +48,17 @@ SYNTHESIS_SDUI_MANDATES = (
     "text fields. The UI will render text structurally.\n"
     "- CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of "
     "integers in the `citations: list[int]` field for each block that uses sources.\n"
-    "- ROLE TRANSLATION: Do NOT translate role constants (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, ROLE_ARCHITECT). Output them exactly as they are in text so the UI can translate and format them.\n"
+    "- USER ROLE EXTRACTION (CRITICAL): You MUST deduce the user's role (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, ROLE_ARCHITECT) and output it EXACTLY as the uppercase enum constant in the JSON field `user_role`. Provide reasoning in `user_role_justification`.\n"
+    "- ROLE TRANSLATION: Do NOT translate role constants. Output them exactly as they are so the UI can translate and format them.\n"
     "</sdui_mandate>"
 )
 
 SYNTHESIS_XAI_CURATION = (
     "<xai_curation_mandate>\n"
-    "XAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine "
-    "all insights across all inputs for each extension category. Create up to "
-    "<max_extension_items> MOST CRITICAL items for each individual category. Format them as objects in the "
-    "`xai_highlights` array, ensuring each has an `extension_type` and `content`. "
+    "XAI HIGHLIGHTS CURATION: Review the `extensions` fields inside the input data (if any). Synthesize and combine "
+    "all insights across all inputs for the requested extension categories: <requested_extensions>. "
+    "Create up to <max_extension_items> MOST CRITICAL items for each requested category. Format them as objects in the "
+    "`xai_highlights` array, ensuring each has an `extension_type` EXACTLY matching one of the requested categories, and `content`. "
     "Make each item's content an ultra-short, punchy bullet point (max 1 sentence).\n"
     "</xai_curation_mandate>"
 )

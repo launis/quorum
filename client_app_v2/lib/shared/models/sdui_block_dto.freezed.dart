@@ -23,6 +23,10 @@ SduiBlockDTO _$SduiBlockDTOFromJson(
           return SduiBulletListBlock.fromJson(
             json
           );
+                case 'accordion':
+          return SduiAccordionBlock.fromJson(
+            json
+          );
                 case 'alert_box':
           return SduiAlertBoxBlock.fromJson(
             json
@@ -49,6 +53,10 @@ SduiBlockDTO _$SduiBlockDTOFromJson(
           );
                 case 'grid':
           return SduiGridBlock.fromJson(
+            json
+          );
+                case 'header':
+          return SduiHeaderBlock.fromJson(
             json
           );
         
@@ -140,19 +148,21 @@ extension SduiBlockDTOPatterns on SduiBlockDTO {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SduiParagraphBlock value)?  paragraph,TResult Function( SduiBulletListBlock value)?  bulletList,TResult Function( SduiAlertBoxBlock value)?  alertBox,TResult Function( SduiHeroInsightBlock value)?  heroInsight,TResult Function( SduiMarkdownBlock value)?  markdown,TResult Function( SduiQuoteCardBlock value)?  quoteCard,TResult Function( SduiWarningCardBlock value)?  warningCard,TResult Function( SduiNACardBlock value)?  nACard,TResult Function( SduiGridBlock value)?  grid,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SduiParagraphBlock value)?  paragraph,TResult Function( SduiBulletListBlock value)?  bulletList,TResult Function( SduiAccordionBlock value)?  accordion,TResult Function( SduiAlertBoxBlock value)?  alertBox,TResult Function( SduiHeroInsightBlock value)?  heroInsight,TResult Function( SduiMarkdownBlock value)?  markdown,TResult Function( SduiQuoteCardBlock value)?  quoteCard,TResult Function( SduiWarningCardBlock value)?  warningCard,TResult Function( SduiNACardBlock value)?  nACard,TResult Function( SduiGridBlock value)?  grid,TResult Function( SduiHeaderBlock value)?  header,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that);case SduiBulletListBlock() when bulletList != null:
-return bulletList(_that);case SduiAlertBoxBlock() when alertBox != null:
+return bulletList(_that);case SduiAccordionBlock() when accordion != null:
+return accordion(_that);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that);case SduiHeroInsightBlock() when heroInsight != null:
 return heroInsight(_that);case SduiMarkdownBlock() when markdown != null:
 return markdown(_that);case SduiQuoteCardBlock() when quoteCard != null:
 return quoteCard(_that);case SduiWarningCardBlock() when warningCard != null:
 return warningCard(_that);case SduiNACardBlock() when nACard != null:
 return nACard(_that);case SduiGridBlock() when grid != null:
-return grid(_that);case _:
+return grid(_that);case SduiHeaderBlock() when header != null:
+return header(_that);case _:
   return orElse();
 
 }
@@ -170,19 +180,21 @@ return grid(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SduiParagraphBlock value)  paragraph,required TResult Function( SduiBulletListBlock value)  bulletList,required TResult Function( SduiAlertBoxBlock value)  alertBox,required TResult Function( SduiHeroInsightBlock value)  heroInsight,required TResult Function( SduiMarkdownBlock value)  markdown,required TResult Function( SduiQuoteCardBlock value)  quoteCard,required TResult Function( SduiWarningCardBlock value)  warningCard,required TResult Function( SduiNACardBlock value)  nACard,required TResult Function( SduiGridBlock value)  grid,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SduiParagraphBlock value)  paragraph,required TResult Function( SduiBulletListBlock value)  bulletList,required TResult Function( SduiAccordionBlock value)  accordion,required TResult Function( SduiAlertBoxBlock value)  alertBox,required TResult Function( SduiHeroInsightBlock value)  heroInsight,required TResult Function( SduiMarkdownBlock value)  markdown,required TResult Function( SduiQuoteCardBlock value)  quoteCard,required TResult Function( SduiWarningCardBlock value)  warningCard,required TResult Function( SduiNACardBlock value)  nACard,required TResult Function( SduiGridBlock value)  grid,required TResult Function( SduiHeaderBlock value)  header,}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that);case SduiBulletListBlock():
-return bulletList(_that);case SduiAlertBoxBlock():
+return bulletList(_that);case SduiAccordionBlock():
+return accordion(_that);case SduiAlertBoxBlock():
 return alertBox(_that);case SduiHeroInsightBlock():
 return heroInsight(_that);case SduiMarkdownBlock():
 return markdown(_that);case SduiQuoteCardBlock():
 return quoteCard(_that);case SduiWarningCardBlock():
 return warningCard(_that);case SduiNACardBlock():
 return nACard(_that);case SduiGridBlock():
-return grid(_that);}
+return grid(_that);case SduiHeaderBlock():
+return header(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -196,19 +208,21 @@ return grid(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SduiParagraphBlock value)?  paragraph,TResult? Function( SduiBulletListBlock value)?  bulletList,TResult? Function( SduiAlertBoxBlock value)?  alertBox,TResult? Function( SduiHeroInsightBlock value)?  heroInsight,TResult? Function( SduiMarkdownBlock value)?  markdown,TResult? Function( SduiQuoteCardBlock value)?  quoteCard,TResult? Function( SduiWarningCardBlock value)?  warningCard,TResult? Function( SduiNACardBlock value)?  nACard,TResult? Function( SduiGridBlock value)?  grid,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SduiParagraphBlock value)?  paragraph,TResult? Function( SduiBulletListBlock value)?  bulletList,TResult? Function( SduiAccordionBlock value)?  accordion,TResult? Function( SduiAlertBoxBlock value)?  alertBox,TResult? Function( SduiHeroInsightBlock value)?  heroInsight,TResult? Function( SduiMarkdownBlock value)?  markdown,TResult? Function( SduiQuoteCardBlock value)?  quoteCard,TResult? Function( SduiWarningCardBlock value)?  warningCard,TResult? Function( SduiNACardBlock value)?  nACard,TResult? Function( SduiGridBlock value)?  grid,TResult? Function( SduiHeaderBlock value)?  header,}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that);case SduiBulletListBlock() when bulletList != null:
-return bulletList(_that);case SduiAlertBoxBlock() when alertBox != null:
+return bulletList(_that);case SduiAccordionBlock() when accordion != null:
+return accordion(_that);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that);case SduiHeroInsightBlock() when heroInsight != null:
 return heroInsight(_that);case SduiMarkdownBlock() when markdown != null:
 return markdown(_that);case SduiQuoteCardBlock() when quoteCard != null:
 return quoteCard(_that);case SduiWarningCardBlock() when warningCard != null:
 return warningCard(_that);case SduiNACardBlock() when nACard != null:
 return nACard(_that);case SduiGridBlock() when grid != null:
-return grid(_that);case _:
+return grid(_that);case SduiHeaderBlock() when header != null:
+return header(_that);case _:
   return null;
 
 }
@@ -225,18 +239,20 @@ return grid(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<String> items)?  grid,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<String> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
-return bulletList(_that.id,_that.items);case SduiAlertBoxBlock() when alertBox != null:
+return bulletList(_that.id,_that.items);case SduiAccordionBlock() when accordion != null:
+return accordion(_that.id,_that.title,_that.severity,_that.iconName,_that.children);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that.id,_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock() when heroInsight != null:
 return heroInsight(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
 return markdown(_that.id,_that.text);case SduiQuoteCardBlock() when quoteCard != null:
 return quoteCard(_that.id,_that.quote,_that.sourceAliases,_that.citations);case SduiWarningCardBlock() when warningCard != null:
 return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock() when nACard != null:
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock() when grid != null:
-return grid(_that.id,_that.items);case _:
+return grid(_that.id,_that.items);case SduiHeaderBlock() when header != null:
+return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case _:
   return orElse();
 
 }
@@ -254,18 +270,20 @@ return grid(_that.id,_that.items);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<String> items)  grid,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<String> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  header,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock():
-return bulletList(_that.id,_that.items);case SduiAlertBoxBlock():
+return bulletList(_that.id,_that.items);case SduiAccordionBlock():
+return accordion(_that.id,_that.title,_that.severity,_that.iconName,_that.children);case SduiAlertBoxBlock():
 return alertBox(_that.id,_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock():
 return heroInsight(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock():
 return markdown(_that.id,_that.text);case SduiQuoteCardBlock():
 return quoteCard(_that.id,_that.quote,_that.sourceAliases,_that.citations);case SduiWarningCardBlock():
 return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock():
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock():
-return grid(_that.id,_that.items);}
+return grid(_that.id,_that.items);case SduiHeaderBlock():
+return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -279,18 +297,20 @@ return grid(_that.id,_that.items);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<String> items)?  grid,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<String> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
-return bulletList(_that.id,_that.items);case SduiAlertBoxBlock() when alertBox != null:
+return bulletList(_that.id,_that.items);case SduiAccordionBlock() when accordion != null:
+return accordion(_that.id,_that.title,_that.severity,_that.iconName,_that.children);case SduiAlertBoxBlock() when alertBox != null:
 return alertBox(_that.id,_that.text,_that.severity,_that.citations,_that.exactQuotes);case SduiHeroInsightBlock() when heroInsight != null:
 return heroInsight(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiMarkdownBlock() when markdown != null:
 return markdown(_that.id,_that.text);case SduiQuoteCardBlock() when quoteCard != null:
 return quoteCard(_that.id,_that.quote,_that.sourceAliases,_that.citations);case SduiWarningCardBlock() when warningCard != null:
 return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock() when nACard != null:
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock() when grid != null:
-return grid(_that.id,_that.items);case _:
+return grid(_that.id,_that.items);case SduiHeaderBlock() when header != null:
+return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case _:
   return null;
 
 }
@@ -464,6 +484,93 @@ class _$SduiBulletListBlockCopyWithImpl<$Res>
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
 as List<SduiBulletListItemDTO>,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class SduiAccordionBlock extends SduiBlockDTO {
+  const SduiAccordionBlock({this.id, required this.title, this.severity = 'default', @JsonKey(name: 'icon_name') this.iconName, final  List<SduiBlockDTO> children = const [], final  String? $type}): _children = children,$type = $type ?? 'accordion',super._();
+  factory SduiAccordionBlock.fromJson(Map<String, dynamic> json) => _$SduiAccordionBlockFromJson(json);
+
+@override final  String? id;
+ final  String title;
+@JsonKey() final  String severity;
+@JsonKey(name: 'icon_name') final  String? iconName;
+ final  List<SduiBlockDTO> _children;
+@JsonKey() List<SduiBlockDTO> get children {
+  if (_children is EqualUnmodifiableListView) return _children;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_children);
+}
+
+
+@JsonKey(name: 'block_type')
+final String $type;
+
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SduiAccordionBlockCopyWith<SduiAccordionBlock> get copyWith => _$SduiAccordionBlockCopyWithImpl<SduiAccordionBlock>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SduiAccordionBlockToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiAccordionBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.severity, severity) || other.severity == severity)&&(identical(other.iconName, iconName) || other.iconName == iconName)&&const DeepCollectionEquality().equals(other._children, _children));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,title,severity,iconName,const DeepCollectionEquality().hash(_children));
+
+@override
+String toString() {
+  return 'SduiBlockDTO.accordion(id: $id, title: $title, severity: $severity, iconName: $iconName, children: $children)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SduiAccordionBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
+  factory $SduiAccordionBlockCopyWith(SduiAccordionBlock value, $Res Function(SduiAccordionBlock) _then) = _$SduiAccordionBlockCopyWithImpl;
+@override @useResult
+$Res call({
+ String? id, String title, String severity,@JsonKey(name: 'icon_name') String? iconName, List<SduiBlockDTO> children
+});
+
+
+
+
+}
+/// @nodoc
+class _$SduiAccordionBlockCopyWithImpl<$Res>
+    implements $SduiAccordionBlockCopyWith<$Res> {
+  _$SduiAccordionBlockCopyWithImpl(this._self, this._then);
+
+  final SduiAccordionBlock _self;
+  final $Res Function(SduiAccordionBlock) _then;
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = null,Object? severity = null,Object? iconName = freezed,Object? children = null,}) {
+  return _then(SduiAccordionBlock(
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String?,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,severity: null == severity ? _self.severity : severity // ignore: cast_nullable_to_non_nullable
+as String,iconName: freezed == iconName ? _self.iconName : iconName // ignore: cast_nullable_to_non_nullable
+as String?,children: null == children ? _self._children : children // ignore: cast_nullable_to_non_nullable
+as List<SduiBlockDTO>,
   ));
 }
 
@@ -1055,6 +1162,111 @@ class _$SduiGridBlockCopyWithImpl<$Res>
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
 as List<String>,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class SduiHeaderBlock extends SduiBlockDTO {
+  const SduiHeaderBlock({this.id, required this.title, final  List<String> badges = const [], @JsonKey(name: 'metadata_lines') final  List<String> metadataLines = const [], this.costs, final  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, final  String? $type}): _badges = badges,_metadataLines = metadataLines,_tokens = tokens,$type = $type ?? 'header',super._();
+  factory SduiHeaderBlock.fromJson(Map<String, dynamic> json) => _$SduiHeaderBlockFromJson(json);
+
+@override final  String? id;
+ final  String title;
+ final  List<String> _badges;
+@JsonKey() List<String> get badges {
+  if (_badges is EqualUnmodifiableListView) return _badges;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_badges);
+}
+
+ final  List<String> _metadataLines;
+@JsonKey(name: 'metadata_lines') List<String> get metadataLines {
+  if (_metadataLines is EqualUnmodifiableListView) return _metadataLines;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_metadataLines);
+}
+
+ final  String? costs;
+ final  Map<String, String>? _tokens;
+ Map<String, String>? get tokens {
+  final value = _tokens;
+  if (value == null) return null;
+  if (_tokens is EqualUnmodifiableMapView) return _tokens;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+@JsonKey(name: 'custom_preface_md') final  String? customPrefaceMd;
+
+@JsonKey(name: 'block_type')
+final String $type;
+
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SduiHeaderBlockCopyWith<SduiHeaderBlock> get copyWith => _$SduiHeaderBlockCopyWithImpl<SduiHeaderBlock>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SduiHeaderBlockToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiHeaderBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other._badges, _badges)&&const DeepCollectionEquality().equals(other._metadataLines, _metadataLines)&&(identical(other.costs, costs) || other.costs == costs)&&const DeepCollectionEquality().equals(other._tokens, _tokens)&&(identical(other.customPrefaceMd, customPrefaceMd) || other.customPrefaceMd == customPrefaceMd));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,title,const DeepCollectionEquality().hash(_badges),const DeepCollectionEquality().hash(_metadataLines),costs,const DeepCollectionEquality().hash(_tokens),customPrefaceMd);
+
+@override
+String toString() {
+  return 'SduiBlockDTO.header(id: $id, title: $title, badges: $badges, metadataLines: $metadataLines, costs: $costs, tokens: $tokens, customPrefaceMd: $customPrefaceMd)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SduiHeaderBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
+  factory $SduiHeaderBlockCopyWith(SduiHeaderBlock value, $Res Function(SduiHeaderBlock) _then) = _$SduiHeaderBlockCopyWithImpl;
+@override @useResult
+$Res call({
+ String? id, String title, List<String> badges,@JsonKey(name: 'metadata_lines') List<String> metadataLines, String? costs, Map<String, String>? tokens,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd
+});
+
+
+
+
+}
+/// @nodoc
+class _$SduiHeaderBlockCopyWithImpl<$Res>
+    implements $SduiHeaderBlockCopyWith<$Res> {
+  _$SduiHeaderBlockCopyWithImpl(this._self, this._then);
+
+  final SduiHeaderBlock _self;
+  final $Res Function(SduiHeaderBlock) _then;
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = null,Object? badges = null,Object? metadataLines = null,Object? costs = freezed,Object? tokens = freezed,Object? customPrefaceMd = freezed,}) {
+  return _then(SduiHeaderBlock(
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String?,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,badges: null == badges ? _self._badges : badges // ignore: cast_nullable_to_non_nullable
+as List<String>,metadataLines: null == metadataLines ? _self._metadataLines : metadataLines // ignore: cast_nullable_to_non_nullable
+as List<String>,costs: freezed == costs ? _self.costs : costs // ignore: cast_nullable_to_non_nullable
+as String?,tokens: freezed == tokens ? _self._tokens : tokens // ignore: cast_nullable_to_non_nullable
+as Map<String, String>?,customPrefaceMd: freezed == customPrefaceMd ? _self.customPrefaceMd : customPrefaceMd // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

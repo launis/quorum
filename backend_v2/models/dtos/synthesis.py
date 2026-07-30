@@ -114,12 +114,12 @@ class SynthesisOutputDTO(V2CoreBase):
     user_role: Annotated[
         str | None,
         Field(
-            default="Yleinen yleisö",
-            description="Extracted targeted user role for the output. If unknown, default to a generic role.",
+            default=None,
+            description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT). If unknown, default to None.",
         ),
     ]
     user_role_justification: Annotated[
-        str | None, Field(default="Inferred from general context.", description="LLM justification for role mapping.")
+        str | None, Field(default=None, description="LLM justification for role mapping.")
     ]
     executive_summary: Annotated[
         str | None, Field(default="Executive summary.", description="High-level synthesized summary")

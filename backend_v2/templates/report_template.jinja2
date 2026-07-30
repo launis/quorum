@@ -118,6 +118,36 @@
                         </li>
                     {% endfor %}
                 </ul>
+            {% elif block.block_type is defined and block.block_type == 'accordion' %}
+                {% set border_color = '#1E88E5' %}
+                {% set bg_color = '#E3F2FD' %}
+                {% set title_icon = 'ℹ️' %}
+                
+                {% if block.severity == 'success' %}
+                    {% set border_color = '#2E7D32' %}
+                    {% set bg_color = '#E8F5E9' %}
+                {% elif block.severity == 'warning' %}
+                    {% set border_color = '#F57C00' %}
+                    {% set bg_color = '#FFF3E0' %}
+                {% elif block.severity == 'error' %}
+                    {% set border_color = '#C62828' %}
+                    {% set bg_color = '#FFEBEE' %}
+                {% endif %}
+                
+                {% if block.icon_name == 'lightbulb' %}{% set title_icon = '💡' %}{% endif %}
+                {% if block.icon_name == 'balance' %}{% set title_icon = '⚖️' %}{% endif %}
+                {% if block.icon_name == 'build' %}{% set title_icon = '🛠️' %}{% endif %}
+                {% if block.icon_name == 'warning' %}{% set title_icon = '⚠️' %}{% endif %}
+                {% if block.icon_name == 'error' %}{% set title_icon = '❌' %}{% endif %}
+
+                <div class="sdui-accordion" style="border: 1px solid {{ border_color }}; background-color: {{ bg_color }}; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
+                    <div style="padding: 12px 16px; font-weight: bold; font-size: 14px; color: {{ border_color }}; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                        {{ title_icon }} {{ block.title }} <span style="float: right;">▼</span>
+                    </div>
+                    <div style="background-color: white; padding: 16px;">
+                        {{ render_sdui_blocks(block.children) }}
+                    </div>
+                </div>
             {% elif block.block_type is defined and block.block_type == 'alert_box' %}
                 {% set border_color = '#1E88E5' if (block.severity is defined and block.severity == 'info') else '#F57C00' %}
                 {% set bg_color = '#E3F2FD' if (block.severity is defined and block.severity == 'info') else '#FFF3E0' %}
@@ -161,98 +191,63 @@
                         {% endfor %}
                     </table>
                 </div>
+            {% elif block.block_type is defined and block.block_type == 'header' %}
+                <div class="header-card" style="text-align: left;">
+                    <h1 style="margin: 0 0 10px 0;">{{ block.title }}</h1>
+                    
+                    {% if block.badges %}
+                    <div style="margin-bottom: 15px; text-align: center;">
+                        {% for badge in block.badges %}
+                        <span style="background-color: #E8EAF6; border: 1px solid #C5CAE9; border-radius: 4px; padding: 4px 8px; font-size: 11px; display: inline-block; margin-right: 8px; font-weight: bold; color: #283593;">
+                            {{ badge }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if block.metadata_lines %}
+                    <div style="font-size: 12px; color: #444; margin-bottom: 12px;">
+                        {% for line in block.metadata_lines %}
+                            <div style="margin-bottom: 4px;">{{ line | md | safe }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if block.costs or block.tokens %}
+                    <table style="width: 100%; border-top: 1px solid #ccc; padding-top: 10px;">
+                        <tr>
+                            {% if block.costs %}
+                            <td style="width: 50%; vertical-align: top; text-align: left;">
+                                <strong style="font-size: 12px;">Meta Costs</strong><br>
+                                <span style="font-size: 11px;">{{ block.costs }}</span>
+                            </td>
+                            {% endif %}
+                            {% if block.tokens %}
+                            <td style="width: 50%; vertical-align: top; text-align: left;">
+                                <strong style="font-size: 12px;">Meta Tokens</strong><br>
+                                <span style="font-size: 11px;">
+                                    {% for key, val in block.tokens.items() %}
+                                        {{ key }}: {{ val }}<br>
+                                    {% endfor %}
+                                </span>
+                            </td>
+                            {% endif %}
+                        </tr>
+                    </table>
+                    {% endif %}
+                </div>
+
+                {% if block.custom_preface_md %}
+                <div class="card" style="border-left: 4px solid #42a5f5; padding: 20px; margin-bottom: 20px; background-color: #fff;">
+                    <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ block.custom_preface_md | md | safe }}</div>
+                </div>
+                {% endif %}
             {% endif %}
         {% endfor %}
     {% endmacro %}
 
     {% if report_data %}
-        {% set show_user = not report_data.visible_metadata or 'user' in report_data.visible_metadata %}
-        {% set show_date = not report_data.visible_metadata or 'date' in report_data.visible_metadata %}
-        {% set show_cost = not report_data.visible_metadata or 'cost' in report_data.visible_metadata %}
-        {% set show_tokens = not report_data.visible_metadata or 'tokens' in report_data.visible_metadata %}
-        {% set show_engine = not report_data.visible_metadata or 'scoring_engine' in report_data.visible_metadata %}
-        {% set show_strictness = not report_data.visible_metadata or 'strictness' in report_data.visible_metadata %}
-
-        <div class="header-card" style="text-align: left;">
-            <h1 style="margin: 0 0 10px 0;">{{ workflow_name }}</h1>
-            {% if report_data and ((show_engine and report_data.scoring_strategy) or (show_strictness and report_data.strictness_level != None)) %}
-            <div style="margin-bottom: 15px; text-align: center;">
-                {% if show_engine and report_data.scoring_strategy %}
-                {% set strategy_map = {
-                    'waterfall': l10n.strategyKoearvostelu,
-                    'dampening': l10n.strategySyvaarvostelu,
-                    'average': l10n.strategyLineaarinenKeskiarvo,
-                    'weighted_average': l10n.strategyPainotettuKeskiarvo
-                } %}
-                <span style="background-color: #E8EAF6; border: 1px solid #C5CAE9; border-radius: 4px; padding: 4px 8px; font-size: 11px; display: inline-block; margin-right: 8px; font-weight: bold; color: #283593;">
-                    🧮 Scoring Engine: {% if report_data.scoring_strategy in strategy_map %}{{ strategy_map[report_data.scoring_strategy] }}{% else %}{{ report_data.scoring_strategy }}{% endif %}
-                </span>
-                {% endif %}
-                
-                {% if show_strictness and report_data.strictness_level != None %}
-                {% set strictness_map = {
-                    0: l10n.strictnessFullFlex,
-                    15: l10n.strictnessLenient,
-                    50: l10n.strictnessBalanced,
-                    85: l10n.strictnessStrict,
-                    100: l10n.strictnessAbsolute
-                } %}
-                <span style="background-color: #E8EAF6; border: 1px solid #C5CAE9; border-radius: 4px; padding: 4px 8px; font-size: 11px; display: inline-block; font-weight: bold; color: #283593;">
-                    ⚖️ {{ l10n.strictnessSelectorTitle }}: {% if report_data.strictness_level in strictness_map %}{{ strictness_map[report_data.strictness_level] }}{% else %}{{ report_data.strictness_level }}{% endif %}
-                </span>
-                {% endif %}
-            </div>
-            {% endif %}
-            
-            <div style="font-size: 12px; color: #444; margin-bottom: 12px;">
-                {% set default_meta = ['date', 'organization', 'user'] %}
-                {% set metadata_list = report_data.visible_metadata if report_data and report_data.visible_metadata else default_meta %}
-                
-                {% for metaKey in metadata_list %}
-                    {% if metaKey == 'user' %}
-                        <strong>{{ l10n.meta_user }}:</strong> {% if report_data and report_data.user_name %}{{ report_data.user_name }}{% else %}{{ l10n.meta_unknown }}{% endif %}<br>
-                    {% elif metaKey == 'organization' %}
-                        <strong>{{ l10n.meta_organization }}:</strong> {% if report_data and report_data.org_name %}{{ report_data.org_name }}{% else %}{{ l10n.meta_unknown }}{% endif %}<br>
-                    {% elif metaKey == 'date' %}
-                        <strong>{{ l10n.meta_timestamp }}:</strong> {% if report_data and report_data.local_time_str %}{{ report_data.local_time_str }}{% else %}{{ printed_at }}{% endif %}<br>
-                        <div style="font-size: 10px; color: #888; margin-top: 4px; margin-bottom: 4px;">ID: {{ execution_id }}</div>
-                    {% endif %}
-                {% endfor %}
-            </div>
-
-            {% if show_cost or show_tokens %}
-            <table style="width: 100%; border-top: 1px solid #ccc; padding-top: 10px;">
-                <tr>
-                    {% if show_cost %}
-                    <td style="width: 50%; vertical-align: top; text-align: left;">
-                        <strong style="font-size: 12px;">{{ l10n.meta_costs }}</strong><br>
-                        <span style="font-size: 11px;">API-hinta: {% if report_data and report_data.cost_estimate != None %}${{ "%.4f"|format(report_data.cost_estimate) }}{% else %}-{% endif %}</span>
-                    </td>
-                    {% endif %}
-                    {% if show_tokens %}
-                    <td style="width: 50%; vertical-align: top; text-align: left;">
-                        <strong style="font-size: 12px;">{{ l10n.meta_tokens }}</strong><br>
-                        <span style="font-size: 11px;">
-                            Prompt: {% if report_data and report_data.prompt_tokens != None %}{{ report_data.prompt_tokens }}{% else %}-{% endif %}<br>
-                            Completion: {% if report_data and report_data.completion_tokens != None %}{{ report_data.completion_tokens }}{% else %}-{% endif %}<br>
-                            Reasoning: {% if report_data and report_data.reasoning_tokens != None %}{{ report_data.reasoning_tokens }}{% else %}-{% endif %}
-                        </span>
-                    </td>
-                    {% endif %}
-                </tr>
-            </table>
-            {% endif %}
-        </div>
-
-        {% if report_data and report_data.custom_preface_md %}
-        <div class="card" style="border-left: 4px solid #42a5f5; padding: 20px; margin-bottom: 20px; background-color: #fff;">
-            <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ report_data.custom_preface_md | md | safe }}</div>
-        </div>
-        {% endif %}
-
-
-
-
+        {{ render_sdui_blocks(report_data.inner_sdui_blocks) }}
         {% if report_data and report_data.global_score != None %}
         <div style="background-color: #e6e0f8; border: 1px solid #d1c4e9; border-radius: 0 0 8px 8px; padding: 15px 20px; margin-bottom: 25px; margin-top: 0px; page-break-inside: avoid; page-break-before: avoid;">
             <table style="width: 100%; border: none; margin: 0; padding: 0;">

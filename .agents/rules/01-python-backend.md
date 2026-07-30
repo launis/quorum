@@ -9,9 +9,9 @@
 
 <catastrophic_system_bans>
     <rule_block id="the_duct_tape_ban">
-        <banned_pattern>"God Blocks" (`except Exception: pass`), returning empty dicts `{}` on failure, or using `.get("key", default)` to suppress missing data.</banned_pattern>
-        <mandatory_pattern>All errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation. The architectural mandate from `hardening.xml` strictly forbids "Duct-Tape" programming.</mandatory_pattern>
-        <catastrophic_reason>Duct-tape fixes mask root causes, corrupt data flows, and violate the Zero-Compromise Pledge.</catastrophic_reason>
+        <banned_pattern>"God Blocks" (`except Exception: pass`), returning empty dicts `{}` on failure, using `.get("key", default)` to suppress missing data, or using lazy fallback operators like `or "en"`, `or {}`, `or []`.</banned_pattern>
+        <mandatory_pattern>All errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation (schema-level defaults). The architectural mandate strictly forbids "Duct-Tape" programming. If a required value is missing, you MUST fail fast with an `AppException` rather than masking it with a default value in business logic.</mandatory_pattern>
+        <catastrophic_reason>Duct-tape fixes mask root causes, corrupt data flows, and violate the Zero-Compromise Pledge. Masking errors prevents the system from failing fast and exposing the true source of the bug.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="partial_mocking_srp_ban">

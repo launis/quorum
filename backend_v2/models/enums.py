@@ -111,6 +111,7 @@ class TargetBlockType(StrEnum):
     AUDIT_TRAIL_BLOCK = "audit_trail_block"
     JARGON_RATIO_BLOCK = "jargon_ratio_block"
     PRINTABLE_SOURCES_BLOCK = "printable_sources_block"
+    GROUPED_EXTENSIONS_BLOCK = "grouped_extensions_block"
 
 
 class VisualIntent(StrEnum):
@@ -151,6 +152,23 @@ class XaiExtensionType(StrEnum):
     CONTEXTUAL_OVERRIDE = "contextual_override"
     VARIANCE_VALIDATION = "variance_validation"
     AUTHENTICITY_EVALUATION = "authenticity_evaluation"
+
+    @property
+    def l10n_key(self) -> str:
+        """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
+        mapping = {
+            XaiExtensionType.COACHING: "xaiCoachingTip",
+            XaiExtensionType.JUSTIFICATION: "xaiJustification",
+            XaiExtensionType.FALSIFICATION: "xaiDevilsAdvocate",
+            XaiExtensionType.MISSING_CONTEXT: "xaiMissingContext",
+            XaiExtensionType.THEORY_LINK: "xaiTheoryLink",
+            XaiExtensionType.RISK_FLAG: "xaiRiskFlag",
+            XaiExtensionType.REMEDIATION_STEPS: "xaiRemediation",
+            XaiExtensionType.EMOTIONAL_SENTIMENT: "xaiSentiment",
+            XaiExtensionType.VARIANCE_VALIDATION: "xaiVarianceValidationTitle",
+            XaiExtensionType.AUTHENTICITY_EVALUATION: "xaiAuthenticityEvaluationTitle",
+        }
+        return mapping.get(self, "")
 
 
 class XaiExtensionScope(StrEnum):

@@ -223,4 +223,10 @@
         <mandatory_pattern>For every positive test case, you MUST write at least 2 negative test cases covering: 1) Missing or invalid required inputs triggering AppException, 2) Boundary values (min-1, max+1) or type violations per ISTQB Boundary Value Analysis. Test coverage MUST NOT decrease from the pre-change baseline.</mandatory_pattern>
         <catastrophic_reason>Happy-path-only testing creates a false sense of security. Edge cases and error paths are where production systems actually fail, especially in LLM pipelines with stochastic outputs and strict Pydantic validation boundaries.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="anti_lazy_fallback_mandate">
+        <banned_pattern>Using lazy fallbacks (e.g., `accept_language or "en"`, `locale or "en"`, `metadata.get("key") or {}`) to silently bypass missing mandatory configuration or runtime state.</banned_pattern>
+        <mandatory_pattern>You MUST enforce Zero-Compromise Fail-Fast validation. If a mandatory variable, header, or state object is missing, you MUST NOT default to a lazy fallback (like "en" or an empty dictionary) unless explicitly defined in the Pydantic schema as a safe default. Instead, you MUST log the error and raise an explicit `AppException` (e.g., `ErrorCodes.VALIDATION_FAILED`) instantly. Never patch over architectural missing state with duct tape.</mandatory_pattern>
+        <catastrophic_reason>Lazy fallbacks obscure the root cause of systemic failures (e.g., a missing header silently causing the entire UI to render in the wrong language) and corrupt the audit trail by making broken processes appear successful.</catastrophic_reason>
+    </rule_block>
 </universal_quality_gate>

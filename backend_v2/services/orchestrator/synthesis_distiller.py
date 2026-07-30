@@ -85,13 +85,14 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
                                     valid_quotes.append(q_str)
 
                             if valid_quotes:
-                                lite_evals.append(
-                                    {
-                                        "atom_id": ev.get("atom_id"),
-                                        "exact_quotes": [q[:300] for q in valid_quotes],
-                                        "semantic_reasoning": str(sr)[:300] if sr else None,
-                                    }
-                                )
+                                lite_ev = {
+                                    "atom_id": ev.get("atom_id"),
+                                    "exact_quotes": [q[:300] for q in valid_quotes],
+                                    "semantic_reasoning": str(sr)[:300] if sr else None,
+                                }
+                                if "extensions" in ev:
+                                    lite_ev["extensions"] = ev["extensions"]
+                                lite_evals.append(lite_ev)
                     # Cap evaluations to prevent token budget explosion (max 20)
                     lite_evals = lite_evals[:20]
                     obj["evaluations"] = lite_evals if lite_evals else None
@@ -373,9 +374,11 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
 
-    language = "en"
-    if state.metadata and "target_locale" in state.metadata:
-        language = str(state.metadata["target_locale"]).strip().lower()
+    if not state.metadata or "target_locale" not in state.metadata:
+        msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution metadata."
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+    language = str(state.metadata["target_locale"]).strip().lower()
 
     historical_mode = workflow_data.historical_context_mode
 

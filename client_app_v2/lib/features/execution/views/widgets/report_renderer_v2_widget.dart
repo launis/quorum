@@ -69,6 +69,19 @@ class ReportRendererV2Widget extends StatelessWidget {
       );
     }
 
+    // 1. Inner SDUI Blocks (e.g. Header)
+    if (payload.innerSduiBlocks.isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s24,
+            vertical: AppSpacing.s8,
+          ),
+          child: SduiBlocksRenderer(blocks: payload.innerSduiBlocks),
+        ),
+      );
+    }
+
     // 2. Global Score (Kokonaiskeskiarvo)
     if (payload.globalScore != null) {
       widgets.add(

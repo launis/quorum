@@ -10,7 +10,6 @@ class OutputRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     String renderedContent = markdownContent;
 
-    // Backend now provides translated roles, so no dynamic replacement is needed here
     // Clean up possible HTML <br> tags coming from raw text extractions
     renderedContent = renderedContent.replaceAll(
       RegExp(r'<br\s*\/?>', caseSensitive: false),
