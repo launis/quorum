@@ -219,10 +219,13 @@ async def execute_workflow_job(
                     step_metrics[step_id]["total_tokens"] += t_tokens
                     step_metrics[step_id]["chunk_count"] += chunk_size
 
+                updated_meta = dict(updated_exec_record.metadata) if updated_exec_record.metadata else {}
+                actual_locale = updated_meta.get("target_locale") or getattr(workflow_def, "default_locale", "fi")
+
                 # Execution fingerprint snapshot
                 execution_summary = {
                     "strictness_level": strictness_level,
-                    "target_locale": getattr(workflow_def, "default_locale", "fi"),
+                    "target_locale": actual_locale,
                     "is_ensemble_run": getattr(workflow_def, "default_strictness_level", 1) >= 3,
                     "system_concurrency_snapshot": {
                         "LLM_MAX_CHUNK_SIZE": get_settings().llm_max_chunk_size,
@@ -241,7 +244,6 @@ async def execute_workflow_job(
                     },
                 }
 
-                updated_meta = dict(updated_exec_record.metadata) if updated_exec_record.metadata else {}
                 updated_meta["execution_summary"] = execution_summary
                 updated_meta["step_metrics"] = step_metrics
                 updated_meta["dag_cost_usd"] = total_cost_usd
@@ -289,7 +291,9 @@ async def execute_workflow_job(
 
                 if redis:
                     # Enqueue the background synthesis and PDF generation
-                    await redis.enqueue_job("render_profile_job", exec_id, profile_id=profile_id)
+                    await redis.enqueue_job(
+                        "render_profile_job", exec_id, accept_language=actual_locale, profile_id=profile_id
+                    )
                     logger.info(f"[Job] Enqueued render_profile_job for {exec_id} with profile {profile_id}")
                 else:
                     logger.warning(f"[Job] Redis context missing. Could not enqueue render_profile_job for {exec_id}")
