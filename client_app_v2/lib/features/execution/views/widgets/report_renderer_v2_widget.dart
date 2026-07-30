@@ -82,7 +82,7 @@ class ReportRendererV2Widget extends StatelessWidget {
       );
     }
 
-    // 2. Global Score (Kokonaiskeskiarvo)
+    // 2. Global Score
     if (payload.globalScore != null) {
       widgets.add(
         Container(
@@ -203,7 +203,7 @@ class ReportRendererV2Widget extends StatelessWidget {
               vertical: AppSpacing.s16,
             ),
             child: SizedBox(
-              height: 300,
+              height: AppSpacing.s300,
               child: presetView == PresetView.complex3d
                   ? LogicRadarChart(axes: layout.axes)
                   : LogicMatrixChart(
@@ -306,7 +306,7 @@ class ReportRendererV2Widget extends StatelessWidget {
                             color: Theme.of(
                               context,
                             ).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(AppSpacing.s6),
                           ),
                           child: FractionallySizedBox(
                             alignment: Alignment.centerLeft,
@@ -314,7 +314,9 @@ class ReportRendererV2Widget extends StatelessWidget {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Theme.of(context).colorScheme.primary,
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.s6,
+                                ),
                               ),
                             ),
                           ),
@@ -327,7 +329,7 @@ class ReportRendererV2Widget extends StatelessWidget {
                         showQuote: true,
                       ),
                       if (axis.innerSduiBlocks.isNotEmpty) ...[
-                        const SizedBox(height: 12.0),
+                        AppSpacing.h12,
                         SduiBlocksRenderer(blocks: axis.innerSduiBlocks),
                       ],
                     ],

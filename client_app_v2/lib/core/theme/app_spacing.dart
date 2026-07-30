@@ -8,6 +8,7 @@ class AppSpacing {
   static const double s12 = 12.0;
   static const double s16 = 16.0;
   static const double s24 = 24.0;
+  static const double s300 = 300.0;
 
   static const EdgeInsets p8 = EdgeInsets.all(s8);
   static const EdgeInsets p12 = EdgeInsets.all(s12);
