@@ -88,6 +88,8 @@
   - Phase 2 audited. 0 gaps found. See `@[c:\src\quorum\docs\epic\EPIC_123_audit_report.md]`.
   - Phase 3 audited. Found 1 gap (R13). See `@[c:\src\quorum\docs\epic\EPIC_123_audit_report.md]`.
   - Phase 4-7 audited. Gaps found (R25, R28, R30) have been remediated (grouped_extensions removed, SduiAlertBoxWidget and SduiGridWidget created, Jinja loop verified).
+  - Phase 8 audited. 0 gaps found.
+  - Vertex AI schema serving limits (400 BadRequest) bug fix executed and audited successfully.
 ## Instructions for the Execution Agent
 - Atomic commit mandates apply per file or logical block changed.
 - Seeding environment commands: Use `uv run python backend_v2/seed/run_seed.py local` to wipe/seed database.
@@ -110,7 +112,7 @@
 | R10 | Create strict `TraceMatrixExtensionsDTO` with `extra="forbid"` and update `TraceMatrixPayloadDTO.extensions` | Phase 2, Step 2 | [x] |
 | R11 | Update `MatrixScorecardRowDTO` to include `inner_sdui_blocks` and delete legacy XAI string fields (retain `confidence`) | Phase 2, Step 3 | [x] |
 | R12 | Delete `GlobalSynthesisDTO` and `global_synthesis` field from `ReportDataDTO` | Phase 2, Step 4 | [x] |
-| R13 | Fix SDUI List[Any] Leaks: Update `SduiGridBlock.items` to `list[str]` and `SduiQuoteCard.citations` to `list[int]` | Phase 2, Step 5 | [x] |
+| R13 | Fix SDUI List[Any] Leaks: Update `SduiGridBlock.items` to `list[str]` and `SduiQuoteCard.citations` to `list[int]` | Phase 2, Step 5 | [FAIL] |
 | R14 | Update Python test fixtures to remove legacy flat fields and match `inner_sdui_blocks` schema; add `test_parity_ui_variant()` | Phase 2, Step 6 | [x] |
 | R15 | Run `backend_audit_loop.py` on `backend_v2/models/` and perform atomic commit | Phase 2, Step 7 | [x] |
 | R16 | Atomically mirror Python schema changes in Dart Freezed models and update Dart mock fixtures | Phase 3 | [x] |
@@ -164,6 +166,8 @@
 - Successfully executed Phase 8 Post-Implementation Audit (`tier8-audit-plan`). Verified all Phase 8 requirements mathematically using `backend_audit_loop.py` which passed 1170 unit tests, including explicit `ConfigurationError` crash assertions. Verified that Enum mappings and prompt anchoring mandates were respected.
 - Began Final Epic Reverse Audit (`/tier8-audit-epic`). Audited Phase 1 and generated `EPIC_123_audit_report.md`. Discovered R1 failure (preamble and system prompt were not accurately restored from commit `22b16208`).
 - Audited Phase 3 and appended results to `EPIC_123_audit_report.md`. Discovered R13 failure (SduiGridBlock strict type leak).
+- Audited Phases 4-8. Remediated gaps found in phases 4-7. Phase 8 had 0 gaps.
+- Executed bug fix plan for Vertex AI schema serving limits (400 BadRequest) by restricting `AnySduiBlock` to `LlmSduiBlock` in `SynthesisOutputDTO` and verified via `/tier8-audit-plan`.
 ## Learned
 - **Baseline State Snapshot**: The legacy fields still exist in models. The seed data is fully restored and free of emojis. `test_sdui_semantic_parity.py` validates Flutter vs Jinja PDF outputs and now passes successfully since the Jinja template correctly dynamically aligns with Flutter's localized strings instead of hardcoding semantic titles. 
 - Python AST script parsing is vastly superior to `multi_replace_file_content` for stripping unicode prefixes in large JSONs.
@@ -175,4 +179,4 @@
 - During Phase 3 Final Audit, we discovered that `SduiGridBlock.items` was typed as `List<String>` instead of strictly `List<SduiBlockDTO>` (R13). This error actually originated in Phase 2 (`list[str]`) and cascaded to Phase 3.
 - **Phase 4-7 Remediation**: Remediated gaps found during the final epic audit. Removed all legacy `grouped_extensions` references in backend hydration. Implemented `SduiAlertBoxWidget` and `SduiGridWidget` in the Flutter frontend for strict polymorphic UI parity without raw dict-parsing. Verified that Jinja PDF template naturally loops over `inner_sdui_blocks`, seamlessly incorporating the global synthesis without manual section parsing.
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-epic --target="@[c:\src\quorum\docs\epic\EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[C:\Users\risto\.gemini\antigravity-ide\brain\d478ff0a-93ec-462b-999e-74e9d1ad0acc\implementation_plan.md]" --context="@[c:\src\quorum\docs\epic\EPIC_123_tracker.md]"`

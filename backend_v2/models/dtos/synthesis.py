@@ -9,7 +9,18 @@ from typing import Annotated, Any
 from pydantic import Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.models.view.sdui import (
+    AlertBlock,
+    BulletListBlock,
+    ParagraphBlock,
+    SduiQuoteCard,
+    SduiWarningCard,
+)
+
+LlmSduiBlock = Annotated[
+    ParagraphBlock | BulletListBlock | AlertBlock | SduiQuoteCard | SduiWarningCard,
+    Field(discriminator="block_type"),
+]
 
 
 class SynthesisSectionDTO(V2CoreBase):
@@ -22,7 +33,7 @@ class SynthesisSectionDTO(V2CoreBase):
 
     layout_id: Annotated[str, Field(description="The EXACT layout ID provided in the section instructions")]
     content_blocks: Annotated[
-        list[AnySduiBlock], Field(..., description="Structured SDUI content blocks for this section")
+        list[LlmSduiBlock], Field(..., description="Structured SDUI content blocks for this section")
     ]
 
     @model_validator(mode="before")
@@ -127,7 +138,7 @@ class SynthesisOutputDTO(V2CoreBase):
     urgency_level: Annotated[int | None, Field(default=1)]
 
     content_blocks: Annotated[
-        list[AnySduiBlock],
+        list[LlmSduiBlock],
         Field(default_factory=list, description="The fully synthesized structured SDUI content blocks."),
     ]
     cited_sources: Annotated[
