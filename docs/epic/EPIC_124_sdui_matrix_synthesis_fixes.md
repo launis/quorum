@@ -40,6 +40,28 @@ This Epic documents the refactoring and restoration of the "Senior Executive Coa
   - Addressed MyPy strict-typing issues by replacing union-attr errors with precise `isinstance` checks.
   - All modifications successfully passed the Universal Quality Gate (`backend_audit_loop.py`), maintaining strict compliance with the Quorum 2026 Architectural rules.
 
+### 2.5 Eliminating Fallbacks & Restoring Grouped Extensions (Duct-Tape Free Architecture)
+- **Problem**: 
+  - The previous matrix synthesis implementation relied on a "duct-tape" fallback loop in `worker.py` to deduce the global synthesis prompt, because `OutputProfile` lacked a native `synthesis` field.
+  - Furthermore, individual `text_only` matrices lacked their own explanations, and XAI extensions (like "Arjen vinkki" and "Vasta-argumentti") did not render at all due to their target block being omitted from the SDUI layout configurations during the migration.
+  - A strict Dumb Painter architectural guardrail failed because the Senior Executive Coach prompt contained the literal string `(0-100)`, violating the rule that the LLM must not know the UI rendering scale.
+- **Solution**: Implemented native Pydantic schema support, enforced SDUI layout completeness, and fixed the guardrail violation.
+- **Implementation**:
+  - **Pydantic Schema Upgrade**: Added `synthesis: SynthesisConfigDTO | None` natively to `OutputProfile` and `OutputProfileResponseDTO` in `v2_core.py` and `output_profile.py`. This allowed the complete removal of the hardcoded fallback loop from `worker.py`.
+  - **Single Source of Truth (SSOT) via Seed Data**: 
+    - Moved the `Senior Executive Coach` prompt (`blk_1a2b3c4d5e6f7a8b`) directly into the `OutputProfile.synthesis` block in `seed_data.json` as the global directive.
+    - Assigned the `CRITICAL BREVITY MANDATE` (`blk_34def5d628ba4ed4`) to all individual `text_only` matrices so they explicitly receive focused 2-3 sentence LLM analyses.
+  - **Guardrail Compliance**: Removed the `(0-100)` string from the prompt to strictly decouple the LLM from UI rendering math.
+  - **Restoring XAI Extensions**: Explicitly injected `grouped_extensions_block` into the `target_blocks` of a `text_only` layout at the end of the report in `seed_data.json`. This restored the proper SDUI-compliant rendering of all accumulated XAI extensions (e.g., Arjen vinkki, Vasta-argumentti, Korjaavat toimenpiteet).
+
+### 2.6 Frontend SDUI Parsing & Cross-Domain DTO Parity (Tier 4 Bug Fix)
+- **Problem**: The Backend's introduction of the `synthesis` field inside `OutputProfileResponseDTO` caused a severe "White Screen of Death" crash in the Flutter Frontend. This occurred because the Flutter Freezed model enforces strict JSON validation (`disallowUnrecognizedKeys: true`) and the Dart model lacked the new field.
+- **Solution**: Restored Cross-Domain DTO Parity by updating the Dart model to match the Backend payload perfectly.
+- **Implementation**:
+  - Added `SynthesisConfigDTO? synthesis` natively to the `OutputProfile` Freezed model.
+  - Regenerated the `.g.dart` serialization logic and successfully ran the `flutter_audit_loop.py` Quality Gate.
+  - Verified and expanded the JSON parsing unit tests in `output_profile_test.dart` to cover the new `synthesis` structure.
+
 ## 3. Next Steps
 - Validate the changes end-to-end via the Flutter Client UI to ensure pixel-perfect rendering of the new Accordion extensions.
 - Monitor execution telemetry in production to ensure the updated LLM prompts maintain parsing stability and token efficiency.

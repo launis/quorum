@@ -13,6 +13,7 @@ from backend_v2.models.enums import LaxScoringStrategy, LaxXaiExtensionType
 from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,
+    SynthesisConfigDTO,
 )
 from backend_v2.models.view.sdui import AnySduiBlock
 
@@ -122,6 +123,9 @@ class OutputProfileCreateDTO(V2CoreBase):
     scoring_strategy: Annotated[
         LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
     ]
+    synthesis: Annotated[
+        SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
+    ]
     layouts: Annotated[list[OutputLayoutBlock], Field(default_factory=list, description="Sequence of layouts.")]
     content_blocks: Annotated[
         list[AnySduiBlock],
@@ -211,6 +215,9 @@ class OutputProfileUpdateDTO(V2CoreBase):
     scoring_strategy: Annotated[
         LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
     ]
+    synthesis: Annotated[
+        SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
+    ]
     layouts: Annotated[list[OutputLayoutBlock] | None, Field(default=None, description="Sequence of layouts.")]
     content_blocks: Annotated[
         list[AnySduiBlock] | None,
@@ -264,5 +271,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     ]
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
+    synthesis: SynthesisConfigDTO | None = None
     layouts: list[OutputLayoutBlock]
     content_blocks: list[AnySduiBlock] = Field(default_factory=list)

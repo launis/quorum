@@ -317,6 +317,7 @@ _OutputProfile _$OutputProfileFromJson(
         'extension_labels',
         'layouts',
         'content_blocks',
+        'synthesis',
       ],
     );
     final val = _OutputProfile(
@@ -429,6 +430,12 @@ _OutputProfile _$OutputProfileFromJson(
                 .toList() ??
             const [],
       ),
+      synthesis: $checkedConvert(
+        'synthesis',
+        (v) => v == null
+            ? null
+            : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
+      ),
     );
     return val;
   },
@@ -485,6 +492,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
+  'synthesis': instance.synthesis?.toJson(),
 };
 
 const _$XaiExtensionTypeEnumMap = {

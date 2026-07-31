@@ -113,6 +113,7 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'content_blocks')
     @Default([])
     List<SduiBlockDTO> contentBlocks,
+    SynthesisConfigDTO? synthesis,
   }) = _OutputProfile;
 
   factory OutputProfile.fromJson(Map<String, dynamic> json) =>

@@ -739,14 +739,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
         # Extract Synthesis from DAG Execution Trace (Phase 3/4)
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
-
-        synthesis_cfg = None
-        if active_profile_dto and active_profile_dto.layouts:
-            for layout in active_profile_dto.layouts:
-                if getattr(layout, "synthesis", None):
-                    synthesis_cfg = layout.synthesis
-                    break
-
+        synthesis_cfg = active_profile_dto.synthesis if active_profile_dto else None
         synthesis_block_id = synthesis_cfg.synthesis_block_id if synthesis_cfg else None
         row_explanations_block_id = synthesis_cfg.row_explanations_block_id if synthesis_cfg else None
 
@@ -833,9 +826,29 @@ async def generate_profile_synthesis_and_pdf_task(
                 if synthesis_cfg.omit_empty_sections:
                     sys_prompt += "\n<omit_empty_sections>true</omit_empty_sections>"
 
-                from backend_v2.models.prompts.hook_prompts import SYNTHESIS_SDUI_MANDATES, SYNTHESIS_XAI_CURATION
+                from backend_v2.models.prompts.hook_prompts import (
+                    SYNTHESIS_SDUI_MANDATES,
+                    SYNTHESIS_SECTION_RULES_PREFIX,
+                    SYNTHESIS_XAI_CURATION,
+                )
 
                 sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
+                # Epic 124: Re-wire section instructions properly
+                has_section_rules = False
+                section_rules_str = ""
+                if active_profile_dto and active_profile_dto.layouts:
+                    for i, lay in enumerate(active_profile_dto.layouts):
+                        if getattr(lay, "synthesis", None) and lay.synthesis and lay.synthesis.synthesis_block_id:
+                            lay_id = f"layout_{i}_{lay.preset_view}"
+                            lpb_dict = await repo.get_prompt_block(lay.synthesis.synthesis_block_id)
+                            if lpb_dict:
+                                lpb = PromptBlock.model_validate(lpb_dict, strict=False)
+                                section_rules_str += f'\n<section_instruction id="{lay_id}">\n{lpb.ai_description}\n</section_instruction>\n'
+                                has_section_rules = True
+
+                if has_section_rules:
+                    sys_prompt += f"\n\n{SYNTHESIS_SECTION_RULES_PREFIX}{section_rules_str}"
+                    sys_prompt += "\nCRITICAL: You MUST place the output for each section_instruction strictly inside the `section_syntheses` array using its exact `layout_id`. Do NOT put section analysis in the global executive_summary."
 
                 if active_profile_dto and (
                     active_profile_dto.visible_block_extensions or active_profile_dto.visible_workflow_extensions
@@ -860,11 +873,11 @@ async def generate_profile_synthesis_and_pdf_task(
                 sys_prompt += f"\n\n{lang_ctx}"
 
                 client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
+
                 matrix_context = ""
                 if matrices_to_explain:
-                    matrix_context = (
-                        f"\n\nMATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2, ensure_ascii=False)}"
-                    )
+                    matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2)}"
+
                 synth_messages: list[dict[str, Any]] = [
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": f"DATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"},

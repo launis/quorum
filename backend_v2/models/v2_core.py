@@ -1327,6 +1327,9 @@ class OutputProfile(V2CoreBase):
         default_factory=dict,
         description="Localized labels for global XAI highlights at the profile level.",
     )
+    synthesis: SynthesisConfigDTO | None = Field(
+        default=None, description="Global synthesis configuration for the executive summary."
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."

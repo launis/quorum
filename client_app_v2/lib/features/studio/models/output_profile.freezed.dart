@@ -744,7 +744,7 @@ $I18nTextCopyWith<$Res>? get toneInstruction {
 /// @nodoc
 mixin _$OutputProfile {
 
-@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description;@JsonKey(name: 'user_role_label') I18nText? get userRoleLabel;@JsonKey(name: 'custom_preface') I18nText? get customPreface; List<String> get visibleMetadata; List<XaiExtensionType> get visibleBlockExtensions; List<XaiExtensionType> get visibleWorkflowExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction; String? get language;@JsonKey(name: 'user_role_mappings') Map<String, I18nText> get userRoleMappings;@JsonKey(name: 'extension_labels') Map<String, I18nText> get extensionLabels; List<OutputLayoutBlock> get layouts;@JsonKey(name: 'content_blocks') List<SduiBlockDTO> get contentBlocks;
+@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description;@JsonKey(name: 'user_role_label') I18nText? get userRoleLabel;@JsonKey(name: 'custom_preface') I18nText? get customPreface; List<String> get visibleMetadata; List<XaiExtensionType> get visibleBlockExtensions; List<XaiExtensionType> get visibleWorkflowExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction; String? get language;@JsonKey(name: 'user_role_mappings') Map<String, I18nText> get userRoleMappings;@JsonKey(name: 'extension_labels') Map<String, I18nText> get extensionLabels; List<OutputLayoutBlock> get layouts;@JsonKey(name: 'content_blocks') List<SduiBlockDTO> get contentBlocks; SynthesisConfigDTO? get synthesis;
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -759,7 +759,7 @@ $OutputProfileCopyWith<OutputProfile> get copyWith => _$OutputProfileCopyWithImp
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, userRoleLabel: $userRoleLabel, customPreface: $customPreface, visibleMetadata: $visibleMetadata, visibleBlockExtensions: $visibleBlockExtensions, visibleWorkflowExtensions: $visibleWorkflowExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, includeDiagnosticScorecard: $includeDiagnosticScorecard, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, toneInstruction: $toneInstruction, language: $language, userRoleMappings: $userRoleMappings, extensionLabels: $extensionLabels, layouts: $layouts, contentBlocks: $contentBlocks)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, userRoleLabel: $userRoleLabel, customPreface: $customPreface, visibleMetadata: $visibleMetadata, visibleBlockExtensions: $visibleBlockExtensions, visibleWorkflowExtensions: $visibleWorkflowExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, includeDiagnosticScorecard: $includeDiagnosticScorecard, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, toneInstruction: $toneInstruction, language: $language, userRoleMappings: $userRoleMappings, extensionLabels: $extensionLabels, layouts: $layouts, contentBlocks: $contentBlocks, synthesis: $synthesis)';
 }
 
 
@@ -770,11 +770,11 @@ abstract mixin class $OutputProfileCopyWith<$Res>  {
   factory $OutputProfileCopyWith(OutputProfile value, $Res Function(OutputProfile) _then) = _$OutputProfileCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language,@JsonKey(name: 'user_role_mappings') Map<String, I18nText> userRoleMappings,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language,@JsonKey(name: 'user_role_mappings') Map<String, I18nText> userRoleMappings,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks, SynthesisConfigDTO? synthesis
 });
 
 
-$I18nTextCopyWith<$Res> get name;$I18nTextCopyWith<$Res>? get description;$I18nTextCopyWith<$Res>? get userRoleLabel;$I18nTextCopyWith<$Res>? get customPreface;$I18nTextCopyWith<$Res>? get toneInstruction;
+$I18nTextCopyWith<$Res> get name;$I18nTextCopyWith<$Res>? get description;$I18nTextCopyWith<$Res>? get userRoleLabel;$I18nTextCopyWith<$Res>? get customPreface;$I18nTextCopyWith<$Res>? get toneInstruction;$SynthesisConfigDTOCopyWith<$Res>? get synthesis;
 
 }
 /// @nodoc
@@ -787,7 +787,7 @@ class _$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? userRoleLabel = freezed,Object? customPreface = freezed,Object? visibleMetadata = null,Object? visibleBlockExtensions = null,Object? visibleWorkflowExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? includeDiagnosticScorecard = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? toneInstruction = freezed,Object? language = freezed,Object? userRoleMappings = null,Object? extensionLabels = null,Object? layouts = null,Object? contentBlocks = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? userRoleLabel = freezed,Object? customPreface = freezed,Object? visibleMetadata = null,Object? visibleBlockExtensions = null,Object? visibleWorkflowExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? includeDiagnosticScorecard = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? toneInstruction = freezed,Object? language = freezed,Object? userRoleMappings = null,Object? extensionLabels = null,Object? layouts = null,Object? contentBlocks = null,Object? synthesis = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -811,7 +811,8 @@ as String?,userRoleMappings: null == userRoleMappings ? _self.userRoleMappings :
 as Map<String, I18nText>,extensionLabels: null == extensionLabels ? _self.extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, I18nText>,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,contentBlocks: null == contentBlocks ? _self.contentBlocks : contentBlocks // ignore: cast_nullable_to_non_nullable
-as List<SduiBlockDTO>,
+as List<SduiBlockDTO>,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
+as SynthesisConfigDTO?,
   ));
 }
 /// Create a copy of OutputProfile
@@ -870,6 +871,18 @@ $I18nTextCopyWith<$Res>? get toneInstruction {
 
   return $I18nTextCopyWith<$Res>(_self.toneInstruction!, (value) {
     return _then(_self.copyWith(toneInstruction: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SynthesisConfigDTOCopyWith<$Res>? get synthesis {
+    if (_self.synthesis == null) {
+    return null;
+  }
+
+  return $SynthesisConfigDTOCopyWith<$Res>(_self.synthesis!, (value) {
+    return _then(_self.copyWith(synthesis: value));
   });
 }
 }
@@ -953,10 +966,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language, @JsonKey(name: 'user_role_mappings')  Map<String, I18nText> userRoleMappings, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language, @JsonKey(name: 'user_role_mappings')  Map<String, I18nText> userRoleMappings, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks,  SynthesisConfigDTO? synthesis)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.userRoleMappings,_that.extensionLabels,_that.layouts,_that.contentBlocks);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.userRoleMappings,_that.extensionLabels,_that.layouts,_that.contentBlocks,_that.synthesis);case _:
   return orElse();
 
 }
@@ -974,10 +987,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language, @JsonKey(name: 'user_role_mappings')  Map<String, I18nText> userRoleMappings, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language, @JsonKey(name: 'user_role_mappings')  Map<String, I18nText> userRoleMappings, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks,  SynthesisConfigDTO? synthesis)  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile():
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.userRoleMappings,_that.extensionLabels,_that.layouts,_that.contentBlocks);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.userRoleMappings,_that.extensionLabels,_that.layouts,_that.contentBlocks,_that.synthesis);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -994,10 +1007,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language, @JsonKey(name: 'user_role_mappings')  Map<String, I18nText> userRoleMappings, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  String? language, @JsonKey(name: 'user_role_mappings')  Map<String, I18nText> userRoleMappings, @JsonKey(name: 'extension_labels')  Map<String, I18nText> extensionLabels,  List<OutputLayoutBlock> layouts, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks,  SynthesisConfigDTO? synthesis)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.userRoleMappings,_that.extensionLabels,_that.layouts,_that.contentBlocks);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.toneInstruction,_that.language,_that.userRoleMappings,_that.extensionLabels,_that.layouts,_that.contentBlocks,_that.synthesis);case _:
   return null;
 
 }
@@ -1009,7 +1022,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _OutputProfile extends OutputProfile {
-  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, @JsonKey(name: 'user_role_label') this.userRoleLabel, @JsonKey(name: 'custom_preface') this.customPreface, final  List<String> visibleMetadata = const ['date', 'organization'], final  List<XaiExtensionType> visibleBlockExtensions = const [], final  List<XaiExtensionType> visibleWorkflowExtensions = const [], @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'tone_instruction') this.toneInstruction, this.language, @JsonKey(name: 'user_role_mappings') final  Map<String, I18nText> userRoleMappings = const {}, @JsonKey(name: 'extension_labels') final  Map<String, I18nText> extensionLabels = const {}, final  List<OutputLayoutBlock> layouts = const [], @JsonKey(name: 'content_blocks') final  List<SduiBlockDTO> contentBlocks = const []}): _visibleMetadata = visibleMetadata,_visibleBlockExtensions = visibleBlockExtensions,_visibleWorkflowExtensions = visibleWorkflowExtensions,_userRoleMappings = userRoleMappings,_extensionLabels = extensionLabels,_layouts = layouts,_contentBlocks = contentBlocks,super._();
+  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, @JsonKey(name: 'user_role_label') this.userRoleLabel, @JsonKey(name: 'custom_preface') this.customPreface, final  List<String> visibleMetadata = const ['date', 'organization'], final  List<XaiExtensionType> visibleBlockExtensions = const [], final  List<XaiExtensionType> visibleWorkflowExtensions = const [], @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'tone_instruction') this.toneInstruction, this.language, @JsonKey(name: 'user_role_mappings') final  Map<String, I18nText> userRoleMappings = const {}, @JsonKey(name: 'extension_labels') final  Map<String, I18nText> extensionLabels = const {}, final  List<OutputLayoutBlock> layouts = const [], @JsonKey(name: 'content_blocks') final  List<SduiBlockDTO> contentBlocks = const [], this.synthesis}): _visibleMetadata = visibleMetadata,_visibleBlockExtensions = visibleBlockExtensions,_visibleWorkflowExtensions = visibleWorkflowExtensions,_userRoleMappings = userRoleMappings,_extensionLabels = extensionLabels,_layouts = layouts,_contentBlocks = contentBlocks,super._();
   factory _OutputProfile.fromJson(Map<String, dynamic> json) => _$OutputProfileFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1076,6 +1089,7 @@ class _OutputProfile extends OutputProfile {
   return EqualUnmodifiableListView(_contentBlocks);
 }
 
+@override final  SynthesisConfigDTO? synthesis;
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -1092,7 +1106,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, userRoleLabel: $userRoleLabel, customPreface: $customPreface, visibleMetadata: $visibleMetadata, visibleBlockExtensions: $visibleBlockExtensions, visibleWorkflowExtensions: $visibleWorkflowExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, includeDiagnosticScorecard: $includeDiagnosticScorecard, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, toneInstruction: $toneInstruction, language: $language, userRoleMappings: $userRoleMappings, extensionLabels: $extensionLabels, layouts: $layouts, contentBlocks: $contentBlocks)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, userRoleLabel: $userRoleLabel, customPreface: $customPreface, visibleMetadata: $visibleMetadata, visibleBlockExtensions: $visibleBlockExtensions, visibleWorkflowExtensions: $visibleWorkflowExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, includeDiagnosticScorecard: $includeDiagnosticScorecard, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, toneInstruction: $toneInstruction, language: $language, userRoleMappings: $userRoleMappings, extensionLabels: $extensionLabels, layouts: $layouts, contentBlocks: $contentBlocks, synthesis: $synthesis)';
 }
 
 
@@ -1103,11 +1117,11 @@ abstract mixin class _$OutputProfileCopyWith<$Res> implements $OutputProfileCopy
   factory _$OutputProfileCopyWith(_OutputProfile value, $Res Function(_OutputProfile) _then) = __$OutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language,@JsonKey(name: 'user_role_mappings') Map<String, I18nText> userRoleMappings,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, String? language,@JsonKey(name: 'user_role_mappings') Map<String, I18nText> userRoleMappings,@JsonKey(name: 'extension_labels') Map<String, I18nText> extensionLabels, List<OutputLayoutBlock> layouts,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks, SynthesisConfigDTO? synthesis
 });
 
 
-@override $I18nTextCopyWith<$Res> get name;@override $I18nTextCopyWith<$Res>? get description;@override $I18nTextCopyWith<$Res>? get userRoleLabel;@override $I18nTextCopyWith<$Res>? get customPreface;@override $I18nTextCopyWith<$Res>? get toneInstruction;
+@override $I18nTextCopyWith<$Res> get name;@override $I18nTextCopyWith<$Res>? get description;@override $I18nTextCopyWith<$Res>? get userRoleLabel;@override $I18nTextCopyWith<$Res>? get customPreface;@override $I18nTextCopyWith<$Res>? get toneInstruction;@override $SynthesisConfigDTOCopyWith<$Res>? get synthesis;
 
 }
 /// @nodoc
@@ -1120,7 +1134,7 @@ class __$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? userRoleLabel = freezed,Object? customPreface = freezed,Object? visibleMetadata = null,Object? visibleBlockExtensions = null,Object? visibleWorkflowExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? includeDiagnosticScorecard = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? toneInstruction = freezed,Object? language = freezed,Object? userRoleMappings = null,Object? extensionLabels = null,Object? layouts = null,Object? contentBlocks = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? userRoleLabel = freezed,Object? customPreface = freezed,Object? visibleMetadata = null,Object? visibleBlockExtensions = null,Object? visibleWorkflowExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? includeDiagnosticScorecard = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? toneInstruction = freezed,Object? language = freezed,Object? userRoleMappings = null,Object? extensionLabels = null,Object? layouts = null,Object? contentBlocks = null,Object? synthesis = freezed,}) {
   return _then(_OutputProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1144,7 +1158,8 @@ as String?,userRoleMappings: null == userRoleMappings ? _self._userRoleMappings 
 as Map<String, I18nText>,extensionLabels: null == extensionLabels ? _self._extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, I18nText>,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,contentBlocks: null == contentBlocks ? _self._contentBlocks : contentBlocks // ignore: cast_nullable_to_non_nullable
-as List<SduiBlockDTO>,
+as List<SduiBlockDTO>,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
+as SynthesisConfigDTO?,
   ));
 }
 
@@ -1204,6 +1219,18 @@ $I18nTextCopyWith<$Res>? get toneInstruction {
 
   return $I18nTextCopyWith<$Res>(_self.toneInstruction!, (value) {
     return _then(_self.copyWith(toneInstruction: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SynthesisConfigDTOCopyWith<$Res>? get synthesis {
+    if (_self.synthesis == null) {
+    return null;
+  }
+
+  return $SynthesisConfigDTOCopyWith<$Res>(_self.synthesis!, (value) {
+    return _then(_self.copyWith(synthesis: value));
   });
 }
 }

@@ -77,6 +77,31 @@ void main() {
       final profile = OutputProfile.fromJson(jsonPayload);
       expect(profile.workflowId, 'wf_9d68c573802341db');
     });
+
+    test('Should parse OutputProfile with synthesis object', () {
+      final jsonPayload = {
+        'id': 'op_1234567890abcdef',
+        'workflow_id': 'wf_9d68c573802341db',
+        'name': {
+          'default_locale': 'en',
+          'translations': {'en': 'Test Profile'},
+        },
+        'synthesis': {
+          'historical_context_mode': 'DISABLED',
+          'enable_pii_masking': false,
+          'allowed_exports': ['pdf', 'raw_json'],
+          'omit_empty_sections': true,
+          'allowed_mcp_tools': [],
+          'synthesis_block_id': 'blk_1a2b3c4d5e6f7a8b',
+          'row_explanations_block_id': 'blk_row_explanation_rules'
+        }
+      };
+
+      final profile = OutputProfile.fromJson(jsonPayload);
+      expect(profile.synthesis, isNotNull);
+      expect(profile.synthesis?.synthesisBlockId, 'blk_1a2b3c4d5e6f7a8b');
+      expect(profile.synthesis?.rowExplanationsBlockId, 'blk_row_explanation_rules');
+    });
   });
 
   group('SynthesisConfigDTO JSON Parsing', () {
