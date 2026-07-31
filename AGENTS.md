@@ -34,6 +34,12 @@
          <mandatory_pattern>ALWAYS prioritize native MCP tools. Use `view_file` to read, `grep_search` to find, and `multi_replace_file_content` to surgically edit files. NEVER use terminal text manipulation tools. If `multi_replace_file_content` fails due to matching errors, fallback to `view_file` to verify the exact code structure, OR use a full file overwrite (`write_to_file`) if necessary to avoid an infinite loop.</mandatory_pattern>
          <catastrophic_reason>Using terminal utilities like `sed` or `cat` on Windows PowerShell corrupts file encodings (UTF-16 vs UTF-8) and destroys the architectural audit trails.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="prompt_preservation_mandate">
+        <banned_pattern>Autonomously rewriting, simplifying, or "tightening" `system_prompt`, `ai_description`, or other natural-language text fields in `seed_data.json` to fix test failures or to enforce stricter JSON output schemas.</banned_pattern>
+        <mandatory_pattern>The qualitative prompt texts in `seed_data.json` are the USER's intellectual property and represent deliberate coaching philosophy. If E2E parity tests or Pydantic validation fail due to LLM output shaped by these prompts, you MUST adjust the test assertions, the Pydantic schema tolerances, or the backend parsing logic. You MUST NEVER amputate the prompt text itself. You MUST request explicit "PERMISSION GRANTED to modify prompt text X" before touching any `system_prompt` or `ai_description` field.</mandatory_pattern>
+        <catastrophic_reason>Repeated "Agentic Drift" has destroyed the Senior Executive Coach synthesis quality by roboticizing human-authored coaching prompts to satisfy automated test gates.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <agentic_control_center>

@@ -290,7 +290,7 @@
             
             {% set is_matrix_summary = layout.preset_view == 'matrix_summary' %}
             {% set has_graph = layout.preset_view in ['matrix3d', '3d_matrix', 'compare2d', '2d_compare', '3d_complex', 'complex3d'] %}
-            {% set hide_axes = layout.preset_view == 'text_only' or is_matrix_summary or (has_graph and layout.text_delivery_mode == 'none') %}
+            {% set hide_axes = is_matrix_summary or (has_graph and layout.text_delivery_mode == 'none') %}
             
             {% if not hide_axes %}
                 {% for axis in layout.axes %}

@@ -191,7 +191,6 @@ class ReportRendererV2Widget extends StatelessWidget {
       ].contains(presetView);
 
       final hideAxes =
-          presetView == PresetView.textOnly ||
           presetView == PresetView.matrixSummary ||
           (showGraph && layout.textDeliveryMode == TextDeliveryMode.none);
 
