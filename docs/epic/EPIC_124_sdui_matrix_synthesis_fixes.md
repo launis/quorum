@@ -1,45 +1,45 @@
-# Goal: SDUI Matrix Synthesis & Prefix Text Fixes (Suunnitelma v4)
+# EPIC 124: SDUI Matrix Synthesis & Empathic XAI Refactoring
 
-Tämä suunnitelma korjaa aiemman `implementation_plan.md` (Suunnitelma v3) epäonnistumiset, jotka jättivät SDUI-profiilin (Kokonaisvaltainen Auditointi) puutteelliseksi. 
+## 1. Overview
+This Epic documents the refactoring and restoration of the "Senior Executive Coach" Empathic XAI Synthesis logic, its integration with the strictly typed SDUI (Server-Driven UI) architecture, and the enforcement of seamless multilingual support across the application. 
 
-## Proposed Changes
+## 2. Key Objectives & Accomplishments
 
-### 1. Alkutekstin (Custom Preface) Palauttaminen
-- **Tiedosto:** `backend_v2/seed/seed_data.json`
-- **Kohde:** `OutputProfile` id:llä `prf_5d6e7f8091a2b3c4` ("Kokonaisvaltainen Auditointi")
-- **Ongelma:** Aiempi suunnitelma unohti päivittää `custom_preface` -kentän, jolloin PDF:n ensimmäiseltä sivulta puuttui EPIC_123:n vaatima pitkä staattinen teksti.
-- **Toimenpide:** Korvataan nykyinen lyhyt otsikko täydellisellä Markdown-tekstillä.
+### 2.1 Restoring the "Senior Executive Coach" Mentality
+- **Problem**: Earlier prompt optimization had aggressively stripped qualitative coaching guidelines from the synthesis prompts, reducing the richness of the AI's output.
+- **Solution**: Restored and refined the `SYNTHESIS_XAI_CURATION` prompt block in `hook_prompts.py`.
+- **Implementation**:
+  - Re-introduced the "Senior Executive Coach" persona.
+  - Ensured the LLM produces highly contextual, actionable, and empathic advice for each configured extension type (e.g., Coaching, Risk Flag, Remediation Steps).
+  - Maintained `<max_extension_items>` integration (defaulting to 4 per DB configuration) directly inside the prompt (`Create up to <max_extension_items> MOST CRITICAL items...`).
 
-### 2. Flutterin report_renderer_v2_widget.dart korjaus (Akselien piilotuksen poisto `text_only`-layouteilta)
-- **Tiedosto:** `client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart`
-- **Ongelma:** Käyttäjän mainitsemat irralliset lohkot ("Best Practices", "Kausaalinen", "Turvallisuus") ON määritetty täysin oikein erillisiksi `text_only` -layouteiksi `seed_data.json`:ssa. Ongelma on Flutterissa: `report_renderer_v2_widget.dart` piilottaa tällä hetkellä kaikki akselit ehdolla `presetView == PresetView.textOnly`.
-- **Toimenpide:** Poistetaan `presetView == PresetView.textOnly ||` ehto `hideAxes` -muuttujan laskennasta.
+### 2.2 Seamless Multilingual Support (No "Duct Tape") & Prompt Integrity
+- **Problem**: Multilingual execution needed to be handled natively without hacky post-processing or `.replace()` string "duct tape" in Python. Legacy prompts used a hardcoded `{TARGET_LANGUAGE}` placeholder which was brittle. Furthermore, the row explanations (Selite) prompt was mistakenly cross-contaminated with `<max_extension_items>`, which is exclusively intended for multi-row extensions (e.g., Arjen vinkki).
+- **Solution**: Centralized language control via `build_linguistic_context()` and enforced strict separation between single-sentence matrix row explanations and multi-row extensions.
+- **Implementation**:
+  - **No Duct Tape for Languages**: Removed all hardcoded `{TARGET_LANGUAGE}` placeholders from `seed_data.json` output profiles (Executive Coach, Toulmin, etc.). 
+  - **Dynamic Linguistic Mandate**: All synthesis blocks (including Row Explanations, Executive Summary, and Graph Explanations) now use exactly the same native pattern: `CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>.` The actual `<required_output_language>` value is injected securely via `lang_ctx` by the `build_linguistic_context(include_mandate=True)` Python utility.
+  - **Matrix Row Explanations (Selite)**: Removed `<max_extension_items>` entirely from `blk_row_explanation_rules` in `seed_data.json` and from `worker.py`. A matrix explanation MUST be exactly ONE short sentence. 
+  - **Extensions (XAI Highlights)**: The `<max_extension_items>` rule (e.g. 4 rows) strictly applies *only* to global extensions, ensuring they don't bleed into other outputs.
 
-### 3. Ylimääräisten tuplalayoutien poistaminen
-- **Tiedosto:** `backend_v2/seed/seed_data.json`
-- **Ongelma:** Edellinen tekoäly loi vahingossa tuplalayoutit matriisissa jo oleville lohkoille `blk_109dab5b6b3f403a` ja `blk_c5804a9143c34cb1`.
-- **Toimenpide:** Poistetaan nämä kaksi ylimääräistä tuplalayoutia.
+### 2.3 Strict SDUI Polymorphic Matrix Synthesis Integration
+- **Problem**: Legacy matrix harvesting pulled extensions directly from raw execution block strings, leading to scattered logic and violating the Phase 9 SDUI mandates.
+- **Solution**: Refactored the `_hydrate_grouped_extensions_block` in `blueprint.py`.
+- **Implementation**:
+  - Deprecated the raw `accumulated_extensions` dict processing.
+  - Sourced all grouped extensions exclusively from the `profile_cache.xai_highlights` pipeline, which represents the already-synthesized output from the LLM.
+  - Wrapped these results safely into polymorphic SDUI components: `AccordionBlock` for the grouped extension types, containing `AlertBlock` components for the individual insights.
+  - Ensured each extension is grouped and printed only once, containing the defined maximum number of lines generated by the AI.
 
-### 4. `pdf_vs_plan_analysis.md`:n Paljastamien Virheiden ja Hallusinaatioiden Korjaus (Tier 0 Tarkkuus)
-- **Tiedosto:** `backend_v2/seed/seed_data.json`
-- **Ongelma:** Edellinen tekoäly oli **sekoittanut `text_only` -layouttien target_block -ID:t täysin** ja hallusinoinut olemattomia layouteja.
-- **Korjaukset:**
-  1. **Scrambled Target Blocks:**
-     - *Lopullinen Tuomioasteikko* osoitti väärään blockiin. Korjataan oikeaan: `blk_ff72c2d79edb4ebf`.
-     - *Kausaalinen ja Abduktiivinen Integriteetti* osoitti vahingossa `blk_c5804a9143c34cb1`:een. Korjataan oikeaan: `blk_c3bc5f3eb8e74110`.
-     - *Episteeminen Nöyryys* osoitti vahingossa `blk_109dab5b6b3f403a`:een. Korjataan oikeaan: `blk_22e3598e06414409`.
-  2. **Hallusinoidut Layoutit, jotka POISTETAAN KOKONAAN:**
-     - `grouped_extensions_block` ja `Kognitiivinen syvyys (Mekaaninen variaatio)` poistetaan kokonaan.
-  3. **Ylimääräisiksi Luullut Telemetrialohkot (Lähteet, Rangaistukset, Jargon):**
-     - Nämä pidetään Epic 123 (Phase 4: Telemetry Hydration) mukaisesti.
-  4. **`matrix_summary` Pidetään Omalla Paikallaan:**
-     - EMME siirrä `matrix_summary` -layoutia ylös, vaan palautamme sen indeksin 9/10 paikalle. Asetamme `target_blocks: ["*"]` jotta se nappaa kaikki 13 `category_id == 'matrix'` -lohkoa.
+### 2.4 Testing and Quality Assurance
+- **Problem**: Legacy unit tests enforced the old raw-matrix parsing logic, failing against the new SDUI implementation.
+- **Solution**: Rewrote the blueprint validation tests.
+- **Implementation**:
+  - Updated `test_blueprint.py` to use `RenderedSynthesisCache` for mocking the new `profile_syntheses` payload.
+  - Removed outdated assertions expecting flat `AlertBlocks`, updating them to correctly validate the nested `AccordionBlock` -> `AlertBlock` hierarchy.
+  - Addressed MyPy strict-typing issues by replacing union-attr errors with precise `isinstance` checks.
+  - All modifications successfully passed the Universal Quality Gate (`backend_audit_loop.py`), maintaining strict compliance with the Quorum 2026 Architectural rules.
 
-### 5. SDUI:n salliminen `allowed_exports` -kentässä
-- **Toimenpide:** Lisätään `"sdui"` jokaiseen layout-olioon `allowed_exports`-kenttään.
-
-### 6. Admin Studion Layout-Editorin (Flutter) Korjaus
-- **Tiedosto:** `client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart`
-- **Ongelma:** Admin Studio kaatuu (`AssertionError`), jos profiilissa on aktiivisena `PresetView.matrixSummary`. Vika johtuu siitä, että kyseinen legacy-UI-komponentti on kovakoodattu, eikä pudotusvalikosta (`DropdownButtonFormField`) löydy juuri lisättyä `matrixSummary` Enumia.
-- **Juurisyy (Dynaamisuus):** Koska Admin Studio sallii layouttien vapaan lisäämisen ja poistamisen, `matrix_summary`:n sijoitus listalla on täysin dynaaminen (eli se voi liukua ykköseksi tai mihin tahansa). Backend ja tietokanta tukevat dynaamista järjestystä 100%, mutta UI kaatui lukiessaan uuden järjestyksen, koska siltä puuttui tämä yksi pudotusvalikon arvo.
-- **Toimenpide:** Lisätään `PresetView.matrixSummary` vaihtoehto `DropdownButtonFormField` -komponentin kovakoodattuun `items` -listaan `layout_editor_card.dart` -tiedostossa (rivin 246 tienoille). Tämän pienen korjauksen myötä Admin Studio muuttuu täysin kestäväksi graafien dynaamiselle poistolle ja uudelleenjärjestelylle.
+## 3. Next Steps
+- Validate the changes end-to-end via the Flutter Client UI to ensure pixel-perfect rendering of the new Accordion extensions.
+- Monitor execution telemetry in production to ensure the updated LLM prompts maintain parsing stability and token efficiency.

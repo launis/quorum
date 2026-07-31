@@ -1072,11 +1072,12 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
 
 @pytest.mark.asyncio
 async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_transformer: Any) -> None:
-    """Verify that matrix payload extensions instantiate AlertBlock in inner_sdui_blocks."""
+    """Verify that xai_highlights are grouped into AccordionBlocks."""
+    from backend_v2.models.dtos.synthesis import XaiHighlightItem
     from backend_v2.models.enums import ExecutionStatus
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import ExecutionRecord
-    from backend_v2.models.view.sdui import AlertBlock
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+    from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000015",
@@ -1089,17 +1090,23 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
                 content={
                     "blk_1234abcd1234abcd": {
                         "raw_score": 4.0,
-                        "extensions": {
-                            "remediation_steps": "Do this to fix.",
-                            "risk_flag": True,
-                            "missing_context": "",  # Should be ignored because truthy check fails
-                        },
                     },
                 },
             )
         ],
         active_profile_id="prf_dddd1111dddd1111",
         metadata={"target_locale": "en"},
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                xai_highlights=[
+                    XaiHighlightItem(extension_type="remediation_steps", content="Do this to fix."),
+                    XaiHighlightItem(extension_type="risk_flag", content="Risk is high."),
+                ],
+                content_blocks=[],
+                cited_sources=[],
+                section_syntheses={},
+            )
+        },
     )
 
     transformer = BlueprintTransformer(
@@ -1117,25 +1124,36 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
     layout = dto.layouts[0]
 
     synthesis = layout.synthesis_blocks or []
-    alert_blocks = [b for b in synthesis if isinstance(b, AlertBlock)]
-    assert len(alert_blocks) == 2
+    accordion_blocks = [b for b in synthesis if isinstance(b, AccordionBlock)]
+    assert len(accordion_blocks) == 2
 
-    remediation_alert = next((b for b in alert_blocks if b.severity == "success"), None)
-    assert remediation_alert is not None
-    assert "Do this to fix" in remediation_alert.text
+    remediation_accordion = None
+    for b in accordion_blocks:
+        child = b.children[0] if b.children else None
+        if isinstance(child, AlertBlock) and "Do this to fix" in child.text:
+            remediation_accordion = b
+            break
 
-    risk_alert = next((b for b in alert_blocks if b.severity == "error"), None)
-    assert risk_alert is not None
-    assert "True" in risk_alert.text
+    assert remediation_accordion is not None
+
+    risk_accordion = None
+    for b in accordion_blocks:
+        child = b.children[0] if b.children else None
+        if isinstance(child, AlertBlock) and "Risk is high" in child.text:
+            risk_accordion = b
+            break
+
+    assert risk_accordion is not None
 
 
 @pytest.mark.asyncio
 async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transformer: Any) -> None:
     """Verify fallback language logic when target language is unknown."""
+    from backend_v2.models.dtos.synthesis import XaiHighlightItem
     from backend_v2.models.enums import ExecutionStatus
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import ExecutionRecord
-    from backend_v2.models.view.sdui import AlertBlock
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+    from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000016",
@@ -1148,15 +1166,22 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
                 content={
                     "blk_1234abcd1234abcd": {
                         "raw_score": 4.0,
-                        "extensions": {
-                            "coaching": "Good job.",
-                        },
                     },
                 },
             )
         ],
         active_profile_id="prf_dddd1111dddd1111",
         metadata={"target_locale": "unknown_lang"},  # Unknown language
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                xai_highlights=[
+                    XaiHighlightItem(extension_type="coaching", content="Good job."),
+                ],
+                content_blocks=[],
+                cited_sources=[],
+                section_syntheses={},
+            )
+        },
     )
 
     transformer = BlueprintTransformer(
@@ -1173,14 +1198,13 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     layout = dto.layouts[0]
 
     synthesis = layout.synthesis_blocks or []
-    alert_blocks = [b for b in synthesis if isinstance(b, AlertBlock)]
-    assert len(alert_blocks) == 1
+    accordion_blocks = [b for b in synthesis if isinstance(b, AccordionBlock)]
+    assert len(accordion_blocks) == 1
 
-    coaching_alert = alert_blocks[0]
-    assert coaching_alert.severity == "info"
-    # It should fallback to title casing or default locale if missing.
-    assert "Coaching" in coaching_alert.text
-    assert "Good job" in coaching_alert.text
+    coaching_accordion = accordion_blocks[0]
+    assert coaching_accordion.title.lower() == "coaching"
+    assert isinstance(coaching_accordion.children[0], AlertBlock)
+    assert "Good job." in coaching_accordion.children[0].text
 
 
 @pytest.mark.asyncio

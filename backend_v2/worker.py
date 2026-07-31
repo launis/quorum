@@ -882,8 +882,18 @@ async def generate_profile_synthesis_and_pdf_task(
                 if pb_dict:
                     r_pb = PromptBlock.model_validate(pb_dict)
                     client = await LLMClient.from_strategy("strict", repository=repo)
+                    row_sys_prompt = r_pb.ai_description or ""
+
+                    # Inject linguistic context
+                    from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+
+                    lang_ctx = build_linguistic_context(
+                        source_language="Unknown", target_locale=accept_language, include_mandate=True
+                    )
+                    row_sys_prompt += f"\n\n{lang_ctx}"
+
                     row_messages: list[dict[str, Any]] = [
-                        {"role": "system", "content": r_pb.ai_description},
+                        {"role": "system", "content": row_sys_prompt},
                         {
                             "role": "user",
                             "content": f"MATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2)}",

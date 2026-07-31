@@ -60,6 +60,7 @@ SYNTHESIS_XAI_CURATION = (
     "Create up to <max_extension_items> MOST CRITICAL items for each requested category. Format them as objects in the "
     "`xai_highlights` array, ensuring each has an `extension_type` EXACTLY matching one of the requested categories, and `content`. "
     "Make each item's content an ultra-short, punchy bullet point (max 1 sentence).\n"
+    "CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>. Do NOT use English unless explicitly requested.\n"
     "</xai_curation_mandate>"
 )
 

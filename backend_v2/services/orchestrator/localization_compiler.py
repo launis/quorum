@@ -16,6 +16,9 @@ from backend_v2.models.v2_core import I18nText, PromptBlock
 
 logger = logging.getLogger(__name__)
 
+# Standard language names for dynamic TARGET_LANGUAGE substitution
+LANGUAGE_NAMES = {"fi": "Finnish", "en": "English", "sv": "Swedish", "de": "German", "fr": "French", "es": "Spanish"}
+
 
 class LocalizationCompiler:
     """Handles I18n text resolution and instruction compilation for LLM prompts.
@@ -93,8 +96,11 @@ class LocalizationCompiler:
             A formatted string of XML rubrics for the system prompt.
         """
         xml_blocks = []
+        target_lang_name = LANGUAGE_NAMES.get(target_locale.split("-")[0].lower(), "English")
+
         if execution_persona_block and execution_persona_block.ai_description:
-            xml_blocks.append(f"<EXECUTION_PERSONA>\n{execution_persona_block.ai_description}\n</EXECUTION_PERSONA>")
+            persona_desc = execution_persona_block.ai_description.replace("{TARGET_LANGUAGE}", target_lang_name)
+            xml_blocks.append(f"<EXECUTION_PERSONA>\n{persona_desc}\n</EXECUTION_PERSONA>")
 
         xml_blocks.append("<EVALUATION_RUBRICS>")
         for crit in criteria:
@@ -104,6 +110,7 @@ class LocalizationCompiler:
             crit_id = crit.id
             label = self.resolve_i18n(crit.label, "en")
             desc = crit.ai_description or ""
+            desc = desc.replace("{TARGET_LANGUAGE}", target_lang_name)
 
             xml_blocks.append(f'  <MATRIX id="{crit_id}" title="{label}">')
             if desc:
@@ -216,6 +223,8 @@ class LocalizationCompiler:
             ConfigurationError: If a PromptBlock is missing mandatory ai_description.
         """
         compiled_lines = []
+        target_lang_name = LANGUAGE_NAMES.get(target_locale.split("-")[0].lower(), "English")
+
         for block in blocks:
             if block.category_id != "matrix" and block.category_id != "runtime_variables":
                 label = self.resolve_i18n(block.label, "en")
@@ -228,6 +237,8 @@ class LocalizationCompiler:
                         extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": block_id},
                     )
                     raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+                desc = desc.replace("{TARGET_LANGUAGE}", target_lang_name)
 
                 if label or desc:
                     compiled_lines.append(f'<STATIC_INSTRUCTION label="{label}">\n{desc}\n</STATIC_INSTRUCTION>')
@@ -288,6 +299,7 @@ class LocalizationCompiler:
 
         current_date_str = now_utc.strftime("%Y-%m-%d")
         dynamic_time_str = now_utc.strftime("%H:%M:%S UTC")
+        target_lang_name = LANGUAGE_NAMES.get(target_locale.split("-")[0].lower(), "English")
 
         compiled_lines = []
         for block in blocks:
@@ -306,6 +318,7 @@ class LocalizationCompiler:
                 # Perform Runtime Variable Substitutions
                 desc = desc.replace("{CURRENT_DATE}", current_date_str)
                 desc = desc.replace("{DYNAMIC_TIME}", dynamic_time_str)
+                desc = desc.replace("{TARGET_LANGUAGE}", target_lang_name)
 
                 if label or desc:
                     compiled_lines.append(f'<DYNAMIC_INSTRUCTION label="{label}">\n{desc}\n</DYNAMIC_INSTRUCTION>')

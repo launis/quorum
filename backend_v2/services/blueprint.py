@@ -48,6 +48,7 @@ from backend_v2.models.v2_core import (
     SystemConfigPerformativeLexicons,
 )
 from backend_v2.models.view.sdui import (
+    AccordionBlock,
     AlertBlock,
     AnySduiBlock,
     HeroInsightBlock,
@@ -781,12 +782,40 @@ class BlueprintTransformer:
 
     def _hydrate_grouped_extensions_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Hydrates XAI extensions into grouped AccordionBlock elements."""
-        accumulated: dict[str, list[AnySduiBlock]] = kwargs.get("accumulated_extensions", {})
-        if not accumulated:
+        profile_cache = kwargs.get("profile_cache")
+        profile = kwargs.get("profile")
+        locale = kwargs.get("locale")
+
+        if not profile_cache or not profile_cache.xai_highlights:
             return []
+
         blocks: list[AnySduiBlock] = []
-        for _block_id, ext_blocks in accumulated.items():
-            blocks.extend(ext_blocks)
+        from collections import defaultdict
+
+        grouped = defaultdict(list)
+        for hl in profile_cache.xai_highlights:
+            grouped[hl.extension_type].append(hl.content)
+
+        for ext_type, contents in grouped.items():
+            label = ext_type
+            if profile and hasattr(profile, "extension_labels") and profile.extension_labels:
+                label_i18n = profile.extension_labels.get(ext_type)
+                if label_i18n:
+                    label = label_i18n.resolve(locale)
+
+            children: list[AnySduiBlock] = []
+            for c in contents:
+                children.append(AlertBlock(severity="info", text=c, exact_quotes=[], citations=[]))
+
+            blocks.append(
+                AccordionBlock(
+                    title=label,
+                    severity="info",
+                    icon_name="lightbulb",
+                    children=children,
+                )
+            )
+
         return blocks
 
     def _build_layouts(
@@ -999,11 +1028,7 @@ class BlueprintTransformer:
                 )
             if profile_cache.user_role:
                 try:
-                    # Validate the role
-                    from backend_v2.models.enums import RoleClassification
-
-                    role_enum = RoleClassification(profile_cache.user_role)
-                    role_val_i18n = profile.user_role_mappings.get(role_enum.value)
+                    role_val_i18n = profile.user_role_mappings.get(profile_cache.user_role)
                     if role_val_i18n:
                         role_val = role_val_i18n.resolve(locale)
                     else:
@@ -1013,10 +1038,8 @@ class BlueprintTransformer:
 
                 prefix = profile.user_role_label.resolve(locale) if profile.user_role_label else "User Role"
                 content_blocks.append(ParagraphBlock(text=f"**{prefix}:** {role_val}", exact_quotes=[], citations=[]))
-            if profile_cache.user_role_justification:
-                content_blocks.append(
-                    ParagraphBlock(text=profile_cache.user_role_justification, exact_quotes=[], citations=[])
-                )
+
+            # Note: profile_cache.user_role_justification is internal English reasoning and should not be printed directly.
             # xai_highlights are now handled properly by _hydrate_grouped_extensions_block
         else:
             synthesis_md = original_synthesis_md
@@ -1688,6 +1711,7 @@ class BlueprintTransformer:
                                 global_score=global_score,
                                 profile=profile,
                                 accumulated_extensions=accumulated_extensions,
+                                profile_cache=profile_cache,
                             )
                             if hydrated_blocks:
                                 new_synthesis_blocks.extend(hydrated_blocks)
