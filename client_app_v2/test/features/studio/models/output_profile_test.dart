@@ -93,14 +93,17 @@ void main() {
           'omit_empty_sections': true,
           'allowed_mcp_tools': [],
           'synthesis_block_id': 'blk_1a2b3c4d5e6f7a8b',
-          'row_explanations_block_id': 'blk_row_explanation_rules'
-        }
+          'row_explanations_block_id': 'blk_row_explanation_rules',
+        },
       };
 
       final profile = OutputProfile.fromJson(jsonPayload);
       expect(profile.synthesis, isNotNull);
       expect(profile.synthesis?.synthesisBlockId, 'blk_1a2b3c4d5e6f7a8b');
-      expect(profile.synthesis?.rowExplanationsBlockId, 'blk_row_explanation_rules');
+      expect(
+        profile.synthesis?.rowExplanationsBlockId,
+        'blk_row_explanation_rules',
+      );
     });
   });
 

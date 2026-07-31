@@ -270,11 +270,15 @@ def _assemble_matrices_to_explain(
                                 if isinstance(evidence, dict) and "quote" in evidence and evidence["quote"]:
                                     quotes_list.append(str(evidence["quote"]))
 
-            if quotes_list and block_id not in matrices_to_explain_map:
+            if block_id not in matrices_to_explain_map:
                 matrix_alias = alias_engine.register(block_id, prefix="MX-")
                 # Deduplicate quotes to prevent redundant justifications
                 unique_quotes = list(dict.fromkeys(quotes_list))
-                justification_text = "\n".join([f"- {q}" for q in unique_quotes])
+                justification_text = (
+                    "\n".join([f"- {q}" for q in unique_quotes])
+                    if unique_quotes
+                    else "No direct evidence quotes extracted for this matrix."
+                )
                 matrices_to_explain_map[block_id] = {
                     "real_matrix_id": block_id,
                     "matrix_id": matrix_alias,

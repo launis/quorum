@@ -8,34 +8,37 @@ import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
-  testWidgets('LayoutEditorCard should not crash when rendering matrixSummary PresetView', (WidgetTester tester) async {
-    // Arrange
-    final layout = OutputLayoutBlock(
-      presetView: PresetView.matrixSummary,
-      title: I18nText(defaultLocale: 'en'),
-      textDeliveryMode: TextDeliveryMode.full,
-      targetBlocks: [],
-    );
+  testWidgets(
+    'LayoutEditorCard should not crash when rendering matrixSummary PresetView',
+    (WidgetTester tester) async {
+      // Arrange
+      final layout = OutputLayoutBlock(
+        presetView: PresetView.matrixSummary,
+        title: I18nText(defaultLocale: 'en'),
+        textDeliveryMode: TextDeliveryMode.full,
+        targetBlocks: [],
+      );
 
-    // Act & Assert
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: LayoutEditorCard(
-              layouts: [layout],
-              onChanged: (_) {},
-              allowedBlockIds: {},
-              promptBlocksState: const AsyncValue.data([]),
+      // Act & Assert
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: LayoutEditorCard(
+                layouts: [layout],
+                onChanged: (_) {},
+                allowedBlockIds: {},
+                promptBlocksState: const AsyncValue.data([]),
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    // If we reach here without crashing, the test passes.
-    expect(find.byType(LayoutEditorCard), findsOneWidget);
-  });
+      // If we reach here without crashing, the test passes.
+      expect(find.byType(LayoutEditorCard), findsOneWidget);
+    },
+  );
 }

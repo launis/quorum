@@ -145,7 +145,7 @@ def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
 
 
 def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
-    """Test that matrices with empty quote lists are excluded."""
+    """Test that matrices with empty quote lists are INCLUDED with a fallback justification to prevent Fail-Fast crash in blueprint.py."""
     dtos = [
         StepOutputDTO(
             step_id="step1",
@@ -155,7 +155,9 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
         ),
     ]
     result = _assemble_matrices_to_explain(dtos, title_map={})
-    assert len(result) == 0
+    assert len(result) == 1
+    assert result[0]["real_matrix_id"] == "blk_matrix1"
+    assert result[0]["justification"] == "No direct evidence quotes extracted for this matrix."
 
 
 def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
