@@ -969,6 +969,89 @@ async def generate_profile_synthesis_and_pdf_task(
                         )
                     )
 
+            t_variance = None
+            if (
+                active_profile_dto
+                and active_profile_dto.visible_workflow_extensions
+                and "variance_validation" in active_profile_dto.visible_workflow_extensions
+            ):
+                authenticity_score = None
+                performative_phrases_count = None
+                cv = execution.context_variables
+                if cv is not None:
+                    step_det = cv.get("step_detector")
+                    if step_det is not None:
+                        try:
+                            det_out = LightweightMatrixOutput.model_validate(step_det, strict=False)
+                            if det_out.raw_score is not None:
+                                authenticity_score = float(det_out.raw_score)
+                        except Exception:
+                            pass
+
+                    step_ling = cv.get("step_linguistics")
+                    if step_ling is not None:
+                        from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+
+                        try:
+                            ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
+                            patterns = ling_out.performative_patterns
+                            if isinstance(patterns, list):
+                                performative_phrases_count = len(patterns)
+                        except Exception:
+                            pass
+
+                if authenticity_score is None or performative_phrases_count is None:
+                    # Dynamically resolve from execution trace if missing in context_variables
+                    for event in reversed(execution.execution_trace):
+                        if event.event_type == "decision" and "step_linguistics" in event.content:
+                            trace_ling = event.content.get("step_linguistics")
+                            if isinstance(trace_ling, dict) and "performative_patterns" in trace_ling:
+                                trace_patterns = trace_ling.get("performative_patterns")
+                                if isinstance(trace_patterns, list):
+                                    performative_phrases_count = len(trace_patterns)
+                                    break
+                    # For authenticity_score, we skip the complex fallback in worker.py.
+                    # If it's missing, blueprint.py will Fail-Fast anyway, so we just skip the explanation here.
+
+                if authenticity_score is not None and performative_phrases_count is not None:
+                    pb_var = await repo.get_prompt_block("blk_2d2344ab9d744163")
+                    if pb_var:
+                        r_pb_var = PromptBlock.model_validate(pb_var)
+                        client_var = await LLMClient.from_strategy("strict", repository=repo)
+                        var_sys_prompt = r_pb_var.ai_description or ""
+
+                        from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
+                        from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+
+                        var_lang_ctx = build_linguistic_context(
+                            source_language="Unknown", target_locale=accept_language, include_mandate=True
+                        )
+                        var_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{var_lang_ctx}"
+
+                        var_messages: list[dict[str, Any]] = [
+                            {"role": "system", "content": var_sys_prompt},
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>"
+                                    f"\n\nSCORES TO EXPLAIN:\nCognitive Score: {authenticity_score}\nMechanical Phrases Count: {performative_phrases_count}"
+                                ),
+                            },
+                        ]
+
+                        from pydantic import BaseModel
+
+                        class VarianceExplanationResult(BaseModel):
+                            row_explanation: str
+
+                        t_variance = tg.create_task(
+                            client_var.run_structured_task(
+                                messages=var_messages,
+                                response_model=VarianceExplanationResult,
+                                mock_identity="variance_explainer",
+                            )
+                        )
+
         if t_synth and t_synth.result():
             synth_dto, _ = t_synth.result()
             synthesis_res = synth_dto
@@ -976,6 +1059,11 @@ async def generate_profile_synthesis_and_pdf_task(
         if t_row and t_row.result():
             row_dto, _ = t_row.result()
             row_expl_res = row_dto
+
+        variance_expl = None
+        if t_variance and t_variance.result():
+            var_dto, _ = t_variance.result()
+            variance_expl = var_dto.row_explanation
 
         sec_dict: dict[str, list[AnySduiBlock]] = {}
         if synthesis_res and synthesis_res.section_syntheses:
@@ -990,13 +1078,19 @@ async def generate_profile_synthesis_and_pdf_task(
             if "text" in b_dict:
                 flat_md_parts.append(str(b_dict["text"]))
 
+        cache_row_explanations = (
+            {item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
+            if row_expl_res and row_expl_res.explanations
+            else {}
+        )
+        if variance_expl:
+            cache_row_explanations["variance_validation"] = variance_expl
+
         cache = RenderedSynthesisCache(
             synthesized_markdown="\n\n".join(flat_md_parts),
             content_blocks=cast(list[AnySduiBlock], raw_content),
             section_syntheses=sec_dict,
-            row_explanations={item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
-            if row_expl_res and row_expl_res.explanations
-            else {},
+            row_explanations=cache_row_explanations,
             xai_highlights=synthesis_res.xai_highlights if synthesis_res else [],
             cited_sources=synthesis_res.cited_sources if synthesis_res else [],
             executive_summary=synthesis_res.executive_summary if synthesis_res else None,

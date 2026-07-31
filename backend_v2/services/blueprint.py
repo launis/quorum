@@ -476,7 +476,10 @@ class BlueprintTransformer:
 
             ext = matrix_payload.extensions
 
-            if False:
+            synthesis_expected = (
+                profile.synthesis is not None and profile.synthesis.row_explanations_block_id is not None
+            )
+            if synthesis_expected:
                 if b_id not in row_explanations_cache:
                     msg = f"Fail-Fast: row_explanations_cache missing entry for matrix '{b_id}'. Worker synthesis incomplete."
                     logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
@@ -775,8 +778,20 @@ class BlueprintTransformer:
         return [ParagraphBlock(text="Jargon ratio placeholder", exact_quotes=[], citations=[])]
 
     def _hydrate_printable_sources_block(self, **kwargs: Any) -> list[AnySduiBlock]:
-        """Placeholder for future printable sources hydration logic."""
-        return [ParagraphBlock(text="Printable sources placeholder", exact_quotes=[], citations=[])]
+        """Hydrates printable sources into a Markdown block."""
+        profile_cache = kwargs.get("profile_cache")
+        if not profile_cache or not profile_cache.cited_sources:
+            return []
+
+        md_lines = []
+        for src in profile_cache.cited_sources:
+            if not src.strip().startswith("-"):
+                md_lines.append(f"- {src}")
+            else:
+                md_lines.append(src)
+
+        md_content = "\n".join(md_lines)
+        return [MarkdownBlock(text=md_content)]
 
     def _hydrate_grouped_extensions_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Hydrates XAI extensions into grouped AccordionBlock elements."""
@@ -794,9 +809,9 @@ class BlueprintTransformer:
         max_items = 999
         if profile:
             allowed_extensions = set()
-            if hasattr(profile, "visible_workflow_extensions") and profile.visible_workflow_extensions:
+            if profile.visible_workflow_extensions:
                 allowed_extensions.update([str(e) for e in profile.visible_workflow_extensions])
-            if hasattr(profile, "max_extension_items") and profile.max_extension_items is not None:
+            if profile.max_extension_items is not None:
                 max_items = profile.max_extension_items
 
         grouped: dict[str, list[str]] = defaultdict(list)
@@ -835,7 +850,7 @@ class BlueprintTransformer:
             except ValueError:
                 ext_enum = None
 
-            if profile and hasattr(profile, "extension_labels") and profile.extension_labels:
+            if profile and profile.extension_labels:
                 label_i18n = profile.extension_labels.get(ext_type)
                 if label_i18n:
                     label = label_i18n.resolve(locale)
@@ -1187,6 +1202,7 @@ class BlueprintTransformer:
             execution=execution,
         )
 
+        variance_layout_to_inject = None
         for wf_ext in workflow_ext_values:
             if wf_ext == "variance_validation":
                 authenticity_score = None
@@ -1323,34 +1339,41 @@ class BlueprintTransformer:
                     citations=[],
                 )
 
-                performativity_step_ids = {
-                    step.id for step in workflow_obj.steps if step.task_blueprint == "sp_7f9649114d2344dc"
-                }
-                target_matrix_key = None
-                for k in all_parsed_matrices.keys():
-                    for s_id in performativity_step_ids:
-                        if k.startswith(f"{s_id}_"):
-                            target_matrix_key = k
-                            break
-                    if target_matrix_key:
-                        break
+                synth_matrix_row = MatrixScorecardRowDTO(
+                    block_id="variance_validation",
+                    name="Variance Validation",
+                    label_i18n=I18nText(
+                        default_locale="en",
+                        translations={
+                            "en": "Cognitive vs Mechanical Variance",
+                            "fi": "Kognitiivinen vs Mekaaninen Variaatio",
+                        },
+                    ),
+                    description=None,
+                    score=float(variance_res["variance_score"]),
+                    score_display_label=str(variance_res["alignment_verdict"]),
+                    scale_min=0.0,
+                    scale_max=100.0,
+                    normalized_score=float(variance_res["variance_score"]),
+                    is_evaluative=False,
+                    true_atoms=None,
+                    total_atoms=None,
+                    row_explanation=row_explanations_cache.get("variance_validation", ""),
+                    evidence_type=None,
+                    cited_source_id=None,
+                    cited_text_quote=None,
+                    cited_web_citation=None,
+                    inner_sdui_blocks=[grid_block, alert_block],
+                )
 
-                if target_matrix_key and target_matrix_key in all_parsed_matrices:
-                    row = all_parsed_matrices[target_matrix_key]
-                    new_inner = list(row.inner_sdui_blocks)
-                    new_inner.extend([grid_block, alert_block])
-
-                    updated_row = row.model_copy(update={"inner_sdui_blocks": new_inner})
-                    all_parsed_matrices[target_matrix_key] = updated_row
-
-                    for i, m in enumerate(evaluative_matrices):
-                        if m.block_id == row.block_id and m.name == row.name:
-                            evaluative_matrices[i] = updated_row
-                            break
-                    for i, m in enumerate(informational_matrices):
-                        if m.block_id == row.block_id and m.name == row.name:
-                            informational_matrices[i] = updated_row
-                            break
+                variance_layout_to_inject = ReportLayoutDTO(
+                    preset_view="1d_metrics",
+                    title=I18nText(
+                        default_locale="en", translations={"en": "Variance Analysis", "fi": "Variaatioanalyysi"}
+                    ),
+                    axes=[synth_matrix_row],
+                    is_synthesis_enabled=False,
+                )
 
         modified_step_states = False
         new_step_states = dict(execution.step_states)
@@ -1378,6 +1401,9 @@ class BlueprintTransformer:
             layouts_list = self._build_layouts(
                 profile.layouts, all_parsed_matrices, section_syntheses, profile.extension_labels
             )
+
+            if variance_layout_to_inject:
+                layouts_list.append(variance_layout_to_inject)
 
             if not layouts_list:
                 layouts_list = [

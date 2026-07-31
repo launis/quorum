@@ -855,8 +855,10 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     )
     dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
 
-    assert len(dto.layouts) == 1
-    matrix = dto.layouts[0].axes[0]
+    assert len(dto.layouts) == 2
+    variance_layout = dto.layouts[1]
+    assert variance_layout.preset_view == "1d_metrics"
+    matrix = variance_layout.axes[0]
     assert len(matrix.inner_sdui_blocks) == 2
 
     grid_block = matrix.inner_sdui_blocks[0]
@@ -1052,8 +1054,10 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
 
     dto = await transformer.build_report_dto("exe_0000000000000011", accept_language="en")
 
-    assert len(dto.layouts) == 1
-    matrix = dto.layouts[0].axes[0]
+    assert len(dto.layouts) == 2
+    variance_layout = dto.layouts[1]
+    assert variance_layout.preset_view == "1d_metrics"
+    matrix = variance_layout.axes[0]
     assert len(matrix.inner_sdui_blocks) == 2
 
     grid_block = matrix.inner_sdui_blocks[0]
