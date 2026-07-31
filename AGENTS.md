@@ -23,6 +23,12 @@
         <catastrophic_reason>Naked python execution targets the global Windows environment, missing local `.venv` dependencies and causing cascade module errors.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="windows_powershell_syntax_mandate">
+         <banned_pattern>Using Linux/bash syntax like `&&` to chain commands in PowerShell, or using Linux native commands like `ls`, `rm`, `cp`.</banned_pattern>
+         <mandatory_pattern>You MUST exclusively use Windows PowerShell syntax. NEVER use `&&` (it fails in PowerShell 5.1). Use `;` to chain commands or execute them sequentially in separate tool calls. Remember the OS is Windows 11.</mandatory_pattern>
+         <catastrophic_reason>Bash syntax like `&&` immediately throws ParserError in PowerShell, crashing the automated execution pipeline and breaking the IDE.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="native_mcp_tooling">
          <banned_pattern>Instructing the user to run scripts manually, or attempting to use terminal commands like `cat`, `grep`, or `sed` inside PowerShell.</banned_pattern>
          <mandatory_pattern>ALWAYS prioritize native MCP tools. Use `view_file` to read, `grep_search` to find, and `multi_replace_file_content` to surgically edit files. NEVER use terminal text manipulation tools. If `multi_replace_file_content` fails due to matching errors, fallback to `view_file` to verify the exact code structure, OR use a full file overwrite (`write_to_file`) if necessary to avoid an infinite loop.</mandatory_pattern>

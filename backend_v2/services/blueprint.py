@@ -1220,9 +1220,11 @@ class BlueprintTransformer:
 
                 grid_block = SduiGridBlock(
                     items=[
-                        f"Mechanical: {performative_phrases_count}",
-                        f"Cognitive: {authenticity_score}",
-                        f"Variance: {float(variance_res['variance_score'])}",
+                        ParagraphBlock(text=f"Mechanical: {performative_phrases_count}", exact_quotes=[], citations=[]),
+                        ParagraphBlock(text=f"Cognitive: {authenticity_score}", exact_quotes=[], citations=[]),
+                        ParagraphBlock(
+                            text=f"Variance: {float(variance_res['variance_score'])}", exact_quotes=[], citations=[]
+                        ),
                     ]
                 )
                 alert_block = AlertBlock(

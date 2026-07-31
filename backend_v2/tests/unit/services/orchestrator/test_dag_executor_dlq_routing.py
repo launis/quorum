@@ -27,7 +27,7 @@ async def test_two_pass_atomizer_dlq_routing(mock_llm_executor: MagicMock, mock_
     atoms = [
         LLMDraftAtom(reasoning="1", resolved_claim="1", draft_id="a1", is_logical_deduction=True),
         LLMDraftAtom(
-            reasoning="2", resolved_claim="2", draft_id="a2", is_logical_deduction=False, source_block_id=None
+            reasoning="2", resolved_claim="2", draft_id="a2", is_logical_deduction=False, source_block_id="B999"
         ),
         LLMDraftAtom(
             reasoning="3", resolved_claim="3", draft_id="a3", is_logical_deduction=False, source_block_id="B99"

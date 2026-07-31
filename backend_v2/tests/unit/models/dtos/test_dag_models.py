@@ -66,6 +66,34 @@ def test_extracted_atom_invalid_tda_id():
         )
 
 
+def test_extracted_atom_missing_quote_not_logical():
+    """Test ExtractedAtom fails if quote is missing and not logical deduction."""
+    with pytest.raises(ValidationError, match="source_quote is mandatory unless is_logical_deduction is True"):
+        ExtractedAtom(
+            reasoning="Reasoning",
+            resolved_claim="Claim",
+            is_logical_deduction=False,
+            source_quote=None,
+            tda_id="tda_1234567890abcdef",
+            source_id="src_1",
+            source_sequence_index=0,
+        )
+
+
+def test_extracted_atom_quote_with_logical_deduction():
+    """Test ExtractedAtom fails if quote is present when logical deduction."""
+    with pytest.raises(ValidationError, match="source_quote must be None if is_logical_deduction is True"):
+        ExtractedAtom(
+            reasoning="Reasoning",
+            resolved_claim="Claim",
+            is_logical_deduction=True,
+            source_quote="Should be None",
+            tda_id="tda_1234567890abcdef",
+            source_id="src_1",
+            source_sequence_index=0,
+        )
+
+
 def test_linked_atom_graph_valid():
     """Test LinkedAtomGraph with valid data."""
     atom = ExtractedAtom(

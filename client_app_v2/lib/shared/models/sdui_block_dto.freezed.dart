@@ -239,7 +239,7 @@ return header(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<String> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
@@ -270,7 +270,7 @@ return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<String> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  header,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<SduiBlockDTO> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  header,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock():
@@ -297,7 +297,7 @@ return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<String> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
@@ -1091,12 +1091,12 @@ as String,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiGridBlock extends SduiBlockDTO {
-  const SduiGridBlock({this.id, required final  List<String> items, final  String? $type}): _items = items,$type = $type ?? 'grid',super._();
+  const SduiGridBlock({this.id, required final  List<SduiBlockDTO> items, final  String? $type}): _items = items,$type = $type ?? 'grid',super._();
   factory SduiGridBlock.fromJson(Map<String, dynamic> json) => _$SduiGridBlockFromJson(json);
 
 @override final  String? id;
- final  List<String> _items;
- List<String> get items {
+ final  List<SduiBlockDTO> _items;
+ List<SduiBlockDTO> get items {
   if (_items is EqualUnmodifiableListView) return _items;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_items);
@@ -1140,7 +1140,7 @@ abstract mixin class $SduiGridBlockCopyWith<$Res> implements $SduiBlockDTOCopyWi
   factory $SduiGridBlockCopyWith(SduiGridBlock value, $Res Function(SduiGridBlock) _then) = _$SduiGridBlockCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, List<String> items
+ String? id, List<SduiBlockDTO> items
 });
 
 
@@ -1161,7 +1161,7 @@ class _$SduiGridBlockCopyWithImpl<$Res>
   return _then(SduiGridBlock(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<SduiBlockDTO>,
   ));
 }
 

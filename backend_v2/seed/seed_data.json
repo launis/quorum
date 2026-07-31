@@ -9063,8 +9063,8 @@
                         "preamble_text": {
                             "default_locale": "fi",
                             "translations": {
-                                "fi": "**Raportti teko\u00e4lytaidoistasi**\n\nT\u00e4m\u00e4 raportti analysoi vastauksesi tilannekohtaisiin arviointeihin. Sen tavoitteena on auttaa sinua ymm\u00e4rt\u00e4m\u00e4\u00e4n vahvuutesi ja kehityskohteesi teko\u00e4lyn hy\u00f6dynt\u00e4misess\u00e4.\n\n**Huomioi lukiessasi**\n\nAnalyysi ei ole absoluuttinen totuus, vaan suuntaa antava katsaus t\u00e4m\u00e4nhetkiseen osaamiseesi. Teko\u00e4lytaidot kehittyv\u00e4t jatkuvasti kokeilemalla ja oppimalla.",
-                                "en": "**Your AI Skills Report**\n\nThis report analyzes your responses to situational assessments. Its goal is to help you understand your strengths and areas for development in utilizing AI.\n\n**Note when reading**\n\nThe analysis is not an absolute truth, but an indicative overview of your current skills. AI skills are constantly developing through experimentation and learning."
+                                "fi": "Globaali Johdon Yhteenveto",
+                                "en": "Global Executive Summary"
                             }
                         }
                     }

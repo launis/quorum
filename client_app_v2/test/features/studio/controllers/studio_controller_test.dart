@@ -122,7 +122,9 @@ void main() {
 
         when(() => mockClient.saveWorkflow(any(), any())).thenThrow(
           DioException(
-            requestOptions: RequestOptions(path: '/studio/workflows/wf_0123456789abcdef'),
+            requestOptions: RequestOptions(
+              path: '/studio/workflows/wf_0123456789abcdef',
+            ),
             error: appError,
           ),
         );

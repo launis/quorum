@@ -127,9 +127,9 @@
         <mandatory_pattern>Zero-Trust dependency environment. Solve problems using natively installed tools. If an external library is mathematically necessary, wait for "PERMISSION GRANTED".</mandatory_pattern>
     </rule_block>
     <rule_block id="windows_powershell_mandate">
-        <banned_pattern>Using Unix/Linux terminal commands like `rm`, `ls`, `cat`, `grep`, or `sed` when executing terminal commands or providing command examples to the user.</banned_pattern>
-        <mandatory_pattern>You MUST exclusively use native Windows 11 PowerShell commands (e.g., `Remove-Item` or `del` instead of `rm`, `Get-ChildItem` instead of `ls`). You are operating in a strict Windows PowerShell environment.</mandatory_pattern>
-        <catastrophic_reason>Unix commands rely on unreliable PowerShell aliases that cause unpredictable behavior, or they fail entirely. Relying on Unix habits in a Windows ecosystem breaks automated scripts and corrupts file encodings.</catastrophic_reason>
+        <banned_pattern>Using Unix/Linux terminal commands (e.g., `rm`, `ls`, `cat`, `grep`, `sed`) or bash syntax (e.g., using `&&` to chain commands) when executing terminal commands or providing command examples to the user.</banned_pattern>
+        <mandatory_pattern>You MUST exclusively use native Windows 11 PowerShell commands and syntax. NEVER use `&&` to chain commands; use separate commands or PowerShell's `;` separator. Use native cmdlets (e.g., `Remove-Item` or `del` instead of `rm`). You are operating in a strict Windows PowerShell environment.</mandatory_pattern>
+        <catastrophic_reason>Unix commands and syntax like `&&` fail natively in Windows PowerShell, breaking automated scripts, crashing execution pipelines, and causing immediate syntax errors for the user.</catastrophic_reason>
     </rule_block>
     <rule_block id="native_mcp_tooling">
          <banned_pattern>Instructing the user to run scripts manually, or attempting to use terminal commands like `cat`, `grep`, or `sed` inside PowerShell.</banned_pattern>

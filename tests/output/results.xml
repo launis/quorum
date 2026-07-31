@@ -1,1 +1,117 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="1" tests="1" time="0.105" timestamp="2026-07-30T19:26:46.801542+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.integration.test_integration_real_llm" name="test_real_llm_pdf_execution" time="0.000"><skipped type="pytest.skip" message="Live E2E tests skipped by default. Set $env:RUN_LIVE_E2E='true' to run as final Epic verification gate.">C:\src\quorum\backend_v2\tests\integration\test_integration_real_llm.py:61: Live E2E tests skipped by default. Set $env:RUN_LIVE_E2E='true' to run as final Epic verification gate.</skipped></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="12.178" timestamp="2026-07-31T09:22:50.263608+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.integration.test_sdui_semantic_parity" name="test_sdui_semantic_parity" time="11.352"><failure message="AssertionError: Flutter semantic token 'English test' missing from PDF output! PDF Context: N/A (Ei arvioitu): qCoAMCkdlduxRTJVvsHC &#10;  &#10;  Global Average Score &#10;  &#10;  428.23/100 &#10;  &#10;  textonly &#10;  &#10;  Page 1 of 1 &#10;  &#10;  &#10;assert 'English test' in 'N/A (Ei arvioitu): qCoAMCkdlduxRTJVvsHC \n\nGlobal Average Score \n\n428.23/100 \n\ntextonly \n\nPage 1 of 1 \n\n'">@pytest.mark.asyncio
+    async def test_sdui_semantic_parity() -&gt; None:
+        """Phase 3: Automated Pytest E2E Orchestrator for SDUI Parity."""
+        # Step 1: Verify flutter binary
+        flutter_path = shutil.which("flutter")
+        if not flutter_path:
+            pytest.skip("Flutter SDK not found")
+    
+        # Step 2: Generate temp paths
+        golden_fd, golden_path = tempfile.mkstemp(suffix=".json")
+        os.close(golden_fd)
+    
+        dump_fd, dump_path = tempfile.mkstemp(suffix=".json")
+        os.close(dump_fd)
+    
+        try:
+            pdf_path = None
+    
+            # Generate dynamic SDUI mock using Polyfactory
+            dto = ReportDataDTOFactory.build()
+            dto = dto.model_copy(
+                update={
+                    "profile_name": I18nText(default_locale="en", translations={"en": "English test"}),
+                }
+            )  # Clear random dicts and explicitly mock profile_name to prevent Jinja crashes and ensure parity
+    
+            new_layouts = []
+            for layout in dto.layouts:
+                axes = list(layout.axes)
+                if layout.preset_view in ("radar_3d", "3d_complex"):
+                    while len(axes) &lt; 3:
+                        axes.append(MatrixScorecardRowDTOFactory.build())
+                elif layout.preset_view in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
+                    while len(axes) &lt; 2:
+                        axes.append(MatrixScorecardRowDTOFactory.build())
+                new_layouts.append(layout.model_copy(update={"synthesis_blocks": None, "axes": axes}))
+    
+            dto = dto.model_copy(update={"layouts": new_layouts})
+    
+            with open(golden_path, "w", encoding="utf-8") as f_json:
+                f_json.write(dto.model_dump_json(exclude_none=True))
+    
+            # Step 3: Run Flutter tests
+            cmd = [
+                flutter_path,
+                "test",
+                "test/features/execution/sdui_semantic_parity_test.dart",
+                f"--dart-define=GOLDEN_PATH={golden_path}",
+                f"--dart-define=DUMP_PATH={dump_path}",
+            ]
+    
+            flutter_cwd = os.path.join(os.getcwd(), "client_app_v2")
+            result = subprocess.run(cmd, cwd=flutter_cwd, capture_output=True, text=True, encoding="utf-8")
+            assert result.returncode == 0, f"Flutter test failed: {result.stdout}\n{result.stderr}"
+    
+            # Step 4: Generate PDF
+            from unittest.mock import AsyncMock
+    
+            from backend_v2.services.pdf_generator import PdfReportService
+    
+            exec_repo = AsyncMock()
+            exec_repo.get_execution.return_value = AsyncMock(
+                metadata={"target_locale": "en"}, workflow_id="mock_workflow_id"
+            )
+            workflow_repo = AsyncMock()
+    
+            mock_wf = WorkflowFactory.build(
+                expected_inputs=[], steps=[], name=I18nText(default_locale="en", translations={"en": "mock_wf"})
+            )
+            workflow_repo.get_workflow_by_id.return_value = mock_wf.model_dump(mode="json")
+    
+            pdf_service = PdfReportService(exec_repo=exec_repo, workflow_repo=workflow_repo)
+            pdf_bytes = await pdf_service.generate_execution_pdf("mock_exec_id", report_dto=dto)
+    
+            pdf_fd, pdf_path = tempfile.mkstemp(suffix=".pdf")
+            os.close(pdf_fd)
+            with open(pdf_path, "wb") as f_pdf:
+                f_pdf.write(pdf_bytes)
+    
+            # Step 5: Extract PDF text
+            import pymupdf4llm
+    
+            md_text = pymupdf4llm.to_markdown(pdf_path)
+    
+            # Step 6: Compare
+            with open(dump_path, encoding="utf-8") as f_json_dump:
+                flutter_text_sequence = json.load(f_json_dump)
+    
+            # Parity Check: Every semantic text block visible in Flutter MUST be present in the generated PDF.
+            # This proves the Dumb Painter architecture is in perfect sync with Jinja PDF.
+            def clean_md(text: str) -&gt; str:
+                return text.replace("**", "").replace("_", "").replace("### ", "").replace("## ", "").replace("# ", "")
+    
+            cleaned_md = clean_md(md_text)
+    
+            for flutter_str in flutter_text_sequence:
+                for token in str(flutter_str).split("\n"):
+                    token = token.strip()
+                    if not token:
+                        continue
+&gt;                   assert token in cleaned_md, (
+                        f"Flutter semantic token '{token}' missing from PDF output! PDF Context: {cleaned_md}"
+                    )
+E                   AssertionError: Flutter semantic token 'English test' missing from PDF output! PDF Context: N/A (Ei arvioitu): qCoAMCkdlduxRTJVvsHC 
+E                     
+E                     Global Average Score 
+E                     
+E                     428.23/100 
+E                     
+E                     textonly 
+E                     
+E                     Page 1 of 1 
+E                     
+E                     
+E                   assert 'English test' in 'N/A (Ei arvioitu): qCoAMCkdlduxRTJVvsHC \n\nGlobal Average Score \n\n428.23/100 \n\ntextonly \n\nPage 1 of 1 \n\n'
+
+backend_v2\tests\integration\test_sdui_semantic_parity.py:185: AssertionError</failure></testcase></testsuite></testsuites>

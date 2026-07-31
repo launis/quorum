@@ -1,8 +1,8 @@
 """Domain models for the RAG Pre-Flight Global Atom Blackboard."""
 
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -28,6 +28,14 @@ class LLMDraftAtom(V2CoreBase):
         ),
     ] = None
     draft_id: Annotated[str, Field(description="A short temporary ID assigned by LLM, e.g. a0, a1.")]
+
+    @model_validator(mode="after")
+    def validate_logical_deduction_and_source(self) -> Self:
+        if self.is_logical_deduction and self.source_block_id is not None:
+            raise ValueError("source_block_id must be None if is_logical_deduction is True.")
+        if not self.is_logical_deduction and not self.source_block_id:
+            raise ValueError("source_block_id is mandatory unless is_logical_deduction is True.")
+        return self
 
 
 class LLMDraftAtomList(V2CoreBase):
@@ -56,6 +64,14 @@ class DraftExtractedAtom(V2CoreBase):
     source_sequence_index: Annotated[
         int, Field(description="Injected programmatically by the Python worker for chronological sorting.")
     ]
+
+    @model_validator(mode="after")
+    def validate_logical_deduction_and_source(self) -> Self:
+        if self.is_logical_deduction and self.source_quote is not None:
+            raise ValueError("source_quote must be None if is_logical_deduction is True.")
+        if not self.is_logical_deduction and not self.source_quote:
+            raise ValueError("source_quote is mandatory unless is_logical_deduction is True.")
+        return self
 
 
 class DraftAtomList(V2CoreBase):

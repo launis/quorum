@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
-import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/features/execution/views/widgets/sdui_blocks_renderer.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
 class SduiGridWidget extends StatelessWidget {
@@ -34,7 +34,7 @@ class SduiGridWidget extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.s12),
-                    child: OutputRenderer(markdownContent: item),
+                    child: SduiBlocksRenderer(blocks: [item]),
                   ),
                 ),
               );

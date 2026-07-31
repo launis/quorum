@@ -264,6 +264,7 @@ class TwoPassAtomizer:
                     ExtractedAtom(
                         reasoning=draft.reasoning,
                         resolved_claim=draft.resolved_claim,
+                        is_logical_deduction=draft.is_logical_deduction,
                         source_quote=exact_quote,
                         tda_id=tda_id,
                         source_id=f"chunk_{chunk_index}",

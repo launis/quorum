@@ -8,9 +8,9 @@ Models enforce `ConfigDict(extra="forbid", strict=True, frozen=True)` to guarant
 architectural Single Source of Truth and Fail-Fast operations.
 """
 
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.models.enums import ExecutionStatus
 
@@ -81,6 +81,14 @@ class ExtractedAtom(BaseModel):
     source_sequence_index: Annotated[
         int, Field(description="The chronological sequence index indicating extraction order.")
     ]
+
+    @model_validator(mode="after")
+    def validate_logical_deduction_and_quote(self) -> Self:
+        if self.is_logical_deduction and self.source_quote is not None:
+            raise ValueError("source_quote must be None if is_logical_deduction is True.")
+        if not self.is_logical_deduction and not self.source_quote:
+            raise ValueError("source_quote is mandatory unless is_logical_deduction is True.")
+        return self
 
 
 class LinkedAtomGraph(BaseModel):

@@ -579,7 +579,7 @@ class SduiGridBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="grid")
     block_type: Literal["grid"] = "grid"
-    items: Annotated[list[str], Field(default_factory=list, description="Items in the grid.")]
+    items: Annotated[list[AnySduiBlock], Field(default_factory=list, description="Items in the grid.")]
 
 
 class HeaderBlock(SduiBlockBase):
