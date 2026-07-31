@@ -1049,7 +1049,9 @@ class SynthesisConfigDTO(V2CoreBase):
 
 
 class ReportLayoutDTO(V2CoreBase):
-    preset_view: Literal["1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only"]
+    preset_view: Literal[
+        "1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only", "matrix_summary"
+    ]
     title: I18nText | None = Field(default=None)
     description: I18nText | None = Field(default=None)
     is_synthesis_enabled: bool = Field(default=True)
@@ -1235,9 +1237,9 @@ class ReportDataDTO(V2CoreBase):
 class OutputLayoutBlock(V2CoreBase):
     """A single sequential rendering block for a report profile."""
 
-    preset_view: Literal["1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only"] = Field(
-        description="The static UI renderer preset (e.g. 1d_metrics, 3d_complex)."
-    )
+    preset_view: Literal[
+        "1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only", "matrix_summary"
+    ] = Field(description="The static UI renderer preset (e.g. 1d_metrics, 3d_complex).")
     is_synthesis_enabled: bool = Field(default=True, description="Toggle for UI section-level synthesis.")
     title: I18nText | None = Field(default=None, description="Optional localized layout title.")
     description: I18nText | None = Field(default=None, description="Optional localized layout description.")

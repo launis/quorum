@@ -101,6 +101,7 @@ class BlueprintTransformer:
             TargetBlockType.AUDIT_TRAIL_BLOCK: self._hydrate_audit_trail_block,
             TargetBlockType.JARGON_RATIO_BLOCK: self._hydrate_jargon_ratio_block,
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: self._hydrate_printable_sources_block,
+            TargetBlockType.GROUPED_EXTENSIONS_BLOCK: self._hydrate_grouped_extensions_block,
         }
 
     @staticmethod
@@ -232,6 +233,7 @@ class BlueprintTransformer:
         list[MatrixScorecardRowDTO],
         dict[str, MatrixScorecardRowDTO],
         dict[str, dict[str, ScorecardAtomDTO]],
+        dict[str, list[AnySduiBlock]],
     ]:
         """Parses folded results into MatrixScorecardRowDTOs and populates grouped XAI extensions.
 
@@ -258,6 +260,7 @@ class BlueprintTransformer:
         informational_matrices: list[MatrixScorecardRowDTO] = []
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
         step_scorecard_atoms: dict[str, dict[str, ScorecardAtomDTO]] = {}
+        accumulated_extensions: dict[str, list[AnySduiBlock]] = {}
 
         # Safe attribute access using V2 Models
         display_scale = profile.display_scale
@@ -679,7 +682,7 @@ class BlueprintTransformer:
 
             if ext:
 
-                def _add_ext(key: str, val: Any, row_dto_ref: MatrixScorecardRowDTO) -> None:
+                def _add_ext(key: str, val: Any, b_id: str) -> None:
                     if not val:
                         return
                     try:
@@ -708,24 +711,23 @@ class BlueprintTransformer:
                         if ext_enum in profile.visible_block_extensions:
                             lines = list(dict.fromkeys(line.strip() for line in str(val).split("\n") if line.strip()))
                             for line in lines:
-                                row_dto_ref.inner_sdui_blocks.append(
-                                    AlertBlock(
-                                        severity=acc_severity,
-                                        text=f"**{label_str}**: {line}",
-                                        exact_quotes=[],
-                                        citations=[],
-                                    )
+                                block = AlertBlock(
+                                    severity=acc_severity,
+                                    text=f"**{label_str}**: {line}",
+                                    exact_quotes=[],
+                                    citations=[],
                                 )
+                                accumulated_extensions.setdefault(b_id, []).append(block)
                     except ValueError:
                         pass
 
-                _add_ext("coaching", ext.coaching, row_dto)
-                _add_ext("falsification", ext.falsification, row_dto)
-                _add_ext("remediation_steps", ext.remediation_steps, row_dto)
-                _add_ext("missing_context", ext.missing_context, row_dto)
-                _add_ext("emotional_sentiment", ext.emotional_sentiment, row_dto)
-                _add_ext("theory_link", ext.theory_link, row_dto)
-                _add_ext("risk_flag", ext.risk_flag, row_dto)
+                _add_ext("coaching", ext.coaching, b_id)
+                _add_ext("falsification", ext.falsification, b_id)
+                _add_ext("remediation_steps", ext.remediation_steps, b_id)
+                _add_ext("missing_context", ext.missing_context, b_id)
+                _add_ext("emotional_sentiment", ext.emotional_sentiment, b_id)
+                _add_ext("theory_link", ext.theory_link, b_id)
+                _add_ext("risk_flag", ext.risk_flag, b_id)
 
             unique_k = f"{step_id}_{b_id}"
             all_parsed_matrices[unique_k] = row_dto
@@ -735,7 +737,13 @@ class BlueprintTransformer:
             else:
                 informational_matrices.append(row_dto)
 
-        return evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms
+        return (
+            evaluative_matrices,
+            informational_matrices,
+            all_parsed_matrices,
+            step_scorecard_atoms,
+            accumulated_extensions,
+        )
 
     def _hydrate_penalties_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Hydrates penalty visual blocks with CRITICAL_OVERRIDE intent."""
@@ -770,6 +778,16 @@ class BlueprintTransformer:
     def _hydrate_printable_sources_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Placeholder for future printable sources hydration logic."""
         return [ParagraphBlock(text="Printable sources placeholder", exact_quotes=[], citations=[])]
+
+    def _hydrate_grouped_extensions_block(self, **kwargs: Any) -> list[AnySduiBlock]:
+        """Hydrates XAI extensions into grouped AccordionBlock elements."""
+        accumulated: dict[str, list[AnySduiBlock]] = kwargs.get("accumulated_extensions", {})
+        if not accumulated:
+            return []
+        blocks: list[AnySduiBlock] = []
+        for _block_id, ext_blocks in accumulated.items():
+            blocks.extend(ext_blocks)
+        return blocks
 
     def _build_layouts(
         self,
@@ -1080,22 +1098,26 @@ class BlueprintTransformer:
         if profile_cache and profile_cache.row_curated_quotes:
             row_curated_quotes_cache = profile_cache.row_curated_quotes
 
-        evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms = (
-            self._extract_matrices_and_extensions(
-                results=results,
-                locale=locale,
-                blocks_by_id=blocks_by_id,
-                workflow_steps=workflow_steps_map,
-                profile=profile,
-                row_explanations_cache=row_explanations_cache,
-                workflow_ext_values=workflow_ext_values,
-                row_curated_quotes_cache=row_curated_quotes_cache,
-                has_synthesis_cache=bool(profile_cache),
-                rejected_evq_ids=rejected_evq_ids,
-                mcp_audit_map=mcp_audit_map,
-                source_identity_manifest=None,
-                execution=execution,
-            )
+        (
+            evaluative_matrices,
+            informational_matrices,
+            all_parsed_matrices,
+            step_scorecard_atoms,
+            accumulated_extensions,
+        ) = self._extract_matrices_and_extensions(
+            results=results,
+            locale=locale,
+            blocks_by_id=blocks_by_id,
+            workflow_steps=workflow_steps_map,
+            profile=profile,
+            row_explanations_cache=row_explanations_cache,
+            workflow_ext_values=workflow_ext_values,
+            row_curated_quotes_cache=row_curated_quotes_cache,
+            has_synthesis_cache=bool(profile_cache),
+            rejected_evq_ids=rejected_evq_ids,
+            mcp_audit_map=mcp_audit_map,
+            source_identity_manifest=None,
+            execution=execution,
         )
 
         for wf_ext in workflow_ext_values:
@@ -1665,6 +1687,7 @@ class BlueprintTransformer:
                                 mcp_audit_data=mcp_audit_data,
                                 global_score=global_score,
                                 profile=profile,
+                                accumulated_extensions=accumulated_extensions,
                             )
                             if hydrated_blocks:
                                 new_synthesis_blocks.extend(hydrated_blocks)

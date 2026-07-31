@@ -152,6 +152,7 @@ const _$PresetViewEnumMap = {
   PresetView.matrix3d: '3d_matrix',
   PresetView.textOnly: 'text_only',
   PresetView.defaultView: 'default',
+  PresetView.matrixSummary: 'matrix_summary',
 };
 
 const _$TextDeliveryModeEnumMap = {

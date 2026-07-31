@@ -198,7 +198,7 @@ def mock_repo_transformer() -> Any:
             layouts=[
                 OutputLayoutBlock(
                     preset_view="1d_metrics",
-                    target_blocks=["blk_1234abcd1234abcd"],
+                    target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
                 )
             ],
             extension_labels={
@@ -863,9 +863,9 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     assert isinstance(grid_block, SduiGridBlock)
     assert isinstance(alert_block, AlertBlock)
 
-    assert "Mechanical: 1" in grid_block.items[0].text
-    assert "Cognitive: 4.0" in grid_block.items[1].text
-    assert "Variance: 1.2" in grid_block.items[2].text
+    assert "Mechanical: 1" in getattr(grid_block.items[0], "text", "")
+    assert "Cognitive: 4.0" in getattr(grid_block.items[1], "text", "")
+    assert "Variance: 1.2" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "warning"
     assert "MISALIGNED_SYCOPHANCY" in alert_block.text
@@ -1060,9 +1060,11 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert isinstance(grid_block, SduiGridBlock)
     assert isinstance(alert_block, AlertBlock)
 
-    assert "Cognitive: 2.5111" in grid_block.items[1].text
+    assert "Cognitive: 2.5111" in getattr(grid_block.items[1], "text", "")
     # target mechanical is 3.0, variance is 0.4889
-    assert "Variance: 0.4889" in grid_block.items[2].text or "Variance: 0.4888" in grid_block.items[2].text
+    assert "Variance: 0.4889" in getattr(grid_block.items[2], "text", "") or "Variance: 0.4888" in getattr(
+        grid_block.items[2], "text", ""
+    )
 
     assert alert_block.severity == "info"
     assert "ALIGNED" in alert_block.text
@@ -1074,6 +1076,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
     from backend_v2.models.enums import ExecutionStatus
     from backend_v2.models.state import TraceEvent
     from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.view.sdui import AlertBlock
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000015",
@@ -1111,9 +1114,10 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
 
     dto = await transformer.build_report_dto("exe_0000000000000015", accept_language="en")
     assert len(dto.layouts) > 0
-    matrix = dto.layouts[0].axes[0]
+    layout = dto.layouts[0]
 
-    alert_blocks = [b for b in matrix.inner_sdui_blocks if getattr(b, "block_type", "") == "alert_box"]
+    synthesis = layout.synthesis_blocks or []
+    alert_blocks = [b for b in synthesis if isinstance(b, AlertBlock)]
     assert len(alert_blocks) == 2
 
     remediation_alert = next((b for b in alert_blocks if b.severity == "success"), None)
@@ -1131,6 +1135,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     from backend_v2.models.enums import ExecutionStatus
     from backend_v2.models.state import TraceEvent
     from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.view.sdui import AlertBlock
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000016",
@@ -1165,9 +1170,10 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     )
 
     dto = await transformer.build_report_dto("exe_0000000000000016", accept_language="en")
-    matrix = dto.layouts[0].axes[0]
+    layout = dto.layouts[0]
 
-    alert_blocks = [b for b in matrix.inner_sdui_blocks if getattr(b, "block_type", "") == "alert_box"]
+    synthesis = layout.synthesis_blocks or []
+    alert_blocks = [b for b in synthesis if isinstance(b, AlertBlock)]
     assert len(alert_blocks) == 1
 
     coaching_alert = alert_blocks[0]

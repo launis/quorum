@@ -68,6 +68,8 @@ enum PresetView {
   textOnly,
   @JsonValue('default')
   defaultView,
+  @JsonValue('matrix_summary')
+  matrixSummary,
 }
 
 /// Execution Routing Modes mapping
