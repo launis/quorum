@@ -288,8 +288,9 @@
                 </div>
             {% endif %}
             
+            {% set is_matrix_summary = layout.preset_view == 'matrix_summary' %}
             {% set has_graph = layout.preset_view in ['matrix3d', '3d_matrix', 'compare2d', '2d_compare', '3d_complex', 'complex3d'] %}
-            {% set hide_axes = layout.preset_view == 'text_only' or (has_graph and layout.text_delivery_mode == 'none') %}
+            {% set hide_axes = layout.preset_view == 'text_only' or is_matrix_summary or (has_graph and layout.text_delivery_mode == 'none') %}
             
             {% if not hide_axes %}
                 {% for axis in layout.axes %}
@@ -410,7 +411,7 @@
         <!-- Yhteenveto / Matrix Summary Table -->
         {% set matrix_layout = none %}
         {% for lay in report_data.layouts %}
-            {% if lay.preset_view == '3d_matrix' %}
+            {% if lay.preset_view == 'matrix_summary' %}
                 {% set matrix_layout = lay %}
             {% endif %}
         {% endfor %}
@@ -435,11 +436,11 @@
                 </thead>
                 <tbody>
                 {% set ns = namespace(all_matrices=[]) %}
-                {% for layout in report_data.layouts %}
-                    {% for axis in layout.axes %}
+                {% if matrix_layout %}
+                    {% for axis in matrix_layout.axes %}
                         {% set ns.all_matrices = ns.all_matrices + [axis] %}
                     {% endfor %}
-                {% endfor %}
+                {% endif %}
                 {% set all_matrices = ns.all_matrices %}
                 {% for axis in all_matrices %}
                     <tr style="border-bottom: 1px solid #eee;">

@@ -55,6 +55,12 @@ This workflow is designed for the systematic planning and decomposition of heavy
       <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
+  
+    <rule_block id="anti_ambiguity_mandate">
+      <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
+      <mandatory_pattern>Implementation plans, epics, research analysis, and bug hunting artifacts MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g.", "such as", "like", or "etc." in any generated document or plan. When providing examples or mappings, use explicit and exhaustive lists with phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) NEVER use generic definitions when specifying data models; lock the exact type. 3) NEVER use generic paths; list EXACT relative paths. 4) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 5) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
+      <catastrophic_reason>Ambiguity and "Hidden Scope" (löysä suunnittelu) lead to implementation agents guessing wrong paths, missing test fixtures, or hallucinating data structures. Ambiguous terms introduce incomplete lists, causing cascading failures in Tier 2 execution.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="3">
     <step id="1" name="GREETING &amp; INSTRUCTIONS">

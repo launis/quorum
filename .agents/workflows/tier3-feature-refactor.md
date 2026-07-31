@@ -60,6 +60,12 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
       <mandatory_pattern>If the task modifies >2 target files OR the plan requires >3 distinct execution steps, the agent MUST generate an `implementation_plan.md` Artifact (XML Sandwich format) and halt with a `/tier5-resume --workflow=/tier2-execute` command. If the task is at or below this threshold, in-session execution is permitted. The `HYBRID_XML_SANDWICH_MANDATE` applies to all generated plans regardless of in-session or deferred execution.</mandatory_pattern>
       <catastrophic_reason>Executing complex refactors within the planning session leads to Context Amnesia, token exhaustion, and silent regression due to context blending.</catastrophic_reason>
     </rule_block>
+  
+    <rule_block id="anti_ambiguity_mandate">
+      <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
+      <mandatory_pattern>Implementation plans, epics, research analysis, and bug hunting artifacts MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g.", "such as", "like", or "etc." in any generated document or plan. When providing examples or mappings, use explicit and exhaustive lists with phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) NEVER use generic definitions when specifying data models; lock the exact type. 3) NEVER use generic paths; list EXACT relative paths. 4) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 5) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
+      <catastrophic_reason>Ambiguity and "Hidden Scope" (löysä suunnittelu) lead to implementation agents guessing wrong paths, missing test fixtures, or hallucinating data structures. Ambiguous terms introduce incomplete lists, causing cascading failures in Tier 2 execution.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="3">
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION &amp; EXHAUSTIVE PLAN">

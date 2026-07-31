@@ -33,11 +33,6 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
       <mandatory_pattern>You MUST write the ENTIRE Epic document EXCLUSIVELY in English (as mandated by `00-antigravity-core.md`). Never use Finnish or non-English terms in Epic titles, headings, descriptions, or inline documentation.</mandatory_pattern>
       <catastrophic_reason>Mixing languages in system architectural documents destroys readability for international developers and breaks automated tooling analysis.</catastrophic_reason>
     </rule_block>
-    <rule_block id="anti_ambiguity_mandate">
-      <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
-      <mandatory_pattern>Epic instructions MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g.", "such as", "like", or "etc." in the generated document. When providing examples or mappings, use explicit and exhaustive lists with phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) NEVER use "(such as MarkdownBlock)" when specifying data models; lock the exact type. 3) NEVER use generic paths; list EXACT relative paths. 4) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 5) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
-      <catastrophic_reason>Ambiguity and "Hidden Scope" in Epics lead to implementation agents guessing wrong paths, missing test fixtures, or mapping incorrect SDUI blocks. Ambiguous terms introduce incomplete lists, causing agents to hallucinate scope and trigger immediate Fail-Fast crashes.</catastrophic_reason>
-    </rule_block>
     <rule_block id="context_amnesia_prevention">
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
@@ -45,6 +40,12 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
     <rule_block id="knowledge_base_mandate">
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
       <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
+  
+    <rule_block id="anti_ambiguity_mandate">
+      <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
+      <mandatory_pattern>Implementation plans, epics, research analysis, and bug hunting artifacts MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g.", "such as", "like", or "etc." in any generated document or plan. When providing examples or mappings, use explicit and exhaustive lists with phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) NEVER use generic definitions when specifying data models; lock the exact type. 3) NEVER use generic paths; list EXACT relative paths. 4) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 5) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
+      <catastrophic_reason>Ambiguity and "Hidden Scope" (löysä suunnittelu) lead to implementation agents guessing wrong paths, missing test fixtures, or hallucinating data structures. Ambiguous terms introduce incomplete lists, causing cascading failures in Tier 2 execution.</catastrophic_reason>
     </rule_block>
   </context_rules>
   

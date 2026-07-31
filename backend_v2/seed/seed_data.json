@@ -9223,7 +9223,7 @@
           }
         },
         {
-          "preset_view": "3d_matrix",
+          "preset_view": "matrix_summary",
           "title": {
             "default_locale": "en",
             "translations": {
@@ -9253,7 +9253,6 @@
             "label",
             "distribution",
             "row_explanation",
-            "normalized_score",
             "score"
           ],
           "matrix_column_labels": {
