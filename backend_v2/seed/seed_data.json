@@ -7429,7 +7429,7 @@
           "fi": "Synteesi - Osiokohtaiset S\u00e4\u00e4nn\u00f6t"
         }
       },
-      "ai_description": "## Section-Level Synthesis\n- CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.\n- You MUST ALSO provide targeted synthesized summaries for the following distinct sections as an array in `section_syntheses`.\n",
+      "ai_description": "## Section-Level Synthesis\n- CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.\n- CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>.\n- You MUST ALSO provide targeted synthesized summaries for the following distinct sections as an array in `section_syntheses`.\n",
       "output_extensions": [],
       "description": {
         "default_locale": "en",
@@ -7451,13 +7451,35 @@
           "fi": "Rivisivun Selityss\u00e4\u00e4nn\u00f6t"
         }
       },
-      "ai_description": "Summarize the justification for the given matrix score into EXACTLY ONE short sentence.\nRule 1: Maximum length is 30 words.\nRule 2: Do NOT use markdown. Output plain text.\nRule 3: Ensure the tone aligns with the tone instruction.\nCRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>. Do NOT use English unless explicitly requested.",
+      "ai_description": "## Objective\nExplain where the matrix score came from and why it was assigned. Your explanation must trace the score back to specific evidence found in the evaluated content.\n\n## Rules\n- Output EXACTLY ONE sentence of maximum 30 words.\n- Do NOT use markdown. Output plain text only.\n- Focus on the causal reasoning: what specific content or pattern in the source data drove the score up or down.\n- Ensure the tone aligns with the tone instruction.",
       "output_extensions": [],
       "description": {
         "default_locale": "en",
         "translations": {
           "en": "Row explanation formatting rules",
           "fi": "Rivisivun selityksen muotoilus\u00e4\u00e4nn\u00f6t"
+        }
+      }
+    },
+    {
+      "id": "blk_2d2344ab9d744163",
+      "slug": "blk_variance_explanation_rules",
+      "category_id": "system_rule",
+      "type": "instruction",
+      "label": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Variance Explanation Rules",
+          "fi": "Varianssin selityssäännöt"
+        }
+      },
+      "ai_description": "## Objective\nExplain the variance between the Cognitive and Mechanical evaluation scores in exactly ONE sentence of maximum 30 words.\n\n## Context\nThe Cognitive score represents the LLM-evaluated authenticity and depth of reasoning. The Mechanical score represents the count of detected performative language patterns.\n\n## Rules\n- Focus on what the gap between these scores reveals about the user's analytical approach.\n- Do NOT use markdown. Output plain text only.",
+      "output_extensions": [],
+      "description": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Variance explanation formatting rules",
+          "fi": "Varianssin selityksen muotoilusäännöt"
         }
       }
     },
@@ -7495,8 +7517,13 @@
           "en": "Executive Coach Synthesis"
         }
       },
-      "ai_description": "## Role\nSenior Executive Coach\n\n## Objective\nProduce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives.\nYour goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings.\n\n## Rules\n- SCORE-DRIVEN TONE AND STRUCTURE (CRITICAL): You must dynamically adjust your tone AND the content of your paragraphs based on the mathematical 'normalized_score' (the mathematical score) found in the source data: (1) 0 - 39: Zero praise. (2) 40 - 69: Firm and clinical. (3) 70 - 89: Constructive coaching. (4) 90 - 100: Highly validating and visionary.\n- CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws.\n- CONSTRUCTIVE CRITICISM: Speak truthfully. Highlight logical gaps without sugarcoating, but do so as a mentor assessing a candidate.\n- NO ACADEMIC JARGON: Translate complex theory into punchy, plain business language.\n- TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or numeric scores.\n- EVIDENCE MANDATE (CRITICAL): You MUST anchor every major analytical claim to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments. Without direct quotes, your synthesis is invalid.\n- ENUM TRANSLATION: Do NOT translate the user role enums yourself (e.g. ROLE_DRIVER). You MUST use the pre-translated human-readable role name provided in the source data.\n- LANGUAGE OUTPUT: Write the final summary strictly in the specified target language: <required_output_language>.",
-      "output_extensions": [],
+      "ai_description": "## Role\nSenior Executive Coach\n\n## Objective\nProduce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives. Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings.\n\n## Rules\n- FOUR-PARAGRAPH STRUCTURE: You MUST format your response into exactly four separate paragraphs representing a professional Executive Summary. Do not use bullet points or markdown headers.\n- PARAGRAPH 1 (OVERVIEW & URGENCY): Provide a high-level summary of the overall performance, integrating the user's role and stating the urgency of the findings.\n- PARAGRAPH 2 (STRENGTHS & CAPABILITIES): Weave together the strongest logical and cognitive capabilities identified in the evaluation.\n- PARAGRAPH 3 (BLIND SPOTS & RISKS): Speak truthfully and highlight the critical logical gaps, false assumptions, or risks without sugarcoating.\n- PARAGRAPH 4 (STRATEGIC REMEDIATION & ROLE PREPARATION): Conclude with a concrete, actionable takeaway based on the combined coaching extensions. Note that the Python backend will dynamically append the exact User Role classification immediately after this paragraph. Ensure your closing thought flows logically into this final role declaration without trying to generate the role string yourself.\n- SCORE-DRIVEN TONE (CRITICAL): You must dynamically adjust your tone based on the mathematical 'normalized_score' (0-100) found in the source data: (1) 0-39: Zero praise. (2) 40-69: Firm and clinical. (3) 70-89: Constructive coaching. (4) 90-100: Highly validating and visionary.\n- CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws.\n- NO ACADEMIC JARGON: Translate complex theory into punchy, plain business language.\n- ENUM TRANSLATION: Do NOT translate the user role enums yourself. You MUST use the pre-translated human-readable role name provided in the source data.",
+      "output_extensions": [
+        "coaching",
+        "falsification",
+        "risk_flag",
+        "remediation_steps"
+      ],
       "description": {
         "default_locale": "en",
         "translations": {
@@ -9548,7 +9575,7 @@
         ],
         "omit_empty_sections": true,
         "allowed_mcp_tools": [],
-        "row_explanations_block_id": "blk_row_explanation_rules"
+        "row_explanations_block_id": "blk_ad303690b26b413d"
       }
     }
   ],

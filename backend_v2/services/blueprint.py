@@ -15,7 +15,7 @@ from backend_v2.database.interfaces import (
     ISystemRepository,
     IWorkflowRepository,
 )
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.linguistics import scan_report_for_slop
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
@@ -683,34 +683,32 @@ class BlueprintTransformer:
 
             if ext:
 
-                def _add_ext(key: str, val: Any, b_id: str) -> None:
+                def _add_ext(key: str, val: Any, b_id: str, current_pb_meta: Any) -> None:
                     if not val:
                         return
                     try:
                         ext_enum = XaiExtensionType(key)
                         label_obj = profile.extension_labels.get(ext_enum)
                         if not label_obj:
+                            from backend_v2.exceptions import ConfigurationError
+
                             raise ConfigurationError(
                                 f"Missing extension label configuration for {key} in profile SSOT",
                                 details={"extension_key": key},
                             )
-                        label_str = label_obj.resolve(locale)
-
-                        acc_severity: Literal["info", "warning", "critical_override", "success", "error"] = "info"
-                        if ext_enum in (
-                            XaiExtensionType.FALSIFICATION,
-                            XaiExtensionType.MISSING_CONTEXT,
-                            XaiExtensionType.VARIANCE_VALIDATION,
-                            XaiExtensionType.AUTHENTICITY_EVALUATION,
-                        ):
-                            acc_severity = "warning"
-                        elif ext_enum == XaiExtensionType.RISK_FLAG:
-                            acc_severity = "error"
-                        elif ext_enum == XaiExtensionType.REMEDIATION_STEPS:
-                            acc_severity = "success"
-
                         if ext_enum in profile.visible_block_extensions:
                             lines = list(dict.fromkeys(line.strip() for line in str(val).split("\n") if line.strip()))
+                            label_str = label_obj.resolve(locale)
+                            acc_severity: Literal["info", "warning", "critical_override", "success", "error"] = "info"
+
+                            max_lines = (
+                                profile.max_extension_items
+                                if profile and hasattr(profile, "max_extension_items") and profile.max_extension_items
+                                else 999
+                            )
+                            if len(lines) > max_lines:
+                                lines = lines[:max_lines]
+
                             for line in lines:
                                 block = AlertBlock(
                                     severity=acc_severity,
@@ -722,13 +720,13 @@ class BlueprintTransformer:
                     except ValueError:
                         pass
 
-                _add_ext("coaching", ext.coaching, b_id)
-                _add_ext("falsification", ext.falsification, b_id)
-                _add_ext("remediation_steps", ext.remediation_steps, b_id)
-                _add_ext("missing_context", ext.missing_context, b_id)
-                _add_ext("emotional_sentiment", ext.emotional_sentiment, b_id)
-                _add_ext("theory_link", ext.theory_link, b_id)
-                _add_ext("risk_flag", ext.risk_flag, b_id)
+                _add_ext("coaching", ext.coaching, b_id, pb_meta)
+                _add_ext("falsification", ext.falsification, b_id, pb_meta)
+                _add_ext("remediation_steps", ext.remediation_steps, b_id, pb_meta)
+                _add_ext("missing_context", ext.missing_context, b_id, pb_meta)
+                _add_ext("emotional_sentiment", ext.emotional_sentiment, b_id, pb_meta)
+                _add_ext("theory_link", ext.theory_link, b_id, pb_meta)
+                _add_ext("risk_flag", ext.risk_flag, b_id, pb_meta)
 
             unique_k = f"{step_id}_{b_id}"
             all_parsed_matrices[unique_k] = row_dto
@@ -792,26 +790,72 @@ class BlueprintTransformer:
         blocks: list[AnySduiBlock] = []
         from collections import defaultdict
 
-        grouped = defaultdict(list)
+        allowed_extensions = None
+        max_items = 999
+        if profile:
+            allowed_extensions = set()
+            if hasattr(profile, "visible_workflow_extensions") and profile.visible_workflow_extensions:
+                allowed_extensions.update([str(e) for e in profile.visible_workflow_extensions])
+            if hasattr(profile, "max_extension_items") and profile.max_extension_items is not None:
+                max_items = profile.max_extension_items
+
+        grouped: dict[str, list[str]] = defaultdict(list)
+
+        # 1. Gather Synthesis (Workflow) Extensions
         for hl in profile_cache.xai_highlights:
-            grouped[hl.extension_type].append(hl.content)
+            ext_type_str = str(hl.extension_type)
+            if allowed_extensions is not None and ext_type_str not in allowed_extensions:
+                continue
+
+            if len(grouped[ext_type_str]) < max_items:
+                grouped[ext_type_str].append(hl.content)
+
+        from typing import cast
+
+        from backend_v2.models.enums import XaiExtensionType
+
+        AlertSeverity = Literal["info", "warning", "critical_override", "success", "error"]
+
+        intent_map = {
+            XaiExtensionType.COACHING: ("success", "lightbulb"),
+            XaiExtensionType.REMEDIATION_STEPS: ("success", "build"),
+            XaiExtensionType.FALSIFICATION: ("error", "balance"),
+            XaiExtensionType.RISK_FLAG: ("error", "warning"),
+            XaiExtensionType.MISSING_CONTEXT: ("warning", "help_outline"),
+            XaiExtensionType.THEORY_LINK: ("info", "menu_book"),
+            XaiExtensionType.JUSTIFICATION: ("info", "check_circle"),
+            XaiExtensionType.EMOTIONAL_SENTIMENT: ("info", "mood"),
+            XaiExtensionType.CITATION: ("info", "format_quote"),
+        }
 
         for ext_type, contents in grouped.items():
             label = ext_type
+            try:
+                ext_enum = XaiExtensionType(ext_type)
+            except ValueError:
+                ext_enum = None
+
             if profile and hasattr(profile, "extension_labels") and profile.extension_labels:
                 label_i18n = profile.extension_labels.get(ext_type)
                 if label_i18n:
                     label = label_i18n.resolve(locale)
 
+            if ext_enum:
+                severity_str, icon_name = intent_map.get(ext_enum, ("info", "info"))
+            else:
+                severity_str, icon_name = ("info", "info")
+
+            severity = cast(AlertSeverity, severity_str)
+
             children: list[AnySduiBlock] = []
             for c in contents:
-                children.append(AlertBlock(severity="info", text=c, exact_quotes=[], citations=[]))
+                children.append(AlertBlock(severity=severity, text=c, exact_quotes=[], citations=[]))
 
             blocks.append(
                 AccordionBlock(
                     title=label,
-                    severity="info",
-                    icon_name="lightbulb",
+                    severity=severity,
+                    icon_name=icon_name,
                     children=children,
                 )
             )

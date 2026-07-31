@@ -18,7 +18,7 @@ This Epic documents the refactoring and restoration of the "Senior Executive Coa
 - **Solution**: Centralized language control via `build_linguistic_context()` and enforced strict separation between single-sentence matrix row explanations and multi-row extensions.
 - **Implementation**:
   - **No Duct Tape for Languages**: Removed all hardcoded `{TARGET_LANGUAGE}` placeholders from `seed_data.json` output profiles (Executive Coach, Toulmin, etc.). 
-  - **Dynamic Linguistic Mandate**: All synthesis blocks (including Row Explanations, Executive Summary, and Graph Explanations) now use exactly the same native pattern: `CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>.` The actual `<required_output_language>` value is injected securely via `lang_ctx` by the `build_linguistic_context(include_mandate=True)` Python utility.
+  - **Dynamic Linguistic Mandate**: All synthesis blocks must use exactly the same native pattern: `CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>.` The actual `<required_output_language>` value is injected securely via `lang_ctx` by the `build_linguistic_context(include_mandate=True)` Python utility.
   - **Matrix Row Explanations (Selite)**: Removed `<max_extension_items>` entirely from `blk_row_explanation_rules` in `seed_data.json` and from `worker.py`. A matrix explanation MUST be exactly ONE short sentence. 
   - **Extensions (XAI Highlights)**: The `<max_extension_items>` rule (e.g. 4 rows) strictly applies *only* to global extensions, ensuring they don't bleed into other outputs.
 
@@ -52,7 +52,7 @@ This Epic documents the refactoring and restoration of the "Senior Executive Coa
     - Moved the `Senior Executive Coach` prompt (`blk_1a2b3c4d5e6f7a8b`) directly into the `OutputProfile.synthesis` block in `seed_data.json` as the global directive.
     - Assigned the `CRITICAL BREVITY MANDATE` (`blk_34def5d628ba4ed4`) to all individual `text_only` matrices so they explicitly receive focused 2-3 sentence LLM analyses.
   - **Guardrail Compliance**: Removed the `(0-100)` string from the prompt to strictly decouple the LLM from UI rendering math.
-  - **Restoring XAI Extensions**: Explicitly injected `grouped_extensions_block` into the `target_blocks` of a `text_only` layout at the end of the report in `seed_data.json`. This restored the proper SDUI-compliant rendering of all accumulated XAI extensions (e.g., Arjen vinkki, Vasta-argumentti, Korjaavat toimenpiteet).
+  - **Restoring XAI Extensions**: Explicitly injected `grouped_extensions_block` into the `target_blocks` of a `text_only` layout at the end of the report in `seed_data.json`. This la the proper SDUI-compliant rendering of all accumulated XAI extensions (e.g., Arjen vinkki, Vasta-argumentti, Korjaavat toimenpiteet).
 
 ### 2.6 Frontend SDUI Parsing & Cross-Domain DTO Parity (Tier 4 Bug Fix)
 - **Problem**: The Backend's introduction of the `synthesis` field inside `OutputProfileResponseDTO` caused a severe "White Screen of Death" crash in the Flutter Frontend. This occurred because the Flutter Freezed model enforces strict JSON validation (`disallowUnrecognizedKeys: true`) and the Dart model lacked the new field.

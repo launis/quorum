@@ -30,6 +30,12 @@
         </code_example>
     </rule_block>
 
+    <rule_block id="relational_slug_ban">
+        <banned_pattern>Using a `slug` (e.g., `"slug": "blk_row_explanation_rules"`) as a foreign key or relational identifier in `seed_data.json` (e.g., `"row_explanations_block_id": "blk_row_explanation_rules"`).</banned_pattern>
+        <mandatory_pattern>A `slug` is strictly an informative, human-readable metadata field and MUST NEVER be used as a relation. ALL relational bindings must use the exact opaque ID (e.g., `"row_explanations_block_id": "blk_ad303690b26b413d"`).</mandatory_pattern>
+        <catastrophic_reason>Database queries strictly fetch by opaque ID. Using a slug as an ID causes silent `None` returns, severing critical logic paths and causing silent application failures.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="local_data_ephemeral_nature">
          <banned_pattern>Hesitating to wipe `db_v2.json` or running `run_seed.py` out of fear of losing customer data. Also, attempting to update `db_v2.json` manually on the fly.</banned_pattern>
          <mandatory_pattern>This is purely a local testing environment with zero real customer data. Always prioritize architectural purity and wipe/re-seed the local database via `uv run python backend_v2/seed/run_seed.py local` whenever corrupted states arise. NEVER update `db_v2.json` directly.</mandatory_pattern>

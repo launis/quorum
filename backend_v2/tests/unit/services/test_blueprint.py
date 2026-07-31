@@ -121,7 +121,7 @@ def mock_repo_transformer() -> Any:
                 ],
                 "display_scale": "original",
                 "visible_block_extensions": [],
-                "visible_workflow_extensions": [],
+                "visible_workflow_extensions": ["remediation_steps", "risk_flag", "coaching"],
                 "max_extension_items": 2,
                 "strictness_level": 85,
                 "scoring_strategy": None,
@@ -215,7 +215,11 @@ def mock_repo_transformer() -> Any:
                 XaiExtensionType.COACHING,
                 XaiExtensionType.RISK_FLAG,
             ],
-            visible_workflow_extensions=[],
+            visible_workflow_extensions=[
+                XaiExtensionType.REMEDIATION_STEPS,
+                XaiExtensionType.COACHING,
+                XaiExtensionType.RISK_FLAG,
+            ],
             max_extension_items=2,
             strictness_level=85,
         )

@@ -810,21 +810,8 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
 
                 pb = PromptBlock.model_validate(pb_dict, strict=False)
+                # Session 1, Task 1-5: sys_prompt MUST remain 100% static for cache prefix survival
                 sys_prompt = pb.ai_description or ""
-
-                compiler = PromptCompiler()
-
-                # Wire ALL SynthesisConfigDTO fields into the prompt
-                if synthesis_cfg.length_constraint:
-                    sys_prompt += f"\n<global_length_constraint_chars>{synthesis_cfg.length_constraint}</global_length_constraint_chars>"
-
-                if synthesis_cfg.tone_instruction:
-                    tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language)
-                    if tone:
-                        sys_prompt += f"\n<tone_instruction>{tone}</tone_instruction>"
-
-                if synthesis_cfg.omit_empty_sections:
-                    sys_prompt += "\n<omit_empty_sections>true</omit_empty_sections>"
 
                 from backend_v2.models.prompts.hook_prompts import (
                     SYNTHESIS_SDUI_MANDATES,
@@ -833,23 +820,73 @@ async def generate_profile_synthesis_and_pdf_task(
                 )
 
                 sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
-                # Epic 124: Re-wire section instructions properly
+
+                # Session 1, Task 1-5: ALL dynamic instructions injected into user message <dynamic_context>
+                from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
+                from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+
+                dynamic_ctx_parts: list[str] = []
+
+                # Inject GLOBAL_MANDATES_XML for anti-ID and anti-score mandates
+                dynamic_ctx_parts.append(GLOBAL_MANDATES_XML)
+
+                # Inject linguistic context (language mandate)
+                lang_ctx = build_linguistic_context(
+                    source_language="Unknown", target_locale=accept_language, include_mandate=True
+                )
+                dynamic_ctx_parts.append(lang_ctx)
+
+                compiler = PromptCompiler()
+
+                # Wire SynthesisConfigDTO dynamic fields into dynamic context (not sys_prompt)
+                if synthesis_cfg.length_constraint:
+                    dynamic_ctx_parts.append(
+                        f"<global_length_constraint_chars>{synthesis_cfg.length_constraint}</global_length_constraint_chars>"
+                    )
+
+                if synthesis_cfg.tone_instruction:
+                    tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language)
+                    if tone:
+                        dynamic_ctx_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
+
+                if synthesis_cfg.omit_empty_sections:
+                    dynamic_ctx_parts.append("<omit_empty_sections>true</omit_empty_sections>")
+
+                # Section rules (per-profile layout-specific instructions)
                 has_section_rules = False
                 section_rules_str = ""
                 if active_profile_dto and active_profile_dto.layouts:
+                    language = distilled_data.get("language", "en")
+                    title_map = distilled_data.get("title_map", {})
+
                     for i, lay in enumerate(active_profile_dto.layouts):
                         if getattr(lay, "synthesis", None) and lay.synthesis and lay.synthesis.synthesis_block_id:
                             lay_id = f"layout_{i}_{lay.preset_view}"
                             lpb_dict = await repo.get_prompt_block(lay.synthesis.synthesis_block_id)
                             if lpb_dict:
                                 lpb = PromptBlock.model_validate(lpb_dict, strict=False)
-                                section_rules_str += f'\n<section_instruction id="{lay_id}">\n{lpb.ai_description}\n</section_instruction>\n'
+
+                                lay_title = lay.title.resolve(language) if lay.title else lay_id
+
+                                target_titles = []
+                                if lay.target_blocks:
+                                    for tb in lay.target_blocks:
+                                        if tb.lower() in title_map:
+                                            target_titles.append(title_map[tb.lower()])
+                                target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
+
+                                section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{lpb.ai_description}\n</section_instruction>\n'
                                 has_section_rules = True
 
                 if has_section_rules:
-                    sys_prompt += f"\n\n{SYNTHESIS_SECTION_RULES_PREFIX}{section_rules_str}"
-                    sys_prompt += "\nCRITICAL: You MUST place the output for each section_instruction strictly inside the `section_syntheses` array using its exact `layout_id`. Do NOT put section analysis in the global executive_summary."
+                    dynamic_ctx_parts.append(
+                        f"{SYNTHESIS_SECTION_RULES_PREFIX}{section_rules_str}"
+                        "\nCRITICAL: You MUST place the output for each section_instruction strictly inside the "
+                        "`section_syntheses` array using its exact `layout_id`. Do NOT put section analysis in "
+                        "the global executive_summary."
+                    )
 
+                # XAI extension curation
                 if active_profile_dto and (
                     active_profile_dto.visible_block_extensions or active_profile_dto.visible_workflow_extensions
                 ):
@@ -860,17 +897,19 @@ async def generate_profile_synthesis_and_pdf_task(
                             status_code=400,
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
-                    wf_exts = active_profile_dto.visible_workflow_extensions
+                    wf_exts: list[Any] = []
+                    if active_profile_dto.visible_workflow_extensions:
+                        wf_exts.extend(active_profile_dto.visible_workflow_extensions)
+                    if active_profile_dto.visible_block_extensions:
+                        wf_exts.extend(active_profile_dto.visible_block_extensions)
+                    wf_exts = list(dict.fromkeys(wf_exts))
                     req_exts = ", ".join([str(e) for e in wf_exts]) if wf_exts else "none"
                     xai_cur = SYNTHESIS_XAI_CURATION.replace("<max_extension_items>", str(max_ext))
                     xai_cur = xai_cur.replace("<requested_extensions>", req_exts)
-                    sys_prompt += f"\n\n{xai_cur}"
-                from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+                    dynamic_ctx_parts.append(xai_cur)
 
-                lang_ctx = build_linguistic_context(
-                    source_language="Unknown", target_locale=accept_language, include_mandate=True
-                )
-                sys_prompt += f"\n\n{lang_ctx}"
+                # Build the <dynamic_context> block for the user message
+                dynamic_context = "\n\n".join(dynamic_ctx_parts)
 
                 client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
 
@@ -880,7 +919,13 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 synth_messages: list[dict[str, Any]] = [
                     {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": f"DATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"},
+                    {
+                        "role": "user",
+                        "content": (
+                            f"<dynamic_context>\n{dynamic_context}\n</dynamic_context>"
+                            f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
+                        ),
+                    },
                 ]
                 t_synth = tg.create_task(
                     client.run_structured_task(
@@ -895,21 +940,25 @@ async def generate_profile_synthesis_and_pdf_task(
                 if pb_dict:
                     r_pb = PromptBlock.model_validate(pb_dict)
                     client = await LLMClient.from_strategy("strict", repository=repo)
+                    # Session 1, Task 1-5: sys_prompt static, dynamic context in user message
                     row_sys_prompt = r_pb.ai_description or ""
 
-                    # Inject linguistic context
+                    from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
                     from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
 
-                    lang_ctx = build_linguistic_context(
+                    row_lang_ctx = build_linguistic_context(
                         source_language="Unknown", target_locale=accept_language, include_mandate=True
                     )
-                    row_sys_prompt += f"\n\n{lang_ctx}"
+                    row_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{row_lang_ctx}"
 
                     row_messages: list[dict[str, Any]] = [
                         {"role": "system", "content": row_sys_prompt},
                         {
                             "role": "user",
-                            "content": f"MATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2)}",
+                            "content": (
+                                f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>"
+                                f"\n\nMATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2)}"
+                            ),
                         },
                     ]
                     t_row = tg.create_task(
