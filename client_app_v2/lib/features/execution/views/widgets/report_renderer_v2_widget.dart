@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
-import 'package:client_app/shared/widgets/output_renderer.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/shared/widgets/logic_radar_chart.dart';
@@ -242,49 +240,55 @@ class ReportRendererV2Widget extends StatelessWidget {
         PresetView.matrix3d,
         PresetView.compare2d,
         PresetView.complex3d,
+        PresetView.metrics1d,
       ].contains(presetView);
 
       // 4.1. Layout Synthesis Blocks (Explanations printed BEFORE the graph)
-      if (layout.synthesisBlocks != null) {
-        for (final block in layout.synthesisBlocks!) {
-          String? text;
-          if (block is SduiMarkdownBlock) {
-            text = block.text;
-          } else if (block is SduiParagraphBlock) {
-            text = block.text;
-          }
-
-          if (text != null && text.isNotEmpty) {
-            widgets.add(
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s24,
-                  vertical: AppSpacing.s8,
-                ),
-                child: OutputRenderer(markdownContent: text),
-              ),
-            );
-          }
-        }
+      if (layout.synthesisBlocks != null &&
+          layout.synthesisBlocks!.isNotEmpty) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s24,
+              vertical: AppSpacing.s8,
+            ),
+            child: SduiBlocksRenderer(blocks: layout.synthesisBlocks!),
+          ),
+        );
       }
 
-      // 4.2. Render Graph after the explanation
-      if (showGraph && layout.axes.length >= 2) {
+      if (showGraph && layout.axes.isNotEmpty) {
         widgets.add(
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.s24,
               vertical: AppSpacing.s16,
             ),
-            child: SizedBox(
-              height: AppSpacing.s300,
-              child: presetView == PresetView.complex3d
-                  ? LogicRadarChart(axes: layout.axes)
-                  : LogicMatrixChart(
-                      xAxis: layout.axes[0],
-                      yAxis: layout.axes[1],
-                      zAxis: layout.axes.length > 2 ? layout.axes[2] : null,
-                    ),
+            child: Builder(
+              builder: (context) {
+                if (presetView == PresetView.metrics1d) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: layout.axes
+                        .map((axis) => SduiBlocksRenderer(blocks: axis.innerSduiBlocks))
+                        .toList(),
+                  );
+                }
+
+                if (layout.axes.length >= 2) {
+                  return SizedBox(
+                    height: AppSpacing.s300,
+                    child: presetView == PresetView.complex3d
+                        ? LogicRadarChart(axes: layout.axes)
+                        : LogicMatrixChart(
+                            xAxis: layout.axes[0],
+                            yAxis: layout.axes[1],
+                            zAxis: layout.axes.length > 2 ? layout.axes[2] : null,
+                          ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ),
         );

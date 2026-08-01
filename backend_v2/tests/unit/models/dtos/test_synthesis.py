@@ -27,6 +27,9 @@ def test_xai_highlight_strictness() -> None:
 
 def test_synthesis_output_strictness() -> None:
     dto = SynthesisOutputDTO(
+        user_role="ROLE_ARCHITECT",
+        user_role_justification="Test",
+        executive_summary="Summary",
         content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title")],
         cited_sources=["source1"],
         section_syntheses=[
@@ -37,4 +40,9 @@ def test_synthesis_output_strictness() -> None:
     assert len(dto.content_blocks) == 1
 
     with pytest.raises(ValidationError):
-        SynthesisOutputDTO(content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title")], extra="fail")  # type: ignore
+        SynthesisOutputDTO(
+            user_role="ROLE_ARCHITECT",
+            user_role_justification="Test",
+            content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title")],
+            extra="fail",
+        )  # type: ignore

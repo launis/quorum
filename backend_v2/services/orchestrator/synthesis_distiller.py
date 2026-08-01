@@ -265,36 +265,16 @@ def _assemble_matrices_to_explain(
         if isinstance(payload, dict):
             quotes_list: list[str] = []
 
-            # Extract quotes from nested ScorecardAtomDTO -> QuoteEvidenceDTO or ReducedAtomDTO
-            if "reduced_atoms" in payload:
-                for atom in payload.get("reduced_atoms", []):
-                    if isinstance(atom, dict) and "source_quote" in atom and isinstance(atom["source_quote"], dict):
-                        sq = atom["source_quote"]
-                        text_val = sq.get("text") or sq.get("quote")
-                        if text_val:
-                            quotes_list.append(str(text_val))
-            else:
-                atoms = payload.get("evaluated_atoms", [])
-                if isinstance(atoms, list):
-                    for atom in atoms:
-                        if isinstance(atom, dict) and "exact_quotes" in atom:
-                            exact_quotes = atom.get("exact_quotes", [])
-                            if isinstance(exact_quotes, list):
-                                for evidence in exact_quotes:
-                                    if isinstance(evidence, dict):
-                                        text_val = evidence.get("text") or evidence.get("quote")
-                                        if text_val:
-                                            quotes_list.append(str(text_val))
-                elif isinstance(atoms, dict):
-                    for atom in atoms.values():
-                        if isinstance(atom, dict) and "exact_quotes" in atom:
-                            exact_quotes = atom.get("exact_quotes", [])
-                            if isinstance(exact_quotes, list):
-                                for evidence in exact_quotes:
-                                    if isinstance(evidence, dict):
-                                        text_val = evidence.get("text") or evidence.get("quote")
-                                        if text_val:
-                                            quotes_list.append(str(text_val))
+            # Strict Single Architecture Extraction
+            atoms = payload.get("evaluated_atoms", [])
+            if isinstance(atoms, list):
+                for atom in atoms:
+                    if isinstance(atom, dict) and "exact_quotes" in atom:
+                        exact_quotes = atom.get("exact_quotes", [])
+                        if isinstance(exact_quotes, list):
+                            for evidence in exact_quotes:
+                                if isinstance(evidence, dict) and "quote" in evidence and evidence["quote"]:
+                                    quotes_list.append(str(evidence["quote"]))
 
             if block_id not in matrices_to_explain_map:
                 matrix_alias = alias_engine.register(block_id, prefix="MX-")
@@ -464,5 +444,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             "output_profile_id": output_profile_id,
             "language": language,
             "alias_registry": alias_engine.alias_map,
+            "max_extensions": p_dict.get("max_extension_items", 3),
         },
     )

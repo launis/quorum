@@ -1,5 +1,6 @@
 """Blueprint Transformer Service for V3 Extreme MVC."""
 
+import json
 import logging
 import re
 from typing import Any, Literal
@@ -1203,6 +1204,7 @@ class BlueprintTransformer:
         )
 
         variance_layout_to_inject = None
+        auth_layout_to_inject = None
         for wf_ext in workflow_ext_values:
             if wf_ext == "variance_validation":
                 authenticity_score = None
@@ -1322,7 +1324,6 @@ class BlueprintTransformer:
                     llm_authenticity_score=authenticity_score,
                     performative_phrases_count=performative_phrases_count,
                 )
-
                 grid_block = SduiGridBlock(
                     items=[
                         ParagraphBlock(text=f"Mechanical: {performative_phrases_count}", exact_quotes=[], citations=[]),
@@ -1339,40 +1340,124 @@ class BlueprintTransformer:
                     citations=[],
                 )
 
-                synth_matrix_row = MatrixScorecardRowDTO(
-                    block_id="variance_validation",
-                    name="Variance Validation",
-                    label_i18n=I18nText(
-                        default_locale="en",
-                        translations={
-                            "en": "Cognitive vs Mechanical Variance",
-                            "fi": "Kognitiivinen vs Mekaaninen Variaatio",
-                        },
+                # Fetch LLM variance explanation from cache or use fallback
+                llm_explanation = row_explanations_cache.get("variance_validation", "")
+                if not llm_explanation:
+                    llm_explanation = (
+                        f"Detected {performative_phrases_count} performative AI-phrases. "
+                        f"Overall authenticity index is {authenticity_score}."
+                    )
+
+                variance_text = f"**Authenticity Score:** {authenticity_score}/100  \n**Alignment Verdict:** {variance_res['alignment_verdict']}\n\n{llm_explanation}"
+
+                variance_kwargs = {
+                    "block_id": "variance_metrics_row",
+                    "name": "Variance Metrics",
+                    "label_i18n": I18nText(
+                        default_locale="en", translations={"en": "Variance Metrics", "fi": "Variaatiomittarit"}
                     ),
-                    description=None,
-                    score=float(variance_res["variance_score"]),
-                    score_display_label=str(variance_res["alignment_verdict"]),
-                    scale_min=0.0,
-                    scale_max=100.0,
-                    normalized_score=float(variance_res["variance_score"]),
-                    is_evaluative=False,
-                    true_atoms=None,
-                    total_atoms=None,
-                    row_explanation=row_explanations_cache.get("variance_validation", ""),
-                    evidence_type=None,
-                    cited_source_id=None,
-                    cited_text_quote=None,
-                    cited_web_citation=None,
-                    inner_sdui_blocks=[grid_block, alert_block],
-                )
+                    "row_explanation": "Variance metrics dashboard",
+                    "is_evaluative": False,
+                    "inner_sdui_blocks": [grid_block, alert_block],
+                }
+                try:
+                    row_dto = __import__(
+                        "backend_v2.models.v2_core", fromlist=["MatrixScorecardRowDTO"]
+                    ).MatrixScorecardRowDTO(**variance_kwargs)
+                except Exception as e:
+                    logger.error(
+                        f"CRITICAL: Failed to instantiate variance MatrixScorecardRowDTO: kwargs={variance_kwargs}"
+                    )
+                    raise e
 
                 variance_layout_to_inject = ReportLayoutDTO(
                     preset_view="1d_metrics",
                     title=I18nText(
                         default_locale="en", translations={"en": "Variance Analysis", "fi": "Variaatioanalyysi"}
                     ),
-                    axes=[synth_matrix_row],
-                    is_synthesis_enabled=False,
+                    axes=[row_dto],
+                    synthesis_blocks=[MarkdownBlock(text=variance_text)],
+                    is_synthesis_enabled=True,
+                )
+
+            if wf_ext == "authenticity_evaluation":
+                authenticity_score = None
+                if cv:
+                    step_det = cv.get("step_detector")
+                    if step_det is not None:
+                        try:
+                            det_payload = json.loads(step_det) if isinstance(step_det, str) else step_det
+                            raw_auth = det_payload.get("raw_score") or det_payload.get("raw_score")
+                            if raw_auth is not None:
+                                authenticity_score = float(raw_auth)
+                        except Exception:
+                            pass
+
+                if authenticity_score is None:
+                    msg = (
+                        "Strict Fail-Fast Enforced: 'authenticity_evaluation' requested but authenticity_score "
+                        f"({authenticity_score}) is missing."
+                    )
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+
+                grid_block = SduiGridBlock(
+                    items=[
+                        ParagraphBlock(text=f"AI-Jargon Score: {authenticity_score}", exact_quotes=[], citations=[]),
+                    ]
+                )
+
+                alert_severity: Literal["info", "warning", "error"] = "info" if authenticity_score >= 80 else "warning"
+                if authenticity_score < 50:
+                    alert_severity = "error"
+
+                alert_block = AlertBlock(
+                    severity=alert_severity,
+                    text=f"Authenticity Level: {'High' if authenticity_score >= 80 else 'Medium' if authenticity_score >= 50 else 'Low'}",
+                    exact_quotes=[],
+                    citations=[],
+                )
+
+                llm_explanation = row_explanations_cache.get("authenticity_evaluation", "")
+                if not llm_explanation:
+                    llm_explanation = (
+                        f"The source data authenticity evaluation resulted in a score of {authenticity_score}/100. "
+                        "This indicates the likelihood that the source material was generated by an AI without sufficient human cognitive effort."
+                    )
+
+                auth_text = f"**Authenticity Score:** {authenticity_score}/100\n\n{llm_explanation}"
+
+                auth_kwargs = {
+                    "block_id": "auth_metrics_row",
+                    "name": "Authenticity Metrics",
+                    "label_i18n": I18nText(
+                        default_locale="en", translations={"en": "Authenticity Metrics", "fi": "Aitousmittarit"}
+                    ),
+                    "row_explanation": "Authenticity metrics dashboard",
+                    "is_evaluative": False,
+                    "inner_sdui_blocks": [grid_block, alert_block],
+                }
+                try:
+                    auth_row_dto = __import__(
+                        "backend_v2.models.v2_core", fromlist=["MatrixScorecardRowDTO"]
+                    ).MatrixScorecardRowDTO(**auth_kwargs)
+                except Exception as e:
+                    logger.error(f"CRITICAL: Failed to instantiate auth MatrixScorecardRowDTO: kwargs={auth_kwargs}")
+                    raise e
+
+                auth_layout_to_inject = ReportLayoutDTO(
+                    preset_view="1d_metrics",
+                    title=I18nText(
+                        default_locale="en",
+                        translations={"en": "Authenticity Evaluation", "fi": "Lähdedatan aitous (AI-jargon)"},
+                    ),
+                    axes=[auth_row_dto],
+                    synthesis_blocks=[MarkdownBlock(text=auth_text)],
+                    is_synthesis_enabled=True,
                 )
 
         modified_step_states = False
@@ -1405,6 +1490,9 @@ class BlueprintTransformer:
             if variance_layout_to_inject:
                 layouts_list.append(variance_layout_to_inject)
 
+            if auth_layout_to_inject:
+                layouts_list.append(auth_layout_to_inject)
+
             if not layouts_list:
                 layouts_list = [
                     ReportLayoutDTO(
@@ -1421,12 +1509,7 @@ class BlueprintTransformer:
                 new_content_blocks: list[AnySduiBlock] = []
                 for c_block in content_blocks:
                     if c_block.id == synthesis_block_id:
-                        if profile_cache and profile_cache.content_blocks and not synthesis_md:
-                            # Epic 94: SDUI Block Splicing
-                            for cache_b in profile_cache.content_blocks:
-                                new_content_blocks.append(cache_b.model_copy(deep=True))
-                            injected = True
-                        elif synthesis_md:
+                        if synthesis_md:
                             # Legacy Markdown Fallback
                             allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
                                 "h1",

@@ -123,18 +123,13 @@ class SynthesisOutputDTO(V2CoreBase):
     """
 
     user_role: Annotated[
-        str | None,
+        str,
         Field(
-            default=None,
-            description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT). If unknown, default to None.",
+            description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT).",
         ),
     ]
-    user_role_justification: Annotated[
-        str | None, Field(default=None, description="LLM justification for role mapping.")
-    ]
-    executive_summary: Annotated[
-        str | None, Field(default="Executive summary.", description="High-level synthesized summary")
-    ]
+    user_role_justification: Annotated[str, Field(description="LLM justification for role mapping.")]
+    executive_summary: Annotated[str | None, Field(default=None, description="High-level synthesized summary")]
     urgency_level: Annotated[int | None, Field(default=1)]
 
     content_blocks: Annotated[
