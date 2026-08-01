@@ -89,6 +89,28 @@ void main() {
     );
 
     test(
+      'throws CheckedFromJsonException if legacy layouts key is present',
+      () {
+        final Map<String, dynamic> json = {
+          'execution_id': 'exec_123',
+          'workflow_id': 'wf_abc',
+          'inner_sdui_blocks': [],
+          'results': [],
+          'hydrated_references': {},
+          'layouts': [
+            // Legacy key
+            {'preset_view': '1d_metrics', 'axes': []},
+          ],
+        };
+
+        expect(
+          () => ReportDataDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
+
+    test(
       'parseInBackground correctly parses JSON in a separate isolate',
       () async {
         final jsonString = '''

@@ -34,7 +34,6 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'results',
         'hydrated_references',
         'visible_metadata',
-        'layouts',
         'created_at',
         'org_name',
         'cost_estimate',
@@ -124,16 +123,6 @@ _ReportDataDto _$ReportDataDtoFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
-      layouts: $checkedConvert(
-        'layouts',
-        (v) =>
-            (v as List<dynamic>?)
-                ?.map(
-                  (e) => ReportLayoutDto.fromJson(e as Map<String, dynamic>),
-                )
-                .toList() ??
-            const [],
-      ),
       createdAt: $checkedConvert('created_at', (v) => v as String?),
       orgName: $checkedConvert('org_name', (v) => v as String?),
       costEstimate: $checkedConvert(
@@ -222,7 +211,6 @@ Map<String, dynamic> _$ReportDataDtoToJson(
     (k, e) => MapEntry(k, e.toJson()),
   ),
   'visible_metadata': instance.visibleMetadata,
-  'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'created_at': instance.createdAt,
   'org_name': instance.orgName,
   'cost_estimate': instance.costEstimate,

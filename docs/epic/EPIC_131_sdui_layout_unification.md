@@ -240,6 +240,9 @@ Rename and refactor the method:
     - `"1d_metrics"` → `layout_blocks.append(SduiMetrics1DBlock(title=title_str, axes=axes))`
     - `"text_only"` / `"default"` → (Do not append any chart block wrapper)
   - Append synthesis blocks sequentially AFTER the chart block: `if section_blocks: layout_blocks.extend(section_blocks)` (Note: This correctly consumes the `synthesis_blocks` logic that originates from `OutputLayoutBlock`).
+  
+> [!NOTE]
+> **Architecture Hotfix (Flat Pipeline Achieved)**: In the legacy architecture, `description` and `synthesis_blocks` were often modeled as nested fields within layout DTOs. Step 2.1 explicitly eradicates this by flattening them into standalone `ParagraphBlock` and `MarkdownBlock` items within the `inner_sdui_blocks` array. This completely satisfies the Dumb Painter requirement—no DTO models should contain nested description or synthesis fields anymore.
   - Combine all `layout_blocks` from the loop and return them as a single flat `list[AnySduiBlock]` from `_build_visualization_blocks()`.
 
 > [!WARNING]
@@ -351,6 +354,8 @@ All test files consuming `ReportLayoutDTO`, `preset_view`, or `layouts` must be 
 > `import 'package:client_app/shared/models/i18n_text.dart';`
 >
 > **Fail-Fast Freezed Config**: You MUST ensure that the top-level `@Freezed` annotation strictly enforces fail-fast on unknown block types. Ensure it is configured as `@Freezed(unionKey: 'block_type')` and that `fallbackUnion` is strictly FORBIDDEN (do not define it, or set to null). The renderer relies on `CheckedFromJsonException` to crash natively if an unknown schema is received.
+>
+> **Hotfix Mandate (String Discriminator Parity)**: The `@FreezedUnionValue` string MUST exactly match the backend Python payload. Do NOT use Dart-style camelCase names. For example, use `'3d_matrix'` (matches backend) instead of `'matrix3d'`.
 
 ```dart
 @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -395,11 +400,11 @@ const factory SduiBlockDTO.metrics1d({
 > [!IMPORTANT]
 > **Freezed `.when` Ban**: You MUST refactor the current `if (block is ...)` chain into a native Dart 3 exhaustive `switch (block)` expression. You MUST NOT use `.map()` or `.when()` on the Freezed union, and you MUST NOT use `SizedBox.shrink()` as a fallback for unknown blocks. Exhaustiveness is enforced at compile-time via the sealed class — do NOT use a `default` wildcard branch. Unknown schemas will throw `CheckedFromJsonException` during deserialization.
 
-Add `switch` cases for the 4 new `SduiBlockDTO` variants:
-- `SduiRadarChartBlock` → `LogicRadarChart(axes: block.axes)` widget
-- `SduiScatterPlotBlock` → `LogicMatrixChart(xAxis: block.axes[0], yAxis: block.axes[1], zAxis: ...)` widget
-- `SduiMatrixTableBlock` → existing matrix summary table widget (extracted from `report_renderer_v2_widget.dart`)
-- `SduiMetrics1DBlock` → Render via `Column(children: block.axes.map((axis) => SduiBlocksRenderer(blocks: axis.innerSduiBlocks)).toList())`. This maintains the existing Dumb Painter rendering path at @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L270-L275] — the 1D metrics are already pre-rendered as SDUI blocks by the backend into `MatrixScorecardRowDto.innerSduiBlocks`.
+- Add a private helper `Widget _buildChartWithTitle(BuildContext context, String? title, Widget chart)` that renders the title (using `headlineSmall` styling) followed by the `chart`.
+- `SduiRadarChartBlock` → `_buildChartWithTitle(context, block.title, LogicRadarChart(axes: block.axes))` widget
+- `SduiScatterPlotBlock` → `_buildChartWithTitle(context, block.title, LogicMatrixChart(xAxis: block.axes[0], yAxis: block.axes[1], zAxis: ...))` widget
+- `SduiMatrixTableBlock` → Extract the `DataTable` logic from `report_renderer_v2_widget.dart` into a new `SduiMatrixTableWidget(block: block)` and render it here.
+- `SduiMetrics1DBlock` → Render via `_buildChartWithTitle(context, block.title, Column(children: block.axes.map((axis) => MatrixRowItemWidget(matrix: axis)).toList()))`. This is CRITICAL to preserve the visual numerical score and progress bar layout; do NOT map directly to `SduiBlocksRenderer` which would delete the numerical visuals.
 
 #### Step 3.3: Remove `layouts` from `ReportDataDto`
 **Target**: @[client_app_v2\lib\features\execution\models\report_data_v2_dto.dart#L49]
@@ -489,7 +494,7 @@ Concrete rendering strategy per block type:
 - `"3d_matrix"` (SduiRadarChartBlock) → Render an HTML table matching the EXACT structure defined in the previous layout loop (columns: Axis Name, Raw Score, Target Score, Normalized %). Charts are NOT rendered in PDF — the Jinja template provides a **tabular data fallback** (consistent with the existing behavior at @[backend_v2\templates\report_template.jinja2#L267-L320]).
 - `"2d_compare"` (SduiScatterPlotBlock) → Render a 2-column HTML comparison table with axis labels and scores.
 - `"matrix_summary"` (SduiMatrixTableBlock) → Render a full HTML `<table>` using `block.visible_columns` for headers and `block.axes` for rows. This directly replaces the existing matrix summary table at @[backend_v2\templates\report_template.jinja2#L414]. You MUST resolve column headers using specific locale resolution (e.g., `block.column_labels.get(col_key, {}).get(locale, col_key)`).
-- `"1d_metrics"` (SduiMetrics1DBlock) → Render axis inner_sdui_blocks via the existing `render_sdui_blocks()` Jinja macro for each axis in `block.axes`.
+- `"1d_metrics"` (SduiMetrics1DBlock) → Render the HTML tabular structure that displays the axis numerical score and `ui_plot_ratio` bar FIRST, and then call the `render_sdui_blocks()` Jinja macro for each axis to render the text. It is CRITICAL to preserve the visual numerical layout; do NOT simply loop and call the text macro.
 
 > [!IMPORTANT]
 > **Chart Image Indexing Migration**: The current Jinja template injects chart images using `charts[loop.index0]` keyed by layout position. In the new architecture, the `pdf_generator.py` must build the `charts` dictionary keyed by the BLOCK's position within `inner_sdui_blocks` (not the layout index). The chart generation loop at @[backend_v2\services\pdf_generator.py#L187-L208] must iterate `report_dto.inner_sdui_blocks`, check `block.block_type` via `match` pattern, and populate charts keyed by the block's index in `inner_sdui_blocks`.

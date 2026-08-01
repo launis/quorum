@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:client_app/core/utils/safe_isolate.dart';
 
 import 'matrix_scorecard_dto.dart';
-import 'report_layout_dto.dart';
 import 'atom_result_dto.dart';
 import 'execution_metrics_dto.dart';
 
@@ -46,7 +45,6 @@ abstract class ReportDataDto with _$ReportDataDto {
     @JsonKey(name: 'visible_metadata')
     @Default([])
     List<String> visibleMetadata,
-    @Default([]) List<ReportLayoutDto> layouts,
     @JsonKey(name: 'created_at') String? createdAt,
     @JsonKey(name: 'org_name') String? orgName,
     @JsonKey(name: 'cost_estimate') double? costEstimate,

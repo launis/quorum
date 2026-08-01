@@ -5,6 +5,12 @@ import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/theme/app_colors.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_alert_box_widget.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_grid_widget.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/shared/widgets/logic_radar_chart.dart';
+import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
+import 'package:client_app/features/execution/views/widgets/matrix_row_item_widget.dart';
+import 'package:client_app/features/execution/views/widgets/sdui_matrix_table_widget.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 class SduiBlocksRenderer extends StatelessWidget {
   final List<SduiBlockDTO> blocks;
@@ -19,33 +25,57 @@ class SduiBlocksRenderer extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: blocks.map((block) {
-        if (block is SduiAccordionBlock) {
-          return _buildAccordion(context, block);
-        }
-        if (block is SduiHeaderBlock) {
-          return _buildHeader(context, block);
-        }
-        if (block is SduiAlertBoxBlock) {
-          return SduiAlertBoxWidget(block: block);
-        }
-        if (block is SduiGridBlock) {
-          return SduiGridWidget(block: block);
-        }
-
-        String? text;
-        if (block is SduiMarkdownBlock) {
-          text = block.text;
-        } else if (block is SduiParagraphBlock) {
-          text = block.text;
-        }
-
-        if (text != null && text.isNotEmpty) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-            child: OutputRenderer(markdownContent: text),
-          );
-        }
-        return const SizedBox();
+        return switch (block) {
+          SduiAccordionBlock() => _buildAccordion(context, block),
+          SduiHeaderBlock() => _buildHeader(context, block),
+          SduiAlertBoxBlock() => SduiAlertBoxWidget(block: block),
+          SduiGridBlock() => SduiGridWidget(block: block),
+          SduiMarkdownBlock() =>
+            block.text.isNotEmpty
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                    child: OutputRenderer(markdownContent: block.text),
+                  )
+                : const SizedBox.shrink(),
+          SduiParagraphBlock() =>
+            block.text.isNotEmpty
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                    child: OutputRenderer(markdownContent: block.text),
+                  )
+                : const SizedBox.shrink(),
+          SduiRadarChartBlock() => _buildChartWithTitle(
+            context,
+            block.title,
+            LogicRadarChart(axes: block.axes),
+          ),
+          SduiScatterPlotBlock() => _buildChartWithTitle(
+            context,
+            block.title,
+            LogicMatrixChart(
+              xAxis: block.axes[0],
+              yAxis: block.axes[1],
+              zAxis: block.axes.length > 2 ? block.axes[2] : null,
+            ),
+          ),
+          SduiMetrics1DBlock() => _buildChartWithTitle(
+            context,
+            block.title,
+            Column(
+              children: block.axes
+                  .map((axis) => MatrixRowItemWidget(matrix: axis))
+                  .toList(),
+            ),
+          ),
+          SduiMatrixTableBlock() => SduiMatrixTableWidget(block: block),
+          SduiBulletListBlock() ||
+          SduiHeroInsightBlock() ||
+          SduiQuoteCardBlock() ||
+          SduiWarningCardBlock() ||
+          SduiNACardBlock() => throw AppException.validation(
+            'Unsupported block type in SduiBlocksRenderer.',
+          ),
+        };
       }).toList(),
     );
   }
@@ -233,6 +263,36 @@ class SduiBlocksRenderer extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildChartWithTitle(
+    BuildContext context,
+    I18nText? title,
+    Widget chart,
+  ) {
+    if (title == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
+        child: chart,
+      );
+    }
+
+    final locale = Localizations.localeOf(context).languageCode;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title.get(locale),
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          AppSpacing.h16,
+          chart,
+        ],
       ),
     );
   }

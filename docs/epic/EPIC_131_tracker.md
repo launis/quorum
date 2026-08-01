@@ -40,7 +40,8 @@
 
 ### Phase 3: Frontend Flutter UI & Freezed DTO Synchronization (Remaining)
 - [OK] Execute `/tier1-planner` for remaining Phase 3-5 implementation plans once Phase 2 is complete.
-- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]`
+- [OK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]`
+- [OK] Architecture Hotfix: Restored Flat Pipeline (Completed in Phase 2 via blueprint.py inner_sdui_blocks routing).
 - [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]`
 
 ### Phase 4: PDF Template & Jinja Synchronization
@@ -127,6 +128,12 @@
 - [x] Executed Phase 2 Audit Plan. Uncovered two minor gaps: `except Exception: pass` not removed in `blueprint.py:1412`, and missing negative test for unrecognized `text_delivery_mode`. Generated `plan_audit_report.md`.
 - [x] Fixed Phase 2 audit gaps: Removed `except Exception: pass`, added `ConfigurationError` for unrecognized `text_delivery_mode`, and updated tests.
 - [x] Successfully ran `backend_audit_loop.py` verifying full codebase compliance, 80.99% coverage, and 1,192 passing unit tests. Phase 2 is fully complete.
+- [x] Executed `/tier0-research-epic` audit on Phase 3, 4, and 5 plans (`04_...`, `05_...`, `06_...`) to ensure alignment with `output_profile_layout_v2.md`.
+- [x] Resolved `[NOK] Architecture Hotfix` tracker constraint. Verified Phase 2 already achieved flat pipeline architecture for `description` and `synthesis_blocks`.
+- [x] Fixed Critical Architecture Bug in Phase 3 Frontend Plan: Updated `SduiMetrics1DBlock` rendering logic to correctly map to `MatrixRowItemWidget` instead of `SduiBlocksRenderer`. This prevents the numeric score and visual layout of 1D metrics from disappearing.
+- [x] Fixed Critical Architecture Bug in Phase 4 PDF Plan: Updated Jinja 1D metrics rendering instructions to retain the visual score HTML layout before calling the `render_sdui_blocks` text macro.
+- [x] Executed `/tier0-research-plan` on Phase 3 Frontend UI Plan (`04_phase3_frontend_ui_plan.md`).
+- [x] Mutated Phase 3 Frontend UI plan to fix two critical regressions: Loss of chart titles (added `_buildChartWithTitle` helper) and Loss of Matrix Summary UI (added extraction step for `SduiMatrixTableWidget`).
 
 ## Learned
 - **Baseline State Snapshot**: The codebase currently uses `ReportLayoutDTO` containing a `preset_view` enum field to determine visualization rendering on the client side. This violates Dumb Painter SDUI constraints. The `layouts` field exists on both Python's `ReportDataDTO` and Flutter's `ReportDataDto`.
@@ -136,9 +143,13 @@
 - **Legacy Enum Cleanup**: The frontend contained obsolete hardcoded views mapping to `complex3d` within `report_renderer_v2_widget.dart` and studio editors. We cleanly excised it to favor `matrix3d` mapping, reinforcing Dumb Painter bounds.
 - **String Discriminator Parity**: Freezed union string values MUST explicitly match the backend payload exactly, even if Dart variable naming conventions differ. A previous plan hallucinated Dart-compatible names into the string discriminators.
 - **Audit Findings**: The universal quality gate is strict. Even if E2E integration tests aren't explicitly run by the agent yet, MyPy will hard-block compilation if cross-file references to deleted fields (like `layouts`) still exist in orphaned files not explicitly mentioned in the plan targets.
+- **SDUI Rendering Trap**: Directly mapping a block containing `axes` (like `1d_metrics`) to `SduiBlocksRenderer(blocks: axis.innerSduiBlocks)` completely destroys the UI visualization layer (scores, progress bars) of that component. The frontend must map it to the wrapper widget (`MatrixRowItemWidget`) which internally renders the `innerSduiBlocks`.
 
 ## Remaining
-- Execute `/tier0-research-plan` for Phase 3 Frontend UI plan.
+- [x] Executed `/tier2-execute` on the new Architecture Hotfix Plan.
+- [x] Verified Phase 2 audits passed via `backend_audit_loop.py` and `flutter_audit_loop.py`.
+- [x] Executed `/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]" --workflow=/tier0-research-plan`
+- Execute `/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]" --workflow=/tier2-execute`
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]" --workflow=/tier0-research-plan`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]" --workflow=/tier2-execute`

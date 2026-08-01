@@ -11,7 +11,7 @@
 - For `3d_matrix`, render an HTML table fallback.
 - For `2d_compare`, render a 2-column HTML comparison table.
 - For `matrix_summary`, render a full HTML `<table>` using `block.visible_columns`.
-- For `1d_metrics`, render axis inner_sdui_blocks via the existing `render_sdui_blocks()` Jinja macro.
+- For `1d_metrics`, loop through `block.axes`. For each axis, render the score label (`axis.score_display_label`) and the visual progress bar (`axis.ui_plot_ratio`), then render the text via `render_sdui_blocks(axis.inner_sdui_blocks)`.
 
 ### Step 4.2: Eradicate Dead Jinja Code
 **Target**: `@[c:\src\quorum\backend_v2\templates\report_template.jinja2]`

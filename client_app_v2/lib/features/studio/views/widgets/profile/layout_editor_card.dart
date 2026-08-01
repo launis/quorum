@@ -232,13 +232,6 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
                     ),
                   ),
                   DropdownMenuItem(
-                    value: PresetView.matrixSummary,
-                    child: const Text(
-                      'Matrix Summary', // Legacy hardcoded fallback
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  DropdownMenuItem(
                     value: PresetView.defaultView,
                     child: Text(
                       l10n.presetAutomatic,
