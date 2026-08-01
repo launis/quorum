@@ -267,7 +267,7 @@ return matrixSummary(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,TResult Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)?  matrix3d,TResult Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)?  compare2d,TResult Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)?  metrics1d,TResult Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
@@ -281,10 +281,10 @@ return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock(
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock() when grid != null:
 return grid(_that.id,_that.items);case SduiHeaderBlock() when header != null:
 return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiRadarChartBlock() when matrix3d != null:
-return matrix3d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiScatterPlotBlock() when compare2d != null:
-return compare2d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiMetrics1DBlock() when metrics1d != null:
-return metrics1d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiMatrixTableBlock() when matrixSummary != null:
-return matrixSummary(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);case _:
+return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock() when compare2d != null:
+return compare2d(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock() when metrics1d != null:
+return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock() when matrixSummary != null:
+return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);case _:
   return orElse();
 
 }
@@ -302,7 +302,7 @@ return matrixSummary(_that.id,_that.title,_that.description,_that.axes,_that.tex
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<SduiBlockDTO> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  header,required TResult Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)  matrix3d,required TResult Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)  compare2d,required TResult Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)  metrics1d,required TResult Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)  matrixSummary,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<SduiBlockDTO> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  header,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  matrix3d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  compare2d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  metrics1d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)  matrixSummary,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock():
@@ -316,10 +316,10 @@ return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock(
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock():
 return grid(_that.id,_that.items);case SduiHeaderBlock():
 return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiRadarChartBlock():
-return matrix3d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiScatterPlotBlock():
-return compare2d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiMetrics1DBlock():
-return metrics1d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiMatrixTableBlock():
-return matrixSummary(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);}
+return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock():
+return compare2d(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock():
+return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock():
+return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -333,7 +333,7 @@ return matrixSummary(_that.id,_that.title,_that.description,_that.axes,_that.tex
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,TResult? Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)?  matrix3d,TResult? Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)?  compare2d,TResult? Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks)?  metrics1d,TResult? Function( String? id,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  TextDeliveryMode textDeliveryMode, @JsonKey(name: 'synthesis_blocks')  List<SduiBlockDTO>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
@@ -347,10 +347,10 @@ return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock(
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock() when grid != null:
 return grid(_that.id,_that.items);case SduiHeaderBlock() when header != null:
 return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiRadarChartBlock() when matrix3d != null:
-return matrix3d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiScatterPlotBlock() when compare2d != null:
-return compare2d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiMetrics1DBlock() when metrics1d != null:
-return metrics1d(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks);case SduiMatrixTableBlock() when matrixSummary != null:
-return matrixSummary(_that.id,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesisBlocks,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);case _:
+return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock() when compare2d != null:
+return compare2d(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock() when metrics1d != null:
+return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock() when matrixSummary != null:
+return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);case _:
   return null;
 
 }
@@ -1317,27 +1317,16 @@ as String?,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiRadarChartBlock extends SduiBlockDTO {
-  const SduiRadarChartBlock({this.id, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = TextDeliveryMode.full, @JsonKey(name: 'synthesis_blocks') final  List<SduiBlockDTO>? synthesisBlocks, final  String? $type}): _axes = axes,_synthesisBlocks = synthesisBlocks,$type = $type ?? '3d_matrix',super._();
+  const SduiRadarChartBlock({this.id, this.title, final  List<MatrixScorecardRowDto> axes = const [], final  String? $type}): _axes = axes,$type = $type ?? '3d_matrix',super._();
   factory SduiRadarChartBlock.fromJson(Map<String, dynamic> json) => _$SduiRadarChartBlockFromJson(json);
 
 @override final  String? id;
  final  I18nText? title;
- final  I18nText? description;
  final  List<MatrixScorecardRowDto> _axes;
 @JsonKey() List<MatrixScorecardRowDto> get axes {
   if (_axes is EqualUnmodifiableListView) return _axes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_axes);
-}
-
-@JsonKey(name: 'text_delivery_mode') final  TextDeliveryMode textDeliveryMode;
- final  List<SduiBlockDTO>? _synthesisBlocks;
-@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? get synthesisBlocks {
-  final value = _synthesisBlocks;
-  if (value == null) return null;
-  if (_synthesisBlocks is EqualUnmodifiableListView) return _synthesisBlocks;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(value);
 }
 
 
@@ -1358,16 +1347,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiRadarChartBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.textDeliveryMode, textDeliveryMode) || other.textDeliveryMode == textDeliveryMode)&&const DeepCollectionEquality().equals(other._synthesisBlocks, _synthesisBlocks));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiRadarChartBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other._axes, _axes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,const DeepCollectionEquality().hash(_axes),textDeliveryMode,const DeepCollectionEquality().hash(_synthesisBlocks));
+int get hashCode => Object.hash(runtimeType,id,title,const DeepCollectionEquality().hash(_axes));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.matrix3d(id: $id, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesisBlocks: $synthesisBlocks)';
+  return 'SduiBlockDTO.matrix3d(id: $id, title: $title, axes: $axes)';
 }
 
 
@@ -1378,11 +1367,11 @@ abstract mixin class $SduiRadarChartBlockCopyWith<$Res> implements $SduiBlockDTO
   factory $SduiRadarChartBlockCopyWith(SduiRadarChartBlock value, $Res Function(SduiRadarChartBlock) _then) = _$SduiRadarChartBlockCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') TextDeliveryMode textDeliveryMode,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks
+ String? id, I18nText? title, List<MatrixScorecardRowDto> axes
 });
 
 
-$I18nTextCopyWith<$Res>? get title;$I18nTextCopyWith<$Res>? get description;
+$I18nTextCopyWith<$Res>? get title;
 
 }
 /// @nodoc
@@ -1395,15 +1384,12 @@ class _$SduiRadarChartBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesisBlocks = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? axes = null,}) {
   return _then(SduiRadarChartBlock(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
-as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
-as TextDeliveryMode,synthesisBlocks: freezed == synthesisBlocks ? _self._synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
-as List<SduiBlockDTO>?,
+as List<MatrixScorecardRowDto>,
   ));
 }
 
@@ -1419,18 +1405,6 @@ $I18nTextCopyWith<$Res>? get title {
   return $I18nTextCopyWith<$Res>(_self.title!, (value) {
     return _then(_self.copyWith(title: value));
   });
-}/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res>? get description {
-    if (_self.description == null) {
-    return null;
-  }
-
-  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
-    return _then(_self.copyWith(description: value));
-  });
 }
 }
 
@@ -1438,27 +1412,16 @@ $I18nTextCopyWith<$Res>? get description {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiScatterPlotBlock extends SduiBlockDTO {
-  const SduiScatterPlotBlock({this.id, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = TextDeliveryMode.full, @JsonKey(name: 'synthesis_blocks') final  List<SduiBlockDTO>? synthesisBlocks, final  String? $type}): _axes = axes,_synthesisBlocks = synthesisBlocks,$type = $type ?? '2d_compare',super._();
+  const SduiScatterPlotBlock({this.id, this.title, final  List<MatrixScorecardRowDto> axes = const [], final  String? $type}): _axes = axes,$type = $type ?? '2d_compare',super._();
   factory SduiScatterPlotBlock.fromJson(Map<String, dynamic> json) => _$SduiScatterPlotBlockFromJson(json);
 
 @override final  String? id;
  final  I18nText? title;
- final  I18nText? description;
  final  List<MatrixScorecardRowDto> _axes;
 @JsonKey() List<MatrixScorecardRowDto> get axes {
   if (_axes is EqualUnmodifiableListView) return _axes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_axes);
-}
-
-@JsonKey(name: 'text_delivery_mode') final  TextDeliveryMode textDeliveryMode;
- final  List<SduiBlockDTO>? _synthesisBlocks;
-@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? get synthesisBlocks {
-  final value = _synthesisBlocks;
-  if (value == null) return null;
-  if (_synthesisBlocks is EqualUnmodifiableListView) return _synthesisBlocks;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(value);
 }
 
 
@@ -1479,16 +1442,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiScatterPlotBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.textDeliveryMode, textDeliveryMode) || other.textDeliveryMode == textDeliveryMode)&&const DeepCollectionEquality().equals(other._synthesisBlocks, _synthesisBlocks));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiScatterPlotBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other._axes, _axes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,const DeepCollectionEquality().hash(_axes),textDeliveryMode,const DeepCollectionEquality().hash(_synthesisBlocks));
+int get hashCode => Object.hash(runtimeType,id,title,const DeepCollectionEquality().hash(_axes));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.compare2d(id: $id, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesisBlocks: $synthesisBlocks)';
+  return 'SduiBlockDTO.compare2d(id: $id, title: $title, axes: $axes)';
 }
 
 
@@ -1499,11 +1462,11 @@ abstract mixin class $SduiScatterPlotBlockCopyWith<$Res> implements $SduiBlockDT
   factory $SduiScatterPlotBlockCopyWith(SduiScatterPlotBlock value, $Res Function(SduiScatterPlotBlock) _then) = _$SduiScatterPlotBlockCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') TextDeliveryMode textDeliveryMode,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks
+ String? id, I18nText? title, List<MatrixScorecardRowDto> axes
 });
 
 
-$I18nTextCopyWith<$Res>? get title;$I18nTextCopyWith<$Res>? get description;
+$I18nTextCopyWith<$Res>? get title;
 
 }
 /// @nodoc
@@ -1516,15 +1479,12 @@ class _$SduiScatterPlotBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesisBlocks = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? axes = null,}) {
   return _then(SduiScatterPlotBlock(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
-as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
-as TextDeliveryMode,synthesisBlocks: freezed == synthesisBlocks ? _self._synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
-as List<SduiBlockDTO>?,
+as List<MatrixScorecardRowDto>,
   ));
 }
 
@@ -1540,18 +1500,6 @@ $I18nTextCopyWith<$Res>? get title {
   return $I18nTextCopyWith<$Res>(_self.title!, (value) {
     return _then(_self.copyWith(title: value));
   });
-}/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res>? get description {
-    if (_self.description == null) {
-    return null;
-  }
-
-  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
-    return _then(_self.copyWith(description: value));
-  });
 }
 }
 
@@ -1559,27 +1507,16 @@ $I18nTextCopyWith<$Res>? get description {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiMetrics1DBlock extends SduiBlockDTO {
-  const SduiMetrics1DBlock({this.id, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = TextDeliveryMode.full, @JsonKey(name: 'synthesis_blocks') final  List<SduiBlockDTO>? synthesisBlocks, final  String? $type}): _axes = axes,_synthesisBlocks = synthesisBlocks,$type = $type ?? '1d_metrics',super._();
+  const SduiMetrics1DBlock({this.id, this.title, final  List<MatrixScorecardRowDto> axes = const [], final  String? $type}): _axes = axes,$type = $type ?? '1d_metrics',super._();
   factory SduiMetrics1DBlock.fromJson(Map<String, dynamic> json) => _$SduiMetrics1DBlockFromJson(json);
 
 @override final  String? id;
  final  I18nText? title;
- final  I18nText? description;
  final  List<MatrixScorecardRowDto> _axes;
 @JsonKey() List<MatrixScorecardRowDto> get axes {
   if (_axes is EqualUnmodifiableListView) return _axes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_axes);
-}
-
-@JsonKey(name: 'text_delivery_mode') final  TextDeliveryMode textDeliveryMode;
- final  List<SduiBlockDTO>? _synthesisBlocks;
-@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? get synthesisBlocks {
-  final value = _synthesisBlocks;
-  if (value == null) return null;
-  if (_synthesisBlocks is EqualUnmodifiableListView) return _synthesisBlocks;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(value);
 }
 
 
@@ -1600,16 +1537,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiMetrics1DBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.textDeliveryMode, textDeliveryMode) || other.textDeliveryMode == textDeliveryMode)&&const DeepCollectionEquality().equals(other._synthesisBlocks, _synthesisBlocks));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiMetrics1DBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other._axes, _axes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,const DeepCollectionEquality().hash(_axes),textDeliveryMode,const DeepCollectionEquality().hash(_synthesisBlocks));
+int get hashCode => Object.hash(runtimeType,id,title,const DeepCollectionEquality().hash(_axes));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.metrics1d(id: $id, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesisBlocks: $synthesisBlocks)';
+  return 'SduiBlockDTO.metrics1d(id: $id, title: $title, axes: $axes)';
 }
 
 
@@ -1620,11 +1557,11 @@ abstract mixin class $SduiMetrics1DBlockCopyWith<$Res> implements $SduiBlockDTOC
   factory $SduiMetrics1DBlockCopyWith(SduiMetrics1DBlock value, $Res Function(SduiMetrics1DBlock) _then) = _$SduiMetrics1DBlockCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') TextDeliveryMode textDeliveryMode,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks
+ String? id, I18nText? title, List<MatrixScorecardRowDto> axes
 });
 
 
-$I18nTextCopyWith<$Res>? get title;$I18nTextCopyWith<$Res>? get description;
+$I18nTextCopyWith<$Res>? get title;
 
 }
 /// @nodoc
@@ -1637,15 +1574,12 @@ class _$SduiMetrics1DBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesisBlocks = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? axes = null,}) {
   return _then(SduiMetrics1DBlock(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
-as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
-as TextDeliveryMode,synthesisBlocks: freezed == synthesisBlocks ? _self._synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
-as List<SduiBlockDTO>?,
+as List<MatrixScorecardRowDto>,
   ));
 }
 
@@ -1661,18 +1595,6 @@ $I18nTextCopyWith<$Res>? get title {
   return $I18nTextCopyWith<$Res>(_self.title!, (value) {
     return _then(_self.copyWith(title: value));
   });
-}/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res>? get description {
-    if (_self.description == null) {
-    return null;
-  }
-
-  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
-    return _then(_self.copyWith(description: value));
-  });
 }
 }
 
@@ -1680,27 +1602,16 @@ $I18nTextCopyWith<$Res>? get description {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiMatrixTableBlock extends SduiBlockDTO {
-  const SduiMatrixTableBlock({this.id, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = TextDeliveryMode.full, @JsonKey(name: 'synthesis_blocks') final  List<SduiBlockDTO>? synthesisBlocks, @JsonKey(name: 'matrix_column_labels') final  Map<String, I18nText> matrixColumnLabels = const {}, @JsonKey(name: 'extension_labels') final  Map<XaiExtensionType, I18nText> extensionLabels = const {}, @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const [], final  String? $type}): _axes = axes,_synthesisBlocks = synthesisBlocks,_matrixColumnLabels = matrixColumnLabels,_extensionLabels = extensionLabels,_matrixVisibleColumns = matrixVisibleColumns,$type = $type ?? 'matrix_summary',super._();
+  const SduiMatrixTableBlock({this.id, this.title, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'matrix_column_labels') final  Map<String, I18nText> matrixColumnLabels = const {}, @JsonKey(name: 'extension_labels') final  Map<XaiExtensionType, I18nText> extensionLabels = const {}, @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const [], final  String? $type}): _axes = axes,_matrixColumnLabels = matrixColumnLabels,_extensionLabels = extensionLabels,_matrixVisibleColumns = matrixVisibleColumns,$type = $type ?? 'matrix_summary',super._();
   factory SduiMatrixTableBlock.fromJson(Map<String, dynamic> json) => _$SduiMatrixTableBlockFromJson(json);
 
 @override final  String? id;
  final  I18nText? title;
- final  I18nText? description;
  final  List<MatrixScorecardRowDto> _axes;
 @JsonKey() List<MatrixScorecardRowDto> get axes {
   if (_axes is EqualUnmodifiableListView) return _axes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_axes);
-}
-
-@JsonKey(name: 'text_delivery_mode') final  TextDeliveryMode textDeliveryMode;
- final  List<SduiBlockDTO>? _synthesisBlocks;
-@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? get synthesisBlocks {
-  final value = _synthesisBlocks;
-  if (value == null) return null;
-  if (_synthesisBlocks is EqualUnmodifiableListView) return _synthesisBlocks;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(value);
 }
 
  final  Map<String, I18nText> _matrixColumnLabels;
@@ -1742,16 +1653,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiMatrixTableBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.textDeliveryMode, textDeliveryMode) || other.textDeliveryMode == textDeliveryMode)&&const DeepCollectionEquality().equals(other._synthesisBlocks, _synthesisBlocks)&&const DeepCollectionEquality().equals(other._matrixColumnLabels, _matrixColumnLabels)&&const DeepCollectionEquality().equals(other._extensionLabels, _extensionLabels)&&const DeepCollectionEquality().equals(other._matrixVisibleColumns, _matrixVisibleColumns));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiMatrixTableBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other._axes, _axes)&&const DeepCollectionEquality().equals(other._matrixColumnLabels, _matrixColumnLabels)&&const DeepCollectionEquality().equals(other._extensionLabels, _extensionLabels)&&const DeepCollectionEquality().equals(other._matrixVisibleColumns, _matrixVisibleColumns));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,const DeepCollectionEquality().hash(_axes),textDeliveryMode,const DeepCollectionEquality().hash(_synthesisBlocks),const DeepCollectionEquality().hash(_matrixColumnLabels),const DeepCollectionEquality().hash(_extensionLabels),const DeepCollectionEquality().hash(_matrixVisibleColumns));
+int get hashCode => Object.hash(runtimeType,id,title,const DeepCollectionEquality().hash(_axes),const DeepCollectionEquality().hash(_matrixColumnLabels),const DeepCollectionEquality().hash(_extensionLabels),const DeepCollectionEquality().hash(_matrixVisibleColumns));
 
 @override
 String toString() {
-  return 'SduiBlockDTO.matrixSummary(id: $id, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesisBlocks: $synthesisBlocks, matrixColumnLabels: $matrixColumnLabels, extensionLabels: $extensionLabels, matrixVisibleColumns: $matrixVisibleColumns)';
+  return 'SduiBlockDTO.matrixSummary(id: $id, title: $title, axes: $axes, matrixColumnLabels: $matrixColumnLabels, extensionLabels: $extensionLabels, matrixVisibleColumns: $matrixVisibleColumns)';
 }
 
 
@@ -1762,11 +1673,11 @@ abstract mixin class $SduiMatrixTableBlockCopyWith<$Res> implements $SduiBlockDT
   factory $SduiMatrixTableBlockCopyWith(SduiMatrixTableBlock value, $Res Function(SduiMatrixTableBlock) _then) = _$SduiMatrixTableBlockCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') TextDeliveryMode textDeliveryMode,@JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'extension_labels') Map<XaiExtensionType, I18nText> extensionLabels,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
+ String? id, I18nText? title, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'extension_labels') Map<XaiExtensionType, I18nText> extensionLabels,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
 });
 
 
-$I18nTextCopyWith<$Res>? get title;$I18nTextCopyWith<$Res>? get description;
+$I18nTextCopyWith<$Res>? get title;
 
 }
 /// @nodoc
@@ -1779,15 +1690,12 @@ class _$SduiMatrixTableBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesisBlocks = freezed,Object? matrixColumnLabels = null,Object? extensionLabels = null,Object? matrixVisibleColumns = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? axes = null,Object? matrixColumnLabels = null,Object? extensionLabels = null,Object? matrixVisibleColumns = null,}) {
   return _then(SduiMatrixTableBlock(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
-as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
-as TextDeliveryMode,synthesisBlocks: freezed == synthesisBlocks ? _self._synthesisBlocks : synthesisBlocks // ignore: cast_nullable_to_non_nullable
-as List<SduiBlockDTO>?,matrixColumnLabels: null == matrixColumnLabels ? _self._matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,matrixColumnLabels: null == matrixColumnLabels ? _self._matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, I18nText>,extensionLabels: null == extensionLabels ? _self._extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
 as Map<XaiExtensionType, I18nText>,matrixVisibleColumns: null == matrixVisibleColumns ? _self._matrixVisibleColumns : matrixVisibleColumns // ignore: cast_nullable_to_non_nullable
 as List<String>,
@@ -1805,18 +1713,6 @@ $I18nTextCopyWith<$Res>? get title {
 
   return $I18nTextCopyWith<$Res>(_self.title!, (value) {
     return _then(_self.copyWith(title: value));
-  });
-}/// Create a copy of SduiBlockDTO
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res>? get description {
-    if (_self.description == null) {
-    return null;
-  }
-
-  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
-    return _then(_self.copyWith(description: value));
   });
 }
 }

@@ -111,12 +111,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   const factory SduiBlockDTO.matrix3d({
     String? id,
     I18nText? title,
-    I18nText? description,
     @Default([]) List<MatrixScorecardRowDto> axes,
-    @JsonKey(name: 'text_delivery_mode')
-    @Default(TextDeliveryMode.full)
-    TextDeliveryMode textDeliveryMode,
-    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
   }) = SduiRadarChartBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -124,12 +119,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   const factory SduiBlockDTO.compare2d({
     String? id,
     I18nText? title,
-    I18nText? description,
     @Default([]) List<MatrixScorecardRowDto> axes,
-    @JsonKey(name: 'text_delivery_mode')
-    @Default(TextDeliveryMode.full)
-    TextDeliveryMode textDeliveryMode,
-    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
   }) = SduiScatterPlotBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -137,12 +127,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   const factory SduiBlockDTO.metrics1d({
     String? id,
     I18nText? title,
-    I18nText? description,
     @Default([]) List<MatrixScorecardRowDto> axes,
-    @JsonKey(name: 'text_delivery_mode')
-    @Default(TextDeliveryMode.full)
-    TextDeliveryMode textDeliveryMode,
-    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
   }) = SduiMetrics1DBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -150,12 +135,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   const factory SduiBlockDTO.matrixSummary({
     String? id,
     I18nText? title,
-    I18nText? description,
     @Default([]) List<MatrixScorecardRowDto> axes,
-    @JsonKey(name: 'text_delivery_mode')
-    @Default(TextDeliveryMode.full)
-    TextDeliveryMode textDeliveryMode,
-    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
     @JsonKey(name: 'matrix_column_labels')
     @Default({})
     Map<String, I18nText> matrixColumnLabels,

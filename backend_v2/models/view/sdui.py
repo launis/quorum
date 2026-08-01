@@ -612,10 +612,7 @@ class SduiRadarChartBlock(SduiBlockBase):
     model_config = ConfigDict(title="3d_matrix")
     block_type: Literal["3d_matrix"] = "3d_matrix"
     title: I18nText | None = None
-    description: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
-    text_delivery_mode: Literal["full", "titles_only", "none"] = "full"
-    synthesis_blocks: list[AnySduiBlock] | None = None
 
 
 class SduiScatterPlotBlock(SduiBlockBase):
@@ -624,10 +621,7 @@ class SduiScatterPlotBlock(SduiBlockBase):
     model_config = ConfigDict(title="2d_compare")
     block_type: Literal["2d_compare"] = "2d_compare"
     title: I18nText | None = None
-    description: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
-    text_delivery_mode: Literal["full", "titles_only", "none"] = "full"
-    synthesis_blocks: list[AnySduiBlock] | None = None
 
 
 class SduiMatrixTableBlock(SduiBlockBase):
@@ -636,10 +630,7 @@ class SduiMatrixTableBlock(SduiBlockBase):
     model_config = ConfigDict(title="matrix_summary")
     block_type: Literal["matrix_summary"] = "matrix_summary"
     title: I18nText | None = None
-    description: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
-    text_delivery_mode: Literal["full", "titles_only", "none"] = "full"
-    synthesis_blocks: list[AnySduiBlock] | None = None
     matrix_column_labels: dict[str, I18nText] = Field(default_factory=dict)
     extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(default_factory=dict)
     matrix_visible_columns: list[str] = Field(default_factory=list)
@@ -651,10 +642,7 @@ class SduiMetrics1DBlock(SduiBlockBase):
     model_config = ConfigDict(title="1d_metrics")
     block_type: Literal["1d_metrics"] = "1d_metrics"
     title: I18nText | None = None
-    description: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
-    text_delivery_mode: Literal["full", "titles_only", "none"] = "full"
-    synthesis_blocks: list[AnySduiBlock] | None = None
 
 
 AnySduiBlock = Annotated[

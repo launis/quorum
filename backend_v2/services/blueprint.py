@@ -911,53 +911,43 @@ class BlueprintTransformer:
                 if synthesis_config and layout_id in section_syntheses:
                     section_blocks = list(section_syntheses[layout_id])
 
+                if layout_def.description:
+                    from backend_v2.models.view.sdui import ParagraphBlock
+
+                    layout_blocks.append(
+                        ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
+                    )
+
                 if text_delivery_mode != "none" or preset_view not in ["3d_matrix", "2d_compare", "matrix_summary"]:
                     if preset_view == "3d_matrix":
                         layout_blocks.append(
                             SduiRadarChartBlock(
                                 title=layout_def.title,
-                                description=layout_def.description,
                                 axes=axes,
-                                text_delivery_mode=text_delivery_mode,
                             )
                         )
                     elif preset_view == "2d_compare":
                         layout_blocks.append(
                             SduiScatterPlotBlock(
                                 title=layout_def.title,
-                                description=layout_def.description,
                                 axes=axes,
-                                text_delivery_mode=text_delivery_mode,
                             )
                         )
                     elif preset_view in ["1d_metrics", "text_only"]:
                         layout_blocks.append(
                             SduiMetrics1DBlock(
                                 title=layout_def.title,
-                                description=layout_def.description,
                                 axes=axes,
-                                text_delivery_mode=text_delivery_mode,
                             )
                         )
                     elif preset_view == "matrix_summary":
                         layout_blocks.append(
                             SduiMatrixTableBlock(
                                 title=layout_def.title,
-                                description=layout_def.description,
                                 axes=axes,
-                                text_delivery_mode=text_delivery_mode,
                                 matrix_column_labels=layout_def.matrix_column_labels,
                                 matrix_visible_columns=layout_def.matrix_visible_columns,
                                 extension_labels=profile_extension_labels,
-                            )
-                        )
-                    elif preset_view == "1d_metrics":
-                        layout_blocks.append(
-                            SduiMetrics1DBlock(
-                                title=layout_def.title,
-                                description=layout_def.description,
-                                axes=axes,
-                                text_delivery_mode=text_delivery_mode,
                             )
                         )
 
@@ -1400,7 +1390,7 @@ class BlueprintTransformer:
                 variance_sdui_blocks.append(
                     ParagraphBlock(text=f"**{title_str_label}**", exact_quotes=[], citations=[])
                 )
-                variance_sdui_blocks.append(SduiMetrics1DBlock(axes=[row_dto], text_delivery_mode="full"))
+                variance_sdui_blocks.append(SduiMetrics1DBlock(axes=[row_dto]))
                 variance_sdui_blocks.append(MarkdownBlock(text=variance_text))
 
             if wf_ext == "authenticity_evaluation":
@@ -1512,7 +1502,7 @@ class BlueprintTransformer:
                 auth_sdui_blocks = []
                 title_str_label = auth_label.resolve(locale) if auth_label else "Authenticity Metrics"
                 auth_sdui_blocks.append(ParagraphBlock(text=f"**{title_str_label}**", exact_quotes=[], citations=[]))
-                auth_sdui_blocks.append(SduiMetrics1DBlock(axes=[auth_row_dto], text_delivery_mode="full"))
+                auth_sdui_blocks.append(SduiMetrics1DBlock(axes=[auth_row_dto]))
                 auth_sdui_blocks.append(MarkdownBlock(text=auth_text))
 
         modified_step_states = False
@@ -1554,7 +1544,7 @@ class BlueprintTransformer:
                 visualization_blocks.extend(auth_sdui_blocks)
 
             if not visualization_blocks:
-                visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices, text_delivery_mode="full")]
+                visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
 
             injected = False
             if synthesis_block_id and content_blocks:
