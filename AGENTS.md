@@ -43,6 +43,12 @@
 </catastrophic_system_bans>
 
 <agentic_control_center>
+    <rule_block id="llm_psychological_biases">
+        <banned_pattern>Falling into the "Path of Least Resistance" by hacking a solution (e.g. dict-parsing `execution_trace`) just to fix a crash quickly, prioritizing a green test suite over long-term architectural sovereignty.</banned_pattern>
+        <mandatory_pattern>You MUST engage System 2 thinking when a test fails or the system crashes. 1. DO NOT prioritize acute firefighting over architectural rules. 2. RECOGNIZE context blindness (just because a trace is available doesn't mean it's the right CQRS layer to read). 3. REJECT the Anti-TDD trap (never write legacy dict-parsing just to make a test pass). 4. AVOID sidetracking the rules for convenience; if the right solution requires fixing state management or a database query, you MUST do it.</mandatory_pattern>
+        <catastrophic_reason>Sacrificing architectural laws for immediate convenience accumulates catastrophic technical debt and guarantees brittle, unpredictable behavior (e.g., UI crashing because a nested dictionary structure changed).</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="knowledge_base_primacy">
         <banned_pattern>Starting complex coding tasks or diagnosing architecture bugs without reading provided Knowledge Item (KI) summaries or checking previous conversation Tracker contexts.</banned_pattern>
         <mandatory_pattern>BEFORE proposing architectural shifts, you MUST cross-reference the system-injected KI summaries. If continuing a previous session, you MUST prioritize reading the `# Session Handover Context` in the project Tracker file (e.g., `task.md` or `epic_tracker.md`) before falling back to `grep_search` on `.system_generated\logs\transcript.jsonl`.</mandatory_pattern>

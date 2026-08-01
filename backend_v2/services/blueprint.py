@@ -650,6 +650,13 @@ class BlueprintTransformer:
                 max_val = display_scale_max if display_scale_max is not None else 100.0
                 score_display_label = f"{score_float:.1f} / {max_val:.1f}"
 
+            cleaned_explanation = self._clean_hallucinated_numbers(final_explanation)
+            inner_sdui_blocks: list[AnySduiBlock] = [
+                ParagraphBlock(text=f"**{axis_name}**", exact_quotes=[], citations=[])
+            ]
+            if cleaned_explanation:
+                inner_sdui_blocks.append(MarkdownBlock(text=cleaned_explanation))
+
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
                 name=axis_name,
@@ -662,7 +669,7 @@ class BlueprintTransformer:
                 normalized_score=float(norm_score) if norm_score is not None else None,
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
-                row_explanation=self._clean_hallucinated_numbers(final_explanation),
+                row_explanation=cleaned_explanation,
                 evidence_type=self._coerce_str(ext.evidence_type) if ext else None,  # type: ignore[arg-type]
                 cited_source_id=self._coerce_str(ext.source_id) if ext else None,
                 cited_text_quote=self._coerce_str(ext.citation) if ext else None,
@@ -682,7 +689,7 @@ class BlueprintTransformer:
                 evaluated_atoms=evaluated_atoms_list,
                 clustered_row_sources=clustered_row_sources,
                 used_evidence_ids=list(used_evidence_ids_set),
-                inner_sdui_blocks=[],
+                inner_sdui_blocks=inner_sdui_blocks,
             )
 
             if ext:
@@ -1205,12 +1212,12 @@ class BlueprintTransformer:
 
         variance_layout_to_inject = None
         auth_layout_to_inject = None
+        cv = execution.context_variables
+
         for wf_ext in workflow_ext_values:
             if wf_ext == "variance_validation":
                 authenticity_score = None
                 performative_phrases_count = None
-
-                cv = execution.context_variables
                 if cv is None:
                     raise AppException(
                         message="Fail-Fast: context_variables cannot be None in ExecutionRecord.",
@@ -1382,7 +1389,7 @@ class BlueprintTransformer:
 
             if wf_ext == "authenticity_evaluation":
                 authenticity_score = None
-                if cv:
+                if cv is not None:
                     step_det = cv.get("step_detector")
                     if step_det is not None:
                         try:
@@ -1392,6 +1399,25 @@ class BlueprintTransformer:
                                 authenticity_score = float(raw_auth)
                         except Exception:
                             pass
+
+                if authenticity_score is None:
+                    # Dynamically resolve authenticity score from the performativity detector step in the raw trace
+                    performativity_step_names = {
+                        step.id for step in workflow_obj.steps if step.task_blueprint == "sp_7f9649114d2344dc"
+                    }
+                    for event in reversed(execution.execution_trace):
+                        if getattr(event, "step_name", None) in performativity_step_names:
+                            payload = getattr(event, "content", {})
+                            if isinstance(payload, dict):
+                                # Matrix scores are nested under their criteria block ID keys
+                                for _block_key, block_val in payload.items():
+                                    if isinstance(block_val, dict) and "raw_score" in block_val:
+                                        raw_val = block_val.get("raw_score")
+                                        if raw_val is not None:
+                                            authenticity_score = float(raw_val)
+                                            break
+                                if authenticity_score is not None:
+                                    break
 
                 if authenticity_score is None:
                     msg = (
