@@ -1,6 +1,4 @@
-from backend_v2.models.view.sdui import SduiMetrics1DBlock
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.view.sdui import SduiRadarChartBlock
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixScorecardRowDTO,
@@ -9,10 +7,9 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.models.view.sdui import (
     MarkdownBlock,
-    ScoreCardDisplay,
+    SduiMetrics1DBlock,
     SduiQuoteCard,
     SduiWarningCard,
-    SectionType,
 )
 from backend_v2.services.sdui_mapper_service import SduiMapperService
 
@@ -94,12 +91,12 @@ def test_map_report_to_sdui_complete() -> None:
 
     # Check SDUI Blocks
     assert len(view.inner_sdui_blocks) == 1
-    assert view.inner_sdui_blocks[0].text_delivery_mode == 'full'
-    assert view.inner_sdui_blocks[0].title.translations['en'] == 'Metrics'
-    assert view.inner_sdui_blocks[0].axes[0].name == 'Security Policy'
-    
+    assert view.inner_sdui_blocks[0].text_delivery_mode == "full"
+    assert view.inner_sdui_blocks[0].title.translations["en"] == "Metrics"
+    assert view.inner_sdui_blocks[0].axes[0].name == "Security Policy"
+
     # Check MCP Audit Section
-    assert view.sections[0].id == 'xai_mcp_audit'
-    assert view.sections[0].type.value == 'USAGE_STATS'
+    assert view.sections[0].id == "xai_mcp_audit"
+    assert view.sections[0].type.value == "USAGE_STATS"
     assert len(view.sections[0].data) == 1
-    assert view.sections[0].data[0]['tool_id'] == 'mcp_tavily'
+    assert view.sections[0].data[0]["tool_id"] == "mcp_tavily"

@@ -57,6 +57,12 @@ from backend_v2.models.v2_core import (
     Workflow,
     WorkflowInputs,
 )
+from backend_v2.models.view.sdui import (
+    SduiMatrixTableBlock,
+    SduiMetrics1DBlock,
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
+)
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.flattener import FlatFileService
@@ -765,10 +771,18 @@ class ExecutionService:
         summary_rows: list[dict[str, Any]] = []
         if report_dto:
             matrices = []
-            if report_dto.layouts:
-                for layout in report_dto.layouts:
-                    if layout.axes:
-                        matrices.extend(layout.axes)
+            if report_dto.inner_sdui_blocks:
+                for block in report_dto.inner_sdui_blocks:
+                    match block:
+                        case (
+                            SduiRadarChartBlock(axes=axes)
+                            | SduiScatterPlotBlock(axes=axes)
+                            | SduiMatrixTableBlock(axes=axes)
+                            | SduiMetrics1DBlock(axes=axes)
+                        ):
+                            matrices.extend(axes)
+                        case _:
+                            pass
 
             for matrix in matrices:
                 score = matrix.score
@@ -1268,12 +1282,11 @@ class ExecutionService:
 
         # Fallback if there are synthesis blocks containing markdown text for the title
         title_summary = ""
-        if dto.layouts:
-            for layout in dto.layouts:
-                if layout.synthesis_blocks:
-                    for block in layout.synthesis_blocks:
-                        if isinstance(block, dict) and block.get("type") in ("markdown", "paragraph"):
-                            title_summary += block.get("text", "") + " "
+        if dto.inner_sdui_blocks:
+            for block in dto.inner_sdui_blocks:
+                txt = getattr(block, "text", None)
+                if txt and isinstance(txt, str):
+                    title_summary += txt + " "
 
         if title_summary:
             view = view.model_copy(update={"title": title_summary.strip()[:100]})

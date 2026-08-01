@@ -157,7 +157,6 @@ class StepOutputDTO(V2CoreBase):
 # Resolve deferred annotations on ExecutionCoreFields (Pydantic V2 circular reference pattern).
 # execution_core.py uses TYPE_CHECKING for TraceEvent types → annotations are strings.
 # Now that TraceEvent, ErrorTraceEvent, TombstoneEvent are defined, resolve them.
-from backend_v2.models.v2_core import ExecutionRecord
 
 ExecutionCoreFields.model_rebuild()
 

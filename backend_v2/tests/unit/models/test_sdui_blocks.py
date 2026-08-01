@@ -1,15 +1,14 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
-from backend_v2.models.v2_core import MatrixScorecardRowDTO, I18nText
 from backend_v2.models.view.sdui import (
-    SduiRadarChartBlock,
-    SduiScatterPlotBlock,
+    AnySduiBlock,
     SduiMatrixTableBlock,
     SduiMetrics1DBlock,
-    AnySduiBlock,
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
 )
-from pydantic import TypeAdapter
+
 
 def test_sdui_radar_chart_roundtrip():
     """Positive serialization roundtrip test for SduiRadarChartBlock."""
@@ -23,7 +22,7 @@ def test_sdui_radar_chart_roundtrip():
     assert block.block_type == "3d_matrix"
     assert block.title.translations["en"] == "Radar Chart"
     assert block.text_delivery_mode == "full"
-    
+
     # Test through union
     adapter = TypeAdapter(AnySduiBlock)
     union_block = adapter.validate_python(data)
@@ -39,7 +38,7 @@ def test_sdui_scatter_plot_roundtrip():
     block = SduiScatterPlotBlock.model_validate(data)
     assert block.block_type == "2d_compare"
     assert block.text_delivery_mode == "titles_only"
-    
+
     adapter = TypeAdapter(AnySduiBlock)
     union_block = adapter.validate_python(data)
     assert isinstance(union_block, SduiScatterPlotBlock)
@@ -55,7 +54,7 @@ def test_sdui_matrix_table_roundtrip():
     block = SduiMatrixTableBlock.model_validate(data)
     assert block.block_type == "matrix_summary"
     assert block.matrix_visible_columns == ["score"]
-    
+
     adapter = TypeAdapter(AnySduiBlock)
     union_block = adapter.validate_python(data)
     assert isinstance(union_block, SduiMatrixTableBlock)
@@ -71,7 +70,7 @@ def test_sdui_metrics_1d_roundtrip():
     block = SduiMetrics1DBlock.model_validate(data)
     assert block.block_type == "1d_metrics"
     assert block.text_delivery_mode == "none"
-    
+
     adapter = TypeAdapter(AnySduiBlock)
     union_block = adapter.validate_python(data)
     assert isinstance(union_block, SduiMetrics1DBlock)
@@ -80,33 +79,36 @@ def test_sdui_metrics_1d_roundtrip():
 def test_sdui_matrix_table_block_missing_axes():
     """Negative test: Validation error when axes is given an invalid type (e.g. None)."""
     with pytest.raises(ValidationError):
-        SduiMatrixTableBlock.model_validate({
-            "block_type": "matrix_summary",
-            "axes": None
-        })
+        SduiMatrixTableBlock.model_validate({"block_type": "matrix_summary", "axes": None})
 
 
 def test_sdui_radar_chart_extra_keys():
     """Negative test: Validation error on unrecognized keys, enforcing extra='forbid'."""
     with pytest.raises(ValidationError):
-        SduiRadarChartBlock.model_validate({
-            "block_type": "3d_matrix",
-            "random_extra_key": "should fail",
-        })
+        SduiRadarChartBlock.model_validate(
+            {
+                "block_type": "3d_matrix",
+                "random_extra_key": "should fail",
+            }
+        )
 
 
 def test_sdui_scatter_plot_invalid_text_mode():
     """Negative test: Validation error for invalid text_delivery_mode."""
     with pytest.raises(ValidationError):
-        SduiScatterPlotBlock.model_validate({
-            "block_type": "2d_compare",
-            "text_delivery_mode": "invalid_mode",
-        })
+        SduiScatterPlotBlock.model_validate(
+            {
+                "block_type": "2d_compare",
+                "text_delivery_mode": "invalid_mode",
+            }
+        )
 
 
 def test_sdui_metrics_1d_invalid_type():
     """Negative test: Validation error if block_type is wrong."""
     with pytest.raises(ValidationError):
-        SduiMetrics1DBlock.model_validate({
-            "block_type": "invalid_type",
-        })
+        SduiMetrics1DBlock.model_validate(
+            {
+                "block_type": "invalid_type",
+            }
+        )

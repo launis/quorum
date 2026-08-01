@@ -45,7 +45,12 @@ class FlatFileService:
             if report_dto.inner_sdui_blocks:
                 for block in report_dto.inner_sdui_blocks:
                     match block:
-                        case SduiRadarChartBlock(axes=axes) | SduiScatterPlotBlock(axes=axes) | SduiMatrixTableBlock(axes=axes) | SduiMetrics1DBlock(axes=axes):
+                        case (
+                            SduiRadarChartBlock(axes=axes)
+                            | SduiScatterPlotBlock(axes=axes)
+                            | SduiMatrixTableBlock(axes=axes)
+                            | SduiMetrics1DBlock(axes=axes)
+                        ):
                             matrices.extend(axes)
                         case _:
                             pass

@@ -111,14 +111,24 @@ async def test_sdui_semantic_parity() -> None:
         from backend_v2.models.view.sdui import HeaderBlock
 
         new_layouts = [
-            HeaderBlock(title="English test", badges=[], metadata_lines=[], costs=None, tokens=None, custom_preface_md=None)
+            HeaderBlock(
+                title="English test", badges=[], metadata_lines=[], costs=None, tokens=None, custom_preface_md=None
+            )
         ]
         for layout in dto.inner_sdui_blocks:
-            axes = list(getattr(layout, 'axes', []))
-            if getattr(layout, "preset_view", "") in ("radar_3d", "3d_matrix") or getattr(layout, "block_type", "") in ("radar_3d", "3d_matrix"):
+            axes = list(getattr(layout, "axes", []))
+            if getattr(layout, "preset_view", "") in ("radar_3d", "3d_matrix") or getattr(layout, "block_type", "") in (
+                "radar_3d",
+                "3d_matrix",
+            ):
                 while len(axes) < 3:
                     axes.append(MatrixScorecardRowDTOFactory.build())
-            elif getattr(layout, "preset_view", getattr(layout, "block_type", "")) in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
+            elif getattr(layout, "preset_view", getattr(layout, "block_type", "")) in (
+                "matrix_2d",
+                "2d_compare",
+                "matrix_3d",
+                "3d_matrix",
+            ):
                 while len(axes) < 2:
                     axes.append(MatrixScorecardRowDTOFactory.build())
             if hasattr(layout, "axes"):

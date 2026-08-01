@@ -1,4 +1,5 @@
 from backend_v2.models.view.sdui import SduiMetrics1DBlock
+
 """Unit tests for the FlatFileService."""
 
 import uuid
@@ -7,7 +8,6 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, MatrixScorecardRowDTO, ReportDataDTO
 
 ExecutionRecord.model_rebuild()
-from backend_v2.models.view.sdui import SduiMetrics1DBlock
 from backend_v2.services.flattener import FlatFileService
 
 

@@ -203,13 +203,18 @@ async def test_epic_93_e2e_golden_master() -> None:
     assert view.metrics is not None
     assert view.metrics["global_score"] == 85.0
 
-    
     # Verify that ReportDataDTO.inner_sdui_blocks are populated
     assert len(view.inner_sdui_blocks) > 0
 
-    scorecard_block = next((b for b in view.inner_sdui_blocks if getattr(b, "block_type", getattr(b, "preset_view", "")) in ("1d_metrics", "text_only")), None)
+    scorecard_block = next(
+        (
+            b
+            for b in view.inner_sdui_blocks
+            if getattr(b, "block_type", getattr(b, "preset_view", "")) in ("1d_metrics", "text_only")
+        ),
+        None,
+    )
     assert scorecard_block is not None
-
 
 
 @pytest.mark.asyncio

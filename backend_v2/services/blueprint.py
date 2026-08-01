@@ -870,8 +870,6 @@ class BlueprintTransformer:
             target_blocks = layout_def.target_blocks
             text_delivery_mode = layout_def.text_delivery_mode
 
-
-
             axes = []
             if target_blocks and "*" not in target_blocks:
                 for target_k in target_blocks:
@@ -911,11 +909,32 @@ class BlueprintTransformer:
 
                 if text_delivery_mode != "none" or preset_view not in ["3d_matrix", "2d_compare", "matrix_summary"]:
                     if preset_view == "3d_matrix":
-                        layout_blocks.append(SduiRadarChartBlock(title=layout_def.title, description=layout_def.description, axes=axes, text_delivery_mode=text_delivery_mode))
+                        layout_blocks.append(
+                            SduiRadarChartBlock(
+                                title=layout_def.title,
+                                description=layout_def.description,
+                                axes=axes,
+                                text_delivery_mode=text_delivery_mode,
+                            )
+                        )
                     elif preset_view == "2d_compare":
-                        layout_blocks.append(SduiScatterPlotBlock(title=layout_def.title, description=layout_def.description, axes=axes, text_delivery_mode=text_delivery_mode))
+                        layout_blocks.append(
+                            SduiScatterPlotBlock(
+                                title=layout_def.title,
+                                description=layout_def.description,
+                                axes=axes,
+                                text_delivery_mode=text_delivery_mode,
+                            )
+                        )
                     elif preset_view in ["1d_metrics", "text_only"]:
-                        layout_blocks.append(SduiMetrics1DBlock(title=layout_def.title, description=layout_def.description, axes=axes, text_delivery_mode=text_delivery_mode))
+                        layout_blocks.append(
+                            SduiMetrics1DBlock(
+                                title=layout_def.title,
+                                description=layout_def.description,
+                                axes=axes,
+                                text_delivery_mode=text_delivery_mode,
+                            )
+                        )
                     elif preset_view == "matrix_summary":
                         layout_blocks.append(
                             SduiMatrixTableBlock(
@@ -929,7 +948,14 @@ class BlueprintTransformer:
                             )
                         )
                     elif preset_view == "1d_metrics":
-                        layout_blocks.append(SduiMetrics1DBlock(title=layout_def.title, description=layout_def.description, axes=axes, text_delivery_mode=text_delivery_mode))
+                        layout_blocks.append(
+                            SduiMetrics1DBlock(
+                                title=layout_def.title,
+                                description=layout_def.description,
+                                axes=axes,
+                                text_delivery_mode=text_delivery_mode,
+                            )
+                        )
 
                 if section_blocks:
                     layout_blocks.extend(section_blocks)
@@ -1172,8 +1198,8 @@ class BlueprintTransformer:
             execution=execution,
         )
 
-        variance_sdui_blocks = None
-        auth_sdui_blocks = None
+        variance_sdui_blocks: list[AnySduiBlock] | None = None
+        auth_sdui_blocks: list[AnySduiBlock] | None = None
         cv = execution.context_variables
 
         def get_metric_label(key: str) -> str:
@@ -1365,7 +1391,7 @@ class BlueprintTransformer:
                     "inner_sdui_blocks": [grid_block, alert_block],
                 }
                 row_dto = MatrixScorecardRowDTO(**variance_kwargs)
-                variance_sdui_blocks: list[AnySduiBlock] = []
+                variance_sdui_blocks = []
                 title_str_label = variance_label.resolve(locale) if variance_label else "Variance Metrics"
                 variance_sdui_blocks.append(
                     ParagraphBlock(text=f"**{title_str_label}**", exact_quotes=[], citations=[])
@@ -1482,7 +1508,7 @@ class BlueprintTransformer:
                     "inner_sdui_blocks": [grid_block, alert_block],
                 }
                 auth_row_dto = MatrixScorecardRowDTO(**auth_kwargs)
-                auth_sdui_blocks: list[AnySduiBlock] = []
+                auth_sdui_blocks = []
                 title_str_label = auth_label.resolve(locale) if auth_label else "Authenticity Metrics"
                 auth_sdui_blocks.append(ParagraphBlock(text=f"**{title_str_label}**", exact_quotes=[], citations=[]))
                 auth_sdui_blocks.append(SduiMetrics1DBlock(axes=[auth_row_dto], text_delivery_mode="full"))
@@ -1766,13 +1792,13 @@ class BlueprintTransformer:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
 
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
-            
+
             badges = []
             if engine_str:
                 badges.append(f"Engine: {engine_str}")
             if strictness_level:
                 badges.append(f"Strictness: {strictness_level}")
-            
+
             metadata_lines = []
             if "user" in visible_metadata and user_name:
                 metadata_lines.append(f"**User**: {user_name}")
@@ -1784,13 +1810,17 @@ class BlueprintTransformer:
                 metadata_lines.append(f"**Execution ID**: {execution_id}")
 
             tokens_dict = {}
-            if p_tokens: tokens_dict["Prompt"] = str(p_tokens)
-            if c_tokens: tokens_dict["Completion"] = str(c_tokens)
-            if r_tokens: tokens_dict["Reasoning"] = str(r_tokens)
-            if t_tokens: tokens_dict["Total"] = str(t_tokens)
-            
+            if p_tokens:
+                tokens_dict["Prompt"] = str(p_tokens)
+            if c_tokens:
+                tokens_dict["Completion"] = str(c_tokens)
+            if r_tokens:
+                tokens_dict["Reasoning"] = str(r_tokens)
+            if t_tokens:
+                tokens_dict["Total"] = str(t_tokens)
+
             costs_str = f"${cost:.4f}" if cost is not None else None
-            
+
             title_str = profile_name_dict.resolve(locale) if profile_name_dict else "Report"
 
             header_block = HeaderBlock(
@@ -1799,7 +1829,7 @@ class BlueprintTransformer:
                 metadata_lines=metadata_lines,
                 costs=costs_str,
                 tokens=tokens_dict,
-                custom_preface_md=resolved_preface_md
+                custom_preface_md=resolved_preface_md,
             )
             content_blocks.insert(0, header_block)
 

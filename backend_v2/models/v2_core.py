@@ -1047,7 +1047,6 @@ class SynthesisConfigDTO(V2CoreBase):
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 
 
-
 class ErrorDetailsDTO(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
     error_code: Annotated[str, Field(description="Standardized error code, e.g., LLM_TIMEOUT")]
@@ -1651,12 +1650,11 @@ class BaseTDAExtraction(BaseModel):
 
 
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
-
 from backend_v2.models.view.sdui import (
-    SduiRadarChartBlock,
-    SduiScatterPlotBlock,
     SduiMatrixTableBlock,
     SduiMetrics1DBlock,
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
 )
 
 ExecutionRecord.model_rebuild()
@@ -1664,7 +1662,7 @@ ExecutionRecord.model_rebuild()
 _sdui_localns = {
     "I18nText": I18nText,
     "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
-    "LaxXaiExtensionType": LaxXaiExtensionType
+    "LaxXaiExtensionType": LaxXaiExtensionType,
 }
 SduiRadarChartBlock.model_rebuild(_types_namespace=_sdui_localns)
 SduiScatterPlotBlock.model_rebuild(_types_namespace=_sdui_localns)

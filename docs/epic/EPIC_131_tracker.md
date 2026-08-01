@@ -28,6 +28,8 @@
 ### Phase 2: Blueprint Refactoring (Backend Orchestration)
 - [OK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]`
 - [OK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]`
+- [NOK] `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]` (Failed on minor gaps)
+- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]` (Resume to fix audit gaps)
   - [x] Step 2.1: Refactor _build_layouts() -> _build_visualization_blocks()
   - [x] Step 2.2: Update build_report_dto()
   - [x] Step 2.3: Update ReportDataDTO - Remove layouts Field
@@ -112,12 +114,17 @@
 - Successfully regenerated Flutter client models.
 - Successfully completed System 2 Red-Team audit of Phase 3 Step 3.1 using `/tier8-audit-plan`.
 - Executed Hotfix for Phase 3 Step 3.1: Corrected string discriminators in SduiBlockDTO to strictly map to backend payload (e.g., `3d_matrix` instead of `matrix3d`).
-- Completed Execution of Phase 2 (Blueprint Refactoring).
+- Completed partial Execution of Phase 2 (Blueprint Refactoring).
   - Deleted `layouts` from `ReportDataDTO` and eliminated `ReportLayoutDTO`.
   - Refactored `blueprint.py` to instantiate explicit `SduiMetrics1DBlock`, `SduiMatrixTableBlock`, `SduiRadarChartBlock`, and `SduiScatterPlotBlock` instances and append them directly into `inner_sdui_blocks`.
   - Fixed Jinja PDF template (`report_template.jinja2`) to handle flat `inner_sdui_blocks` logic safely without assuming all blocks possess `axes`.
   - Fully resolved E2E Pydantic Validation & Jinja rendering crashes in `test_epic_chain_e2e.py` and `test_sdui_semantic_parity.py`. Test suite is 100% green.
   - [x] Step 2.8: Cleaned up title debt. Removed loose ParagraphBlock titles from `blueprint.py` and embedded them directly into the SDUI component constructors for true Dumb Painter parity.
+- [x] Fixed all downstream MyPy typing errors in `linguistics.py`, `execution.py`, and `worker.py` caused by the removal of `ReportDataDTO.layouts`.
+- [x] Refactored `test_blueprint.py` and `test_linguistics.py` to assert against the flattened polymorphic `inner_sdui_blocks` structure. Removed legacy assertions targeting deleted `matrix_column_labels`.
+- [x] Successfully ran `backend_audit_loop.py` verifying full codebase compliance, 80.95% coverage, and 1,190 passing unit tests. Phase 2 Execution is fully complete.
+- [x] Resolved Phase 2 Audit finding: Added missing `test_blueprint_transformer_custom_scale_missing_bounds` negative test to verify `ConfigurationError` when custom scale lacks bounds.
+- [x] Executed Phase 2 Audit Plan. Uncovered two minor gaps: `except Exception: pass` not removed in `blueprint.py:1412`, and missing negative test for unrecognized `text_delivery_mode`. Generated `plan_audit_report.md`.
 
 ## Learned
 - **Baseline State Snapshot**: The codebase currently uses `ReportLayoutDTO` containing a `preset_view` enum field to determine visualization rendering on the client side. This violates Dumb Painter SDUI constraints. The `layouts` field exists on both Python's `ReportDataDTO` and Flutter's `ReportDataDto`.
@@ -126,10 +133,11 @@
 - **Pydantic Circular Imports**: Resolving string annotations for `AnySduiBlock` in circular dependency environments (between `sdui.py`, `v2_core.py`, and `state.py`) requires meticulous top-vs-bottom loading strategies. `test` modules that load isolated schemas can easily fail with `PydanticUserError` if they don't load the core re-builder module (`v2_core.py`) first.
 - **Legacy Enum Cleanup**: The frontend contained obsolete hardcoded views mapping to `complex3d` within `report_renderer_v2_widget.dart` and studio editors. We cleanly excised it to favor `matrix3d` mapping, reinforcing Dumb Painter bounds.
 - **String Discriminator Parity**: Freezed union string values MUST explicitly match the backend payload exactly, even if Dart variable naming conventions differ. A previous plan hallucinated Dart-compatible names into the string discriminators.
+- **Audit Findings**: The universal quality gate is strict. Even if E2E integration tests aren't explicitly run by the agent yet, MyPy will hard-block compilation if cross-file references to deleted fields (like `layouts`) still exist in orphaned files not explicitly mentioned in the plan targets.
 
 ## Remaining
-- Generate implementation plan for Phase 3: Frontend Flutter UI & Freezed DTO Synchronization.
-- Use `/tier1-planner` to create the markdown file, or directly run `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_placeholder.md]` to start planning.
+- Fix audit gaps in Phase 2 Blueprint Refactor via `/tier2-execute`.
+- Execute `/tier1-planner` for remaining Phase 3-5 implementation plans once Phase 2 audit is fully complete.
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_131_tracker.md]" --workflow=/tier1-planner --rules="00-antigravity-core.md, 02_flutter_desktop.md"`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]" --workflow=/tier2-execute`

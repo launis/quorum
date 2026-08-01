@@ -5,7 +5,7 @@ import pytest
 from backend_v2.core.hook_registry import HookState
 from backend_v2.hooks.linguistics import detect_performative_patterns, scan_report_for_slop
 from backend_v2.models.v2_core import MatrixScorecardRowDTO, ReportDataDTO
-from backend_v2.models.view.sdui import SduiMetrics1DBlock, MarkdownBlock
+from backend_v2.models.view.sdui import SduiMetrics1DBlock
 
 
 @pytest.mark.asyncio
@@ -55,19 +55,22 @@ def test_scan_report_for_slop_empty_blocks():
 
 
 def test_scan_report_for_slop_malformed_synthesis_blocks():
-    layout1 = SduiMetrics1DBlock.model_construct(
-        preset_view="default", synthesis_blocks=[{"not_text": "delve into this"}, "string_not_dict", {"text": 123}]
-    )
-    report = ReportDataDTO.model_construct(inner_sdui_blocks=[layout1])
+    from backend_v2.models.view.sdui import MarkdownBlock
+
+    # Use something that has no text attribute
+    layout1 = SduiMetrics1DBlock.model_construct(preset_view="default")
+    md_block = MarkdownBlock.model_construct(text=123)  # malformed text type
+    report = ReportDataDTO.model_construct(inner_sdui_blocks=[layout1, md_block])
     words = ["delve", "tapestry"]
     res = scan_report_for_slop(report, words)
     assert len(res) == 0
 
 
 def test_scan_report_for_slop_detects_patterns():
+    from backend_v2.models.view.sdui import MarkdownBlock
+
     layout1 = SduiMetrics1DBlock.model_construct(
         preset_view="default",
-        synthesis_blocks=[{"text": "We must delve into this matter."}],
         axes=[
             MatrixScorecardRowDTO.model_construct(
                 tda_id="row1",
@@ -82,7 +85,8 @@ def test_scan_report_for_slop_detects_patterns():
             )
         ],
     )
-    report = ReportDataDTO.model_construct(inner_sdui_blocks=[layout1])
+    md = MarkdownBlock(text="We must delve into this matter.")
+    report = ReportDataDTO.model_construct(inner_sdui_blocks=[layout1, md])
     words = ["delve into", "tapestry"]
     res = scan_report_for_slop(report, words)
     assert set(res) == {"delve into", "tapestry"}

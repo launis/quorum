@@ -2,6 +2,7 @@
 
 import logging
 import uuid
+from typing import Any
 
 from fastapi import status
 from rapidfuzz import fuzz
@@ -168,18 +169,17 @@ def scan_report_for_slop(
     # Collect texts
     texts_to_scan: list[str] = []
 
-    if report_dto.layouts:
-        for layout in report_dto.layouts:
-            if layout.synthesis_blocks:
-                for block in layout.synthesis_blocks:
-                    if isinstance(block, dict) and "text" in block and isinstance(block["text"], str):
-                        texts_to_scan.append(block["text"])
+    if report_dto.inner_sdui_blocks:
+        for block in report_dto.inner_sdui_blocks:
+            if hasattr(block, "text") and isinstance(block.text, str):
+                texts_to_scan.append(block.text)
 
-    all_matrices = []
-    if report_dto.layouts:
-        for layout in report_dto.layouts:
-            if layout.axes:
-                all_matrices.extend(layout.axes)
+    all_matrices: list[Any] = []
+    if report_dto.inner_sdui_blocks:
+        for block in report_dto.inner_sdui_blocks:
+            axes = getattr(block, "axes", None)
+            if axes:
+                all_matrices.extend(axes)
     for row in all_matrices:
         texts_to_scan.append(row.row_explanation)
         if row.semantic_reasoning:

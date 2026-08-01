@@ -72,6 +72,6 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
     html_string = await svc.generate_execution_html(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto)
     assert html_string is not None
     assert isinstance(html_string, str)
-        # The execution ID is not necessarily in the HTML either, wait!
+    # The execution ID is not necessarily in the HTML either, wait!
     # I should just check that html_string starts with <!DOCTYPE html>
     assert html_string.strip().startswith("<!DOCTYPE html>")

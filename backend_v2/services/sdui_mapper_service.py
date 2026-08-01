@@ -6,9 +6,7 @@ from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import I18nText, ReportDataDTO
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
-    DimensionDisplay,
     ReportView,
-    ScoreCardDisplay,
     SduiNACard,
     SduiQuoteCard,
     SduiWarningCard,
@@ -57,8 +55,6 @@ class SduiMapperService:
         status_theme = VisualIntent.WARNING if report.has_warning else VisualIntent.SUCCESS
 
         sections: list[UiSection] = []
-
-
 
         # Phase B1: XAI Transparency
         if report.mcp_tool_audit:
