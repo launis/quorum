@@ -114,6 +114,13 @@ class OutputProfileCreateDTO(V2CoreBase):
             description="Localized labels for global XAI highlights at the profile level.",
         ),
     ]
+    metric_mappings: Annotated[
+        dict[str, I18nText],
+        Field(
+            default_factory=dict,
+            description="Localized labels for internal metric variables (e.g. 'variance_mechanical').",
+        ),
+    ]
     include_diagnostic_scorecard: Annotated[
         bool, Field(default=False, description="Enable appending the independent diagnostic scorecard.")
     ]
@@ -266,6 +273,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     language: str | None = None
     user_role_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
     extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
+    metric_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
 
     visible_metadata: Annotated[
         list[str], Field(default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"])

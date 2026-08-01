@@ -916,6 +916,7 @@
   "preset3dRadar": "3D Tutka/Kooste",
   "presetTextOnly": "Vain teksti/synteesi",
   "presetAutomatic": "Automaattinen validointi",
+  "presetMatrixSummary": "Matriisiyhteenveto",
   "textDeliveryModeLabel": "Sisällön laajuus",
   "textModeFull": "Kaikki (Graafi, otsikot ja leipäteksti)",
   "textModeTitlesOnly": "Otsikot (vain graafi ja otsikot/arviot)",

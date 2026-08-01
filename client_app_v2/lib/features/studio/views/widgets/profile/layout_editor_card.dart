@@ -232,6 +232,13 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
                     ),
                   ),
                   DropdownMenuItem(
+                    value: PresetView.matrixSummary,
+                    child: Text(
+                      l10n.presetMatrixSummary,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DropdownMenuItem(
                     value: PresetView.defaultView,
                     child: Text(
                       l10n.presetAutomatic,

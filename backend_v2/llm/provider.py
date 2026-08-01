@@ -269,6 +269,11 @@ class LiteLLMProvider(LLMProvider):
                 cooldown_time=0,
                 redis_host=settings.redis_host,
                 redis_port=settings.redis_port,
+                cache_kwargs={
+                    "socket_timeout": 5.0,
+                    "socket_connect_timeout": 5.0,
+                    "retry_on_timeout": True,
+                },
             )
 
             # Save to class cache

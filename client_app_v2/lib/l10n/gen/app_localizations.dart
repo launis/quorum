@@ -5072,6 +5072,12 @@ abstract class AppLocalizations {
   /// **'Automatic Validation'**
   String get presetAutomatic;
 
+  /// No description provided for @presetMatrixSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix Summary'**
+  String get presetMatrixSummary;
+
   /// No description provided for @textDeliveryModeLabel.
   ///
   /// In en, this message translates to:

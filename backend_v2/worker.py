@@ -23,13 +23,13 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
-from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExecutionStepState,
+    OutputProfile,
     PromptBlock,
     RenderedSynthesisCache,
     Workflow,
@@ -142,7 +142,7 @@ async def execute_workflow_job(
                 profile_id = workflow_def.default_profile_id
 
             p_dict = await repository.get_output_profile_by_id(profile_id) if profile_id else None
-            active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict) if p_dict else None
+            active_profile_dto = OutputProfile.model_validate(p_dict, strict=False) if p_dict else None
 
             strictness_level: int | None = None
             if active_profile_dto and active_profile_dto.strictness_level is not None:
@@ -637,7 +637,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
         # Fetch output profile to resolve dynamic strictness & strategy
         p_dict = await repo.get_output_profile_by_id(profile_id) if profile_id else None
-        active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict) if p_dict else None
+        active_profile_dto = OutputProfile.model_validate(p_dict, strict=False) if p_dict else None
 
         w_dict = await repo.get_workflow_by_id(execution.workflow_id)
         workflow_def = Workflow.model_validate(w_dict) if w_dict else None

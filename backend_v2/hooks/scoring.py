@@ -17,7 +17,6 @@ from backend_v2.models.dtos.lightweight_matrix import (
     LightweightExtractionAtom,
     LightweightMatrixOutput,
 )
-from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import (
     LaxXaiExtensionType,
@@ -25,7 +24,7 @@ from backend_v2.models.enums import (
     XaiExtensionType,
 )
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
+from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, PromptBlock, Step, Workflow
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import (
@@ -627,7 +626,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         if profile_id:
             profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
             if profile_dict:
-                profile_model = OutputProfileResponseDTO.model_validate(profile_dict, strict=False)
+                profile_model = OutputProfile.model_validate(profile_dict, strict=False)
                 strictness_level = profile_model.strictness_level
                 scoring_strategy = profile_model.scoring_strategy
                 visible_block_extensions = profile_model.visible_block_extensions
@@ -1313,7 +1312,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
     if profile_id:
         profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
         if profile_dict:
-            profile_model = OutputProfileResponseDTO.model_validate(profile_dict, strict=False)
+            profile_model = OutputProfile.model_validate(profile_dict, strict=False)
             strictness_level = profile_model.strictness_level
             scoring_strategy = profile_model.scoring_strategy
 

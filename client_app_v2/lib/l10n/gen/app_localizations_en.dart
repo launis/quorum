@@ -2754,6 +2754,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get presetAutomatic => 'Automatic Validation';
 
   @override
+  String get presetMatrixSummary => 'Matrix Summary';
+
+  @override
   String get textDeliveryModeLabel => 'Text Detail Level';
 
   @override

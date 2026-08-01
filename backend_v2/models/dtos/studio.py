@@ -8,8 +8,8 @@ from typing import Annotated, Any
 
 from pydantic import Field
 
-from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
+from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.v2_core import PromptBlock, Step, Workflow
 
@@ -25,7 +25,7 @@ class WorkflowResponseDTO(BaseResponseDTO, Workflow):
         str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
     ]
     output_profiles: Annotated[
-        dict[str, OutputProfile],
+        dict[str, OutputProfileResponseDTO],
         Field(
             default_factory=dict, description="Dictionary of fully hydrated OutputProfiles attached to this workflow."
         ),
@@ -215,4 +215,4 @@ class OutputProfileListResponse(BaseResponseDTO):
         items: List of OutputProfile domain objects.
     """
 
-    items: list[OutputProfile]
+    items: list[OutputProfileResponseDTO]

@@ -1413,6 +1413,7 @@
   "preset3dRadar": "3D Radar/Composite",
   "presetTextOnly": "Text/Synthesis Only",
   "presetAutomatic": "Automatic Validation",
+  "presetMatrixSummary": "Matrix Summary",
   "textDeliveryModeLabel": "Text Detail Level",
   "textModeFull": "Full (Graph, titles and body text)",
   "textModeTitlesOnly": "Titles Only (Graph and titles/scores)",

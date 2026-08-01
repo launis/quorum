@@ -6,7 +6,6 @@ from backend_v2.models.v2_core import (
     ReportDataDTO,
 )
 from backend_v2.models.view.sdui import (
-    MarkdownBlock,
     SduiMetrics1DBlock,
     SduiQuoteCard,
     SduiWarningCard,
@@ -53,10 +52,8 @@ def test_map_report_to_sdui_complete() -> None:
 
     # Create dummy layout
     layout = SduiMetrics1DBlock(
-        text_delivery_mode="full",
         title=I18nText(default_locale="en", translations={"en": "Metrics"}),
         axes=[row],
-        synthesis_blocks=[MarkdownBlock(block_type="markdown", text="Layout synthesis")],
     )
 
     # Create dummy audit trace
@@ -91,7 +88,6 @@ def test_map_report_to_sdui_complete() -> None:
 
     # Check SDUI Blocks
     assert len(view.inner_sdui_blocks) == 1
-    assert view.inner_sdui_blocks[0].text_delivery_mode == "full"
     assert view.inner_sdui_blocks[0].title.translations["en"] == "Metrics"
     assert view.inner_sdui_blocks[0].axes[0].name == "Security Policy"
 

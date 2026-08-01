@@ -24,7 +24,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
     mock_execution = ExecutionRecord(
         id="exec_1234567812345678",
         workflow_id="wf_1234567812345678",
-        output_profile_id="default",
+        output_profile_id="prof_1111111111111111",
         status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
@@ -46,7 +46,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "version": 1,
-        "default_profile_id": "default",
+        "default_profile_id": "prof_1111111111111111",
         "expected_inputs": [],
         "steps": [{"id": "sr_1234567812345678", "task_blueprint": "sp_1234567812345678"}],
     }
@@ -109,7 +109,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "slug": "test_slug",
         "workflow_id": "wf_123",
         "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "id": "default",
+        "id": "prof_1111111111111111",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "max_extension_items": 3,
@@ -130,7 +130,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
     }
 
     await generate_profile_synthesis_and_pdf_task(
-        execution_id="exec_1234567812345678", accept_language="en", profile_id="default", redis=None
+        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
     )
 
     found_payload = None
@@ -141,5 +141,5 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
             break
 
     assert found_payload is not None, "Execution record was not updated with profile_syntheses"
-    assert "default" in found_payload["profile_syntheses"]
-    assert isinstance(found_payload["profile_syntheses"]["default"]["content_blocks"], list)
+    assert "prof_1111111111111111" in found_payload["profile_syntheses"]
+    assert isinstance(found_payload["profile_syntheses"]["prof_1111111111111111"]["content_blocks"], list)

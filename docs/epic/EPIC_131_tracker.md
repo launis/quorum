@@ -56,6 +56,7 @@
 
 ### Integration Checkpoint: Full-Stack Validation
 - [NOK] Backend and Frontend full-stack integration test gates.
+- [NOK] `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_131_sdui_layout_unification.md]`
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.

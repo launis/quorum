@@ -2770,6 +2770,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get presetAutomatic => 'Automaattinen validointi';
 
   @override
+  String get presetMatrixSummary => 'Matriisiyhteenveto';
+
+  @override
   String get textDeliveryModeLabel => 'Sisällön laajuus';
 
   @override

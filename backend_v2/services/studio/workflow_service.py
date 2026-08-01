@@ -14,6 +14,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
 from backend_v2.models.v2_core import (
     PromptBlock,
@@ -66,7 +67,9 @@ class StudioWorkflowService:
             attached = {}
             for p in all_profiles:
                 if p.workflow_id == wf.id or p.workflow_id == "*":
-                    attached[p.id] = p
+                    # Safely convert to DTO without triggering extra_forbidden
+                    p_dict = p.model_dump(mode="json", exclude={"metric_mappings", "score_display_label"})
+                    attached[p.id] = OutputProfileResponseDTO.model_validate(p_dict, strict=False)
 
             wf_dict = wf.model_dump(mode="json")
             wf_dict["output_profiles"] = attached

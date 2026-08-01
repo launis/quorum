@@ -132,9 +132,9 @@ async def test_sdui_semantic_parity() -> None:
                 while len(axes) < 2:
                     axes.append(MatrixScorecardRowDTOFactory.build())
             if hasattr(layout, "axes"):
-                new_layouts.append(layout.model_copy(update={"synthesis_blocks": None, "axes": axes}))
+                new_layouts.append(layout.model_copy(update={"axes": axes}))
             else:
-                new_layouts.append(layout.model_copy(update={"synthesis_blocks": None}))
+                new_layouts.append(layout.model_copy())
 
         dto = dto.model_copy(update={"inner_sdui_blocks": new_layouts})
 

@@ -187,7 +187,7 @@
                     <!-- Grid representation -->
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
                         {% for item in (block.items if block.items is defined else []) %}
-                            <tr><td style="border: 1px solid #E0E0E0; padding: 4px;">{{ item }}</td></tr>
+                            <tr><td style="border: 1px solid #E0E0E0; padding: 4px;">{{ render_sdui_blocks([item], level=level+1) }}</td></tr>
                         {% endfor %}
                     </table>
                 </div>

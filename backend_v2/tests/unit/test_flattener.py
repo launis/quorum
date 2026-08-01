@@ -32,7 +32,6 @@ def test_flat_file_service_flatten_results() -> None:
         has_warning=False,
         inner_sdui_blocks=[
             SduiMetrics1DBlock(
-                text_delivery_mode="full",
                 axes=[
                     MatrixScorecardRowDTO(
                         block_id="blk_1",
