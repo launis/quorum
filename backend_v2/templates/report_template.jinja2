@@ -242,6 +242,14 @@
                     <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ block.custom_preface_md | md | safe }}</div>
                 </div>
                 {% endif %}
+            {% elif block.block_type is defined and block.block_type == '3d_matrix' %}
+                <!-- 3D Matrix placeholder -->
+            {% elif block.block_type is defined and block.block_type == '2d_compare' %}
+                <!-- 2D Compare placeholder -->
+            {% elif block.block_type is defined and block.block_type == 'matrix_summary' %}
+                <!-- Matrix Summary placeholder -->
+            {% elif block.block_type is defined and block.block_type == '1d_metrics' %}
+                <!-- 1D Metrics placeholder -->
             {% endif %}
         {% endfor %}
     {% endmacro %}

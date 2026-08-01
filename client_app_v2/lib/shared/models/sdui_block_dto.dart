@@ -1,6 +1,8 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 
 part 'sdui_block_dto.freezed.dart';
 part 'sdui_block_dto.g.dart';
@@ -103,6 +105,67 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     Map<String, String>? tokens,
     @JsonKey(name: 'custom_preface_md') String? customPrefaceMd,
   }) = SduiHeaderBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('3d_matrix')
+  const factory SduiBlockDTO.matrix3d({
+    String? id,
+    I18nText? title,
+    I18nText? description,
+    @Default([]) List<MatrixScorecardRowDto> axes,
+    @JsonKey(name: 'text_delivery_mode')
+    @Default(TextDeliveryMode.full)
+    TextDeliveryMode textDeliveryMode,
+    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
+  }) = SduiRadarChartBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('2d_compare')
+  const factory SduiBlockDTO.compare2d({
+    String? id,
+    I18nText? title,
+    I18nText? description,
+    @Default([]) List<MatrixScorecardRowDto> axes,
+    @JsonKey(name: 'text_delivery_mode')
+    @Default(TextDeliveryMode.full)
+    TextDeliveryMode textDeliveryMode,
+    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
+  }) = SduiScatterPlotBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('1d_metrics')
+  const factory SduiBlockDTO.metrics1d({
+    String? id,
+    I18nText? title,
+    I18nText? description,
+    @Default([]) List<MatrixScorecardRowDto> axes,
+    @JsonKey(name: 'text_delivery_mode')
+    @Default(TextDeliveryMode.full)
+    TextDeliveryMode textDeliveryMode,
+    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
+  }) = SduiMetrics1DBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('matrix_summary')
+  const factory SduiBlockDTO.matrixSummary({
+    String? id,
+    I18nText? title,
+    I18nText? description,
+    @Default([]) List<MatrixScorecardRowDto> axes,
+    @JsonKey(name: 'text_delivery_mode')
+    @Default(TextDeliveryMode.full)
+    TextDeliveryMode textDeliveryMode,
+    @JsonKey(name: 'synthesis_blocks') List<SduiBlockDTO>? synthesisBlocks,
+    @JsonKey(name: 'matrix_column_labels')
+    @Default({})
+    Map<String, I18nText> matrixColumnLabels,
+    @JsonKey(name: 'extension_labels')
+    @Default({})
+    Map<XaiExtensionType, I18nText> extensionLabels,
+    @JsonKey(name: 'matrix_visible_columns')
+    @Default([])
+    List<String> matrixVisibleColumns,
+  }) = SduiMatrixTableBlock;
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
       _$SduiBlockDTOFromJson(json);

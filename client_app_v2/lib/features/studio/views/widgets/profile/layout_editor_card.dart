@@ -216,13 +216,7 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  DropdownMenuItem(
-                    value: PresetView.complex3d,
-                    child: const Text(
-                      '3D: Radar (Spider)',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+
                   DropdownMenuItem(
                     value: PresetView.matrix3d,
                     child: const Text(
@@ -417,7 +411,6 @@ class _LayoutBlockEditorItem extends HookConsumerWidget {
             final int requiredDropdowns = switch (layout.presetView) {
               PresetView.metrics1d => 1,
               PresetView.compare2d => 2,
-              PresetView.complex3d => 3,
               PresetView.matrix3d => 3,
               _ => 1,
             };

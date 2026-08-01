@@ -86,10 +86,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
                       value: PresetView.compare2d,
                       child: Text(l10n.studioViews2dCompare),
                     ),
-                    DropdownMenuItem(
-                      value: PresetView.complex3d,
-                      child: Text(l10n.studioViews3dComplex),
-                    ),
+
                     DropdownMenuItem(
                       value: PresetView.matrix3d,
                       child: Text(l10n.studioViewsMatrix3d),

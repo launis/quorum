@@ -37,7 +37,7 @@ This plan implements the Phase 1 goal of creating 4 new polymorphic SDUI block m
     </step>
     
     <step id="1.6" name="Satisfy Enum Parity Tests (Cross-Domain Atomicity)">
-        <action>Update `SduiBlockType` enum in @[c:\src\quorum\client_app_v2\lib\core\models\enums.dart] to include `matrix3d` (@JsonValue('3d_matrix')), `compare2d`, `matrixSummary`, and `metrics1d`.</action>
+        <action>Update `SduiBlockType` enum in @[c:\src\quorum\client_app_v2\lib\core\models\enums.dart] to include `matrix3d` (@JsonValue('3d_matrix')), `compare2d` (@JsonValue('2d_compare')), `matrixSummary` (@JsonValue('matrix_summary')), and `metrics1d` (@JsonValue('1d_metrics')).</action>
         <action>Update `render_sdui_blocks` macro in @[c:\src\quorum\backend_v2\templates\report_template.jinja2] with empty placeholder branches. Specifically: `{% elif block.block_type == '3d_matrix' %}`, `{% elif block.block_type == '2d_compare' %}`, `{% elif block.block_type == 'matrix_summary' %}`, and `{% elif block.block_type == '1d_metrics' %}` so the Regex parser detects them.</action>
     </step>
     

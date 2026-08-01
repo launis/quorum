@@ -246,6 +246,14 @@ enum SduiBlockType {
   accordion,
   @JsonValue('header')
   header,
+  @JsonValue('3d_matrix')
+  matrix3d,
+  @JsonValue('2d_compare')
+  compare2d,
+  @JsonValue('matrix_summary')
+  matrixSummary,
+  @JsonValue('1d_metrics')
+  metrics1d,
 }
 
 /// UI intent mapping for SDUI visual rendering.

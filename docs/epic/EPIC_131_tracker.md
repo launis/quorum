@@ -6,20 +6,24 @@
 
 ### Phase 1: New Pydantic SDUI Block Models (Backend Only)
 - [OK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]`
-- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]`
-  - [ ] Step 1.1: Create SduiRadarChartBlock
-  - [ ] Step 1.2: Create SduiScatterPlotBlock
-  - [ ] Step 1.3: Create SduiMatrixTableBlock
-  - [ ] Step 1.4: Create SduiMetrics1DBlock
-  - [ ] Step 1.5: Update AnySduiBlock Discriminated Union
-  - [ ] Step 1.6: Satisfy Enum Parity Tests (Cross-Domain Atomicity)
-  - [ ] Step 1.7: Unit Tests for New Blocks
+- [OK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]`
+  - [x] Step 1.1: Create SduiRadarChartBlock
+  - [x] Step 1.2: Create SduiScatterPlotBlock
+  - [x] Step 1.3: Create SduiMatrixTableBlock
+  - [x] Step 1.4: Create SduiMetrics1DBlock
+  - [x] Step 1.5: Update AnySduiBlock Discriminated Union
+  - [x] Step 1.6: Satisfy Enum Parity Tests (Cross-Domain Atomicity)
+  - [x] Step 1.7: Unit Tests for New Blocks
 
 ### Phase 3 Step 3.1: Frontend Models (Cross-Domain Dependency)
-- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\02_phase3_step1_frontend_models.md]`
-- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\02_phase3_step1_frontend_models.md]`
-  - [ ] Step 3.1: Add 4 New Variants to SduiBlockDTO
-  - [ ] Step 3.8: Regenerate Freezed Files
+- [OK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\02_phase3_step1_frontend_models.md]`
+- [OK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\02_phase3_step1_frontend_models.md]`
+- [OK] `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\02_phase3_step1_frontend_models.md]`
+  - [x] Step 3.1: Add 4 New Variants to SduiBlockDTO
+  - [x] Step 3.2: Add Unit Tests for New Variants
+  - [x] Step 3.8: Regenerate Freezed Files
+  - [x] Hotfix: Correct @FreezedUnionValue string discriminators to exactly match backend payload (e.g. 3d_matrix)
+
 
 ### Phase 2: Blueprint Refactoring (Backend Orchestration)
 - [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]`
@@ -96,15 +100,27 @@
 ## Achieved
 - Formally generated the Tracker and Requirements Traceability Matrix for EPIC 131 using the strict /tier1-tracker-generator constraints.
 - Broke down Phase 1, Phase 3.1 (Cross-Domain Dependency), and Phase 2 into micro-chunked executable plans tracked accurately in the matrix.
-- Completed Tier 0 Research & Analysis on Phase 1 Backend Models. Identified and fixed structural issues in the plan (enforcing SduiBlockBase inheritance, resolving hidden scopes for layout fields, and fixing ambiguity in jinja2 instructions).
+- Completed Execution of Phase 1 (Backend Models). Implemented `SduiRadarChartBlock`, `SduiScatterPlotBlock`, `SduiMatrixTableBlock`, `SduiMetrics1DBlock`.
+- Updated `AnySduiBlock` and successfully resolved complex Pydantic V2 circular import dependencies by utilizing delayed schema compilation and `model_rebuild()` combined with `TYPE_CHECKING` string references.
+- Achieved strict 100% test coverage for `sdui.py` with both positive and negative Pydantic validation tests in `test_sdui_blocks.py`.
+- Updated `enums.dart` and `report_template.jinja2` to satisfy cross-domain enum atomicity checks.
+- Completed Execution of Phase 3 Step 3.1 (Frontend Models). Added `matrix3d`, `compare2d`, `metrics1d`, and `matrixSummary` union variants to `SduiBlockDTO`.
+- Removed old `PresetView.complex3d` dependencies and upgraded them to `PresetView.matrix3d`.
+- Implemented and passed positive/negative unit tests for the new Freezed variants.
+- Successfully regenerated Flutter client models.
+- Successfully completed System 2 Red-Team audit of Phase 3 Step 3.1 using `/tier8-audit-plan`.
+- Executed Hotfix for Phase 3 Step 3.1: Corrected string discriminators in SduiBlockDTO to strictly map to backend payload (e.g., `3d_matrix` instead of `matrix3d`).
 
 ## Learned
 - **Baseline State Snapshot**: The codebase currently uses `ReportLayoutDTO` containing a `preset_view` enum field to determine visualization rendering on the client side. This violates Dumb Painter SDUI constraints. The `layouts` field exists on both Python's `ReportDataDTO` and Flutter's `ReportDataDto`.
 - **Dependency Nuance**: The Flutter UI parser (Freezed) strictly requires recognized block schemas (`disallowUnrecognizedKeys: true`). We must update the Dart parsing definitions (`SduiBlockDTO`) *before* or *atomically with* the backend starting to emit these new variants into the `inner_sdui_blocks` pipeline.
 - **Model Inheritance**: The new SDUI blocks must inherit from `SduiBlockBase` (not `V2CoreBase`) to properly utilize the `AnySduiBlock` polymorphic discriminated union in Pydantic V2 and support OpenAPI configuration.
+- **Pydantic Circular Imports**: Resolving string annotations for `AnySduiBlock` in circular dependency environments (between `sdui.py`, `v2_core.py`, and `state.py`) requires meticulous top-vs-bottom loading strategies. `test` modules that load isolated schemas can easily fail with `PydanticUserError` if they don't load the core re-builder module (`v2_core.py`) first.
+- **Legacy Enum Cleanup**: The frontend contained obsolete hardcoded views mapping to `complex3d` within `report_renderer_v2_widget.dart` and studio editors. We cleanly excised it to favor `matrix3d` mapping, reinforcing Dumb Painter bounds.
+- **String Discriminator Parity**: Freezed union string values MUST explicitly match the backend payload exactly, even if Dart variable naming conventions differ. A previous plan hallucinated Dart-compatible names into the string discriminators.
 
 ## Remaining
-- Execute Phase 1 (Backend Models) using `/tier2-execute`.
+- Proceed to Phase 2: Blueprint Refactoring using `/tier0-research-plan`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_131_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_131_tracker.md]" --workflow=/tier0-research-plan --rules="00-antigravity-core.md, 01-python-backend.md"`

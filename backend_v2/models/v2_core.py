@@ -1683,4 +1683,21 @@ class BaseTDAExtraction(BaseModel):
 
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
+from backend_v2.models.view.sdui import (
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
+    SduiMatrixTableBlock,
+    SduiMetrics1DBlock,
+)
+
 ExecutionRecord.model_rebuild()
+
+_sdui_localns = {
+    "I18nText": I18nText,
+    "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
+    "LaxXaiExtensionType": LaxXaiExtensionType
+}
+SduiRadarChartBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiScatterPlotBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiMatrixTableBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiMetrics1DBlock.model_rebuild(_types_namespace=_sdui_localns)

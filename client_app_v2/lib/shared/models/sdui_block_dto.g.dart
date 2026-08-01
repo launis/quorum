@@ -454,6 +454,367 @@ Map<String, dynamic> _$SduiHeaderBlockToJson(SduiHeaderBlock instance) =>
       'block_type': instance.$type,
     };
 
+SduiRadarChartBlock _$SduiRadarChartBlockFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      'SduiRadarChartBlock',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'id',
+            'title',
+            'description',
+            'axes',
+            'text_delivery_mode',
+            'synthesis_blocks',
+            'block_type',
+          ],
+        );
+        final val = SduiRadarChartBlock(
+          id: $checkedConvert('id', (v) => v as String?),
+          title: $checkedConvert(
+            'title',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          description: $checkedConvert(
+            'description',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          axes: $checkedConvert(
+            'axes',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map(
+                      (e) => MatrixScorecardRowDto.fromJson(
+                        e as Map<String, dynamic>,
+                      ),
+                    )
+                    .toList() ??
+                const [],
+          ),
+          textDeliveryMode: $checkedConvert(
+            'text_delivery_mode',
+            (v) =>
+                $enumDecodeNullable(_$TextDeliveryModeEnumMap, v) ??
+                TextDeliveryMode.full,
+          ),
+          synthesisBlocks: $checkedConvert(
+            'synthesis_blocks',
+            (v) => (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList(),
+          ),
+          $type: $checkedConvert('block_type', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'textDeliveryMode': 'text_delivery_mode',
+        'synthesisBlocks': 'synthesis_blocks',
+        r'$type': 'block_type',
+      },
+    );
+
+Map<String, dynamic> _$SduiRadarChartBlockToJson(
+  SduiRadarChartBlock instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'title': instance.title?.toJson(),
+  'description': instance.description?.toJson(),
+  'axes': instance.axes.map((e) => e.toJson()).toList(),
+  'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
+  'synthesis_blocks': instance.synthesisBlocks?.map((e) => e.toJson()).toList(),
+  'block_type': instance.$type,
+};
+
+const _$TextDeliveryModeEnumMap = {
+  TextDeliveryMode.full: 'full',
+  TextDeliveryMode.titlesOnly: 'titles_only',
+  TextDeliveryMode.none: 'none',
+};
+
+SduiScatterPlotBlock _$SduiScatterPlotBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'SduiScatterPlotBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'id',
+        'title',
+        'description',
+        'axes',
+        'text_delivery_mode',
+        'synthesis_blocks',
+        'block_type',
+      ],
+    );
+    final val = SduiScatterPlotBlock(
+      id: $checkedConvert('id', (v) => v as String?),
+      title: $checkedConvert(
+        'title',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      description: $checkedConvert(
+        'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      axes: $checkedConvert(
+        'axes',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) =>
+                      MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      textDeliveryMode: $checkedConvert(
+        'text_delivery_mode',
+        (v) =>
+            $enumDecodeNullable(_$TextDeliveryModeEnumMap, v) ??
+            TextDeliveryMode.full,
+      ),
+      synthesisBlocks: $checkedConvert(
+        'synthesis_blocks',
+        (v) => (v as List<dynamic>?)
+            ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'textDeliveryMode': 'text_delivery_mode',
+    'synthesisBlocks': 'synthesis_blocks',
+    r'$type': 'block_type',
+  },
+);
+
+Map<String, dynamic> _$SduiScatterPlotBlockToJson(
+  SduiScatterPlotBlock instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'title': instance.title?.toJson(),
+  'description': instance.description?.toJson(),
+  'axes': instance.axes.map((e) => e.toJson()).toList(),
+  'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
+  'synthesis_blocks': instance.synthesisBlocks?.map((e) => e.toJson()).toList(),
+  'block_type': instance.$type,
+};
+
+SduiMetrics1DBlock _$SduiMetrics1DBlockFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      'SduiMetrics1DBlock',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'id',
+            'title',
+            'description',
+            'axes',
+            'text_delivery_mode',
+            'synthesis_blocks',
+            'block_type',
+          ],
+        );
+        final val = SduiMetrics1DBlock(
+          id: $checkedConvert('id', (v) => v as String?),
+          title: $checkedConvert(
+            'title',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          description: $checkedConvert(
+            'description',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          axes: $checkedConvert(
+            'axes',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map(
+                      (e) => MatrixScorecardRowDto.fromJson(
+                        e as Map<String, dynamic>,
+                      ),
+                    )
+                    .toList() ??
+                const [],
+          ),
+          textDeliveryMode: $checkedConvert(
+            'text_delivery_mode',
+            (v) =>
+                $enumDecodeNullable(_$TextDeliveryModeEnumMap, v) ??
+                TextDeliveryMode.full,
+          ),
+          synthesisBlocks: $checkedConvert(
+            'synthesis_blocks',
+            (v) => (v as List<dynamic>?)
+                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+                .toList(),
+          ),
+          $type: $checkedConvert('block_type', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'textDeliveryMode': 'text_delivery_mode',
+        'synthesisBlocks': 'synthesis_blocks',
+        r'$type': 'block_type',
+      },
+    );
+
+Map<String, dynamic> _$SduiMetrics1DBlockToJson(
+  SduiMetrics1DBlock instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'title': instance.title?.toJson(),
+  'description': instance.description?.toJson(),
+  'axes': instance.axes.map((e) => e.toJson()).toList(),
+  'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
+  'synthesis_blocks': instance.synthesisBlocks?.map((e) => e.toJson()).toList(),
+  'block_type': instance.$type,
+};
+
+SduiMatrixTableBlock _$SduiMatrixTableBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'SduiMatrixTableBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'id',
+        'title',
+        'description',
+        'axes',
+        'text_delivery_mode',
+        'synthesis_blocks',
+        'matrix_column_labels',
+        'extension_labels',
+        'matrix_visible_columns',
+        'block_type',
+      ],
+    );
+    final val = SduiMatrixTableBlock(
+      id: $checkedConvert('id', (v) => v as String?),
+      title: $checkedConvert(
+        'title',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      description: $checkedConvert(
+        'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      axes: $checkedConvert(
+        'axes',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) =>
+                      MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      textDeliveryMode: $checkedConvert(
+        'text_delivery_mode',
+        (v) =>
+            $enumDecodeNullable(_$TextDeliveryModeEnumMap, v) ??
+            TextDeliveryMode.full,
+      ),
+      synthesisBlocks: $checkedConvert(
+        'synthesis_blocks',
+        (v) => (v as List<dynamic>?)
+            ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      ),
+      matrixColumnLabels: $checkedConvert(
+        'matrix_column_labels',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) =>
+                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+            ) ??
+            const {},
+      ),
+      extensionLabels: $checkedConvert(
+        'extension_labels',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(
+                $enumDecode(_$XaiExtensionTypeEnumMap, k),
+                I18nText.fromJson(e as Map<String, dynamic>),
+              ),
+            ) ??
+            const {},
+      ),
+      matrixVisibleColumns: $checkedConvert(
+        'matrix_visible_columns',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'textDeliveryMode': 'text_delivery_mode',
+    'synthesisBlocks': 'synthesis_blocks',
+    'matrixColumnLabels': 'matrix_column_labels',
+    'extensionLabels': 'extension_labels',
+    'matrixVisibleColumns': 'matrix_visible_columns',
+    r'$type': 'block_type',
+  },
+);
+
+Map<String, dynamic> _$SduiMatrixTableBlockToJson(
+  SduiMatrixTableBlock instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'title': instance.title?.toJson(),
+  'description': instance.description?.toJson(),
+  'axes': instance.axes.map((e) => e.toJson()).toList(),
+  'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
+  'synthesis_blocks': instance.synthesisBlocks?.map((e) => e.toJson()).toList(),
+  'matrix_column_labels': instance.matrixColumnLabels.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
+  'extension_labels': instance.extensionLabels.map(
+    (k, e) => MapEntry(_$XaiExtensionTypeEnumMap[k]!, e.toJson()),
+  ),
+  'matrix_visible_columns': instance.matrixVisibleColumns,
+  'block_type': instance.$type,
+};
+
+const _$XaiExtensionTypeEnumMap = {
+  XaiExtensionType.citation: 'citation',
+  XaiExtensionType.justification: 'justification',
+  XaiExtensionType.falsification: 'falsification',
+  XaiExtensionType.theoryLink: 'theory_link',
+  XaiExtensionType.riskFlag: 'risk_flag',
+  XaiExtensionType.coaching: 'coaching',
+  XaiExtensionType.missingContext: 'missing_context',
+  XaiExtensionType.remediationSteps: 'remediation_steps',
+  XaiExtensionType.emotionalSentiment: 'emotional_sentiment',
+  XaiExtensionType.confidence: 'confidence',
+  XaiExtensionType.sourceId: 'source_id',
+  XaiExtensionType.contextualOverride: 'contextual_override',
+  XaiExtensionType.varianceValidation: 'variance_validation',
+  XaiExtensionType.authenticityEvaluation: 'authenticity_evaluation',
+};
+
 _SduiBulletListItemDTO _$SduiBulletListItemDTOFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate('_SduiBulletListItemDTO', json, ($checkedConvert) {

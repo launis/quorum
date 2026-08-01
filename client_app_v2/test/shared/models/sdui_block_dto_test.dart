@@ -134,7 +134,9 @@ void main() {
     test('parses grid block correctly', () {
       final json = {
         'block_type': 'grid',
-        'items': ['foo'],
+        'items': [
+          {'block_type': 'paragraph', 'text': 'foo'},
+        ],
       };
 
       final block = SduiBlockDTO.fromJson(json);
@@ -142,8 +144,68 @@ void main() {
       expect(block, isA<SduiGridBlock>());
       if (block is SduiGridBlock) {
         expect(block.items.length, 1);
-        expect(block.items.first, 'foo');
+        expect(block.items.first, isA<SduiParagraphBlock>());
+        expect((block.items.first as SduiParagraphBlock).text, 'foo');
       }
+    });
+
+    test('parses matrix3d block correctly', () {
+      final json = {'block_type': '3d_matrix'};
+
+      final block = SduiBlockDTO.fromJson(json);
+
+      expect(block, isA<SduiRadarChartBlock>());
+    });
+
+    test('throws exception on matrix3d unrecognized key', () {
+      final json = {'block_type': '3d_matrix', 'invalid_key': 'should crash'};
+
+      expect(() => SduiBlockDTO.fromJson(json), throwsException);
+    });
+
+    test('parses compare2d block correctly', () {
+      final json = {'block_type': '2d_compare'};
+
+      final block = SduiBlockDTO.fromJson(json);
+
+      expect(block, isA<SduiScatterPlotBlock>());
+    });
+
+    test('throws exception on compare2d unrecognized key', () {
+      final json = {'block_type': '2d_compare', 'invalid_key': 'should crash'};
+
+      expect(() => SduiBlockDTO.fromJson(json), throwsException);
+    });
+
+    test('parses metrics1d block correctly', () {
+      final json = {'block_type': '1d_metrics'};
+
+      final block = SduiBlockDTO.fromJson(json);
+
+      expect(block, isA<SduiMetrics1DBlock>());
+    });
+
+    test('throws exception on metrics1d unrecognized key', () {
+      final json = {'block_type': '1d_metrics', 'invalid_key': 'should crash'};
+
+      expect(() => SduiBlockDTO.fromJson(json), throwsException);
+    });
+
+    test('parses matrixSummary block correctly', () {
+      final json = {'block_type': 'matrix_summary'};
+
+      final block = SduiBlockDTO.fromJson(json);
+
+      expect(block, isA<SduiMatrixTableBlock>());
+    });
+
+    test('throws exception on matrixSummary unrecognized key', () {
+      final json = {
+        'block_type': 'matrix_summary',
+        'invalid_key': 'should crash',
+      };
+
+      expect(() => SduiBlockDTO.fromJson(json), throwsException);
     });
 
     test('throws exception on unknown block type', () {

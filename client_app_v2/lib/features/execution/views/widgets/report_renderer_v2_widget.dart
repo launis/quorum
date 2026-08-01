@@ -239,7 +239,6 @@ class ReportRendererV2Widget extends StatelessWidget {
       final showGraph = const [
         PresetView.matrix3d,
         PresetView.compare2d,
-        PresetView.complex3d,
         PresetView.metrics1d,
       ].contains(presetView);
 
@@ -270,7 +269,10 @@ class ReportRendererV2Widget extends StatelessWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: layout.axes
-                        .map((axis) => SduiBlocksRenderer(blocks: axis.innerSduiBlocks))
+                        .map(
+                          (axis) =>
+                              SduiBlocksRenderer(blocks: axis.innerSduiBlocks),
+                        )
                         .toList(),
                   );
                 }
@@ -278,12 +280,14 @@ class ReportRendererV2Widget extends StatelessWidget {
                 if (layout.axes.length >= 2) {
                   return SizedBox(
                     height: AppSpacing.s300,
-                    child: presetView == PresetView.complex3d
+                    child: presetView == PresetView.matrix3d
                         ? LogicRadarChart(axes: layout.axes)
                         : LogicMatrixChart(
                             xAxis: layout.axes[0],
                             yAxis: layout.axes[1],
-                            zAxis: layout.axes.length > 2 ? layout.axes[2] : null,
+                            zAxis: layout.axes.length > 2
+                                ? layout.axes[2]
+                                : null,
                           ),
                   );
                 }

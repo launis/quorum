@@ -160,7 +160,6 @@ class StepOutputDTO(V2CoreBase):
 from backend_v2.models.v2_core import ExecutionRecord
 
 ExecutionCoreFields.model_rebuild()
-ExecutionRecord.model_rebuild()
 
 
 class WorkflowState(ExecutionCoreFields):

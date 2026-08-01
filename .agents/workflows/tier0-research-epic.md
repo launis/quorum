@@ -54,6 +54,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION">
       <action>Read and internalize the provided `[epic_document]`.</action>
       <action>Actively use search tools (`grep_search`, `view_file`) to check the current state of the global architecture (`backend_v2/`, `client_app_v2/`, and `backend_v2/seed/seed_data.json`) to understand the baseline the Epic is modifying.</action>
+      <action>If the Epic overrides or specifies behavior that touches `docs/architecture/` SSOTs, you MUST read those architecture documents to verify alignment.</action>
     </step>
     
     <step id="2" name="SYSTEM 2 ANALYSIS &amp; CHAIN-OF-THOUGHT">
@@ -102,6 +103,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
         - Does the Epic account for transient failures (e.g., network, LLM rate limits) using the established retry loops and DLQ strategies instead of generic try/except blocks?
         - **Legacy Flat Field Eradication (SSOT)**: When migrating presentation logic into polymorphic structures (e.g. SDUI blocks), does the Epic explicitly demand the ruthless deletion of the old flat DTO fields (like legacy `coaching` or `falsification` strings) to prevent two sources of truth?
         - **MANDATORY Phase Execution Order**: Does the Epic identify the critical deployment sequence caused by strictness enforcements? (e.g. Must the consumer/Frontend be updated to support new strict models BEFORE the producer/Backend starts sending them, to prevent strict parsing crashes?)
+        - **UPSTREAM PARITY & GOAL ALIGNMENT**: Does this Epic perfectly align with the broader system goals, existing architectural invariants, and exact specifications of the Quorum 2026 guidelines? You MUST verify that the author did not hallucinate new paradigms, ignore established conventions, or drift from the core business objectives.
       </constraint>
       <gate name="ZERO-BEHAVIORAL CHANGE FALSIFICATION">Does this Epic illegally mix structural refactoring with new feature additions? If so, flag this as an architectural violation and demand they be split into separate phases.</gate>
     </step>

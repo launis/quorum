@@ -65,6 +65,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <action>Read and internalize the provided `[implementation_plan]`.</action>
       <constraint>Do NOT attempt to read the entire codebase blindly.</constraint>
       <action>Actively use your search tools (`grep_search`, `view_file`) to precisely target the files in `backend_v2/` referenced by the plan, as well as the database state in `backend_v2/seed/seed_data.json`.</action>
+      <action>You MUST cross-reference the implementation plan against its parent Epic document and any linked `docs/architecture/` files to ensure the planner did not drift from the original business requirements.</action>
     </step>
     
     <step id="2" name="SYSTEM 2 ANALYSIS &amp; CHAIN-OF-THOUGHT">
@@ -111,6 +112,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
         - If we modify the backend data model, how do we ensure the Flutter client or the LLM parser does not break (second-order effects)?
         - How does the planned LLM functionality handle potential failure states (e.g., rate limits, token limits, failed JSON schema validations, or hallucinations) without compromising system stability?
         - CONTEXT WINDOW AUDIT: Does this plan overload the Context Window by trying to modify too many files (>4) in a single session without scheduling a Session Handover tracker update?
+        - UPSTREAM PARITY & GOAL ALIGNMENT: Does this plan perfectly align with the broader goals, architectural invariants, and exact specifications (including data payloads and identifiers) of the upstream Epic and `docs/architecture/` documents? You MUST verify that the planner did not hallucinate new behavior, drop requirements, or subtly alter constraints to take a 'path of least resistance'.
       </constraint>
     </step>
 

@@ -198,6 +198,10 @@ const _$SduiBlockTypeEnumMap = {
   SduiBlockType.grid: 'grid',
   SduiBlockType.accordion: 'accordion',
   SduiBlockType.header: 'header',
+  SduiBlockType.matrix3d: '3d_matrix',
+  SduiBlockType.compare2d: '2d_compare',
+  SduiBlockType.matrixSummary: 'matrix_summary',
+  SduiBlockType.metrics1d: '1d_metrics',
 };
 
 NodeStrategyLlm _$NodeStrategyLlmFromJson(

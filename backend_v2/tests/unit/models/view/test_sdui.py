@@ -3,6 +3,9 @@
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
+# Import v2_core FIRST so that the SDUI models are rebuilt with I18nText and MatrixScorecardRowDTO
+import backend_v2.models.v2_core  # noqa: F401
+
 from backend_v2.models.view.sdui import (
     AlertBlock,
     AnySduiBlock,
