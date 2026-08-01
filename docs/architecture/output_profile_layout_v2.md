@@ -1,7 +1,7 @@
 # OutputProfile Layout Architecture (V2 Baseline)
 
 > [!CAUTION]
-> **TAVOITETILA-DOKUMENTTI.** Tämä dokumentti kuvaa arkkitehtuurin tavoitetilaa. Nykyinen koodi käyttää vielä `ReportLayoutDTO` ja `preset_view` -rakenteita. Migraatiosuunnitelma: katso `implementation_plan.md`.
+> **TAVOITETILA-DOKUMENTTI.** Tämä dokumentti kuvaa arkkitehtuurin tavoitetilaa. Nykyinen koodi käyttää vielä `ReportLayoutDTO` ja `preset_view` -rakenteita. Migraatiosuunnitelma: katso `EPIC_131_sdui_layout_unification.md`.
 
 *Tämä on dynaaminen ja ensimmäinen lähtötasomalli (baseline) V2 OutputProfile -arkkitehtuurille.*
 *Kaikki säännöt tullaan todentamaan tietokannan malleista (`backend_v2/models/v2_core.py`) ja Blueprint-syntetisaattorin logiikasta (`backend_v2/services/blueprint.py`) migraation jälkeen.*
@@ -16,8 +16,12 @@ Jokainen visuaalinen komponentti, mukaan lukien monimutkaiset graafit, käännet
 - **`3d_matrix` -> `SduiRadarChartBlock`**: Sisältää tarkalleen kolme arvoa (akselia), jotka tulostetaan tutkakuvaajana.
 - **`matrix_summary` -> `SduiMatrixTableBlock`**: Taulukkonäkymä, missä on sarakkeita (esim. varsinainen Matriisin Pistetaulukko).
 
+> [!IMPORTANT]
+> **Diskriminaattoriarvot = `preset_view` -arvot.** Uusien SDUI-blokkien `block_type` -diskriminaattoriarvot ovat **identtisiä** nykyisten `OutputLayoutBlock.preset_view` Literal-arvojen kanssa (`"1d_metrics"`, `"2d_compare"`, `"3d_matrix"`, `"matrix_summary"`). Erillistä mapping-kerrosta, seed_data-migraatiota tai kenttien uudelleennimeämistä ei tarvita.
+
 > [!NOTE]
 > Kaikki graafit ja taulukot ovat täten puhtaita SDUI-blokkeja, aivan kuten tekstikappaleetkin. Tekoälyn generoimat selitteet (esim. graafia tukevat perustelut) liitetään graafiblokin perään litteässä `inner_sdui_blocks`-putkessa normaaleina `ParagraphBlock`-komponentteina.
+
 
 ## Rakenteen Hierarkia (Dumb Painter SDUI)
 Koko raportin tulostus (Frontend ja PDF) perustuu `blueprint.py`:n luomaan litteään `ReportDataDTO.inner_sdui_blocks` -putkeen, joka generoidaan tietokannan `OutputProfile`-taulun ohjeistuksista.
