@@ -138,7 +138,7 @@
 - **Audit Findings**: The universal quality gate is strict. Even if E2E integration tests aren't explicitly run by the agent yet, MyPy will hard-block compilation if cross-file references to deleted fields (like `layouts`) still exist in orphaned files not explicitly mentioned in the plan targets.
 
 ## Remaining
-- Execute `/tier1-planner` for Phase 3-5 implementation plans.
+- Execute `/tier0-research-plan` for Phase 3 Frontend UI plan.
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_131_tracker.md]" --workflow=/tier1-planner`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]" --workflow=/tier0-research-plan`
