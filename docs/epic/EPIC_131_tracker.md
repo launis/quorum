@@ -5,7 +5,7 @@
 ## Phase Execution Status
 
 ### Phase 1: New Pydantic SDUI Block Models (Backend Only)
-- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]`
+- [OK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]`
 - [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]`
   - [ ] Step 1.1: Create SduiRadarChartBlock
   - [ ] Step 1.2: Create SduiScatterPlotBlock
@@ -96,13 +96,15 @@
 ## Achieved
 - Formally generated the Tracker and Requirements Traceability Matrix for EPIC 131 using the strict /tier1-tracker-generator constraints.
 - Broke down Phase 1, Phase 3.1 (Cross-Domain Dependency), and Phase 2 into micro-chunked executable plans tracked accurately in the matrix.
+- Completed Tier 0 Research & Analysis on Phase 1 Backend Models. Identified and fixed structural issues in the plan (enforcing SduiBlockBase inheritance, resolving hidden scopes for layout fields, and fixing ambiguity in jinja2 instructions).
 
 ## Learned
 - **Baseline State Snapshot**: The codebase currently uses `ReportLayoutDTO` containing a `preset_view` enum field to determine visualization rendering on the client side. This violates Dumb Painter SDUI constraints. The `layouts` field exists on both Python's `ReportDataDTO` and Flutter's `ReportDataDto`.
 - **Dependency Nuance**: The Flutter UI parser (Freezed) strictly requires recognized block schemas (`disallowUnrecognizedKeys: true`). We must update the Dart parsing definitions (`SduiBlockDTO`) *before* or *atomically with* the backend starting to emit these new variants into the `inner_sdui_blocks` pipeline.
+- **Model Inheritance**: The new SDUI blocks must inherit from `SduiBlockBase` (not `V2CoreBase`) to properly utilize the `AnySduiBlock` polymorphic discriminated union in Pydantic V2 and support OpenAPI configuration.
 
 ## Remaining
-- Begin `/tier0-research-plan` and execution of Phase 1 (Backend Models).
+- Execute Phase 1 (Backend Models) using `/tier2-execute`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_131_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_131_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_131\01_phase1_backend_models.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md]"`
