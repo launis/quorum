@@ -21,7 +21,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import SynthesisStepDataDTO
 from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExecutionRecord, Step, Workflow
+from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
@@ -237,7 +237,7 @@ def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], lang
 
 
 def _assemble_matrices_to_explain(
-    available_dtos: list[StepOutputDTO], title_map: dict[str, str]
+    available_dtos: list[StepOutputDTO], title_map: dict[str, str], blocks_by_id: dict[str, PromptBlock]
 ) -> list[dict[str, Any]]:
     """Assemble the matrices_to_explain list by extracting quotes from Epic 94 evaluated_atoms.
 
@@ -245,6 +245,8 @@ def _assemble_matrices_to_explain(
 
     Args:
         available_dtos: All step output DTOs from the execution state.
+        title_map: Map of localized titles.
+        blocks_by_id: Map of PromptBlock ID to PromptBlock model.
 
     Returns:
         List of dicts with keys: matrix_id, score, justification.
@@ -256,19 +258,43 @@ def _assemble_matrices_to_explain(
         payload = step_dto_obj.payload
         block_id = step_dto_obj.block_id
 
-        if isinstance(payload, dict) and "normalized_score" in payload and "evaluated_atoms" in payload:
+        pb = blocks_by_id.get(block_id)
+        if not pb or pb.category_id != "matrix":
+            continue
+
+        if isinstance(payload, dict):
             quotes_list: list[str] = []
 
-            # Extract quotes from nested ScorecardAtomDTO -> QuoteEvidenceDTO
-            atoms = payload.get("evaluated_atoms", [])
-            if isinstance(atoms, list):
-                for atom in atoms:
-                    if isinstance(atom, dict) and "exact_quotes" in atom:
-                        exact_quotes = atom.get("exact_quotes", [])
-                        if isinstance(exact_quotes, list):
-                            for evidence in exact_quotes:
-                                if isinstance(evidence, dict) and "quote" in evidence and evidence["quote"]:
-                                    quotes_list.append(str(evidence["quote"]))
+            # Extract quotes from nested ScorecardAtomDTO -> QuoteEvidenceDTO or ReducedAtomDTO
+            if "reduced_atoms" in payload:
+                for atom in payload.get("reduced_atoms", []):
+                    if isinstance(atom, dict) and "source_quote" in atom and isinstance(atom["source_quote"], dict):
+                        sq = atom["source_quote"]
+                        text_val = sq.get("text") or sq.get("quote")
+                        if text_val:
+                            quotes_list.append(str(text_val))
+            else:
+                atoms = payload.get("evaluated_atoms", [])
+                if isinstance(atoms, list):
+                    for atom in atoms:
+                        if isinstance(atom, dict) and "exact_quotes" in atom:
+                            exact_quotes = atom.get("exact_quotes", [])
+                            if isinstance(exact_quotes, list):
+                                for evidence in exact_quotes:
+                                    if isinstance(evidence, dict):
+                                        text_val = evidence.get("text") or evidence.get("quote")
+                                        if text_val:
+                                            quotes_list.append(str(text_val))
+                elif isinstance(atoms, dict):
+                    for atom in atoms.values():
+                        if isinstance(atom, dict) and "exact_quotes" in atom:
+                            exact_quotes = atom.get("exact_quotes", [])
+                            if isinstance(exact_quotes, list):
+                                for evidence in exact_quotes:
+                                    if isinstance(evidence, dict):
+                                        text_val = evidence.get("text") or evidence.get("quote")
+                                        if text_val:
+                                            quotes_list.append(str(text_val))
 
             if block_id not in matrices_to_explain_map:
                 matrix_alias = alias_engine.register(block_id, prefix="MX-")
@@ -283,7 +309,7 @@ def _assemble_matrices_to_explain(
                     "real_matrix_id": block_id,
                     "matrix_id": matrix_alias,
                     "matrix_label": title_map.get(block_id.lower(), block_id),
-                    "score": payload["normalized_score"],
+                    "score": payload.get("normalized_score"),
                     "justification": justification_text,
                 }
 
@@ -423,7 +449,9 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         consolidated_distilled_parts.append(f'<source id="{short_alias}" title="{step_title}">\n{v_str}\n</source>')
 
     # Phase 2, Milestone 1.5: Assemble matrices_to_explain
-    matrices_to_explain = _assemble_matrices_to_explain(available_dtos, title_map)
+    raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
+    blocks_by_id = {str(b["id"]): PromptBlock.model_validate(b) for b in raw_blocks if "id" in b}
+    matrices_to_explain = _assemble_matrices_to_explain(available_dtos, title_map, blocks_by_id)
 
     return HookResult(
         success=True,

@@ -279,7 +279,20 @@ class TestPhase2PipelineUnification:
                 payload={"normalized_score": 60.0, "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": []}]},
             ),
         ]
-        result = _assemble_matrices_to_explain(dtos, title_map={})
+        from unittest.mock import MagicMock
+
+        from backend_v2.models.v2_core import PromptBlock
+
+        mock_m1 = MagicMock(spec=PromptBlock)
+        mock_m1.category_id = "matrix"
+        mock_m2 = MagicMock(spec=PromptBlock)
+        mock_m2.category_id = "matrix"
+
+        blocks = {
+            "blk_m1": mock_m1,
+            "blk_m2": mock_m2,
+        }
+        result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks)
         # blk_m1 has quotes, blk_m2 has empty quotes
         assert len(result) == 2
         assert result[0]["matrix_id"] == "MX-0"

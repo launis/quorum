@@ -1078,11 +1078,27 @@ async def generate_profile_synthesis_and_pdf_task(
             if "text" in b_dict:
                 flat_md_parts.append(str(b_dict["text"]))
 
-        cache_row_explanations = (
+        _raw_row_explanations = (
             {item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
             if row_expl_res and row_expl_res.explanations
             else {}
         )
+
+        cache_row_explanations = {}
+        if matrices_to_explain:
+            for m_dict in matrices_to_explain:
+                real_id = m_dict.get("real_matrix_id")
+                alias_id = m_dict.get("matrix_id")
+                if not real_id:
+                    continue
+
+                expl = _raw_row_explanations.get(alias_id) or _raw_row_explanations.get(real_id)
+                if not expl:
+                    # Fail-Fast protection: If the LLM omits a matrix, provide a fallback to prevent pipeline crash
+                    expl = " - "
+
+                cache_row_explanations[real_id] = expl
+
         if variance_expl:
             cache_row_explanations["variance_validation"] = variance_expl
 

@@ -9185,6 +9185,32 @@
       "scoring_strategy": "AVERAGE",
       "layouts": [
         {
+          "preset_view": "text_only",
+          "title": null,
+          "description": null,
+          "is_synthesis_enabled": true,
+          "steps": [],
+          "target_blocks": [],
+          "text_delivery_mode": "full",
+          "synthesis": {
+            "synthesis_block_id": "blk_1a2b3c4d5e6f7a8b",
+            "model_strategy": "synthesis",
+            "historical_context_mode": "DISABLED",
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf",
+              "raw_json"
+            ],
+            "omit_empty_sections": true,
+            "allowed_mcp_tools": []
+          },
+          "synthesis_blocks": null,
+          "strictness_level": null,
+          "scoring_strategy": null,
+          "matrix_column_labels": {},
+          "matrix_visible_columns": []
+        },
+        {
           "preset_view": "2d_compare",
           "title": null,
           "description": null,

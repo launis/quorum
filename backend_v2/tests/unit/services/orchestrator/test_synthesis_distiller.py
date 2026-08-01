@@ -120,7 +120,15 @@ def test_assemble_matrices_to_explain_basic() -> None:
             },
         ),
     ]
-    result = _assemble_matrices_to_explain(dtos, title_map={})
+    from unittest.mock import MagicMock
+
+    from backend_v2.models.v2_core import PromptBlock
+
+    mock_pb = MagicMock(spec=PromptBlock)
+    mock_pb.category_id = "matrix"
+    blocks_by_id = {"blk_matrix1": mock_pb}
+
+    result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
 
     assert len(result) == 1
     assert result[0]["matrix_id"] == "MX-0"
@@ -131,7 +139,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
 
 
 def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
-    """Test that matrices without evaluated_atoms are excluded."""
+    """Test that matrices without evaluated_atoms are INCLUDED to prevent Fail-Fast crash in blueprint.py."""
     dtos = [
         StepOutputDTO(
             step_id="step1",
@@ -140,8 +148,17 @@ def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
             payload={"normalized_score": 78.5},
         ),
     ]
-    result = _assemble_matrices_to_explain(dtos, title_map={})
-    assert len(result) == 0
+    from unittest.mock import MagicMock
+
+    from backend_v2.models.v2_core import PromptBlock
+
+    mock_pb = MagicMock(spec=PromptBlock)
+    mock_pb.category_id = "matrix"
+    blocks_by_id = {"blk_matrix1": mock_pb}
+
+    result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
+    assert len(result) == 1
+    assert result[0]["justification"] == "No direct evidence quotes extracted for this matrix."
 
 
 def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
@@ -154,7 +171,15 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
             payload={"normalized_score": 78.5, "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": []}]},
         ),
     ]
-    result = _assemble_matrices_to_explain(dtos, title_map={})
+    from unittest.mock import MagicMock
+
+    from backend_v2.models.v2_core import PromptBlock
+
+    mock_pb = MagicMock(spec=PromptBlock)
+    mock_pb.category_id = "matrix"
+    blocks_by_id = {"blk_matrix1": mock_pb}
+
+    result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
     assert len(result) == 1
     assert result[0]["real_matrix_id"] == "blk_matrix1"
     assert result[0]["justification"] == "No direct evidence quotes extracted for this matrix."
@@ -182,6 +207,14 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
             },
         ),
     ]
-    result = _assemble_matrices_to_explain(dtos, title_map={})
+    from unittest.mock import MagicMock
+
+    from backend_v2.models.v2_core import PromptBlock
+
+    mock_pb = MagicMock(spec=PromptBlock)
+    mock_pb.category_id = "matrix"
+    blocks_by_id = {"blk_m1": mock_pb}
+
+    result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)  # type: ignore
     assert len(result) == 1
     assert result[0]["score"] == 50.0  # First entry wins
