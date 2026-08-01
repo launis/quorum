@@ -60,8 +60,7 @@ enum PresetView {
   metrics1d,
   @JsonValue('2d_compare')
   compare2d,
-  @JsonValue('3d_complex')
-  complex3d,
+
   @JsonValue('3d_matrix')
   matrix3d,
   @JsonValue('text_only')

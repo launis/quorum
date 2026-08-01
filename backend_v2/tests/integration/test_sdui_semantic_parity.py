@@ -111,7 +111,7 @@ async def test_sdui_semantic_parity() -> None:
         new_layouts = []
         for layout in dto.layouts:
             axes = list(layout.axes)
-            if layout.preset_view in ("radar_3d", "3d_complex"):
+            if layout.preset_view in ("radar_3d", "3d_matrix"):
                 while len(axes) < 3:
                     axes.append(MatrixScorecardRowDTOFactory.build())
             elif layout.preset_view in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):

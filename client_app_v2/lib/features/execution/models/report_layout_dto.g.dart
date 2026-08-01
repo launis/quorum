@@ -151,7 +151,6 @@ Map<String, dynamic> _$ReportLayoutDtoToJson(
 const _$PresetViewEnumMap = {
   PresetView.metrics1d: '1d_metrics',
   PresetView.compare2d: '2d_compare',
-  PresetView.complex3d: '3d_complex',
   PresetView.matrix3d: '3d_matrix',
   PresetView.textOnly: 'text_only',
   PresetView.defaultView: 'default',

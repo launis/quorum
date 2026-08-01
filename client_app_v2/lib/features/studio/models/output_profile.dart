@@ -114,6 +114,8 @@ abstract class OutputProfile with _$OutputProfile {
     @Default([])
     List<SduiBlockDTO> contentBlocks,
     SynthesisConfigDTO? synthesis,
+    @JsonKey(name: 'performativity_detector_step_id')
+    String? performativityDetectorStepId,
   }) = _OutputProfile;
 
   factory OutputProfile.fromJson(Map<String, dynamic> json) =>

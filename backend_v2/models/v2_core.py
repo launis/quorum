@@ -21,7 +21,6 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEvidenceDTO
-from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
@@ -1049,9 +1048,7 @@ class SynthesisConfigDTO(V2CoreBase):
 
 
 class ReportLayoutDTO(V2CoreBase):
-    preset_view: Literal[
-        "1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only", "matrix_summary"
-    ]
+    preset_view: Literal["1d_metrics", "2d_compare", "3d_matrix", "default", "text_only", "matrix_summary"]
     title: I18nText | None = Field(default=None)
     description: I18nText | None = Field(default=None)
     is_synthesis_enabled: bool = Field(default=True)
@@ -1237,9 +1234,9 @@ class ReportDataDTO(V2CoreBase):
 class OutputLayoutBlock(V2CoreBase):
     """A single sequential rendering block for a report profile."""
 
-    preset_view: Literal[
-        "1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only", "matrix_summary"
-    ] = Field(description="The static UI renderer preset (e.g. 1d_metrics, 3d_complex).")
+    preset_view: Literal["1d_metrics", "2d_compare", "3d_matrix", "default", "text_only", "matrix_summary"] = Field(
+        description="The static UI renderer preset (e.g. 1d_metrics, 3d_matrix)."
+    )
     is_synthesis_enabled: bool = Field(default=True, description="Toggle for UI section-level synthesis.")
     title: I18nText | None = Field(default=None, description="Optional localized layout title.")
     description: I18nText | None = Field(default=None, description="Optional localized layout description.")
@@ -1327,12 +1324,19 @@ class OutputProfile(V2CoreBase):
         default_factory=dict,
         description="Localized labels for global XAI highlights at the profile level.",
     )
+    metric_mappings: dict[str, I18nText] = Field(
+        default_factory=dict,
+        description="Localized labels for internal metric variables (e.g. 'variance_mechanical').",
+    )
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Global synthesis configuration for the executive summary."
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
+    )
+    performativity_detector_step_id: str | None = Field(
+        default=None, description="Optional step ID for the performativity detector"
     )
 
 
@@ -1531,9 +1535,6 @@ class RenderedSynthesisCache(V2CoreBase):
     )
     row_curated_quotes: dict[str, list[str]] = Field(default_factory=dict, description="Curated quotes by matrix ID")
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
-    xai_highlights: list[XaiHighlightItem] = Field(default_factory=list, description="Generated XAI highlight boxes")
-    executive_summary: str | None = Field(default=None, description="Global executive summary")
-    urgency_level: int | None = Field(default=None, description="Urgency level")
     user_role: str | None = Field(default=None, description="User role")
     user_role_justification: str | None = Field(default=None, description="User role justification")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

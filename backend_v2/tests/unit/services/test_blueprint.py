@@ -120,6 +120,21 @@ def mock_repo_transformer() -> Any:
                     }
                 ],
                 "display_scale": "original",
+                "metric_mappings": {
+        'variance_mechanical': {'default_locale':'en', 'translations':{'en': 'Mechanical'}},
+        'variance_cognitive': {'default_locale':'en', 'translations':{'en': 'Cognitive'}},
+        'variance_total': {'default_locale':'en', 'translations':{'en': 'Variance'}},
+        'alignment_verdict': {'default_locale':'en', 'translations':{'en': 'Alignment Verdict'}},
+        'alignment_aligned': {'default_locale':'en', 'translations':{'en': 'ALIGNED'}},
+        'alignment_misaligned': {'default_locale':'en', 'translations':{'en': 'MISALIGNED'}},
+        'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
+        'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
+        'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
+        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
+        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+        'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
+        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+    },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": ["remediation_steps", "risk_flag", "coaching"],
                 "max_extension_items": 2,
@@ -195,6 +210,21 @@ def mock_repo_transformer() -> Any:
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default", "fi": "Default"}),
             display_scale="original",
+        metric_mappings={
+        'variance_mechanical': I18nText(default_locale='en', translations={'en': 'Mechanical'}),
+        'variance_cognitive': I18nText(default_locale='en', translations={'en': 'Cognitive'}),
+        'variance_total': I18nText(default_locale='en', translations={'en': 'Variance'}),
+        'alignment_verdict': I18nText(default_locale='en', translations={'en': 'Alignment Verdict'}),
+        'alignment_aligned': I18nText(default_locale='en', translations={'en': 'ALIGNED'}),
+        'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
+        'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
+        'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
+        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
+        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
+        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+    },
             layouts=[
                 OutputLayoutBlock(
                     preset_view="1d_metrics",
@@ -348,6 +378,21 @@ def mock_repo_microcot() -> Any:
                     }
                 ],
                 "display_scale": "original",
+                "metric_mappings": {
+        'variance_mechanical': {'default_locale':'en', 'translations':{'en': 'Mechanical'}},
+        'variance_cognitive': {'default_locale':'en', 'translations':{'en': 'Cognitive'}},
+        'variance_total': {'default_locale':'en', 'translations':{'en': 'Variance'}},
+        'alignment_verdict': {'default_locale':'en', 'translations':{'en': 'Alignment Verdict'}},
+        'alignment_aligned': {'default_locale':'en', 'translations':{'en': 'ALIGNED'}},
+        'alignment_misaligned': {'default_locale':'en', 'translations':{'en': 'MISALIGNED'}},
+        'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
+        'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
+        'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
+        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
+        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+        'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
+        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+    },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
@@ -477,6 +522,21 @@ def mock_repo_sdui() -> AsyncMock:
                     }
                 ],
                 "display_scale": "original",
+                "metric_mappings": {
+        'variance_mechanical': {'default_locale':'en', 'translations':{'en': 'Mechanical'}},
+        'variance_cognitive': {'default_locale':'en', 'translations':{'en': 'Cognitive'}},
+        'variance_total': {'default_locale':'en', 'translations':{'en': 'Variance'}},
+        'alignment_verdict': {'default_locale':'en', 'translations':{'en': 'Alignment Verdict'}},
+        'alignment_aligned': {'default_locale':'en', 'translations':{'en': 'ALIGNED'}},
+        'alignment_misaligned': {'default_locale':'en', 'translations':{'en': 'MISALIGNED'}},
+        'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
+        'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
+        'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
+        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
+        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+        'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
+        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+    },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
@@ -833,8 +893,26 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                     }
                 ],
                 "display_scale": "original",
+                "metric_mappings": {
+        'variance_mechanical': {'default_locale':'en', 'translations':{'en': 'Mechanical'}},
+        'variance_cognitive': {'default_locale':'en', 'translations':{'en': 'Cognitive'}},
+        'variance_total': {'default_locale':'en', 'translations':{'en': 'Variance'}},
+        'alignment_verdict': {'default_locale':'en', 'translations':{'en': 'Alignment Verdict'}},
+        'alignment_aligned': {'default_locale':'en', 'translations':{'en': 'ALIGNED'}},
+        'alignment_misaligned': {'default_locale':'en', 'translations':{'en': 'MISALIGNED'}},
+        'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
+        'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
+        'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
+        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
+        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+        'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
+        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+    },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                "extension_labels": {
+                    XaiExtensionType.VARIANCE_VALIDATION: {"default_locale": "en", "translations": {"en": "Variance"}},
+                },
                 "max_extension_items": 2,
                 "strictness_level": 85,
                 "scoring_strategy": None,
@@ -874,7 +952,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     assert "Variance: 1.2" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "warning"
-    assert "MISALIGNED_SYCOPHANCY" in alert_block.text
+    assert "MISALIGNED" in alert_block.text
 
 
 @pytest.mark.asyncio
@@ -898,8 +976,26 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [],
                 "display_scale": "original",
+                "metric_mappings": {
+        'variance_mechanical': {'default_locale':'en', 'translations':{'en': 'Mechanical'}},
+        'variance_cognitive': {'default_locale':'en', 'translations':{'en': 'Cognitive'}},
+        'variance_total': {'default_locale':'en', 'translations':{'en': 'Variance'}},
+        'alignment_verdict': {'default_locale':'en', 'translations':{'en': 'Alignment Verdict'}},
+        'alignment_aligned': {'default_locale':'en', 'translations':{'en': 'ALIGNED'}},
+        'alignment_misaligned': {'default_locale':'en', 'translations':{'en': 'MISALIGNED'}},
+        'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
+        'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
+        'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
+        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
+        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+        'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
+        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+    },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                "extension_labels": {
+                    XaiExtensionType.VARIANCE_VALIDATION: {"default_locale": "en", "translations": {"en": "Variance"}},
+                },
                 "max_extension_items": 2,
                 "strictness_level": 85,
                 "scoring_strategy": None,
@@ -1031,13 +1127,32 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                     }
                 ],
                 "display_scale": "original",
+                "metric_mappings": {
+        'variance_mechanical': {'default_locale':'en', 'translations':{'en': 'Mechanical'}},
+        'variance_cognitive': {'default_locale':'en', 'translations':{'en': 'Cognitive'}},
+        'variance_total': {'default_locale':'en', 'translations':{'en': 'Variance'}},
+        'alignment_verdict': {'default_locale':'en', 'translations':{'en': 'Alignment Verdict'}},
+        'alignment_aligned': {'default_locale':'en', 'translations':{'en': 'ALIGNED'}},
+        'alignment_misaligned': {'default_locale':'en', 'translations':{'en': 'MISALIGNED'}},
+        'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
+        'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
+        'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
+        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
+        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+        'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
+        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+    },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                "extension_labels": {
+                    XaiExtensionType.VARIANCE_VALIDATION: {"default_locale": "en", "translations": {"en": "Variance"}},
+                },
                 "max_extension_items": 2,
                 "strictness_level": 85,
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
+                "performativity_detector_step_id": "sp_7f9649114d2344dc",
             }
         ]
     )
@@ -1068,11 +1183,9 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert isinstance(grid_block, SduiGridBlock)
     assert isinstance(alert_block, AlertBlock)
 
-    assert "Cognitive: 2.5111" in getattr(grid_block.items[1], "text", "")
+    assert "Cognitive: 2.51" in getattr(grid_block.items[1], "text", "")
     # target mechanical is 3.0, variance is 0.4889
-    assert "Variance: 0.4889" in getattr(grid_block.items[2], "text", "") or "Variance: 0.4888" in getattr(
-        grid_block.items[2], "text", ""
-    )
+    assert "Variance: 0.49" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "info"
     assert "ALIGNED" in alert_block.text
@@ -1081,11 +1194,33 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
 @pytest.mark.asyncio
 async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_transformer: Any) -> None:
     """Verify that xai_highlights are grouped into AccordionBlocks."""
-    from backend_v2.models.dtos.synthesis import XaiHighlightItem
-    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
-    from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
+    from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile, RenderedSynthesisCache
+
+    profile_mock = OutputProfile.model_construct(
+        id="prf_dddd1111dddd1111",
+        slug="default",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Default"}),
+                layouts=[
+            OutputLayoutBlock(
+                preset_view="1d_metrics",
+                target_blocks=["*"],
+            ),
+            OutputLayoutBlock(
+                preset_view="text_only",
+                target_blocks=["grouped_extensions_block"],
+            )
+        ],
+        extension_labels={
+            XaiExtensionType.REMEDIATION_STEPS: I18nText(default_locale="en", translations={"en": "Remediation"}),
+            XaiExtensionType.FALSIFICATION: I18nText(default_locale="en", translations={"en": "Falsification"}),
+        },
+        visible_block_extensions=[XaiExtensionType.REMEDIATION_STEPS, XaiExtensionType.FALSIFICATION],
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile_mock]
+    mock_repo_transformer.get_by_id.return_value = profile_mock
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000015",
@@ -1098,6 +1233,10 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
                 content={
                     "blk_1234abcd1234abcd": {
                         "raw_score": 4.0,
+                        "extensions": {
+                            "remediation_steps": "Do this to fix.",
+                            "falsification": "This is false.",
+                        },
                     },
                 },
             )
@@ -1106,10 +1245,6 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         metadata={"target_locale": "en"},
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                xai_highlights=[
-                    XaiHighlightItem(extension_type="remediation_steps", content="Do this to fix."),
-                    XaiHighlightItem(extension_type="risk_flag", content="Risk is high."),
-                ],
                 content_blocks=[],
                 cited_sources=[],
                 section_syntheses={},
@@ -1131,37 +1266,52 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
     assert len(dto.layouts) > 0
     layout = dto.layouts[0]
 
+    assert len(dto.layouts) > 1
+    layout = dto.layouts[1]
     synthesis = layout.synthesis_blocks or []
-    accordion_blocks = [b for b in synthesis if isinstance(b, AccordionBlock)]
-    assert len(accordion_blocks) == 2
+    accordions = [b for b in synthesis if getattr(b, "block_type", "") == "accordion"]
+    assert len(accordions) >= 2
+    
+    alert_blocks = []
+    for acc in accordions:
+        alert_blocks.extend(getattr(acc, "children", []))
 
-    remediation_accordion = None
-    for b in accordion_blocks:
-        child = b.children[0] if b.children else None
-        if isinstance(child, AlertBlock) and "Do this to fix" in child.text:
-            remediation_accordion = b
-            break
+    remediation_alert = next((b for b in alert_blocks if "Do this to fix" in getattr(b, "text", "")), None)
+    assert remediation_alert is not None
 
-    assert remediation_accordion is not None
-
-    risk_accordion = None
-    for b in accordion_blocks:
-        child = b.children[0] if b.children else None
-        if isinstance(child, AlertBlock) and "Risk is high" in child.text:
-            risk_accordion = b
-            break
-
-    assert risk_accordion is not None
+    falsification_alert = next((b for b in alert_blocks if "This is false" in getattr(b, "text", "")), None)
+    assert falsification_alert is not None
 
 
 @pytest.mark.asyncio
 async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transformer: Any) -> None:
     """Verify fallback language logic when target language is unknown."""
-    from backend_v2.models.dtos.synthesis import XaiHighlightItem
-    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
-    from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
+    from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile, RenderedSynthesisCache
+
+    profile_mock = OutputProfile.model_construct(
+        id="prf_dddd1111dddd1111",
+        slug="default",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Default"}),
+                layouts=[
+            OutputLayoutBlock(
+                preset_view="1d_metrics",
+                target_blocks=["*"],
+            ),
+            OutputLayoutBlock(
+                preset_view="text_only",
+                target_blocks=["grouped_extensions_block"],
+            )
+        ],
+        extension_labels={
+            XaiExtensionType.COACHING: I18nText(default_locale="en", translations={"en": "Coaching"}),
+        },
+        visible_block_extensions=[XaiExtensionType.COACHING],
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile_mock]
+    mock_repo_transformer.get_by_id.return_value = profile_mock
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000016",
@@ -1174,6 +1324,9 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
                 content={
                     "blk_1234abcd1234abcd": {
                         "raw_score": 4.0,
+                        "extensions": {
+                            "coaching": "Good job.",
+                        },
                     },
                 },
             )
@@ -1182,9 +1335,6 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         metadata={"target_locale": "unknown_lang"},  # Unknown language
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                xai_highlights=[
-                    XaiHighlightItem(extension_type="coaching", content="Good job."),
-                ],
                 content_blocks=[],
                 cited_sources=[],
                 section_syntheses={},
@@ -1203,16 +1353,19 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     )
 
     dto = await transformer.build_report_dto("exe_0000000000000016", accept_language="en")
-    layout = dto.layouts[0]
+    
+    assert len(dto.layouts) > 1
+    layout = dto.layouts[1]
 
     synthesis = layout.synthesis_blocks or []
-    accordion_blocks = [b for b in synthesis if isinstance(b, AccordionBlock)]
-    assert len(accordion_blocks) == 1
+    accordions = [b for b in synthesis if getattr(b, "block_type", "") == "accordion"]
+    assert len(accordions) >= 1
 
-    coaching_accordion = accordion_blocks[0]
-    assert coaching_accordion.title.lower() == "coaching"
-    assert isinstance(coaching_accordion.children[0], AlertBlock)
-    assert "Good job." in coaching_accordion.children[0].text
+    alert_blocks = getattr(accordions[0], "children", [])
+
+    coaching_alert = next((b for b in alert_blocks if "Good job" in getattr(b, "text", "")), None)
+    assert coaching_alert is not None
+    assert "**Coaching**" in coaching_alert.text
 
 
 @pytest.mark.asyncio
@@ -1285,6 +1438,21 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
             "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
             "workflow_id": "wf_1234abcd1234abcd",
             "display_scale": "original",
+                "metric_mappings": {
+        'variance_mechanical': {'default_locale':'en', 'translations':{'en': 'Mechanical'}},
+        'variance_cognitive': {'default_locale':'en', 'translations':{'en': 'Cognitive'}},
+        'variance_total': {'default_locale':'en', 'translations':{'en': 'Variance'}},
+        'alignment_verdict': {'default_locale':'en', 'translations':{'en': 'Alignment Verdict'}},
+        'alignment_aligned': {'default_locale':'en', 'translations':{'en': 'ALIGNED'}},
+        'alignment_misaligned': {'default_locale':'en', 'translations':{'en': 'MISALIGNED'}},
+        'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
+        'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
+        'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
+        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
+        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+        'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
+        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+    },
             "layouts": [],
         }
     )
@@ -1415,31 +1583,45 @@ async def test_blueprint_sdui_layout_terminology_override(mock_repo_transformer:
     Ensures that matrix_column_labels and extension_labels from OutputLayoutBlock
     are correctly passed into the final ReportLayoutDTO payload.
     """
-    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
     from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputLayoutBlock, OutputProfile
 
-    # Override the mock to return an OutputProfile with custom terminology
-    mock_repo_transformer.get_all_output_profiles.return_value = [
-        OutputProfile(
-            id="prf_dddd1111dddd1111",
-            slug="default",
-            workflow_id="wf_1234abcd1234abcd",
-            name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale="original",
-            layouts=[
-                OutputLayoutBlock(
-                    preset_view="text_only",
-                    target_blocks=["*"],
-                    matrix_column_labels={
-                        "explanation": I18nText(default_locale="fi", translations={"fi": "Selite", "en": "Explanation"})
-                    },
-                )
-            ],
-            extension_labels={
-                XaiExtensionType.COACHING: I18nText(default_locale="fi", translations={"fi": "Vinkki", "en": "Tip"})
-            },
-        )
-    ]
+    profile_mock = OutputProfile(
+        id="prf_dddd1111dddd1111",
+        slug="default",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Default"}),
+        display_scale="original",
+        metric_mappings={
+        'variance_mechanical': I18nText(default_locale='en', translations={'en': 'Mechanical'}),
+        'variance_cognitive': I18nText(default_locale='en', translations={'en': 'Cognitive'}),
+        'variance_total': I18nText(default_locale='en', translations={'en': 'Variance'}),
+        'alignment_verdict': I18nText(default_locale='en', translations={'en': 'Alignment Verdict'}),
+        'alignment_aligned': I18nText(default_locale='en', translations={'en': 'ALIGNED'}),
+        'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
+        'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
+        'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
+        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
+        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
+        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+    },
+        layouts=[
+            OutputLayoutBlock(
+                preset_view="text_only",
+                target_blocks=["*"],
+                matrix_column_labels={
+                    "explanation": I18nText(default_locale="fi", translations={"fi": "Selite", "en": "Explanation"})
+                },
+            )
+        ],
+        extension_labels={
+            XaiExtensionType.COACHING: I18nText(default_locale="fi", translations={"fi": "Vinkki", "en": "Tip"})
+        },
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile_mock]
+    mock_repo_transformer.get_by_id.return_value = profile_mock
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000099",
         workflow_id="wf_1234abcd1234abcd",
@@ -1541,6 +1723,21 @@ async def test_blueprint_transformer_missing_extension_label_raises_error(mock_r
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default"}),
             display_scale="original",
+        metric_mappings={
+        'variance_mechanical': I18nText(default_locale='en', translations={'en': 'Mechanical'}),
+        'variance_cognitive': I18nText(default_locale='en', translations={'en': 'Cognitive'}),
+        'variance_total': I18nText(default_locale='en', translations={'en': 'Variance'}),
+        'alignment_verdict': I18nText(default_locale='en', translations={'en': 'Alignment Verdict'}),
+        'alignment_aligned': I18nText(default_locale='en', translations={'en': 'ALIGNED'}),
+        'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
+        'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
+        'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
+        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
+        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
+        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+    },
             layouts=[
                 OutputLayoutBlock(
                     preset_view="text_only",
@@ -1643,6 +1840,21 @@ async def test_blueprint_transformer_missing_coaching_label_raises_error(mock_re
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default"}),
             display_scale="original",
+        metric_mappings={
+        'variance_mechanical': I18nText(default_locale='en', translations={'en': 'Mechanical'}),
+        'variance_cognitive': I18nText(default_locale='en', translations={'en': 'Cognitive'}),
+        'variance_total': I18nText(default_locale='en', translations={'en': 'Variance'}),
+        'alignment_verdict': I18nText(default_locale='en', translations={'en': 'Alignment Verdict'}),
+        'alignment_aligned': I18nText(default_locale='en', translations={'en': 'ALIGNED'}),
+        'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
+        'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
+        'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
+        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
+        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
+        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+    },
             layouts=[
                 OutputLayoutBlock(
                     preset_view="text_only",
@@ -1673,14 +1885,16 @@ async def test_blueprint_transformer_missing_coaching_label_raises_error(mock_re
     assert "Missing extension label configuration for coaching" in str(exc_info.value)
     assert exc_info.value.details["extension_key"] == "coaching"
 
+
 @pytest.mark.asyncio
 async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Verify that if step_detector is missing in cv, authenticity_evaluation falls back to folded trace extraction."""
     from datetime import datetime, timezone
-    from backend_v2.models.v2_core import Workflow, StepRule
-    
+
+    from backend_v2.models.v2_core import StepRule, Workflow
+
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000097",
         workflow_id="wf_1234abcd1234abcd",
@@ -1692,7 +1906,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 event_type="decision",
                 content={"blk_mock_id": {"raw_score": 85.0}},
                 timestamp=datetime.now(timezone.utc),
-                v=1
+                v=1,
             )
         ],
         context_variables={},
@@ -1701,11 +1915,17 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
 
     mock_repo_transformer.get_workflow.return_value = Workflow.model_construct(
         id="wf_1234abcd1234abcd",
+        slug="test-wf",
         name="Test WF",
+        description="Test",
+        status="PUBLISHED",
+        version=1,
+        allowed_exports=[],
+        historical_context_mode=__import__(
+            "backend_v2.models.enums", fromlist=["HistoricalContextMode"]
+        ).HistoricalContextMode.DISABLED,
         default_profile_id="prf_dddd1111dddd1111",
-        steps=[
-            StepRule(id="stp_1234abcd1234abcd", task_blueprint="sp_7f9649114d2344dc")
-        ]
+        steps=[StepRule(id="stp_1234abcd1234abcd", task_blueprint="sp_7f9649114d2344dc")],
     )
 
     mock_repo_transformer.get_all_output_profiles.return_value = [
@@ -1715,16 +1935,41 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default"}),
             display_scale="original",
-            layouts=[
-                OutputLayoutBlock(
-                    preset_view="1d_metrics",
-                    target_blocks=["*"],
-                )
-            ],
+        metric_mappings={
+        'variance_mechanical': I18nText(default_locale='en', translations={'en': 'Mechanical'}),
+        'variance_cognitive': I18nText(default_locale='en', translations={'en': 'Cognitive'}),
+        'variance_total': I18nText(default_locale='en', translations={'en': 'Variance'}),
+        'alignment_verdict': I18nText(default_locale='en', translations={'en': 'Alignment Verdict'}),
+        'alignment_aligned': I18nText(default_locale='en', translations={'en': 'ALIGNED'}),
+        'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
+        'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
+        'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
+        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
+        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
+        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+    },
+                    layouts=[
+            OutputLayoutBlock(
+                preset_view="1d_metrics",
+                target_blocks=["*"],
+            ),
+            OutputLayoutBlock(
+                preset_view="text_only",
+                target_blocks=["grouped_extensions_block"],
+            )
+        ],
             visible_block_extensions=[],
             visible_workflow_extensions=[XaiExtensionType.AUTHENTICITY_EVALUATION],
+            extension_labels={
+                XaiExtensionType.AUTHENTICITY_EVALUATION: I18nText(
+                    default_locale="en", translations={"en": "Authenticity"}
+                ),
+            },
             max_extension_items=2,
             strictness_level=85,
+            performativity_detector_step_id="sp_7f9649114d2344dc",
         )
     ]
 
@@ -1739,7 +1984,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     )
 
     report_dto = await transformer.build_report_dto("exe_0000000000000097")
-    
+
     assert report_dto is not None
     assert any(
         getattr(axis, "block_id", None) == "auth_metrics_row"

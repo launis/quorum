@@ -7,13 +7,16 @@ from backend_v2.models.view.sdui import ParagraphBlock
 
 def test_synthesis_section_strictness() -> None:
     dto = SynthesisSectionDTO(
-        layout_id="lay_1", content_blocks=[ParagraphBlock(block_type="paragraph", text="content")]
+        layout_id="lay_1",
+        content_blocks=[ParagraphBlock(block_type="paragraph", text="content", exact_quotes=[], citations=[])],
     )
     assert dto.layout_id == "lay_1"
 
     with pytest.raises(ValidationError):
         SynthesisSectionDTO(
-            layout_id="lay_1", content_blocks=[ParagraphBlock(block_type="paragraph", text="content")], extra="fail"
+            layout_id="lay_1",
+            content_blocks=[ParagraphBlock(block_type="paragraph", text="content", exact_quotes=[], citations=[])],
+            extra="fail",
         )  # type: ignore
 
 
@@ -29,13 +32,14 @@ def test_synthesis_output_strictness() -> None:
     dto = SynthesisOutputDTO(
         user_role="ROLE_ARCHITECT",
         user_role_justification="Test",
-        executive_summary="Summary",
-        content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title")],
+        content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title", exact_quotes=[], citations=[])],
         cited_sources=["source1"],
         section_syntheses=[
-            SynthesisSectionDTO(layout_id="l1", content_blocks=[ParagraphBlock(block_type="paragraph", text="test")])
+            SynthesisSectionDTO(
+                layout_id="l1",
+                content_blocks=[ParagraphBlock(block_type="paragraph", text="test", exact_quotes=[], citations=[])],
+            )
         ],
-        xai_highlights=[XaiHighlightItem(extension_type="coaching", content="tip")],
     )
     assert len(dto.content_blocks) == 1
 
@@ -43,6 +47,6 @@ def test_synthesis_output_strictness() -> None:
         SynthesisOutputDTO(
             user_role="ROLE_ARCHITECT",
             user_role_justification="Test",
-            content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title")],
+            content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title", exact_quotes=[], citations=[])],
             extra="fail",
         )  # type: ignore

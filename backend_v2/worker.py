@@ -1107,10 +1107,7 @@ async def generate_profile_synthesis_and_pdf_task(
             content_blocks=cast(list[AnySduiBlock], raw_content),
             section_syntheses=sec_dict,
             row_explanations=cache_row_explanations,
-            xai_highlights=synthesis_res.xai_highlights if synthesis_res else [],
             cited_sources=synthesis_res.cited_sources if synthesis_res else [],
-            executive_summary=synthesis_res.executive_summary if synthesis_res else None,
-            urgency_level=synthesis_res.urgency_level if synthesis_res else None,
             user_role=synthesis_res.user_role if synthesis_res else None,
             user_role_justification=synthesis_res.user_role_justification if synthesis_res else None,
         )

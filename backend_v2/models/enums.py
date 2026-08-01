@@ -504,8 +504,17 @@ class TitleKey(StrEnum):
     PERFORMATIVITY = "TITLE_PERFORMATIVITY"
     OVERSEER = "TITLE_OVERSEER"
     CONTEXT = "TITLE_CONTEXT"
-    TIMELINE = "Process Timeline"  # Key in l10n
-    HYPOTHESES = "Analyst Hypotheses"  # Key in l10n"
+    TITLE_TIMELINE = "TITLE_TIMELINE"
+    TITLE_HYPOTHESES = "TITLE_HYPOTHESES"
+
+    @property
+    def l10n_key(self) -> str:
+        """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
+        mapping = {
+            TitleKey.TITLE_TIMELINE: "titleTimeline",
+            TitleKey.TITLE_HYPOTHESES: "titleHypotheses",
+        }
+        return mapping.get(self, "")
 
 
 class LabelKey(StrEnum):

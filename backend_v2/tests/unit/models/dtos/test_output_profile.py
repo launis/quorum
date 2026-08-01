@@ -19,10 +19,12 @@ def test_output_profile_create_dto_strictness() -> None:
             "name": {"default_locale": "en", "translations": {"en": "Name", "fi": "Name"}},
             "visible_block_extensions": [XaiExtensionType.CITATION, XaiExtensionType.JUSTIFICATION],
             "visible_workflow_extensions": [],
+            "performativity_detector_step_id": "sp_123",
         }
     )
     assert dto.id == "prf_1234abcd"
     assert XaiExtensionType.CITATION in dto.visible_block_extensions
+    assert dto.performativity_detector_step_id == "sp_123"
 
     # Immutability check
     with pytest.raises(ValidationError, match="Instance is frozen"):
@@ -37,6 +39,18 @@ def test_output_profile_create_dto_strictness() -> None:
                 "workflow_id": "wf_123",
                 "name": {"default_locale": "en", "translations": {"en": "Name", "fi": "Name"}},
                 "extra": "bad",
+            }
+        )
+
+    # Negative test for performativity_detector_step_id
+    with pytest.raises(ValidationError, match="Input should be a valid string"):
+        OutputProfileCreateDTO.model_validate(
+            {
+                "id": "prf_1234abcd",
+                "slug": "my-profile",
+                "workflow_id": "wf_123",
+                "name": {"default_locale": "en", "translations": {"en": "Name", "fi": "Name"}},
+                "performativity_detector_step_id": 123,
             }
         )
 

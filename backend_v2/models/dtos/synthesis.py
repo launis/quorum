@@ -129,8 +129,6 @@ class SynthesisOutputDTO(V2CoreBase):
         ),
     ]
     user_role_justification: Annotated[str, Field(description="LLM justification for role mapping.")]
-    executive_summary: Annotated[str | None, Field(default=None, description="High-level synthesized summary")]
-    urgency_level: Annotated[int | None, Field(default=1)]
 
     content_blocks: Annotated[
         list[LlmSduiBlock],
@@ -144,13 +142,6 @@ class SynthesisOutputDTO(V2CoreBase):
         Field(
             default_factory=list,
             description="List of synthesized sections. You MUST generate one item here for EVERY <section_instruction> provided in the system prompt!",
-        ),
-    ]
-    xai_highlights: Annotated[
-        list[XaiHighlightItem],
-        Field(
-            default_factory=list,
-            description="The deduplicated insight items per extension category, up to the requested maximum count.",
         ),
     ]
 

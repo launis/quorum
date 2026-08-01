@@ -710,24 +710,48 @@ class BlueprintTransformer:
                         if ext_enum in profile.visible_block_extensions:
                             lines = list(dict.fromkeys(line.strip() for line in str(val).split("\n") if line.strip()))
                             label_str = label_obj.resolve(locale)
-                            acc_severity: Literal["info", "warning", "critical_override", "success", "error"] = "info"
+                            acc_severity: Literal[
+                                "info", "warning", "critical_override", "success", "error", "default"
+                            ] = "info"
+                            if key == "coaching":
+                                acc_severity = "success"
+                            elif key in ("falsification", "risk_flag"):
+                                acc_severity = "error"
+                            elif key in ("remediation_steps", "missing_context"):
+                                acc_severity = "warning"
 
                             max_lines = (
                                 profile.max_extension_items
                                 if profile and hasattr(profile, "max_extension_items") and profile.max_extension_items
                                 else 999
                             )
-                            if len(lines) > max_lines:
-                                lines = lines[:max_lines]
+
+                            global_exts = accumulated_extensions.setdefault("global_extensions", [])
+                            accordion = next(
+                                (
+                                    b
+                                    for b in global_exts
+                                    if isinstance(b, AccordionBlock) and getattr(b, "title", None) == label_str
+                                ),
+                                None,
+                            )
+                            if not accordion:
+                                accordion = AccordionBlock(
+                                    title=label_str, severity=acc_severity, icon_name=None, children=[]
+                                )
+                                global_exts.append(accordion)
 
                             for line in lines:
-                                block = AlertBlock(
-                                    severity=acc_severity,
-                                    text=f"**{label_str}**: {line}",
-                                    exact_quotes=[],
-                                    citations=[],
-                                )
-                                accumulated_extensions.setdefault(b_id, []).append(block)
+                                if len(accordion.children) >= max_lines:
+                                    break
+                                if not any(getattr(c, "text", "") == line for c in accordion.children):
+                                    block = AlertBlock(
+                                        severity="info",
+                                        text=f"**{label_str}**: {line}",
+                                        exact_quotes=[],
+                                        citations=[],
+                                    )
+                                    accordion.children.append(block)
                     except ValueError:
                         pass
 
@@ -803,85 +827,14 @@ class BlueprintTransformer:
 
     def _hydrate_grouped_extensions_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Hydrates XAI extensions into grouped AccordionBlock elements."""
-        profile_cache = kwargs.get("profile_cache")
-        profile = kwargs.get("profile")
-        locale = kwargs.get("locale")
+        accumulated_extensions = kwargs.get("accumulated_extensions", {})
 
-        if not profile_cache or not profile_cache.xai_highlights:
+        if not accumulated_extensions:
             return []
 
         blocks: list[AnySduiBlock] = []
-        from collections import defaultdict
-
-        allowed_extensions = None
-        max_items = 999
-        if profile:
-            allowed_extensions = set()
-            if profile.visible_workflow_extensions:
-                allowed_extensions.update([str(e) for e in profile.visible_workflow_extensions])
-            if profile.max_extension_items is not None:
-                max_items = profile.max_extension_items
-
-        grouped: dict[str, list[str]] = defaultdict(list)
-
-        # 1. Gather Synthesis (Workflow) Extensions
-        for hl in profile_cache.xai_highlights:
-            ext_type_str = str(hl.extension_type)
-            if allowed_extensions is not None and ext_type_str not in allowed_extensions:
-                continue
-
-            if len(grouped[ext_type_str]) < max_items:
-                grouped[ext_type_str].append(hl.content)
-
-        from typing import cast
-
-        from backend_v2.models.enums import XaiExtensionType
-
-        AlertSeverity = Literal["info", "warning", "critical_override", "success", "error"]
-
-        intent_map = {
-            XaiExtensionType.COACHING: ("success", "lightbulb"),
-            XaiExtensionType.REMEDIATION_STEPS: ("success", "build"),
-            XaiExtensionType.FALSIFICATION: ("error", "balance"),
-            XaiExtensionType.RISK_FLAG: ("error", "warning"),
-            XaiExtensionType.MISSING_CONTEXT: ("warning", "help_outline"),
-            XaiExtensionType.THEORY_LINK: ("info", "menu_book"),
-            XaiExtensionType.JUSTIFICATION: ("info", "check_circle"),
-            XaiExtensionType.EMOTIONAL_SENTIMENT: ("info", "mood"),
-            XaiExtensionType.CITATION: ("info", "format_quote"),
-        }
-
-        for ext_type, contents in grouped.items():
-            label = ext_type
-            try:
-                ext_enum = XaiExtensionType(ext_type)
-            except ValueError:
-                ext_enum = None
-
-            if profile and profile.extension_labels:
-                label_i18n = profile.extension_labels.get(ext_type)
-                if label_i18n:
-                    label = label_i18n.resolve(locale)
-
-            if ext_enum:
-                severity_str, icon_name = intent_map.get(ext_enum, ("info", "info"))
-            else:
-                severity_str, icon_name = ("info", "info")
-
-            severity = cast(AlertSeverity, severity_str)
-
-            children: list[AnySduiBlock] = []
-            for c in contents:
-                children.append(AlertBlock(severity=severity, text=c, exact_quotes=[], citations=[]))
-
-            blocks.append(
-                AccordionBlock(
-                    title=label,
-                    severity=severity,
-                    icon_name=icon_name,
-                    children=children,
-                )
-            )
+        for ext_blocks in accumulated_extensions.values():
+            blocks.extend(ext_blocks)
 
         return blocks
 
@@ -891,6 +844,7 @@ class BlueprintTransformer:
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO],
         section_syntheses: dict[str, list[AnySduiBlock]],
         profile_extension_labels: dict[LaxXaiExtensionType, I18nText],
+        accumulated_extensions: dict[str, list[AnySduiBlock]] | None = None,
     ) -> list[ReportLayoutDTO]:
         """Maps generated axes into report layouts based on layout rules.
 
@@ -923,7 +877,7 @@ class BlueprintTransformer:
             else:
                 axes = list(all_parsed_matrices.values())
 
-            if preset_view in ["3d_complex", "3d_matrix"] and len(axes) < 3:
+            if preset_view in ["3d_matrix"] and len(axes) < 3:
                 logger.warning(
                     "[BlueprintTransformer] Downgrading layout '%s' from %s to 2d_compare because only %s axes found.",
                     layout_title,
@@ -945,10 +899,10 @@ class BlueprintTransformer:
                 synthesis_config = layout_def.synthesis
                 layout_id = f"layout_{idx}_{preset_view}"
 
-                section_blocks = None
-                if synthesis_config:
-                    if layout_id in section_syntheses:
-                        section_blocks = section_syntheses[layout_id]
+                section_blocks: list[AnySduiBlock] | None = None
+                if synthesis_config and layout_id in section_syntheses:
+                    section_blocks = list(section_syntheses[layout_id])
+                # Extensions are now fully grouped globally in grouped_extensions_block, not in matrices
 
                 layouts_list.append(
                     ReportLayoutDTO(
@@ -1083,16 +1037,10 @@ class BlueprintTransformer:
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
-            # Epic 94: Do NOT overwrite profile.content_blocks with cached synthesis blocks!
             # The OutputProfile is the Single Source of Truth for SDUI layout.
             if not content_blocks and profile_cache.content_blocks:
                 content_blocks = [b.model_copy(deep=True) for b in profile_cache.content_blocks]
             synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
-
-            if profile_cache.executive_summary:
-                content_blocks.append(
-                    ParagraphBlock(text=profile_cache.executive_summary, exact_quotes=[], citations=[])
-                )
             if profile_cache.user_role:
                 try:
                     role_val_i18n = profile.user_role_mappings.get(profile_cache.user_role)
@@ -1214,6 +1162,16 @@ class BlueprintTransformer:
         auth_layout_to_inject = None
         cv = execution.context_variables
 
+        def get_metric_label(key: str) -> str:
+            lbl = profile.metric_mappings.get(key) if profile and hasattr(profile, "metric_mappings") else None
+            if not lbl:
+                raise AppException(
+                    message=f"Strict Fail-Fast: Missing metric_mappings translation for '{key}'.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+            return lbl.resolve(locale)
+
         for wf_ext in workflow_ext_values:
             if wf_ext == "variance_validation":
                 authenticity_score = None
@@ -1244,7 +1202,11 @@ class BlueprintTransformer:
                 if authenticity_score is None:
                     # Dynamically resolve authenticity score from the performativity detector step in the folded trace
                     performativity_step_ids = {
-                        step.id for step in workflow_obj.steps if step.task_blueprint == "sp_7f9649114d2344dc"
+                        step.id
+                        for step in workflow_obj.steps
+                        if profile
+                        and getattr(profile, "performativity_detector_step_id", None)
+                        and step.task_blueprint == profile.performativity_detector_step_id
                     }
                     for result_dto in results:
                         if result_dto.step_id in performativity_step_ids:
@@ -1331,18 +1293,27 @@ class BlueprintTransformer:
                     llm_authenticity_score=authenticity_score,
                     performative_phrases_count=performative_phrases_count,
                 )
+
+                lbl_mech = get_metric_label("variance_mechanical")
+                lbl_cog = get_metric_label("variance_cognitive")
+                lbl_var = get_metric_label("variance_total")
+                lbl_align = get_metric_label("alignment_verdict")
+
+                auth_score_rounded = round(float(authenticity_score), 2)
+                var_score_rounded = round(float(variance_res["variance_score"]), 2)
+                is_aligned = str(variance_res["alignment_verdict"]) == "ALIGNED"
+                align_val = get_metric_label("alignment_aligned" if is_aligned else "alignment_misaligned")
+
                 grid_block = SduiGridBlock(
                     items=[
-                        ParagraphBlock(text=f"Mechanical: {performative_phrases_count}", exact_quotes=[], citations=[]),
-                        ParagraphBlock(text=f"Cognitive: {authenticity_score}", exact_quotes=[], citations=[]),
-                        ParagraphBlock(
-                            text=f"Variance: {float(variance_res['variance_score'])}", exact_quotes=[], citations=[]
-                        ),
+                        ParagraphBlock(text=f"{lbl_mech}: {performative_phrases_count}", exact_quotes=[], citations=[]),
+                        ParagraphBlock(text=f"{lbl_cog}: {auth_score_rounded}", exact_quotes=[], citations=[]),
+                        ParagraphBlock(text=f"{lbl_var}: {var_score_rounded}", exact_quotes=[], citations=[]),
                     ]
                 )
                 alert_block = AlertBlock(
-                    severity="warning" if str(variance_res["alignment_verdict"]) != "ALIGNED" else "info",
-                    text=f"Alignment Verdict: {variance_res['alignment_verdict']}",
+                    severity="info" if is_aligned else "warning",
+                    text=f"{lbl_align}: {align_val}",
                     exact_quotes=[],
                     citations=[],
                 )
@@ -1350,19 +1321,31 @@ class BlueprintTransformer:
                 # Fetch LLM variance explanation from cache or use fallback
                 llm_explanation = row_explanations_cache.get("variance_validation", "")
                 if not llm_explanation:
-                    llm_explanation = (
-                        f"Detected {performative_phrases_count} performative AI-phrases. "
-                        f"Overall authenticity index is {authenticity_score}."
-                    )
+                    fallback_template = get_metric_label("variance_fallback_explanation")
+                    llm_explanation = fallback_template.format(performative_phrases_count, auth_score_rounded)
 
-                variance_text = f"**Authenticity Score:** {authenticity_score}/100  \n**Alignment Verdict:** {variance_res['alignment_verdict']}\n\n{llm_explanation}"
+                variance_label = (
+                    profile.extension_labels.get(XaiExtensionType.VARIANCE_VALIDATION)
+                    if profile and profile.extension_labels
+                    else None
+                )
+                if not variance_label:
+                    msg = f"Strict Fail-Fast: Missing extension_labels mapping for {XaiExtensionType.VARIANCE_VALIDATION.value} in OutputProfile."
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+                title_str = variance_label.resolve(locale)
+                variance_text = (
+                    f"**{title_str}:** {auth_score_rounded}/100  \n**{lbl_align}:** {align_val}\n\n{llm_explanation}"
+                )
 
                 variance_kwargs = {
                     "block_id": "variance_metrics_row",
                     "name": "Variance Metrics",
-                    "label_i18n": I18nText(
-                        default_locale="en", translations={"en": "Variance Metrics", "fi": "Variaatiomittarit"}
-                    ),
+                    "label_i18n": variance_label,
                     "row_explanation": "Variance metrics dashboard",
                     "is_evaluative": False,
                     "inner_sdui_blocks": [grid_block, alert_block],
@@ -1379,9 +1362,7 @@ class BlueprintTransformer:
 
                 variance_layout_to_inject = ReportLayoutDTO(
                     preset_view="1d_metrics",
-                    title=I18nText(
-                        default_locale="en", translations={"en": "Variance Analysis", "fi": "Variaatioanalyysi"}
-                    ),
+                    title=variance_label,
                     axes=[row_dto],
                     synthesis_blocks=[MarkdownBlock(text=variance_text)],
                     is_synthesis_enabled=True,
@@ -1403,7 +1384,11 @@ class BlueprintTransformer:
                 if authenticity_score is None:
                     # Dynamically resolve authenticity score from the performativity detector step in the raw trace
                     performativity_step_names = {
-                        step.id for step in workflow_obj.steps if step.task_blueprint == "sp_7f9649114d2344dc"
+                        step.id
+                        for step in workflow_obj.steps
+                        if profile
+                        and getattr(profile, "performativity_detector_step_id", None)
+                        and step.task_blueprint == profile.performativity_detector_step_id
                     }
                     for event in reversed(execution.execution_trace):
                         if getattr(event, "step_name", None) in performativity_step_names:
@@ -1431,38 +1416,62 @@ class BlueprintTransformer:
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
 
+                auth_score_rounded = round(float(authenticity_score), 2)
+
+                lbl_jargon = get_metric_label("jargon_score")
+                lbl_auth_level = get_metric_label("authenticity_level")
+
                 grid_block = SduiGridBlock(
                     items=[
-                        ParagraphBlock(text=f"AI-Jargon Score: {authenticity_score}", exact_quotes=[], citations=[]),
+                        ParagraphBlock(text=f"{lbl_jargon}: {auth_score_rounded}", exact_quotes=[], citations=[]),
                     ]
                 )
 
-                alert_severity: Literal["info", "warning", "error"] = "info" if authenticity_score >= 80 else "warning"
-                if authenticity_score < 50:
+                alert_severity: Literal["info", "warning", "error"] = "info" if auth_score_rounded >= 80 else "warning"
+                if auth_score_rounded < 50:
                     alert_severity = "error"
+
+                lvl_key = (
+                    "level_high"
+                    if auth_score_rounded >= 80
+                    else "level_medium"
+                    if auth_score_rounded >= 50
+                    else "level_low"
+                )
+                lbl_lvl = get_metric_label(lvl_key)
 
                 alert_block = AlertBlock(
                     severity=alert_severity,
-                    text=f"Authenticity Level: {'High' if authenticity_score >= 80 else 'Medium' if authenticity_score >= 50 else 'Low'}",
+                    text=f"{lbl_auth_level}: {lbl_lvl}",
                     exact_quotes=[],
                     citations=[],
                 )
 
                 llm_explanation = row_explanations_cache.get("authenticity_evaluation", "")
                 if not llm_explanation:
-                    llm_explanation = (
-                        f"The source data authenticity evaluation resulted in a score of {authenticity_score}/100. "
-                        "This indicates the likelihood that the source material was generated by an AI without sufficient human cognitive effort."
-                    )
+                    fallback_template = get_metric_label("authenticity_fallback_explanation")
+                    llm_explanation = fallback_template.format(auth_score_rounded)
 
-                auth_text = f"**Authenticity Score:** {authenticity_score}/100\n\n{llm_explanation}"
+                auth_label = (
+                    profile.extension_labels.get(XaiExtensionType.AUTHENTICITY_EVALUATION)
+                    if profile and profile.extension_labels
+                    else None
+                )
+                if not auth_label:
+                    msg = f"Strict Fail-Fast: Missing extension_labels mapping for {XaiExtensionType.AUTHENTICITY_EVALUATION.value} in OutputProfile."
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+                title_str = auth_label.resolve(locale)
+                auth_text = f"**{title_str}:** {auth_score_rounded}/100\n\n{llm_explanation}"
 
                 auth_kwargs = {
                     "block_id": "auth_metrics_row",
                     "name": "Authenticity Metrics",
-                    "label_i18n": I18nText(
-                        default_locale="en", translations={"en": "Authenticity Metrics", "fi": "Aitousmittarit"}
-                    ),
+                    "label_i18n": auth_label,
                     "row_explanation": "Authenticity metrics dashboard",
                     "is_evaluative": False,
                     "inner_sdui_blocks": [grid_block, alert_block],
@@ -1477,10 +1486,7 @@ class BlueprintTransformer:
 
                 auth_layout_to_inject = ReportLayoutDTO(
                     preset_view="1d_metrics",
-                    title=I18nText(
-                        default_locale="en",
-                        translations={"en": "Authenticity Evaluation", "fi": "Lähdedatan aitous (AI-jargon)"},
-                    ),
+                    title=auth_label,
                     axes=[auth_row_dto],
                     synthesis_blocks=[MarkdownBlock(text=auth_text)],
                     is_synthesis_enabled=True,
@@ -1510,7 +1516,11 @@ class BlueprintTransformer:
 
         try:
             layouts_list = self._build_layouts(
-                profile.layouts, all_parsed_matrices, section_syntheses, profile.extension_labels
+                profile.layouts,
+                all_parsed_matrices,
+                section_syntheses,
+                profile.extension_labels,
+                accumulated_extensions,
             )
 
             if variance_layout_to_inject:
@@ -1522,9 +1532,7 @@ class BlueprintTransformer:
             if not layouts_list:
                 layouts_list = [
                     ReportLayoutDTO(
-                        title=I18nText(
-                            default_locale="en", translations={"en": "Default Layout", "fi": "Oletusasettelu"}
-                        ),
+                        title=I18nText(default_locale="en", translations={"en": "Report"}),
                         preset_view="3d_matrix",
                         axes=evaluative_matrices,
                     )

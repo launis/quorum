@@ -148,7 +148,6 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(
 const _$PresetViewEnumMap = {
   PresetView.metrics1d: '1d_metrics',
   PresetView.compare2d: '2d_compare',
-  PresetView.complex3d: '3d_complex',
   PresetView.matrix3d: '3d_matrix',
   PresetView.textOnly: 'text_only',
   PresetView.defaultView: 'default',
@@ -318,6 +317,7 @@ _OutputProfile _$OutputProfileFromJson(
         'layouts',
         'content_blocks',
         'synthesis',
+        'performativity_detector_step_id',
       ],
     );
     final val = _OutputProfile(
@@ -436,6 +436,10 @@ _OutputProfile _$OutputProfileFromJson(
             ? null
             : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
       ),
+      performativityDetectorStepId: $checkedConvert(
+        'performativity_detector_step_id',
+        (v) => v as String?,
+      ),
     );
     return val;
   },
@@ -456,6 +460,7 @@ _OutputProfile _$OutputProfileFromJson(
     'userRoleMappings': 'user_role_mappings',
     'extensionLabels': 'extension_labels',
     'contentBlocks': 'content_blocks',
+    'performativityDetectorStepId': 'performativity_detector_step_id',
   },
 );
 
@@ -493,6 +498,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
   'synthesis': instance.synthesis?.toJson(),
+  'performativity_detector_step_id': instance.performativityDetectorStepId,
 };
 
 const _$XaiExtensionTypeEnumMap = {

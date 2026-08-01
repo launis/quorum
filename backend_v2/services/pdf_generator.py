@@ -187,7 +187,7 @@ class PdfReportService:
             if report_dto and report_dto.layouts:
                 for idx, layout in enumerate(report_dto.layouts):
                     try:
-                        if layout.preset_view in ("radar_3d", "3d_complex"):
+                        if layout.preset_view in ("radar_3d", "3d_matrix"):
                             b64_data = generate_radar_chart(layout.axes)
                             if b64_data:
                                 charts[idx] = b64_data

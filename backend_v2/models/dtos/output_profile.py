@@ -131,6 +131,10 @@ class OutputProfileCreateDTO(V2CoreBase):
         list[AnySduiBlock],
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
     ]
+    performativity_detector_step_id: Annotated[
+        str | None,
+        Field(default=None, description="Optional step ID for the performativity detector"),
+    ]
 
 
 class OutputProfileUpdateDTO(V2CoreBase):
@@ -223,6 +227,10 @@ class OutputProfileUpdateDTO(V2CoreBase):
         list[AnySduiBlock] | None,
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
     ]
+    performativity_detector_step_id: Annotated[
+        str | None,
+        Field(default=None, description="Optional step ID for the performativity detector"),
+    ]
 
 
 class OutputProfileResponseDTO(BaseResponseDTO):
@@ -274,3 +282,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     synthesis: SynthesisConfigDTO | None = None
     layouts: list[OutputLayoutBlock]
     content_blocks: list[AnySduiBlock] = Field(default_factory=list)
+    performativity_detector_step_id: Annotated[
+        str | None,
+        Field(default=None, description="Optional step ID for the performativity detector"),
+    ]
