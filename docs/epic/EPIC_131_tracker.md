@@ -39,17 +39,17 @@
   - [x] Step 2.8: Cleanup Title Debt
 
 ### Phase 3: Frontend Flutter UI & Freezed DTO Synchronization (Remaining)
-- [NOK] Execute `/tier1-planner` for remaining Phase 3-5 implementation plans once Phase 2 is complete.
-- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_placeholder.md]`
-- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_placeholder.md]`
+- [OK] Execute `/tier1-planner` for remaining Phase 3-5 implementation plans once Phase 2 is complete.
+- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]`
+- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_plan.md]`
 
 ### Phase 4: PDF Template & Jinja Synchronization
-- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\05_phase4_pdf_placeholder.md]`
-- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\05_phase4_pdf_placeholder.md]`
+- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\05_phase4_pdf_plan.md]`
+- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\05_phase4_pdf_plan.md]`
 
 ### Phase 5: Verification & E2E Integration Gate
-- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\06_phase5_verification_placeholder.md]`
-- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\06_phase5_verification_placeholder.md]`
+- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\06_phase5_verification_plan.md]`
+- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\06_phase5_verification_plan.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
 - [NOK] Backend and Frontend full-stack integration test gates.
