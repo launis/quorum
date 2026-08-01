@@ -185,7 +185,7 @@ async def test_generate_pdf_task_slop_penalty_ignores_metadata() -> None:
                 mock_layout = MagicMock()
                 mock_layout.metadata = None
                 mock_layout.synthesis_blocks = [{"text": "this is bad PENALTY_SLOP: too generic"}]
-                mock_dto.layouts = [mock_layout]
+                mock_dto.inner_sdui_blocks = [mock_layout]
                 mock_transformer.build_report_dto.return_value = mock_dto
 
                 with patch("backend_v2.worker.PdfReportService") as mock_pdf_class:
@@ -231,7 +231,7 @@ async def test_generate_pdf_task_slop_penalty_ignores_missing_penalty_type() -> 
                 # Metadata exists but is missing penalty_type
                 mock_layout.metadata = {"some_other_key": "value"}
                 mock_layout.synthesis_blocks = [{"text": "this is bad PENALTY_SLOP: too generic"}]
-                mock_dto.layouts = [mock_layout]
+                mock_dto.inner_sdui_blocks = [mock_layout]
                 mock_transformer.build_report_dto.return_value = mock_dto
 
                 with patch("backend_v2.worker.PdfReportService") as mock_pdf_class:

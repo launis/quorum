@@ -9,6 +9,12 @@ Adheres to V2 Architecture:
 from typing import Any
 
 from backend_v2.models.v2_core import ExecutionRecord, ReportDataDTO
+from backend_v2.models.view.sdui import (
+    SduiMatrixTableBlock,
+    SduiMetrics1DBlock,
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
+)
 
 
 class FlatFileService:
@@ -36,10 +42,13 @@ class FlatFileService:
             flat_record["has_warning"] = report_dto.has_warning
 
             matrices = []
-            if report_dto.layouts:
-                for layout in report_dto.layouts:
-                    if layout.axes:
-                        matrices.extend(layout.axes)
+            if report_dto.inner_sdui_blocks:
+                for block in report_dto.inner_sdui_blocks:
+                    match block:
+                        case SduiRadarChartBlock(axes=axes) | SduiScatterPlotBlock(axes=axes) | SduiMatrixTableBlock(axes=axes) | SduiMetrics1DBlock(axes=axes):
+                            matrices.extend(axes)
+                        case _:
+                            pass
             for matrix in matrices:
                 matrix_prefix = f"matrix_{matrix.block_id}"
                 flat_record[f"{matrix_prefix}_score"] = matrix.score

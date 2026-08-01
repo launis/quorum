@@ -43,6 +43,8 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
         "id": "prf_1234567812345678",
         "slug": "test",
         "workflow_id": "wf_1234567812345678",
+        "metric_mappings": {"jargon_score": {"default_locale": "en", "translations": {"en": "Jargon Score"}}, "authenticity_level": {"default_locale": "en", "translations": {"en": "Authenticity Evaluation"}}, "level_high": {"default_locale": "en", "translations": {"en": "High"}}, "level_medium": {"default_locale": "en", "translations": {"en": "Medium"}}, "level_low": {"default_locale": "en", "translations": {"en": "Low"}}, "authenticity_fallback_explanation": {"default_locale": "en", "translations": {"en": "Fallback"}}},
+        "layouts": [],
         "name": {"default_locale": "en", "translations": {"en": "test"}},
         "visible_workflow_extensions": ["authenticity_evaluation"],
         "extension_labels": {},

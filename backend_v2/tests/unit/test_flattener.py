@@ -1,11 +1,13 @@
+from backend_v2.models.view.sdui import SduiMetrics1DBlock
 """Unit tests for the FlatFileService."""
 
 import uuid
 
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.v2_core import ExecutionRecord, I18nText, MatrixScorecardRowDTO, ReportDataDTO, ReportLayoutDTO
+from backend_v2.models.v2_core import ExecutionRecord, I18nText, MatrixScorecardRowDTO, ReportDataDTO
 
 ExecutionRecord.model_rebuild()
+from backend_v2.models.view.sdui import SduiMetrics1DBlock
 from backend_v2.services.flattener import FlatFileService
 
 
@@ -28,9 +30,9 @@ def test_flat_file_service_flatten_results() -> None:
         profile_id="prof_test",
         global_score=85.0,
         has_warning=False,
-        layouts=[
-            ReportLayoutDTO(
-                preset_view="default",
+        inner_sdui_blocks=[
+            SduiMetrics1DBlock(
+                text_delivery_mode="full",
                 axes=[
                     MatrixScorecardRowDTO(
                         block_id="blk_1",

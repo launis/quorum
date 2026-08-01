@@ -19,6 +19,7 @@ from jinja2 import Environment, FileSystemLoader
 from backend_v2.database.interfaces import IExecutionRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.v2_core import ReportDataDTO, Workflow
+from backend_v2.models.view.sdui import SduiRadarChartBlock, SduiScatterPlotBlock
 from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
 
 logger = logging.getLogger(__name__)
@@ -184,25 +185,25 @@ class PdfReportService:
 
             # 2.5 Generate static charts if DTO is provided
             charts = {}
-            if report_dto and report_dto.layouts:
-                for idx, layout in enumerate(report_dto.layouts):
+            if report_dto and report_dto.inner_sdui_blocks:
+                for idx, block in enumerate(report_dto.inner_sdui_blocks):
                     try:
-                        if layout.preset_view in ("radar_3d", "3d_matrix"):
-                            b64_data = generate_radar_chart(layout.axes)
+                        if isinstance(block, SduiRadarChartBlock):
+                            b64_data = generate_radar_chart(block.axes)
                             if b64_data:
                                 charts[idx] = b64_data
                             else:
-                                msg = f"generate_radar_chart returned empty data for layout {idx}"
+                                msg = f"generate_radar_chart returned empty data for block {idx}"
                                 raise ConfigurationError(msg)
-                        elif layout.preset_view in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
-                            b64_data = generate_scatter_chart(layout.axes)
+                        elif isinstance(block, SduiScatterPlotBlock):
+                            b64_data = generate_scatter_chart(block.axes)
                             if b64_data:
                                 charts[idx] = b64_data
                             else:
-                                msg = f"generate_scatter_chart returned empty data for layout {idx}"
+                                msg = f"generate_scatter_chart returned empty data for block {idx}"
                                 raise ConfigurationError(msg)
                     except Exception as e:
-                        msg = f"Failed to render PDF charts for layout {idx}: {e}"
+                        msg = f"Failed to render PDF charts for block {idx}: {e}"
                         logger.error(
                             "[PdfReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True
                         )

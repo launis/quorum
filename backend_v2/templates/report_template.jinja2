@@ -248,8 +248,6 @@
                 <!-- 2D Compare placeholder -->
             {% elif block.block_type is defined and block.block_type == 'matrix_summary' %}
                 <!-- Matrix Summary placeholder -->
-            {% elif block.block_type is defined and block.block_type == '1d_metrics' %}
-                <!-- 1D Metrics placeholder -->
             {% endif %}
         {% endfor %}
     {% endmacro %}
@@ -271,18 +269,19 @@
         </div>
         {% endif %}
 
-        {% for layout in report_data.layouts %}
-            {% set layout_title_label = layout.title.resolve(lang_code) if layout.title else ('Automaattinen' if layout.preset_view == 'default' else layout.preset_view) %}
+        {% if report_data.inner_sdui_blocks is defined %}
+        {% for layout in report_data.inner_sdui_blocks %}
+            {% set layout_title_label = layout.title.resolve(lang_code) if (layout.title is defined and layout.title and layout.title.resolve is defined) else (layout.title if (layout.title is defined and layout.title) else ('Automaattinen' if (layout.preset_view is defined and layout.preset_view == 'default') else (layout.preset_view if layout.preset_view is defined else layout.block_type))) %}
             <h2 style="margin-top: 20px; color: #004D40; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">{{ layout_title_label }}</h2>
             
-            {% if layout.description %}
-                {% set layout_desc_label = layout.description.resolve(lang_code) %}
+            {% if layout.description is defined and layout.description %}
+                {% set layout_desc_label = layout.description.resolve(lang_code) if (layout.description is defined and layout.description and layout.description.resolve is defined) else (layout.description if layout.description is defined else "") %}
                 {% if layout_desc_label %}
                     <div style="font-size: 12px; color: #555; margin-bottom: 15px; font-style: italic;">{{ layout_desc_label }}</div>
                 {% endif %}
             {% endif %}
 
-            {% if layout.synthesis_blocks %}
+            {% if layout.synthesis_blocks is defined and layout.synthesis_blocks %}
             <div class="justify-box" style="margin-bottom: 20px; border-left: 4px solid #4CAF50; background-color: #F1F8E9;">
                 <div style="font-size: 12px; color: #333; line-height: 1.5;">
                     {{ render_sdui_blocks(layout.synthesis_blocks) }}
@@ -296,11 +295,13 @@
                 </div>
             {% endif %}
             
-            {% set is_matrix_summary = layout.preset_view == 'matrix_summary' %}
-            {% set has_graph = layout.preset_view in ['matrix3d', '3d_matrix', 'compare2d', '2d_compare', '3d_complex', 'complex3d'] %}
+            {% set is_matrix_summary = layout.preset_view is defined and layout.preset_view == 'matrix_summary' %}
+            {% set layout_pv = layout.preset_view if layout.preset_view is defined else layout.block_type %}
+            {% set has_graph = layout_pv in ['matrix3d', '3d_matrix', 'compare2d', '2d_compare', '3d_complex', 'complex3d'] %}
             {% set hide_axes = is_matrix_summary or (has_graph and layout.text_delivery_mode == 'none') %}
             
-            {% if not hide_axes %}
+            {% set has_axes = layout.axes is defined %}
+            {% if has_axes and not hide_axes %}
                 {% for axis in layout.axes %}
                     <div class="card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
@@ -415,20 +416,23 @@
             {% endfor %}
             {% endif %}
         {% endfor %}
+        {% endif %}
 
         <!-- Yhteenveto / Matrix Summary Table -->
         {% set matrix_layout = none %}
+        {% if report_data.layouts is defined %}
         {% for lay in report_data.layouts %}
             {% if lay.preset_view == 'matrix_summary' %}
                 {% set matrix_layout = lay %}
             {% endif %}
         {% endfor %}
+        {% endif %}
         {% set visible_cols = matrix_layout.matrix_visible_columns if matrix_layout else [] %}
         {% if visible_cols %}
         <div style="page-break-before: always; margin-top: 30px;">
 
             {% set default_summary_title = l10n.scorecard_matrix_summary %}
-            {% set first_layout = report_data.layouts[0] if report_data and report_data.layouts else none %}
+            {% set first_layout = report_data.layouts[0] if (report_data and report_data.layouts is defined and report_data.layouts) else none %}
             {% set summary_title = (first_layout.title.resolve(lang_code)) if first_layout and first_layout.title else default_summary_title %}
             <h2 style="color: #1a237e; text-transform: uppercase; border-bottom: 2px solid #1a237e; padding-bottom: 8px; margin-bottom: 20px;">{{ summary_title }}</h2>
             <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">

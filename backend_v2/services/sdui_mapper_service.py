@@ -58,61 +58,7 @@ class SduiMapperService:
 
         sections: list[UiSection] = []
 
-        # Phase B1: Layout-Driven Mapping
-        for idx, layout in enumerate(report.layouts):
-            # Phase B1: ScoreCard Translation
-            if layout.preset_view in ("1d_metrics", "3d_matrix"):
-                dimensions = []
-                for axis in layout.axes:
-                    dimensions.append(
-                        DimensionDisplay(
-                            dimension_id=axis.block_id,
-                            dimension_label=axis.name,
-                            score=axis.score if axis.score is not None else 0.0,
-                            max_score=axis.scale_max if axis.scale_max is not None else 1.0,
-                            weight=1.0,  # Default weight
-                            reasoning=axis.row_explanation,
-                        )
-                    )
 
-                score_card = ScoreCardDisplay(
-                    agent_name=report.scoring_engine_name or "Audit",
-                    total_score=report.global_score if report.global_score is not None else 0.0,
-                    min_score=0,
-                    max_score=100,
-                    verdict=layout.description.resolve() if layout.description else "",
-                    dimensions=dimensions,
-                )
-
-                title = (
-                    layout.title.resolve(lang)
-                    if layout.title
-                    else I18nText(default_locale="fi", translations={"fi": "Analyysi", "en": "Analysis"}).resolve(lang)
-                )
-                sections.append(
-                    UiSection(
-                        id=f"layout_scorecard_{idx}",
-                        type=SectionType.SCORE_CARD,
-                        title=title,
-                        data=score_card.model_dump(mode="json"),
-                    )
-                )
-
-            # Phase B1: Layout-specific synthesis_blocks
-            if layout.synthesis_blocks:
-                title = (
-                    layout.title.resolve(lang)
-                    if layout.title
-                    else I18nText(default_locale="fi", translations={"fi": "Synteesi", "en": "Synthesis"}).resolve(lang)
-                )
-                sections.append(
-                    UiSection(
-                        id=f"layout_synthesis_{idx}",
-                        type=SectionType.MARKDOWN_BLOCK,
-                        title=title,
-                        data=layout.synthesis_blocks,
-                    )
-                )
 
         # Phase B1: XAI Transparency
         if report.mcp_tool_audit:

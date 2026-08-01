@@ -26,14 +26,15 @@
 
 
 ### Phase 2: Blueprint Refactoring (Backend Orchestration)
-- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]`
-- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]`
-  - [ ] Step 2.1: Refactor _build_layouts() -> _build_visualization_blocks()
-  - [ ] Step 2.2: Update build_report_dto()
-  - [ ] Step 2.3: Update ReportDataDTO - Remove layouts Field
-  - [ ] Step 2.4: Delete ReportLayoutDTO Class
-  - [ ] Step 2.6: Update Downstream Backend Consumers
-  - [ ] Step 2.7: Update Backend Tests & Fixtures
+- [OK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]`
+- [OK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\03_phase2_blueprint_refactor.md]`
+  - [x] Step 2.1: Refactor _build_layouts() -> _build_visualization_blocks()
+  - [x] Step 2.2: Update build_report_dto()
+  - [x] Step 2.3: Update ReportDataDTO - Remove layouts Field
+  - [x] Step 2.4: Delete ReportLayoutDTO Class
+  - [x] Step 2.6: Update Downstream Backend Consumers
+  - [x] Step 2.7: Update Backend Tests & Fixtures
+  - [x] Step 2.8: Cleanup Title Debt
 
 ### Phase 3: Frontend Flutter UI & Freezed DTO Synchronization (Remaining)
 - [NOK] Execute `/tier1-planner` for remaining Phase 3-5 implementation plans once Phase 2 is complete.
@@ -102,14 +103,21 @@
 - Broke down Phase 1, Phase 3.1 (Cross-Domain Dependency), and Phase 2 into micro-chunked executable plans tracked accurately in the matrix.
 - Completed Execution of Phase 1 (Backend Models). Implemented `SduiRadarChartBlock`, `SduiScatterPlotBlock`, `SduiMatrixTableBlock`, `SduiMetrics1DBlock`.
 - Updated `AnySduiBlock` and successfully resolved complex Pydantic V2 circular import dependencies by utilizing delayed schema compilation and `model_rebuild()` combined with `TYPE_CHECKING` string references.
-- Achieved strict 100% test coverage for `sdui.py` with both positive and negative Pydantic validation tests in `test_sdui_blocks.py`.
-- Updated `enums.dart` and `report_template.jinja2` to satisfy cross-domain enum atomicity checks.
+- [x] Resolve `AttributeError: 'NoneType' object has no attribute 'translations'` in `test_epic_chain_e2e.py` after the `ReportDataDTO` migration to `inner_sdui_blocks`.
+- [x] Resolve `AttributeError: 'SduiMatrixTableBlock' object has no attribute 'preset_view'` in `test_sdui_semantic_parity.py`.
+- [x] Ensure full semantic parity between `ReportDataDTO` and the `report_template.jinja2` rendering after transitioning to the flat `inner_sdui_blocks` architecture.
 - Completed Execution of Phase 3 Step 3.1 (Frontend Models). Added `matrix3d`, `compare2d`, `metrics1d`, and `matrixSummary` union variants to `SduiBlockDTO`.
 - Removed old `PresetView.complex3d` dependencies and upgraded them to `PresetView.matrix3d`.
 - Implemented and passed positive/negative unit tests for the new Freezed variants.
 - Successfully regenerated Flutter client models.
 - Successfully completed System 2 Red-Team audit of Phase 3 Step 3.1 using `/tier8-audit-plan`.
 - Executed Hotfix for Phase 3 Step 3.1: Corrected string discriminators in SduiBlockDTO to strictly map to backend payload (e.g., `3d_matrix` instead of `matrix3d`).
+- Completed Execution of Phase 2 (Blueprint Refactoring).
+  - Deleted `layouts` from `ReportDataDTO` and eliminated `ReportLayoutDTO`.
+  - Refactored `blueprint.py` to instantiate explicit `SduiMetrics1DBlock`, `SduiMatrixTableBlock`, `SduiRadarChartBlock`, and `SduiScatterPlotBlock` instances and append them directly into `inner_sdui_blocks`.
+  - Fixed Jinja PDF template (`report_template.jinja2`) to handle flat `inner_sdui_blocks` logic safely without assuming all blocks possess `axes`.
+  - Fully resolved E2E Pydantic Validation & Jinja rendering crashes in `test_epic_chain_e2e.py` and `test_sdui_semantic_parity.py`. Test suite is 100% green.
+  - [x] Step 2.8: Cleaned up title debt. Removed loose ParagraphBlock titles from `blueprint.py` and embedded them directly into the SDUI component constructors for true Dumb Painter parity.
 
 ## Learned
 - **Baseline State Snapshot**: The codebase currently uses `ReportLayoutDTO` containing a `preset_view` enum field to determine visualization rendering on the client side. This violates Dumb Painter SDUI constraints. The `layouts` field exists on both Python's `ReportDataDTO` and Flutter's `ReportDataDto`.
@@ -120,7 +128,8 @@
 - **String Discriminator Parity**: Freezed union string values MUST explicitly match the backend payload exactly, even if Dart variable naming conventions differ. A previous plan hallucinated Dart-compatible names into the string discriminators.
 
 ## Remaining
-- Proceed to Phase 2: Blueprint Refactoring using `/tier0-research-plan`.
+- Generate implementation plan for Phase 3: Frontend Flutter UI & Freezed DTO Synchronization.
+- Use `/tier1-planner` to create the markdown file, or directly run `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\04_phase3_frontend_ui_placeholder.md]` to start planning.
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_131_tracker.md]" --workflow=/tier0-research-plan --rules="00-antigravity-core.md, 01-python-backend.md"`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_131_tracker.md]" --workflow=/tier1-planner --rules="00-antigravity-core.md, 02_flutter_desktop.md"`

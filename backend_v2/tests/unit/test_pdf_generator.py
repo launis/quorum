@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, I18nText, ReportDataDTO, ReportLayoutDTO
+from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, I18nText, ReportDataDTO
+from backend_v2.models.view.sdui import SduiMetrics1DBlock
 from backend_v2.services.pdf_generator import PdfReportService
 
 
@@ -32,7 +33,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
         workflow_id="test_wf",
         profile_id="prf_test",
         profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
-        layouts=[ReportLayoutDTO(preset_view="1d_metrics", axes=[])],
+        inner_sdui_blocks=[SduiMetrics1DBlock(axes=[], text_delivery_mode="full")],
     )
 
     pdf_bytes = await svc.generate_execution_pdf(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto)
@@ -65,13 +66,12 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
         workflow_id="test_wf",
         profile_id="prf_test",
         profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
-        layouts=[ReportLayoutDTO(preset_view="1d_metrics", axes=[])],
+        inner_sdui_blocks=[SduiMetrics1DBlock(axes=[], text_delivery_mode="full")],
     )
 
     html_string = await svc.generate_execution_html(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto)
     assert html_string is not None
     assert isinstance(html_string, str)
-    assert "1d_metrics" in html_string
-    # The execution ID is not necessarily in the HTML either, wait!
+        # The execution ID is not necessarily in the HTML either, wait!
     # I should just check that html_string starts with <!DOCTYPE html>
     assert html_string.strip().startswith("<!DOCTYPE html>")

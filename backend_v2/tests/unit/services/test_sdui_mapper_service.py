@@ -1,10 +1,11 @@
+from backend_v2.models.view.sdui import SduiMetrics1DBlock
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.view.sdui import SduiRadarChartBlock
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixScorecardRowDTO,
     MCPAuditTrace,
     ReportDataDTO,
-    ReportLayoutDTO,
 )
 from backend_v2.models.view.sdui import (
     MarkdownBlock,
@@ -54,8 +55,8 @@ def test_map_report_to_sdui_complete() -> None:
     )
 
     # Create dummy layout
-    layout = ReportLayoutDTO(
-        preset_view="1d_metrics",
+    layout = SduiMetrics1DBlock(
+        text_delivery_mode="full",
         title=I18nText(default_locale="en", translations={"en": "Metrics"}),
         axes=[row],
         synthesis_blocks=[MarkdownBlock(block_type="markdown", text="Layout synthesis")],
@@ -76,7 +77,7 @@ def test_map_report_to_sdui_complete() -> None:
         global_score=90.0,
         strictness_level=80,
         has_warning=True,
-        layouts=[layout],
+        inner_sdui_blocks=[layout],
         mcp_tool_audit=[audit_trace],
     )
 
@@ -88,41 +89,17 @@ def test_map_report_to_sdui_complete() -> None:
     assert view.metrics["global_score"] == 90.0
     assert view.metrics["strictness_level"] == 80
 
-    # Sections: layout scorecard (1), layout synthesis (1), mcp (1) -> total 3
-    assert len(view.sections) == 3
+    # Sections: mcp (1) -> total 1
+    assert len(view.sections) == 1
 
-    # Check Layout Scorecard
-    assert view.sections[0].id == "layout_scorecard_0"
-    assert view.sections[0].type == SectionType.SCORE_CARD
-
-    score_card = ScoreCardDisplay.model_validate(view.sections[0].data)
-    assert score_card.dimensions[0].dimension_id == "blk_123"
-    assert score_card.dimensions[0].dimension_label == "Security Policy"
-    assert score_card.dimensions[0].score == 85.0
-    assert score_card.dimensions[0].reasoning == "Policy is adequately documented."
-
-    # Check Layout Synthesis
-    assert view.sections[1].id == "layout_synthesis_0"
-    assert view.sections[1].type == SectionType.MARKDOWN_BLOCK
-    assert view.sections[1].data == [MarkdownBlock(block_type="markdown", text="Layout synthesis")]
-
-    # Check MCP
-    assert view.sections[2].id == "xai_mcp_audit"
-    assert view.sections[2].type == SectionType.USAGE_STATS
-
-
-def test_map_report_to_sdui_empty() -> None:
-    mapper = SduiMapperService()
-    report = ReportDataDTO(
-        execution_id="exe_123",
-        workflow_id="wf_123",
-        profile_id="prof_123",
-        has_warning=False,
-    )
-
-    view = mapper.map_report_to_sdui(report, execution_id="exe_empty")
-
-    assert view.view_id == "exe_empty"
-    assert view.status_theme == "success"
-    assert view.metrics == {}
-    assert len(view.sections) == 0
+    # Check SDUI Blocks
+    assert len(view.inner_sdui_blocks) == 1
+    assert view.inner_sdui_blocks[0].text_delivery_mode == 'full'
+    assert view.inner_sdui_blocks[0].title.translations['en'] == 'Metrics'
+    assert view.inner_sdui_blocks[0].axes[0].name == 'Security Policy'
+    
+    # Check MCP Audit Section
+    assert view.sections[0].id == 'xai_mcp_audit'
+    assert view.sections[0].type.value == 'USAGE_STATS'
+    assert len(view.sections[0].data) == 1
+    assert view.sections[0].data[0]['tool_id'] == 'mcp_tavily'

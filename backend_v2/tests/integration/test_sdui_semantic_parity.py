@@ -108,18 +108,25 @@ async def test_sdui_semantic_parity() -> None:
             }
         )  # Clear random dicts and explicitly mock profile_name to prevent Jinja crashes and ensure parity
 
-        new_layouts = []
-        for layout in dto.layouts:
-            axes = list(layout.axes)
-            if layout.preset_view in ("radar_3d", "3d_matrix"):
+        from backend_v2.models.view.sdui import HeaderBlock
+
+        new_layouts = [
+            HeaderBlock(title="English test", badges=[], metadata_lines=[], costs=None, tokens=None, custom_preface_md=None)
+        ]
+        for layout in dto.inner_sdui_blocks:
+            axes = list(getattr(layout, 'axes', []))
+            if getattr(layout, "preset_view", "") in ("radar_3d", "3d_matrix") or getattr(layout, "block_type", "") in ("radar_3d", "3d_matrix"):
                 while len(axes) < 3:
                     axes.append(MatrixScorecardRowDTOFactory.build())
-            elif layout.preset_view in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
+            elif getattr(layout, "preset_view", getattr(layout, "block_type", "")) in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
                 while len(axes) < 2:
                     axes.append(MatrixScorecardRowDTOFactory.build())
-            new_layouts.append(layout.model_copy(update={"synthesis_blocks": None, "axes": axes}))
+            if hasattr(layout, "axes"):
+                new_layouts.append(layout.model_copy(update={"synthesis_blocks": None, "axes": axes}))
+            else:
+                new_layouts.append(layout.model_copy(update={"synthesis_blocks": None}))
 
-        dto = dto.model_copy(update={"layouts": new_layouts})
+        dto = dto.model_copy(update={"inner_sdui_blocks": new_layouts})
 
         with open(golden_path, "w", encoding="utf-8") as f_json:
             f_json.write(dto.model_dump_json(exclude_none=True))

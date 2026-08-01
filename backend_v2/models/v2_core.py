@@ -1047,36 +1047,6 @@ class SynthesisConfigDTO(V2CoreBase):
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 
 
-class ReportLayoutDTO(V2CoreBase):
-    preset_view: Literal["1d_metrics", "2d_compare", "3d_matrix", "default", "text_only", "matrix_summary"]
-    title: I18nText | None = Field(default=None)
-    description: I18nText | None = Field(default=None)
-    is_synthesis_enabled: bool = Field(default=True)
-    axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
-    target_blocks: list[str | LaxTargetBlockType] | None = Field(
-        default=None, description="Optional explicit block IDs targeted by this layout."
-    )
-    text_delivery_mode: Literal["full", "titles_only", "none"] = Field(
-        default="full", description="Granularity of text output for this layout."
-    )
-
-    synthesis: SynthesisConfigDTO | None = Field(default=None)
-    synthesis_blocks: list[AnySduiBlock] | None = Field(
-        default=None, description="The rendered SDUI blocks for this layout"
-    )
-    matrix_column_labels: dict[str, I18nText] = Field(
-        default_factory=dict,
-        description="Optional mapping of UI column identifiers to localized labels.",
-    )
-    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
-        default_factory=dict,
-        description="Optional mapping of XAI extension identifiers to localized labels.",
-    )
-    matrix_visible_columns: list[str] = Field(
-        default_factory=list,
-        description="Visible columns for this matrix UI.",
-    )
-
 
 class ErrorDetailsDTO(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
@@ -1193,7 +1163,6 @@ class ReportDataDTO(V2CoreBase):
     visible_metadata: list[str] = Field(
         default_factory=list, description="Fields visible on the UI and PDF cover header."
     )
-    layouts: list[ReportLayoutDTO] = Field(default_factory=list)
 
     # Execution Diagnostic Metadata
     created_at: datetime | None = None

@@ -54,7 +54,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
 
     # Mockataan BlueprintTransformer
     mock_dto = Mock()
-    mock_dto.layouts = []
+    mock_dto.inner_sdui_blocks = []
     mock_dto.has_warning = False
     mock_dto.model_dump.return_value = {"execution_id": "exe_1", "workflow_id": "wf_1"}
 

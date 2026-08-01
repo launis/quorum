@@ -203,22 +203,13 @@ async def test_epic_93_e2e_golden_master() -> None:
     assert view.metrics is not None
     assert view.metrics["global_score"] == 85.0
 
-    # Verify that ReportDataDTO.layouts are successfully mapped to ReportView.sections
-    assert len(view.sections) > 0
+    
+    # Verify that ReportDataDTO.inner_sdui_blocks are populated
+    assert len(view.inner_sdui_blocks) > 0
 
-    scorecard_section = next((s for s in view.sections if getattr(s.type, "value", s.type) == "SCORE_CARD"), None)
-    assert scorecard_section is not None
-    assert scorecard_section.title == "Axis Title"
+    scorecard_block = next((b for b in view.inner_sdui_blocks if getattr(b, "block_type", getattr(b, "preset_view", "")) in ("1d_metrics", "text_only")), None)
+    assert scorecard_block is not None
 
-    # Check that dimensions are populated from the layout axis
-    score_card_data = scorecard_section.data
-    assert score_card_data["total_score"] == 85.0
-    assert len(score_card_data["dimensions"]) == 1
-
-    dimension = score_card_data["dimensions"][0]
-    assert dimension["dimension_id"] == block_id
-    assert dimension["score"] == 85.0
-    assert dimension["dimension_label"] == "Matrix 1 *"
 
 
 @pytest.mark.asyncio

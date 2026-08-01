@@ -52,5 +52,10 @@ This plan refactors the blueprint generator to emit the new SDUI blocks inline, 
         <action>Implement Negative Test Mandates: `test_blueprint.py` MUST verify `ConfigurationError` when custom scale lacks bounds, and unrecognized `text_delivery_mode` fails deterministically.</action>
         <action>CRITICAL: Migrate static JSON mock payloads in `backend_v2/tests/integration/test_data/` by removing `"layouts"` array and merging contents to `"inner_sdui_blocks"` to avoid Pydantic `extra='forbid'` crashes during integration tests.</action>
     </step>
+
+    <step id="2.8" name="Cleanup Title Debt">
+        <action>Remove hardcoded generation of `ParagraphBlock` for title/description in `_build_visualization_blocks`.</action>
+        <action>Pass `title` and `description` to SduiRadarChartBlock, SduiScatterPlotBlock, SduiMatrixTableBlock, and SduiMetrics1DBlock instead.</action>
+    </step>
 </execution_protocol>
 ```

@@ -130,10 +130,10 @@ def mock_repo_transformer() -> Any:
         'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
         'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
         'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
-        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
-        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+         'translations':{'en': 'Medium'}},
+         'translations':{'en': 'Low'}},
         'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
-        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+         'translations':{'en': 'Fallback {0}'}},
     },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": ["remediation_steps", "risk_flag", "coaching"],
@@ -219,11 +219,11 @@ def mock_repo_transformer() -> Any:
         'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
         'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
         'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
-        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
-        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
-        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}), 'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}), 'level_low': I18nText(default_locale='en', translations={'en': 'Low'}), 'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}), 'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}),  translations={'en': 'Medium'}),  translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
+         translations={'en': 'Medium'}),
+         translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
         'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
-        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+         translations={'en': 'Fallback {0}'}),
     },
             layouts=[
                 OutputLayoutBlock(
@@ -315,8 +315,8 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
     dto = await transformer.build_report_dto("exe_0000000000000002")
 
     assert isinstance(dto, ReportDataDTO)
-    assert len(dto.layouts) == 1
-    assert dto.layouts[0].preset_view == "3d_matrix"
+    assert len(dto.inner_sdui_blocks) == 1
+    assert dto.inner_sdui_blocks[0].block_type == "3d_matrix"
 
 
 @pytest.fixture
@@ -388,10 +388,10 @@ def mock_repo_microcot() -> Any:
         'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
         'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
         'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
-        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
-        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+         'translations':{'en': 'Medium'}},
+         'translations':{'en': 'Low'}},
         'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
-        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+         'translations':{'en': 'Fallback {0}'}},
     },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
@@ -532,10 +532,10 @@ def mock_repo_sdui() -> AsyncMock:
         'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
         'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
         'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
-        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
-        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+         'translations':{'en': 'Medium'}},
+         'translations':{'en': 'Low'}},
         'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
-        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+         'translations':{'en': 'Fallback {0}'}},
     },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
@@ -649,14 +649,14 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
     dto = await transformer.build_report_dto("exe_1111111122222222", accept_language="en")
     assert dto.has_warning is True
 
-    assert dto.layouts is not None
-    assert len(dto.layouts) > 0
-    assert dto.layouts[0].synthesis_blocks is not None
-    assert len(dto.layouts[0].synthesis_blocks) > 0
+    assert dto.inner_sdui_blocks is not None
+    assert len(dto.inner_sdui_blocks) > 0
+    assert dto.inner_sdui_blocks[0].synthesis_blocks is not None
+    assert len(dto.inner_sdui_blocks[0].synthesis_blocks) > 0
     from backend_v2.models.view.sdui import MarkdownBlock
 
-    assert isinstance(dto.layouts[0].synthesis_blocks[0], MarkdownBlock)
-    safe_md = dto.layouts[0].synthesis_blocks[0].text
+    assert isinstance(dto.inner_sdui_blocks[0].synthesis_blocks[0], MarkdownBlock)
+    safe_md = dto.inner_sdui_blocks[0].synthesis_blocks[0].text
 
     assert "Some content." in safe_md
 
@@ -903,10 +903,10 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
         'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
         'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
-        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
-        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+         'translations':{'en': 'Medium'}},
+         'translations':{'en': 'Low'}},
         'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
-        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+         'translations':{'en': 'Fallback {0}'}},
     },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
@@ -933,9 +933,9 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     )
     dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
 
-    assert len(dto.layouts) == 2
-    variance_layout = dto.layouts[1]
-    assert variance_layout.preset_view == "1d_metrics"
+    assert len(dto.inner_sdui_blocks) == 2
+    variance_layout = dto.inner_sdui_blocks[1]
+    assert getattr(variance_layout, "block_type", getattr(variance_layout, "preset_view", None)) == "1d_metrics"
     matrix = variance_layout.axes[0]
     assert len(matrix.inner_sdui_blocks) == 2
 
@@ -986,10 +986,10 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
         'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
         'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
         'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
-        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
-        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+         'translations':{'en': 'Medium'}},
+         'translations':{'en': 'Low'}},
         'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
-        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+         'translations':{'en': 'Fallback {0}'}},
     },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
@@ -1137,10 +1137,10 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
         'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
         'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
         'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
-        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
-        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+         'translations':{'en': 'Medium'}},
+         'translations':{'en': 'Low'}},
         'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
-        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+         'translations':{'en': 'Fallback {0}'}},
     },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
@@ -1169,9 +1169,9 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
 
     dto = await transformer.build_report_dto("exe_0000000000000011", accept_language="en")
 
-    assert len(dto.layouts) == 2
-    variance_layout = dto.layouts[1]
-    assert variance_layout.preset_view == "1d_metrics"
+    assert len(dto.inner_sdui_blocks) == 2
+    variance_layout = dto.inner_sdui_blocks[1]
+    assert getattr(variance_layout, "block_type", getattr(variance_layout, "preset_view", None)) == "1d_metrics"
     matrix = variance_layout.axes[0]
     assert len(matrix.inner_sdui_blocks) == 2
 
@@ -1263,11 +1263,11 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
     )
 
     dto = await transformer.build_report_dto("exe_0000000000000015", accept_language="en")
-    assert len(dto.layouts) > 0
-    layout = dto.layouts[0]
+    assert len(dto.inner_sdui_blocks) > 0
+    layout = dto.inner_sdui_blocks[0]
 
-    assert len(dto.layouts) > 1
-    layout = dto.layouts[1]
+    assert len(dto.inner_sdui_blocks) > 1
+    layout = dto.inner_sdui_blocks[1]
     synthesis = layout.synthesis_blocks or []
     accordions = [b for b in synthesis if getattr(b, "block_type", "") == "accordion"]
     assert len(accordions) >= 2
@@ -1354,8 +1354,8 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
 
     dto = await transformer.build_report_dto("exe_0000000000000016", accept_language="en")
     
-    assert len(dto.layouts) > 1
-    layout = dto.layouts[1]
+    assert len(dto.inner_sdui_blocks) > 1
+    layout = dto.inner_sdui_blocks[1]
 
     synthesis = layout.synthesis_blocks or []
     accordions = [b for b in synthesis if getattr(b, "block_type", "") == "accordion"]
@@ -1448,10 +1448,10 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
         'jargon_score': {'default_locale':'en', 'translations':{'en': 'AI-Jargon Score'}},
         'authenticity_level': {'default_locale':'en', 'translations':{'en': 'Authenticity Level'}},
         'level_high': {'default_locale':'en', 'translations':{'en': 'High'}},
-        'level_medium': {'default_locale':'en', 'translations':{'en': 'Medium'}},
-        'level_low': {'default_locale':'en', 'translations':{'en': 'Low'}},
+         'translations':{'en': 'Medium'}},
+         'translations':{'en': 'Low'}},
         'variance_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0} {1}'}},
-        'authenticity_fallback_explanation': {'default_locale':'en', 'translations':{'en': 'Fallback {0}'}},
+         'translations':{'en': 'Fallback {0}'}},
     },
             "layouts": [],
         }
@@ -1601,11 +1601,11 @@ async def test_blueprint_sdui_layout_terminology_override(mock_repo_transformer:
         'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
         'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
         'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
-        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
-        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
-        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}), 'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}), 'level_low': I18nText(default_locale='en', translations={'en': 'Low'}), 'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}), 'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}),  translations={'en': 'Medium'}),  translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
+         translations={'en': 'Medium'}),
+         translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
         'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
-        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+         translations={'en': 'Fallback {0}'}),
     },
         layouts=[
             OutputLayoutBlock(
@@ -1642,8 +1642,8 @@ async def test_blueprint_sdui_layout_terminology_override(mock_repo_transformer:
     )
     dto = await transformer.build_report_dto("exe_0000000000000099")
 
-    assert len(dto.layouts) == 1
-    layout = dto.layouts[0]
+    assert len(dto.inner_sdui_blocks) == 1
+    layout = dto.inner_sdui_blocks[0]
 
     assert layout.matrix_column_labels is not None
     assert layout.matrix_column_labels["explanation"].translations["fi"] == "Selite"
@@ -1732,11 +1732,11 @@ async def test_blueprint_transformer_missing_extension_label_raises_error(mock_r
         'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
         'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
         'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
-        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
-        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
-        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}), 'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}), 'level_low': I18nText(default_locale='en', translations={'en': 'Low'}), 'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}), 'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}),  translations={'en': 'Medium'}),  translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
+         translations={'en': 'Medium'}),
+         translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
         'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
-        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+         translations={'en': 'Fallback {0}'}),
     },
             layouts=[
                 OutputLayoutBlock(
@@ -1849,11 +1849,11 @@ async def test_blueprint_transformer_missing_coaching_label_raises_error(mock_re
         'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
         'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
         'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
-        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
-        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
-        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}), 'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}), 'level_low': I18nText(default_locale='en', translations={'en': 'Low'}), 'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}), 'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}),  translations={'en': 'Medium'}),  translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
+         translations={'en': 'Medium'}),
+         translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
         'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
-        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+         translations={'en': 'Fallback {0}'}),
     },
             layouts=[
                 OutputLayoutBlock(
@@ -1944,11 +1944,11 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
         'alignment_misaligned': I18nText(default_locale='en', translations={'en': 'MISALIGNED'}),
         'jargon_score': I18nText(default_locale='en', translations={'en': 'AI-Jargon Score'}),
         'authenticity_level': I18nText(default_locale='en', translations={'en': 'Authenticity Level'}),
-        'level_high': I18nText(default_locale='en', translations={'en': 'High'}),
-        'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}),
-        'level_low': I18nText(default_locale='en', translations={'en': 'Low'}),
+        'level_high': I18nText(default_locale='en', translations={'en': 'High'}), 'level_medium': I18nText(default_locale='en', translations={'en': 'Medium'}), 'level_low': I18nText(default_locale='en', translations={'en': 'Low'}), 'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}), 'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback'}),  translations={'en': 'Medium'}),  translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
+         translations={'en': 'Medium'}),
+         translations={'en': 'Low'}),  translations={'en': 'Fallback'}),
         'variance_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0} {1}'}),
-        'authenticity_fallback_explanation': I18nText(default_locale='en', translations={'en': 'Fallback {0}'}),
+         translations={'en': 'Fallback {0}'}),
     },
                     layouts=[
             OutputLayoutBlock(
@@ -1988,6 +1988,6 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     assert report_dto is not None
     assert any(
         getattr(axis, "block_id", None) == "auth_metrics_row"
-        for layout in report_dto.layouts
+        for layout in report_dto.inner_sdui_blocks
         for axis in getattr(layout, "axes", [])
     )

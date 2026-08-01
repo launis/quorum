@@ -44,7 +44,6 @@ from backend_v2.models.v2_core import (
     OutputProfile,
     PromptBlock,
     ReportDataDTO,
-    ReportLayoutDTO,
     ScorecardAtomDTO,
     SystemConfigPerformativeLexicons,
 )
@@ -52,10 +51,15 @@ from backend_v2.models.view.sdui import (
     AccordionBlock,
     AlertBlock,
     AnySduiBlock,
+    HeaderBlock,
     HeroInsightBlock,
     MarkdownBlock,
     ParagraphBlock,
     SduiGridBlock,
+    SduiMatrixTableBlock,
+    SduiMetrics1DBlock,
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
 )
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
@@ -838,35 +842,35 @@ class BlueprintTransformer:
 
         return blocks
 
-    def _build_layouts(
+    def _build_visualization_blocks(
         self,
         layout_defs: list[OutputLayoutBlock],
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO],
         section_syntheses: dict[str, list[AnySduiBlock]],
         profile_extension_labels: dict[LaxXaiExtensionType, I18nText],
         accumulated_extensions: dict[str, list[AnySduiBlock]] | None = None,
-    ) -> list[ReportLayoutDTO]:
-        """Maps generated axes into report layouts based on layout rules.
+        locale: str = "en",
+    ) -> list[AnySduiBlock]:
+        """Maps generated axes into flat SDUI blocks based on layout rules.
 
         Args:
             layout_defs: List of layout block definitions.
             all_parsed_matrices: Dictionary of all resolved MatrixScorecardRowDTOs.
             section_syntheses: Mappings of layout ID to its synthesis markdown.
+            profile_extension_labels: Dictionary of global extension labels.
+            accumulated_extensions: Extensions grouped by block.
+            locale: Desired output locale for resolving I18n strings.
 
         Returns:
-            List of completely rendered ReportLayoutDTOs.
-
-        Raises:
-            AppException: If layout validation (e.g. 3d minimums) fails.
+            List of completely rendered SDUI blocks.
         """
-        layouts_list: list[ReportLayoutDTO] = []
+        layout_blocks: list[AnySduiBlock] = []
         for idx, layout_def in enumerate(layout_defs):
             preset_view = layout_def.preset_view
             target_blocks = layout_def.target_blocks
             text_delivery_mode = layout_def.text_delivery_mode
 
-            layout_title = layout_def.title
-            layout_desc = layout_def.description
+
 
             axes = []
             if target_blocks and "*" not in target_blocks:
@@ -880,7 +884,7 @@ class BlueprintTransformer:
             if preset_view in ["3d_matrix"] and len(axes) < 3:
                 logger.warning(
                     "[BlueprintTransformer] Downgrading layout '%s' from %s to 2d_compare because only %s axes found.",
-                    layout_title,
+                    layout_def.title.resolve(locale) if layout_def.title else "Unknown",
                     preset_view,
                     len(axes),
                 )
@@ -888,12 +892,14 @@ class BlueprintTransformer:
 
             if preset_view == "2d_compare" and len(axes) < 2:
                 logger.warning(
-                    "[BlueprintTransformer] Downgrading layout '%s' from 2d_compare to "
-                    "1d_metrics because only %s axes found.",
-                    layout_title,
+                    "[BlueprintTransformer] Downgrading layout '%s' from 2d_compare to 1d_metrics because only %s axes found.",
+                    layout_def.title.resolve(locale) if layout_def.title else "Unknown",
                     len(axes),
                 )
                 preset_view = "1d_metrics"
+
+            if text_delivery_mode in ["titles_only", "none"]:
+                axes = [axis.model_copy(update={"inner_sdui_blocks": []}) for axis in axes]
 
             if axes or preset_view == "text_only" or layout_def.synthesis:
                 synthesis_config = layout_def.synthesis
@@ -902,25 +908,33 @@ class BlueprintTransformer:
                 section_blocks: list[AnySduiBlock] | None = None
                 if synthesis_config and layout_id in section_syntheses:
                     section_blocks = list(section_syntheses[layout_id])
-                # Extensions are now fully grouped globally in grouped_extensions_block, not in matrices
 
-                layouts_list.append(
-                    ReportLayoutDTO(
-                        preset_view=preset_view,
-                        title=layout_title,
-                        description=layout_desc,
-                        is_synthesis_enabled=layout_def.is_synthesis_enabled,
-                        axes=axes,
-                        target_blocks=target_blocks,
-                        text_delivery_mode=text_delivery_mode,
-                        synthesis=synthesis_config,
-                        synthesis_blocks=section_blocks,
-                        matrix_column_labels=layout_def.matrix_column_labels,
-                        matrix_visible_columns=layout_def.matrix_visible_columns,
-                        extension_labels=profile_extension_labels,
-                    )
-                )
-        return layouts_list
+                if text_delivery_mode != "none" or preset_view not in ["3d_matrix", "2d_compare", "matrix_summary"]:
+                    if preset_view == "3d_matrix":
+                        layout_blocks.append(SduiRadarChartBlock(title=layout_def.title, description=layout_def.description, axes=axes, text_delivery_mode=text_delivery_mode))
+                    elif preset_view == "2d_compare":
+                        layout_blocks.append(SduiScatterPlotBlock(title=layout_def.title, description=layout_def.description, axes=axes, text_delivery_mode=text_delivery_mode))
+                    elif preset_view in ["1d_metrics", "text_only"]:
+                        layout_blocks.append(SduiMetrics1DBlock(title=layout_def.title, description=layout_def.description, axes=axes, text_delivery_mode=text_delivery_mode))
+                    elif preset_view == "matrix_summary":
+                        layout_blocks.append(
+                            SduiMatrixTableBlock(
+                                title=layout_def.title,
+                                description=layout_def.description,
+                                axes=axes,
+                                text_delivery_mode=text_delivery_mode,
+                                matrix_column_labels=layout_def.matrix_column_labels,
+                                matrix_visible_columns=layout_def.matrix_visible_columns,
+                                extension_labels=profile_extension_labels,
+                            )
+                        )
+                    elif preset_view == "1d_metrics":
+                        layout_blocks.append(SduiMetrics1DBlock(title=layout_def.title, description=layout_def.description, axes=axes, text_delivery_mode=text_delivery_mode))
+
+                if section_blocks:
+                    layout_blocks.extend(section_blocks)
+
+        return layout_blocks
 
     async def build_report_dto(
         self,
@@ -1158,8 +1172,8 @@ class BlueprintTransformer:
             execution=execution,
         )
 
-        variance_layout_to_inject = None
-        auth_layout_to_inject = None
+        variance_sdui_blocks = None
+        auth_sdui_blocks = None
         cv = execution.context_variables
 
         def get_metric_label(key: str) -> str:
@@ -1342,7 +1356,7 @@ class BlueprintTransformer:
                     f"**{title_str}:** {auth_score_rounded}/100  \n**{lbl_align}:** {align_val}\n\n{llm_explanation}"
                 )
 
-                variance_kwargs = {
+                variance_kwargs: dict[str, Any] = {
                     "block_id": "variance_metrics_row",
                     "name": "Variance Metrics",
                     "label_i18n": variance_label,
@@ -1350,23 +1364,14 @@ class BlueprintTransformer:
                     "is_evaluative": False,
                     "inner_sdui_blocks": [grid_block, alert_block],
                 }
-                try:
-                    row_dto = __import__(
-                        "backend_v2.models.v2_core", fromlist=["MatrixScorecardRowDTO"]
-                    ).MatrixScorecardRowDTO(**variance_kwargs)
-                except Exception as e:
-                    logger.error(
-                        f"CRITICAL: Failed to instantiate variance MatrixScorecardRowDTO: kwargs={variance_kwargs}"
-                    )
-                    raise e
-
-                variance_layout_to_inject = ReportLayoutDTO(
-                    preset_view="1d_metrics",
-                    title=variance_label,
-                    axes=[row_dto],
-                    synthesis_blocks=[MarkdownBlock(text=variance_text)],
-                    is_synthesis_enabled=True,
+                row_dto = MatrixScorecardRowDTO(**variance_kwargs)
+                variance_sdui_blocks: list[AnySduiBlock] = []
+                title_str_label = variance_label.resolve(locale) if variance_label else "Variance Metrics"
+                variance_sdui_blocks.append(
+                    ParagraphBlock(text=f"**{title_str_label}**", exact_quotes=[], citations=[])
                 )
+                variance_sdui_blocks.append(SduiMetrics1DBlock(axes=[row_dto], text_delivery_mode="full"))
+                variance_sdui_blocks.append(MarkdownBlock(text=variance_text))
 
             if wf_ext == "authenticity_evaluation":
                 authenticity_score = None
@@ -1468,29 +1473,20 @@ class BlueprintTransformer:
                 title_str = auth_label.resolve(locale)
                 auth_text = f"**{title_str}:** {auth_score_rounded}/100\n\n{llm_explanation}"
 
-                auth_kwargs = {
-                    "block_id": "auth_metrics_row",
+                auth_kwargs: dict[str, Any] = {
+                    "block_id": "authenticity_metrics_row",
                     "name": "Authenticity Metrics",
                     "label_i18n": auth_label,
                     "row_explanation": "Authenticity metrics dashboard",
                     "is_evaluative": False,
                     "inner_sdui_blocks": [grid_block, alert_block],
                 }
-                try:
-                    auth_row_dto = __import__(
-                        "backend_v2.models.v2_core", fromlist=["MatrixScorecardRowDTO"]
-                    ).MatrixScorecardRowDTO(**auth_kwargs)
-                except Exception as e:
-                    logger.error(f"CRITICAL: Failed to instantiate auth MatrixScorecardRowDTO: kwargs={auth_kwargs}")
-                    raise e
-
-                auth_layout_to_inject = ReportLayoutDTO(
-                    preset_view="1d_metrics",
-                    title=auth_label,
-                    axes=[auth_row_dto],
-                    synthesis_blocks=[MarkdownBlock(text=auth_text)],
-                    is_synthesis_enabled=True,
-                )
+                auth_row_dto = MatrixScorecardRowDTO(**auth_kwargs)
+                auth_sdui_blocks: list[AnySduiBlock] = []
+                title_str_label = auth_label.resolve(locale) if auth_label else "Authenticity Metrics"
+                auth_sdui_blocks.append(ParagraphBlock(text=f"**{title_str_label}**", exact_quotes=[], citations=[]))
+                auth_sdui_blocks.append(SduiMetrics1DBlock(axes=[auth_row_dto], text_delivery_mode="full"))
+                auth_sdui_blocks.append(MarkdownBlock(text=auth_text))
 
         modified_step_states = False
         new_step_states = dict(execution.step_states)
@@ -1515,28 +1511,23 @@ class BlueprintTransformer:
             )
 
         try:
-            layouts_list = self._build_layouts(
+            visualization_blocks = self._build_visualization_blocks(
                 profile.layouts,
                 all_parsed_matrices,
                 section_syntheses,
                 profile.extension_labels,
                 accumulated_extensions,
+                locale=locale,
             )
 
-            if variance_layout_to_inject:
-                layouts_list.append(variance_layout_to_inject)
+            if variance_sdui_blocks:
+                visualization_blocks.extend(variance_sdui_blocks)
 
-            if auth_layout_to_inject:
-                layouts_list.append(auth_layout_to_inject)
+            if auth_sdui_blocks:
+                visualization_blocks.extend(auth_sdui_blocks)
 
-            if not layouts_list:
-                layouts_list = [
-                    ReportLayoutDTO(
-                        title=I18nText(default_locale="en", translations={"en": "Report"}),
-                        preset_view="3d_matrix",
-                        axes=evaluative_matrices,
-                    )
-                ]
+            if not visualization_blocks:
+                visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices, text_delivery_mode="full")]
 
             injected = False
             if synthesis_block_id and content_blocks:
@@ -1705,9 +1696,9 @@ class BlueprintTransformer:
             if t_tokens == 0 and execution.execution_trace:
                 logger.warning("[BlueprintTransformer] ALARM: 0 tokens for %s. Telemetry missing.", execution.id)
 
-            if not layouts_list:
+            if not visualization_blocks:
                 logger.warning(
-                    "[BlueprintTransformer] ALARM: 0 Layouts generated for execution %s. UI will render empty.",
+                    "[BlueprintTransformer] ALARM: 0 visualization blocks generated for execution %s. UI will render empty.",
                     execution.id,
                 )
 
@@ -1774,9 +1765,43 @@ class BlueprintTransformer:
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
 
-                content_blocks.insert(0, MarkdownBlock(id="preface_md", text=resolved_preface_md))
-
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
+            
+            badges = []
+            if engine_str:
+                badges.append(f"Engine: {engine_str}")
+            if strictness_level:
+                badges.append(f"Strictness: {strictness_level}")
+            
+            metadata_lines = []
+            if "user" in visible_metadata and user_name:
+                metadata_lines.append(f"**User**: {user_name}")
+            if "organization" in visible_metadata and org_name:
+                metadata_lines.append(f"**Organization**: {org_name}")
+            if "date" in visible_metadata and local_time_str:
+                metadata_lines.append(f"**Generated**: {local_time_str}")
+            if "execution_id" in visible_metadata:
+                metadata_lines.append(f"**Execution ID**: {execution_id}")
+
+            tokens_dict = {}
+            if p_tokens: tokens_dict["Prompt"] = str(p_tokens)
+            if c_tokens: tokens_dict["Completion"] = str(c_tokens)
+            if r_tokens: tokens_dict["Reasoning"] = str(r_tokens)
+            if t_tokens: tokens_dict["Total"] = str(t_tokens)
+            
+            costs_str = f"${cost:.4f}" if cost is not None else None
+            
+            title_str = profile_name_dict.resolve(locale) if profile_name_dict else "Report"
+
+            header_block = HeaderBlock(
+                title=title_str,
+                badges=badges,
+                metadata_lines=metadata_lines,
+                costs=costs_str,
+                tokens=tokens_dict,
+                custom_preface_md=resolved_preface_md
+            )
+            content_blocks.insert(0, header_block)
 
             # Run dynamic performative AI jargon (slop) scanning if enabled
             should_scan_slop = any(
@@ -1828,9 +1853,8 @@ class BlueprintTransformer:
                     org_name=org_name,
                     global_score=0.0,
                     has_warning=has_warning,
-                    inner_sdui_blocks=content_blocks,
+                    inner_sdui_blocks=content_blocks + visualization_blocks,
                     visible_metadata=visible_metadata,
-                    layouts=layouts_list,
                     cost_estimate=cost,
                     total_tokens=t_tokens,
                     prompt_tokens=p_tokens,
@@ -1884,36 +1908,33 @@ class BlueprintTransformer:
                     global_score = float(round(max(0.0, recalc_final), 1))
 
             # Phase 2: Post-process explicit layout target blocks via Strategy Pattern
-            for layout in layouts_list:
-                if layout.target_blocks and "*" not in layout.target_blocks:
-                    new_synthesis_blocks = list(layout.synthesis_blocks) if layout.synthesis_blocks else []
-                    modified_blocks = False
-                    for target_k in layout.target_blocks:
-                        if target_k in self._target_block_hydrators:
-                            hydrated_blocks = self._target_block_hydrators[str(target_k)](
-                                execution=execution,
-                                locale=locale,
-                                penalties_applied=penalties_applied,
-                                mcp_audit_data=mcp_audit_data,
-                                global_score=global_score,
-                                profile=profile,
-                                accumulated_extensions=accumulated_extensions,
-                                profile_cache=profile_cache,
-                            )
-                            if hydrated_blocks:
-                                new_synthesis_blocks.extend(hydrated_blocks)
-                                modified_blocks = True
-                        elif target_k in [e.value for e in TargetBlockType]:
-                            msg_fmt = f"Fail-Fast: Hydrator missing for TargetBlockType '{target_k}'"
-                            logger.error("[BlueprintTransformer] %s", msg_fmt)
-                            raise AppException(
-                                message=msg_fmt,
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            )
-                    if modified_blocks:
-                        idx = layouts_list.index(layout)
-                        layouts_list[idx] = layout.model_copy(update={"synthesis_blocks": new_synthesis_blocks})
+            if profile.layouts:
+                for layout in profile.layouts:
+                    if layout.target_blocks and "*" not in layout.target_blocks:
+                        for target_k in layout.target_blocks:
+                            if target_k in self._target_block_hydrators:
+                                hydrated_blocks = self._target_block_hydrators[str(target_k)](
+                                    execution=execution,
+                                    locale=locale,
+                                    penalties_applied=penalties_applied,
+                                    mcp_audit_data=mcp_audit_data,
+                                    global_score=global_score,
+                                    profile=profile,
+                                    accumulated_extensions=accumulated_extensions,
+                                    profile_cache=profile_cache,
+                                )
+                                if hydrated_blocks:
+                                    visualization_blocks.extend(hydrated_blocks)
+                            elif target_k in [e.value for e in TargetBlockType]:
+                                msg_fmt = f"Fail-Fast: Hydrator missing for TargetBlockType '{target_k}'"
+                                logger.error("[BlueprintTransformer] %s", msg_fmt)
+                                raise AppException(
+                                    message=msg_fmt,
+                                    status_code=500,
+                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                )
+
+            content_blocks.extend(visualization_blocks)
 
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,
@@ -1934,7 +1955,6 @@ class BlueprintTransformer:
                 has_warning=has_warning,
                 inner_sdui_blocks=content_blocks,
                 visible_metadata=visible_metadata,
-                layouts=layouts_list,
                 cost_estimate=cost,
                 total_tokens=t_tokens,
                 prompt_tokens=p_tokens,
