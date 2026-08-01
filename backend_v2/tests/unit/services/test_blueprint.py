@@ -39,7 +39,7 @@ def fix_mock_dict(d: Any) -> Any:
     return d
 
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ConfigurationError
 from backend_v2.models.enums import ExecutionStatus, ScoringStrategy, XaiExtensionType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
@@ -2057,4 +2057,56 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
         await transformer.build_report_dto("exe_0000000000000099")
 
     assert "UI bounds missing for PromptBlock 'blk_0000000000000002' under custom scale." in str(exc_info.value)
+    assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_unrecognized_text_delivery_mode(mock_repo_transformer: MagicMock) -> None:
+    """Verify that unrecognized text_delivery_mode fails deterministically."""
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000099",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.PASSED,
+        active_profile_id="prf_dddd1111dddd1111",
+        execution_trace=[],
+        metadata={"target_locale": "en"},
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [
+        OutputProfile(
+            id="prf_dddd1111dddd1111",
+            slug="default",
+            workflow_id="wf_1234abcd1234abcd",
+            name=I18nText(default_locale="en", translations={"en": "Default"}),
+            display_scale="original",
+            metric_mappings={},
+            layouts=[
+                OutputLayoutBlock.model_construct(
+                    preset_view="1d_metrics",
+                    target_blocks=["*"],
+                    text_delivery_mode="invalid_mode",
+                )
+            ],
+            visible_block_extensions=[],
+            visible_workflow_extensions=[],
+            extension_labels={},
+            max_extension_items=2,
+            strictness_level=85,
+        )
+    ]
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000099")
+
+    assert "Unrecognized text_delivery_mode: 'invalid_mode'" in str(exc_info.value)
     assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"

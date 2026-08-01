@@ -16,7 +16,7 @@ from backend_v2.database.interfaces import (
     ISystemRepository,
     IWorkflowRepository,
 )
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.hooks.linguistics import scan_report_for_slop
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
@@ -705,8 +705,6 @@ class BlueprintTransformer:
                         ext_enum = XaiExtensionType(key)
                         label_obj = profile.extension_labels.get(ext_enum)
                         if not label_obj:
-                            from backend_v2.exceptions import ConfigurationError
-
                             raise ConfigurationError(
                                 f"Missing extension label configuration for {key} in profile SSOT",
                                 details={"extension_key": key},
@@ -869,6 +867,12 @@ class BlueprintTransformer:
             preset_view = layout_def.preset_view
             target_blocks = layout_def.target_blocks
             text_delivery_mode = layout_def.text_delivery_mode
+
+            if text_delivery_mode not in ("full", "titles_only", "none"):
+                raise ConfigurationError(
+                    f"Unrecognized text_delivery_mode: '{text_delivery_mode}'. Must be 'full', 'titles_only', or 'none'.",
+                    details={"text_delivery_mode": text_delivery_mode},
+                )
 
             axes = []
             if target_blocks and "*" not in target_blocks:
@@ -1404,13 +1408,10 @@ class BlueprintTransformer:
                 if cv is not None:
                     step_det = cv.get("step_detector")
                     if step_det is not None:
-                        try:
-                            det_payload = json.loads(step_det) if isinstance(step_det, str) else step_det
-                            raw_auth = det_payload.get("raw_score") or det_payload.get("raw_score")
-                            if raw_auth is not None:
-                                authenticity_score = float(raw_auth)
-                        except Exception:
-                            pass
+                        det_payload = json.loads(step_det) if isinstance(step_det, str) else step_det
+                        raw_auth = det_payload.get("raw_score")
+                        if raw_auth is not None:
+                            authenticity_score = float(raw_auth)
 
                 if authenticity_score is None:
                     # Dynamically resolve authenticity score from the performativity detector step in the raw trace
