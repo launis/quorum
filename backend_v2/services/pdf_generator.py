@@ -188,21 +188,26 @@ class PdfReportService:
             if report_dto and report_dto.inner_sdui_blocks:
                 for idx, block in enumerate(report_dto.inner_sdui_blocks):
                     try:
-                        if isinstance(block, SduiRadarChartBlock):
-                            b64_data = generate_radar_chart(block.axes)
-                            if b64_data:
-                                charts[idx] = b64_data
-                            else:
-                                msg = f"generate_radar_chart returned empty data for block {idx}"
-                                raise ConfigurationError(msg)
-                        elif isinstance(block, SduiScatterPlotBlock):
-                            b64_data = generate_scatter_chart(block.axes)
-                            if b64_data:
-                                charts[idx] = b64_data
-                            else:
-                                msg = f"generate_scatter_chart returned empty data for block {idx}"
-                                raise ConfigurationError(msg)
-                    except Exception as e:
+                        match block:
+                            case SduiRadarChartBlock():
+                                b64_data = generate_radar_chart(block.axes)
+                                if b64_data:
+                                    charts[idx] = b64_data
+                                else:
+                                    msg = f"generate_radar_chart returned empty data for block {idx}"
+                                    raise ConfigurationError(msg)
+                            case SduiScatterPlotBlock():
+                                b64_data = generate_scatter_chart(block.axes)
+                                if b64_data:
+                                    charts[idx] = b64_data
+                                else:
+                                    msg = f"generate_scatter_chart returned empty data for block {idx}"
+                                    raise ConfigurationError(msg)
+                            case _:
+                                pass
+                    except ConfigurationError:
+                        raise
+                    except (ValueError, TypeError) as e:
                         msg = f"Failed to render PDF charts for block {idx}: {e}"
                         logger.error(
                             "[PdfReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True

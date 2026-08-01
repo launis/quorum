@@ -91,7 +91,7 @@
 </head>
 <body>
 
-    {% macro render_sdui_blocks(blocks) %}
+    {% macro render_sdui_blocks(blocks, level=0, charts=none) %}
         {% for block in blocks %}
             {% if block.title is defined and block.title %}
                 <h2 style="color: #1a237e; margin-top: 0; margin-bottom: 10px;">
@@ -242,18 +242,180 @@
                     <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ block.custom_preface_md | md | safe }}</div>
                 </div>
                 {% endif %}
-            {% elif block.block_type is defined and block.block_type == '3d_matrix' %}
-                <!-- 3D Matrix placeholder -->
-            {% elif block.block_type is defined and block.block_type == '2d_compare' %}
-                <!-- 2D Compare placeholder -->
+            {% elif block.block_type is defined and block.block_type in ['3d_matrix', '2d_compare'] %}
+                {% if level == 0 and charts and loop.index0 in charts %}
+                <div style="text-align: center; margin: 20px 0;">
+                    <img src="data:image/png;base64,{{ charts[loop.index0] }}" style="max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 8px;" />
+                </div>
+                {% endif %}
+            {% elif block.block_type is defined and block.block_type == '1d_metrics' %}
+                {% if block.axes is defined %}
+                {% for axis in block.axes %}
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <h3 style="margin: 0; color: #1a1a1a; font-size: 16px;">{{ axis.name }}</h3>
+                            {% if axis.score_display_label %}
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                {% if axis.contextual_override %}
+                                <span style="color: #f57c00; font-size: 12px; font-weight: 500;">⚠️ {{ l10n.evidence_rejected }}</span>
+                                {% endif %}
+                                <div style="background-color: #e3f2fd; color: #1976D2; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 14px;">
+                                    {{ axis.score_display_label }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if axis.description %}
+                            <div style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 8px;">{{ axis.description }}</div>
+                        {% endif %}
+                        
+                        {% if axis.ui_plot_ratio != None %}
+                            <div style="margin: 12px 0 8px 0; background-color: #eee; border-radius: 6px; height: 12px; width: 100%; overflow: hidden;">
+                                <div style="background: linear-gradient(90deg, rgba(33,150,243,0.6) 0%, rgba(33,150,243,1) 100%); height: 100%; width: {{ axis.ui_plot_ratio * 100 }}%; border-radius: 6px;"></div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if axis.inner_sdui_blocks %}
+                            <div style="margin-top: 15px;">
+                                {{ render_sdui_blocks(axis.inner_sdui_blocks, level=level+1) }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                {% endif %}
             {% elif block.block_type is defined and block.block_type == 'matrix_summary' %}
-                <!-- Matrix Summary placeholder -->
+                {% set visible_cols = block.matrix_visible_columns if block.matrix_visible_columns else [] %}
+                {% if visible_cols and block.axes %}
+                <div style="page-break-before: always; margin-top: 30px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
+                                {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.lblLogicMatrix }}</th>{% endif %}
+                                {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.atomicBreakdownTitle }}</th>{% endif %}
+                                {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.rowExplanationTitle }}</th>{% endif %}
+                                {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">Lainaukset (quotes)</th>{% endif %}
+                                {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.normalizedScore }}</th>{% endif %}
+                                {% if 'score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.score }}</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for axis in block.axes %}
+                            <tr style="border-bottom: 1px solid #eee;">
+                                {% if 'label' in visible_cols %}
+                                <td style="padding: 10px; vertical-align: top;">
+                                    <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">{{ axis.name }}{% if axis.is_evaluative %} *{% endif %}</div>
+                                    {% if axis.description %}
+                                    <div style="font-size: 10px; color: #666; font-weight: normal; line-height: 1.3;">{{ axis.description }}</div>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}
+                                <td style="padding: 10px; color: #555; vertical-align: top;">
+                                    {% set lvl = axis.level_breakdown or {} %}
+                                    {% set lvl_names = axis.level_names or {} %}
+                                    {% if lvl %}
+                                        <div style="margin: 0; font-size: 10px; line-height: 1.3;">
+                                        {% for key, val in lvl.items() | sort(reverse=True, attribute='0') %}
+                                            {% set hit_str = val if val is string else (val.hits ~ '/' ~ val.total) %}
+                                            {% set name = lvl_names[key] if key in lvl_names else ('T' ~ key) %}
+                                            {% set numLvl = (key | float | int) if '.' in key else (key | int) %}
+                                            <div style="margin-bottom: 2px;">{{ numLvl }} - {{ name }}: {{ hit_str }}</div>
+                                        {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                {% if 'row_explanation' in visible_cols %}
+                                <td style="padding: 10px; color: #444; font-style: italic; font-size: 10px; vertical-align: top;">
+                                    {{ axis.row_explanation }}
+                                </td>
+                                {% endif %}
+                                {% if 'quotes' in visible_cols %}
+                                <td style="padding: 10px; vertical-align: top; font-size: 10px;">
+                                    {% set evaluated_atoms = axis.evaluated_atoms or [] %}
+                                    {% if evaluated_atoms %}
+                                        {% set grouped_atoms = evaluated_atoms | group_atoms_by_level %}
+                                        {% for lvl, atoms in grouped_atoms.items() | sort(reverse=True, attribute='0') %}
+                                            {% set lvl_name = axis.level_names[lvl|string] if axis.level_names and (lvl|string) in axis.level_names else '' %}
+                                            <div style="font-weight: bold; margin-bottom: 4px; font-size: 11px;">{{ lvl }} - {{ lvl_name }}</div>
+                                            {% set has_rendered = false %}
+                                            {% for atom in atoms %}
+                                                {% set status = (atom.status or '') | lower %}
+                                                {% if status not in ['skipped', 'none', 'dlq'] and 'chunk processing failed' not in (atom.semantic_reasoning or '')|lower %}
+                                                    <div style="margin-bottom: 8px;">
+                                                        <div style="font-weight: {{ 'bold' if status in ['pass', 'contested'] else 'normal' }}; color: #333;">
+                                                            - {{ atom.chart_display_label }}
+                                                        </div>
+                                                        {% if atom.exact_quotes %}
+                                                            {% for quote in atom.exact_quotes %}
+                                                                <div style="margin-top: 2px; color: #555;">
+                                                                    {% if quote.display_name %}
+                                                                        <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: bold; color: #1565c0; margin-right: 4px;">{{ quote.display_name | upper }}</span>
+                                                                    {% endif %}
+                                                                    "{{ quote.quote }}"
+                                                                    {% if quote.verified_source_ids %}
+                                                                        <br><span style="font-size: 10px; color: #1976D2; font-weight: bold;">(Lähde: {{ quote.verified_source_ids | join(', ') }})</span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    </div>
+                                                    {% set has_rendered = true %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if not has_rendered %}
+                                                <div style="color: #999; font-style: italic; margin-bottom: 8px;">- N/A</div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <div style="color: #999; font-style: italic;">- N/A</div>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                {% if 'normalized_score' in visible_cols %}
+                                <td style="padding: 10px; font-weight: bold; color: #2E7D32; vertical-align: top;">
+                                    {% if axis.ui_plot_ratio != None %}
+                                        <div style="background-color: #e8f5e9; border: 1px solid #c8e6c9; padding: 4px 8px; border-radius: 4px; display: inline-block;">
+                                            {{ "%.1f"|format(axis.ui_plot_ratio * 100) }}%
+                                        </div>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                {% if 'score' in visible_cols %}
+                                <td style="padding: 10px; font-weight: bold; color: #1565C0; vertical-align: top;">
+                                    {% if axis.score_display_label %}
+                                        {{ axis.score_display_label }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% set has_evaluative = false %}
+                    {% for axis in block.axes %}
+                        {% if axis.is_evaluative %}{% set has_evaluative = true %}{% endif %}
+                    {% endfor %}
+                    {% if has_evaluative %}
+                    <div style="font-size: 11px; color: #666; margin-top: 8px; font-style: italic;">
+                        {{ l10n.matrixEvaluativeAsteriskLegend }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
             {% endif %}
         {% endfor %}
     {% endmacro %}
 
     {% if report_data %}
-        {{ render_sdui_blocks(report_data.inner_sdui_blocks) }}
+        {{ render_sdui_blocks(report_data.inner_sdui_blocks, level=0, charts=charts) }}
         {% if report_data and report_data.global_score != None %}
         <div style="background-color: #e6e0f8; border: 1px solid #d1c4e9; border-radius: 0 0 8px 8px; padding: 15px 20px; margin-bottom: 25px; margin-top: 0px; page-break-inside: avoid; page-break-before: avoid;">
             <table style="width: 100%; border: none; margin: 0; padding: 0;">
@@ -266,302 +428,6 @@
                     </td>
                 </tr>
             </table>
-        </div>
-        {% endif %}
-
-        {% if report_data.inner_sdui_blocks is defined %}
-        {% for layout in report_data.inner_sdui_blocks %}
-            {% set layout_title_label = layout.title.resolve(lang_code) if (layout.title is defined and layout.title and layout.title.resolve is defined) else (layout.title if (layout.title is defined and layout.title) else ('Automaattinen' if (layout.preset_view is defined and layout.preset_view == 'default') else (layout.preset_view if layout.preset_view is defined else layout.block_type))) %}
-            <h2 style="margin-top: 20px; color: #004D40; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">{{ layout_title_label }}</h2>
-            
-            {% if layout.description is defined and layout.description %}
-                {% set layout_desc_label = layout.description.resolve(lang_code) if (layout.description is defined and layout.description and layout.description.resolve is defined) else (layout.description if layout.description is defined else "") %}
-                {% if layout_desc_label %}
-                    <div style="font-size: 12px; color: #555; margin-bottom: 15px; font-style: italic;">{{ layout_desc_label }}</div>
-                {% endif %}
-            {% endif %}
-
-            {% if layout.synthesis_blocks is defined and layout.synthesis_blocks %}
-            <div class="justify-box" style="margin-bottom: 20px; border-left: 4px solid #4CAF50; background-color: #F1F8E9;">
-                <div style="font-size: 12px; color: #333; line-height: 1.5;">
-                    {{ render_sdui_blocks(layout.synthesis_blocks) }}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if charts and loop.index0 in charts %}
-                <div style="text-align: center; margin: 20px 0;">
-                    <img src="data:image/png;base64,{{ charts[loop.index0] }}" style="max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 8px;" />
-                </div>
-            {% endif %}
-            
-            {% set is_matrix_summary = layout.preset_view is defined and layout.preset_view == 'matrix_summary' %}
-            {% set layout_pv = layout.preset_view if layout.preset_view is defined else layout.block_type %}
-            {% set has_graph = layout_pv in ['matrix3d', '3d_matrix', 'compare2d', '2d_compare', '3d_complex', 'complex3d'] %}
-            {% set hide_axes = is_matrix_summary or (has_graph and layout.text_delivery_mode == 'none') %}
-            
-            {% set has_axes = layout.axes is defined %}
-            {% if has_axes and not hide_axes %}
-                {% for axis in layout.axes %}
-                    <div class="card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                            <h3 style="margin: 0; color: #1a1a1a; font-size: 16px;">{{ axis.name }}</h3>
-                        {% if axis.score_display_label %}
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            {% if axis.contextual_override %}
-                            <span style="color: #f57c00; font-size: 12px; font-weight: 500;">⚠️ {{ l10n.evidence_rejected }}</span>
-                            {% endif %}
-                            <div style="background-color: #e3f2fd; color: #1976D2; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 14px;">
-                                {{ axis.score_display_label }}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    {% if axis.description %}
-                        <div style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 8px;">{{ axis.description }}</div>
-                    {% endif %}
-                    
-                    {% if layout.preset_view == 'metrics1d' and axis.ui_plot_ratio != None %}
-                        <div style="margin: 12px 0 8px 0; background-color: #eee; border-radius: 6px; height: 12px; width: 100%; overflow: hidden;">
-                            <div style="background: linear-gradient(90deg, rgba(33,150,243,0.6) 0%, rgba(33,150,243,1) 100%); height: 100%; width: {{ axis.ui_plot_ratio * 100 }}%; border-radius: 6px;"></div>
-                        </div>
-                    {% endif %}
-                    
-                    {% if layout.text_delivery_mode != 'none' %}
-                        {% if axis.row_explanation %}
-                            <div style="font-size: 13px; line-height: 1.5; color: #333; margin-top: 8px;">
-                                {{ axis.row_explanation | md | safe }}
-                            </div>
-                        {% endif %}
-
-                        {% if axis.evaluated_atoms %}
-                            {% set grouped_atoms = axis.evaluated_atoms | group_atoms_by_level %}
-                            {% for level, atoms in grouped_atoms.items() %}
-                                <div style="margin-top: 10px;">
-                                    <strong style="font-size: 11px; color: #444;">{{ atoms[0].level_name }}</strong>
-                                    {% for atom in atoms %}
-                                        <div class="atom-card intent-{{ atom.visual_intent }}">
-                                            <div style="font-weight: bold; margin-bottom: 4px; color: #333;">{{ atom.chart_display_label }}</div>
-                                            {% if atom.status == 'Skipped' %}
-                                                <div style="color: #888; font-style: italic;">Arviointi ohitettu (Skipped)</div>
-                                            {% else %}
-                                                {% if atom.exact_quotes %}
-                                                    {% for quote_dto in atom.exact_quotes %}
-                                                        <div style="font-style: italic; margin-bottom: 4px;">
-                                                            "{{ quote_dto.quote }}"
-                                                            {% if quote_dto.verified_source_ids %}
-                                                                <br><span style="font-size: 10px; color: #1976D2; font-weight: bold;">(Lähde: {{ quote_dto.verified_source_ids | join(', ') }})</span>
-                                                            {% endif %}
-                                                        </div>
-                                                    {% endfor %}
-                                                {% else %}
-                                                    <div style="font-style: italic; color: #888;">{{ atom.semantic_reasoning }}</div>
-                                                {% endif %}
-                                            {% endif %}
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-
-                        {% if axis.cited_text_quote %}
-                            <div style="margin-top: 12px; padding: 12px; background-color: #f5f5f5; border-left: 4px solid #9e9e9e;">
-                                <div style="font-size: 14px; font-style: italic; color: #212121; white-space: pre-wrap;">
-                                    {{ l10n.reportQuoteTitle.replace('{quote}', axis.cited_text_quote) }}
-                                </div>
-                            </div>
-                        {% endif %}
-
-                        {% if axis.row_explanation %}
-                            <div style="margin-top: 8px;">
-                                <div style="font-size: 13px; font-style: italic; color: #607d8b; white-space: pre-wrap;">
-                                    {{ l10n.reportSemanticExplanationTitle.replace('{reasoning}', axis.row_explanation) }}
-                                </div>
-                            </div>
-                        {% endif %}
-
-                        {% if axis.cited_source_id %}
-                            <div style="margin-top: 8px; font-size: 10px; color: #607d8b; font-weight: bold;">
-                                {{ l10n.reportFrameworkReference.replace('{source}', axis.cited_source_id) }}
-                            </div>
-                        {% endif %}
-
-                        {% if layout.text_delivery_mode == 'full' %}
-                            {% if axis.evidence_type %}
-                                <div style="margin-top: 8px; font-size: 11px;">
-                                    {% if axis.evidence_type == 'EXPLICIT_QUOTE' %}
-                                    <span style="background-color: #e8f5e9; border: 1px solid #c8e6c9; color: #2e7d32; padding: 2px 6px; border-radius: 4px;">✅ Explicit Quote</span>
-                                    {% elif axis.evidence_type == 'IMPLIED_INTENT' %}
-                                    <span style="background-color: #fff3e0; border: 1px solid #ffe0b2; color: #ef6c00; padding: 2px 6px; border-radius: 4px;">⚠️ Implied Intent</span>
-                                    {% else %}
-                                    <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; color: #1565c0; padding: 2px 6px; border-radius: 4px;">{{ axis.evidence_type }}</span>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-                        {% endif %}
-                    {% endif %}
-                    {% if axis.confidence is not none %}
-                        <div style="margin-top: 8px; margin-bottom: 8px; font-size: 12px; font-weight: bold; color: #3949ab;">
-                            {{ l10n.reportConfidenceTitle.replace('{value}', "%.0f"|format(axis.confidence * 100)) }}
-                        </div>
-                    {% endif %}
-
-                    {% if axis.inner_sdui_blocks %}
-                        <div style="margin-top: 15px;">
-                            {{ render_sdui_blocks(axis.inner_sdui_blocks) }}
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-            {% endif %}
-        {% endfor %}
-        {% endif %}
-
-        <!-- Yhteenveto / Matrix Summary Table -->
-        {% set matrix_layout = none %}
-        {% if report_data.layouts is defined %}
-        {% for lay in report_data.layouts %}
-            {% if lay.preset_view == 'matrix_summary' %}
-                {% set matrix_layout = lay %}
-            {% endif %}
-        {% endfor %}
-        {% endif %}
-        {% set visible_cols = matrix_layout.matrix_visible_columns if matrix_layout else [] %}
-        {% if visible_cols %}
-        <div style="page-break-before: always; margin-top: 30px;">
-
-            {% set default_summary_title = l10n.scorecard_matrix_summary %}
-            {% set first_layout = report_data.layouts[0] if (report_data and report_data.layouts is defined and report_data.layouts) else none %}
-            {% set summary_title = (first_layout.title.resolve(lang_code)) if first_layout and first_layout.title else default_summary_title %}
-            <h2 style="color: #1a237e; text-transform: uppercase; border-bottom: 2px solid #1a237e; padding-bottom: 8px; margin-bottom: 20px;">{{ summary_title }}</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">
-                <thead>
-                    <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
-                        {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.lblLogicMatrix }}</th>{% endif %}
-                        {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.atomicBreakdownTitle }}</th>{% endif %}
-                        {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.rowExplanationTitle }}</th>{% endif %}
-                        {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">Lainaukset (quotes)</th>{% endif %}
-                        {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.normalizedScore }}</th>{% endif %}
-                        {% if 'score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.score }}</th>{% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                {% set ns = namespace(all_matrices=[]) %}
-                {% if matrix_layout %}
-                    {% for axis in matrix_layout.axes %}
-                        {% set ns.all_matrices = ns.all_matrices + [axis] %}
-                    {% endfor %}
-                {% endif %}
-                {% set all_matrices = ns.all_matrices %}
-                {% for axis in all_matrices %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        {% if 'label' in visible_cols %}
-                        <td style="padding: 10px; vertical-align: top;">
-                            <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">{{ axis.name }}{% if axis.is_evaluative %} *{% endif %}</div>
-                            {% if axis.description %}
-                            <div style="font-size: 10px; color: #666; font-weight: normal; line-height: 1.3;">{{ axis.description }}</div>
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                        {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}
-                        <td style="padding: 10px; color: #555; vertical-align: top;">
-                            {% set lvl = axis.level_breakdown or {} %}
-                            {% set lvl_names = axis.level_names or {} %}
-                            {% if lvl %}
-                                <div style="margin: 0; font-size: 10px; line-height: 1.3;">
-                                {% for key, val in lvl.items() | sort(reverse=True, attribute='0') %}
-                                    {% set hit_str = val if val is string else (val.hits ~ '/' ~ val.total) %}
-                                    {% set name = lvl_names[key] if key in lvl_names else ('T' ~ key) %}
-                                    {% set numLvl = (key | float | int) if '.' in key else (key | int) %}
-                                    <div style="margin-bottom: 2px;">{{ numLvl }} - {{ name }}: {{ hit_str }}</div>
-                                {% endfor %}
-                                </div>
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                        {% if 'row_explanation' in visible_cols %}
-                        <td style="padding: 10px; color: #444; font-style: italic; font-size: 10px; vertical-align: top;">
-                            {{ axis.row_explanation }}
-                        </td>
-                        {% endif %}
-                        {% if 'quotes' in visible_cols %}
-                        <td style="padding: 10px; vertical-align: top; font-size: 10px;">
-                            {% set evaluated_atoms = axis.evaluated_atoms or [] %}
-                            {% if evaluated_atoms %}
-                                {% set grouped_atoms = {} %}
-                                {% for atom in evaluated_atoms %}
-                                    {% set lvl = atom.level | string %}
-                                    {% if lvl not in grouped_atoms %}
-                                        {% set _ = grouped_atoms.update({lvl: []}) %}
-                                    {% endif %}
-                                    {% set _ = grouped_atoms[lvl].append(atom) %}
-                                {% endfor %}
-                                
-                                {% for lvl, atoms in grouped_atoms.items() | sort(reverse=True, attribute='0') %}
-                                    {% set lvl_name = axis.level_names[lvl] %}
-                                    <div style="font-weight: bold; margin-bottom: 4px; font-size: 11px;">{{ lvl }} - {{ lvl_name }}</div>
-                                    {% set has_rendered = false %}
-                                    {% for atom in atoms %}
-                                        {% set status = (atom.status or '') | lower %}
-                                        {% if status not in ['skipped', 'none', 'dlq'] and 'chunk processing failed' not in (atom.semantic_reasoning or '')|lower %}
-                                            <div style="margin-bottom: 8px;">
-                                                <div style="font-weight: {{ 'bold' if status in ['pass', 'contested'] else 'normal' }}; color: #333;">
-                                                    - {{ atom.chart_display_label }}
-                                                </div>
-                                                {% for quote in atom.exact_quotes %}
-                                                    <div style="margin-top: 2px; color: #555;">
-                                                        {% if quote.display_name %}
-                                                            <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: bold; color: #1565c0; margin-right: 4px;">{{ quote.display_name | upper }}</span>
-                                                        {% endif %}
-                                                        {{ quote.quote_text }}
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                            {% set has_rendered = true %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% if not has_rendered %}
-                                        <div style="color: #999; font-style: italic; margin-bottom: 8px;">- N/A</div>
-                                    {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <div style="color: #999; font-style: italic;">- N/A</div>
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                        {% if 'normalized_score' in visible_cols %}
-                        <td style="padding: 10px; font-weight: bold; color: #2E7D32; vertical-align: top;">
-                            {% if axis.ui_plot_ratio != None %}
-                                <div style="background-color: #e8f5e9; border: 1px solid #c8e6c9; padding: 4px 8px; border-radius: 4px; display: inline-block;">
-                                    {{ "%.1f"|format(axis.ui_plot_ratio * 100) }}%
-                                </div>
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                        {% if 'score' in visible_cols %}
-                        <td style="padding: 10px; font-weight: bold; color: #1565C0; vertical-align: top;">
-                            {% if axis.score_display_label %}
-                                {{ axis.score_display_label }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% if all_matrices | selectattr('is_evaluative') | list %}
-            <div style="font-size: 11px; color: #666; margin-top: 8px; font-style: italic;">
-                {{ l10n.matrixEvaluativeAsteriskLegend }}
-            </div>
-            {% endif %}
-
         </div>
         {% endif %}
 

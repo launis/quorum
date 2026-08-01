@@ -485,33 +485,33 @@ Run: `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`
 
 **Objective**: Ensure the PDF generator can render the 4 new block types and eradicate dead Jinja code.
 
-#### Step 4.1: Modify Jinja Block Renderer Dispatch
-**Target**: @[backend_v2\templates\report_template.jinja2#L1-L50]
+#### Step 4.1: Modify Jinja Block Renderer Dispatch & Single Source of Truth
+**Target**: @[backend_v2\templates\report_template.jinja2]
 
-The Jinja template currently iterates `report.layouts` and uses `layout.preset_view` for conditional rendering. This must be migrated to iterate `report.inner_sdui_blocks` and dispatch on `block.block_type`.
+Move all visualization rendering into the `render_sdui_blocks(blocks, level=0, charts=none)` macro.
+Completely delete the secondary legacy layout loop (lines 273+) and the `Yhteenveto / Matrix Summary Table` block at the bottom of the template.
 
-Concrete rendering strategy per block type:
-- `"3d_matrix"` (SduiRadarChartBlock) → Render an HTML table matching the EXACT structure defined in the previous layout loop (columns: Axis Name, Raw Score, Target Score, Normalized %). Charts are NOT rendered in PDF — the Jinja template provides a **tabular data fallback** (consistent with the existing behavior at @[backend_v2\templates\report_template.jinja2#L267-L320]).
-- `"2d_compare"` (SduiScatterPlotBlock) → Render a 2-column HTML comparison table with axis labels and scores.
-- `"matrix_summary"` (SduiMatrixTableBlock) → Render a full HTML `<table>` using `block.visible_columns` for headers and `block.axes` for rows. This directly replaces the existing matrix summary table at @[backend_v2\templates\report_template.jinja2#L414]. You MUST resolve column headers using specific locale resolution (e.g., `block.column_labels.get(col_key, {}).get(locale, col_key)`).
-- `"1d_metrics"` (SduiMetrics1DBlock) → Render the HTML tabular structure that displays the axis numerical score and `ui_plot_ratio` bar FIRST, and then call the `render_sdui_blocks()` Jinja macro for each axis to render the text. It is CRITICAL to preserve the visual numerical layout; do NOT simply loop and call the text macro.
+Concrete rendering strategy per block type inside the macro:
+- `"3d_matrix"` (SduiRadarChartBlock) and `"2d_compare"` (SduiScatterPlotBlock) → If `level == 0` and `charts` is provided, inject the base64 image using `loop.index0` as the key.
+- `"matrix_summary"` (SduiMatrixTableBlock) → Render a full HTML `<table>` using `block.matrix_visible_columns` for headers and `block.axes` for rows. You MUST resolve column headers using specific locale resolution.
+- `"1d_metrics"` (SduiMetrics1DBlock) → Iterate `block.axes`. Render the score label and visual progress bar (`axis.ui_plot_ratio`) FIRST, and then natively call `render_sdui_blocks(axis.inner_sdui_blocks, level=level+1)`.
 
 > [!IMPORTANT]
-> **Chart Image Indexing Migration**: The current Jinja template injects chart images using `charts[loop.index0]` keyed by layout position. In the new architecture, the `pdf_generator.py` must build the `charts` dictionary keyed by the BLOCK's position within `inner_sdui_blocks` (not the layout index). The chart generation loop at @[backend_v2\services\pdf_generator.py#L187-L208] must iterate `report_dto.inner_sdui_blocks`, check `block.block_type` via `match` pattern, and populate charts keyed by the block's index in `inner_sdui_blocks`.
+> **Chart Image Indexing Migration**: By routing all visualizations through `render_sdui_blocks`, `loop.index0` in the macro exactly matches the `idx` in `pdf_generator.py` when `level == 0`. Pass the `charts` dictionary from the global context into the macro.
 >
-> **`text_delivery_mode` is resolved at BUILD TIME**: The Jinja template no longer needs `hide_axes` logic. The backend builder at Step 2.1 already resolves `text_delivery_mode` by conditionally emitting or suppressing axis detail blocks. The Jinja template renders whatever blocks are in the stream.
+> **1D Metrics Atomic Details**: Phase 2 flattened `evaluated_atoms` into standard SDUI blocks within `axis.inner_sdui_blocks`. Do NOT attempt to loop through `evaluated_atoms` manually. Simply call `render_sdui_blocks(axis.inner_sdui_blocks)` and rely on the UI components.
 
 #### Step 4.2: Eradicate Dead Jinja Code
-**Target**: @[backend_v2\templates\report_template.jinja2#L292]
+**Target**: @[backend_v2\templates\report_template.jinja2]
 
-Remove the dead `'3d_complex'` and `'complex3d'` strings from the `has_graph` set.
+The entire block of legacy layout code at the bottom of the template must be deleted as it relies on `report.layouts` and legacy `preset_view` strings.
 
-#### Step 4.3: Remove Legacy `layouts` Iteration from PDF Generator
-**Target**: @[backend_v2\services\pdf_generator.py#L190-L197]
+#### Step 4.3: Strict Exception Handling and Iteration in PDF Generator
+**Target**: @[backend_v2\services\pdf_generator.py#L187-L208]
 
-The PDF generator currently iterates `ReportDataDTO.layouts`. Replace this with processing the unified `inner_sdui_blocks` stream, which now contains chart blocks inline.
+The PDF generator currently iterates `report_dto.inner_sdui_blocks`.
 > [!IMPORTANT]
-> **Duct-Tape Ban**: You MUST use a Python 3.10 `match block:` statement to iterate `report_dto.inner_sdui_blocks`. Additionally, you MUST remove the `except Exception as e:` catch-all block at lines ~204. Instead, catch specifically `(ValueError, TypeError, ConfigurationError)` and re-raise as `CompliantAppException(error_code=ErrorCodes.INTERNAL_SERVER_ERROR)`.
+> **Duct-Tape Ban**: You MUST use a Python 3.10 `match block:` statement. Additionally, you MUST remove the `except Exception as e:` catch-all block. Instead, explicitly catch `(ValueError, TypeError)` to wrap as `CompliantAppException(status_code=500)`. Do NOT swallow `ConfigurationError`; allow it to bubble up natively to satisfy the required negative test `test_pdf_generator_empty_chart_crashes`.
 
 #### Step 4.4: Update `pdf_generator.py` Rendering Context
 **Target**: @[backend_v2\services\pdf_generator.py#L1-L50]
