@@ -26,10 +26,10 @@ The current architecture maintains a **dual rendering pipeline**:
 
 This duality causes three critical problems:
 
-- **Architectural Schizophrenia**: The Flutter renderer at @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L198-L295] contains client-side routing logic (`if presetView == PresetView.metrics1d ... else if presetView == PresetView.matrix3d ...`) that violates the Dumb Painter SDUI mandate.
+- **Architectural Schizophrenia**: The Flutter renderer at @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L198-L295] contains client-side routing logic (`if presetView == PresetView.metrics1d ... else if presetView == PresetView.matrix3d ...`) that violates the Dumb Painter SDUI mandate.
 - **Extensibility Tax**: Adding a new visualization type requires coordinated changes across 4 layers: Python Literal enum, Pydantic DTO, Flutter PresetView enum, and Flutter renderer switch statement.
-- **PDF/UI Parity Risk**: The PDF generator at @[c:\src\quorum\backend_v2\services\pdf_generator.py] and the Flutter renderer must independently interpret the same `preset_view` enum, creating a permanent source of divergence.
-- **Dead Code Ghost**: The Flutter rendering code references `PresetView.complex3d` (at @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L242], @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L281], @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L220]) and the Jinja template references `'3d_complex'` and `'complex3d'` (at @[c:\src\quorum\backend_v2\templates\report_template.jinja2#L292]), but neither value exists in the Python Literal definition at @[c:\src\quorum\backend_v2\models\v2_core.py#L1051] nor in the Flutter `PresetView` enum at @[c:\src\quorum\client_app_v2\lib\core\models\enums.dart#L58-L72]. This is dead code that must be eradicated during this migration.
+- **PDF/UI Parity Risk**: The PDF generator at @[backend_v2\services\pdf_generator.py#L1-L50] and the Flutter renderer must independently interpret the same `preset_view` enum, creating a permanent source of divergence.
+- **Dead Code Ghost**: The Flutter rendering code references `PresetView.complex3d` (at @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L242], @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L281], @[client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L220]) and the Jinja template references `'3d_complex'` and `'complex3d'` (at @[backend_v2\templates\report_template.jinja2#L292]), but neither value exists in the Python Literal definition at @[backend_v2\models\v2_core.py#L1051] nor in the Flutter `PresetView` enum at @[client_app_v2\lib\core\models\enums.dart#L58-L72]. This is dead code that must be eradicated during this migration.
 
 ### Strategic Scope
 This migration converts all 4 visualization types from `preset_view`-routed `ReportLayoutDTO` containers into standalone `AnySduiBlock` variants:
@@ -47,10 +47,10 @@ The `text_only` and `default` preset views are already served by existing `Parag
 
 > [!CAUTION]
 > **`complex3d` / `3d_complex` Ghost Code Eradication:** The `complex3d` value is referenced in Flutter rendering code and Jinja templates but does NOT exist in either the Python Literal or the Flutter enum definition. It is confirmed dead code. All references MUST be ruthlessly deleted during this migration. Specifically:
-> - @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L242] and @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L281]: Remove `PresetView.complex3d` from the `showGraph` list and rendering branch.
-> - @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L220] and @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L420]: Remove `complex3d` dropdown option and axis count mapping.
-> - @[c:\src\quorum\client_app_v2\lib\features\studio\views\blueprint_editor_view.dart#L90]: Remove `complex3d` dropdown option.
-> - @[c:\src\quorum\backend_v2\templates\report_template.jinja2#L292]: Remove `'3d_complex'` and `'complex3d'` from the `has_graph` set.
+> - @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L242] and @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L281]: Remove `PresetView.complex3d` from the `showGraph` list and rendering branch.
+> - @[client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L220] and @[client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L420]: Remove `complex3d` dropdown option and axis count mapping.
+> - @[client_app_v2\lib\features\studio\views\blueprint_editor_view.dart#L90]: Remove `complex3d` dropdown option.
+> - @[backend_v2\templates\report_template.jinja2#L292]: Remove `'3d_complex'` and `'complex3d'` from the `has_graph` set.
 
 ## 2. Architectural Impact & Compliance Matrix
 
@@ -58,16 +58,16 @@ The `text_only` and `default` preset views are already served by existing `Parag
 
 | Deprecated Symbol | File | New Home / Fate |
 |---|---|---|
-| `class ReportLayoutDTO` | @[c:\src\quorum\backend_v2\models\v2_core.py#L1050-L1078] | **INTENTIONALLY DROPPED** — replaced by flat `AnySduiBlock` variants in `inner_sdui_blocks` |
-| `ReportDataDTO.layouts` field | @[c:\src\quorum\backend_v2\models\v2_core.py#L1196] | **INTENTIONALLY DROPPED** — all content absorbed into `ReportDataDTO.inner_sdui_blocks` |
-| `PresetView` rendering usage | @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L238-L244] | **INTENTIONALLY DROPPED** from the rendering path — `SduiBlockDTO` sealed class variants replace it. The `PresetView` enum itself is **RETAINED** for Studio editor configuration (see Step 3.7). |
-| `ReportLayoutDto` (Flutter) | @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_layout_dto.dart] | **DELETE FILE** |
-| `report_layout_dto.dart` imports | @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_data_v2_dto.dart#L49] | **REMOVE FIELD AND IMPORT** |
-| `payload.layouts` rendering loop | @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L198-L295] | **REMOVE** — replaced by generic `SduiBlocksRenderer` processing the unified `innerSduiBlocks` |
-| `PresetView.complex3d` ghost references | @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L242], @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L220], @[c:\src\quorum\client_app_v2\lib\features\studio\views\blueprint_editor_view.dart#L90] | **REMOVE** — dead code, never existed in enum definition |
-| `'3d_complex'` / `'complex3d'` Jinja refs | @[c:\src\quorum\backend_v2\templates\report_template.jinja2#L292] | **REMOVE** — dead code ghost values |
-| `SizedBox.shrink()` fallback | @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L290] | **REMOVE** — violates `sized_box_shrink_ban` |
-| `__import__()` lazy hack | @[c:\src\quorum\backend_v2\services\blueprint.py#L1354-L1356] and @[c:\src\quorum\backend_v2\services\blueprint.py#L1480-L1482] | **REPLACE** with top-of-file import |
+| `class ReportLayoutDTO` | @[backend_v2\models\v2_core.py#L1050-L1078] | **INTENTIONALLY DROPPED** — replaced by flat `AnySduiBlock` variants in `inner_sdui_blocks` |
+| `ReportDataDTO.layouts` field | @[backend_v2\models\v2_core.py#L1196] | **INTENTIONALLY DROPPED** — all content absorbed into `ReportDataDTO.inner_sdui_blocks` |
+| `PresetView` rendering usage | @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L238-L244] | **INTENTIONALLY DROPPED** from the rendering path — `SduiBlockDTO` sealed class variants replace it. The `PresetView` enum itself is **RETAINED** for Studio editor configuration (see Step 3.7). |
+| `ReportLayoutDto` (Flutter) | @[client_app_v2\lib\features\execution\models\report_layout_dto.dart#L1-L50] | **DELETE FILE** |
+| `report_layout_dto.dart` imports | @[client_app_v2\lib\features\execution\models\report_data_v2_dto.dart#L49] | **REMOVE FIELD AND IMPORT** |
+| `payload.layouts` rendering loop | @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L198-L295] | **REMOVE** — replaced by generic `SduiBlocksRenderer` processing the unified `innerSduiBlocks` |
+| `PresetView.complex3d` ghost references | @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L242], @[client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L220], @[client_app_v2\lib\features\studio\views\blueprint_editor_view.dart#L90] | **REMOVE** — dead code, never existed in enum definition |
+| `'3d_complex'` / `'complex3d'` Jinja refs | @[backend_v2\templates\report_template.jinja2#L292] | **REMOVE** — dead code ghost values |
+| `SizedBox.shrink()` fallback | @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L290] | **REMOVE** — violates `sized_box_shrink_ban` |
+| `__import__()` lazy hack | @[backend_v2\services\blueprint.py#L1354-L1356] and @[backend_v2\services\blueprint.py#L1480-L1482] | **REPLACE** with top-of-file import |
 
 ### Retained SSOT Invariants (`What We Will RETAIN`)
 
@@ -75,8 +75,8 @@ The `text_only` and `default` preset views are already served by existing `Parag
 |---|---|
 | `ReportDataDTO.inner_sdui_blocks` | This IS the target pipe — all blocks flow here |
 | `AnySduiBlock` discriminated union | Extended with 4 new variants; existing 11 variants unchanged |
-| `OutputProfile` database model | `layouts` array retained; `OutputLayoutBlock` unchanged |
-| `OutputLayoutBlock` database model | Retained as-is — `preset_view` field name and Literal values unchanged |
+| `OutputProfile` database model | `layouts` array retained; `OutputLayoutBlock` mostly unchanged |
+| `OutputLayoutBlock` database model | Retained mostly as-is — `preset_view` field name and Literal values unchanged. `text_delivery_mode` is upgraded to strict `Literal` to ban duck-typing. |
 | `MatrixScorecardRowDTO` | Retained as the data carrier for axis values; embedded inside new chart blocks |
 | `SduiBlockDTO` (Flutter sealed class) | Extended with 4 new factory constructors |
 | `BlueprintTransformer` class | Retained; `_build_layouts()` refactored to produce `list[AnySduiBlock]` |
@@ -105,31 +105,34 @@ The `text_only` and `default` preset views are already served by existing `Parag
 
 > [!WARNING]
 > **MANDATORY Phase Execution Order — Atomic Cross-Domain Phases**: Phases 1+2 (Backend) and Phase 3 (Frontend) create a cross-domain coupling via `inner_sdui_blocks`. Once the backend emits new block types (`3d_matrix`, `2d_compare`, `matrix_summary`, `1d_metrics`) into `inner_sdui_blocks`, the Flutter client MUST already support parsing these variants. Since Quorum enforces strict `@Freezed(unionKey: 'block_type')` without `fallbackUnion`, unknown block types trigger `CheckedFromJsonException` (White Screen of Death). Therefore: **Phase 3 Step 3.1 (add 4 new SduiBlockDTO variants) MUST be executed BEFORE or ATOMICALLY WITH Phase 2 Step 2.2 (emitting new blocks into inner_sdui_blocks).** In practice, Phase 1 + Phase 3 Step 3.1 + build_runner MUST precede Phase 2 Step 2.2.
+>
+> **MANDATORY `layouts` Field Removal Sequence**: The Flutter `ReportDataDto` enforces `@JsonSerializable(disallowUnrecognizedKeys: true)`. If Flutter removes the `layouts` field BEFORE Python stops emitting it in the JSON payload, the unrecognized `"layouts"` key triggers a deterministic `CheckedFromJsonException` crash. The correct removal order is: **Python removes `layouts` from `ReportDataDTO` (Step 2.3) FIRST → Flutter removes `layouts` from `ReportDataDto` (Step 3.3) SECOND.** Flutter's `@Default([])` gracefully handles the absence of the `layouts` key, so Python-first removal is safe.
 
 ### Phase 1: New Pydantic SDUI Block Models (Backend Only)
 
 **Objective**: Create 4 new polymorphic SDUI block models and register them in the `AnySduiBlock` union.
 
 #### Step 1.1: Create `SduiRadarChartBlock`
-**Target**: @[c:\src\quorum\backend_v2\models\view\sdui.py]
+**Target**: @[backend_v2\models\view\sdui.py#L1-L50]
 
 ```python
-class SduiRadarChartBlock(SduiBlockBase):
+class SduiRadarChartBlock(V2CoreBase):
     """Radar chart visualization for 3+ axis matrix comparisons."""
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
     block_type: Literal["3d_matrix"] = Field(default="3d_matrix", frozen=True)
     title: str | None = Field(default=None, description="Optional chart title")
     axes: list[MatrixScorecardRowDTO] = Field(..., description="Axis data points (min 3)")
 ```
 
-> [!NOTE]
-> `SduiBlockBase` may already provide `model_config`. Verify at implementation time — if the base class defines `ConfigDict(strict=True, extra='forbid', frozen=True)`, the child class does NOT need to redeclare it. If not, every new block MUST declare it explicitly.
+> [!IMPORTANT]
+> **Inheritance: `V2CoreBase`, NOT `SduiBlockBase`**. There is no `SduiBlockBase` class in the codebase. All existing SDUI blocks inherit from `V2CoreBase` at @[backend_v2\models\core_base.py#L1-L50]. `V2CoreBase` already provides `ConfigDict(frozen=True, strict=True, extra="forbid", str_strip_whitespace=True)`. New blocks MUST NOT redeclare `model_config`.
+>
+> **Missing Imports**: You MUST explicitly add the following imports at the top of the file: `from backend_v2.models.v2_core import MatrixScorecardRowDTO, I18nText` and `from backend_v2.models.enums import LaxXaiExtensionType`.
 
 #### Step 1.2: Create `SduiScatterPlotBlock`
-**Target**: @[c:\src\quorum\backend_v2\models\view\sdui.py]
+**Target**: @[backend_v2\models\view\sdui.py#L1-L50]
 
 ```python
-class SduiScatterPlotBlock(SduiBlockBase):
+class SduiScatterPlotBlock(V2CoreBase):
     """Scatter plot visualization for 2-axis comparisons."""
     block_type: Literal["2d_compare"] = Field(default="2d_compare", frozen=True)
     title: str | None = Field(default=None, description="Optional chart title")
@@ -137,10 +140,10 @@ class SduiScatterPlotBlock(SduiBlockBase):
 ```
 
 #### Step 1.3: Create `SduiMatrixTableBlock`
-**Target**: @[c:\src\quorum\backend_v2\models\view\sdui.py]
+**Target**: @[backend_v2\models\view\sdui.py#L1-L50]
 
 ```python
-class SduiMatrixTableBlock(SduiBlockBase):
+class SduiMatrixTableBlock(V2CoreBase):
     """Structured table visualization for matrix score summaries."""
     block_type: Literal["matrix_summary"] = Field(default="matrix_summary", frozen=True)
     title: str | None = Field(default=None, description="Optional table title")
@@ -155,13 +158,13 @@ class SduiMatrixTableBlock(SduiBlockBase):
 ```
 
 > [!IMPORTANT]
-> The `extension_labels` field type MUST use `LaxXaiExtensionType` (not `str`) to maintain exact parity with the current `ReportLayoutDTO.extension_labels` at @[c:\src\quorum\backend_v2\models\v2_core.py#L1071-L1074].
+> The `extension_labels` field type MUST use `LaxXaiExtensionType` (not `str`) to maintain exact parity with the current `ReportLayoutDTO.extension_labels` at @[backend_v2\models\v2_core.py#L1071-L1074].
 
 #### Step 1.4: Create `SduiMetrics1DBlock`
-**Target**: @[c:\src\quorum\backend_v2\models\view\sdui.py]
+**Target**: @[backend_v2\models\view\sdui.py#L1-L50]
 
 ```python
-class SduiMetrics1DBlock(SduiBlockBase):
+class SduiMetrics1DBlock(V2CoreBase):
     """1D metrics list visualization for single-axis metric displays."""
     block_type: Literal["1d_metrics"] = Field(default="1d_metrics", frozen=True)
     title: str | None = Field(default=None, description="Optional section title")
@@ -169,7 +172,7 @@ class SduiMetrics1DBlock(SduiBlockBase):
 ```
 
 #### Step 1.5: Update `AnySduiBlock` Discriminated Union
-**Target**: @[c:\src\quorum\backend_v2\models\view\sdui.py#L606-L619]
+**Target**: @[backend_v2\models\view\sdui.py#L606-L619]
 
 Add all 4 new blocks to the union:
 ```python
@@ -193,17 +196,21 @@ AnySduiBlock = Annotated[
 ]
 ```
 
-#### Step 1.6: Update Enum Parity Test
-**Target**: @[c:\src\quorum\backend_v2\tests\architecture\test_enum_parity.py]
+#### Step 1.6: Satisfy Enum Parity Tests (Cross-Domain Atomicity)
+**Targets**: 
+- @[client_app_v2\lib\core\models\enums.dart#L1-L50]
+- @[backend_v2\templates\report_template.jinja2#L1-L50]
 
-Add `3d_matrix`, `2d_compare`, `matrix_summary`, `1d_metrics` to the `SduiBlockType` parity assertions.
+The automated parity test `test_enum_parity.py` dynamically extracts SDUI blocks from Python and crashes if they are not identically mirrored in Dart and Jinja. You MUST update the target files simultaneously to satisfy this cross-domain gate during Phase 1.
+- Add `@JsonValue('3d_matrix') matrix3d`, `@JsonValue('2d_compare') compare2d`, `@JsonValue('matrix_summary') matrixSummary`, and `@JsonValue('1d_metrics') metrics1d` to the `SduiBlockType` enum in Dart.
+- Add empty placeholder branches (e.g., `{% elif block.block_type == '3d_matrix' %}`) for all 4 new block types in the `render_sdui_blocks` macro in Jinja so the Regex parser detects them.
 
 #### Step 1.7: Unit Tests for New Blocks
 **Target**: `backend_v2/tests/unit/models/test_sdui_blocks.py` [NEW]
 
 - Positive: Validate serialization roundtrip for each block with `polyfactory`.
-- Negative: Validate `extra='forbid'` rejects unrecognized keys.
-- Negative: Validate missing required `axes` field crashes with `ValidationError`.
+- Negative: `test_sdui_matrix_table_block_missing_axes` (Validation error when required `axes` are missing).
+- Negative: `test_sdui_radar_chart_extra_keys` (Validation error when unrecognized keys are injected, enforcing `extra='forbid'`).
 
 **Quality Gate**: `uv run python scripts/backend_audit_loop.py backend_v2/models/ --test`
 
@@ -214,7 +221,7 @@ Add `3d_matrix`, `2d_compare`, `matrix_summary`, `1d_metrics` to the `SduiBlockT
 **Objective**: Refactor `_build_layouts()` to emit `list[AnySduiBlock]` into `inner_sdui_blocks` instead of `list[ReportLayoutDTO]` into `layouts`.
 
 #### Step 2.1: Refactor `_build_layouts()` → `_build_visualization_blocks()`
-**Target**: @[c:\src\quorum\backend_v2\services\blueprint.py#L841-L923]
+**Target**: @[backend_v2\services\blueprint.py#L841-L923]
 
 Rename and refactor the method:
 - **Input**: Same as current — `layout_defs: list[OutputLayoutBlock]`, `all_parsed_matrices`, `section_syntheses`, etc.
@@ -222,32 +229,38 @@ Rename and refactor the method:
 - **Logic**:
   - For each `OutputLayoutBlock`, resolve axes as before.
   - Apply the existing downgrade logic (3D → 2D → 1D when insufficient axes).
-  - Emit title as `ParagraphBlock(text="**{title}**")` if `layout_def.title` is not None.
-  - Emit description as `ParagraphBlock(text=description)` if `layout_def.description` is not None.
+  - **`text_delivery_mode` Resolution (BUILD TIME)**: The `text_delivery_mode` field (from `OutputLayoutBlock`) MUST be resolved at build time, NOT carried into the SDUI block. Specifically: if `text_delivery_mode == "none"` AND the preset is a graph type (`3d_matrix`, `2d_compare`), emit ONLY the chart block WITHOUT any axes detail blocks. If `text_delivery_mode == "titles_only"`, emit axes with only their `name` field (suppress `inner_sdui_blocks` using `axis.model_copy(update={'inner_sdui_blocks': []})` to preserve Pydantic frozen immutability). If `text_delivery_mode == "full"`, emit all axis details. This replaces the Jinja template's `hide_axes` logic at @[backend_v2\templates\report_template.jinja2#L293].
+  - Create a temporary list for the current layout: `layout_blocks: list[AnySduiBlock] = []`
+  - Append title: `layout_blocks.append(ParagraphBlock(text=f"**{layout_def.title.resolve(locale)}**"))` if `layout_def.title` is explicitly defined.
+  - Append description: `layout_blocks.append(ParagraphBlock(text=layout_def.description.resolve(locale)))` if `layout_def.description` is explicitly defined.
   - Map `preset_view` → concrete SDUI block (exhaustive mapping):
-    - `"3d_matrix"` → emit `SduiRadarChartBlock(title=title_str, axes=axes)` THEN emit `section_blocks`
-    - `"2d_compare"` → emit `SduiScatterPlotBlock(title=title_str, axes=axes)` THEN emit `section_blocks`
-    - `"matrix_summary"` → emit `SduiMatrixTableBlock(title=title_str, axes=axes, visible_columns=layout_def.matrix_visible_columns, column_labels=layout_def.matrix_column_labels, extension_labels=profile_extension_labels)`
-    - `"1d_metrics"` → emit `SduiMetrics1DBlock(title=title_str, axes=axes)` THEN emit `section_blocks`
-    - `"text_only"` / `"default"` → emit `section_blocks` directly (no chart wrapper; if `section_blocks` is empty/None, emit nothing)
-  - Emit synthesis blocks (if any) sequentially AFTER the chart block (do not nest them inside the chart block)
+    - `"3d_matrix"` → `layout_blocks.append(SduiRadarChartBlock(title=title_str, axes=axes))`
+    - `"2d_compare"` → `layout_blocks.append(SduiScatterPlotBlock(title=title_str, axes=axes))`
+    - `"matrix_summary"` → `layout_blocks.append(SduiMatrixTableBlock(title=title_str, axes=axes, visible_columns=layout_def.matrix_visible_columns, column_labels=layout_def.matrix_column_labels, extension_labels=profile_extension_labels))`
+    - `"1d_metrics"` → `layout_blocks.append(SduiMetrics1DBlock(title=title_str, axes=axes))`
+    - `"text_only"` / `"default"` → (Do not append any chart block wrapper)
+  - Append synthesis blocks sequentially AFTER the chart block: `if section_blocks: layout_blocks.extend(section_blocks)` (Note: This correctly consumes the `synthesis_blocks` logic that originates from `OutputLayoutBlock`).
+  - Combine all `layout_blocks` from the loop and return them as a single flat `list[AnySduiBlock]` from `_build_visualization_blocks()`.
+
+> [!WARNING]
+> **INTENTIONAL Rendering Order Change**: The current Flutter renderer at @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L247-L258] renders synthesis blocks BEFORE the chart. This Epic INTENTIONALLY changes the ordering to: title → description → chart block → synthesis blocks. This is the correct semantic ordering (explain AFTER showing the data). The Tier 1 Planner must document this as an expected behavioral change.
 
 > [!IMPORTANT]
-> **Variance and Authenticity Injection Migration**: The current `blueprint.py` creates standalone `ReportLayoutDTO` objects at @[c:\src\quorum\backend_v2\services\blueprint.py#L1363] (variance) and @[c:\src\quorum\backend_v2\services\blueprint.py#L1487] (authenticity). These MUST be migrated to directly emit `SduiMetrics1DBlock(axes=[row_dto])` + the synthesis `MarkdownBlock` into the `inner_sdui_blocks` list instead.
+> **Variance and Authenticity Injection Migration**: The current `blueprint.py` creates standalone `ReportLayoutDTO` objects at @[backend_v2\services\blueprint.py#L1363] (variance) and @[backend_v2\services\blueprint.py#L1487] (authenticity). These MUST be migrated to directly emit `SduiMetrics1DBlock(axes=[row_dto])` + the synthesis `MarkdownBlock` into the `inner_sdui_blocks` list instead.
 >
-> **Fallback Layout Migration**: The fallback at @[c:\src\quorum\backend_v2\services\blueprint.py#L1532-L1539] that creates a default `ReportLayoutDTO` when `layouts_list` is empty MUST be migrated to emit a `SduiRadarChartBlock(axes=evaluative_matrices)` directly.
+> **Fallback Layout Migration**: The fallback at @[backend_v2\services\blueprint.py#L1532-L1539] that creates a default `ReportLayoutDTO` when `layouts_list` is empty MUST be migrated to emit a `SduiRadarChartBlock(axes=evaluative_matrices)` directly.
 >
-> **`__import__()` Hack Cleanup**: The lazy import hack at @[c:\src\quorum\backend_v2\services\blueprint.py#L1354-L1356] and @[c:\src\quorum\backend_v2\services\blueprint.py#L1480-L1482] MUST be replaced with a standard top-of-file import per the `inline_imports_ban` rule.
+> **`__import__()` Hack + `except Exception` Cleanup**: The lazy import hack at @[backend_v2\services\blueprint.py#L1354-L1356] and @[backend_v2\services\blueprint.py#L1480-L1482] MUST be replaced with a standard top-of-file import per the `inline_imports_ban` rule. Additionally, the `try/except Exception` catch-all blocks at @[backend_v2\services\blueprint.py#L1353-L1361] and @[backend_v2\services\blueprint.py#L1479-L1485] MUST be removed entirely — `MatrixScorecardRowDTO(**kwargs)` should crash natively via Pydantic `ValidationError` (Fail-Fast). The bare `except Exception: pass` at @[backend_v2\services\blueprint.py#L1381-L1382] MUST be replaced with typed `except (json.JSONDecodeError, KeyError, TypeError)` and re-raise as `AppException`.
 
 #### Step 2.2: Update `build_report_dto()`
-**Target**: @[c:\src\quorum\backend_v2\services\blueprint.py#L925]
+**Target**: @[backend_v2\services\blueprint.py#L925]
 
-- Call `_build_visualization_blocks()` instead of `_build_layouts()`.
-- Append the returned `list[AnySduiBlock]` to `inner_sdui_blocks` at the appropriate position (after extensions, before diagnostic scorecard).
+- Call `visualization_blocks = self._build_visualization_blocks(...)` instead of `_build_layouts()`.
+- Explicitly insert the returned list into the main list: `inner_sdui_blocks.extend(visualization_blocks)`. This must be placed exactly after the `extensions` logic and before the `diagnostic scorecard`.
 - Remove `layouts=layouts_list` from the `ReportDataDTO(...)` constructor call.
 
 #### Step 2.3: Update `ReportDataDTO` — Remove `layouts` Field
-**Target**: @[c:\src\quorum\backend_v2\models\v2_core.py#L1196]
+**Target**: @[backend_v2\models\v2_core.py#L1196]
 
 Delete `layouts: list[ReportLayoutDTO] = Field(default_factory=list)`.
 
@@ -255,47 +268,71 @@ Delete `layouts: list[ReportLayoutDTO] = Field(default_factory=list)`.
 > This is a **breaking API change**. The Flutter client MUST be updated synchronously (Phase 3) before running the application.
 
 #### Step 2.4: Delete `ReportLayoutDTO` Class
-**Target**: @[c:\src\quorum\backend_v2\models\v2_core.py#L1050-L1078]
+**Target**: @[backend_v2\models\v2_core.py#L1050-L1078]
 
 Remove the entire class definition. Remove any imports of `ReportLayoutDTO` across the codebase.
 
-#### Step 2.5: Update Downstream Backend Consumers
+#### Step 2.5: [PRE-SATISFIED] Enforce Literal Typing in `OutputLayoutBlock`
+**Target**: @[backend_v2\models\v2_core.py#L1247]
+
+> [!NOTE]
+> **Already Satisfied**: The `text_delivery_mode` field is already strictly typed as `Literal["full", "titles_only", "none"]` in the current codebase. No changes are required for this step.
+
+#### Step 2.6: Update Downstream Backend Consumers
 
 > [!NOTE]
 > `OutputLayoutBlock.preset_view` field name and Literal values remain **unchanged**. The SDUI block discriminator values are identical to the existing `preset_view` values, so no mapping, renaming, or `seed_data.json` migration is required.
 
 ##### `sdui_mapper_service.py`
-**Target**: @[c:\src\quorum\backend_v2\services\sdui_mapper_service.py]
+**Target**: @[backend_v2\services\sdui_mapper_service.py#L1-L50]
 - Remove any direct `preset_view` consumption logic. The service now processes a unified `inner_sdui_blocks` stream.
 
 ##### `pdf_generator.py`
-**Target**: @[c:\src\quorum\backend_v2\services\pdf_generator.py]
+**Target**: @[backend_v2\services\pdf_generator.py#L1-L50]
 - Remove `layouts` iteration. Add Jinja templates for the 4 new block types (`3d_matrix`, `2d_compare`, `matrix_summary`, `1d_metrics`).
 
 ##### `flattener.py`
-**Target**: @[c:\src\quorum\backend_v2\services\flattener.py]
-- Remove any `ReportLayoutDTO` references. The flattener now processes the unified `inner_sdui_blocks` stream.
+**Target**: @[backend_v2\services\flattener.py#L38-L49]
+- Remove `report_dto.layouts` iteration at L39-42.
+- Replace with extraction from the flat `inner_sdui_blocks` stream using Python 3.10+ `match` pattern matching on `AnySduiBlock` variants:
+  ```python
+  matrices: list[MatrixScorecardRowDTO] = []
+  for block in report_dto.inner_sdui_blocks:
+      match block:
+          case SduiRadarChartBlock(axes=axes) | SduiScatterPlotBlock(axes=axes) | SduiMatrixTableBlock(axes=axes) | SduiMetrics1DBlock(axes=axes):
+              matrices.extend(axes)
+  ```
+- This replaces `isinstance()` chains with exhaustive structural pattern matching.
 
 ##### `worker.py`
-**Target**: @[c:\src\quorum\backend_v2\worker.py]
+**Target**: @[backend_v2\worker.py#L1-L50]
 - Remove any `preset_view` routing logic.
 
 ##### `execution.py`
-**Target**: @[c:\src\quorum\backend_v2\services\execution.py]
+**Target**: @[backend_v2\services\execution.py#L1-L50]
 - Remove any `ReportLayoutDTO` or `layouts` references.
 
-#### Step 2.6: Update Backend Tests
+##### `context_mapper.py`
+**Target**: @[backend_v2\hooks\context_mapper.py#L80]
+- **NO CHANGES REQUIRED**: `OutputLayoutBlock` is retained, so the existing read dependency remains valid.
+
+#### Step 2.7: Update Backend Tests
 
 All test files consuming `ReportLayoutDTO`, `preset_view`, or `layouts` must be updated:
-- @[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py]
-- @[c:\src\quorum\backend_v2\tests\unit\services\test_sdui_mapper_service.py]
-- @[c:\src\quorum\backend_v2\tests\unit\test_flattener.py]
-- @[c:\src\quorum\backend_v2\tests\unit\test_pdf_generator.py]
-- @[c:\src\quorum\backend_v2\tests\unit\test_worker_synthesis.py]
-- @[c:\src\quorum\backend_v2\tests\unit\hooks\test_linguistics.py]
-- @[c:\src\quorum\backend_v2\tests\unit\services\studio\test_output_profile_service.py]
-- @[c:\src\quorum\backend_v2\tests\integration\test_epic_chain_e2e.py]
-- @[c:\src\quorum\backend_v2\tests\integration\test_sdui_semantic_parity.py]
+- @[backend_v2\tests\unit\services\test_blueprint.py#L1-L50]
+  - **Negative Test Mandate**: MUST verify `ConfigurationError` when custom scale lacks bounds (`scale_min`/`scale_max`).
+  - **Negative Test Mandate**: MUST verify unrecognized `text_delivery_mode` fails deterministically without crashing improperly.
+- @[backend_v2\tests\unit\services\test_sdui_mapper_service.py#L1-L50]
+- @[backend_v2\tests\unit\test_flattener.py#L1-L50]
+- @[backend_v2\tests\unit\test_pdf_generator.py#L1-L50]
+- @[backend_v2\tests\unit\test_worker_synthesis.py#L1-L50]
+- @[backend_v2\tests\unit\hooks\test_linguistics.py#L1-L50]
+- @[backend_v2\tests\unit\services\studio\test_output_profile_service.py#L1-L50]
+- @[backend_v2\tests\integration\test_epic_chain_e2e.py#L1-L50]
+- @[backend_v2\tests\integration\test_sdui_semantic_parity.py#L1-L50]
+
+> [!CAUTION]
+> **Static JSON Fixture Migration**: Integration tests (like `test_epic_chain_e2e.py` and `test_sdui_semantic_parity.py`) rely on static JSON mock payloads in `backend_v2/tests/integration/test_data/`. Because `ReportDataDTO` enforces strict Pydantic parsing (`extra='forbid'`), these JSON files MUST be atomically updated to remove the old `"layouts"` array and migrate their contents to `"inner_sdui_blocks"`. Failure to update these JSON mocks will cause deterministic parser crashes during integration testing.
 
 **Quality Gate**: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
 
@@ -306,7 +343,14 @@ All test files consuming `ReportLayoutDTO`, `preset_view`, or `layouts` must be 
 **Objective**: Add 4 new `SduiBlockDTO` sealed class variants, delete `ReportLayoutDto`, remove `layouts` from `ReportDataDto`, and update the renderer.
 
 #### Step 3.1: Add 4 New Variants to `SduiBlockDTO`
-**Target**: @[c:\src\quorum\client_app_v2\lib\shared\models\sdui_block_dto.dart]
+**Target**: @[client_app_v2\lib\shared\models\sdui_block_dto.dart#L1-L50]
+
+> [!IMPORTANT]
+> **Missing Imports**: You MUST add the following imports at the top of the file:
+> `import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';`
+> `import 'package:client_app/shared/models/i18n_text.dart';`
+>
+> **Fail-Fast Freezed Config**: You MUST ensure that the top-level `@Freezed` annotation strictly enforces fail-fast on unknown block types. Ensure it is configured as `@Freezed(unionKey: 'block_type')` and that `fallbackUnion` is strictly FORBIDDEN (do not define it, or set to null). The renderer relies on `CheckedFromJsonException` to crash natively if an unknown schema is received.
 
 ```dart
 @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -346,65 +390,68 @@ const factory SduiBlockDTO.metrics1d({
 ```
 
 #### Step 3.2: Update `SduiBlocksRenderer`
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\sdui_blocks_renderer.dart]
+**Target**: @[client_app_v2\lib\features\execution\views\widgets\sdui_blocks_renderer.dart#L1-L50]
+
+> [!IMPORTANT]
+> **Freezed `.when` Ban**: You MUST refactor the current `if (block is ...)` chain into a native Dart 3 exhaustive `switch (block)` expression. You MUST NOT use `.map()` or `.when()` on the Freezed union, and you MUST NOT use `SizedBox.shrink()` as a fallback for unknown blocks. Exhaustiveness is enforced at compile-time via the sealed class — do NOT use a `default` wildcard branch. Unknown schemas will throw `CheckedFromJsonException` during deserialization.
 
 Add `switch` cases for the 4 new `SduiBlockDTO` variants:
 - `SduiRadarChartBlock` → `LogicRadarChart(axes: block.axes)` widget
 - `SduiScatterPlotBlock` → `LogicMatrixChart(xAxis: block.axes[0], yAxis: block.axes[1], zAxis: ...)` widget
 - `SduiMatrixTableBlock` → existing matrix summary table widget (extracted from `report_renderer_v2_widget.dart`)
-- `SduiMetrics1DBlock` → Column of `SduiBlocksRenderer(blocks: axis.innerSduiBlocks)` per axis
+- `SduiMetrics1DBlock` → Render via `Column(children: block.axes.map((axis) => SduiBlocksRenderer(blocks: axis.innerSduiBlocks)).toList())`. This maintains the existing Dumb Painter rendering path at @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L270-L275] — the 1D metrics are already pre-rendered as SDUI blocks by the backend into `MatrixScorecardRowDto.innerSduiBlocks`.
 
 #### Step 3.3: Remove `layouts` from `ReportDataDto`
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_data_v2_dto.dart#L49]
+**Target**: @[client_app_v2\lib\features\execution\models\report_data_v2_dto.dart#L49]
 
 Delete: `@Default([]) List<ReportLayoutDto> layouts,`
 
 Remove the import: `import 'report_layout_dto.dart';`
 
 #### Step 3.4: Delete `ReportLayoutDto` File
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_layout_dto.dart] — **DELETE FILE**
+**Target**: @[client_app_v2\lib\features\execution\models\report_layout_dto.dart#L1-L50] — **DELETE FILE**
 
 Also delete generated files:
 - `report_layout_dto.freezed.dart`
 - `report_layout_dto.g.dart`
 
 #### Step 3.5: Update Report Renderer
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L198-L295]
+**Target**: @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L198-L295]
 
-Remove the entire `for (final layout in payload.layouts)` loop at @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L198-L451]. The unified `innerSduiBlocks` is already rendered by the existing `SduiBlocksRenderer` call. Ensure the renderer processes the full `payload.innerSduiBlocks` list which now contains chart blocks inline.
+Remove the entire `for (final layout in payload.layouts)` loop at @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L198-L451]. The unified `innerSduiBlocks` is already rendered by the existing `SduiBlocksRenderer` call. Ensure the renderer processes the full `payload.innerSduiBlocks` list which now contains chart blocks inline.
 
 > [!CAUTION]
-> **`SizedBox.shrink()` Anti-Pattern**: The current renderer at @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L290] uses `return const SizedBox.shrink()` as a fallback. This violates the `sized_box_shrink_ban` rule. The new `SduiBlocksRenderer` switch cases MUST NOT introduce any `SizedBox.shrink()` fallbacks. Unknown block types MUST crash via the sealed class exhaustiveness check.
+> **`SizedBox.shrink()` Anti-Pattern**: The current renderer at @[client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart#L290] uses `return const SizedBox.shrink()` as a fallback. This violates the `sized_box_shrink_ban` rule. The new `SduiBlocksRenderer` switch cases MUST NOT introduce any `SizedBox.shrink()` fallbacks. Unknown block types MUST crash via the sealed class exhaustiveness check.
 
 #### Step 3.6: Update Studio Editor Views
 The admin studio editors that use `PresetView` dropdown menus need updating:
 
 ##### `layout_editor_card.dart`
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart]
+**Target**: @[client_app_v2\lib\features\studio\views\widgets\profile\layout_editor_card.dart#L1-L50]
 - Replace `PresetView` dropdown with the retained `PresetView` enum (NOT deleted — see Step 3.7 below).
 - Remove the `PresetView.complex3d` dropdown option at L220 and the axis count mapping at L420 — this is dead code that never existed in the enum definition.
 
 ##### `blueprint_editor_view.dart`
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\studio\views\blueprint_editor_view.dart]
+**Target**: @[client_app_v2\lib\features\studio\views\blueprint_editor_view.dart#L1-L50]
 - Same `PresetView` cleanup. Remove `PresetView.complex3d` at L90.
 
 ##### `profile_editor_view.dart`
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\studio\views\profile_editor_view.dart]
+**Target**: @[client_app_v2\lib\features\studio\views\profile_editor_view.dart#L1-L50]
 - No structural changes needed — default layout creation already uses valid `PresetView` values.
 
 ##### `output_profile.dart` (Studio Model)
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\studio\models\output_profile.dart]
+**Target**: @[client_app_v2\lib\features\studio\models\output_profile.dart#L1-L50]
 - **NO CHANGES** to the `OutputLayoutBlock` Freezed model. The `preset_view` field name and type (`PresetView`) are RETAINED because `OutputLayoutBlock` is a **database configuration model** (maps to `seed_data.json`), NOT a rendering DTO. The `preset_view` values in the database remain identical.
 
 ##### `blueprint_config.dart` (Studio Model)
-**Target**: @[c:\src\quorum\client_app_v2\lib\features\studio\models\blueprint_config.dart]
+**Target**: @[client_app_v2\lib\features\studio\models\blueprint_config.dart#L1-L50]
 - **NO CHANGES** — same rationale as `output_profile.dart` above.
 
 #### Step 3.7: Retain `PresetView` Enum (NOT Deleted)
-**Target**: @[c:\src\quorum\client_app_v2\lib\core\models\enums.dart#L58-L72]
+**Target**: @[client_app_v2\lib\core\models\enums.dart#L58-L72]
 
 > [!WARNING]
-> **Architecture Decision: `PresetView` is RETAINED.** The `PresetView` enum is used by `OutputLayoutBlock` (the database configuration model at @[c:\src\quorum\client_app_v2\lib\features\studio\models\output_profile.dart#L17-L19]) and `BlueprintConfig` (the studio editor model). These models map 1:1 to `seed_data.json` layout configuration. The `preset_view` field continues to exist in the database schema and the backend `OutputLayoutBlock` Pydantic model. Deleting the Flutter enum would break the Studio editor's ability to read/write layout configuration. The enum values remain unchanged: `metrics1d`, `compare2d`, `matrix3d`, `textOnly`, `defaultView`, `matrixSummary`.
+> **Architecture Decision: `PresetView` is RETAINED.** The `PresetView` enum is used by `OutputLayoutBlock` (the database configuration model at @[client_app_v2\lib\features\studio\models\output_profile.dart#L17-L19]) and `BlueprintConfig` (the studio editor model). These models map 1:1 to `seed_data.json` layout configuration. The `preset_view` field continues to exist in the database schema and the backend `OutputLayoutBlock` Pydantic model. Deleting the Flutter enum would break the Studio editor's ability to read/write layout configuration. The enum values remain unchanged: `metrics1d`, `compare2d`, `matrix3d`, `textOnly`, `defaultView`, `matrixSummary`.
 
 What IS removed:
 - The `PresetView` usage in the **rendering path** (`report_renderer_v2_widget.dart`'s layout loop) — because rendering now uses `SduiBlockDTO` variants.
@@ -414,11 +461,16 @@ What IS removed:
 Run: `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`
 
 #### Step 3.9: Flutter Tests
-**Target**: @[c:\src\quorum\client_app_v2\test\features\studio\models\output_profile_test.dart]
+**Target**: @[client_app_v2\test\features\studio\models\output_profile_test.dart#L1-L50] and @[client_app_v2\test\features\execution\views\widgets\sdui_blocks_renderer_test.dart#L1-L50]
 
 - Update or rewrite tests that assert on `PresetView` or `ReportLayoutDto`.
-- Add positive/negative serialization tests for the 4 new `SduiBlockDTO` variants.
-- Run @[c:\src\quorum\backend_v2\tests\unit\models\test_contract_parity.py] to verify cross-domain parity now that both sides are updated.
+- Add positive serialization roundtrip tests for the 4 new `SduiBlockDTO` variants.
+- Negative: `test_sdui_matrix_table_block_missing_axes` (Verify deserializing `3d_matrix` with missing `axes` throws `CheckedFromJsonException`).
+- Negative: `test_sdui_radar_chart_extra_keys` (Verify providing unrecognized keys to `matrix_summary` throws `CheckedFromJsonException` due to `disallowUnrecognizedKeys`).
+- **Negative Test Mandate 1**: Write a test asserting that if `SduiBlocksRenderer` encounters a severely malformed chart block, it triggers a native exception rather than rendering `SizedBox.shrink()`.
+- **Negative Test Mandate 2**: Write a test verifying that `report_renderer_v2_widget.dart` correctly bubbles up errors (or fails fast) when the `payload.layouts` fallback logic is completely removed and the payload contains invalid SDUI structures.
+- **Negative Test Mandate 3**: Add strict assertion to verify that `ReportDataDto.fromJson` throws a fatal error if the payload contains the deleted `layouts` key, proving that the `disallowUnrecognizedKeys` flag is active.
+- Run @[backend_v2\tests\unit\models\test_contract_parity.py#L1-L50] to verify cross-domain parity now that both sides are updated.
 
 **Quality Gate**: `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`
 
@@ -429,30 +481,43 @@ Run: `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`
 **Objective**: Ensure the PDF generator can render the 4 new block types and eradicate dead Jinja code.
 
 #### Step 4.1: Modify Jinja Block Renderer Dispatch
-**Target**: @[c:\src\quorum\backend_v2\templates\report_template.jinja2]
+**Target**: @[backend_v2\templates\report_template.jinja2#L1-L50]
 
 The Jinja template currently iterates `report.layouts` and uses `layout.preset_view` for conditional rendering. This must be migrated to iterate `report.inner_sdui_blocks` and dispatch on `block.block_type`.
 
 Concrete rendering strategy per block type:
-- `"3d_matrix"` (SduiRadarChartBlock) → Render an HTML table listing each axis name, score, and normalized percentage. Charts are NOT rendered in PDF — the Jinja template provides a **tabular data fallback** (consistent with the existing behavior at @[c:\src\quorum\backend_v2\templates\report_template.jinja2#L267-L320]).
+- `"3d_matrix"` (SduiRadarChartBlock) → Render an HTML table matching the EXACT structure defined in the previous layout loop (columns: Axis Name, Raw Score, Target Score, Normalized %). Charts are NOT rendered in PDF — the Jinja template provides a **tabular data fallback** (consistent with the existing behavior at @[backend_v2\templates\report_template.jinja2#L267-L320]).
 - `"2d_compare"` (SduiScatterPlotBlock) → Render a 2-column HTML comparison table with axis labels and scores.
-- `"matrix_summary"` (SduiMatrixTableBlock) → Render a full HTML `<table>` using `block.visible_columns` for headers and `block.axes` for rows. This directly replaces the existing matrix summary table at @[c:\src\quorum\backend_v2\templates\report_template.jinja2#L414].
-- `"1d_metrics"` (SduiMetrics1DBlock) → Render a vertical list of metric blocks, iterating `block.axes` and rendering each axis's `inner_sdui_blocks` recursively.
+- `"matrix_summary"` (SduiMatrixTableBlock) → Render a full HTML `<table>` using `block.visible_columns` for headers and `block.axes` for rows. This directly replaces the existing matrix summary table at @[backend_v2\templates\report_template.jinja2#L414]. You MUST resolve column headers using specific locale resolution (e.g., `block.column_labels.get(col_key, {}).get(locale, col_key)`).
+- `"1d_metrics"` (SduiMetrics1DBlock) → Render axis inner_sdui_blocks via the existing `render_sdui_blocks()` Jinja macro for each axis in `block.axes`.
+
+> [!IMPORTANT]
+> **Chart Image Indexing Migration**: The current Jinja template injects chart images using `charts[loop.index0]` keyed by layout position. In the new architecture, the `pdf_generator.py` must build the `charts` dictionary keyed by the BLOCK's position within `inner_sdui_blocks` (not the layout index). The chart generation loop at @[backend_v2\services\pdf_generator.py#L187-L208] must iterate `report_dto.inner_sdui_blocks`, check `block.block_type` via `match` pattern, and populate charts keyed by the block's index in `inner_sdui_blocks`.
+>
+> **`text_delivery_mode` is resolved at BUILD TIME**: The Jinja template no longer needs `hide_axes` logic. The backend builder at Step 2.1 already resolves `text_delivery_mode` by conditionally emitting or suppressing axis detail blocks. The Jinja template renders whatever blocks are in the stream.
 
 #### Step 4.2: Eradicate Dead Jinja Code
-**Target**: @[c:\src\quorum\backend_v2\templates\report_template.jinja2#L292]
+**Target**: @[backend_v2\templates\report_template.jinja2#L292]
 
 Remove the dead `'3d_complex'` and `'complex3d'` strings from the `has_graph` set.
 
 #### Step 4.3: Remove Legacy `layouts` Iteration from PDF Generator
-**Target**: @[c:\src\quorum\backend_v2\services\pdf_generator.py#L190-L197]
+**Target**: @[backend_v2\services\pdf_generator.py#L190-L197]
 
 The PDF generator currently iterates `ReportDataDTO.layouts`. Replace this with processing the unified `inner_sdui_blocks` stream, which now contains chart blocks inline.
+> [!IMPORTANT]
+> **Duct-Tape Ban**: You MUST use a Python 3.10 `match block:` statement to iterate `report_dto.inner_sdui_blocks`. Additionally, you MUST remove the `except Exception as e:` catch-all block at lines ~204. Instead, catch specifically `(ValueError, TypeError, ConfigurationError)` and re-raise as `CompliantAppException(error_code=ErrorCodes.INTERNAL_SERVER_ERROR)`.
 
 #### Step 4.4: Update `pdf_generator.py` Rendering Context
-**Target**: @[c:\src\quorum\backend_v2\services\pdf_generator.py]
+**Target**: @[backend_v2\services\pdf_generator.py#L1-L50]
 
 Update the Jinja rendering context to pass `report.inner_sdui_blocks` instead of `report.layouts`.
+
+#### Step 4.5: Update Phase 4 Tests
+**Target**: @[backend_v2\tests\unit\test_pdf_generator.py#L1-L50]
+
+- **Negative Test Mandate**: `test_pdf_generator_empty_chart_crashes` - Verify that if `generate_radar_chart` returns empty bytes for a `SduiRadarChartBlock`, the system crashes natively with `ConfigurationError` and does NOT swallow the error.
+- **Negative Test Mandate**: `test_pdf_generator_unknown_block_type_skipped` - Verify that an unknown `block_type` in `inner_sdui_blocks` is gracefully skipped during chart generation and does not crash the iteration loop.
 
 **Quality Gate**: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
 
@@ -469,6 +534,8 @@ uv run python backend_v2/seed/run_seed.py local
 ```powershell
 uv run python scripts/backend_audit_loop.py backend_v2/ --test
 ```
+> [!IMPORTANT]
+> **Quality Gate Constraint**: You MUST NOT proceed if coverage drops or any tests fail. Pay special attention to `test_contract_parity.py` and `test_sdui_semantic_parity.py`.
 
 #### Step 5.3: Flutter Audit Loop (Full)
 ```powershell
@@ -476,10 +543,10 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/ --build
 ```
 
 #### Step 5.4: Contract Parity Test
-Verify that @[c:\src\quorum\backend_v2\tests\unit\models\test_contract_parity.py] passes — confirming Python ↔ Flutter DTO field-level parity for `ReportDataDTO`/`ReportDataDto` (with `layouts` removed from both).
+Verify that @[backend_v2\tests\unit\models\test_contract_parity.py#L1-L50] passes — confirming Python ↔ Flutter DTO field-level parity for `ReportDataDTO`/`ReportDataDto` (with `layouts` removed from both).
 
 #### Step 5.5: SDUI Semantic Parity Test
-Verify that @[c:\src\quorum\backend_v2\tests\integration\test_sdui_semantic_parity.py] passes — confirming that the flat block pipeline produces identical visual semantics to the old layout pipeline.
+Verify that @[backend_v2\tests\integration\test_sdui_semantic_parity.py#L1-L50] passes — confirming that the flat block pipeline produces identical visual semantics to the old layout pipeline.
 
 #### Step 5.6: MANDATORY Final E2E REST API Verification Gate
 ```powershell
@@ -487,6 +554,9 @@ $env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integr
 ```
 
 #### Step 5.7: Manual Verification
+> [!CAUTION]
+> **No Fake Verification**: Do NOT output fake checklists or skip this step. The Epic is not complete until the manual user verification is confirmed.
+
 1. Run a full execution via the Flutter desktop app and verify:
    - Radar charts render correctly for 3+ axis configurations
    - Scatter plots render correctly for 2-axis configurations
