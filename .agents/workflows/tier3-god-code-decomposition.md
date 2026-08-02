@@ -60,6 +60,16 @@ This workflow is designed for the systematic planning and decomposition of heavy
       <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). ORIGINAL BOUNDARY PRESERVATION: If you are extracting a specific block from the God Code, you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[file.py#L830-L841]`) to precisely target the extraction zone.</mandatory_pattern>
       <catastrophic_reason>Failing to use `@-references` with precise line bounds forces the next AI session to blindly search for context, wasting tokens, and causing severe Context Amnesia or incorrect logic extraction.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_item_preflight">
+      <banned_pattern>Creating multiple structurally identical extracted files without first establishing a canonical reference template in the Knowledge Base.</banned_pattern>
+      <mandatory_pattern>During Step 2 (Pre-flight), the planner MUST evaluate whether the decomposition produces a REPEATING STRUCTURAL PATTERN (3+ extracted files sharing identical structure). If so, the planner MUST search existing KIs and either reference an existing KI or CREATE a new KI with a canonical reference template, locked terminology, and anti-patterns list BEFORE generating extraction plans.</mandatory_pattern>
+      <catastrophic_reason>Without a pre-execution canonical KI, each extraction phase's executing agent independently interprets structural requirements, causing terminology drift and inconsistent file structures across the decomposed modules.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="test_contract_specification">
+      <banned_pattern>Writing vague test instructions like "write unit tests" or "ensure coverage" in generated extraction plans without specifying exact test names, inputs, and expected outputs.</banned_pattern>
+      <mandatory_pattern>Every generated extraction plan MUST include a `<test_contracts>` XML block containing concrete, named test specifications. Each test contract MUST define: 1) test name following `test_{method}_{scenario}_{expected}` convention, 2) input fixture, 3) expected output or exception, 4) category (positive/negative/boundary/error_path). For every positive test, at least 2 negative/boundary tests MUST be specified. Since God Code decomposition requires zero behavioral change, test contracts MUST include `regression` category tests that lock the EXACT current output of each extracted method.</mandatory_pattern>
+      <catastrophic_reason>God Code decomposition without explicit test contracts makes it impossible to verify zero behavioral change. The executing agent writes superficial tests that pass but fail to detect subtle logic drift introduced during extraction.</catastrophic_reason>
+    </rule_block>
   
 
   </context_rules>
@@ -84,6 +94,8 @@ This workflow is designed for the systematic planning and decomposition of heavy
       <constraint name="HYBRID_XML_SANDWICH_MANDATE">You MUST require that generated `phaseX_extraction.md` files wrap their step-by-step instructions in `<execution_protocol>` XML blocks inside fenced ```xml ``` codeblocks, exactly matching the format produced by `tier0-create-plan`.</constraint>
       <action>Add an explicit `[NOK]` task in the tracker after Phase 2 instructing the executing agent: "Invoke the Tier 3 Planner again to generate detailed plans for the remaining phases based on the updated codebase state."</action>
       <action>Ensure the Strangler Fig mapping (including test mock updates and DI shadow fixes) is detailed in the generated plans.</action>
+      <action name="TEST CONTRACT GENERATION">For every generated extraction plan, you MUST include a `<test_contracts>` XML block specifying exact regression tests that lock the current output of each extracted method. These contracts ensure the executing agent can mathematically prove zero behavioral change after extraction.</action>
+      <action name="KI PREFLIGHT CHECK">If the decomposition produces 3+ structurally identical files, you MUST create or reference a canonical KI template BEFORE generating the extraction plans. Inject a `<constraint invariant="knowledge_item_preflight">` tag into every extraction plan that creates a file following this pattern.</action>
       <action name="SELF HEALING BOUNDARY AUDIT">After creating the `phaseX_extraction.md` plans, you MUST physically run the boundaries audit script on each generated plan: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>`. If it fails, you MUST correct the plan and re-run until it passes.</action>
     </step>
     

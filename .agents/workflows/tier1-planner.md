@@ -172,6 +172,27 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <mandatory_pattern>In every generated sub-plan, you MUST explicitly include a directive for the `/tier0-research-plan` agent: "EPIC SYNC MANDATE: If this plan is mutated or corrected during Tier 0 analysis, you MUST simultaneously open the parent Epic document (@[epic_file.md]) and synchronize the architectural corrections back into the Epic to maintain it as the true SSOT."</mandatory_pattern>
       <catastrophic_reason>If Tier 0 fixes a flaw in Phase 1's plan but the Epic is not updated, Phase 2 will be generated from an outdated, flawed Epic, causing architectural divergence and recurring errors.</catastrophic_reason>
     </rule_block>
+    
+    <rule_block id="knowledge_item_preflight">
+      <banned_pattern>Creating multiple structurally identical files (adapters, strategies, handlers, renderers) across phases without first establishing a canonical reference template in the Knowledge Base. Deferring KI creation to "upon Epic completion" when the Epic introduces a repeating structural pattern that must be uniform across 3+ files.</banned_pattern>
+      <mandatory_pattern>During Step 2 (DYNAMIC CONTEXT ACQUISITION), the planner MUST evaluate whether the Epic introduces a REPEATING STRUCTURAL PATTERN — i.e., multiple files that must share identical structure, terminology, and conventions (examples: adapter classes, strategy implementations, handler modules, renderer components). If such a pattern is detected:
+        1) SEARCH EXISTING KIs: Use `list_dir` on `<appDataDir>\knowledge\` and review KI summaries to check if a relevant KI already exists that covers this pattern. If found, reference it in the plans and UPDATE it if the Epic extends the pattern.
+        2) CREATE OR UPDATE KI BEFORE PHASE 1: If no existing KI covers the pattern, generate a new KI with: (a) a canonical reference template (complete Python file with locked variable names, import order, docstring format, section structure), (b) locked terminology dictionary (exact method names, parameter names, return types that MUST NOT be renamed), (c) forbidden anti-patterns with concrete code examples, (d) the canonical AdapterContext/DTO schema if applicable.
+        3) INJECT KI REFERENCE INTO EVERY PLAN: Every sub-plan that creates a file following this pattern MUST include a `<constraint invariant="knowledge_item_preflight">` tag instructing the executing agent to read the KI artifact BEFORE writing any code.
+      This ensures that Phase 1's adapter, Phase 3's adapter, and Phase 5's adapter are structurally indistinguishable — locked by a pre-existing canonical template rather than by the executing agent's memory of what it did in the previous phase.</mandatory_pattern>
+      <catastrophic_reason>Without a pre-execution canonical KI, each phase's executing agent independently interprets the Epic's structural requirements. Over 5+ phases, terminology drifts (build vs render vs generate), variable names diverge (ctx vs context vs data), and file structures become inconsistent. This "structural entropy" compounds across sessions, creating a codebase that looks like it was written by 5 different developers with different coding styles — the exact opposite of the uniformity goal.</catastrophic_reason>
+    </rule_block>
+    
+    <rule_block id="test_contract_specification">
+      <banned_pattern>Writing vague test instructions like "write unit tests for the adapter", "add tests for the new feature", or "ensure test coverage" in sub-plans without specifying exact test names, inputs, and expected outputs.</banned_pattern>
+      <mandatory_pattern>Every sub-plan that creates or modifies functional code MUST include a `<test_contracts>` XML block containing concrete, named test specifications. Each test contract MUST define:
+        1) **test name**: Following the `test_{method}_{scenario}_{expected}` naming convention (e.g., `test_build_empty_penalties_returns_empty_list`).
+        2) **input**: The exact input data or fixture description (e.g., `AdapterContext(penalties_applied=[])`).
+        3) **expected**: The exact expected output, exception type, or assertion (e.g., `returns []`, `raises AppException`, `len(result) == 3`).
+        4) **category**: One of `positive`, `negative`, `boundary`, `error_path`.
+      For every positive test, at least 2 negative/boundary tests MUST be specified. The executing agent MUST write these exact tests BEFORE or ALONGSIDE the implementation code — never after. If the plan modifies an existing function, the test contracts MUST include a `regression` category test that locks the current behavior before modification.</mandatory_pattern>
+      <catastrophic_reason>Without explicit test contracts, executing agents write superficial "happy path only" tests that pass trivially but miss edge cases, boundary violations, and error paths. The vague instruction "add tests" gives the executing agent full discretion to write the minimum possible, which invariably means zero negative tests and zero boundary tests — the exact test categories that catch production bugs.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_epic_planner">
@@ -246,13 +267,32 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     </step>
 
     <step id="9" name="DOCUMENTATION &amp; KNOWLEDGE ITEM MANDATE">
-      <action>If the plan introduces a new SSOT (Single Source of Truth) component or architectural standard, you MUST instruct the execution agent to manually create a Knowledge Item (KI) in the IDE's Knowledge Base (`&lt;appDataDir&gt;\knowledge\`).</action>
+      <action name="PRE-EXECUTION KI AUDIT">BEFORE generating any sub-plans, you MUST evaluate whether the Epic introduces a repeating structural pattern (3+ files sharing identical structure). If so, you MUST:
+        1) Search existing KIs in `<appDataDir>\knowledge\` for an existing KI that covers the pattern.
+        2) If found: Reference the existing KI in all sub-plans and UPDATE it if the Epic extends the pattern with new requirements.
+        3) If NOT found: CREATE a new KI with a canonical reference template, locked terminology, and anti-patterns list. This KI MUST be created DURING the Tier 1 planning session (not deferred to Epic completion), so that all Tier 2 executing agents can load it as architectural memory.
+      </action>
+      <action>If the plan introduces a new SSOT (Single Source of Truth) component or architectural standard that does NOT involve a repeating pattern, you MUST instruct the execution agent to create a Knowledge Item (KI) in the IDE's Knowledge Base (`&lt;appDataDir&gt;\knowledge\`) upon completion of the relevant phase.</action>
       <constraint>This ensures future AI agents automatically inherit the usage rules for the new SSOT. After the KI is created, you MUST rely on the `/tier7-describe-architecture` workflow to automatically scan the codebase and update the `docs\architecture\` physical mappings and `.agents\rules\04_directory_reference.md`. Do NOT instruct agents to manually update the physical file paths in the architecture documents.</constraint>
     </step>
 
     <step id="10" name="TESTING STRATEGY &amp; VERIFICATION">
       <action>You MUST include a "Testing &amp; Quality Gate Plan" at the end of each plan.</action>
       <constraint>1) Specify strict unit tests. 2) Specify integration tests. 3) For every positive test scenario, mandate at least 2 corresponding negative test scenarios (missing inputs, incorrect types, boundary violations, AppException paths).</constraint>
+      <action name="TEST CONTRACT GENERATION">For every sub-plan, you MUST generate a `<test_contracts>` XML block containing named, concrete test specifications. Each contract MUST include: test name (following `test_{method}_{scenario}_{expected}` convention), input fixture, expected output/exception, and category (positive/negative/boundary/error_path). These contracts serve as the executing agent's Definition of Done for testing — the agent MUST NOT mark the phase as complete until ALL specified test contracts have been implemented and pass. Example:
+```xml
+<test_contracts>
+  <test name="test_build_empty_input_returns_empty" category="boundary">
+    <input>AdapterContext(penalties_applied=[])</input>
+    <expected>returns []</expected>
+  </test>
+  <test name="test_build_unknown_key_raises_key_error" category="error_path">
+    <input>AdapterContext with unmapped XaiExtensionType</input>
+    <expected>raises KeyError (Fail-Fast, no fallback)</expected>
+  </test>
+</test_contracts>
+```
+      </action>
       <action>You MUST explicitly mandate the use of the Universal Quality Gate as defined in `AGENTS.md`. You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
       <action>At the conclusion of the final integration plan, you MUST include the Final Live E2E REST API Verification Gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.</action>
       <constraint>If the Epic involves modifying existing code, explicitly instruct the executing agent to run the tests first and record the passing test count and coverage as a `[BASELINE]` metric.</constraint>

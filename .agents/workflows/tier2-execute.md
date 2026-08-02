@@ -90,9 +90,10 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <fallback trigger="ANY symbol is missing from its planned destination">You MUST STOP. You are strictly FORBIDDEN from deleting the file until you have explicitly asked and received PROCEED permission from the user.</fallback>
     </step>
 
-    <step id="4" name="CONSTRAINTS & TDD MANDATE">
+    <step id="4" name="CONSTRAINTS &amp; TDD MANDATE">
       <action>For every single step, perform automated verification BEFORE and AFTER your changes.</action>
       <action name="NEW FUNCTIONALITY MANDATE">You MUST write a failing test first (Red-Green-Refactor) for new logic.</action>
+      <gate name="TEST CONTRACT ENFORCEMENT">If the plan contains a `<test_contracts>` XML block, you MUST implement ALL specified test contracts BEFORE or ALONGSIDE the implementation code. The test contracts define exact test names, inputs, expected outputs, and categories. You MUST NOT mark the phase as complete until every specified test contract has been implemented as an actual test function and passes. Treat the test contracts as a hard checklist — missing any contract is a blocking failure.</gate>
       <action>You MUST explicitly mandate the use of the Universal Quality Gate as defined in `AGENTS.md`. Enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
     </step>
 
@@ -106,8 +107,14 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <fallback trigger="end-to-end verification is impossible in the current session">The phase MUST be marked as `[NEEDS_E2E]` instead of `[x]`.</fallback>
     </step>
 
-    <step id="7" name="DOCUMENTATION & KI AUDIT">
+    <step id="7" name="DOCUMENTATION &amp; KI AUDIT">
       <action>If the executed plan introduced new systems, modified data flows, or shifted architectural boundaries, you MUST create or update a Knowledge Item (KI) documenting the new pattern. **CRITICAL:** If a new KI is needed, you MUST either instruct the user to create it using the IDE's KI interface, or create it explicitly in `<appDataDir>\knowledge\<ki_name>\` with a `metadata.json` and an `artifacts/` subdirectory; do NOT guess the KI structure. After creating/updating a KI, you MUST instruct the user to run `/tier7-describe-architecture` in a fresh session to synchronize the pillar narratives. You MUST still directly update `.agents/rules/04_directory_reference.md` for physical path changes. Do NOT manually edit the 6 architecture pillar documents (`docs/architecture/01_` through `06_`).</action>
+      <action name="LEARNING FEEDBACK LOOP">If during execution you encountered deviations from a pre-existing KI template or test contract (e.g., AdapterContext needed a field the KI didn't specify, or a test contract's expected output was wrong), you MUST now apply the Learning Feedback Loop:
+        1) Review the `## Learnings` section in `task.md` for all documented deviations.
+        2) UPDATE the relevant KI artifact to reflect the new reality (add the missing field, correct the terminology).
+        3) GENERATE additional test contracts or amend existing ones to cover the newly discovered behavior.
+        4) Add a changelog entry to the KI (e.g., `Updated: [date] — [reason] per Phase N learning`).
+      This ensures KIs and test contracts remain living documents that evolve with real-world execution feedback.</action>
       <action>Ensure your updates strictly follow the existing structures of these files, such as formatting tables correctly.</action>
       <constraint>Do NOT update architecture documentation for minor tweaks or localized refactors.</constraint>
     </step>
