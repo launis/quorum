@@ -51,9 +51,14 @@ This workflow is designed for the systematic planning and decomposition of heavy
       <mandatory_pattern>The planner MUST explicitly map database session lifecycles and any shared runtime state within the God file. The generated implementation plans MUST specify exactly how session objects (or database connections) are injected (Dependency Injection) into the newly extracted modules. If the God File executed operations under a single atomic transaction, the extracted domain logic MUST accept the existing session as a parameter rather than creating new independent sessions.</mandatory_pattern>
       <catastrophic_reason>Splintering a single God File transaction into multiple independent domain transactions destroys database atomicity. If one domain succeeds and the next fails, partial commits will irreparably corrupt the system data state.</catastrophic_reason>
     </rule_block>
+    <rule_block id="anti_abstraction_mandate">
+      <banned_pattern>Abstracting, summarizing, or generalizing explicit details from the original God Code file using lazy placeholders.</banned_pattern>
+      <mandatory_pattern>You MUST NOT act as a lossy compression algorithm. You MUST extract and VERBATIM preserve exact variable names, method signatures, ErrorCodes, and numbered algorithmic steps from the original God Code file directly into the generated XML extraction plans.</mandatory_pattern>
+      <catastrophic_reason>Abstracting details forces the executing agent to guess or hallucinate during extraction, breaking structural parity.</catastrophic_reason>
+    </rule_block>
     <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
-      <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
+      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). ORIGINAL BOUNDARY PRESERVATION: If you are extracting a specific block from the God Code, you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[file.py#L830-L841]`) to precisely target the extraction zone.</mandatory_pattern>
+      <catastrophic_reason>Failing to use `@-references` with precise line bounds forces the next AI session to blindly search for context, wasting tokens, and causing severe Context Amnesia or incorrect logic extraction.</catastrophic_reason>
     </rule_block>
   
 

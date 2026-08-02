@@ -42,9 +42,14 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
       <mandatory_pattern>If the task involves refactoring, you are STRICTLY FORBIDDEN from adding new features in the same session. Refactoring must be 100% structural parity.</mandatory_pattern>
       <catastrophic_reason>Mixing functional changes with structural changes destroys the ability to isolate regressions.</catastrophic_reason>
     </rule_block>
+    <rule_block id="anti_abstraction_mandate">
+      <banned_pattern>Abstracting, summarizing, or generalizing explicit details from the user's prompt or requirements using lazy placeholders.</banned_pattern>
+      <mandatory_pattern>You MUST NOT act as a lossy compression algorithm. You MUST extract and VERBATIM preserve exact JSON payloads, code snippets, ErrorCodes, variable names, and numbered algorithmic steps from the user's prompt directly into your generated XML implementation plans.</mandatory_pattern>
+      <catastrophic_reason>Abstracting details forces you or the next session to guess or hallucinate, causing deviation from the requested architecture.</catastrophic_reason>
+    </rule_block>
     <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
-      <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
+      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). PROMPT BOUNDARY PRESERVATION: If the user provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plan.</mandatory_pattern>
+      <catastrophic_reason>Failing to use `@-references` with explicit bounds forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
     <rule_block id="codebase_state_verification_mandate">
       <banned_pattern>Blindly implementing a task marked `[ ]` in `task.md` or `implementation_plan.md` without first verifying the current codebase state. Trusting checklist markers as absolute truth.</banned_pattern>

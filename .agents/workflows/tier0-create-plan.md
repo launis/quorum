@@ -33,9 +33,14 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
       <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
     </rule_block>
+    <rule_block id="anti_abstraction_mandate">
+      <banned_pattern>Abstracting, summarizing, or generalizing explicit details from the user's prompt or requirements using lazy placeholders.</banned_pattern>
+      <mandatory_pattern>You MUST NOT act as a lossy compression algorithm. You MUST extract and VERBATIM preserve exact JSON payloads, code snippets, ErrorCodes, variable names, and numbered algorithmic steps from the user's prompt directly into the generated XML plan steps.</mandatory_pattern>
+      <catastrophic_reason>Abstracting details forces the executing agent to guess or hallucinate, causing deviation from the requested architecture.</catastrophic_reason>
+    </rule_block>
     <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`).</mandatory_pattern>
-      <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. PROMPT BOUNDARY PRESERVATION: If the user provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plan.</mandatory_pattern>
+      <catastrophic_reason>Failing to use bounded `@-references` or dropping user-defined bounds forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
   
 

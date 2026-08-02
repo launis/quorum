@@ -45,10 +45,22 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <catastrophic_reason>Type drift during planning causes downstream executing agents to implement `list[Any]`, which entirely bypasses Quorum's Fail-Fast validation gates and silently corrupts state transit.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="anti_abstraction_mandate">
+      <banned_pattern>Abstracting, summarizing, or generalizing explicit details from the Epic using lazy placeholders (e.g., "implement the logic as described in the Epic", "use the error code from the Epic", "see the payload in the Epic").</banned_pattern>
+      <mandatory_pattern>You MUST NOT act as a lossy compression algorithm. You MUST extract and VERBATIM preserve the following explicit details into the generated XML plan steps if they exist in the Epic:
+        1) **Payloads &amp; Snippets:** Exact JSON examples, data payloads, and code snippets.
+        2) **Error Codes &amp; Exceptions:** Exact `AppException` types and `ErrorCodes` (e.g., `ErrorCodes.INVALID_STATE`).
+        3) **Constants &amp; Nomenclature:** Specific variable names, hardcoded strings, feature flags, or magic numbers (e.g., `TTL = 3600`).
+        4) **Anti-Targets:** Explicitly listed "Do not touch" rules or exclusion zones MUST be copied verbatim into the `<anti_targets>` XML block.
+        5) **Algorithmic Steps:** If the Epic provides a numbered 1-2-3 sequence for internal method logic, copy that exact sequence verbatim into the plan's `<action>` tags.
+      </mandatory_pattern>
+      <catastrophic_reason>Abstracting details forces the Tier 2 execution agent to guess, hallucinate, or context-switch back to the Epic, causing deviation from the required architecture and introducing untrackable regressions.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="context_amnesia_prevention">
-      <banned_pattern>Writing plan targets as raw strings instead of bounded `@-reference` blocks.</banned_pattern>
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
-      <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
+      <banned_pattern>Writing plan targets as raw strings instead of bounded `@-reference` blocks, or discarding explicit line bounds provided by the Epic.</banned_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. EPIC BOUNDARY PRESERVATION: If the source Epic document provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plans. This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation.</mandatory_pattern>
+      <catastrophic_reason>Failing to use bounded `@-references` or dropping Epic-defined bounds forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia, loss of architectural targeting, and immediate truncation failure.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="refactoring_fidelity_mandate">
