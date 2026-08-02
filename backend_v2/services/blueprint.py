@@ -64,6 +64,7 @@ from backend_v2.models.view.sdui import (
     SduiScatterPlotBlock,
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
@@ -112,9 +113,7 @@ class BlueprintTransformer:
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: self._hydrate_printable_sources_block(
                 profile_cache=ctx.profile_cache,
             ),
-            TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: self._hydrate_grouped_extensions_block(
-                accumulated_extensions=ctx.accumulated_extensions,
-            ),
+            TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: XaiHighlightsAdapter.build(ctx),
         }
 
     @staticmethod
@@ -831,19 +830,6 @@ class BlueprintTransformer:
 
         md_content = "\n".join(md_lines)
         return [MarkdownBlock(text=md_content)]
-
-    def _hydrate_grouped_extensions_block(self, **kwargs: Any) -> list[AnySduiBlock]:
-        """Hydrates XAI extensions into grouped AccordionBlock elements."""
-        accumulated_extensions = kwargs.get("accumulated_extensions", {})
-
-        if not accumulated_extensions:
-            return []
-
-        blocks: list[AnySduiBlock] = []
-        for ext_blocks in accumulated_extensions.values():
-            blocks.extend(ext_blocks)
-
-        return blocks
 
     def _build_visualization_blocks(
         self,

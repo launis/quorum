@@ -22,27 +22,27 @@
   - [x] Step 6: Modify `blueprint.py` — migrate dispatch call site from kwargs scatter to single `AdapterContext` pass, bridge `mcp_audit_map=mcp_audit_data`
   - [x] Step 7: Create `test_base_adapter.py` — positive construction test, frozen rejects mutation, forbids extra fields, missing required field raises, strict type enforcement
   - [x] Step 8: Run Quality Gate — `uv run python scripts/backend_audit_loop.py backend_v2 --test`
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]`
 
 ---
 
 ### Phase 2: Extract XAI Highlights Adapter (Proof of Concept)
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\01_xai_highlights_adapter.md]
 
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\01_xai_highlights_adapter.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\01_xai_highlights_adapter.md]`
-  - [ ] Step 0: Strategic Alignment Check — verify Phase 1 completed (AdapterContext exists, dispatch table uses new type), verify `_hydrate_grouped_extensions_block` still exists
-  - [ ] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition`
-  - [ ] Step 2: Create `xai_highlights_adapter.py` — Section 1: `XAI_AESTHETICS_RULES` dictionary (minimal placeholder for Phase 2, fully populated in Phase 6); Section 2: `XaiHighlightsAdapter.build(context)` that flattens `accumulated_extensions`
-  - [ ] Step 3: Modify `blueprint.py` — import `XaiHighlightsAdapter`, wire into dispatch table, DELETE `_hydrate_grouped_extensions_block` method entirely
-  - [ ] Step 4: Migrate Tests — move XAI extension tests from `test_blueprint.py` to `test_xai_highlights_adapter.py`; add negative tests (empty extensions → `[]`, multiple groups flatten, context immutability, `None` extensions raises `ValidationError`)
-  - [ ] Step 5: Run Quality Gate — `uv run python scripts/backend_audit_loop.py backend_v2 --test`
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\01_xai_highlights_adapter.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\01_xai_highlights_adapter.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\01_xai_highlights_adapter.md]`
+  - [x] Step 0: Strategic Alignment Check — verify Phase 1 completed (AdapterContext exists, dispatch table uses new type), verify `_hydrate_grouped_extensions_block` still exists
+  - [x] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition`
+  - [x] Step 2: Create `xai_highlights_adapter.py` — Section 1: `XAI_AESTHETICS_RULES` dictionary (minimal placeholder for Phase 2, fully populated in Phase 6); Section 2: `XaiHighlightsAdapter.build(context)` that flattens `accumulated_extensions`
+  - [x] Step 3: Modify `blueprint.py` — import `XaiHighlightsAdapter`, wire into dispatch table, DELETE `_hydrate_grouped_extensions_block` method entirely
+  - [x] Step 4: Migrate Tests — move XAI extension tests from `test_blueprint.py` to `test_xai_highlights_adapter.py`; add negative tests (empty extensions → `[]`, multiple groups flatten, context immutability, `None` extensions raises `ValidationError`)
+  - [x] Step 5: Run Quality Gate — `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\01_xai_highlights_adapter.md]`
 
 ---
 
 ### Phase 3: Extract Penalties Adapter
-**Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md] *(placeholder — expand via `/tier1-planner` after Phase 2)*
+**Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md] *(Expanded via Tier 1 Planner)*
 
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]`
@@ -243,6 +243,10 @@
 - Post-Implementation Gates, Documentation & KI Update, and Final Epic Audit sections populated.
 - **[2026-08-02]** Tier 0 Research Analysis completed on `00_foundation_adapter_context.md`. Identified a critical type mismatch on `mcp_audit_map` (list vs dict) and provided corrective mutations (M1, M2).
 - **[2026-08-02]** Tier 2 Execution completed on `00_foundation_adapter_context.md` (Phase 1). Created `base_adapter.py`, migrated `blueprint.py` dispatch table and call site, and wrote unit tests for `AdapterContext`. All quality gates passed perfectly.
+- **[2026-08-02]** Tier 0 Research Analysis completed on `01_xai_highlights_adapter.md`. Identified missing mock data in test contracts for the strictly typed `AdapterContext` and missing legacy tests. The plan was updated to enforce a Pytest fixture pattern to prevent `ValidationError` instantiation crashes.
+- **[2026-08-02]** Tier 2 Execution completed on `01_xai_highlights_adapter.md` (Phase 2). Created `xai_highlights_adapter.py`, wired it into the `blueprint.py` dispatch table, completely deleted the legacy `_hydrate_grouped_extensions_block` method, and implemented all mandatory negative tests in `test_xai_highlights_adapter.py`. All unit tests and audit loops passed.
+- **[2026-08-02]** Tier 8 Audit Plan completed for Phase 1 and Phase 2. Both plans were mathematically validated against Quorum 2026 Architectural Invariants and the Epic boundaries were preserved perfectly. Status: PASSED.
+- **[2026-08-02]** Tier 1 Epic Planner completed on `02_penalties_adapter.md` (Phase 3). Expanded the placeholder into a full XML execution protocol, injected canonical rules for `PenaltiesAdapter`, defined test contracts, and passed Markdown boundaries and planner fidelity audits.
 
 ## Learned
 - **Baseline State Snapshot**: `blueprint.py` is currently ~2012 lines with a 560-line God Method `_extract_matrices_and_extensions` (L222-L782). The dispatch table at L104-L111 uses `Callable[..., list[AnySduiBlock]]` with kwargs scatter at L1948-L1960. The inline `Callable` import is at L103 inside `__init__`. Six hydrator methods exist: `_hydrate_penalties_block`, `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, `_hydrate_printable_sources_block`, `_hydrate_grouped_extensions_block`.
@@ -255,13 +259,12 @@
 - `polyfactory` test model generation can fail with explicit constraints on `I18nText`, better to use manual valid instantiation for `OutputProfile` fixtures when needed.
 
 ## Remaining
-- **[IMMEDIATE]** Audit Phase 1 using `/tier8-audit-plan` on `00_foundation_adapter_context.md`.
-- Red-Team Phase 2 using `/tier0-research-plan` on `01_xai_highlights_adapter.md`.
-- Execute Phase 2 (Extract XAI Highlights Adapter).
-- Expand placeholder plans for Phases 3-8 via `/tier1-planner` (incrementally, after each preceding phase completes).
-- Execute all 8 phases through the mandatory workflow loop.
+- **[IMMEDIATE]** Run `/tier0-research-plan` on Phase 3 (`@[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]`) to analyze the plan and identify potential flaws before execution.
+- **[NEXT]** Execute Phase 3 via `/tier2-execute`.
+- Expand remaining placeholder plans for Phases 4-8.
+- Execute all remaining phases through the mandatory workflow loop.
 - Complete all Post-Implementation Gates.
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`

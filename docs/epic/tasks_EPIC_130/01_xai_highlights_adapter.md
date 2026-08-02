@@ -115,19 +115,19 @@ REPLACE WITH: XaiHighlightsAdapter.build(ctx) dispatch via lambda in the _target
   </step>
 
   <step id="4" name="MIGRATE TESTS AND ADD NEGATIVE TESTS">
-    <action>Search @[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py] for any tests that specifically test `_hydrate_grouped_extensions_block`. Use grep_search to find them. If found, PHYSICALLY MOVE them (not copy) to @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_xai_highlights_adapter.py]. Update the test imports to call `XaiHighlightsAdapter.build(context)` directly instead of the private method.</action>
-    <action>Create @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_xai_highlights_adapter.py] with the migrated tests plus the following mandatory new tests:</action>
+    <action>Note: There are no existing tests for `_hydrate_grouped_extensions_block` in `test_blueprint.py` (verified via Tier 0). You do not need to migrate any legacy tests.</action>
+    <action>Create @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_xai_highlights_adapter.py] and implement the following mandatory new tests. **CRITICAL FIXTURE MANDATE**: Since `AdapterContext` has multiple required fields (e.g. `locale`, `profile`, `penalties_applied`), you MUST create a base `mock_adapter_context()` Pytest fixture that provides minimal valid dummy data for all other fields, so you don't trigger `ValidationError` for missing fields when testing `accumulated_extensions`.</action>
     <test_contracts>
       <test name="test_build_empty_extensions_returns_empty_list" category="boundary">
-        <input>AdapterContext(accumulated_extensions={})</input>
+        <input>AdapterContext fixture with accumulated_extensions={}</input>
         <expected>returns []</expected>
       </test>
       <test name="test_build_single_extension_group_returns_blocks" category="positive">
-        <input>AdapterContext(accumulated_extensions={"global_extensions": [AccordionBlock(title="Risk Flags", severity="error", icon_name=None, children=[AlertBlock(severity="info", text="test", exact_quotes=[], citations=[])])]})</input>
+        <input>AdapterContext fixture with accumulated_extensions={"global_extensions": [AccordionBlock(title="Risk Flags", severity="error", icon_name=None, children=[AlertBlock(severity="info", text="test", exact_quotes=[], citations=[])])]}</input>
         <expected>returns list containing the AccordionBlock</expected>
       </test>
       <test name="test_build_multiple_extension_groups_flattens_all" category="positive">
-        <input>AdapterContext(accumulated_extensions={"group_a": [block1], "group_b": [block2, block3]})</input>
+        <input>AdapterContext fixture with accumulated_extensions={"group_a": [block1], "group_b": [block2, block3]}</input>
         <expected>returns [block1, block2, block3] — all groups flattened in order</expected>
       </test>
       <test name="test_build_does_not_mutate_context" category="negative">
@@ -135,7 +135,7 @@ REPLACE WITH: XaiHighlightsAdapter.build(ctx) dispatch via lambda in the _target
         <expected>context remains frozen — no mutation side effects</expected>
       </test>
       <test name="test_build_none_extensions_value_raises" category="error_path">
-        <input>Attempt to construct AdapterContext with accumulated_extensions=None</input>
+        <input>Attempt to construct AdapterContext with accumulated_extensions=None (while providing all other required fields)</input>
         <expected>raises ValidationError (accumulated_extensions is not Optional)</expected>
       </test>
     </test_contracts>
