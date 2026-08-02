@@ -848,21 +848,13 @@ class BlueprintTransformer:
         profile_extension_labels: dict[LaxXaiExtensionType, I18nText],
         accumulated_extensions: dict[str, list[AnySduiBlock]] | None = None,
         locale: str = "en",
-    ) -> list[AnySduiBlock]:
+    ) -> dict[int, list[AnySduiBlock]]:
         """Maps generated axes into flat SDUI blocks based on layout rules.
 
-        Args:
-            layout_defs: List of layout block definitions.
-            all_parsed_matrices: Dictionary of all resolved MatrixScorecardRowDTOs.
-            section_syntheses: Mappings of layout ID to its synthesis markdown.
-            profile_extension_labels: Dictionary of global extension labels.
-            accumulated_extensions: Extensions grouped by block.
-            locale: Desired output locale for resolving I18n strings.
-
         Returns:
-            List of completely rendered SDUI blocks.
+            Dictionary mapping layout index to its list of rendered SDUI blocks.
         """
-        layout_blocks: list[AnySduiBlock] = []
+        layout_blocks_map: dict[int, list[AnySduiBlock]] = {}
         for idx, layout_def in enumerate(layout_defs):
             preset_view = layout_def.preset_view
             target_blocks = layout_def.target_blocks
@@ -874,14 +866,20 @@ class BlueprintTransformer:
                     details={"text_delivery_mode": text_delivery_mode},
                 )
 
+            is_target_block_hydrator = False
             axes = []
             if target_blocks and "*" not in target_blocks:
                 for target_k in target_blocks:
+                    if target_k in self._target_block_hydrators:
+                        is_target_block_hydrator = True
                     matched = next((axis for axis in all_parsed_matrices.values() if axis.block_id == target_k), None)
                     if matched:
                         axes.append(matched)
             else:
                 axes = list(all_parsed_matrices.values())
+
+            if is_target_block_hydrator:
+                continue
 
             if preset_view in ["3d_matrix"] and len(axes) < 3:
                 logger.warning(
@@ -911,37 +909,43 @@ class BlueprintTransformer:
                 if synthesis_config and layout_id in section_syntheses:
                     section_blocks = list(section_syntheses[layout_id])
 
+                if idx not in layout_blocks_map:
+                    layout_blocks_map[idx] = []
+
                 if layout_def.description:
                     from backend_v2.models.view.sdui import ParagraphBlock
 
-                    layout_blocks.append(
+                    layout_blocks_map[idx].append(
                         ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
                     )
 
+                if section_blocks:
+                    layout_blocks_map[idx].extend(section_blocks)
+
                 if text_delivery_mode != "none" or preset_view not in ["3d_matrix", "2d_compare", "matrix_summary"]:
                     if preset_view == "3d_matrix":
-                        layout_blocks.append(
+                        layout_blocks_map[idx].append(
                             SduiRadarChartBlock(
                                 title=layout_def.title,
                                 axes=axes,
                             )
                         )
                     elif preset_view == "2d_compare":
-                        layout_blocks.append(
+                        layout_blocks_map[idx].append(
                             SduiScatterPlotBlock(
                                 title=layout_def.title,
                                 axes=axes,
                             )
                         )
                     elif preset_view in ["1d_metrics", "text_only"]:
-                        layout_blocks.append(
+                        layout_blocks_map[idx].append(
                             SduiMetrics1DBlock(
                                 title=layout_def.title,
                                 axes=axes,
                             )
                         )
                     elif preset_view == "matrix_summary":
-                        layout_blocks.append(
+                        layout_blocks_map[idx].append(
                             SduiMatrixTableBlock(
                                 title=layout_def.title,
                                 axes=axes,
@@ -951,10 +955,7 @@ class BlueprintTransformer:
                             )
                         )
 
-                if section_blocks:
-                    layout_blocks.extend(section_blocks)
-
-        return layout_blocks
+        return layout_blocks_map
 
     async def build_report_dto(
         self,
@@ -1528,7 +1529,7 @@ class BlueprintTransformer:
             )
 
         try:
-            visualization_blocks = self._build_visualization_blocks(
+            layout_blocks_map = self._build_visualization_blocks(
                 profile.layouts,
                 all_parsed_matrices,
                 section_syntheses,
@@ -1536,15 +1537,22 @@ class BlueprintTransformer:
                 accumulated_extensions,
                 locale=locale,
             )
+            # Phase 1: Build temp visualization blocks for slop scanner
+            temp_visualization_blocks = []
+            for layout_idx in range(len(profile.layouts)):
+                if layout_idx in layout_blocks_map:
+                    temp_visualization_blocks.extend(layout_blocks_map[layout_idx])
 
             if variance_sdui_blocks:
-                visualization_blocks.extend(variance_sdui_blocks)
+                temp_visualization_blocks.extend(variance_sdui_blocks)
 
             if auth_sdui_blocks:
-                visualization_blocks.extend(auth_sdui_blocks)
+                temp_visualization_blocks.extend(auth_sdui_blocks)
 
-            if not visualization_blocks:
-                visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
+            if not temp_visualization_blocks:
+                temp_visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
+
+            visualization_blocks = temp_visualization_blocks
 
             injected = False
             if synthesis_block_id and content_blocks:
@@ -1928,10 +1936,15 @@ class BlueprintTransformer:
                     recalc_final = base_avg * (1.0 - effective_penalty)
                     global_score = float(round(max(0.0, recalc_final), 1))
 
-            # Phase 2: Post-process explicit layout target blocks via Strategy Pattern
+            # Phase 2: Assemble final visualization blocks strictly by layout index
+            final_visualization_blocks = []
             if profile.layouts:
-                for layout in profile.layouts:
-                    if layout.target_blocks and "*" not in layout.target_blocks:
+                for idx, layout in enumerate(profile.layouts):
+                    if (
+                        layout.target_blocks
+                        and "*" not in layout.target_blocks
+                        and any(t in self._target_block_hydrators for t in layout.target_blocks)
+                    ):
                         for target_k in layout.target_blocks:
                             if target_k in self._target_block_hydrators:
                                 hydrated_blocks = self._target_block_hydrators[str(target_k)](
@@ -1945,15 +1958,20 @@ class BlueprintTransformer:
                                     profile_cache=profile_cache,
                                 )
                                 if hydrated_blocks:
-                                    visualization_blocks.extend(hydrated_blocks)
-                            elif target_k in [e.value for e in TargetBlockType]:
-                                msg_fmt = f"Fail-Fast: Hydrator missing for TargetBlockType '{target_k}'"
-                                logger.error("[BlueprintTransformer] %s", msg_fmt)
-                                raise AppException(
-                                    message=msg_fmt,
-                                    status_code=500,
-                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                )
+                                    final_visualization_blocks.extend(hydrated_blocks)
+                    else:
+                        if idx in layout_blocks_map:
+                            final_visualization_blocks.extend(layout_blocks_map[idx])
+
+            if variance_sdui_blocks:
+                final_visualization_blocks.extend(variance_sdui_blocks)
+            if auth_sdui_blocks:
+                final_visualization_blocks.extend(auth_sdui_blocks)
+
+            if not final_visualization_blocks:
+                final_visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
+
+            visualization_blocks = final_visualization_blocks
 
             content_blocks.extend(visualization_blocks)
 

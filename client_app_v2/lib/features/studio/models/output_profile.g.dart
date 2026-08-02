@@ -314,6 +314,7 @@ _OutputProfile _$OutputProfileFromJson(
         'language',
         'user_role_mappings',
         'extension_labels',
+        'metric_mappings',
         'layouts',
         'content_blocks',
         'synthesis',
@@ -412,6 +413,15 @@ _OutputProfile _$OutputProfileFromJson(
             ) ??
             const {},
       ),
+      metricMappings: $checkedConvert(
+        'metric_mappings',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) =>
+                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+            ) ??
+            const {},
+      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -459,6 +469,7 @@ _OutputProfile _$OutputProfileFromJson(
     'toneInstruction': 'tone_instruction',
     'userRoleMappings': 'user_role_mappings',
     'extensionLabels': 'extension_labels',
+    'metricMappings': 'metric_mappings',
     'contentBlocks': 'content_blocks',
     'performativityDetectorStepId': 'performativity_detector_step_id',
   },
@@ -493,6 +504,9 @@ Map<String, dynamic> _$OutputProfileToJson(
     (k, e) => MapEntry(k, e.toJson()),
   ),
   'extension_labels': instance.extensionLabels.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
+  'metric_mappings': instance.metricMappings.map(
     (k, e) => MapEntry(k, e.toJson()),
   ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),

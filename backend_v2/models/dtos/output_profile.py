@@ -182,6 +182,9 @@ class OutputProfileUpdateDTO(V2CoreBase):
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
     language: Annotated[str | None, Field(default=None, description="Target output language.")]
+    metric_mappings: Annotated[
+        dict[str, I18nText] | None, Field(default=None, description="Localized labels for internal metric variables.")
+    ]
 
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
     visible_metadata: Annotated[

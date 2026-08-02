@@ -16,11 +16,11 @@
 ### Step 5.4: Contract Parity Test
 **Target**: `@[c:\src\quorum\backend_v2\tests\unit\models\test_contract_parity.py]`
 - Confirm Python ↔ Flutter DTO field-level parity.
+- **Action**: Surgically remove the temporary Phase 3 `'layouts'` ignore logic (`missing_in_python.remove("layouts")`) and the associated `layouts` heuristic regex parser from `test_contract_parity.py`.
 
 ### Step 5.5: SDUI Semantic Parity Test
 **Target**: `@[c:\src\quorum\backend_v2\tests\integration\test_sdui_semantic_parity.py]`
 - Confirm flat block pipeline produces identical visual semantics.
-*(Red-Team Note: If this fails due to a Pydantic `extra='forbid'` error regarding the "layouts" key, it means the static JSON fixtures in `backend_v2/tests/integration/test_data/` were not fully migrated during Phase 2. You must fix those fixtures).*
 
 ### Step 5.6: MANDATORY Final E2E REST API Verification Gate
 **Action**: Run `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`

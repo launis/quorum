@@ -122,6 +122,42 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <mandatory_pattern>Implementation plans, epics, research analysis, and bug hunting artifacts MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g.", "such as", "like", or "etc." in any generated document or plan. When providing examples or mappings, use explicit and exhaustive lists with phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) NEVER use generic definitions when specifying data models; lock the exact type. 3) NEVER use generic paths; list EXACT relative paths. 4) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 5) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
       <catastrophic_reason>Ambiguity and "Hidden Scope" (löysä suunnittelu) lead to implementation agents guessing wrong paths, missing test fixtures, or hallucinating data structures. Ambiguous terms introduce incomplete lists, causing cascading failures in Tier 2 execution.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="validation_gate_mandate">
+      <banned_pattern>Generating a plan that ends without explicitly defining how the executing agent must verify its work before marking the task as complete.</banned_pattern>
+      <mandatory_pattern>Every sub-plan generated MUST end with a `<validation_gate>` XML block. This block must contain specific, actionable verification checks (e.g., `grep_search` assertions, `pytest` commands) that the Tier 2 executing agent is FORCED to run and validate before proceeding to the next phase.</mandatory_pattern>
+      <catastrophic_reason>Without a hard validation gate, executing agents prematurely mark steps as complete based on saving a file, leaving behind incomplete logic or failing tests.</catastrophic_reason>
+    </rule_block>
+    
+    <rule_block id="contract_freeze_mandate">
+      <banned_pattern>Refactoring or extracting methods without locking down the exact input parameters and return types.</banned_pattern>
+      <mandatory_pattern>When a plan involves creating or moving a method/class, you MUST generate a `<contract_freeze>` XML block. This block must explicitly define the EXACT type signature (e.g. `def extract(context: Context) -> tuple[...]`) and explicitly forbid the executing agent from altering it to bypass strictness errors.</mandatory_pattern>
+      <catastrophic_reason>Executing agents often dumb down types (e.g., to `list[Any]`) when facing MyPy errors, which silently corrupts the application's contract boundaries.</catastrophic_reason>
+    </rule_block>
+    
+    <rule_block id="anti_targets_mandate">
+      <banned_pattern>Failing to explicitly define what the executing agent must NOT touch during a phase.</banned_pattern>
+      <mandatory_pattern>Every sub-plan MUST include an `<anti_targets>` XML block that explicitly lists files, methods, or components that are OUT OF SCOPE for that specific phase. The executing agent is strictly forbidden from modifying anything listed in this block.</mandatory_pattern>
+      <catastrophic_reason>Executing agents often "wander" and attempt to fix unrelated anti-patterns or implement future phases prematurely, causing massive merge conflicts and breaking isolated domain boundaries.</catastrophic_reason>
+    </rule_block>
+    
+    <rule_block id="dod_traceability_mandate">
+      <banned_pattern>Leaving the Epic's "Definition of Done" (DoD) exclusively in the main Epic document without explicitly distributing it into the sub-plans.</banned_pattern>
+      <mandatory_pattern>You MUST parse the original Epic's Definition of Done and distribute the relevant DoD items directly into each applicable sub-plan as a `<dod_checklist>` XML block. The executing agent must explicitly verify these items.</mandatory_pattern>
+      <catastrophic_reason>Executing agents lose context of the overarching Epic DoD because they only read the micro-chunked sub-plan. Distributing the DoD forces compliance at the atomic phase level.</catastrophic_reason>
+    </rule_block>
+    
+    <rule_block id="strategic_alignment_mandate">
+      <banned_pattern>Generating a sub-plan that begins immediately with codebase modifications without first mandating a backward and forward context check.</banned_pattern>
+      <mandatory_pattern>Every sub-plan MUST begin with a `<step id="0" name="STRATEGIC ALIGNMENT CHECK">` in its XML protocol. This step must instruct the executing agent to look backward (verify the actual results of the previous phase against the Epic's goal) and look forward (verify if the current phase's assumptions still hold true in the actual codebase state). If the alignment is broken, the executing agent is mandated to stop and propose a course correction.</mandatory_pattern>
+      <catastrophic_reason>If a previous phase fails subtly or introduces an unexpected dependency, blindly executing the next phase's plan creates compounded architectural debt and "snowballing" errors.</catastrophic_reason>
+    </rule_block>
+    
+    <rule_block id="epic_synchronization_mandate">
+      <banned_pattern>Generating a plan that allows Tier 0 analysis to mutate the plan without updating the parent Epic.</banned_pattern>
+      <mandatory_pattern>In every generated sub-plan, you MUST explicitly include a directive for the `/tier0-research-plan` agent: "EPIC SYNC MANDATE: If this plan is mutated or corrected during Tier 0 analysis, you MUST simultaneously open the parent Epic document (@[epic_file.md]) and synchronize the architectural corrections back into the Epic to maintain it as the true SSOT."</mandatory_pattern>
+      <catastrophic_reason>If Tier 0 fixes a flaw in Phase 1's plan but the Epic is not updated, Phase 2 will be generated from an outdated, flawed Epic, causing architectural divergence and recurring errors.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_epic_planner">
@@ -148,7 +184,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
         1) Maximum 3-4 target files modified per plan. 
         2) NEVER mix Backend (Python) and Frontend (Flutter) changes in the same plan. 
         3) You MUST include explicit `@-reference` syntax for all target files in these sub-plans to ensure the executing agent automatically loads them.
-        4) HYBRID SANDWICH ARCHITECTURE: Each generated plan MUST have human-readable Markdown at the top (overview, target files), but the actual step-by-step execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock.
+        4) HYBRID SANDWICH ARCHITECTURE: Each generated plan MUST have human-readable Markdown at the top (overview, target files), but the actual step-by-step execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock. This XML MUST also include `<contract_freeze>`, `<dod_checklist>`, `<anti_targets>`, and end with a mandatory `<validation_gate>`.
       </constraint>
       <action>To satisfy the UI validation mandate without violating domain isolation, schedule an 'Integration Checkpoint Plan' in the tracker immediately after the respective Backend and Frontend micro-plans where end-to-end UI validation across the full stack is performed.</action>
       <constraint name="CRITICAL LIMIT">
@@ -164,6 +200,11 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <action name="EXPLICIT TRACEABILITY">Map each generated milestone explicitly to the source material (e.g. `Source: Epic Phase 3, Step 4`).</action>
       <constraint name="ZERO_OMISSION_FOR_EXISTING_CODE">You are FORBIDDEN from silently omitting requirements that are already implemented. Every requirement from the Epic MUST appear in the plans — either as an actionable task or as an explicitly tagged `[ALREADY_IMPLEMENTED]` item with a verified `@-reference` to the existing code location. This prevents future agents from assuming the requirement was forgotten and re-implementing it.</constraint>
       <action name="ANTI-PATTERN AUDIT">For each MODIFY step, you MUST inspect the target file's current code and document any existing anti-patterns (isinstance(), .get(), asyncio.gather, catch-all try/except, raw dicts) that the new code supersedes. These MUST be listed in `<demolish>` tags within the XML step to force the executing agent to delete them.</action>
+    </step>
+
+    <step id="3.3" name="STRATEGIC ALIGNMENT INJECTION">
+      <action>You MUST inject `<step id="0" name="STRATEGIC ALIGNMENT CHECK">` as the very first execution step in EVERY generated XML sub-plan.</action>
+      <constraint>This step must explicitly command the executing agent to: 1) Read the actual codebase state left by the previous phase. 2) Verify it serves the Epic's goal. 3) Halt and request Course Correction if the current plan's assumptions are no longer valid.</constraint>
     </step>
 
     <step id="4" name="DESTRUCTIVE OPERATION INVENTORY">
@@ -210,5 +251,43 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <constraint>Do NOT implement any domain code yourself in this session.</constraint>
     </step>
   </execution_protocol>
+
+  <enforced_plan_template>
+    <mandatory_instruction>You MUST copy this exact structure for EVERY generated implementation plan. DO NOT omit any tags. Replace [Begin/End XML Block] with actual markdown backticks.</mandatory_instruction>
+    <template>
+# Phase X: [Phase Name]
+
+**Overview:** [Summary]
+**Target Files:** [List @-references]
+
+[Begin XML Block]
+<execution_protocol>
+  <step id="0" name="STRATEGIC ALIGNMENT CHECK">
+    <action>Look backward: Read the actual codebase state left by the previous phase. Verify it serves the Epic's goal.</action>
+    <action>Look forward: Verify if the current plan's assumptions still hold true.</action>
+    <constraint>If alignment is broken, STOP and request Course Correction.</constraint>
+    <directive>EPIC SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document and synchronize the architectural corrections back into the Epic.</directive>
+  </step>
+
+  <dod_checklist>
+    <!-- Planner MUST inject parsed Epic Definition of Done items here -->
+  </dod_checklist>
+
+  <anti_targets>
+    <!-- Planner MUST list strictly forbidden files/methods here -->
+  </anti_targets>
+
+  <!-- Planner injects execution steps (1...N) here -->
+  <step id="1" name="Implementation...">
+    <!-- Use <contract_freeze> inside steps if extracting/creating methods -->
+  </step>
+
+  <validation_gate>
+    <!-- Planner MUST inject specific grep_search and pytest verification commands here -->
+  </validation_gate>
+</execution_protocol>
+[End XML Block]
+    </template>
+  </enforced_plan_template>
 </system_prompt>
 ```

@@ -109,6 +109,9 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'extension_labels')
     @Default({})
     Map<String, I18nText> extensionLabels,
+    @JsonKey(name: 'metric_mappings')
+    @Default({})
+    Map<String, I18nText> metricMappings,
     @Default([]) List<OutputLayoutBlock> layouts,
     @JsonKey(name: 'content_blocks')
     @Default([])

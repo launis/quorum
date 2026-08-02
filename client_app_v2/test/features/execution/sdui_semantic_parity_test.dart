@@ -32,6 +32,11 @@ void main() {
     // CRITICAL: Call tester.ensureSemantics() before rendering
     final semanticsHandle = tester.ensureSemantics();
 
+    tester.view.physicalSize = const Size(2400, 10000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    addTearDown(() => tester.view.resetDevicePixelRatio());
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

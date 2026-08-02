@@ -51,27 +51,27 @@
 - [OK] `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\05_phase4_pdf_plan.md]`
 
 ### Phase 5: Verification & E2E Integration Gate
-- [NOK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\06_phase5_verification_plan.md]`
-- [NOK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\06_phase5_verification_plan.md]`
+- [OK] `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_131\06_phase5_verification_plan.md]`
+- [OK] `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_131\06_phase5_verification_plan.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
-- [NOK] Backend and Frontend full-stack integration test gates.
+- [OK] Backend and Frontend full-stack integration test gates.
 - [NOK] `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_131_sdui_layout_unification.md]`
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- [OK] **Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- [OK] **Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
+- [OK] **Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
+- [OK] **Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
-- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+- [ ] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [OK] Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
+- [OK] **As-Built Architectural Sync**: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_131_sdui_layout_unification.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [OK] **[OK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_131_sdui_layout_unification.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
 
 ## Requirements Traceability Matrix
 | Req ID | Description | Target Component | Plan Step ID |
