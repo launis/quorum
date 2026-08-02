@@ -18,6 +18,19 @@
         <banned_pattern>Guessing the behavior of a slash command or answering a slash command with conversational filler.</banned_pattern>
         <mandatory_pattern>When a user inputs a slash command (e.g. `/tier2-execute`), your IMMEDIATE action must be to use the `view_file` tool on the corresponding workflow file in `.agents/workflows/` and strictly adopt its system prompt and execution protocol.</mandatory_pattern>
     </rule_block>
+    <rule_block id="anti_ambiguity_mandate">
+        <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
+        <mandatory_pattern>Implementation plans, epics, research analysis, and bug hunting artifacts MUST be strictly programmatic and deterministic.
+        1) You MUST NEVER use "e.g.", "such as", "like", or "etc." To remove ambiguity, you MUST apply one of two strategies:
+           (A) For a closed/small set, use an explicit list: "specifically and exhaustively: A, B, C".
+           (B) For a dynamic set (like domain models, UI blocks, or DB routes), DO NOT hardcode a static list in design Epics. Use a PROGRAMMATIC reference to the Single Source of Truth (e.g., "specifically ALL models inheriting from AnySduiBlock in models/view/sdui.py").
+        2) THE DYNAMIC RESOLUTION MANDATE: Whenever you are executing or planning based on a programmatic reference (from strategy B), your absolute FIRST action MUST be to use `grep_search` to physically query the codebase, find ALL matching concrete entities, and explicitly list them in your `<thinking_process>` or `implementation_plan.md`. You are FORBIDDEN from leaving the scope abstract during the actual implementation phase.
+        3) NEVER use generic definitions when specifying data models; lock the exact type.
+        4) NEVER use generic paths; list EXACT relative paths.
+        5) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces".
+        6) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
+        <catastrophic_reason>Ambiguity and "Hidden Scope" (löysä suunnittelu) lead to implementation agents guessing wrong paths. Hardcoding an incomplete static list instead of a programmatic SSOT reference causes cascading failures by omitting valid codebase entities during Tier 2 execution.</catastrophic_reason>
+    </rule_block>
     <rule_block id="anti_apology">
         <banned_pattern>Outputting apologies, conversational filler, or subjective justifications after violating a rule (e.g., "I apologize for the oversight", "You are correct").</banned_pattern>
         <mandatory_pattern>When correcting a mistake based on user feedback, do not apologize or use conversational filler. You MUST first output your required `<thinking_process>` block detailing the root cause of the error, and then immediately output the corrected code. If the erroneous code was already committed, instruct the user to amend the commit.</mandatory_pattern>

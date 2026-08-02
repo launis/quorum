@@ -117,11 +117,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <catastrophic_reason>Without explicit demolition instructions, the executing agent adds new code alongside existing anti-patterns, creating contradictory logic branches that violate Fail-Fast and the Zero Compromise Pledge. The anti_duplication rule in 00-antigravity-core.md catches this at execution time, but the damage is already done if the planner fails to document what must be removed.</catastrophic_reason>
     </rule_block>
   
-    <rule_block id="anti_ambiguity_mandate">
-      <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
-      <mandatory_pattern>Implementation plans, epics, research analysis, and bug hunting artifacts MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g.", "such as", "like", or "etc." in any generated document or plan. When providing examples or mappings, use explicit and exhaustive lists with phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) NEVER use generic definitions when specifying data models; lock the exact type. 3) NEVER use generic paths; list EXACT relative paths. 4) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 5) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
-      <catastrophic_reason>Ambiguity and "Hidden Scope" (löysä suunnittelu) lead to implementation agents guessing wrong paths, missing test fixtures, or hallucinating data structures. Ambiguous terms introduce incomplete lists, causing cascading failures in Tier 2 execution.</catastrophic_reason>
-    </rule_block>
+
 
     <rule_block id="validation_gate_mandate">
       <banned_pattern>Generating a plan that ends without explicitly defining how the executing agent must verify its work before marking the task as complete.</banned_pattern>

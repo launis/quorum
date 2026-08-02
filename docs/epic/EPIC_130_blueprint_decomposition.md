@@ -25,7 +25,7 @@ This violates the Open-Closed Principle (adding a new report section requires mo
 ### Root Cause / Gap Analysis
 - **God Method Anti-Pattern (Root Cause 1):** `_extract_matrices_and_extensions` (530 lines) combines LLM trace parsing, Pydantic validation, mathematical normalization, scale calculations, name collision resolution, atom evaluation mapping, and SDUI block construction in a single method with 15 parameters.
 - **Hardcoded Presentation Rules (Root Cause 2):** Aesthetic decisions (icon names, severity colors) are embedded as `if "risk" in lower_ext` chains inside `_hydrate_grouped_extensions_block` (lines 818-832). Adding a new extension category requires editing this method.
-- **Missing Adapter Layer (Root Cause 3):** The system lacks a dedicated Presentation Adapter layer between domain DTOs (e.g., `MatrixScorecardRowDTO`, `XaiHighlightItem`, `TraceScoringPayloadDTO`) and SDUI view models (e.g., `AccordionBlock`, `AlertBlock`, `ParagraphBlock`, `MarkdownBlock`). `blueprint.py` currently acts as both orchestrator AND adapter.
+- **Missing Adapter Layer (Root Cause 3):** The system lacks a dedicated Presentation Adapter layer between domain DTOs (specifically ALL input state models mapped from the execution trace) and SDUI view models (specifically ALL presentation models inheriting from the `AnySduiBlock` discriminated union defined in `models/view/sdui.py`). `blueprint.py` currently acts as both orchestrator AND adapter.
 - **Untestable Theming Logic (Root Cause 4):** To test whether a "risk_flag" extension gets a "warning" severity and "balance" icon, a developer must mock 7+ repository dependencies and run the entire `build_report_dto` pipeline. The theming logic is not independently testable.
 
 ### Strategic Scope
@@ -67,11 +67,11 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 | Adapter `penalties_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`AlertBlock` with `CRITICAL_OVERRIDE` severity) |
 | Adapter `executive_summary_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`ParagraphBlock` instances) |
 | Adapter `printable_sources_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`MarkdownBlock` instances) |
-| Service `matrix_extractor.py` | `blueprint.py` orchestrator | Returns `tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO], dict[str, dict[str, ScorecardAtomDTO]], dict[str, list[AnySduiBlock]]]` for `(evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms, accumulated_extensions)` |
+| Service `matrix_extractor.py` | `blueprint.py` orchestrator | Returns `MatrixExtractionResultDTO` (Strict Pydantic V2 DTO replacing naked tuple/dict state passing) |
 | `blueprint.py` orchestrator | `pdf_generator.py`, Flutter client | Returns `ReportDataDTO` (unchanged contract) |
 
 ### Namespace Clarification
-- **`services/sdui_mapper_service.py`** remains at its current location. It handles a different concern (Report View mapping for the Flutter SDUI client) than the adapter layer (individual block construction). These are intentionally separate namespaces and MUST NOT be merged.
+- **`backend_v2/services/sdui_mapper_service.py`** remains at its current location. It handles a different concern (Report View mapping for the Flutter SDUI client) than the adapter layer (individual block construction). These are intentionally separate namespaces and MUST NOT be merged.
 
 ---
 
@@ -82,14 +82,14 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 1. Create `@[c:\src\quorum\backend_v2\services\sdui\__init__.py]`
 2. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\__init__.py]`
 3. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\base_adapter.py]` defining:
-   - A frozen Pydantic DTO `AdapterContext` containing the strictly typed fields that adapters need (specifically: `execution: ExecutionRecord`, `locale: str`, `penalties_applied: list[str]`, `mcp_audit_data: list[MCPAuditTrace]`, `global_score: float | None`, `accumulated_extensions: dict[str, list[XaiHighlightItem]]`, `profile: OutputProfile`).
+   - A frozen Pydantic DTO `AdapterContext` containing the strictly typed fields that adapters need (specifically: `execution: ExecutionRecord`, `locale: str`, `penalties_applied: list[str]`, `mcp_audit_data: list[MCPAuditTrace]`, `global_score: float | None`, `accumulated_extensions: dict[str, list[AnySduiBlock]]`, `profile: OutputProfile`).
    - **MANDATORY**: `AdapterContext` MUST use `model_config = ConfigDict(frozen=True, strict=True, extra="forbid")` to adhere to the `frozen_state_mutability` invariant, preventing downstream side effects.
    - A `Protocol` class `SduiAdapterProtocol` with a single `@staticmethod build(context: AdapterContext) -> list[AnySduiBlock]` method.
    - **MANDATORY**: The dispatch table in `blueprint.py` (`_target_block_hydrators`) MUST be updated from `Callable[..., list[AnySduiBlock]]` to `dict[str, type[SduiAdapterProtocol] | Callable[..., list[AnySduiBlock]]]` to enforce typed dispatch while allowing a safe iterative transition state without breaking `mypy`.
 4. **MANDATORY CODE QUALITY GATE**: All adapter files MUST:
    - Include negative tests for `AdapterContext` that explicitly assert `pytest.raises(ValidationError)` when attempting to pass unexpected kwargs or mutate frozen fields, to mathematically guarantee `extra="forbid"` and `frozen=True` mutability locks work natively in Rust.
    - Place ALL imports at the top of the file (no inline imports) and explicitly define them (no ambiguous "e.g." shorthand).
-   - Use typed exception handlers (specifically `except ValueError`, `except ValidationError` or `KeyError`) — bare `except Exception:` is strictly forbidden.
+   - Use typed exception handlers (specifically `except ValueError`, `except ValidationError`, or `except KeyError`) — bare `except Exception:` is strictly forbidden.
    - Use `VisualIntent` enum values for severity parameters — bare string literals with `# type: ignore[arg-type]` are strictly forbidden.
    - Use strict dictionary key access (`RULES[key]`) — `.get(key, default)` fallbacks are strictly forbidden.
 
@@ -111,14 +111,14 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
    - Import `PenaltiesAdapter` and wire it into the `_target_block_hydrators` registry in `__init__`.
    - Delete `_hydrate_penalties_block` entirely.
 3. **ATOMIC TEST MIGRATION**: You MUST physically move all existing tests related to `_hydrate_penalties_block` from `@[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py]` into a new `@[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_penalties_adapter.py]` file. You MUST NOT mock or delete the old tests.
-   - **MANDATORY NEGATIVE TESTS**: Assert missing `penalties_applied` data and empty lists safely return `[]` without raising `KeyError`.
+   - **MANDATORY NEGATIVE TESTS**: Assert that `AdapterContext` correctly raises `ValidationError` if `penalties_applied` is entirely missing from instantiation, and that passing an empty list `[]` safely returns `[]` from the adapter.
    - **Positive Test**: Assert string mapping into `AlertBlock(severity=VisualIntent.CRITICAL_OVERRIDE)`.
 
 ### Phase 4: Extract Executive Summary Adapter
 1. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\executive_summary_adapter.py]`.
    - **Strict Role Validation:** Enforce `RoleClassification(context.profile.user_role)`. Catch `ValueError` and raise `AppException`. No `except Exception:` duct-tape.
    - **Fail-Fast L10N Prefix:** Enforce `context.profile.user_role_label.resolve(context.locale)`. If `user_role_label` is missing, raise a Fail-Fast `AppException` rather than hardcoding English `"User Role"`.
-   - **MANDATORY**: The bare `except Exception:` catch-all currently at [blueprint.py#L1086](file:///c:/src/quorum/backend_v2/services/blueprint.py#L1086) MUST be replaced with a typed handler (e.g., `except KeyError` or `except ValueError`).
+   - **MANDATORY**: The bare `except Exception:` catch-all currently at [blueprint.py#L1086](file:///c:/src/quorum/backend_v2/services/blueprint.py#L1086) MUST be replaced with a typed handler (specifically `except KeyError` or `except ValueError`).
 2. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py#L1072-L1095]`: 
    - Delete inline summary logic and route to `ExecutiveSummaryAdapter.build(context)`.
 3. **ATOMIC TEST MIGRATION**: You MUST physically move all existing tests related to the executive summary from `@[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py]` into a new `@[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_executive_summary_adapter.py]` file. You MUST NOT mock or delete the old tests.
@@ -141,10 +141,10 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 - Simply acknowledge this deferral and immediately proceed to Phase 6 or complete the current execution step.
 
 ### Phase 6: Decompose `_extract_matrices_and_extensions` God Method
-1. Create a `MatrixExtractionContext` Pydantic model (`ConfigDict(frozen=True, strict=True, extra='forbid')`) in `@[c:\src\quorum\backend_v2\models\state.py]` to encapsulate the exact parameters of the God Method per the `structured_state_envelopes_mandate`. You MUST explicitly include these fields with their exact types: `results: list[Any]`, `locale: str`, `blocks_by_id: dict[str, PromptBlock]`, `workflow_steps: dict[str, Any]`, `profile: OutputProfile`, `row_explanations_cache: dict[str, str]`, `workflow_ext_values: list[str]`, `row_curated_quotes_cache: dict[str, list[str]]`, `has_synthesis_cache: bool`, `rejected_evq_ids: set[str] | None`, `mcp_audit_map: dict[str, MCPAuditTrace] | None`, `source_identity_manifest: dict[str, str] | None`, `execution: Any | None`.
-2. Create `@[c:\src\quorum\backend_v2\services\sdui\matrix_extractor.py]` containing a **stateless utility class** `MatrixExtractorService` with a single `@staticmethod extract(context: MatrixExtractionContext)`.
-   - **Return type (exact)**: `tuple[list[MatrixScorecardRowDTO], list[MatrixScorecardRowDTO], dict[str, MatrixScorecardRowDTO], dict[str, dict[str, ScorecardAtomDTO]], dict[str, list[AnySduiBlock]]]`
-   - **MANDATORY**: The return type MUST include the 5th element (`accumulated_extensions: dict[str, list[AnySduiBlock]]`). You are responsible for extracting the `_add_ext` closure from `blueprint.py` into this service.
+1. Create a `MatrixExtractionContext` Pydantic model (`ConfigDict(frozen=True, strict=True, extra='forbid')`) in `@[c:\src\quorum\backend_v2\models\state.py]` to encapsulate the exact parameters of the God Method per the `structured_state_envelopes_mandate`. You MUST explicitly include these fields with their exact types: `results: list[StepOutputDTO]`, `locale: str`, `blocks_by_id: dict[str, PromptBlock]`, `workflow_steps: dict[str, V2StepDTO]`, `profile: OutputProfile`, `row_explanations_cache: dict[str, str]`, `workflow_ext_values: list[str]`, `row_curated_quotes_cache: dict[str, list[str]]`, `has_synthesis_cache: bool`, `rejected_evq_ids: set[str] | None`, `mcp_audit_map: dict[str, MCPAuditTrace] | None`, `source_identity_manifest: dict[str, str] | None`, `execution: ExecutionRecord | None` (Note: the use of `Any` is strictly forbidden).
+2. Create `@[c:\src\quorum\backend_v2\services\sdui\matrix_extractor.py]` containing a **stateless utility class** `MatrixExtractorService` with a single `@staticmethod extract(context: MatrixExtractionContext) -> MatrixExtractionResultDTO`.
+   - **Return type (exact)**: `MatrixExtractionResultDTO` (A frozen Pydantic DTO to enforce `no_naked_dicts_in_state`).
+   - **MANDATORY**: You MUST define `MatrixExtractionResultDTO` in `backend_v2/models/state.py` containing strictly typed fields for `evaluative_matrices`, `informational_matrices`, `all_parsed_matrices`, `step_scorecard_atoms`, and `accumulated_extensions: dict[str, list[AnySduiBlock]]`. You are responsible for extracting the `_add_ext` closure from `blueprint.py` into this service.
    - **MANDATORY**: The `severity` strings at [blueprint.py#L715-L723](file:///c:/src/quorum/backend_v2/services/blueprint.py#L715-L723) inside the `_add_ext` closure MUST be replaced with `VisualIntent` enum values. The `except ValueError:` block at [blueprint.py#L757](file:///c:/src/quorum/backend_v2/services/blueprint.py#L757) MUST log the failure (`logger.error`) BEFORE re-raising `AppException(ErrorCodes.VALIDATION_FAILED)`.
    - **MANDATORY**: Strict parsing of LLM trace output (`TraceMatrixPayloadDTO`) using Pydantic `TypeAdapter` or `.model_validate()`. No `isinstance` dictionary fallbacks.
 3. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py#L218-L745]`: Delete the 530-line God Method and replace with a call to `MatrixExtractorService.extract(context)`.

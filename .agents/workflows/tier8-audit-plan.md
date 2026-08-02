@@ -46,11 +46,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
       <catastrophic_reason>Auditing without reading the domain's Knowledge Items leads to false-positive failures and destroys established architectural contracts.</catastrophic_reason>
     </rule_block>
   
-    <rule_block id="anti_ambiguity_mandate">
-      <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
-      <mandatory_pattern>Implementation plans, epics, research analysis, and bug hunting artifacts MUST be strictly programmatic and deterministic. 1) You MUST NEVER use "e.g.", "such as", "like", or "etc." in any generated document or plan. When providing examples or mappings, use explicit and exhaustive lists with phrases: "specifically:", "specifically and exhaustively:", or "for illustrative purposes only:". 2) NEVER use generic definitions when specifying data models; lock the exact type. 3) NEVER use generic paths; list EXACT relative paths. 4) NEVER use visual string examples like `"A" -> "B"`; use strict programmatic rules like "remove unicode emojis and trailing spaces". 5) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
-      <catastrophic_reason>Ambiguity and "Hidden Scope" (löysä suunnittelu) lead to implementation agents guessing wrong paths, missing test fixtures, or hallucinating data structures. Ambiguous terms introduce incomplete lists, causing cascading failures in Tier 2 execution.</catastrophic_reason>
-    </rule_block>
+
   </architectural_invariants>
 
   <execution_protocol level="8_audit_plan">

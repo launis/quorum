@@ -62,6 +62,12 @@
         <catastrophic_reason>Hangs the internal Node thread and fails remote user requests via timeout.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="anti_fragility_boundaries">
+        <banned_pattern>Using strict "Fail-Fast" exceptions for inter-service communication (e.g., LLM APIs or 3rd party integrations) without opening the circuit during 429/502/503 storms, or allowing unbounded concurrent requests to external services.</banned_pattern>
+        <mandatory_pattern>All heavy I/O operations and external API integrations MUST be isolated using Circuit Breaker and Bulkhead architectures. While `asyncio.Semaphore` provides Bulkhead concurrency limits, you MUST also mandate a Circuit Breaker pattern in your implementation plans. The architecture MUST include logic that stops retrying and "opens the circuit" (immediately rejecting new requests with a Transient Error or safe fallback) if the API fails repeatedly, preventing the internal async worker queues from becoming blocked. Retries MUST be subordinated to the Circuit Breaker.</mandatory_pattern>
+        <catastrophic_reason>Fail-Fast is excellent for data validation but fatal for network boundaries. If hundreds of async workers simultaneously crash or endlessly retry against a failing external service without a Circuit Breaker, it triggers a Cascading Failure that exhausts all internal threads and clogs the Dead-Letter Queue (DLQ).</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="pydantic_namespace_collisions">
         <banned_pattern>Defining Pydantic schemas inline within `routers/` or duplicating class names.</banned_pattern>
         <mandatory_pattern>FastAPI schemas MUST be centralized in `models/` (SSOT). If a schema changes, you MUST instruct the user to run `generate_openapi.py`.</mandatory_pattern>
