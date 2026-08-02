@@ -90,6 +90,15 @@
         <mandatory_pattern>All internal codebase documentation, inline comments, and Pydantic `description` fields MUST be written exclusively in English. The word "Epic" MUST NOT be used anywhere in the codebase to describe tasks or fields.</mandatory_pattern>
         <catastrophic_reason>Hardcoding non-English terminology or agile tracking terms like 'Epic' pollutes the codebase with ephemeral/localized metadata that degrades over time and confuses cross-functional developers.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="anti_surface_level_remodeling">
+        <banned_pattern>Proposing the creation of [NEW] DTOs, Enums, Exceptions, or Data Models based purely on encountering a generic type hint (`dict`, `Any`, `str`, `**kwargs`) or loose boundary in existing code.</banned_pattern>
+        <mandatory_pattern>Before drafting a plan to "refactor technical debt" for a generic parameter, you MUST execute a two-step verification:
+        1. TRACE UPSTREAM (Origin Check): You MUST trace the data flow to its actual call-site to mathematically verify what is being passed at runtime. Often, the runtime data is ALREADY a typed Pydantic model or Enum, merely masked by a stale type hint.
+        2. TRACE SSOT (Reuse Check): If a model is truly missing, you MUST aggressively `grep_search` existing files (`models/v2_core.py`, `models/enums.py`, `models/dtos/`) to ensure an equivalent Single Source of Truth (SSOT) does not already exist.
+        If the runtime data is already structured, your fix MUST be strictly limited to surgical type hint correction (e.g. `dict[str, Any]` -> `dict[str, ExistingModel]`). You MUST NOT invent parallel models.</mandatory_pattern>
+        <catastrophic_reason>Symptom-based remodeling (reacting to stale hints instead of tracking real data flow) causes agents to invent redundant, parallel architecture. This bloats the codebase, violates the SSOT principle, and destroys maintainability.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

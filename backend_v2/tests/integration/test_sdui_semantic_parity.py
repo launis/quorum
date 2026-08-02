@@ -131,7 +131,7 @@ async def test_sdui_semantic_parity() -> None:
             ):
                 while len(axes) < 2:
                     axes.append(MatrixScorecardRowDTOFactory.build())
-            
+
             # Clear fields that break parity because Jinja explicitly ignores them or Flutter handles them differently.
             # 1. Polyfactory generates random exact_quotes for text blocks, which Jinja doesn't render.
             update_kwargs = {"exact_quotes": [], "citations": []} if hasattr(layout, "exact_quotes") else {}
@@ -140,11 +140,17 @@ async def test_sdui_semantic_parity() -> None:
                 update_kwargs["extension_labels"] = {}
             if hasattr(layout, "axes"):
                 update_kwargs["axes"] = axes
-                
+
             # Skip block types currently unsupported by Flutter SduiBlocksRenderer
-            if getattr(layout, "block_type", "") in ("bullet_list", "hero_insight", "quote_card", "warning_card", "na_card"):
+            if getattr(layout, "block_type", "") in (
+                "bullet_list",
+                "hero_insight",
+                "quote_card",
+                "warning_card",
+                "na_card",
+            ):
                 continue
-                
+
             new_layouts.append(layout.model_copy(update=update_kwargs))
 
         dto = dto.model_copy(update={"inner_sdui_blocks": new_layouts})
