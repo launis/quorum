@@ -52,6 +52,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
   <execution_protocol level="8_audit_plan">
     <step id="1">DYNAMIC CONTEXT ACQUISITION: 
       - Locate and read the target implementation plan (e.g. `implementation_plan.md` or `tasks_EPIC_XXX/01_feature_plan.md`) and its corresponding `task.md` if available.
+      - EPIC FIDELITY AUDIT: If the original Epic document is known or can be found, you MUST use `run_command` to execute the Python audit script (`uv run python scripts/audit_planner_output.py --epic [epic_path] --plan-dir [tasks_dir]`) to mathematically verify that the Tier 1 Planner did not drop line boundaries or mandatory XML blocks before you begin your execution audit. If it fails, document the lost context in your final report.
       - Deconstruct the plan into measurable requirements based on the `[MODIFY]`, `[NEW]`, and `[DELETE]` directives.
     </step>
 

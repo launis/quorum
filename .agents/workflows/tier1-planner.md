@@ -57,6 +57,12 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <catastrophic_reason>Abstracting details forces the Tier 2 execution agent to guess, hallucinate, or context-switch back to the Epic, causing deviation from the required architecture and introducing untrackable regressions.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="neuro_symbolic_grounding_mandate">
+      <banned_pattern>Relying solely on your own semantic memory (System 1) to verify that you successfully copied exact `#L` boundaries, `ErrorCodes`, or code snippets into the generated plans.</banned_pattern>
+      <mandatory_pattern>You MUST embrace Neuro-Symbolic Agentic Architecture. You must recognize that Large Language Models inherently act as lossy compression algorithms over long contexts. Therefore, you are FORBIDDEN from self-certifying your own plans. You MUST rely on deterministic tools (like the Python audit script in Step 12) as your "System 2" anchor to mathematically prove your plans did not lose fidelity.</mandatory_pattern>
+      <catastrophic_reason>Assuming LLMs can perfectly preserve 100% of character-level boundaries across multiple chunked files without deterministic tool-validation leads to silent context drift and catastrophic hallucination downstream.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Writing plan targets as raw strings instead of bounded `@-reference` blocks, or discarding explicit line bounds provided by the Epic.</banned_pattern>
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. EPIC BOUNDARY PRESERVATION: If the source Epic document provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plans. This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation.</mandatory_pattern>
@@ -253,8 +259,9 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <constraint name="TEST_FILE_RESOLUTION">Every test file referenced in a plan step MUST be a verified `@-reference` path resolved via `grep_search` against the current codebase. If the test file does not exist, the plan MUST specify its exact creation path following the established directory mirror convention.</constraint>
     </step>
 
-    <step id="12" name="PAUSE &amp; EMBEDDED HANDOVER">
-      <action>Once the micro-chunked implementation plans are written to the disk, STOP. Do not generate a tracker. You MUST explicitly output a clear, copy-pasteable instruction telling the user to open a NEW context window (start a new chat session) and execute the tracker generator command: `/tier1-tracker-generator @[epic_file.md] @[task_directory_path]`.</action>
+    <step id="12" name="PAUSE &amp; SELF-HEALING EMBEDDED HANDOVER">
+      <action>Once the micro-chunked implementation plans are written to the disk, you MUST execute the automated fidelity audit using the `run_command` tool: `uv run python scripts/audit_planner_output.py --epic [path_to_epic.md] --plan-dir [task_directory_path]`. This is your mandatory SELF-CORRECTION LOOP (System 2 verification). If the script outputs ❌ FAILED, you MUST analyze the deterministic error, realize which boundaries were dropped, and update your generated plans to fix them before proceeding.</action>
+      <action>After a successful audit, STOP. Do not generate a tracker. You MUST explicitly output a clear, copy-pasteable instruction telling the user to open a NEW context window (start a new chat session) and execute the tracker generator command: `/tier1-tracker-generator @[epic_file.md] @[task_directory_path]`.</action>
       <constraint invariant="circuit_breaker_and_context_guard">This enforces the circuit breaker by forcing a session split before Tracker generation, guaranteeing a clean context window.</constraint>
       <constraint>Do NOT implement any domain code yourself in this session.</constraint>
     </step>
