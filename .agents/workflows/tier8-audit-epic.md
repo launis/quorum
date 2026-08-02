@@ -28,6 +28,12 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
       <catastrophic_reason>Failing to load comprehensive domain rules prevents you from accurately auditing the codebase against strict Quorum 2026 invariants.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="neuro_symbolic_grounding_mandate">
+      <banned_pattern>Relying solely on your own semantic memory (System 1) or visual skimming to verify that the physical codebase matches the Epic.</banned_pattern>
+      <mandatory_pattern>You MUST embrace Neuro-Symbolic Agentic Architecture. Recognize that Large Language Models act as lossy compression algorithms. You are FORBIDDEN from visually skimming to audit implementation status. You MUST actively use `grep_search` and `run_command` (e.g. running tests) to deterministically prove that the code exists and functions exactly as promised in the Epic.</mandatory_pattern>
+      <catastrophic_reason>Assuming LLMs can perfectly audit thousands of lines of code by just reading text leads to silent context drift and false-positive audit passes.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Outputting file paths in handover commands, trackers, or audit reports without bounding them in `@-reference` syntax, or referencing massive files without specific `#Lnn-mm` line bounds.</banned_pattern>
       <mandatory_pattern>Whenever you generate a handover command, tracker file, or audit report, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax.</mandatory_pattern>

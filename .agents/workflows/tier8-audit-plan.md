@@ -28,6 +28,12 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
       <catastrophic_reason>Failing to load comprehensive domain rules prevents you from accurately auditing the codebase against strict Quorum 2026 invariants.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="neuro_symbolic_grounding_mandate">
+      <banned_pattern>Relying solely on your own semantic memory (System 1) or visual skimming to verify that the physical codebase matches the Implementation Plan.</banned_pattern>
+      <mandatory_pattern>You MUST embrace Neuro-Symbolic Agentic Architecture. Recognize that Large Language Models act as lossy compression algorithms. You are FORBIDDEN from visually skimming to audit implementation status. You MUST rely on deterministic tools (like `grep_search`, test execution, and the Python fidelity script) to mathematically prove the plan was executed faithfully.</mandatory_pattern>
+      <catastrophic_reason>Assuming LLMs can perfectly audit thousands of lines of code by just reading text leads to silent context drift and false-positive audit passes.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Outputting file paths in handover commands, trackers, or reports without bounding them in @-reference syntax or specifying line bounds for massive files.</banned_pattern>
       <mandatory_pattern>Whenever you generate a handover command, tracker file, or audit report, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax.</mandatory_pattern>

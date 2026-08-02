@@ -47,6 +47,12 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <catastrophic_reason>Without explicitly documenting root causes and justifications, changes appear arbitrary. This leads to future regressions where other developers or agents revert the fix because they don't understand the underlying reason for it.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="neuro_symbolic_grounding_mandate">
+      <banned_pattern>Relying solely on your own semantic memory (System 1) to audit if the Plan successfully preserved exact `#L` boundaries from the Epic.</banned_pattern>
+      <mandatory_pattern>You MUST embrace Neuro-Symbolic Agentic Architecture. Recognize that Large Language Models act as lossy compression algorithms. You are FORBIDDEN from visually skimming to audit fidelity. You MUST rely on deterministic tools (like the Python audit script) to mathematically prove the plan did not lose fidelity from the Epic.</mandatory_pattern>
+      <catastrophic_reason>Assuming LLMs can perfectly audit character-level boundaries by just reading text leads to silent context drift and approves hallucinations.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Providing unlinked, unbounded, or plain text file paths when referencing targets for the next execution session.</banned_pattern>
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
@@ -61,6 +67,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <action>Read and internalize the provided `[implementation_plan]`.</action>
       <constraint>Do NOT attempt to read the entire codebase blindly.</constraint>
       <action>Actively use your search tools (`grep_search`, `view_file`) to precisely target the files in `backend_v2/` referenced by the plan, as well as the database state in `backend_v2/seed/seed_data.json`.</action>
+      <action>EPIC FIDELITY AUDIT: If the parent Epic document is known or can be found, you MUST use `run_command` to execute the Python audit script (`uv run python scripts/audit_planner_output.py --epic [epic_path] --plan-dir [dir_containing_plan]`) to mathematically verify that the implementation plan did not drop line boundaries before you begin your semantic analysis. If it fails, you MUST mutate the plan to restore the dropped boundaries.</action>
       <action>You MUST cross-reference the implementation plan against its parent Epic document and any linked `docs/architecture/` files to ensure the planner did not drift from the original business requirements.</action>
     </step>
     
