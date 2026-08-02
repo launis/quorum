@@ -84,6 +84,7 @@ This workflow is designed for the systematic planning and decomposition of heavy
       <constraint name="HYBRID_XML_SANDWICH_MANDATE">You MUST require that generated `phaseX_extraction.md` files wrap their step-by-step instructions in `<execution_protocol>` XML blocks inside fenced ```xml ``` codeblocks, exactly matching the format produced by `tier0-create-plan`.</constraint>
       <action>Add an explicit `[NOK]` task in the tracker after Phase 2 instructing the executing agent: "Invoke the Tier 3 Planner again to generate detailed plans for the remaining phases based on the updated codebase state."</action>
       <action>Ensure the Strangler Fig mapping (including test mock updates and DI shadow fixes) is detailed in the generated plans.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After creating the `phaseX_extraction.md` plans, you MUST physically run the boundaries audit script on each generated plan: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>`. If it fails, you MUST correct the plan and re-run until it passes.</action>
     </step>
     
     <step id="4" name="PHASE 3 (Tracker Generation)">

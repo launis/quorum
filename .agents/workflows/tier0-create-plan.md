@@ -84,6 +84,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         3. Architectural invariants MUST be injected as `<constraint invariant="rule_id">` tags within the relevant `<step>`.
       </constraint>
       <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` artifact containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After creating the plan and task artifacts, you MUST physically run the boundaries audit script on your generated implementation plan: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>`. If it fails, you MUST correct the plan and re-run until it passes.</action>
     </step>
 
     <step id="4" name="ARCHITECTURAL SAFEGUARDS &amp; VERIFICATION PLAN">

@@ -3,7 +3,8 @@ import re
 import sys
 from pathlib import Path
 
-def main():
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Audit Tier 1 Planner Output for lossy compression.")
     parser.add_argument("--epic", required=True, type=str, help="Path to the source Epic .md file")
     parser.add_argument("--plan-dir", required=True, type=str, help="Directory containing the generated plans")
@@ -21,9 +22,9 @@ def main():
         sys.exit(1)
 
     # Regex to match line boundaries like #L830-L841
-    bound_pattern = re.compile(r'#L\d+-L\d+')
+    bound_pattern = re.compile(r"#L\d+-L\d+")
 
-    with open(epic_path, 'r', encoding='utf-8') as f:
+    with open(epic_path, encoding="utf-8") as f:
         epic_content = f.read()
 
     epic_bounds = set(bound_pattern.findall(epic_content))
@@ -39,17 +40,17 @@ def main():
 
     combined_plan_content = ""
     for pf in plan_files:
-        with open(pf, 'r', encoding='utf-8') as f:
+        with open(pf, encoding="utf-8") as f:
             combined_plan_content += f.read() + "\n"
-            
+
     plan_bounds = set(bound_pattern.findall(combined_plan_content))
-    
+
     missing_bounds = epic_bounds - plan_bounds
-    
+
     failed = False
-    
+
     print("-" * 50)
-    
+
     # 1. TEST LINE BOUNDARY PRESERVATION
     if missing_bounds:
         print("❌ FAILED: The Planner abstracted away the following line bounds:")
@@ -63,7 +64,7 @@ def main():
             print("⚠️ SKIP: No line bounds found in Epic to verify.")
 
     # 2. TEST MANDATORY XML BLOCKS
-    required_tags = ['<anti_targets>', '<dod_checklist>', '<validation_gate>']
+    required_tags = ["<anti_targets>", "<dod_checklist>", "<validation_gate>"]
     for tag in required_tags:
         if tag not in combined_plan_content:
             print(f"❌ FAILED: Mandatory XML block {tag} is missing from the generated plans!")
@@ -78,6 +79,7 @@ def main():
     else:
         print("🎉 AUDIT PASSED: The Planner obeyed the strict boundary and layout rules perfectly!")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

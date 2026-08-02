@@ -112,6 +112,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
       <action>Save the Epic document to absolute path `c:\src\quorum\docs\epic\EPIC_[num]_[descriptive_name].md` using `write_to_file`. Always provide valid `ArtifactMetadata`.</action>
       <constraint>Wrap all referenced file paths in `@-reference` syntax (e.g. `@[c:\src\quorum\backend_v2\models\v2_core.py]`).</constraint>
       <action>IF updating an existing Epic, use `multi_replace_file_content` for surgical edits.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After creating or updating the Epic document, you MUST physically run the boundaries audit script on it: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run until it passes.</action>
     </step>
 
     <step id="6" name="USER GUIDANCE &amp; NEXT STEPS">

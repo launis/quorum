@@ -123,6 +123,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       <action>Update the `[epic_document]` based on your findings so the document becomes a bulletproof, unambiguous blueprint.</action>
       <constraint>You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation. Full file overwrites (`write_to_file`) are strictly forbidden.</constraint>
       <action>PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a concise justification for the architectural constraints and modifications you applied.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After mutating the Epic document, you MUST physically run the boundaries audit script on it: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run until it passes.</action>
       <constraint name="CONTEXT AMNESIA PREVENTION">Because this deep analysis heavily saturates the context window, you MUST conclude your response by instructing the user to start a brand NEW chat session and execute `/tier1-planner` from there. Do not allow planning to continue in this saturated context.</constraint>
     </step>
   </execution_protocol>

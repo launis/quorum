@@ -58,6 +58,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
   <execution_protocol level="8_audit_epic">
     <step id="1">DYNAMIC CONTEXT ACQUISITION: 
       - Locate and read the target Epic document (`docs/epic/EPIC_XXX_...md`). 
+      - You MUST physically run the boundaries audit script on the Epic document before auditing: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, report the boundary errors.
       - Deconstruct it into measurable requirements (Features, Deprecations, Architectural Mandates). 
       - CRITICAL LIMIT: To prevent Context Amnesia, if the Epic has multiple phases, you MUST only audit ONE Phase per session. Focus entirely on the specific phase requested by the user or the next pending phase.
     </step>
