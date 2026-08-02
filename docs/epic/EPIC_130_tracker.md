@@ -11,17 +11,17 @@
 ### Phase 1: Foundation — New Directory Structure, Typed Protocol & AdapterContext DTO
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]
 
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]`
-  - [ ] Step 0: Strategic Alignment Check — verify sdui/adapters/ does not exist, verify dispatch table uses untyped `Callable[..., list[AnySduiBlock]]`
-  - [ ] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition` (`ki_sdui_adapter_pattern.md`)
-  - [ ] Step 2: Create Directory Structure — create `sdui/__init__.py`, `sdui/adapters/__init__.py`, test `__init__.py` files
-  - [ ] Step 3: Create `base_adapter.py` — define `AdapterContext` (frozen, strict, extra=forbid) and `SduiAdapterProtocol`
-  - [ ] Step 4: Modify `blueprint.py` — move `Callable` import from inline to module level
-  - [ ] Step 5: Modify `blueprint.py` — import `AdapterContext`, migrate dispatch table type to `Callable[[AdapterContext], list[AnySduiBlock]]`, wrap hydrators in lambda bridges
-  - [ ] Step 6: Modify `blueprint.py` — migrate dispatch call site from kwargs scatter to single `AdapterContext` pass, bridge `mcp_audit_map=mcp_audit_data`
-  - [ ] Step 7: Create `test_base_adapter.py` — positive construction test, frozen rejects mutation, forbids extra fields, missing required field raises, strict type enforcement
-  - [ ] Step 8: Run Quality Gate — `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]`
+  - [x] Step 0: Strategic Alignment Check — verify sdui/adapters/ does not exist, verify dispatch table uses untyped `Callable[..., list[AnySduiBlock]]`
+  - [x] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition` (`ki_sdui_adapter_pattern.md`)
+  - [x] Step 2: Create Directory Structure — create `sdui/__init__.py`, `sdui/adapters/__init__.py`, test `__init__.py` files
+  - [x] Step 3: Create `base_adapter.py` — define `AdapterContext` (frozen, strict, extra=forbid) and `SduiAdapterProtocol`
+  - [x] Step 4: Modify `blueprint.py` — move `Callable` import from inline to module level
+  - [x] Step 5: Modify `blueprint.py` — import `AdapterContext`, migrate dispatch table type to `Callable[[AdapterContext], list[AnySduiBlock]]`, wrap hydrators in lambda bridges
+  - [x] Step 6: Modify `blueprint.py` — migrate dispatch call site from kwargs scatter to single `AdapterContext` pass, bridge `mcp_audit_map=mcp_audit_data`
+  - [x] Step 7: Create `test_base_adapter.py` — positive construction test, frozen rejects mutation, forbids extra fields, missing required field raises, strict type enforcement
+  - [x] Step 8: Run Quality Gate — `uv run python scripts/backend_audit_loop.py backend_v2 --test`
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]`
 
 ---
@@ -242,22 +242,26 @@
 - Requirements Traceability Matrix extracted with 28 granular requirements (R1-R28).
 - Post-Implementation Gates, Documentation & KI Update, and Final Epic Audit sections populated.
 - **[2026-08-02]** Tier 0 Research Analysis completed on `00_foundation_adapter_context.md`. Identified a critical type mismatch on `mcp_audit_map` (list vs dict) and provided corrective mutations (M1, M2).
+- **[2026-08-02]** Tier 2 Execution completed on `00_foundation_adapter_context.md` (Phase 1). Created `base_adapter.py`, migrated `blueprint.py` dispatch table and call site, and wrote unit tests for `AdapterContext`. All quality gates passed perfectly.
 
 ## Learned
 - **Baseline State Snapshot**: `blueprint.py` is currently ~2012 lines with a 560-line God Method `_extract_matrices_and_extensions` (L222-L782). The dispatch table at L104-L111 uses `Callable[..., list[AnySduiBlock]]` with kwargs scatter at L1948-L1960. The inline `Callable` import is at L103 inside `__init__`. Six hydrator methods exist: `_hydrate_penalties_block`, `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, `_hydrate_printable_sources_block`, `_hydrate_grouped_extensions_block`.
-- **Phase 1 Defect (M1)**: `mcp_audit_data` at the `blueprint.py` call site (L1729) is `list[MCPAuditTrace]`, while `AdapterContext.mcp_audit_map` is locked to `dict[str, MCPAuditTrace] | None`. Constructing the context must include a list-to-dict conversion: `mcp_audit_map={t.id: t for t in mcp_audit_data} if mcp_audit_data else None`.
+- **Phase 1 Defect (M1)**: `mcp_audit_data` at the `blueprint.py` call site (L1729) is `list[MCPAuditTrace]`, while `AdapterContext.mcp_audit_map` is locked to `dict[str, MCPAuditTrace] | None`. Constructing the context must include a list-to-dict conversion: `mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None`.
 - **Phase 1 Missing Guard (M2)**: Execution must verify `test_blueprint.py` and `test_blueprint_sdui_crash.py` still pass after `AdapterContext` injection to ensure no circular import or mock failures occur.
 - Phases 3-8 have placeholder plans that MUST be expanded via `/tier1-planner` before execution.
 - Phase 5a is DEFERRED (placeholder adapters for empty methods).
 - Phase 7 is MANDATORILY split into 7A (dispatch loop) and 7B (ordering + PDF parity).
 - The KI `sdui_adapter_decomposition` MUST be read before creating any adapter file.
+- `polyfactory` test model generation can fail with explicit constraints on `I18nText`, better to use manual valid instantiation for `OutputProfile` fixtures when needed.
 
 ## Remaining
-- **[IMMEDIATE]** Execute Phase 1 (foundation) using `/tier2-execute` on the mutated `00_foundation_adapter_context.md`.
+- **[IMMEDIATE]** Audit Phase 1 using `/tier8-audit-plan` on `00_foundation_adapter_context.md`.
+- Red-Team Phase 2 using `/tier0-research-plan` on `01_xai_highlights_adapter.md`.
+- Execute Phase 2 (Extract XAI Highlights Adapter).
 - Expand placeholder plans for Phases 3-8 via `/tier1-planner` (incrementally, after each preceding phase completes).
 - Execute all 8 phases through the mandatory workflow loop.
 - Complete all Post-Implementation Gates.
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_130\00_foundation_adapter_context.md]" --rules="@[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`

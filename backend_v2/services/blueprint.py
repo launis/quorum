@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from collections.abc import Callable
 from typing import Any, Literal
 
 import bleach
@@ -62,6 +63,7 @@ from backend_v2.models.view.sdui import (
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
 )
+from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
@@ -100,15 +102,19 @@ class BlueprintTransformer:
         self.identity_repo = identity_repo
         self.system_repo = system_repo
 
-        from collections.abc import Callable
-
-        self._target_block_hydrators: dict[str, Callable[..., list[AnySduiBlock]]] = {
-            TargetBlockType.PENALTIES_BLOCK: self._hydrate_penalties_block,
-            TargetBlockType.GLOBAL_SCORE_BLOCK: self._hydrate_global_score_block,
-            TargetBlockType.AUDIT_TRAIL_BLOCK: self._hydrate_audit_trail_block,
-            TargetBlockType.JARGON_RATIO_BLOCK: self._hydrate_jargon_ratio_block,
-            TargetBlockType.PRINTABLE_SOURCES_BLOCK: self._hydrate_printable_sources_block,
-            TargetBlockType.GROUPED_EXTENSIONS_BLOCK: self._hydrate_grouped_extensions_block,
+        self._target_block_hydrators: dict[str, Callable[[AdapterContext], list[AnySduiBlock]]] = {
+            TargetBlockType.PENALTIES_BLOCK: lambda ctx: self._hydrate_penalties_block(
+                penalties_applied=ctx.penalties_applied,
+            ),
+            TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: [],
+            TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: [],
+            TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: self._hydrate_jargon_ratio_block(),
+            TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: self._hydrate_printable_sources_block(
+                profile_cache=ctx.profile_cache,
+            ),
+            TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: self._hydrate_grouped_extensions_block(
+                accumulated_extensions=ctx.accumulated_extensions,
+            ),
         }
 
     @staticmethod
@@ -1938,6 +1944,16 @@ class BlueprintTransformer:
             # Phase 2: Assemble final visualization blocks strictly by layout index
             final_visualization_blocks = []
             if profile.layouts:
+                adapter_context = AdapterContext(
+                    execution=execution,
+                    locale=locale,
+                    penalties_applied=penalties_applied,
+                    mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None,
+                    global_score=global_score,
+                    accumulated_extensions=accumulated_extensions,
+                    profile=profile,
+                    profile_cache=profile_cache,
+                )
                 for idx, layout in enumerate(profile.layouts):
                     if (
                         layout.target_blocks
@@ -1946,16 +1962,7 @@ class BlueprintTransformer:
                     ):
                         for target_k in layout.target_blocks:
                             if target_k in self._target_block_hydrators:
-                                hydrated_blocks = self._target_block_hydrators[str(target_k)](
-                                    execution=execution,
-                                    locale=locale,
-                                    penalties_applied=penalties_applied,
-                                    mcp_audit_data=mcp_audit_data,
-                                    global_score=global_score,
-                                    profile=profile,
-                                    accumulated_extensions=accumulated_extensions,
-                                    profile_cache=profile_cache,
-                                )
+                                hydrated_blocks = self._target_block_hydrators[str(target_k)](adapter_context)
                                 if hydrated_blocks:
                                     final_visualization_blocks.extend(hydrated_blocks)
                     else:
