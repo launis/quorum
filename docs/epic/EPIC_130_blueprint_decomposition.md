@@ -37,7 +37,7 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 
 ### Deprecations & Sunset List (What We Will REMOVE)
 - **Inline Presentation Logic in `blueprint.py`**: All `if "risk" in lower_ext` chains, icon/severity selection logic, and direct `AccordionBlock`/`AlertBlock` instantiation inside `_hydrate_grouped_extensions_block`, `_hydrate_penalties_block`, and the inline executive summary construction (lines 1079-1095) will be INTENTIONALLY MOVED to their respective adapter files.
-- **`_extract_matrices_and_extensions` God Method**: This 560-line method (lines 222-782) will be decomposed. Matrix parsing logic moves to a dedicated `matrix_extractor.py` service. Extension accumulation moves to `xai_highlights_adapter.py`. The remaining structural validation stays in a leaner `_parse_matrix_trace_results` orchestration method inside `blueprint.py`.
+- **`_extract_matrices_and_extensions` God Method**: This 560-line method (lines 222-782) will be decomposed. Matrix parsing logic moves to dedicated `matrix_graphs_adapter.py` and `matrix_summary_table_adapter.py` adapters. Extension accumulation moves to `xai_highlights_adapter.py`. The remaining structural validation stays in a leaner `_parse_matrix_trace_results` orchestration method inside `blueprint.py`.
 - **Legacy Layout Models**: `the historically removed Report Layout Data Transfer Object` has already been DEPRECATED and REMOVED. `OutputLayoutBlock` MUST BE RETAINED as it is part of the `OutputProfile` SSOT for database persistence, but its `preset_view` logic is ignored during presentation. The system transitions to a purely flat `inner_sdui_blocks` sequence containing `AnySduiBlock` types (specifically: `SduiRadarChartBlock`, `SduiScatterPlotBlock`) within `ReportDataDTO`, completely eliminating nested UI structure in the final client payload.
 - **Placeholder Methods**: The empty placeholder methods `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, and `_hydrate_jargon_ratio_block` (lines 802-812) will remain deferred until actual logic is introduced. The `_hydrate_printable_sources_block` (lines 814-828) is extracted to its own adapter.
 
@@ -73,7 +73,8 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 | Adapter `penalties_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`AlertBlock` with `CRITICAL_OVERRIDE` severity) |
 | Adapter `executive_summary_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`ParagraphBlock` instances) |
 | Adapter `printable_sources_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`MarkdownBlock` instances) |
-| Service `matrix_extractor.py` | `blueprint.py` orchestrator | Returns **MatrixExtractionResultDTO** (Strict Pydantic V2 DTO replacing naked tuple/dict state passing) |
+| Adapter `matrix_graphs_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`SduiRadarChartBlock`, `SduiScatterPlotBlock`) |
+| Adapter `matrix_summary_table_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`SduiMatrixTableBlock`) |
 | `blueprint.py` orchestrator | `pdf_generator.py`, Flutter client | Returns `ReportDataDTO` (unchanged contract) |
 
 ### Namespace Clarification
@@ -150,28 +151,27 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 - The execution agent MUST NOT attempt to extract or touch `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, or `_hydrate_jargon_ratio_block` during this phase.
 - Simply acknowledge this deferral and immediately proceed to Phase 6 or complete the current execution step.
 
-### Phase 6: Decompose `_extract_matrices_and_extensions` God Method
-1. Create a `MatrixExtractionContext` Pydantic model (`ConfigDict(frozen=True, strict=True, extra='forbid')`) in `@[c:\src\quorum\backend_v2\services\sdui\dtos.py]` [NEW] to encapsulate the exact parameters of the God Method per the `structured_state_envelopes_mandate`. You MUST explicitly include these fields with their exact types: `results: list[StepOutputDTO]`, `locale: str`, `blocks_by_id: dict[str, PromptBlock]`, `workflow_steps: dict[str, StepRule]` (Resolved: the type hint was corrected to `dict[str, StepRule]` — `StepRule` was already the runtime type), `profile: OutputProfile`, `row_explanations_cache: dict[str, str]`, `workflow_ext_values: list[str]`, `row_curated_quotes_cache: dict[str, list[str]]`, `has_synthesis_cache: bool`, `rejected_evq_ids: set[str] | None`, `mcp_audit_map: dict[str, MCPAuditTrace] | None`, `source_identity_manifest: dict[str, str] | None`, `execution: ExecutionRecord | None`. The `results: list[Any]` parameter in the current signature MUST be narrowed to `list[StepOutputDTO]` (defined at @[c:\src\quorum\backend_v2\models\state.py#L146]) since all callers already pass `StepOutputDTO` instances.
-2. Create `@[c:\src\quorum\backend_v2\services\sdui\matrix_extractor.py]` [NEW] containing a **stateless utility class** **MatrixExtractorService** with a single `@staticmethod` **extract(context: MatrixExtractionContext) -> MatrixExtractionResultDTO**.
-   - **Return type (exact)**: **MatrixExtractionResultDTO** (A frozen Pydantic DTO to enforce `no_naked_dicts_in_state`).
-   - **MANDATORY**: You MUST define **MatrixExtractionResultDTO** in `backend_v2/services/sdui/dtos.py` containing the following strictly typed fields: `evaluative_matrices: list[MatrixScorecardRowDTO]`, `informational_matrices: list[MatrixScorecardRowDTO]`, `all_parsed_matrices: dict[str, MatrixScorecardRowDTO]`, `step_scorecard_atoms: dict[str, dict[str, ScorecardAtomDTO]]`, `accumulated_extensions: dict[str, list[AnySduiBlock]]`. You are responsible for extracting the `_add_ext` closure from `blueprint.py` into this service.
-   - **MANDATORY SEVERITY ENUM MIGRATION**: The bare string severity literals (`"info"`, `"success"`, `"error"`, `"warning"`) at [blueprint.py#L714-L719](file:///c:/src/quorum/backend_v2/services/blueprint.py#L714-L719) and [blueprint.py#L742](file:///c:/src/quorum/backend_v2/services/blueprint.py#L742) and [blueprint.py#L751](file:///c:/src/quorum/backend_v2/services/blueprint.py#L751) inside the `_add_ext` closure MUST be replaced with `VisualIntent` enum values (specifically `VisualIntent.INFO`, `VisualIntent.SUCCESS`, `VisualIntent.ERROR`, `VisualIntent.WARNING`). **COMPATIBILITY NOTE**: The SDUI model field types (`AlertBlock.severity` at [sdui.py#L500](file:///c:/src/quorum/backend_v2/models/view/sdui.py#L500) and `AccordionBlock.severity` at [sdui.py#L512-L514](file:///c:/src/quorum/backend_v2/models/view/sdui.py#L512-L514)) remain as `Literal` string types. Because `VisualIntent` is a `StrEnum`, Pydantic coerces enum values to their string `.value` natively during serialization. No SDUI model type changes are required in this Epic. The executing agent MUST NOT attempt to change the `severity` field type on `AlertBlock` or `AccordionBlock`.
-   - **MANDATORY `"default"` SEVERITY GAP RESOLUTION**: `AccordionBlock.severity` at [sdui.py#L512-L514](file:///c:/src/quorum/backend_v2/models/view/sdui.py#L512-L514) accepts `"default"` as a valid literal, but `VisualIntent` has no `DEFAULT` member (it has `NEUTRAL = "NEUTRAL"`). During the extraction of `_add_ext`, the executing agent MUST map the `acc_severity` initialization (currently `"info"` at [blueprint.py#L716](file:///c:/src/quorum/backend_v2/services/blueprint.py#L716)) to `VisualIntent.INFO` — the `"default"` literal is only used by `AccordionBlock`'s `Field(default="default")` and is NOT assigned by the `_add_ext` closure. The pre-existing `"default"` literal gap in `AccordionBlock` is documented in Section 2 (line 53) and is OUT OF SCOPE for this Epic.
-   - **MANDATORY SILENT SWALLOW ERADICATION**: The `except ValueError: pass` block at [blueprint.py#L756-L757](file:///c:/src/quorum/backend_v2/services/blueprint.py#L756-L757) MUST be replaced with `logger.error("[MatrixExtractorService] %s: Unknown extension type '%s'", ErrorCodes.VALIDATION_FAILED.name, key)` followed by `raise AppException(message=f"Unknown extension type: {key}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})`.
+### Phase 6: Decompose God Method into SDUI Matrix Adapters
+1. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_graphs_adapter.py]` [NEW] to replace the graph extraction logic in the God Method.
+   - **MANDATORY**: Implement `MatrixGraphsAdapter.build(context: AdapterContext) -> list[AnySduiBlock]`. This adapter must directly read `context.execution.results` and parse the raw `TraceMatrixPayloadDTO` outputs, generating `SduiRadarChartBlock` and `SduiScatterPlotBlock` instances.
+   - **MANDATORY**: Strict parsing of LLM trace output (`TraceMatrixPayloadDTO`) using Pydantic `TypeAdapter` or `.model_validate()`. No `isinstance` dictionary fallbacks.
+2. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_summary_table_adapter.py]` [NEW] to replace the summary table logic.
+   - **MANDATORY**: Implement `MatrixSummaryTableAdapter.build(context: AdapterContext) -> list[AnySduiBlock]`. This adapter must also directly read `context.execution.results` to aggregate the step scorecard atoms into a single `SduiMatrixTableBlock`.
+3. Refactor `@[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]` (created in Phase 2) to directly read from `context.execution.results` and extract the `_add_ext` logic natively, removing the need for any upstream pre-processing of extensions.
+   - **MANDATORY SEVERITY ENUM MIGRATION**: The bare string severity literals (`"info"`, `"success"`, `"error"`, `"warning"`) inside the `_add_ext` closure MUST be replaced with `VisualIntent` enum values (`VisualIntent.INFO`, etc.).
+   - **MANDATORY SILENT SWALLOW ERADICATION**: Replace `except ValueError: pass` with `logger.error` + `raise AppException` for unknown extensions.
 
 > [!WARNING]
 > **DELIBERATE BEHAVIORAL CHANGE**: This is NOT a pure structural refactoring. Previously, unknown extension types were silently ignored (`except ValueError: pass`). After this change, they will crash immediately per the Fail-Fast mandate.
 >
 > **MANDATORY BLOCKING PREREQUISITE (Must Execute BEFORE Enabling Crash Path)**:
-> 1. The executing agent MUST enumerate ALL extension type strings currently used in `seed_data.json` (specifically `grep_search` for all `visible_block_extensions` and `extension_labels` values) and cross-reference them against `XaiExtensionType` enum members at @[c:\src\quorum\backend_v2\models\enums.py#L138-L171].
-> 2. If ANY string exists in seed data or test fixtures that is NOT mapped in `XaiExtensionType`, the agent MUST add it to the enum BEFORE enabling the crash path.
+> 1. Enumerate ALL extension type strings currently used in `seed_data.json` and cross-reference them against `XaiExtensionType` enum members.
+> 2. Add missing strings to the enum BEFORE enabling the crash path.
 > 3. Write a specific negative test asserting the `AppException` crash for an unknown extension string.
-> 4. Ensure `seed_data.json` and test fixtures do not contain extension type strings absent from the `XaiExtensionType` enum, or the entire test suite will immediately break.
 
-   - **MANDATORY DUCK-TYPING ERADICATION**: The `hasattr(profile, "max_extension_items")` check at [blueprint.py#L727](file:///c:/src/quorum/backend_v2/services/blueprint.py#L727) MUST be replaced with direct attribute access (`profile.max_extension_items`). The `getattr(b, "title", None)` at [blueprint.py#L736](file:///c:/src/quorum/backend_v2/services/blueprint.py#L736) MUST be replaced with `b.title` (since `AccordionBlock.title` is mandatory). The `getattr(c, "text", "")` at [blueprint.py#L749](file:///c:/src/quorum/backend_v2/services/blueprint.py#L749) MUST be replaced with typed access using `isinstance(c, AlertBlock)` narrowing followed by `c.text`.
-   - **MANDATORY**: Strict parsing of LLM trace output (`TraceMatrixPayloadDTO`) using Pydantic `TypeAdapter` or `.model_validate()`. No `isinstance` dictionary fallbacks.
-3. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py]`: Delete the 560-line God Method and replace with a call to `MatrixExtractorService.extract(context)`.
-4. **ATOMIC TEST MIGRATION**: You MUST physically move all existing tests related to `_extract_matrices_and_extensions` from `test_blueprint.py` into a new `@[c:\src\quorum\backend_v2\tests\unit\services\sdui\test_matrix_extractor.py]` [NEW] file, updating them to directly test `MatrixExtractorService.extract()`. Additionally, you must write new negative tests asserting that missing fields and improperly structured payload dictionaries trigger Fail-Fast `AppException` / `ValidationError` per the `anti_happy_path_mandate`. You MUST NOT simply mock or delete the old tests in `test_blueprint.py`, as that would destroy test coverage.
+   - **MANDATORY DUCK-TYPING ERADICATION**: Ensure no `hasattr` or `getattr` with default fallbacks are used in the refactored code. Use strict typed attribute access.
+4. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py]`: Delete the 560-line God Method `_extract_matrices_and_extensions` entirely. Wire `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` into the `_target_block_hydrators` dispatch loop.
+5. **ATOMIC TEST MIGRATION**: You MUST physically move all existing tests related to `_extract_matrices_and_extensions` from `test_blueprint.py` into new test files `test_matrix_graphs_adapter.py` and `test_matrix_summary_table_adapter.py`.
 
 ### Phase 7: SDUI Layout Flattening (Dumb Painter Architecture & Strict Ordering)
 
@@ -186,13 +186,13 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
      - *Source*: Read directly from `context.profile_cache.synthesis_blocks` or `execution.global_synthesis`.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied exactly as before. The output must strictly follow the existing instruction, where output is adjusted by paragraphs and `user_role` is declared at the end.
    - **Step 3 (Matrix Graphs & Justifications):** First output those matrices that contain a graph (`SduiRadarChartBlock`, `SduiScatterPlotBlock`), immediately followed by their text justifications (`ParagraphBlock`).
-     - *Source*: Graph structures are generated via `matrix_extractor` from `context.results`. Text justifications are mapped via `context.row_explanations_cache`.
+     - *Source*: Graph structures are generated via `matrix_graphs_adapter` from `context.execution.results`. Text justifications are mapped via `context.row_explanations_cache`.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The text content for all of these must be formed AI-assisted according to current highly regulated instructions (specifically, graphs have very strict rules for forming text content).
    - **Step 4 (Extensions):** Blocks from `xai_highlights_adapter` and `penalties_adapter` (`AccordionBlock`, `AlertBlock`).
      - *Source*: Read mapped data directly from `context.accumulated_extensions` and `context.penalties_applied`.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The text content, explicit rows per extension, and exact data fetch patterns are tightly regulated and must be executed by the LLM exactly as currently implemented.
-   - **Step 5 (Matrix Summary Table):** Matrix Summary Table (`SduiMatrixTableBlock` from `matrix_extractor`).
-     - *Source*: Dynamically aggregated from `all_parsed_matrices` constructed by the matrix extractor.
+   - **Step 5 (Matrix Summary Table):** Matrix Summary Table (`SduiMatrixTableBlock` from `matrix_summary_table_adapter`).
+     - *Source*: Dynamically aggregated directly from `context.execution.results` by the matrix summary table adapter.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The explanation column must be formed AI-assisted exactly as before.
    - **Step 6 (Workflow Extensions):** Workflow evaluation blocks (`SduiMetrics1DBlock` + text).
      - *Source*: Map `context.workflow_ext_values` to the defined global scoring components.
@@ -236,7 +236,8 @@ New unit tests to be added:
 - `backend_v2/tests/unit/services/sdui/adapters/test_penalties_adapter.py`: Tests penalty block construction independently.
 - `backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py`: Tests summary block construction independently.
 - `backend_v2/tests/unit/services/sdui/adapters/test_printable_sources_adapter.py`: Tests printable sources formatting independently.
-- `backend_v2/tests/unit/services/sdui/test_matrix_extractor.py`: Tests matrix extraction independently.
+- `backend_v2/tests/unit/services/sdui/adapters/test_matrix_graphs_adapter.py`: Tests matrix graph construction independently.
+- `backend_v2/tests/unit/services/sdui/adapters/test_matrix_summary_table_adapter.py`: Tests matrix summary table construction independently.
 
 ### Manual Verification Steps
 1. Run a full execution and generate a PDF report. Visually compare against `@[c:\src\quorum\docs\jwvastaus\raportti 2.pdf]` to confirm identical output.

@@ -86,19 +86,20 @@
 
 ---
 
-### Phase 6: Decompose `_extract_matrices_and_extensions` God Method
+### Phase 6: Decompose God Method into SDUI Matrix Adapters
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md] *(placeholder — expand via `/tier1-planner` after Phase 2)*
 
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md]`
   - [ ] BLOCKING PREREQUISITE: Enumerate ALL extension type strings in `seed_data.json` and cross-reference against `XaiExtensionType` enum at @[c:\src\quorum\backend_v2\models\enums.py#L138-L171]
-  - [ ] Create `dtos.py` — `MatrixExtractionContext` (frozen, strict, extra=forbid) with 13 strictly typed fields, `MatrixExtractionResultDTO`
-  - [ ] Create `matrix_extractor.py` — `MatrixExtractorService.extract(context)` → `MatrixExtractionResultDTO`; extract `_add_ext` closure
-  - [ ] SEVERITY ENUM MIGRATION: Replace bare string severity literals at L714-L719, L742, L751 with `VisualIntent` enum values
-  - [ ] SILENT SWALLOW ERADICATION: Replace `except ValueError: pass` at L756-L757 with `logger.error` + `raise AppException`
-  - [ ] DUCK-TYPING ERADICATION: Replace `hasattr(profile, \"max_extension_items\")` with direct access, `getattr(b, \"title\", None)` with `b.title`, `getattr(c, \"text\", \"\")` with typed `isinstance(c, AlertBlock)` narrowing
-  - [ ] Modify `blueprint.py` — DELETE 560-line God Method, replace with `MatrixExtractorService.extract(context)`
-  - [ ] Migrate Tests — move God Method tests from `test_blueprint.py` to `test_matrix_extractor.py`; add negative tests (missing fields → `ValidationError`, unknown extension → `AppException`, malformed payload → Fail-Fast)
+  - [ ] Create `matrix_graphs_adapter.py` — `MatrixGraphsAdapter.build(context)` generating `SduiRadarChartBlock` and `SduiScatterPlotBlock` from `context.execution.results`
+  - [ ] Create `matrix_summary_table_adapter.py` — `MatrixSummaryTableAdapter.build(context)` generating `SduiMatrixTableBlock` from `context.execution.results`
+  - [ ] Refactor `xai_highlights_adapter.py` — Parse extensions directly from `context.execution.results`
+  - [ ] SEVERITY ENUM MIGRATION: Replace bare string severity literals with `VisualIntent` enum values
+  - [ ] SILENT SWALLOW ERADICATION: Replace `except ValueError: pass` with `logger.error` + `raise AppException`
+  - [ ] DUCK-TYPING ERADICATION: Replace `hasattr` and `getattr` with direct/typed access
+  - [ ] Modify `blueprint.py` — DELETE 560-line God Method, wire `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` into dispatch loop
+  - [ ] Migrate Tests — move God Method tests from `test_blueprint.py` to `test_matrix_graphs_adapter.py` and `test_matrix_summary_table_adapter.py`
   - [ ] Run Quality Gate
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md]`
 
@@ -161,15 +162,16 @@
   - @[c:\src\quorum\backend_v2\services\sdui\adapters\penalties_adapter.py]
   - @[c:\src\quorum\backend_v2\services\sdui\adapters\executive_summary_adapter.py]
   - @[c:\src\quorum\backend_v2\services\sdui\adapters\printable_sources_adapter.py]
-  - @[c:\src\quorum\backend_v2\services\sdui\dtos.py]
-  - @[c:\src\quorum\backend_v2\services\sdui\matrix_extractor.py]
+  - @[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_graphs_adapter.py]
+  - @[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_summary_table_adapter.py]
   - @[c:\src\quorum\backend_v2\services\blueprint.py]
   - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_base_adapter.py]
   - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_xai_highlights_adapter.py]
   - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_penalties_adapter.py]
   - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_executive_summary_adapter.py]
   - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_printable_sources_adapter.py]
-  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\test_matrix_extractor.py]
+  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_graphs_adapter.py]
+  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_summary_table_adapter.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` — No Flutter files are expected to change in this Epic (Dumb Painter contract is preserved). Verify by grepping for any modified `.dart` files.
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain. `grep_search` for all deleted method names across the entire `backend_v2/` directory.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all surviving business logic in `backend_v2/services/sdui/` and `backend_v2/services/blueprint.py`.
@@ -179,7 +181,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** Create/Update Knowledge Item (KI) for new SSOTs: `AdapterContext`, `MatrixExtractionContext`, `MatrixExtractionResultDTO`, `MatrixExtractorService` in `<appDataDir>/knowledge/`.
+- [ ] **[NOK]** Create/Update Knowledge Item (KI) for new SSOTs: `AdapterContext`, `MatrixGraphsAdapter`, `MatrixSummaryTableAdapter` in `<appDataDir>/knowledge/`.
 - [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ---
@@ -223,9 +225,9 @@
 | R16 | Executive summary negative tests: invalid `user_role` → `AppException`, missing `user_role_label` → `AppException`, missing `user_role_mappings` key → `AppException` | §3 Phase 4 | [03_executive_summary_adapter.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/03_executive_summary_adapter.md) | — |
 | R17 | Create `PrintableSourcesAdapter` extracting `_hydrate_printable_sources_block`; DELETE original method from `blueprint.py` | §3 Phase 5 | [04_printable_sources_adapter.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/04_printable_sources_adapter.md) | — |
 | R18 | BLOCKING PREREQUISITE: Enumerate ALL extension type strings in `seed_data.json` and cross-reference against `XaiExtensionType` enum BEFORE enabling crash path | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
-| R19 | Create `MatrixExtractionContext` frozen Pydantic DTO with 13 strictly typed fields in `dtos.py` | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
-| R20 | Create `MatrixExtractionResultDTO` in `dtos.py` with fields: `evaluative_matrices`, `informational_matrices`, `all_parsed_matrices`, `step_scorecard_atoms`, `accumulated_extensions` | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
-| R21 | Create `MatrixExtractorService.extract(context) → MatrixExtractionResultDTO` extracting `_add_ext` closure from `blueprint.py` | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
+| R19 | Create `MatrixGraphsAdapter` parsing `TraceMatrixPayloadDTO` into `SduiRadarChartBlock` and `SduiScatterPlotBlock` | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
+| R20 | Create `MatrixSummaryTableAdapter` aggregating step scorecard atoms into `SduiMatrixTableBlock` | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
+| R21 | Refactor `XaiHighlightsAdapter` to parse extensions natively from `context.execution.results` | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
 | R22 | SEVERITY ENUM MIGRATION: Replace bare string severity literals at L714-L719, L742, L751 with `VisualIntent` enum values; DO NOT change SDUI model field types | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
 | R23 | SILENT SWALLOW ERADICATION: Replace `except ValueError: pass` at L756-L757 with `logger.error` + `raise AppException` (deliberate behavioral change) | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
 | R24 | DUCK-TYPING ERADICATION: Replace `hasattr(profile, \"max_extension_items\")`, `getattr(b, \"title\", None)`, `getattr(c, \"text\", \"\")` with direct/typed access | §3 Phase 6 | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | — |
@@ -253,6 +255,7 @@
 - **[2026-08-03]** Tier 2 Execution completed on `02_penalties_adapter.md` (Phase 3). Created `penalties_adapter.py` with strict `VisualIntent` enum typing, deleted `_hydrate_penalties_block` from `blueprint.py`, fixed `AlertBlock` typing upstream to conform to strict Enum hydration, and ensured all quality gates pass successfully.
 
 ## Learned
+- **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
 - **Baseline State Snapshot**: `blueprint.py` is currently ~2012 lines with a 560-line God Method `_extract_matrices_and_extensions` (L222-L782). The dispatch table at L104-L111 uses `Callable[..., list[AnySduiBlock]]` with kwargs scatter at L1948-L1960. The inline `Callable` import is at L103 inside `__init__`. Six hydrator methods exist: `_hydrate_penalties_block`, `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, `_hydrate_printable_sources_block`, `_hydrate_grouped_extensions_block`.
 - **Phase 1 Defect (M1)**: `mcp_audit_data` at the `blueprint.py` call site (L1729) is `list[MCPAuditTrace]`, while `AdapterContext.mcp_audit_map` is locked to `dict[str, MCPAuditTrace] | None`. Constructing the context must include a list-to-dict conversion: `mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None`.
 - **Phase 1 Missing Guard (M2)**: Execution must verify `test_blueprint.py` and `test_blueprint_sdui_crash.py` still pass after `AdapterContext` injection to ensure no circular import or mock failures occur.
