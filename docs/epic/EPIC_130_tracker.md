@@ -52,7 +52,7 @@
   - [x] Step 3: Modify `blueprint.py` — wire adapter, DELETE `_hydrate_penalties_block`
   - [x] Step 4: Migrate Tests — move penalty tests from `test_blueprint.py` to `test_penalties_adapter.py`; add negative tests (missing `penalties_applied` raises `ValidationError`, empty list `[]` returns `[]`, positive `AlertBlock` mapping)
   - [x] Step 5: Run Quality Gate
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]`
 
 ---
 
@@ -253,6 +253,7 @@
 - **[2026-08-02]** Tier 1 Epic Planner completed on `02_penalties_adapter.md` (Phase 3). Expanded the placeholder into a full XML execution protocol, injected canonical rules for `PenaltiesAdapter`, defined test contracts, and passed Markdown boundaries and planner fidelity audits.
 - **[2026-08-03]** Tier 0 Research Analysis completed on `02_penalties_adapter.md` (Phase 3). Validated the expanded plan and refined the execution steps for the Penalties Adapter.
 - **[2026-08-03]** Tier 2 Execution completed on `02_penalties_adapter.md` (Phase 3). Created `penalties_adapter.py` with strict `VisualIntent` enum typing, deleted `_hydrate_penalties_block` from `blueprint.py`, fixed `AlertBlock` typing upstream to conform to strict Enum hydration, and ensured all quality gates pass successfully.
+- **[2026-08-03]** Tier 8 Audit Plan completed for Phase 3. The penalties adapter execution perfectly matches the plan, test coverage was preserved, and legacy footprint eradicated. Status: PASSED.
 
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
@@ -267,12 +268,12 @@
 - **Phase 3 Strict Enum Hydration (Lax Pattern)**: Legacy SDUI models (e.g. `AlertBlock`) were found using `Literal` string typing instead of Enums, causing MyPy crashes when passing native Enum objects. Fixed upstream by converting model fields to use `LaxVisualIntent` (`Annotated[VisualIntent, Field(strict=False)]`), ensuring Pydantic coerces JSON strings while MyPy enforces native Enums in Python.
 
 ## Remaining
-- **[IMMEDIATE]** Run `/tier8-audit-plan` on Phase 3 after execution.
-- **[NEXT]** Expand placeholder plan for Phase 4 via `/tier1-planner`.
+- **[IMMEDIATE]** Run `/tier1-planner` on Phase 4 placeholder (`03_executive_summary_adapter.md`).
+- **[NEXT]** Run `/tier0-research-plan` on Phase 4 after planning.
 - Expand remaining placeholder plans for Phases 4-8.
 - Execute all remaining phases through the mandatory workflow loop.
 - Complete all Post-Implementation Gates.
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]"`
+`/tier5-resume --workflow=/tier1-planner --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\03_executive_summary_adapter.md]"`
