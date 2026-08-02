@@ -64,6 +64,7 @@ from backend_v2.models.view.sdui import (
     SduiScatterPlotBlock,
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.services.sdui.adapters.penalties_adapter import PenaltiesAdapter
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
@@ -104,9 +105,7 @@ class BlueprintTransformer:
         self.system_repo = system_repo
 
         self._target_block_hydrators: dict[str, Callable[[AdapterContext], list[AnySduiBlock]]] = {
-            TargetBlockType.PENALTIES_BLOCK: lambda ctx: self._hydrate_penalties_block(
-                penalties_applied=ctx.penalties_applied,
-            ),
+            TargetBlockType.PENALTIES_BLOCK: lambda ctx: PenaltiesAdapter.build(ctx),
             TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: [],
             TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: [],
             TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: self._hydrate_jargon_ratio_block(),
@@ -752,7 +751,7 @@ class BlueprintTransformer:
                                     break
                                 if not any(getattr(c, "text", "") == line for c in accordion.children):
                                     block = AlertBlock(
-                                        severity="info",
+                                        severity=VisualIntent.INFO,
                                         text=f"**{label_str}**: {line}",
                                         exact_quotes=[],
                                         citations=[],
@@ -784,24 +783,6 @@ class BlueprintTransformer:
             step_scorecard_atoms,
             accumulated_extensions,
         )
-
-    def _hydrate_penalties_block(self, **kwargs: Any) -> list[AnySduiBlock]:
-        """Hydrates penalty visual blocks with CRITICAL_OVERRIDE intent."""
-        penalties_applied: list[str] = kwargs.get("penalties_applied", [])
-        if not penalties_applied:
-            return []
-
-        penalty_blocks: list[AnySduiBlock] = []
-        for p_str in penalties_applied:
-            penalty_blocks.append(
-                AlertBlock(
-                    severity=VisualIntent.CRITICAL_OVERRIDE.value,
-                    text=f"Penalty applied: {p_str}",
-                    exact_quotes=[],
-                    citations=[],
-                )
-            )
-        return penalty_blocks
 
     def _hydrate_global_score_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Placeholder for future global score hydration logic."""
@@ -1338,7 +1319,7 @@ class BlueprintTransformer:
                     ]
                 )
                 alert_block = AlertBlock(
-                    severity="info" if is_aligned else "warning",
+                    severity=VisualIntent.INFO if is_aligned else VisualIntent.WARNING,
                     text=f"{lbl_align}: {align_val}",
                     exact_quotes=[],
                     citations=[],
@@ -1441,9 +1422,9 @@ class BlueprintTransformer:
                     ]
                 )
 
-                alert_severity: Literal["info", "warning", "error"] = "info" if auth_score_rounded >= 80 else "warning"
+                alert_severity: VisualIntent = VisualIntent.INFO if auth_score_rounded >= 80 else VisualIntent.WARNING
                 if auth_score_rounded < 50:
-                    alert_severity = "error"
+                    alert_severity = VisualIntent.ERROR
 
                 lvl_key = (
                     "level_high"

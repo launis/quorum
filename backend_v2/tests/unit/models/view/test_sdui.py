@@ -5,6 +5,7 @@ from pydantic import TypeAdapter, ValidationError
 
 # Import v2_core FIRST so that the SDUI models are rebuilt with I18nText and MatrixScorecardRowDTO
 import backend_v2.models.v2_core  # noqa: F401
+from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import (
     AlertBlock,
     AnySduiBlock,
@@ -72,7 +73,7 @@ def test_alert_block_success() -> None:
     }
     block = AlertBlock.model_validate(data)
     assert block.block_type == "alert_box"
-    assert block.severity == "info"
+    assert block.severity == VisualIntent.INFO
     assert block.text == "This is an alert."
 
 
@@ -100,7 +101,7 @@ def test_any_sdui_block_discriminator() -> None:
 
     data_alert = {
         "block_type": "alert_box",
-        "severity": "warning",
+        "severity": VisualIntent.WARNING,
         "text": "Warning!",
     }
     block_alert = any_sdui_adapter.validate_python(data_alert)

@@ -44,12 +44,14 @@
 ### Phase 3: Extract Penalties Adapter
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md] *(Expanded via Tier 1 Planner)*
 
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]`
-  - [ ] Create `penalties_adapter.py` — `PenaltiesAdapter.build(context)` with strict typing, `VisualIntent.CRITICAL_OVERRIDE` severity
-  - [ ] Modify `blueprint.py` — wire adapter, DELETE `_hydrate_penalties_block`
-  - [ ] Migrate Tests — move penalty tests from `test_blueprint.py` to `test_penalties_adapter.py`; add negative tests (missing `penalties_applied` raises `ValidationError`, empty list `[]` returns `[]`, positive `AlertBlock` mapping)
-  - [ ] Run Quality Gate
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]`
+  - [x] Step 0: Strategic Alignment Check — verify Phase 2 completed (XaiHighlightsAdapter exists), verify `_hydrate_penalties_block` still exists
+  - [x] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition`
+  - [x] Step 2: Create `penalties_adapter.py` — `PenaltiesAdapter.build(context)` with strict typing, `VisualIntent.CRITICAL_OVERRIDE` severity
+  - [x] Step 3: Modify `blueprint.py` — wire adapter, DELETE `_hydrate_penalties_block`
+  - [x] Step 4: Migrate Tests — move penalty tests from `test_blueprint.py` to `test_penalties_adapter.py`; add negative tests (missing `penalties_applied` raises `ValidationError`, empty list `[]` returns `[]`, positive `AlertBlock` mapping)
+  - [x] Step 5: Run Quality Gate
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]`
 
 ---
@@ -247,6 +249,8 @@
 - **[2026-08-02]** Tier 2 Execution completed on `01_xai_highlights_adapter.md` (Phase 2). Created `xai_highlights_adapter.py`, wired it into the `blueprint.py` dispatch table, completely deleted the legacy `_hydrate_grouped_extensions_block` method, and implemented all mandatory negative tests in `test_xai_highlights_adapter.py`. All unit tests and audit loops passed.
 - **[2026-08-02]** Tier 8 Audit Plan completed for Phase 1 and Phase 2. Both plans were mathematically validated against Quorum 2026 Architectural Invariants and the Epic boundaries were preserved perfectly. Status: PASSED.
 - **[2026-08-02]** Tier 1 Epic Planner completed on `02_penalties_adapter.md` (Phase 3). Expanded the placeholder into a full XML execution protocol, injected canonical rules for `PenaltiesAdapter`, defined test contracts, and passed Markdown boundaries and planner fidelity audits.
+- **[2026-08-03]** Tier 0 Research Analysis completed on `02_penalties_adapter.md` (Phase 3). Validated the expanded plan and refined the execution steps for the Penalties Adapter.
+- **[2026-08-03]** Tier 2 Execution completed on `02_penalties_adapter.md` (Phase 3). Created `penalties_adapter.py` with strict `VisualIntent` enum typing, deleted `_hydrate_penalties_block` from `blueprint.py`, fixed `AlertBlock` typing upstream to conform to strict Enum hydration, and ensured all quality gates pass successfully.
 
 ## Learned
 - **Baseline State Snapshot**: `blueprint.py` is currently ~2012 lines with a 560-line God Method `_extract_matrices_and_extensions` (L222-L782). The dispatch table at L104-L111 uses `Callable[..., list[AnySduiBlock]]` with kwargs scatter at L1948-L1960. The inline `Callable` import is at L103 inside `__init__`. Six hydrator methods exist: `_hydrate_penalties_block`, `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, `_hydrate_printable_sources_block`, `_hydrate_grouped_extensions_block`.
@@ -257,14 +261,15 @@
 - Phase 7 is MANDATORILY split into 7A (dispatch loop) and 7B (ordering + PDF parity).
 - The KI `sdui_adapter_decomposition` MUST be read before creating any adapter file.
 - `polyfactory` test model generation can fail with explicit constraints on `I18nText`, better to use manual valid instantiation for `OutputProfile` fixtures when needed.
+- **Phase 3 Strict Enum Hydration (Lax Pattern)**: Legacy SDUI models (e.g. `AlertBlock`) were found using `Literal` string typing instead of Enums, causing MyPy crashes when passing native Enum objects. Fixed upstream by converting model fields to use `LaxVisualIntent` (`Annotated[VisualIntent, Field(strict=False)]`), ensuring Pydantic coerces JSON strings while MyPy enforces native Enums in Python.
 
 ## Remaining
-- **[IMMEDIATE]** Run `/tier0-research-plan` on Phase 3 (`@[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]`) to analyze the plan and identify potential flaws before execution.
-- **[NEXT]** Execute Phase 3 via `/tier2-execute`.
+- **[IMMEDIATE]** Run `/tier8-audit-plan` on Phase 3 after execution.
+- **[NEXT]** Expand placeholder plan for Phase 4 via `/tier1-planner`.
 - Expand remaining placeholder plans for Phases 4-8.
 - Execute all remaining phases through the mandatory workflow loop.
 - Complete all Post-Implementation Gates.
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier8-audit-plan --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\02_penalties_adapter.md]"`

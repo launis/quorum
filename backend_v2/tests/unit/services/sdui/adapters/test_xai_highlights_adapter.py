@@ -3,6 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.enums import VisualIntent
 from backend_v2.models.v2_core import I18nText, OutputProfile
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -43,7 +44,7 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
         title="Risk Flags",
         severity="error",
         icon_name=None,
-        children=[AlertBlock(severity="info", text="test", exact_quotes=[], citations=[])],
+        children=[AlertBlock(severity=VisualIntent.INFO, text="test", exact_quotes=[], citations=[])],
     )
     context = AdapterContext(
         execution=None,

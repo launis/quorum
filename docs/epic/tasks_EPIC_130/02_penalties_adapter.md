@@ -44,6 +44,8 @@
     <action>Move the logic from `_hydrate_penalties_block` (currently at @[c:\src\quorum\backend_v2\services\blueprint.py#L788-L804]) into this new file.</action>
     <action>Section 1: AESTHETICS RULES MUST define a module-level dictionary (specifically `PENALTIES_RULES`) mapping a single key (specifically "default_penalty") to the visual properties (severity=VisualIntent.CRITICAL_OVERRIDE).</action>
     <constraint>Ensure strict typing and imports for `AnySduiBlock`, `AlertBlock`, and `VisualIntent`.</constraint>
+    <constraint>MANDATE: You MUST remove the `.value` extraction from `VisualIntent.CRITICAL_OVERRIDE.value` that exists in the legacy code. The new adapter MUST pass the native `VisualIntent` Enum object to `AlertBlock` to comply with the `strict_enum_hydration_and_validation` rule.</constraint>
+    <constraint>TESTING MANDATE: You MUST use a valid Pytest fixture for `AdapterContext` in `test_penalties_adapter.py` to provide the required fields (locale, execution, etc.) and avoid `ValidationError` crashes during test setup.</constraint>
     <contract_freeze>
       <signature>@staticmethod
 def build(context: AdapterContext) -> list[AnySduiBlock]:</signature>
@@ -63,9 +65,9 @@ def build(context: AdapterContext) -> list[AnySduiBlock]:</signature>
     <action>Check if any existing tests for `_hydrate_penalties_block` exist in @[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py] (none were found by the planner, but verify anyway). If found, migrate them.</action>
     <action>Implement the mandatory test contracts.</action>
     <test_contracts>
-      <test name="test_build_missing_penalties_raises_validation_error" category="negative">
-        <input>AdapterContext instantiation with `penalties_applied` entirely missing</input>
-        <expected>raises pydantic.ValidationError</expected>
+      <test name="test_build_tampered_rules_dictionary_raises_keyerror" category="negative">
+        <input>Mock PENALTIES_RULES to be empty {}</input>
+        <expected>raises KeyError (verifies Fail-Fast dictionary access)</expected>
       </test>
       <test name="test_build_empty_list_returns_empty" category="boundary">
         <input>AdapterContext(penalties_applied=[])</input>

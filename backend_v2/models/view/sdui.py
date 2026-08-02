@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 from pydantic import AliasChoices, ConfigDict, Field, StringConstraints
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import LaxUiVariant, LaxXaiExtensionType, VisualIntent
+from backend_v2.models.enums import LaxUiVariant, LaxVisualIntent, LaxXaiExtensionType, VisualIntent
 
 if TYPE_CHECKING:
     from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO
@@ -497,7 +497,7 @@ class AlertBlock(SduiBlockBase):
 
     model_config = ConfigDict(title="alert_box")
     block_type: Literal["alert_box"] = "alert_box"
-    severity: Annotated[Literal["info", "warning", "critical_override", "success", "error"], Field(default="info")]
+    severity: Annotated[LaxVisualIntent, Field(default=VisualIntent.INFO)]
     text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
     exact_quotes: Annotated[list[str], Field(default_factory=list)]
     citations: Annotated[list[int], Field(default_factory=list)]
