@@ -45,6 +45,7 @@ from backend_v2.models.v2_core import (
     PromptBlock,
     ReportDataDTO,
     ScorecardAtomDTO,
+    StepRule,
     SystemConfigPerformativeLexicons,
 )
 from backend_v2.models.view.sdui import (
@@ -224,7 +225,7 @@ class BlueprintTransformer:
         results: list[Any],
         locale: str,
         blocks_by_id: dict[str, PromptBlock],
-        workflow_steps: dict[str, Any],
+        workflow_steps: dict[str, StepRule],
         profile: OutputProfile,
         row_explanations_cache: dict[str, str],
         workflow_ext_values: list[str],
@@ -247,7 +248,7 @@ class BlueprintTransformer:
             results: Folded state trace output.
             locale: Desired output locale.
             blocks_by_id: Map of PromptBlock IDs to their definitions.
-            workflow_steps: Map of step IDs to step definitions.
+            workflow_steps: Map of step IDs to their StepRule definitions.
             profile: The OutputProfile determining which extensions and layouts are valid.
             row_explanations_cache: Rendered explanations to override raw LLM justification.
             workflow_ext_values: List of requested workflow-level extension types.
@@ -441,10 +442,8 @@ class BlueprintTransformer:
             original_axis_name = axis_name
             collision_counter = 1
             while any(ext.name == axis_name for ext in all_parsed_matrices.values()):
-                step_node = workflow_steps.get(step_id)
-                step_title = step_id
-                if step_node:
-                    step_title = step_node.id
+                step_node = workflow_steps[step_id]
+                step_title = step_node.id
                 axis_name = f"{original_axis_name} ({step_title})"
                 if any(ext.name == axis_name for ext in all_parsed_matrices.values()):
                     axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
