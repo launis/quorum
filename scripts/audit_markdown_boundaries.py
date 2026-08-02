@@ -1,3 +1,9 @@
+"""Audit Markdown Boundaries.
+
+Scans Markdown documents to ensure references, boundaries, and terminology
+comply with the architectural standards.
+"""
+
 import argparse
 import ast
 import re
@@ -12,15 +18,33 @@ RESET = "\033[0m"
 
 
 def print_error(msg: str) -> None:
+    """Print an error message in red.
+
+    Args:
+        msg (str): The error message.
+    """
     print(f"{RED}ERROR: {msg}{RESET}")
 
 
 def print_success(msg: str) -> None:
+    """Print a success message in green.
+
+    Args:
+        msg (str): The success message.
+    """
     print(f"{GREEN}SUCCESS: {msg}{RESET}")
 
 
 class MarkdownAuditor:
+    """Auditor for analyzing architectural boundaries in Markdown."""
+
     def __init__(self, file_path: str, repo_root: str):
+        """Initialize the auditor.
+
+        Args:
+            file_path (str): The file to audit.
+            repo_root (str): The root of the repository.
+        """
         self.file_path = file_path
         self.repo_root = Path(repo_root)
         with open(file_path, encoding="utf-8") as f:
@@ -29,6 +53,7 @@ class MarkdownAuditor:
         self.errors: list[str] = []
 
     def run_all_checks(self) -> None:
+        """Run all verification checks on the markdown content."""
         self.check_ambiguity()
         self.check_xml_truncation()
         self.check_file_references_and_ast_bounds()
@@ -46,6 +71,7 @@ class MarkdownAuditor:
             sys.exit(0)
 
     def check_ambiguity(self) -> None:
+        """Scan for ambiguous terminology that should be avoided."""
         # Scan for ambiguous terms like 'e.g.', 'etc.', 'such as', 'like'
         pattern = re.compile(r"(?:\b|\s)(e\.g\.|etc\.|such as|like)(?:\s|$|[,.])", re.IGNORECASE)
         for i, line in enumerate(self.lines):
@@ -56,6 +82,7 @@ class MarkdownAuditor:
                 )
 
     def check_xml_truncation(self) -> None:
+        """Verify that specific XML tags are correctly matched and not truncated."""
         # Stack-based XML tag checker for <execution_protocol> and <step>
         tag_pattern = re.compile(r"<\s*(/?)\s*([a-zA-Z0-9_]+)[^>]*>")
         stack = []
@@ -76,13 +103,14 @@ class MarkdownAuditor:
                         top_tag, top_line = stack.pop()
                         if top_tag != tag_name:
                             self.errors.append(
-                                f"Line {i + 1}: Mismatched closing tag </{tag_name}>. Expected </{top_tag}> from line {top_line}."
+                                f"Line {i + 1}: Mismatched closing tag </{tag_name}>. Expected </{top_tag}> from line {top_line}."  # noqa: E501
                             )
 
         for tag_name, line_num in stack:
             self.errors.append(f"Line {line_num}: Unclosed tag <{tag_name}>.")
 
     def check_file_references_and_ast_bounds(self) -> None:
+        """Check all file references with line boundaries against the AST."""
         # Find @[filepath] or @[filepath#Lxx-Lyy]
         pattern = re.compile(r"@\[([^#\]]+)(?:#L(\d+)-L(\d+))?\]")
         for i, line in enumerate(self.lines):
@@ -107,6 +135,15 @@ class MarkdownAuditor:
     def verify_ast_bounds(
         self, file_path: Path, start_line: int, end_line: int, md_line_num: int, rel_path: str
     ) -> None:
+        """Verify that line ranges match a class or function exactly.
+
+        Args:
+            file_path (Path): Path to the python file.
+            start_line (int): Start line.
+            end_line (int): End line.
+            md_line_num (int): The markdown line number referencing it.
+            rel_path (str): Relative path string used for error reporting.
+        """
         try:
             with open(file_path, encoding="utf-8") as f:
                 source = f.read()
@@ -123,7 +160,7 @@ class MarkdownAuditor:
 
             if (start_line, end_line) not in valid_bounds:
                 self.errors.append(
-                    f"Line {md_line_num}: AST Bound mismatch for {rel_path}#L{start_line}-L{end_line}. No exact Class/Function matches these lines."
+                    f"Line {md_line_num}: AST Bound mismatch for {rel_path}#L{start_line}-L{end_line}. No exact Class/Function matches these lines."  # noqa: E501
                 )
 
         except SyntaxError:
@@ -132,6 +169,7 @@ class MarkdownAuditor:
             self.errors.append(f"Line {md_line_num}: Error parsing AST for {rel_path}: {e}")
 
     def check_class_hallucinations(self) -> None:
+        """Scan mentioned DTOs/Classes and ensure they exist in backend_v2."""
         # Extract mentioned DTOs, Caches, Responses, Services (e.g. `UserDTO`)
         pattern = re.compile(r"`([A-Za-z0-9_]+(?:DTO|Cache|Response|Service))`")
         mentioned = set(pattern.findall(self.content))
@@ -158,6 +196,7 @@ class MarkdownAuditor:
                 self.errors.append(f"Class Hallucination: '{cls}' mentioned but not found in backend_v2.")
 
     def check_settings_validation(self) -> None:
+        """Validate references to backend settings.py."""
         # Mentioning settings.FOO
         pattern = re.compile(r"\bsettings\.([a-zA-Z0-9_]+)\b")
         mentioned = set(pattern.findall(self.content))
@@ -187,6 +226,7 @@ class MarkdownAuditor:
                 self.errors.append(f"Settings Hallucination: 'settings.{setting}' not found in backend_v2/settings.py.")
 
     def check_enum_validation(self) -> None:
+        """Validate references to Enums in backend and flutter models."""
         # Valid enums
         valid_enums = set()
 

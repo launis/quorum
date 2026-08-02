@@ -1,3 +1,9 @@
+"""Audit Planner Output.
+
+A deterministic neuro-symbolic check to ensure the Tier 1 Planner
+has not abstracted away specific line boundaries via lossy compression.
+"""
+
 import argparse
 import re
 import sys
@@ -5,6 +11,11 @@ from pathlib import Path
 
 
 def main() -> None:
+    """Execute the Tier 1 Planner output audit.
+
+    Validates that the generated plan files preserve all fine-grained
+    line boundaries (#Lxx-Lyy) present in the original Epic document.
+    """
     parser = argparse.ArgumentParser(description="Audit Tier 1 Planner Output for lossy compression.")
     parser.add_argument("--epic", required=True, type=str, help="Path to the source Epic .md file")
     parser.add_argument("--plan-dir", required=True, type=str, help="Directory containing the generated plans")
