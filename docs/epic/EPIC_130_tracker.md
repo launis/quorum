@@ -130,7 +130,7 @@
   - [ ] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition`
   - [ ] Refactor `blueprint.py` final assembly to concatenate all adapter blocks into flat `inner_sdui_blocks` list
   - [ ] Configure dispatch loop execution order: Metadata → Executive Summary → Matrix Graphs & Justifications → Extensions & Penalties → Matrix Summary Table → Workflow Extensions → Sources
-  - [ ] Architecture Fix: Create `MetadataAdapter` and `SynthesisTextAdapter`. Refactor the creation of metadata (e.g. `HeaderBlock`) and the LLM synthesis body text (the core Markdown blocks that currently bypass the adapter loop) to pass strictly through the Adapter interface, ensuring zero exceptions in the Dumb Painter pipeline.
+  - [ ] Architecture Fix: Create `MetadataAdapter`, `SynthesisTextAdapter`, and `WorkflowExtensionsAdapter`. Refactor the creation of metadata (specifically `HeaderBlock`), the LLM synthesis body text, and workflow evaluations to pass strictly through the Adapter interface, ensuring zero exceptions in the Dumb Painter pipeline.
   - [ ] Preserve Global Linguistic Mandate (global_mandates.py, linguistic_directives.py)
   - [ ] Enforce Global Anti-Truncation Mandate (zero shortening of text content)
   - [ ] Run Quality Gate
@@ -292,6 +292,7 @@
 - **[2026-08-03]** Tier 0 Research Analysis completed on the newly resurrected Phase 6B plan. Converted the architectural summary into a strict XML execution protocol in `05b_matrix_adapters.md`.
 - **[2026-08-03]** Tier 2 Execution completed on `05b_matrix_adapters.md` (Phase 6B). Created `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter`, correctly mapping Pydantic V2 strictly typed domains into visual SDUI block equivalents. Resolved logical inversions around text delivery modes skipping graph blocks. Test coverage achieved 100%. All legacy references eradicated.
 - **[2026-08-03]** Tier 8 Audit Plan completed for Phase 6B. `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` strictly follow the Two-Section Canonical Structure. Test targets met. Status: PASSED.
+- **[2026-08-04]** Tier 0 Research Epic completed on `EPIC_130_blueprint_decomposition.md`. Identified missing adapter requirements for Metadata, Synthesis Text, and Workflow Extensions. Mutated the Epic document to explicitly demand 100% adapter coverage (`MetadataAdapter`, `SynthesisTextAdapter`, `WorkflowExtensionsAdapter`) for Phase 7 to guarantee full Dumb Painter architecture compliance.
 
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
@@ -311,4 +312,4 @@
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\tasks_EPIC_130\06a_sdui_layout_dispatch.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]"`
+`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\06a_sdui_layout_dispatch.md]"`

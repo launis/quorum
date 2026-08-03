@@ -89,13 +89,21 @@ class XaiHighlightsAdapter:
                     ext_enum = XaiExtensionType(key)
                 except ValueError as v_err:
                     msg = f"Invalid XaiExtensionType key '{key}'"
-                    logger.error("[XaiHighlightsAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    logger.error("[XaiHighlightsAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise AppException(
                         message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     ) from v_err
 
-                if key not in XAI_AESTHETICS_RULES:
-                    return
+                try:
+                    aesthetics = XAI_AESTHETICS_RULES[key]
+                except KeyError as e:
+                    msg = f"Missing rule mapping for extension key: {key}"
+                    logger.error("[XaiHighlightsAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": "CONFIGURATION_ERROR"},
+                    ) from e
 
                 label_obj = profile.extension_labels.get(ext_enum) if profile.extension_labels else None
                 if not label_obj:
@@ -108,7 +116,7 @@ class XaiHighlightsAdapter:
                     lines = list(dict.fromkeys(line.strip() for line in str(val).split("\n") if line.strip()))
                     label_str = label_obj.resolve(locale)
 
-                    acc_severity = XAI_AESTHETICS_RULES[key]["severity"]
+                    acc_severity = aesthetics["severity"]
 
                     acc_severity_literal = cast(
                         Literal["info", "warning", "critical_override", "success", "error", "default"],

@@ -7,6 +7,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import (
     AlertBlock,
@@ -70,7 +71,16 @@ class PenaltiesAdapter:
 
         for p_str in source_data:
             # Fail-Fast: strict key access, NO .get() fallback
-            aesthetics = PENALTIES_RULES["default_penalty"]
+            try:
+                aesthetics = PENALTIES_RULES["default_penalty"]
+            except KeyError as e:
+                msg = "Missing rule mapping for 'default_penalty'"
+                logger.error("[PenaltiesAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": "CONFIGURATION_ERROR"},
+                ) from e
 
             blocks.append(
                 AlertBlock(

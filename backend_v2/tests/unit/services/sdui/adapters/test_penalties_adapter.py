@@ -2,6 +2,7 @@
 
 import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.v2_core import I18nText, OutputProfile
 from backend_v2.models.view.sdui import AlertBlock
@@ -21,10 +22,10 @@ def valid_output_profile_fixture() -> OutputProfile:
     )
 
 
-def test_build_tampered_rules_dictionary_raises_keyerror(
+def test_build_tampered_rules_dictionary_raises_app_exception(
     valid_output_profile_fixture: OutputProfile, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Negative: Fail-Fast dictionary access raises KeyError if unmapped."""
+    """Negative: Fail-Fast dictionary access raises AppException if unmapped."""
     monkeypatch.setattr("backend_v2.services.sdui.adapters.penalties_adapter.PENALTIES_RULES", {})
     context = AdapterContext(
         execution=None,
@@ -35,8 +36,9 @@ def test_build_tampered_rules_dictionary_raises_keyerror(
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
-    with pytest.raises(KeyError):
+    with pytest.raises(AppException) as excinfo:
         PenaltiesAdapter.build(context)
+    assert excinfo.value.details["error_code"] == "CONFIGURATION_ERROR"
 
 
 def test_build_empty_list_returns_empty(valid_output_profile_fixture: OutputProfile) -> None:
