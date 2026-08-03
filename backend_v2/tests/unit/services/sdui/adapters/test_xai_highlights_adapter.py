@@ -1,10 +1,12 @@
 """Unit tests for the XAI Highlights adapter."""
 
+from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.enums import VisualIntent
-from backend_v2.models.v2_core import I18nText, OutputProfile
+from backend_v2.models.enums import VisualIntent, XaiExtensionType
+from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile
+from backend_v2.models.state import TraceEvent, TraceEventPayloadDTO, VirtualSystemStepID
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
@@ -19,18 +21,32 @@ def valid_output_profile_fixture() -> OutputProfile:
         workflow_id="wfw_test",
         name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
         layouts=[],
+        extension_labels={
+            XaiExtensionType.COACHING: I18nText(default_locale="en", translations={"en": "Coaching"}),
+            XaiExtensionType.FALSIFICATION: I18nText(default_locale="en", translations={"en": "Falsification"}),
+            XaiExtensionType.REMEDIATION_STEPS: I18nText(default_locale="en", translations={"en": "Remediation"}),
+        },
+        visible_block_extensions=[
+            XaiExtensionType.COACHING,
+            XaiExtensionType.FALSIFICATION,
+            XaiExtensionType.REMEDIATION_STEPS,
+        ],
     )
 
 
-def test_build_empty_extensions_returns_empty_list(valid_output_profile_fixture: OutputProfile) -> None:
-    """Boundary: empty accumulated_extensions returns empty list."""
+def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fixture: OutputProfile) -> None:
+    """Boundary: empty execution trace returns empty list."""
+    execution = ExecutionRecord(
+        id="exe_123",
+        workflow_id="wfw_test",
+        execution_trace=[],
+    )
     context = AdapterContext(
-        execution=None,
-        locale="fi",
+        execution=execution,
+        locale="en",
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
@@ -39,88 +55,99 @@ def test_build_empty_extensions_returns_empty_list(valid_output_profile_fixture:
 
 
 def test_build_single_extension_group_returns_blocks(valid_output_profile_fixture: OutputProfile) -> None:
-    """Positive: single extension group flattens correctly."""
-    accordion = AccordionBlock(
-        title="Risk Flags",
-        severity="error",
-        icon_name=None,
-        children=[AlertBlock(severity=VisualIntent.INFO, text="test", exact_quotes=[], citations=[])],
+    """Positive: single extension group parses from trace."""
+    execution = ExecutionRecord(
+        id="exe_123",
+        workflow_id="wfw_test",
+        execution_trace=[
+            TraceEvent(
+                id="evt_1",
+                event_type="pipeline_step_complete",
+                step_id="step_1",
+                content={
+                    "step_id": "step_1",
+                    "block_id": "block_1",
+                    "payload": {
+                        "extensions": {
+                            "coaching": "Good job!\\nKeep it up!"
+                        }
+                    }
+                }
+            )
+        ],
     )
+    
     context = AdapterContext(
-        execution=None,
+        execution=execution,
         locale="en",
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={"global_extensions": [accordion]},
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
     blocks = XaiHighlightsAdapter.build(context)
     assert len(blocks) == 1
-    assert blocks[0] == accordion
+    assert isinstance(blocks[0], AccordionBlock)
+    assert blocks[0].title == "Coaching"
+    assert blocks[0].severity == VisualIntent.SUCCESS.value
+    assert len(blocks[0].children) == 2
 
 
 def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixture: OutputProfile) -> None:
-    """Positive: multiple extension groups are flattened in order."""
-    block1 = AccordionBlock(title="A", severity="info", children=[])
-    block2 = AccordionBlock(title="B", severity="info", children=[])
-    block3 = AccordionBlock(title="C", severity="info", children=[])
-
+    """Positive: multiple extensions from trace are correctly extracted."""
+    execution = ExecutionRecord(
+        id="exe_123",
+        workflow_id="wfw_test",
+        execution_trace=[
+            TraceEvent(
+                id="evt_1",
+                event_type="pipeline_step_complete",
+                step_id="step_1",
+                content={
+                    "step_id": "step_1",
+                    "block_id": "block_1",
+                    "payload": {
+                        "extensions": {
+                            "coaching": "Good job!",
+                            "falsification": "Bad logic!"
+                        }
+                    }
+                }
+            )
+        ],
+    )
     context = AdapterContext(
-        execution=None,
+        execution=execution,
         locale="en",
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={
-            "group_a": [block1],
-            "group_b": [block2, block3],
-        },
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
 
     blocks = XaiHighlightsAdapter.build(context)
-    assert len(blocks) == 3
-    assert blocks == [block1, block2, block3]
+    assert len(blocks) == 2
+    titles = [b.title for b in blocks if isinstance(b, AccordionBlock)]
+    assert "Coaching" in titles
+    assert "Falsification" in titles
 
 
 def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfile) -> None:
     """Negative: context remains frozen after the call."""
-    block1 = AccordionBlock(title="A", severity="info", children=[])
-    accumulated_extensions = {"group_a": [block1]}
-
+    execution = ExecutionRecord(id="exe_123", workflow_id="wfw_test", execution_trace=[])
     context = AdapterContext(
-        execution=None,
+        execution=execution,
         locale="en",
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions=accumulated_extensions.copy(),
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
 
-    blocks = XaiHighlightsAdapter.build(context)
+    XaiHighlightsAdapter.build(context)
 
-    assert len(blocks) == 1
-    # Verify no mutation
-    assert context.accumulated_extensions == accumulated_extensions
     with pytest.raises(ValidationError):
-        context.accumulated_extensions = {}  # type: ignore[misc]
-
-
-def test_build_none_extensions_value_raises(valid_output_profile_fixture: OutputProfile) -> None:
-    """Error path: None value for accumulated_extensions raises ValidationError."""
-    with pytest.raises(ValidationError):
-        AdapterContext(
-            execution=None,
-            locale="en",
-            penalties_applied=[],
-            mcp_audit_map=None,
-            global_score=None,
-            accumulated_extensions=None,  # type: ignore[arg-type]
-            profile=valid_output_profile_fixture,
-            profile_cache=None,
-        )
+        context.locale = "fi"  # type: ignore[misc]

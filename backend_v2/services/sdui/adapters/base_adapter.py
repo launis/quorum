@@ -24,7 +24,6 @@ class AdapterContext(BaseModel):
     penalties_applied: list[str]
     mcp_audit_map: dict[str, MCPAuditTrace] | None
     global_score: float | None
-    accumulated_extensions: dict[str, list[AnySduiBlock]]
     profile: OutputProfile
     profile_cache: RenderedSynthesisCache | None
 

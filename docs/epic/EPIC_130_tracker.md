@@ -92,24 +92,32 @@
 
 ---
 
-### Phase 6: Decompose God Method into SDUI Matrix Adapters
-**Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md] *(Expanded via Tier 1 Planner)*
+### Phase 6A: Decompose God Method & Refactor XAI (Completed)
+**Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md]
 
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md]`
-  - [ ] Step 0: Strategic Alignment Check — verify Phase 5 completed
-  - [ ] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition`
-  - [x] BLOCKING PREREQUISITE: Enumerate ALL extension type strings in `seed_data.json` and cross-reference against `XaiExtensionType` enum at @[c:\src\quorum\backend_v2\models\enums.py#L138-L171]
-  - [ ] Create `matrix_graphs_adapter.py` — `MatrixGraphsAdapter.build(context)` generating `SduiRadarChartBlock` and `SduiScatterPlotBlock` from `context.execution.results`
-  - [ ] Create `matrix_summary_table_adapter.py` — `MatrixSummaryTableAdapter.build(context)` generating `SduiMatrixTableBlock` from `context.execution.results`
-  - [ ] Refactor `xai_highlights_adapter.py` — Parse extensions directly from `context.execution.results`
-  - [ ] SEVERITY ENUM MIGRATION: Replace bare string severity literals with `VisualIntent` enum values
-  - [ ] SILENT SWALLOW ERADICATION: Replace `except ValueError: pass` with `logger.error` + `raise AppException`
-  - [ ] DUCK-TYPING ERADICATION: Replace `hasattr` and `getattr` with direct/typed access
-  - [ ] Modify `blueprint.py` — DELETE 560-line God Method, wire `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` into dispatch loop
-  - [ ] Migrate Tests — move God Method tests from `test_blueprint.py` to `test_matrix_graphs_adapter.py` and `test_matrix_summary_table_adapter.py`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Read Knowledge Item
+  - [x] BLOCKING PREREQUISITE: Enumerate ALL extension type strings in `seed_data.json` and cross-reference against `XaiExtensionType` enum
+  - [x] Refactor `xai_highlights_adapter.py` — Parse extensions directly from `context.execution.results`
+  - [x] SEVERITY ENUM MIGRATION: Replace bare string severity literals with `VisualIntent` enum values
+  - [x] SILENT SWALLOW ERADICATION: Replace `except ValueError: pass` with `logger.error` + `raise AppException`
+  - [x] DUCK-TYPING ERADICATION: Replace `hasattr` and `getattr` with direct/typed access
+  - [x] Run Quality Gate
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md]`
+
+### Phase 6B: Matrix Adapters Extraction
+**Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\05b_matrix_adapters.md]
+
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\05b_matrix_adapters.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\05b_matrix_adapters.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Create `MatrixGraphsAdapter`
+  - [ ] Step 2: Create `MatrixSummaryTableAdapter`
+  - [ ] Step 3: Test Contract Fulfillment
   - [ ] Run Quality Gate
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\05b_matrix_adapters.md]`
 
 ---
 
@@ -240,8 +248,8 @@
 | R16 | Executive summary negative tests: invalid `user_role` → `AppException`, missing `user_role_label` → `AppException`, missing `user_role_mappings` key → `AppException` | §3 Phase 4 | [03_executive_summary_adapter.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/03_executive_summary_adapter.md) | Step 4 |
 | R17 | Create `PrintableSourcesAdapter` extracting `_hydrate_printable_sources_block`; DELETE original method from `blueprint.py` | §3 Phase 5 | [04_printable_sources_adapter.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/04_printable_sources_adapter.md) | — |
 | R18 | BLOCKING PREREQUISITE: Enumerate ALL extension type strings in `seed_data.json` and cross-reference against `XaiExtensionType` enum BEFORE enabling crash path | §3 Phase 6A | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | Step 1 |
-| R19 | (DEFERRED TO PHASE 6B) Create `MatrixGraphsAdapter` parsing `TraceMatrixPayloadDTO` into `SduiRadarChartBlock` and `SduiScatterPlotBlock` | §3 Phase 6B | DEFERRED | — |
-| R20 | (DEFERRED TO PHASE 6B) Create `MatrixSummaryTableAdapter` aggregating step scorecard atoms into `SduiMatrixTableBlock` | §3 Phase 6B | DEFERRED | — |
+| R19 | Create `MatrixGraphsAdapter` parsing `TraceMatrixPayloadDTO` into `SduiRadarChartBlock` and `SduiScatterPlotBlock` | §3 Phase 6B | [05b_matrix_adapters.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05b_matrix_adapters.md) | Step 1 |
+| R20 | Create `MatrixSummaryTableAdapter` aggregating step scorecard atoms into `SduiMatrixTableBlock` | §3 Phase 6B | [05b_matrix_adapters.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05b_matrix_adapters.md) | Step 2 |
 | R21 | Refactor `XaiHighlightsAdapter` to parse extensions natively from `context.execution.results` | §3 Phase 6A | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | Step 2 |
 | R22 | SEVERITY ENUM MIGRATION: Replace bare string severity literals at L714-L719, L742, L751 with `VisualIntent` enum values; DO NOT change SDUI model field types | §3 Phase 6A | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | Step 2 |
 | R23 | SILENT SWALLOW ERADICATION: Replace `except ValueError: pass` at L756-L757 with `logger.error` + `raise AppException` (deliberate behavioral change) | §3 Phase 6A | [05_god_method_decomposition.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_130/05_god_method_decomposition.md) | Step 2 |
@@ -279,6 +287,9 @@
 - **[2026-08-03]** Tier 8 Audit Plan completed for Phase 5. `PrintableSourcesAdapter` strictly implements the two-section canonical structure and direct data access without fallbacks. Test coverage achieved 100%. All legacy references eradicated. Status: PASSED.
 - **[2026-08-03]** Tier 1 Epic Planner completed on `05_god_method_decomposition.md` (Phase 6) and `06a_sdui_layout_dispatch.md` (Phase 7A). Expanded placeholders into full XML execution protocols, mapped tests, injected [NEW] flags, and passed Markdown boundaries and planner fidelity audits.
 - **[2026-08-03]** Tier 0 Research Analysis completed on `05_god_method_decomposition.md` (Phase 6A). Red-Teaming identified the duct-tape fallbacks required for `MatrixGraphsAdapter` due to current `AdapterContext` limitations. Mutated the plan to exclusively focus on `XaiHighlightsAdapter` and strict Fail-Fast isolation. Advanced the workflow to execution.
+- **[2026-08-03]** Tier 2 Execution completed on `05_god_method_decomposition.md` (Phase 6A). Decomposed God Method `_extract_matrices_and_extensions` to `_parse_matrix_trace_results`, stripped `accumulated_extensions` from `AdapterContext`, refactored `XaiHighlightsAdapter` to natively parse execution trace, migrated to Enum `VisualIntent`, eradicated `except ValueError: pass`, and restored all tests to Phase 9 compliance.
+- **[2026-08-03]** Tier 8 Audit Plan completed for Phase 6A. Status: PASSED.
+- **[2026-08-03]** Tier 0 Research Analysis completed on the newly resurrected Phase 6B plan. Converted the architectural summary into a strict XML execution protocol in `05b_matrix_adapters.md`.
 
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
@@ -289,6 +300,7 @@
 - **Database Alignment**: Seeded `db_v2.json` with `executive_summary_block`.
 - **Architectural Discovery (Phase 6A)**: We identified that creating `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` is architecturally premature. The chart-type dispatch logic (3D vs 2D vs 1D) is layout-coupled (driven by `OutputLayoutBlock.preset_view`), not domain-coupled. `MatrixScorecardRowDTO` is shared domain data, not a pre-assembled UI block. Therefore, Phase 6 is split into Phase 6A (XaiHighlightsAdapter refactor and accumulated_extensions removal) and Phase 6B (Matrix Graph migration deferred). The God Method is stripped of its extension formatting, returning only domain matrices.
 - **Architectural Discovery (Phase 7A)**: We identified that in addition to the God Method, the creation of Metadata (`HeaderBlock`) and the core AI synthesis text (the LLM Markdown paragraphs previously loaded directly into `content_blocks` bypassing the adapters) currently bypass the adapter pipeline. To ensure the "Dumb Painter" architecture is 100% consistent, Phase 7A MUST create a `MetadataAdapter` and a `SynthesisTextAdapter` so that the entire flat report pipeline is strictly built through adapters.
+- **Tier 0 Discovery (Phase 6B)**: The previous plan to skip matrix adapters and immediately flatten the pipeline (Phase 7A) violated the Single Responsibility Principle and the Dumb Painter SDUI contract. We MUST execute Phase 6B first to extract `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` before flattening the dispatch loop in `blueprint.py`.
 
 ## Remaining
 - Expand remaining placeholder plans for Phases 6-8.
@@ -297,4 +309,4 @@
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\05_god_method_decomposition.md]"`
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\05b_matrix_adapters.md]"`

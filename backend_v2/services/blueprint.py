@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from collections.abc import Callable
-from typing import Any, Literal
+from typing import Any
 
 import bleach
 
@@ -50,7 +50,6 @@ from backend_v2.models.v2_core import (
     SystemConfigPerformativeLexicons,
 )
 from backend_v2.models.view.sdui import (
-    AccordionBlock,
     AlertBlock,
     AnySduiBlock,
     HeaderBlock,
@@ -225,7 +224,7 @@ class BlueprintTransformer:
         text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[REDACTED PHONE]", text)
         return text
 
-    def _extract_matrices_and_extensions(
+    def _parse_matrix_trace_results(
         self,
         results: list[Any],
         locale: str,
@@ -245,9 +244,8 @@ class BlueprintTransformer:
         list[MatrixScorecardRowDTO],
         dict[str, MatrixScorecardRowDTO],
         dict[str, dict[str, ScorecardAtomDTO]],
-        dict[str, list[AnySduiBlock]],
     ]:
-        """Parses folded results into MatrixScorecardRowDTOs and populates grouped XAI extensions.
+        """Parses folded results into MatrixScorecardRowDTOs.
 
         Args:
             results: Folded state trace output.
@@ -272,7 +270,6 @@ class BlueprintTransformer:
         informational_matrices: list[MatrixScorecardRowDTO] = []
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
         step_scorecard_atoms: dict[str, dict[str, ScorecardAtomDTO]] = {}
-        accumulated_extensions: dict[str, list[AnySduiBlock]] = {}
 
         # Safe attribute access using V2 Models
         display_scale = profile.display_scale
@@ -700,75 +697,6 @@ class BlueprintTransformer:
                 inner_sdui_blocks=inner_sdui_blocks,
             )
 
-            if ext:
-
-                def _add_ext(key: str, val: Any, b_id: str, current_pb_meta: Any) -> None:
-                    if not val:
-                        return
-                    try:
-                        ext_enum = XaiExtensionType(key)
-                        label_obj = profile.extension_labels.get(ext_enum)
-                        if not label_obj:
-                            raise ConfigurationError(
-                                f"Missing extension label configuration for {key} in profile SSOT",
-                                details={"extension_key": key},
-                            )
-                        if ext_enum in profile.visible_block_extensions:
-                            lines = list(dict.fromkeys(line.strip() for line in str(val).split("\n") if line.strip()))
-                            label_str = label_obj.resolve(locale)
-                            acc_severity: Literal[
-                                "info", "warning", "critical_override", "success", "error", "default"
-                            ] = "info"
-                            if key == "coaching":
-                                acc_severity = "success"
-                            elif key in ("falsification", "risk_flag"):
-                                acc_severity = "error"
-                            elif key in ("remediation_steps", "missing_context"):
-                                acc_severity = "warning"
-
-                            max_lines = (
-                                profile.max_extension_items
-                                if profile and hasattr(profile, "max_extension_items") and profile.max_extension_items
-                                else 999
-                            )
-
-                            global_exts = accumulated_extensions.setdefault("global_extensions", [])
-                            accordion = next(
-                                (
-                                    b
-                                    for b in global_exts
-                                    if isinstance(b, AccordionBlock) and getattr(b, "title", None) == label_str
-                                ),
-                                None,
-                            )
-                            if not accordion:
-                                accordion = AccordionBlock(
-                                    title=label_str, severity=acc_severity, icon_name=None, children=[]
-                                )
-                                global_exts.append(accordion)
-
-                            for line in lines:
-                                if len(accordion.children) >= max_lines:
-                                    break
-                                if not any(getattr(c, "text", "") == line for c in accordion.children):
-                                    block = AlertBlock(
-                                        severity=VisualIntent.INFO,
-                                        text=f"**{label_str}**: {line}",
-                                        exact_quotes=[],
-                                        citations=[],
-                                    )
-                                    accordion.children.append(block)
-                    except ValueError:
-                        pass
-
-                _add_ext("coaching", ext.coaching, b_id, pb_meta)
-                _add_ext("falsification", ext.falsification, b_id, pb_meta)
-                _add_ext("remediation_steps", ext.remediation_steps, b_id, pb_meta)
-                _add_ext("missing_context", ext.missing_context, b_id, pb_meta)
-                _add_ext("emotional_sentiment", ext.emotional_sentiment, b_id, pb_meta)
-                _add_ext("theory_link", ext.theory_link, b_id, pb_meta)
-                _add_ext("risk_flag", ext.risk_flag, b_id, pb_meta)
-
             unique_k = f"{step_id}_{b_id}"
             all_parsed_matrices[unique_k] = row_dto
 
@@ -782,7 +710,6 @@ class BlueprintTransformer:
             informational_matrices,
             all_parsed_matrices,
             step_scorecard_atoms,
-            accumulated_extensions,
         )
 
     def _hydrate_global_score_block(self, **kwargs: Any) -> list[AnySduiBlock]:
@@ -1121,8 +1048,7 @@ class BlueprintTransformer:
             informational_matrices,
             all_parsed_matrices,
             step_scorecard_atoms,
-            accumulated_extensions,
-        ) = self._extract_matrices_and_extensions(
+        ) = self._parse_matrix_trace_results(
             results=results,
             locale=locale,
             blocks_by_id=blocks_by_id,
@@ -1479,7 +1405,6 @@ class BlueprintTransformer:
                 all_parsed_matrices,
                 section_syntheses,
                 profile.extension_labels,
-                accumulated_extensions,
                 locale=locale,
             )
             # Phase 1: Build temp visualization blocks for slop scanner
@@ -1890,7 +1815,6 @@ class BlueprintTransformer:
                     penalties_applied=penalties_applied,
                     mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None,
                     global_score=global_score,
-                    accumulated_extensions=accumulated_extensions,
                     profile=profile,
                     profile_cache=profile_cache,
                 )

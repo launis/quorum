@@ -2,13 +2,18 @@
 
 Transforms extracted XAI extensions into polymorphic AnySduiBlock components
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
-AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
+XAI_AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 """
 
 import logging
+from typing import Any, Literal, cast
 
-from backend_v2.models.enums import VisualIntent
-from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
+from backend_v2.models.enums import VisualIntent, XaiExtensionType
+from backend_v2.models.state import StateProjector
+from backend_v2.models.view.sdui import AccordionBlock, AlertBlock, AnySduiBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
@@ -17,36 +22,20 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
-# All visual decisions (severity, icon, label) are defined here as a flat
-# dictionary. The adapter class below MUST NOT contain any if/elif/else
-# chains for visual property selection.
-#
-# To add a new visual variant:  Add a key to this dictionary.
-# To change a color or icon:   Edit the value in this dictionary.
-# To understand the logic:     Read SECTION 2 below.
-# ============================================================================
-
-XAI_AESTHETICS_RULES: dict[str, dict[str, str | VisualIntent]] = {
-    # NOTE: Full aesthetic rule mapping for severity/icon is populated in Phase 6
-    # when the _add_ext closure is extracted from the God Method.
-    # This Phase 2 adapter simply flattens pre-built AccordionBlock lists
-    # from accumulated_extensions.
+XAI_AESTHETICS_RULES: dict[str, dict[str, VisualIntent]] = {
+    "coaching": {"severity": VisualIntent.SUCCESS},
+    "falsification": {"severity": VisualIntent.ERROR},
+    "risk_flag": {"severity": VisualIntent.ERROR},
+    "remediation_steps": {"severity": VisualIntent.WARNING},
+    "missing_context": {"severity": VisualIntent.WARNING},
+    "emotional_sentiment": {"severity": VisualIntent.INFO},
+    "theory_link": {"severity": VisualIntent.INFO},
 }
 
 
 # ============================================================================
 # SECTION 2: ADAPTER CLASS
 # ============================================================================
-# This class is a stateless transformer. It reads data from AdapterContext,
-# looks up visual properties from SECTION 1, and assembles SDUI blocks.
-# It MUST NOT:
-#   - Import or access any repository or database
-#   - Contain if/elif/else chains for visual property selection
-#   - Mutate the context object
-#   - Use .get() for AESTHETICS_RULES lookups
-# ============================================================================
-
-
 class XaiHighlightsAdapter:
     """Transforms XAI highlights into SDUI visual blocks.
 
@@ -67,10 +56,98 @@ class XaiHighlightsAdapter:
         """
         blocks: list[AnySduiBlock] = []
 
-        if not context.accumulated_extensions:
+        if not context.execution or not context.execution.execution_trace:
             return blocks
 
-        for ext_blocks in context.accumulated_extensions.values():
-            blocks.extend(ext_blocks)
+        projector = StateProjector()
+        results = projector.fold_trace(context.execution.execution_trace)
 
+        profile = context.profile
+        locale = context.locale
+
+        global_exts: list[AccordionBlock] = []
+
+        for dto in results:
+            if not isinstance(dto.payload, dict):
+                continue
+
+            try:
+                mapped_block_data = LightweightMatrixOutput.map_llm_extensions_to_domain(dto.payload)
+                matrix_payload = TraceMatrixPayloadDTO.model_validate(mapped_block_data)
+            except Exception:
+                continue
+
+            ext = matrix_payload.extensions
+            if not ext:
+                continue
+
+            def _add_ext(key: str, val: Any) -> None:
+                if not val:
+                    return
+
+                try:
+                    ext_enum = XaiExtensionType(key)
+                except ValueError as v_err:
+                    msg = f"Invalid XaiExtensionType key '{key}'"
+                    logger.error("[XaiHighlightsAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    ) from v_err
+
+                if key not in XAI_AESTHETICS_RULES:
+                    return
+
+                label_obj = profile.extension_labels.get(ext_enum) if profile.extension_labels else None
+                if not label_obj:
+                    raise ConfigurationError(
+                        f"Missing extension label configuration for {key} in profile SSOT",
+                        details={"extension_key": key},
+                    )
+
+                if profile.visible_block_extensions and ext_enum in profile.visible_block_extensions:
+                    lines = list(dict.fromkeys(line.strip() for line in str(val).split("\n") if line.strip()))
+                    label_str = label_obj.resolve(locale)
+
+                    acc_severity = XAI_AESTHETICS_RULES[key]["severity"]
+
+                    acc_severity_literal = cast(
+                        Literal["info", "warning", "critical_override", "success", "error", "default"],
+                        acc_severity.value,
+                    )
+
+                    max_lines = getattr(profile, "max_extension_items", 999)
+                    if not max_lines:
+                        max_lines = 999
+
+                    accordion = next(
+                        (b for b in global_exts if getattr(b, "title", None) == label_str),
+                        None,
+                    )
+                    if not accordion:
+                        accordion = AccordionBlock(
+                            title=label_str, severity=acc_severity_literal, icon_name=None, children=[]
+                        )
+                        global_exts.append(accordion)
+
+                    for line in lines:
+                        if len(accordion.children) >= max_lines:
+                            break
+                        if not any(getattr(c, "text", "") == line for c in accordion.children):
+                            block = AlertBlock(
+                                severity=VisualIntent.INFO,
+                                text=f"**{label_str}**: {line}",
+                                exact_quotes=[],
+                                citations=[],
+                            )
+                            accordion.children.append(block)
+
+            _add_ext("coaching", getattr(ext, "coaching", None))
+            _add_ext("falsification", getattr(ext, "falsification", None))
+            _add_ext("remediation_steps", getattr(ext, "remediation_steps", None))
+            _add_ext("missing_context", getattr(ext, "missing_context", None))
+            _add_ext("emotional_sentiment", getattr(ext, "emotional_sentiment", None))
+            _add_ext("theory_link", getattr(ext, "theory_link", None))
+            _add_ext("risk_flag", getattr(ext, "risk_flag", None))
+
+        blocks.extend(cast(list[AnySduiBlock], global_exts))
         return blocks
