@@ -35,8 +35,9 @@
 
   <step id="1" name="CREATE MetadataAdapter and SynthesisTextAdapter">
     <constraint invariant="knowledge_item_preflight">Read KI `sdui_adapter_decomposition` (`ki_sdui_adapter_pattern.md`) before creating adapters.</constraint>
-    <action>Create `c:\src\quorum\backend_v2\services\sdui\adapters\metadata_adapter.py`. This adapter must generate the `HeaderBlock` using `context.execution` metadata (created_at, org_name).</action>
-    <action>Create `c:\src\quorum\backend_v2\services\sdui\adapters\synthesis_text_adapter.py`. This adapter must generate the core Markdown blocks that were previously bypassing the adapters, using `context.profile_cache.synthesis_blocks` or `execution.global_synthesis`.</action>
+    <action>Modify `backend_v2/services/sdui/adapters/base_adapter.py` to add `user_name: str | None`, `org_name: str | None`, and `synthesis_md: str | None` to `AdapterContext`. (Justification: Adapters are synchronous and cannot use repositories to fetch identity data, so it must be passed in).</action>
+    <action>Create `c:\src\quorum\backend_v2\services\sdui\adapters\metadata_adapter.py`. This adapter must generate the `HeaderBlock` using `context.execution` metadata (created_at) and the new `context.user_name` / `context.org_name` fields.</action>
+    <action>Create `c:\src\quorum\backend_v2\services\sdui\adapters\synthesis_text_adapter.py`. This adapter must own the core Markdown content blocks splicing. It reads `context.profile.content_blocks` and `context.synthesis_md`, applies the `bleach.clean` HTML sanitization, and applies PII masking if `profile.layouts` requests it.</action>
     <action>Wire both new adapters into the `_target_block_hydrators` registry in `blueprint.py`.</action>
   </step>
 

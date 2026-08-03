@@ -293,6 +293,7 @@
 - **[2026-08-03]** Tier 2 Execution completed on `05b_matrix_adapters.md` (Phase 6B). Created `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter`, correctly mapping Pydantic V2 strictly typed domains into visual SDUI block equivalents. Resolved logical inversions around text delivery modes skipping graph blocks. Test coverage achieved 100%. All legacy references eradicated.
 - **[2026-08-03]** Tier 8 Audit Plan completed for Phase 6B. `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` strictly follow the Two-Section Canonical Structure. Test targets met. Status: PASSED.
 - **[2026-08-04]** Tier 0 Research Epic completed on `EPIC_130_blueprint_decomposition.md`. Identified missing adapter requirements for Metadata, Synthesis Text, and Workflow Extensions. Mutated the Epic document to explicitly demand 100% adapter coverage (`MetadataAdapter`, `SynthesisTextAdapter`, `WorkflowExtensionsAdapter`) for Phase 7 to guarantee full Dumb Painter architecture compliance.
+- **[2026-08-04]** Tier 0 Research Analysis completed on `06a_sdui_layout_dispatch.md` (Phase 7A). Red-Teaming identified that AdapterContext lacked required fields for synchronous adapter execution and mutated the plan to expand AdapterContext with identity and synthesis metadata. Status: PASSED.
 
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
@@ -312,4 +313,4 @@
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\06a_sdui_layout_dispatch.md]"`
+`/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\06a_sdui_layout_dispatch.md]`
