@@ -37,7 +37,7 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 
 ### Deprecations & Sunset List (What We Will REMOVE)
 - **Inline Presentation Logic in `blueprint.py`**: All `if "risk" in lower_ext` chains, icon/severity selection logic, and direct `AccordionBlock`/`AlertBlock` instantiation inside `_hydrate_grouped_extensions_block`, `_hydrate_penalties_block`, and the inline executive summary construction (lines 1079-1095) will be INTENTIONALLY MOVED to their respective adapter files.
-- **`_extract_matrices_and_extensions` God Method**: This 560-line method (lines 222-782) will be decomposed. Matrix parsing logic moves to dedicated `matrix_graphs_adapter.py` and `matrix_summary_table_adapter.py` adapters. Extension accumulation moves to `xai_highlights_adapter.py`. The remaining structural validation stays in a leaner `_parse_matrix_trace_results` orchestration method inside `blueprint.py`.
+- **`_extract_matrices_and_extensions` God Method**: This 560-line method (lines 222-782) will be decomposed in two sub-phases. Phase 6A strips extension formatting and moves it to `xai_highlights_adapter.py`. Phase 6B (Deferred) will extract the remaining matrix parsing logic into `matrix_graphs_adapter.py` and `matrix_summary_table_adapter.py`. Until Phase 6B, the remaining structural validation stays in a leaner `_parse_matrix_trace_results` orchestration method inside `blueprint.py`.
 - **Legacy Layout Models**: `the historically removed Report Layout Data Transfer Object` has already been DEPRECATED and REMOVED. `OutputLayoutBlock` MUST BE RETAINED as it is part of the `OutputProfile` SSOT for database persistence, but its `preset_view` logic is ignored during presentation. The system transitions to a purely flat `inner_sdui_blocks` sequence containing `AnySduiBlock` types (specifically: `SduiRadarChartBlock`, `SduiScatterPlotBlock`) within `ReportDataDTO`, completely eliminating nested UI structure in the final client payload.
 - **Placeholder Methods**: The empty placeholder methods `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, and `_hydrate_jargon_ratio_block` (lines 802-812) will remain deferred until actual logic is introduced. The `_hydrate_printable_sources_block` (lines 814-828) is extracted to its own adapter.
 
@@ -74,8 +74,8 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 | Adapter `penalties_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`AlertBlock` with `CRITICAL_OVERRIDE` severity) |
 | Adapter `executive_summary_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`ParagraphBlock` instances) |
 | Adapter `printable_sources_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`MarkdownBlock` instances) |
-| Adapter `matrix_graphs_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`SduiRadarChartBlock`, `SduiScatterPlotBlock`) |
-| Adapter `matrix_summary_table_adapter.py` | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`SduiMatrixTableBlock`) |
+| Adapter `matrix_graphs_adapter.py` (PHASE 6B) | `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`SduiRadarChartBlock`, `SduiScatterPlotBlock`) |
+| Adapter `matrix_summary_table_adapter.py` (PHASE 6B)| `blueprint.py` orchestrator | Returns `list[AnySduiBlock]` (`SduiMatrixTableBlock`) |
 | `blueprint.py` orchestrator | `pdf_generator.py`, Flutter client | Returns `ReportDataDTO` (unchanged contract) |
 
 ### Namespace Clarification
@@ -153,13 +153,10 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 - The execution agent MUST NOT attempt to extract or touch `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, or `_hydrate_jargon_ratio_block` during this phase.
 - Simply acknowledge this deferral and immediately proceed to Phase 6 or complete the current execution step.
 
-### Phase 6: Decompose God Method into SDUI Matrix Adapters
-1. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_graphs_adapter.py]` [NEW] to replace the graph extraction logic in the God Method.
-   - **MANDATORY**: Implement `MatrixGraphsAdapter.build(context: AdapterContext) -> list[AnySduiBlock]`. This adapter must directly read `context.execution.results` and parse the raw `TraceMatrixPayloadDTO` outputs, generating `SduiRadarChartBlock` and `SduiScatterPlotBlock` instances.
-   - **MANDATORY**: Strict parsing of LLM trace output (`TraceMatrixPayloadDTO`) using Pydantic `TypeAdapter` or `.model_validate()`. No `isinstance` dictionary fallbacks.
-2. Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_summary_table_adapter.py]` [NEW] to replace the summary table logic.
-   - **MANDATORY**: Implement `MatrixSummaryTableAdapter.build(context: AdapterContext) -> list[AnySduiBlock]`. This adapter must also directly read `context.execution.results` to aggregate the step scorecard atoms into a single `SduiMatrixTableBlock`.
-3. Refactor `@[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]` (created in Phase 2) to directly read from `context.execution.results` and extract the `_add_ext` logic natively, removing the need for any upstream pre-processing of extensions.
+### Phase 6A: Decompose God Method (XAI Extensions & Fail-Fast Refactor)
+**Architectural Pivot**: Extracting the Matrix logic was found to be premature because chart-type routing (3D vs 2D) is layout-coupled, not domain-coupled, risking the introduction of duct-tape fallbacks. Thus, Phase 6 is split. Phase 6A focuses solely on extracting the extension formatting from the God Method and refactoring the `XaiHighlightsAdapter`.
+
+1. Refactor `@[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]` (created in Phase 2) to directly read from `context.execution.results` and extract the `_add_ext` logic natively, removing the need for any upstream pre-processing of extensions.
    - **MANDATORY**: Because extensions are now parsed directly from results, the `accumulated_extensions` field MUST be removed from `AdapterContext` during this phase.
    - **MANDATORY SEVERITY ENUM MIGRATION**: The bare string severity literals (`"info"`, `"success"`, `"error"`, `"warning"`) inside the `_add_ext` closure MUST be replaced with `VisualIntent` enum values (`VisualIntent.INFO`, etc.).
    - **MANDATORY SILENT SWALLOW ERADICATION**: Replace `except ValueError: pass` with `logger.error` + `raise AppException` for unknown extensions.
@@ -173,8 +170,15 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 > 3. Write a specific negative test asserting the `AppException` crash for an unknown extension string.
 
    - **MANDATORY DUCK-TYPING ERADICATION**: Ensure no `hasattr` or `getattr` with default fallbacks are used in the refactored code. Use strict typed attribute access.
-4. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py]`: Delete the 560-line God Method `_extract_matrices_and_extensions` entirely. Wire `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` into the `_target_block_hydrators` dispatch loop.
-5. **ATOMIC TEST MIGRATION**: You MUST physically move all existing tests related to `_extract_matrices_and_extensions` from `test_blueprint.py` into new test files `test_matrix_graphs_adapter.py` and `test_matrix_summary_table_adapter.py`.
+2. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py]`: Rename `_extract_matrices_and_extensions` to `_parse_matrix_trace_results`. Strip ALL extension logic (`_add_ext` closure, iteration over highlights) from this method. It now ONLY returns the raw matrix payloads.
+3. **ATOMIC TEST MIGRATION**: You MUST physically move all existing tests related to `_add_ext` and extension formatting from `test_blueprint.py` into `test_xai_highlights_adapter.py`.
+
+### Phase 6B: Matrix Adapters (DEFERRED)
+**STATUS: DEFERRED.** Extracting `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` is deferred until `AdapterContext` and the `OutputLayoutBlock.preset_view` routing are redesigned to support Dumb Painter decoupling without silent fallbacks.
+
+**STRICT EXECUTION DIRECTIVE:**
+- The execution agent MUST NOT attempt to create `MatrixGraphsAdapter` or `MatrixSummaryTableAdapter` during this epic.
+- Do not extract the matrix logic from `_parse_matrix_trace_results` yet.
 
 ### Phase 7: SDUI Layout Flattening (Dumb Painter Architecture & Strict Ordering)
 
