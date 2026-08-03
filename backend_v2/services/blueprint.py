@@ -64,6 +64,7 @@ from backend_v2.models.view.sdui import (
     SduiScatterPlotBlock,
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 from backend_v2.services.sdui.adapters.penalties_adapter import PenaltiesAdapter
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 from backend_v2.settings import get_settings
@@ -113,6 +114,7 @@ class BlueprintTransformer:
                 profile_cache=ctx.profile_cache,
             ),
             TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: XaiHighlightsAdapter.build(ctx),
+            TargetBlockType.EXECUTIVE_SUMMARY_BLOCK: lambda ctx: ExecutiveSummaryAdapter.build(ctx),
         }
 
     @staticmethod
@@ -1048,18 +1050,6 @@ class BlueprintTransformer:
             if not content_blocks and profile_cache.content_blocks:
                 content_blocks = [b.model_copy(deep=True) for b in profile_cache.content_blocks]
             synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
-            if profile_cache.user_role:
-                try:
-                    role_val_i18n = profile.user_role_mappings.get(profile_cache.user_role)
-                    if role_val_i18n:
-                        role_val = role_val_i18n.resolve(locale)
-                    else:
-                        role_val = profile_cache.user_role
-                except Exception:
-                    role_val = profile_cache.user_role
-
-                prefix = profile.user_role_label.resolve(locale) if profile.user_role_label else "User Role"
-                content_blocks.append(ParagraphBlock(text=f"**{prefix}:** {role_val}", exact_quotes=[], citations=[]))
 
             # Note: profile_cache.user_role_justification is internal English reasoning and should not be printed directly.
             # xai_highlights are now handled properly by _hydrate_grouped_extensions_block

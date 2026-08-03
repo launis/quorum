@@ -9670,6 +9670,7 @@
           "is_synthesis_enabled": false,
           "steps": [],
           "target_blocks": [
+            "executive_summary_block",
             "penalties_block",
             "audit_trail_block"
           ],

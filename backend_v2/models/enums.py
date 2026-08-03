@@ -112,6 +112,7 @@ class TargetBlockType(StrEnum):
     JARGON_RATIO_BLOCK = "jargon_ratio_block"
     PRINTABLE_SOURCES_BLOCK = "printable_sources_block"
     GROUPED_EXTENSIONS_BLOCK = "grouped_extensions_block"
+    EXECUTIVE_SUMMARY_BLOCK = "executive_summary_block"
 
 
 class VisualIntent(StrEnum):
