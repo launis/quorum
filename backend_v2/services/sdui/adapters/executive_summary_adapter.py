@@ -109,15 +109,27 @@ class ExecutiveSummaryAdapter:
 
         # 3. ASSEMBLE: Resolve translation and construct blocks
         try:
-            role_val_i18n = profile.user_role_mappings.get(parsed_role.value)
-            if role_val_i18n:
-                role_val = role_val_i18n.resolve(locale)
-            else:
-                role_val = profile_cache.user_role
-        except Exception:
-            role_val = profile_cache.user_role
+            role_val_i18n = profile.user_role_mappings[parsed_role.value]
+            role_val = role_val_i18n.resolve(locale)
+        except KeyError as e:
+            msg = f"Missing user_role_mappings for role '{parsed_role.value}'"
+            logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": "VALIDATION_FAILED"},
+            ) from e
 
-        prefix = profile.user_role_label.resolve(locale) if profile.user_role_label else "User Role"
+        if not profile.user_role_label:
+            msg = "Missing user_role_label in profile"
+            logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": "VALIDATION_FAILED"},
+            )
+
+        prefix = profile.user_role_label.resolve(locale)
 
         blocks.append(
             ParagraphBlock(

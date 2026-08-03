@@ -355,3 +355,22 @@ enum HistoricalContextMode {
   @JsonValue('SLIDING_WINDOW_3')
   slidingWindow3,
 }
+
+/// Explicit layout hydration target blocks for SDUI.
+@JsonEnum()
+enum TargetBlockType {
+  @JsonValue('global_score_block')
+  globalScoreBlock,
+  @JsonValue('penalties_block')
+  penaltiesBlock,
+  @JsonValue('audit_trail_block')
+  auditTrailBlock,
+  @JsonValue('jargon_ratio_block')
+  jargonRatioBlock,
+  @JsonValue('printable_sources_block')
+  printableSourcesBlock,
+  @JsonValue('grouped_extensions_block')
+  groupedExtensionsBlock,
+  @JsonValue('executive_summary_block')
+  executiveSummaryBlock,
+}

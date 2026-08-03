@@ -71,7 +71,7 @@
   - [x] Modify `blueprint.py` — delete inline executive summary role-mapping logic, wire adapter
   - [x] Migrate Tests — move summary tests from `test_blueprint.py` to `test_executive_summary_adapter.py`; add negative tests (invalid `user_role` → `AppException`, missing `user_role_label` → `AppException`, missing `user_role_mappings` key → `AppException`)
   - [x] Run Quality Gate
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\03_executive_summary_adapter.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\03_executive_summary_adapter.md]`
 
 ---
 
@@ -271,6 +271,7 @@
 - **[2026-08-03]** Tier 1 Epic Planner completed on `03_executive_summary_adapter.md` (Phase 4). Expanded the placeholder into a full XML execution protocol, injected canonical rules, defined test contracts, and passed Markdown boundaries and planner fidelity audits.
 - **[2026-08-03]** Tier 0 Research Analysis completed on `03_executive_summary_adapter.md` (Phase 4). Identified a critical architectural flaw (silent UI disappearance) and synchronized the plan and tracker to use Option B (Full Dispatch Pipeline Migration), requiring Enum parity updates and `seed_data.json` layout injection.
 - **[2026-08-03]** Tier 2 Execution completed on `03_executive_summary_adapter.md` (Phase 4). Extracted inline role-mapping to `ExecutiveSummaryAdapter`, added `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK`, updated seed data layout, and implemented 100% negative test coverage.
+- **[2026-08-03]** Tier 8 Audit Plan completed for Phase 4. The audit FAILED. Discovered violations of `<the_zero_compromise_pledge>` (bare exceptions and lazy fallbacks) in the adapter, missing Enum parity in `enums.dart`, and incomplete test contracts. Fixes required before proceeding to Phase 5.
 
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
@@ -282,7 +283,6 @@
 - **Database Alignment**: Seeded `db_v2.json` with `executive_summary_block`.
 
 ## Remaining
-- **[IMMEDIATE]** Run `/tier8-audit-plan` on Phase 4.
 - Expand remaining placeholder plans for Phases 5-8.
 - Execute all remaining phases through the mandatory workflow loop.
 - Complete all Post-Implementation Gates.
