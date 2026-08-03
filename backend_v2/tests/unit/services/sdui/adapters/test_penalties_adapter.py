@@ -32,7 +32,6 @@ def test_build_tampered_rules_dictionary_raises_keyerror(
         penalties_applied=["Test Penalty"],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
@@ -48,7 +47,6 @@ def test_build_empty_list_returns_empty(valid_output_profile_fixture: OutputProf
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
@@ -64,7 +62,6 @@ def test_build_valid_penalties_returns_alert_blocks(valid_output_profile_fixture
         penalties_applied=["Test Penalty 1", "Test Penalty 2"],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )

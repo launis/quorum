@@ -4,9 +4,15 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace, OutputProfile, RenderedSynthesisCache
+from backend_v2.models.v2_core import (
+    ExecutionRecord,
+    MatrixScorecardRowDTO,
+    MCPAuditTrace,
+    OutputProfile,
+    RenderedSynthesisCache,
+)
 from backend_v2.models.view.sdui import AnySduiBlock
 
 
@@ -26,6 +32,7 @@ class AdapterContext(BaseModel):
     global_score: float | None
     profile: OutputProfile
     profile_cache: RenderedSynthesisCache | None
+    parsed_matrices: dict[str, MatrixScorecardRowDTO] = Field(default_factory=dict)
 
 
 class SduiAdapterProtocol(Protocol):

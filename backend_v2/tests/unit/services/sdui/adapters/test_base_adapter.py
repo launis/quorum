@@ -27,7 +27,6 @@ def test_adapter_context_valid_construction(valid_output_profile_fixture: Output
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
@@ -43,7 +42,6 @@ def test_adapter_context_frozen_rejects_mutation(valid_output_profile_fixture: O
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
@@ -60,7 +58,6 @@ def test_adapter_context_forbids_extra_fields(valid_output_profile_fixture: Outp
             penalties_applied=[],
             mcp_audit_map=None,
             global_score=None,
-            accumulated_extensions={},
             profile=valid_output_profile_fixture,
             profile_cache=None,
             unknown_field="hax",  # type: ignore[call-arg]
@@ -86,7 +83,6 @@ def test_adapter_context_strict_type_enforcement(valid_output_profile_fixture: O
             penalties_applied=[],
             mcp_audit_map=None,
             global_score=None,
-            accumulated_extensions={},
             profile=valid_output_profile_fixture,
             profile_cache=None,
         )

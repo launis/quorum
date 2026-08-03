@@ -21,10 +21,10 @@
   </step>
 
   <dod_checklist>
-    - [ ] `MatrixGraphsAdapter` implemented and strictly outputs `SduiRadarChartBlock`, `SduiScatterPlotBlock`, or `SduiMetrics1DBlock` based on `profile.layouts`.
-    - [ ] `MatrixSummaryTableAdapter` implemented and strictly outputs `SduiMatrixTableBlock`.
-    - [ ] Both adapters adhere exactly to the two-section canonical structure (`AESTHETICS_RULES` and `@staticmethod build`).
-    - [ ] Negative and boundary tests (ISTQB) implemented for both adapters.
+    - [x] `MatrixGraphsAdapter` implemented and strictly outputs `SduiRadarChartBlock`, `SduiScatterPlotBlock`, or `SduiMetrics1DBlock` based on `profile.layouts`.
+    - [x] `MatrixSummaryTableAdapter` implemented and strictly outputs `SduiMatrixTableBlock`.
+    - [x] Both adapters adhere exactly to the two-section canonical structure (`AESTHETICS_RULES` and `@staticmethod build`).
+    - [x] Negative and boundary tests (ISTQB) implemented for both adapters.
   </dod_checklist>
 
   <step id="1" name="CREATE MatrixGraphsAdapter">
@@ -38,6 +38,7 @@
   <step id="2" name="CREATE MatrixSummaryTableAdapter">
     <action>Create `c:\src\quorum\backend_v2\services\sdui\adapters\matrix_summary_table_adapter.py`.</action>
     <action>The `build(context: AdapterContext)` method must check `context.profile.layouts` for `"matrix_summary"`. If present, map all evaluator matrices into a single `SduiMatrixTableBlock`.</action>
+    <action>CRITICAL REQUIREMENT: Ensure the AI justification text (reasoning) from the evaluation atom is explicitly mapped into the table row data as the explanation column, per `output_profile_layout_v2.md`.</action>
   </step>
 
   <step id="3" name="TEST CONTRACT FULFILLMENT">

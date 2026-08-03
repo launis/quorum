@@ -30,7 +30,6 @@ def test_build_empty_profile_cache_returns_empty(valid_output_profile_fixture: O
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=None,
     )
@@ -49,7 +48,6 @@ def test_build_empty_cited_sources_returns_empty(valid_output_profile_fixture: O
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=cache,
     )
@@ -68,7 +66,6 @@ def test_build_formats_cited_sources_as_markdown(valid_output_profile_fixture: O
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=cache,
     )
@@ -89,7 +86,6 @@ def test_build_preserves_existing_bullet_prefix(valid_output_profile_fixture: Ou
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
-        accumulated_extensions={},
         profile=valid_output_profile_fixture,
         profile_cache=cache,
     )

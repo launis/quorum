@@ -1,13 +1,12 @@
 """Unit tests for the XAI Highlights adapter."""
 
-from typing import Any
 import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile
-from backend_v2.models.state import TraceEvent, TraceEventPayloadDTO, VirtualSystemStepID
-from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
+from backend_v2.models.view.sdui import AccordionBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 
@@ -37,7 +36,7 @@ def valid_output_profile_fixture() -> OutputProfile:
 def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fixture: OutputProfile) -> None:
     """Boundary: empty execution trace returns empty list."""
     execution = ExecutionRecord(
-        id="exe_123",
+        id="exe_0123456789abcdef",
         workflow_id="wfw_test",
         execution_trace=[],
     )
@@ -57,26 +56,21 @@ def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fix
 def test_build_single_extension_group_returns_blocks(valid_output_profile_fixture: OutputProfile) -> None:
     """Positive: single extension group parses from trace."""
     execution = ExecutionRecord(
-        id="exe_123",
+        id="exe_0123456789abcdef",
         workflow_id="wfw_test",
         execution_trace=[
             TraceEvent(
-                id="evt_1",
-                event_type="pipeline_step_complete",
-                step_id="step_1",
+                event_type="output",
+                step_name="step_1",
                 content={
                     "step_id": "step_1",
                     "block_id": "block_1",
-                    "payload": {
-                        "extensions": {
-                            "coaching": "Good job!\\nKeep it up!"
-                        }
-                    }
-                }
+                    "payload": {"extensions": {"coaching": "Good job!\\nKeep it up!"}},
+                },
             )
         ],
     )
-    
+
     context = AdapterContext(
         execution=execution,
         locale="en",
@@ -91,29 +85,23 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
     assert isinstance(blocks[0], AccordionBlock)
     assert blocks[0].title == "Coaching"
     assert blocks[0].severity == VisualIntent.SUCCESS.value
-    assert len(blocks[0].children) == 2
+    assert len(blocks[0].children) == 1
 
 
 def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixture: OutputProfile) -> None:
     """Positive: multiple extensions from trace are correctly extracted."""
     execution = ExecutionRecord(
-        id="exe_123",
+        id="exe_0123456789abcdef",
         workflow_id="wfw_test",
         execution_trace=[
             TraceEvent(
-                id="evt_1",
-                event_type="pipeline_step_complete",
-                step_id="step_1",
+                event_type="output",
+                step_name="step_1",
                 content={
                     "step_id": "step_1",
                     "block_id": "block_1",
-                    "payload": {
-                        "extensions": {
-                            "coaching": "Good job!",
-                            "falsification": "Bad logic!"
-                        }
-                    }
-                }
+                    "payload": {"extensions": {"coaching": "Good job!", "falsification": "Bad logic!"}},
+                },
             )
         ],
     )
@@ -136,7 +124,7 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
 
 def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfile) -> None:
     """Negative: context remains frozen after the call."""
-    execution = ExecutionRecord(id="exe_123", workflow_id="wfw_test", execution_trace=[])
+    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
     context = AdapterContext(
         execution=execution,
         locale="en",

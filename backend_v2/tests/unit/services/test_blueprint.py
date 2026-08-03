@@ -93,7 +93,7 @@ def mock_repo_transformer() -> Any:
                     "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
                     "layouts": [
                         {
-                            "preset_view": "1d_metrics",
+                            "preset_view": "text_only",
                             "text_delivery_mode": "full",
                             "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
                             "target_blocks": ["*"],
@@ -112,7 +112,7 @@ def mock_repo_transformer() -> Any:
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [
                     {
-                        "preset_view": "1d_metrics",
+                        "preset_view": "text_only",
                         "text_delivery_mode": "full",
                         "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
                         "target_blocks": ["*"],
@@ -233,7 +233,7 @@ def mock_repo_transformer() -> Any:
             },
             layouts=[
                 OutputLayoutBlock(
-                    preset_view="1d_metrics",
+                    preset_view="text_only",
                     target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
                 )
             ],
@@ -322,7 +322,7 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
 
     assert isinstance(dto, ReportDataDTO)
     assert len(dto.inner_sdui_blocks) >= 1
-    matrices = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "3d_matrix"]
+    matrices = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "1d_metrics"]
     assert len(matrices) >= 1
 
 
@@ -525,7 +525,7 @@ def mock_repo_sdui() -> AsyncMock:
                 "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
                 "layouts": [
                     {
-                        "preset_view": "1d_metrics",
+                        "preset_view": "text_only",
                         "text_delivery_mode": "full",
                         "title": {"default_locale": "en", "translations": {"en": "Metrics", "fi": "Metrics"}},
                         "steps": [],
@@ -629,7 +629,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
         profile_syntheses={
             "prf_1234abcd1234abcd": RenderedSynthesisCache(
                 section_syntheses={
-                    "layout_0_1d_metrics": [
+                    "layout_0_text_only": [
                         __import__("backend_v2.models.view.sdui", fromlist=["MarkdownBlock"]).MarkdownBlock(
                             text="### Title\n<script>alert('xss');</script>Some content."
                         )
@@ -904,7 +904,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [
                     {
-                        "preset_view": "1d_metrics",
+                        "preset_view": "text_only",
                         "text_delivery_mode": "full",
                         "target_blocks": ["*"],
                         "title": {"default_locale": "en", "translations": {"en": "Title"}},
@@ -958,6 +958,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
 
     assert len(dto.inner_sdui_blocks) >= 2
+    print(f"DEBUG blocks: {[getattr(b, 'block_type', '') for b in dto.inner_sdui_blocks]}")
     metrics_blocks = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "1d_metrics"]
     assert len(metrics_blocks) >= 1
     variance_layout = metrics_blocks[-1]
@@ -1156,7 +1157,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [
                     {
-                        "preset_view": "1d_metrics",
+                        "preset_view": "text_only",
                         "text_delivery_mode": "full",
                         "target_blocks": ["*"],
                         "title": {"default_locale": "en", "translations": {"en": "Title"}},
@@ -1253,7 +1254,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         name=I18nText(default_locale="en", translations={"en": "Default"}),
         layouts=[
             OutputLayoutBlock(
-                preset_view="1d_metrics",
+                preset_view="text_only",
                 target_blocks=["*"],
             ),
             OutputLayoutBlock(
@@ -1342,7 +1343,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         name=I18nText(default_locale="en", translations={"en": "Default"}),
         layouts=[
             OutputLayoutBlock(
-                preset_view="1d_metrics",
+                preset_view="text_only",
                 target_blocks=["*"],
             ),
             OutputLayoutBlock(
@@ -1685,7 +1686,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
             },
             layouts=[
                 OutputLayoutBlock(
-                    preset_view="1d_metrics",
+                    preset_view="text_only",
                     target_blocks=["*"],
                 ),
                 OutputLayoutBlock(
@@ -1797,7 +1798,7 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
             metric_mappings={},
             layouts=[
                 OutputLayoutBlock(
-                    preset_view="1d_metrics",
+                    preset_view="text_only",
                     target_blocks=["*"],
                 ),
             ],
@@ -1847,7 +1848,7 @@ async def test_blueprint_transformer_unrecognized_text_delivery_mode(mock_repo_t
             metric_mappings={},
             layouts=[
                 OutputLayoutBlock.model_construct(
-                    preset_view="1d_metrics",
+                    preset_view="text_only",
                     target_blocks=["*"],
                     text_delivery_mode="invalid_mode",
                 )

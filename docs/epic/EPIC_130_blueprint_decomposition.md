@@ -37,7 +37,7 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 
 ### Deprecations & Sunset List (What We Will REMOVE)
 - **Inline Presentation Logic in `blueprint.py`**: All `if "risk" in lower_ext` chains, icon/severity selection logic, and direct `AccordionBlock`/`AlertBlock` instantiation inside `_hydrate_grouped_extensions_block`, `_hydrate_penalties_block`, and the inline executive summary construction (lines 1079-1095) will be INTENTIONALLY MOVED to their respective adapter files.
-- **`_extract_matrices_and_extensions` God Method**: This 560-line method (lines 222-782) will be decomposed in two sub-phases. Phase 6A strips extension formatting and moves it to `xai_highlights_adapter.py`. Phase 6B (Deferred) will extract the remaining matrix parsing logic into `matrix_graphs_adapter.py` and `matrix_summary_table_adapter.py`. Until Phase 6B, the remaining structural validation stays in a leaner `_parse_matrix_trace_results` orchestration method inside `blueprint.py`.
+- **`_extract_matrices_and_extensions` God Method**: This 560-line method (lines 222-782) will be decomposed in two sub-phases. Phase 6A strips extension formatting and moves it to `xai_highlights_adapter.py`. Phase 6B extracts the remaining matrix parsing logic into `matrix_graphs_adapter.py` and `matrix_summary_table_adapter.py`, completely eliminating the God Method.
 - **Legacy Layout Models**: `the historically removed Report Layout Data Transfer Object` has already been DEPRECATED and REMOVED. `OutputLayoutBlock` MUST BE RETAINED as it is part of the `OutputProfile` SSOT for database persistence, but its `preset_view` logic is ignored during presentation. The system transitions to a purely flat `inner_sdui_blocks` sequence containing `AnySduiBlock` types (specifically: `SduiRadarChartBlock`, `SduiScatterPlotBlock`) within `ReportDataDTO`, completely eliminating nested UI structure in the final client payload.
 - **Placeholder Methods**: The empty placeholder methods `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, and `_hydrate_jargon_ratio_block` (lines 802-812) will remain deferred until actual logic is introduced. The `_hydrate_printable_sources_block` (lines 814-828) is extracted to its own adapter.
 
@@ -173,12 +173,12 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 2. Modify `@[c:\src\quorum\backend_v2\services\blueprint.py]`: Rename `_extract_matrices_and_extensions` to `_parse_matrix_trace_results`. Strip ALL extension logic (`_add_ext` closure, iteration over highlights) from this method. It now ONLY returns the raw matrix payloads.
 3. **ATOMIC TEST MIGRATION**: You MUST physically move all existing tests related to `_add_ext` and extension formatting from `test_blueprint.py` into `test_xai_highlights_adapter.py`.
 
-### Phase 6B: Matrix Adapters (DEFERRED)
-**STATUS: DEFERRED.** Extracting `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` is deferred until `AdapterContext` and the `OutputLayoutBlock.preset_view` routing are redesigned to support Dumb Painter decoupling without silent fallbacks.
+### Phase 6B: Matrix Adapters Extraction
+**Architectural Pivot Reversed**: The Red-Team identified that skipping Matrix Adapters violates the Single Responsibility Principle and breaks the Dumb Painter layout flattening in Phase 7A. We MUST extract these adapters now.
 
-**STRICT EXECUTION DIRECTIVE:**
-- The execution agent MUST NOT attempt to create `MatrixGraphsAdapter` or `MatrixSummaryTableAdapter` during this epic.
-- Do not extract the matrix logic from `_parse_matrix_trace_results` yet.
+1. Create `MatrixGraphsAdapter` to map `TraceMatrixPayloadDTO` into `SduiRadarChartBlock`, `SduiScatterPlotBlock`, and `SduiMetrics1DBlock` based on `profile.layouts`.
+2. Create `MatrixSummaryTableAdapter` to aggregate scorecard atoms into `SduiMatrixTableBlock`. Ensure the AI justification text (reasoning) from the evaluation atom is explicitly mapped into the table row data as the explanation column.
+3. Modify `blueprint.py`: Delete `_parse_matrix_trace_results` and wire the new adapters into the dispatch loop.
 
 ### Phase 7: SDUI Layout Flattening (Dumb Painter Architecture & Strict Ordering)
 

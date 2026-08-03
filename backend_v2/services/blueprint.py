@@ -17,7 +17,7 @@ from backend_v2.database.interfaces import (
     ISystemRepository,
     IWorkflowRepository,
 )
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.linguistics import scan_report_for_slop
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
@@ -29,7 +29,6 @@ from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
-    LaxXaiExtensionType,
     SystemConfigID,
     TargetBlockType,
     VirtualSystemStepID,
@@ -41,7 +40,6 @@ from backend_v2.models.v2_core import (
     I18nText,
     MatrixScorecardRowDTO,
     MCPAuditTrace,
-    OutputLayoutBlock,
     OutputProfile,
     PromptBlock,
     ReportDataDTO,
@@ -57,13 +55,13 @@ from backend_v2.models.view.sdui import (
     MarkdownBlock,
     ParagraphBlock,
     SduiGridBlock,
-    SduiMatrixTableBlock,
     SduiMetrics1DBlock,
     SduiRadarChartBlock,
-    SduiScatterPlotBlock,
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
+from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
+from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
 from backend_v2.services.sdui.adapters.penalties_adapter import PenaltiesAdapter
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
@@ -724,123 +722,6 @@ class BlueprintTransformer:
         """Placeholder for future jargon ratio hydration logic."""
         return [ParagraphBlock(text="Jargon ratio placeholder", exact_quotes=[], citations=[])]
 
-    def _build_visualization_blocks(
-        self,
-        layout_defs: list[OutputLayoutBlock],
-        all_parsed_matrices: dict[str, MatrixScorecardRowDTO],
-        section_syntheses: dict[str, list[AnySduiBlock]],
-        profile_extension_labels: dict[LaxXaiExtensionType, I18nText],
-        accumulated_extensions: dict[str, list[AnySduiBlock]] | None = None,
-        locale: str = "en",
-    ) -> dict[int, list[AnySduiBlock]]:
-        """Maps generated axes into flat SDUI blocks based on layout rules.
-
-        Returns:
-            Dictionary mapping layout index to its list of rendered SDUI blocks.
-        """
-        layout_blocks_map: dict[int, list[AnySduiBlock]] = {}
-        for idx, layout_def in enumerate(layout_defs):
-            preset_view = layout_def.preset_view
-            target_blocks = layout_def.target_blocks
-            text_delivery_mode = layout_def.text_delivery_mode
-
-            if text_delivery_mode not in ("full", "titles_only", "none"):
-                raise ConfigurationError(
-                    f"Unrecognized text_delivery_mode: '{text_delivery_mode}'. Must be 'full', 'titles_only', or 'none'.",
-                    details={"text_delivery_mode": text_delivery_mode},
-                )
-
-            is_target_block_hydrator = False
-            axes = []
-            if target_blocks and "*" not in target_blocks:
-                for target_k in target_blocks:
-                    if target_k in self._target_block_hydrators:
-                        is_target_block_hydrator = True
-                    matched = next((axis for axis in all_parsed_matrices.values() if axis.block_id == target_k), None)
-                    if matched:
-                        axes.append(matched)
-            else:
-                axes = list(all_parsed_matrices.values())
-
-            if is_target_block_hydrator:
-                continue
-
-            if preset_view in ["3d_matrix"] and len(axes) < 3:
-                logger.warning(
-                    "[BlueprintTransformer] Downgrading layout '%s' from %s to 2d_compare because only %s axes found.",
-                    layout_def.title.resolve(locale) if layout_def.title else "Unknown",
-                    preset_view,
-                    len(axes),
-                )
-                preset_view = "2d_compare"
-
-            if preset_view == "2d_compare" and len(axes) < 2:
-                logger.warning(
-                    "[BlueprintTransformer] Downgrading layout '%s' from 2d_compare to 1d_metrics because only %s axes found.",
-                    layout_def.title.resolve(locale) if layout_def.title else "Unknown",
-                    len(axes),
-                )
-                preset_view = "1d_metrics"
-
-            if text_delivery_mode in ["titles_only", "none"]:
-                axes = [axis.model_copy(update={"inner_sdui_blocks": []}) for axis in axes]
-
-            if axes or preset_view == "text_only" or layout_def.synthesis:
-                synthesis_config = layout_def.synthesis
-                layout_id = f"layout_{idx}_{preset_view}"
-
-                section_blocks: list[AnySduiBlock] | None = None
-                if synthesis_config and layout_id in section_syntheses:
-                    section_blocks = list(section_syntheses[layout_id])
-
-                if idx not in layout_blocks_map:
-                    layout_blocks_map[idx] = []
-
-                if layout_def.description:
-                    from backend_v2.models.view.sdui import ParagraphBlock
-
-                    layout_blocks_map[idx].append(
-                        ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
-                    )
-
-                if section_blocks:
-                    layout_blocks_map[idx].extend(section_blocks)
-
-                if text_delivery_mode != "none" or preset_view not in ["3d_matrix", "2d_compare", "matrix_summary"]:
-                    if preset_view == "3d_matrix":
-                        layout_blocks_map[idx].append(
-                            SduiRadarChartBlock(
-                                title=layout_def.title,
-                                axes=axes,
-                            )
-                        )
-                    elif preset_view == "2d_compare":
-                        layout_blocks_map[idx].append(
-                            SduiScatterPlotBlock(
-                                title=layout_def.title,
-                                axes=axes,
-                            )
-                        )
-                    elif preset_view in ["1d_metrics", "text_only"]:
-                        layout_blocks_map[idx].append(
-                            SduiMetrics1DBlock(
-                                title=layout_def.title,
-                                axes=axes,
-                            )
-                        )
-                    elif preset_view == "matrix_summary":
-                        layout_blocks_map[idx].append(
-                            SduiMatrixTableBlock(
-                                title=layout_def.title,
-                                axes=axes,
-                                matrix_column_labels=layout_def.matrix_column_labels,
-                                matrix_visible_columns=layout_def.matrix_visible_columns,
-                                extension_labels=profile_extension_labels,
-                            )
-                        )
-
-        return layout_blocks_map
-
     async def build_report_dto(
         self,
         execution_id: str,
@@ -1400,18 +1281,23 @@ class BlueprintTransformer:
             )
 
         try:
-            layout_blocks_map = self._build_visualization_blocks(
-                profile.layouts,
-                all_parsed_matrices,
-                section_syntheses,
-                profile.extension_labels,
+            adapter_ctx = AdapterContext(
+                execution=execution,
                 locale=locale,
+                penalties_applied=penalties_applied,
+                mcp_audit_map=mcp_audit_map,
+                global_score=global_score,
+                profile=profile,
+                profile_cache=profile_cache,
+                parsed_matrices=all_parsed_matrices,
             )
+
             # Phase 1: Build temp visualization blocks for slop scanner
             temp_visualization_blocks = []
-            for layout_idx in range(len(profile.layouts)):
-                if layout_idx in layout_blocks_map:
-                    temp_visualization_blocks.extend(layout_blocks_map[layout_idx])
+
+            # Map graph and table blocks via Adapters (Epic 130 Phase 6B)
+            temp_visualization_blocks.extend(MatrixGraphsAdapter.build(adapter_ctx))
+            temp_visualization_blocks.extend(MatrixSummaryTableAdapter.build(adapter_ctx))
 
             if variance_sdui_blocks:
                 temp_visualization_blocks.extend(variance_sdui_blocks)
@@ -1806,8 +1692,9 @@ class BlueprintTransformer:
                     recalc_final = base_avg * (1.0 - effective_penalty)
                     global_score = float(round(max(0.0, recalc_final), 1))
 
-            # Phase 2: Assemble final visualization blocks strictly by layout index
-            final_visualization_blocks = []
+            # Phase 2: Assemble final visualization blocks
+            final_visualization_blocks = list(temp_visualization_blocks)
+
             if profile.layouts:
                 adapter_context = AdapterContext(
                     execution=execution,
@@ -1817,8 +1704,9 @@ class BlueprintTransformer:
                     global_score=global_score,
                     profile=profile,
                     profile_cache=profile_cache,
+                    parsed_matrices=all_parsed_matrices,
                 )
-                for idx, layout in enumerate(profile.layouts):
+                for layout in profile.layouts:
                     if (
                         layout.target_blocks
                         and "*" not in layout.target_blocks
@@ -1829,9 +1717,6 @@ class BlueprintTransformer:
                                 hydrated_blocks = self._target_block_hydrators[str(target_k)](adapter_context)
                                 if hydrated_blocks:
                                     final_visualization_blocks.extend(hydrated_blocks)
-                    else:
-                        if idx in layout_blocks_map:
-                            final_visualization_blocks.extend(layout_blocks_map[idx])
 
             if variance_sdui_blocks:
                 final_visualization_blocks.extend(variance_sdui_blocks)
