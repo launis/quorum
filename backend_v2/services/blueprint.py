@@ -66,6 +66,7 @@ from backend_v2.models.view.sdui import (
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 from backend_v2.services.sdui.adapters.penalties_adapter import PenaltiesAdapter
+from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
@@ -110,9 +111,7 @@ class BlueprintTransformer:
             TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: [],
             TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: [],
             TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: self._hydrate_jargon_ratio_block(),
-            TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: self._hydrate_printable_sources_block(
-                profile_cache=ctx.profile_cache,
-            ),
+            TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: PrintableSourcesAdapter.build(ctx),
             TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: XaiHighlightsAdapter.build(ctx),
             TargetBlockType.EXECUTIVE_SUMMARY_BLOCK: lambda ctx: ExecutiveSummaryAdapter.build(ctx),
         }
@@ -797,22 +796,6 @@ class BlueprintTransformer:
     def _hydrate_jargon_ratio_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Placeholder for future jargon ratio hydration logic."""
         return [ParagraphBlock(text="Jargon ratio placeholder", exact_quotes=[], citations=[])]
-
-    def _hydrate_printable_sources_block(self, **kwargs: Any) -> list[AnySduiBlock]:
-        """Hydrates printable sources into a Markdown block."""
-        profile_cache = kwargs.get("profile_cache")
-        if not profile_cache or not profile_cache.cited_sources:
-            return []
-
-        md_lines = []
-        for src in profile_cache.cited_sources:
-            if not src.strip().startswith("-"):
-                md_lines.append(f"- {src}")
-            else:
-                md_lines.append(src)
-
-        md_content = "\n".join(md_lines)
-        return [MarkdownBlock(text=md_content)]
 
     def _build_visualization_blocks(
         self,
