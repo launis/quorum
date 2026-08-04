@@ -178,7 +178,7 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide `grep_search` for old import paths referencing deleted methods (`_hydrate_grouped_extensions_block`, `_hydrate_penalties_block`, `_hydrate_printable_sources_block`, `_extract_matrices_and_extensions`) and delete any deprecated proxies.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide `grep_search` for old import paths referencing deleted methods (`_hydrate_grouped_extensions_block`, `_hydrate_penalties_block`, `_hydrate_printable_sources_block`, `_extract_matrices_and_extensions`) and delete any deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend files:
   - @[c:\src\quorum\backend_v2\services\sdui\adapters\base_adapter.py]
   - @[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]
@@ -305,9 +305,10 @@
 - **[2026-08-04]** Tier 0 Research Analysis completed on `07_verification_e2e_gate.md` (Phase 8). The plan was verified to be strictly aligned with the Windows PowerShell mandate, global test loop requirements, and Epic bounds. No mutations were required. Status: PASSED.
 - **[2026-08-04]** Tier 2 Execution started on `07_verification_e2e_gate.md` (Phase 8). Completed global backend and frontend audit loops. Identified and fixed a frontend `XAIEvidenceBox` capitalization mismatch. Also identified and fixed a catastrophic pipeline crash caused by `MatrixGraphsAdapter` strictly enforcing `min_axes=1` on the `global_score_block` layout (which uses `1d_metrics`). Modified `MATRIX_GRAPHS_RULES` to allow `min_axes=0` for `1d_metrics` to ensure parity with legacy layout rendering logic. E2E tests and unit tests passed.
 - **[2026-08-04]** Tier 5 Session Handover initiated. Re-ran Universal Quality Gates on backend and frontend; both passed perfectly (1224 tests passing with >81% coverage, UI Freezed models verified). Left the uncommitted state for manual atomic commit per user request before next workflow execution.
-- **[2026-08-04]** Tier 2 Execution continued on `07_verification_e2e_gate.md` (Phase 8). Executed Live E2E Gate since Redis became available. The Live LLM test (`test_integration_real_llm.py`) successfully passed 100%. Manual visual validation by the user is the final remaining step for Phase 8.
+- **[2026-08-04]** Tier 2 Execution continued on `07_verification_e2e_gate.md` (Phase 8). Executed Live E2E Gate since Redis became available. The Live LLM test (`test_integration_real_llm.py`) successfully passed 100%. Manual visual validation by the user is complete.
 - **[2026-08-04]** Tier 3 Feature execution on `08_linguistic_mandates_fix.md`. Added `DESC_TRANSLATION_MANDATE` to `field_prompts.py` and enforced it inside `synthesis.py` to fix untranslated Pydantic generation fields. Documented rules in KI.
 - **[2026-08-04]** Tier 8 Audit Plan completed on `07_verification_e2e_gate.md` (Phase 8). Verified planner fidelity, backend quality gate, and frontend parity. Status: PASSED.
+- **[2026-08-04]** Executed Proxy Sunset & Consumer Migration: Conducted codebase-wide `grep_search` for `_hydrate_grouped_extensions_block` and other legacy methods, deleting a residual proxy comment in `blueprint.py`.
 
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
@@ -325,7 +326,6 @@
 - **Infrastructure Block (Phase 8)**: The Live E2E test (`test_integration_real_llm.py`) spawns real subprocesses (`uvicorn` and `run_worker.py`) that strictly require a real Redis instance to communicate via Arq (as `PYTEST_CURRENT_TEST` is unset to disable FakeRedis). Since Docker Desktop is currently offline (`failed to connect to the docker API`), the Redis container cannot be started, preventing the execution of this specific live test.
 
 ## Remaining
-- Manual User Validation (Phase 8 Step 5): Manually generate the PDF and visually compare it to `raportti 2.pdf`. Verify the Flutter app renders the exact same structure dynamically.
 - Complete Post-Implementation Gates (Starting with Tier 2 Hardening Backend).
 - Update Documentation & KI.
 - Run Final Epic Audit (`/tier8-audit-epic`).

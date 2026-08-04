@@ -845,7 +845,6 @@ class BlueprintTransformer:
             synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
 
             # Note: profile_cache.user_role_justification is internal English reasoning and should not be printed directly.
-            # xai_highlights are now handled properly by _hydrate_grouped_extensions_block
         else:
             synthesis_md = original_synthesis_md
 
