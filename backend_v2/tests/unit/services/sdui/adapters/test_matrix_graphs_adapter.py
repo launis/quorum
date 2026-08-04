@@ -23,6 +23,9 @@ def test_matrix_graphs_adapter_empty_layouts():
         global_score=None,
         profile=profile,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
         parsed_matrices={},
     )
     blocks = MatrixGraphsAdapter.build(context)
@@ -53,6 +56,9 @@ def test_matrix_graphs_adapter_structural_failure():
         global_score=None,
         profile=profile,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",
@@ -95,6 +101,9 @@ def test_matrix_graphs_adapter_success():
         global_score=None,
         profile=profile,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",

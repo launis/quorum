@@ -1,6 +1,6 @@
 # Phase 7A: SDUI Layout Flattening — Dispatch Loop Refactoring & Adapter Wiring
 
-**Overview:** Refactor `blueprint.py`'s final assembly to concatenate all extracted adapter blocks into a single flat `inner_sdui_blocks` list. Configure the dispatch loop execution order to match the report structure defined in the Epic (metadata → executive summary → matrices → extensions → summary table → workflow extensions → sources).
+**Overview:** Refactor `blueprint.py`'s final assembly to concatenate all extracted adapter blocks into a single flat `inner_sdui_blocks` list. Configure the dispatch loop execution order to match the report structure defined in the Epic (metadata → executive summary → matrices → extensions → summary table → sources).
 
 **Key Epic References:**
 - `ReportDataDTO` with `inner_sdui_blocks`: @[c:\src\quorum\backend_v2\models\v2_core.py#L1125-L1199]
@@ -45,7 +45,7 @@
     <action>Modify `build_report_dto` in `blueprint.py`.</action>
     <action>Delete the legacy logic that builds a nested layout structure.</action>
     <action>Initialize `inner_sdui_blocks: list[AnySduiBlock] = []`.</action>
-    <action>Configure the dispatch loop execution order EXACTLY as follows: Metadata, Executive Summary, Matrix Graphs & Justifications, Extensions (XAI + Penalties), Matrix Summary Table, Workflow Extensions, Sources.</action>
+    <action>Configure the dispatch loop execution order EXACTLY as follows: Metadata, Executive Summary, Matrix Graphs & Justifications, Extensions (XAI + Penalties), Matrix Summary Table, Sources.</action>
     <action>For each adapter in the ordered dispatch loop, call `build(context)` and `.extend()` the results into `inner_sdui_blocks`.</action>
     <action>Assign `inner_sdui_blocks` to `ReportDataDTO` and eliminate nested structural logic.</action>
     <demolish>REMOVE: all legacy `content_blocks.append(...)` and nested array assignments in `build_report_dto`. REPLACE WITH: flat `.extend()` onto `inner_sdui_blocks`.</demolish>

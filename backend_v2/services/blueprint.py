@@ -6,8 +6,6 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-import bleach
-
 from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
@@ -50,8 +48,6 @@ from backend_v2.models.v2_core import (
 from backend_v2.models.view.sdui import (
     AlertBlock,
     AnySduiBlock,
-    HeaderBlock,
-    HeroInsightBlock,
     MarkdownBlock,
     ParagraphBlock,
     SduiGridBlock,
@@ -62,8 +58,10 @@ from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
+from backend_v2.services.sdui.adapters.metadata_adapter import MetadataAdapter
 from backend_v2.services.sdui.adapters.penalties_adapter import PenaltiesAdapter
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
+from backend_v2.services.sdui.adapters.synthesis_text_adapter import SynthesisTextAdapter
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
@@ -111,6 +109,8 @@ class BlueprintTransformer:
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: PrintableSourcesAdapter.build(ctx),
             TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: XaiHighlightsAdapter.build(ctx),
             TargetBlockType.EXECUTIVE_SUMMARY_BLOCK: lambda ctx: ExecutiveSummaryAdapter.build(ctx),
+            TargetBlockType.METADATA_BLOCK: lambda ctx: MetadataAdapter.build(ctx),
+            TargetBlockType.SYNTHESIS_TEXT_BLOCK: lambda ctx: SynthesisTextAdapter.build(ctx),
         }
 
     @staticmethod
@@ -1289,6 +1289,9 @@ class BlueprintTransformer:
                 global_score=global_score,
                 profile=profile,
                 profile_cache=profile_cache,
+                user_name=None,
+                org_name=None,
+                synthesis_md=synthesis_md,
                 parsed_matrices=all_parsed_matrices,
             )
 
@@ -1309,99 +1312,6 @@ class BlueprintTransformer:
                 temp_visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
 
             visualization_blocks = temp_visualization_blocks
-
-            injected = False
-            if synthesis_block_id and content_blocks:
-                new_content_blocks: list[AnySduiBlock] = []
-                for c_block in content_blocks:
-                    if c_block.id == synthesis_block_id:
-                        if synthesis_md:
-                            # Legacy Markdown Fallback
-                            allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
-                                "h1",
-                                "h2",
-                                "h3",
-                                "h4",
-                                "h5",
-                                "h6",
-                                "p",
-                                "br",
-                                "hr",
-                                "strong",
-                                "em",
-                                "u",
-                                "b",
-                                "i",
-                                "ul",
-                                "ol",
-                                "li",
-                                "a",
-                                "span",
-                                "div",
-                                "pre",
-                                "code",
-                                "blockquote",
-                                "table",
-                                "thead",
-                                "tbody",
-                                "tr",
-                                "th",
-                                "td",
-                            ]
-                            allowed_attributes = {"*": ["class", "id"], "a": ["href", "title", "target"]}
-                            safe_md = bleach.clean(
-                                str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True
-                            ).strip()
-                            if not safe_md:
-                                safe_md = "-"
-                            updated_c_block = c_block.model_copy(update={"text": safe_md})
-                            new_content_blocks.append(updated_c_block)
-                            injected = True
-                        else:
-                            # Epic 94 fix: If there is no synthesis_md and no cache, keep the original block
-                            # to maintain exact schema parity for Flutter and PDF renders.
-                            logger.debug(
-                                "[BlueprintTransformer] SDUI Block Splicing fallback triggered for '%s'. Missing synthesis_md.",
-                                synthesis_block_id,
-                            )
-                            new_content_blocks.append(c_block)
-                            injected = True
-                    else:
-                        new_content_blocks.append(c_block)
-
-                if injected:
-                    content_blocks = new_content_blocks
-
-            synthesis_cfg = None
-            if profile.layouts:
-                for lay in profile.layouts:
-                    if lay.synthesis:
-                        synthesis_cfg = lay.synthesis
-                        break
-
-            if synthesis_cfg and synthesis_cfg.preamble_text:
-                from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-
-                compiler = PromptCompiler()
-                resolved_preamble = compiler.resolve_i18n(synthesis_cfg.preamble_text, locale)
-                if resolved_preamble:
-                    content_blocks.insert(0, MarkdownBlock(id="preamble", text=resolved_preamble))
-
-            if synthesis_cfg and synthesis_cfg.enable_pii_masking:
-                for idx, cb in enumerate(content_blocks):
-                    if isinstance(cb, (MarkdownBlock, ParagraphBlock, AlertBlock, HeroInsightBlock)):
-                        content_blocks[idx] = cb.model_copy(update={"text": self._apply_pii_masking(cb.text)})
-                for _layout_id, sec_blocks in section_syntheses.items():
-                    for idx, sb in enumerate(sec_blocks):
-                        if isinstance(sb, (MarkdownBlock, ParagraphBlock, AlertBlock, HeroInsightBlock)):
-                            sec_blocks[idx] = sb.model_copy(update={"text": self._apply_pii_masking(sb.text)})
-
-            if not injected and synthesis_block_id and profile.content_blocks:
-                msg = f"Synthesis mapping failed: No SDUI ContentBlock found with id '{synthesis_block_id}' in OutputProfile. Fallback is forbidden."
-                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
         except AppException:
             raise
         except Exception as e:
@@ -1545,48 +1455,7 @@ class BlueprintTransformer:
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
-
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
-
-            badges = []
-            if engine_str:
-                badges.append(f"Engine: {engine_str}")
-            if strictness_level:
-                badges.append(f"Strictness: {strictness_level}")
-
-            metadata_lines = []
-            if "user" in visible_metadata and user_name:
-                metadata_lines.append(f"**User**: {user_name}")
-            if "organization" in visible_metadata and org_name:
-                metadata_lines.append(f"**Organization**: {org_name}")
-            if "date" in visible_metadata and local_time_str:
-                metadata_lines.append(f"**Generated**: {local_time_str}")
-            if "execution_id" in visible_metadata:
-                metadata_lines.append(f"**Execution ID**: {execution_id}")
-
-            tokens_dict = {}
-            if p_tokens:
-                tokens_dict["Prompt"] = str(p_tokens)
-            if c_tokens:
-                tokens_dict["Completion"] = str(c_tokens)
-            if r_tokens:
-                tokens_dict["Reasoning"] = str(r_tokens)
-            if t_tokens:
-                tokens_dict["Total"] = str(t_tokens)
-
-            costs_str = f"${cost:.4f}" if cost is not None else None
-
-            title_str = profile_name_dict.resolve(locale) if profile_name_dict else "Report"
-
-            header_block = HeaderBlock(
-                title=title_str,
-                badges=badges,
-                metadata_lines=metadata_lines,
-                costs=costs_str,
-                tokens=tokens_dict,
-                custom_preface_md=resolved_preface_md,
-            )
-            content_blocks.insert(0, header_block)
 
             # Run dynamic performative AI jargon (slop) scanning if enabled
             should_scan_slop = any(
@@ -1638,7 +1507,7 @@ class BlueprintTransformer:
                     org_name=org_name,
                     global_score=0.0,
                     has_warning=has_warning,
-                    inner_sdui_blocks=content_blocks + visualization_blocks,
+                    inner_sdui_blocks=SynthesisTextAdapter.build(adapter_ctx) + visualization_blocks,
                     visible_metadata=visible_metadata,
                     cost_estimate=cost,
                     total_tokens=t_tokens,
@@ -1690,45 +1559,53 @@ class BlueprintTransformer:
                             )
                     effective_penalty = min(effective_penalty, 0.40)
                     recalc_final = base_avg * (1.0 - effective_penalty)
-                    global_score = float(round(max(0.0, recalc_final), 1))
+                    global_score = float(
+                        round(max(0.0, recalc_final), 1)
+                    )  # Phase 2: Assemble final visualization blocks
+            inner_sdui_blocks: list[AnySduiBlock] = []
 
-            # Phase 2: Assemble final visualization blocks
-            final_visualization_blocks = list(temp_visualization_blocks)
+            adapter_context = AdapterContext(
+                execution=execution,
+                locale=locale,
+                penalties_applied=penalties_applied,
+                mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None,
+                global_score=global_score,
+                profile=profile,
+                profile_cache=profile_cache,
+                user_name=user_name,
+                org_name=org_name,
+                synthesis_md=synthesis_md,
+                parsed_matrices=all_parsed_matrices,
+            )
 
-            if profile.layouts:
-                adapter_context = AdapterContext(
-                    execution=execution,
-                    locale=locale,
-                    penalties_applied=penalties_applied,
-                    mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None,
-                    global_score=global_score,
-                    profile=profile,
-                    profile_cache=profile_cache,
-                    parsed_matrices=all_parsed_matrices,
-                )
-                for layout in profile.layouts:
-                    if (
-                        layout.target_blocks
-                        and "*" not in layout.target_blocks
-                        and any(t in self._target_block_hydrators for t in layout.target_blocks)
-                    ):
-                        for target_k in layout.target_blocks:
-                            if target_k in self._target_block_hydrators:
-                                hydrated_blocks = self._target_block_hydrators[str(target_k)](adapter_context)
-                                if hydrated_blocks:
-                                    final_visualization_blocks.extend(hydrated_blocks)
+            dispatch_order = [
+                TargetBlockType.METADATA_BLOCK,
+                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+                TargetBlockType.SYNTHESIS_TEXT_BLOCK,
+                "matrix_graphs_block",
+                TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
+                TargetBlockType.PENALTIES_BLOCK,
+                "matrix_summary_table_block",
+                TargetBlockType.PRINTABLE_SOURCES_BLOCK,
+            ]
+
+            for target_k in dispatch_order:
+                if target_k == "matrix_graphs_block":
+                    inner_sdui_blocks.extend(MatrixGraphsAdapter.build(adapter_context))
+                elif target_k == "matrix_summary_table_block":
+                    inner_sdui_blocks.extend(MatrixSummaryTableAdapter.build(adapter_context))
+                elif target_k in self._target_block_hydrators:
+                    hydrated_blocks = self._target_block_hydrators[str(target_k)](adapter_context)
+                    if hydrated_blocks:
+                        inner_sdui_blocks.extend(hydrated_blocks)
 
             if variance_sdui_blocks:
-                final_visualization_blocks.extend(variance_sdui_blocks)
+                inner_sdui_blocks.extend(variance_sdui_blocks)
             if auth_sdui_blocks:
-                final_visualization_blocks.extend(auth_sdui_blocks)
+                inner_sdui_blocks.extend(auth_sdui_blocks)
 
-            if not final_visualization_blocks:
-                final_visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
-
-            visualization_blocks = final_visualization_blocks
-
-            content_blocks.extend(visualization_blocks)
+            if not inner_sdui_blocks:
+                inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
 
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,
@@ -1747,7 +1624,7 @@ class BlueprintTransformer:
                 org_name=org_name,
                 global_score=global_score,
                 has_warning=has_warning,
-                inner_sdui_blocks=content_blocks,
+                inner_sdui_blocks=inner_sdui_blocks,
                 visible_metadata=visible_metadata,
                 cost_estimate=cost,
                 total_tokens=t_tokens,

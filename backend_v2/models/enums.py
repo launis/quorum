@@ -113,6 +113,8 @@ class TargetBlockType(StrEnum):
     PRINTABLE_SOURCES_BLOCK = "printable_sources_block"
     GROUPED_EXTENSIONS_BLOCK = "grouped_extensions_block"
     EXECUTIVE_SUMMARY_BLOCK = "executive_summary_block"
+    METADATA_BLOCK = "metadata_block"
+    SYNTHESIS_TEXT_BLOCK = "synthesis_text_block"
 
 
 class VisualIntent(StrEnum):

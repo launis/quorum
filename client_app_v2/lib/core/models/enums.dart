@@ -373,4 +373,8 @@ enum TargetBlockType {
   groupedExtensionsBlock,
   @JsonValue('executive_summary_block')
   executiveSummaryBlock,
+  @JsonValue('metadata_block')
+  metadataBlock,
+  @JsonValue('synthesis_text_block')
+  synthesisTextBlock,
 }

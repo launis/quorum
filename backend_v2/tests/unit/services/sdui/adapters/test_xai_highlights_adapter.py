@@ -48,6 +48,9 @@ def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fix
         global_score=None,
         profile=valid_output_profile_fixture,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
     blocks = XaiHighlightsAdapter.build(context)
     assert blocks == []
@@ -79,6 +82,9 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
         global_score=None,
         profile=valid_output_profile_fixture,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
     blocks = XaiHighlightsAdapter.build(context)
     assert len(blocks) == 1
@@ -113,6 +119,9 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
         global_score=None,
         profile=valid_output_profile_fixture,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
 
     blocks = XaiHighlightsAdapter.build(context)
@@ -133,6 +142,9 @@ def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfi
         global_score=None,
         profile=valid_output_profile_fixture,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
 
     XaiHighlightsAdapter.build(context)

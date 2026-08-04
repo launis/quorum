@@ -186,24 +186,23 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 > **MANDATORY TIER 1 SUB-PHASE SPLIT**: This phase is the largest in the Epic and combines dispatch configuration with block ordering logic. The `/tier1-planner` MUST split Phase 7 into at minimum 2 separate implementation plans: (7A) Dispatch loop refactoring and adapter wiring, and (7B) Block ordering configuration and PDF/Jinja parity verification. This prevents context saturation during execution.
 
 1. **CRITICAL GUARDRAIL**: `ReportDataDTO` in `@[c:\src\quorum\backend_v2\models\v2_core.py#L1125-L1199]` ALREADY uses `inner_sdui_blocks` and `the historically removed Report Layout Data Transfer Object` has already been removed. You MUST NOT delete `OutputLayoutBlock` from `backend_v2/models/v2_core.py` because it is an SSOT entity required by `OutputProfile.layouts` for database authoring.
-2. **PRIORITY TARGET**: The Flutter/UI rendering is the primary presentation target. It MUST be fixed and verified first to achieve parity with `raportti 2.pdf`. Modify `blueprint.py`'s final assembly to concatenate all extracted adapter blocks directly into a single `inner_sdui_blocks` list. **MANDATORY ARCHITECTURE FIX**: You MUST ensure that ZERO blocks bypass the adapter pipeline. You MUST create a `MetadataAdapter` for the HeaderBlock, a `SynthesisTextAdapter` for the core LLM Markdown blocks, and a `WorkflowExtensionsAdapter` for the workflow evaluation blocks. You MUST configure the dispatch loop execution order to exactly match `raportti 2.pdf`:
+2. **PRIORITY TARGET**: The Flutter/UI rendering is the primary presentation target. It MUST be fixed and verified first to achieve parity with `raportti 2.pdf`. Modify `blueprint.py`'s final assembly to concatenate all extracted adapter blocks directly into a single `inner_sdui_blocks` list. **MANDATORY ARCHITECTURE FIX**: You MUST ensure that ZERO blocks bypass the adapter pipeline. You MUST create a `MetadataAdapter` for the HeaderBlock and a `SynthesisTextAdapter` for the core LLM Markdown blocks. You MUST configure the dispatch loop execution order to exactly match `raportti 2.pdf`:
    - **Step 1 (Metadata):** `HeaderBlock` from `metadata_adapter`.
      - *Source*: Derived from `context.execution` metadata (specifically `created_at` and `org_name`).
    - **Step 2 (Executive Summary):** Blocks from `executive_summary_adapter` (`HeroInsightBlock` / `MarkdownBlock`).
      - *Source*: Read directly from `context.profile_cache.synthesis_blocks` or `execution.global_synthesis`.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied exactly as before. The output must strictly follow the existing instruction, where output is adjusted by paragraphs and `user_role` is declared at the end.
-   - **Step 3 (Matrix Graphs & Justifications):** First output those matrices that contain a graph (`SduiRadarChartBlock`, `SduiScatterPlotBlock`), immediately followed by their text justifications (`ParagraphBlock`).
-     - *Source*: Graph structures are generated via `matrix_graphs_adapter` from `context.execution.results`. Text justifications are mapped via `synthesis_text_adapter` reading `context.row_explanations_cache`.
-     - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The text content for all of these must be formed AI-assisted according to current highly regulated instructions (specifically, graphs have very strict rules for forming text content).
+   - **Step 3 (Matrix Graphs & Justifications):** For every matrix, output the elements in a strictly flattened Dumb Painter sequence using ONLY these exact block types:
+     1. **Title Block**: MUST be exactly a `MarkdownBlock` (formatted as `### {title}`).
+     2. **Explanation Block**: MUST be exactly a `ParagraphBlock` containing the LLM synthesis text.
+     3. **Graph/Data Block**: MUST be exactly one of `SduiRadarChartBlock`, `SduiScatterPlotBlock`, or `SduiMetrics1DBlock` (with its internal `title` explicitly set to `None`). If the matrix is `text_only`, this third step is omitted entirely, leaving only `MarkdownBlock` -> `ParagraphBlock`.
    - **Step 4 (Extensions):** Blocks from `xai_highlights_adapter` and `penalties_adapter` (`AccordionBlock`, `AlertBlock`).
      - *Source*: Read mapped data directly from `context.accumulated_extensions` and `context.penalties_applied`.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The text content, explicit rows per extension, and exact data fetch patterns are tightly regulated and must be executed by the LLM exactly as currently implemented.
-   - **Step 5 (Matrix Summary Table):** Matrix Summary Table (`SduiMatrixTableBlock` from `matrix_summary_table_adapter`).
+   - **Step 5 (Matrix Summary Table):** `SduiMatrixSummaryTableBlock` from `matrix_summary_table_adapter`.
      - *Source*: Dynamically aggregated directly from `context.execution.results` by the matrix summary table adapter.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The explanation column must be formed AI-assisted exactly as before.
-   - **Step 6 (Workflow Extensions):** Workflow evaluation blocks (`SduiMetrics1DBlock` + text) from `workflow_extensions_adapter`.
-     - *Source*: Map `context.workflow_ext_values` to the defined global scoring components.
-   - **Step 7 (Sources):** Printable Sources from `printable_sources_adapter` (`MarkdownBlock` containing Tavily search results etc.).
+   - **Step 6 (Sources):** `PrintableSourcesBlock` from `printable_sources_adapter`.
      - *Source*: Mapped directly from `context.mcp_audit_map`.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. This must be processed taking language into account as always before.
    The flattening is achieved by using `.extend()` on the adapter results during the configured loop.

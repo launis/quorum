@@ -37,6 +37,9 @@ def test_build_valid_role_returns_paragraph_block() -> None:
         global_score=None,
         profile=profile,
         profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
 
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -69,6 +72,9 @@ def test_build_missing_user_role_returns_empty_list() -> None:
             user_role_mappings={},
         ),
         profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
 
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -100,6 +106,9 @@ def test_build_invalid_role_classification_raises_app_exception() -> None:
         global_score=None,
         profile=profile,
         profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
 
     with pytest.raises(AppException) as exc:
@@ -138,6 +147,9 @@ def test_build_missing_user_role_label_raises_app_exception() -> None:
         global_score=None,
         profile=profile,
         profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
 
     with pytest.raises(AppException) as exc:
@@ -172,6 +184,9 @@ def test_build_missing_role_mapping_raises_app_exception() -> None:
         global_score=None,
         profile=profile,
         profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
 
     with pytest.raises(AppException) as exc:

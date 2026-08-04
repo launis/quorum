@@ -35,6 +35,9 @@ def test_build_tampered_rules_dictionary_raises_app_exception(
         global_score=None,
         profile=valid_output_profile_fixture,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
     with pytest.raises(AppException) as excinfo:
         PenaltiesAdapter.build(context)
@@ -51,6 +54,9 @@ def test_build_empty_list_returns_empty(valid_output_profile_fixture: OutputProf
         global_score=None,
         profile=valid_output_profile_fixture,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
     blocks = PenaltiesAdapter.build(context)
     assert blocks == []
@@ -66,6 +72,9 @@ def test_build_valid_penalties_returns_alert_blocks(valid_output_profile_fixture
         global_score=None,
         profile=valid_output_profile_fixture,
         profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
     )
     blocks = PenaltiesAdapter.build(context)
     assert len(blocks) == 2
