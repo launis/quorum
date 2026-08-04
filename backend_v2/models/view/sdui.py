@@ -585,7 +585,7 @@ class SduiGridBlock(SduiBlockBase):
     items: Annotated[list[AnySduiBlock], Field(default_factory=list, description="Items in the grid.")]
 
 
-class HeaderBlock(SduiBlockBase):
+class SduiMetadataBlock(SduiBlockBase):
     """A visually distinct report header summarizing metadata.
 
     Attributes:
@@ -597,13 +597,32 @@ class HeaderBlock(SduiBlockBase):
         custom_preface_md: Optional preface markdown text.
     """
 
-    block_type: Literal["header"] = Field(default="header", frozen=True)
+    model_config = ConfigDict(title="metadata")
+    block_type: Literal["metadata"] = "metadata"
     title: str = Field(..., description="Main title of the report")
     badges: list[str] = Field(default_factory=list, description="Highlighted badges")
     metadata_lines: list[str] = Field(default_factory=list, description="Metadata strings")
     costs: str | None = Field(default=None, description="Formatted cost string")
     tokens: dict[str, str] | None = Field(default=None, description="Token usage details")
     custom_preface_md: str | None = Field(default=None, description="Optional preface markdown")
+
+
+class SduiScoreCardBlock(SduiBlockBase):
+    """SDUI component representing the global score card."""
+
+    model_config = ConfigDict(title="score_card")
+    block_type: Literal["score_card"] = "score_card"
+    global_score: float | None = Field(default=None, description="The mathematical average extracted.")
+
+
+class SduiAuditTrailBlock(SduiBlockBase):
+    """SDUI component representing the execution audit trail."""
+
+    model_config = ConfigDict(title="audit_trail")
+    block_type: Literal["audit_trail"] = "audit_trail"
+    # Keeping any structure needed for rendering the audit trail
+    # For now, it might be empty or hold hydrated references if passed
+    pass
 
 
 class SduiRadarChartBlock(SduiBlockBase):
@@ -656,10 +675,12 @@ AnySduiBlock = Annotated[
     | SduiWarningCard
     | SduiNACard
     | SduiGridBlock
-    | HeaderBlock
+    | SduiMetadataBlock
     | SduiRadarChartBlock
     | SduiScatterPlotBlock
     | SduiMatrixTableBlock
-    | SduiMetrics1DBlock,
+    | SduiMetrics1DBlock
+    | SduiScoreCardBlock
+    | SduiAuditTrailBlock,
     Field(discriminator="block_type"),
 ]

@@ -95,8 +95,8 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
   }) = SduiGridBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
-  @FreezedUnionValue('header')
-  const factory SduiBlockDTO.header({
+  @FreezedUnionValue('metadata')
+  const factory SduiBlockDTO.metadata({
     String? id,
     required String title,
     @Default([]) List<String> badges,
@@ -104,7 +104,18 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     String? costs,
     Map<String, String>? tokens,
     @JsonKey(name: 'custom_preface_md') String? customPrefaceMd,
-  }) = SduiHeaderBlock;
+  }) = SduiMetadataBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('score_card')
+  const factory SduiBlockDTO.scoreCard({
+    String? id,
+    @JsonKey(name: 'global_score') double? globalScore,
+  }) = SduiScoreCardBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('audit_trail')
+  const factory SduiBlockDTO.auditTrail({String? id}) = SduiAuditTrailBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('3d_matrix')

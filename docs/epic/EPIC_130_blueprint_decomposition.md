@@ -208,6 +208,11 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
    The flattening is achieved by using `.extend()` on the adapter results during the configured loop.
 3. **GLOBAL LINGUISTIC MANDATE**: Always fetch the language and format strictly according to `@[c:\src\quorum\backend_v2\models\prompts\global_mandates.py]` and `@[c:\src\quorum\backend_v2\models\prompts\linguistic_directives.py]`, exactly as done previously.
 4. **GLOBAL ANTI-TRUNCATION MANDATE (NO SHORTENING)**: Under NO circumstances may the executing LLM shorten, summarize, simplify, or truncate any of the textual content, paragraphs, or logic defined in the steps above. You MUST pass the generated texts through identically. The tendency to "tighten" text is strictly forbidden.
+5. **PHASE 7B (100% PURE SDUI PARITY)**: You MUST completely eradicate manual UI layout logic from both the Flutter client and the PDF template. To achieve this:
+   - Extract `SduiMetadataBlock`, `SduiScoreCardBlock`, and `SduiAuditTrailBlock` in `backend_v2/models/view/sdui.py`.
+   - Update `blueprint.py` to push these new blocks directly into the `inner_sdui_blocks` sequence (Metadata at index 0, Score and Audit at the end).
+   - In Flutter (`client_app_v2`), execute `build_runner` and modify `report_renderer_v2_widget.dart` to DELETE all explicit rendering of `globalScore` and `visibleMetadata`. The Flutter widget MUST become a single loop over `innerSduiBlocks`.
+   - In Python (`pdf_generator.py` and `report_template.jinja2`), DELETE the legacy 481-line monolithic matrix routing logic. The Jinja template MUST become a single `for block in report_data.inner_sdui_blocks:` loop that maps to dedicated macros, perfectly mirroring Flutter's Dumb Painter architecture.
 5. Modify `pdf_generator.py` and the Jinja macros to expect the flat layout structure sequentially, eliminating legacy `preset_view` strings.
 
 ### Phase 8: Verification & E2E Integration Gate

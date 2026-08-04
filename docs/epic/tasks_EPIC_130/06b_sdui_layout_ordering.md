@@ -1,24 +1,41 @@
-# Phase 7B: SDUI Layout Flattening — Block Ordering & PDF/Jinja Parity
+# Phase 7B: SDUI Layout Flattening — PDF/Jinja Dumb Painter Parity
 
-**Overview:** Configure the block ordering to match `raportti 2.pdf` exactly. Modify `pdf_generator.py` and Jinja macros to iterate over the flat block array. Verify Flutter rendering parity.
+**Overview:** Blow away the legacy Jinja template and replace it with a clean slate that exactly mirrors the Flutter Dumb Painter architecture. The PDF generator and `report_template.jinja2` MUST blindly iterate over the flattened `inner_sdui_blocks` array, executing polymorphic rendering based strictly on the `SduiBlockDTO` types.
 
 **Source:** @[c:\src\quorum\docs\epic\EPIC_130_blueprint_decomposition.md#L176-L205] Phase 7 (second sub-phase)
 
 **Expected Target Files:**
-- @[c:\src\quorum\backend_v2\services\blueprint.py] [MODIFY — block ordering configuration]
-- @[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_graphs_adapter.py] [MODIFY — implement Title -> Text -> Graph flattened sequence]
+- @[c:\src\quorum\backend_v2\models\view\sdui.py] [MODIFY — add `SduiMetadataBlock`, `SduiScoreCardBlock`, `SduiAuditTrailBlock`]
+- @[c:\src\quorum\backend_v2\services\blueprint.py] [MODIFY — wire new adapters into `inner_sdui_blocks`]
+- @[c:\src\quorum\client_app_v2\lib\features\execution\models\report_data_v2_dto.dart] [MODIFY — via build_runner]
+- @[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\report_renderer_v2_widget.dart] [MODIFY — clear manual rendering]
 - @[c:\src\quorum\backend_v2\services\pdf_generator.py] [MODIFY — flat layout iteration]
-- @[c:\src\quorum\backend_v2\templates\report_template.jinja2] [MODIFY — flat block rendering]
+- @[c:\src\quorum\backend_v2\templates\report_template.jinja2] [OVERWRITE — clean slate polymorphic rendering]
 
-## Execution Steps
+## Execution Protocol
 
-1. **Refactor MatrixGraphsAdapter for Flattened Sequence**: Update `MatrixGraphsAdapter.build()` to emit elements in a strict 1-2-3 Dumb Painter sequence using ONLY these exact blocks:
-   - Prepend exactly `MarkdownBlock(text=f"### {layout_def.title}")`.
-   - Append the LLM Explanation as exactly `ParagraphBlock`.
-   - Append the graph as exactly `SduiRadarChartBlock`, `SduiScatterPlotBlock`, or `SduiMetrics1DBlock` with their internal `title` explicitly set to `None`.
-   - If `preset_view == "text_only"`, omit the third step entirely.
-2. **Flatten PDF Generator**: Modify `pdf_generator.py` and `report_template.jinja2` to sequentially iterate over the flattened `inner_sdui_blocks`, eliminating all legacy matrix nesting logic.
-3. **Verify UI/PDF Parity**: Ensure Flutter and PDF rendering match `raportti 2.pdf`.
-
-> [!IMPORTANT]
-> The final implementation steps can be fleshed out via `/tier1-planner` if necessary, but the core objective is to execute the above sequence.
+```xml
+<execution_protocol level="2">
+  <step id="1">
+    <description>Extract 100% Pure SDUI Models</description>
+    <action>In `backend_v2/models/view/sdui.py`, create `SduiMetadataBlock`, `SduiScoreCardBlock`, and `SduiAuditTrailBlock` inheriting from `BaseSduiBlock`. This removes the need for root-level DTO fields.</action>
+  </step>
+  <step id="2">
+    <description>Wire 100% SDUI Adapters</description>
+    <action>In `blueprint.py`, extract `GlobalScoreAdapter`, `MetadataAdapter` (expanded), and `McpAuditAdapter` to return these new blocks, and sequence them into the `inner_sdui_blocks` array (e.g. metadata at index 0, score and audit at the end).</action>
+  </step>
+  <step id="3">
+    <description>Demolish Legacy Jinja Template</description>
+    <action>Delete the entire 481-line `report_template.jinja2` and replace it with a Clean Slate.</action>
+    <validation>The new template MUST ONLY contain a single generic `for block in report_data.inner_sdui_blocks:` loop inside the body. ZERO manual rendering logic.</validation>
+  </step>
+  <step id="4">
+    <description>Implement Polymorphic Dumb Painter (PDF)</description>
+    <action>Inside the loop, match on `block.block_type` and map each to a dedicated Jinja macro, including the newly created Metadata, ScoreCard, and Audit blocks.</action>
+  </step>
+  <step id="5">
+    <description>Eradicate Flutter Manual Rendering</description>
+    <action>Run Flutter `build_runner` to sync the new SDUI block models. Modify `report_renderer_v2_widget.dart` to DELETE all explicit rendering of `globalScore` and `metadata`. The widget must become a pure 1-loop Dumb Painter exactly like the Jinja template.</action>
+  </step>
+</execution_protocol>
+```

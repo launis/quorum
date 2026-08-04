@@ -8,7 +8,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 import logging
 from datetime import datetime
 
-from backend_v2.models.view.sdui import AnySduiBlock, HeaderBlock
+from backend_v2.models.view.sdui import AnySduiBlock, SduiMetadataBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ class MetadataAdapter:
         custom_preface = getattr(context.profile, "custom_preamble", None)
 
         blocks.append(
-            HeaderBlock(
+            SduiMetadataBlock(
                 title=title,
                 badges=badges,
                 metadata_lines=metadata_lines,

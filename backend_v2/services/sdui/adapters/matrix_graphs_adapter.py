@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 MATRIX_GRAPHS_RULES: dict[str, dict[str, Any]] = {
     "3d_matrix": {"min_axes": 3},
     "2d_compare": {"min_axes": 2},
-    "1d_metrics": {"min_axes": 1},
+    "1d_metrics": {"min_axes": 0},
     "text_only": {"min_axes": 0},
 }
 

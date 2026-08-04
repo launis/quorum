@@ -388,10 +388,10 @@ Map<String, dynamic> _$SduiGridBlockToJson(SduiGridBlock instance) =>
       'block_type': instance.$type,
     };
 
-SduiHeaderBlock _$SduiHeaderBlockFromJson(
+SduiMetadataBlock _$SduiMetadataBlockFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
-  'SduiHeaderBlock',
+  'SduiMetadataBlock',
   json,
   ($checkedConvert) {
     $checkKeys(
@@ -407,7 +407,7 @@ SduiHeaderBlock _$SduiHeaderBlockFromJson(
         'block_type',
       ],
     );
-    final val = SduiHeaderBlock(
+    final val = SduiMetadataBlock(
       id: $checkedConvert('id', (v) => v as String?),
       title: $checkedConvert('title', (v) => v as String),
       badges: $checkedConvert(
@@ -442,7 +442,7 @@ SduiHeaderBlock _$SduiHeaderBlockFromJson(
   },
 );
 
-Map<String, dynamic> _$SduiHeaderBlockToJson(SduiHeaderBlock instance) =>
+Map<String, dynamic> _$SduiMetadataBlockToJson(SduiMetadataBlock instance) =>
     <String, dynamic>{
       'id': instance.id,
       'title': instance.title,
@@ -453,6 +453,47 @@ Map<String, dynamic> _$SduiHeaderBlockToJson(SduiHeaderBlock instance) =>
       'custom_preface_md': instance.customPrefaceMd,
       'block_type': instance.$type,
     };
+
+SduiScoreCardBlock _$SduiScoreCardBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'SduiScoreCardBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(json, allowedKeys: const ['id', 'global_score', 'block_type']);
+    final val = SduiScoreCardBlock(
+      id: $checkedConvert('id', (v) => v as String?),
+      globalScore: $checkedConvert(
+        'global_score',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {'globalScore': 'global_score', r'$type': 'block_type'},
+);
+
+Map<String, dynamic> _$SduiScoreCardBlockToJson(SduiScoreCardBlock instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'global_score': instance.globalScore,
+      'block_type': instance.$type,
+    };
+
+SduiAuditTrailBlock _$SduiAuditTrailBlockFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('SduiAuditTrailBlock', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['id', 'block_type']);
+      final val = SduiAuditTrailBlock(
+        id: $checkedConvert('id', (v) => v as String?),
+        $type: $checkedConvert('block_type', (v) => v as String?),
+      );
+      return val;
+    }, fieldKeyMap: const {r'$type': 'block_type'});
+
+Map<String, dynamic> _$SduiAuditTrailBlockToJson(
+  SduiAuditTrailBlock instance,
+) => <String, dynamic>{'id': instance.id, 'block_type': instance.$type};
 
 SduiRadarChartBlock _$SduiRadarChartBlockFromJson(
   Map<String, dynamic> json,

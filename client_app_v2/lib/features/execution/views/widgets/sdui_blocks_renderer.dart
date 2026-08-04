@@ -10,12 +10,20 @@ import 'package:client_app/shared/widgets/logic_radar_chart.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/features/execution/views/widgets/matrix_row_item_widget.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_matrix_table_widget.dart';
+import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 
 class SduiBlocksRenderer extends StatelessWidget {
   final List<SduiBlockDTO> blocks;
+  final List<McpAuditTraceDto>? mcpToolAudit;
 
-  const SduiBlocksRenderer({super.key, required this.blocks});
+  const SduiBlocksRenderer({
+    super.key,
+    required this.blocks,
+    this.mcpToolAudit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +35,9 @@ class SduiBlocksRenderer extends StatelessWidget {
       children: blocks.map((block) {
         return switch (block) {
           SduiAccordionBlock() => _buildAccordion(context, block),
-          SduiHeaderBlock() => _buildHeader(context, block),
+          SduiMetadataBlock() => _buildMetadata(context, block),
+          SduiScoreCardBlock() => _buildScoreCard(context, block),
+          SduiAuditTrailBlock() => _buildAuditTrail(context, block),
           SduiAlertBoxBlock() => SduiAlertBoxWidget(block: block),
           SduiGridBlock() => SduiGridWidget(block: block),
           SduiMarkdownBlock() =>
@@ -141,7 +151,7 @@ class SduiBlocksRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, SduiHeaderBlock block) {
+  Widget _buildMetadata(BuildContext context, SduiMetadataBlock block) {
     final theme = Theme.of(context);
     return Card(
       elevation: 2,
@@ -261,6 +271,69 @@ class SduiBlocksRenderer extends StatelessWidget {
                 child: OutputRenderer(markdownContent: block.customPrefaceMd!),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoreCard(BuildContext context, SduiScoreCardBlock block) {
+    if (block.globalScore == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            l10n.scorecard_global_average,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            '${block.globalScore!.toStringAsFixed(2)}/100',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditTrail(BuildContext context, SduiAuditTrailBlock block) {
+    if (mcpToolAudit == null || mcpToolAudit!.isEmpty)
+      return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+        side: BorderSide(color: AppColors.intentInfo, width: AppSpacing.s2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.systemAuditTrailLabel,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.intentInfo,
+              ),
+            ),
+            AppSpacing.h12,
+            XAIEvidenceBox(traces: mcpToolAudit!),
           ],
         ),
       ),

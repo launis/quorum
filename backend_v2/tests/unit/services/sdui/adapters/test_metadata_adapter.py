@@ -3,13 +3,13 @@
 from datetime import datetime
 
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile
-from backend_v2.models.view.sdui import HeaderBlock
+from backend_v2.models.view.sdui import SduiMetadataBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.metadata_adapter import MetadataAdapter
 
 
 def test_metadata_adapter_builds_header_block() -> None:
-    """Test that MetadataAdapter correctly builds a HeaderBlock."""
+    """Test that MetadataAdapter correctly builds a SduiMetadataBlock."""
     profile = OutputProfile(
         id="prf_0123456789abcdef",
         slug="test-slug",
@@ -37,7 +37,7 @@ def test_metadata_adapter_builds_header_block() -> None:
 
     blocks = MetadataAdapter.build(context)
     assert len(blocks) == 1
-    assert isinstance(blocks[0], HeaderBlock)
+    assert isinstance(blocks[0], SduiMetadataBlock)
 
     header = blocks[0]
     assert header.title == "Test Profile"

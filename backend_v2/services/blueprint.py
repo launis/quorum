@@ -56,8 +56,10 @@ from backend_v2.models.view.sdui import (
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
+from backend_v2.services.sdui.adapters.global_score_adapter import GlobalScoreAdapter
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
+from backend_v2.services.sdui.adapters.mcp_audit_adapter import McpAuditAdapter
 from backend_v2.services.sdui.adapters.metadata_adapter import MetadataAdapter
 from backend_v2.services.sdui.adapters.penalties_adapter import PenaltiesAdapter
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
@@ -103,8 +105,8 @@ class BlueprintTransformer:
 
         self._target_block_hydrators: dict[str, Callable[[AdapterContext], list[AnySduiBlock]]] = {
             TargetBlockType.PENALTIES_BLOCK: lambda ctx: PenaltiesAdapter.build(ctx),
-            TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: [],
-            TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: [],
+            TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: GlobalScoreAdapter.build(ctx),
+            TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: McpAuditAdapter.build(ctx),
             TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: self._hydrate_jargon_ratio_block(),
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: PrintableSourcesAdapter.build(ctx),
             TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: XaiHighlightsAdapter.build(ctx),
@@ -1587,6 +1589,8 @@ class BlueprintTransformer:
                 TargetBlockType.PENALTIES_BLOCK,
                 "matrix_summary_table_block",
                 TargetBlockType.PRINTABLE_SOURCES_BLOCK,
+                TargetBlockType.GLOBAL_SCORE_BLOCK,
+                TargetBlockType.AUDIT_TRAIL_BLOCK,
             ]
 
             for target_k in dispatch_order:

@@ -55,8 +55,16 @@ SduiBlockDTO _$SduiBlockDTOFromJson(
           return SduiGridBlock.fromJson(
             json
           );
-                case 'header':
-          return SduiHeaderBlock.fromJson(
+                case 'metadata':
+          return SduiMetadataBlock.fromJson(
+            json
+          );
+                case 'score_card':
+          return SduiScoreCardBlock.fromJson(
+            json
+          );
+                case 'audit_trail':
+          return SduiAuditTrailBlock.fromJson(
             json
           );
                 case '3d_matrix':
@@ -164,7 +172,7 @@ extension SduiBlockDTOPatterns on SduiBlockDTO {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SduiParagraphBlock value)?  paragraph,TResult Function( SduiBulletListBlock value)?  bulletList,TResult Function( SduiAccordionBlock value)?  accordion,TResult Function( SduiAlertBoxBlock value)?  alertBox,TResult Function( SduiHeroInsightBlock value)?  heroInsight,TResult Function( SduiMarkdownBlock value)?  markdown,TResult Function( SduiQuoteCardBlock value)?  quoteCard,TResult Function( SduiWarningCardBlock value)?  warningCard,TResult Function( SduiNACardBlock value)?  nACard,TResult Function( SduiGridBlock value)?  grid,TResult Function( SduiHeaderBlock value)?  header,TResult Function( SduiRadarChartBlock value)?  matrix3d,TResult Function( SduiScatterPlotBlock value)?  compare2d,TResult Function( SduiMetrics1DBlock value)?  metrics1d,TResult Function( SduiMatrixTableBlock value)?  matrixSummary,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SduiParagraphBlock value)?  paragraph,TResult Function( SduiBulletListBlock value)?  bulletList,TResult Function( SduiAccordionBlock value)?  accordion,TResult Function( SduiAlertBoxBlock value)?  alertBox,TResult Function( SduiHeroInsightBlock value)?  heroInsight,TResult Function( SduiMarkdownBlock value)?  markdown,TResult Function( SduiQuoteCardBlock value)?  quoteCard,TResult Function( SduiWarningCardBlock value)?  warningCard,TResult Function( SduiNACardBlock value)?  nACard,TResult Function( SduiGridBlock value)?  grid,TResult Function( SduiMetadataBlock value)?  metadata,TResult Function( SduiScoreCardBlock value)?  scoreCard,TResult Function( SduiAuditTrailBlock value)?  auditTrail,TResult Function( SduiRadarChartBlock value)?  matrix3d,TResult Function( SduiScatterPlotBlock value)?  compare2d,TResult Function( SduiMetrics1DBlock value)?  metrics1d,TResult Function( SduiMatrixTableBlock value)?  matrixSummary,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
@@ -177,8 +185,10 @@ return markdown(_that);case SduiQuoteCardBlock() when quoteCard != null:
 return quoteCard(_that);case SduiWarningCardBlock() when warningCard != null:
 return warningCard(_that);case SduiNACardBlock() when nACard != null:
 return nACard(_that);case SduiGridBlock() when grid != null:
-return grid(_that);case SduiHeaderBlock() when header != null:
-return header(_that);case SduiRadarChartBlock() when matrix3d != null:
+return grid(_that);case SduiMetadataBlock() when metadata != null:
+return metadata(_that);case SduiScoreCardBlock() when scoreCard != null:
+return scoreCard(_that);case SduiAuditTrailBlock() when auditTrail != null:
+return auditTrail(_that);case SduiRadarChartBlock() when matrix3d != null:
 return matrix3d(_that);case SduiScatterPlotBlock() when compare2d != null:
 return compare2d(_that);case SduiMetrics1DBlock() when metrics1d != null:
 return metrics1d(_that);case SduiMatrixTableBlock() when matrixSummary != null:
@@ -200,7 +210,7 @@ return matrixSummary(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SduiParagraphBlock value)  paragraph,required TResult Function( SduiBulletListBlock value)  bulletList,required TResult Function( SduiAccordionBlock value)  accordion,required TResult Function( SduiAlertBoxBlock value)  alertBox,required TResult Function( SduiHeroInsightBlock value)  heroInsight,required TResult Function( SduiMarkdownBlock value)  markdown,required TResult Function( SduiQuoteCardBlock value)  quoteCard,required TResult Function( SduiWarningCardBlock value)  warningCard,required TResult Function( SduiNACardBlock value)  nACard,required TResult Function( SduiGridBlock value)  grid,required TResult Function( SduiHeaderBlock value)  header,required TResult Function( SduiRadarChartBlock value)  matrix3d,required TResult Function( SduiScatterPlotBlock value)  compare2d,required TResult Function( SduiMetrics1DBlock value)  metrics1d,required TResult Function( SduiMatrixTableBlock value)  matrixSummary,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SduiParagraphBlock value)  paragraph,required TResult Function( SduiBulletListBlock value)  bulletList,required TResult Function( SduiAccordionBlock value)  accordion,required TResult Function( SduiAlertBoxBlock value)  alertBox,required TResult Function( SduiHeroInsightBlock value)  heroInsight,required TResult Function( SduiMarkdownBlock value)  markdown,required TResult Function( SduiQuoteCardBlock value)  quoteCard,required TResult Function( SduiWarningCardBlock value)  warningCard,required TResult Function( SduiNACardBlock value)  nACard,required TResult Function( SduiGridBlock value)  grid,required TResult Function( SduiMetadataBlock value)  metadata,required TResult Function( SduiScoreCardBlock value)  scoreCard,required TResult Function( SduiAuditTrailBlock value)  auditTrail,required TResult Function( SduiRadarChartBlock value)  matrix3d,required TResult Function( SduiScatterPlotBlock value)  compare2d,required TResult Function( SduiMetrics1DBlock value)  metrics1d,required TResult Function( SduiMatrixTableBlock value)  matrixSummary,}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
@@ -213,8 +223,10 @@ return markdown(_that);case SduiQuoteCardBlock():
 return quoteCard(_that);case SduiWarningCardBlock():
 return warningCard(_that);case SduiNACardBlock():
 return nACard(_that);case SduiGridBlock():
-return grid(_that);case SduiHeaderBlock():
-return header(_that);case SduiRadarChartBlock():
+return grid(_that);case SduiMetadataBlock():
+return metadata(_that);case SduiScoreCardBlock():
+return scoreCard(_that);case SduiAuditTrailBlock():
+return auditTrail(_that);case SduiRadarChartBlock():
 return matrix3d(_that);case SduiScatterPlotBlock():
 return compare2d(_that);case SduiMetrics1DBlock():
 return metrics1d(_that);case SduiMatrixTableBlock():
@@ -232,7 +244,7 @@ return matrixSummary(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SduiParagraphBlock value)?  paragraph,TResult? Function( SduiBulletListBlock value)?  bulletList,TResult? Function( SduiAccordionBlock value)?  accordion,TResult? Function( SduiAlertBoxBlock value)?  alertBox,TResult? Function( SduiHeroInsightBlock value)?  heroInsight,TResult? Function( SduiMarkdownBlock value)?  markdown,TResult? Function( SduiQuoteCardBlock value)?  quoteCard,TResult? Function( SduiWarningCardBlock value)?  warningCard,TResult? Function( SduiNACardBlock value)?  nACard,TResult? Function( SduiGridBlock value)?  grid,TResult? Function( SduiHeaderBlock value)?  header,TResult? Function( SduiRadarChartBlock value)?  matrix3d,TResult? Function( SduiScatterPlotBlock value)?  compare2d,TResult? Function( SduiMetrics1DBlock value)?  metrics1d,TResult? Function( SduiMatrixTableBlock value)?  matrixSummary,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SduiParagraphBlock value)?  paragraph,TResult? Function( SduiBulletListBlock value)?  bulletList,TResult? Function( SduiAccordionBlock value)?  accordion,TResult? Function( SduiAlertBoxBlock value)?  alertBox,TResult? Function( SduiHeroInsightBlock value)?  heroInsight,TResult? Function( SduiMarkdownBlock value)?  markdown,TResult? Function( SduiQuoteCardBlock value)?  quoteCard,TResult? Function( SduiWarningCardBlock value)?  warningCard,TResult? Function( SduiNACardBlock value)?  nACard,TResult? Function( SduiGridBlock value)?  grid,TResult? Function( SduiMetadataBlock value)?  metadata,TResult? Function( SduiScoreCardBlock value)?  scoreCard,TResult? Function( SduiAuditTrailBlock value)?  auditTrail,TResult? Function( SduiRadarChartBlock value)?  matrix3d,TResult? Function( SduiScatterPlotBlock value)?  compare2d,TResult? Function( SduiMetrics1DBlock value)?  metrics1d,TResult? Function( SduiMatrixTableBlock value)?  matrixSummary,}){
 final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
@@ -245,8 +257,10 @@ return markdown(_that);case SduiQuoteCardBlock() when quoteCard != null:
 return quoteCard(_that);case SduiWarningCardBlock() when warningCard != null:
 return warningCard(_that);case SduiNACardBlock() when nACard != null:
 return nACard(_that);case SduiGridBlock() when grid != null:
-return grid(_that);case SduiHeaderBlock() when header != null:
-return header(_that);case SduiRadarChartBlock() when matrix3d != null:
+return grid(_that);case SduiMetadataBlock() when metadata != null:
+return metadata(_that);case SduiScoreCardBlock() when scoreCard != null:
+return scoreCard(_that);case SduiAuditTrailBlock() when auditTrail != null:
+return auditTrail(_that);case SduiRadarChartBlock() when matrix3d != null:
 return matrix3d(_that);case SduiScatterPlotBlock() when compare2d != null:
 return compare2d(_that);case SduiMetrics1DBlock() when metrics1d != null:
 return metrics1d(_that);case SduiMatrixTableBlock() when matrixSummary != null:
@@ -267,7 +281,7 @@ return matrixSummary(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  metadata,TResult Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)?  scoreCard,TResult Function( String? id)?  auditTrail,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
@@ -279,8 +293,10 @@ return markdown(_that.id,_that.text);case SduiQuoteCardBlock() when quoteCard !=
 return quoteCard(_that.id,_that.quote,_that.sourceAliases,_that.citations);case SduiWarningCardBlock() when warningCard != null:
 return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock() when nACard != null:
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock() when grid != null:
-return grid(_that.id,_that.items);case SduiHeaderBlock() when header != null:
-return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiRadarChartBlock() when matrix3d != null:
+return grid(_that.id,_that.items);case SduiMetadataBlock() when metadata != null:
+return metadata(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiScoreCardBlock() when scoreCard != null:
+return scoreCard(_that.id,_that.globalScore);case SduiAuditTrailBlock() when auditTrail != null:
+return auditTrail(_that.id);case SduiRadarChartBlock() when matrix3d != null:
 return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock() when compare2d != null:
 return compare2d(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock() when metrics1d != null:
 return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock() when matrixSummary != null:
@@ -302,7 +318,7 @@ return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<SduiBlockDTO> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  header,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  matrix3d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  compare2d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  metrics1d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)  matrixSummary,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<SduiBlockDTO> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  metadata,required TResult Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)  scoreCard,required TResult Function( String? id)  auditTrail,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  matrix3d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  compare2d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  metrics1d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)  matrixSummary,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock():
@@ -314,8 +330,10 @@ return markdown(_that.id,_that.text);case SduiQuoteCardBlock():
 return quoteCard(_that.id,_that.quote,_that.sourceAliases,_that.citations);case SduiWarningCardBlock():
 return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock():
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock():
-return grid(_that.id,_that.items);case SduiHeaderBlock():
-return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiRadarChartBlock():
+return grid(_that.id,_that.items);case SduiMetadataBlock():
+return metadata(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiScoreCardBlock():
+return scoreCard(_that.id,_that.globalScore);case SduiAuditTrailBlock():
+return auditTrail(_that.id);case SduiRadarChartBlock():
 return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock():
 return compare2d(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock():
 return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock():
@@ -333,7 +351,7 @@ return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  header,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  metadata,TResult? Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)?  scoreCard,TResult? Function( String? id)?  auditTrail,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
@@ -345,8 +363,10 @@ return markdown(_that.id,_that.text);case SduiQuoteCardBlock() when quoteCard !=
 return quoteCard(_that.id,_that.quote,_that.sourceAliases,_that.citations);case SduiWarningCardBlock() when warningCard != null:
 return warningCard(_that.id,_that.message,_that.quoteText);case SduiNACardBlock() when nACard != null:
 return nACard(_that.id,_that.shortCircuitReasonTdaIds,_that.message);case SduiGridBlock() when grid != null:
-return grid(_that.id,_that.items);case SduiHeaderBlock() when header != null:
-return header(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiRadarChartBlock() when matrix3d != null:
+return grid(_that.id,_that.items);case SduiMetadataBlock() when metadata != null:
+return metadata(_that.id,_that.title,_that.badges,_that.metadataLines,_that.costs,_that.tokens,_that.customPrefaceMd);case SduiScoreCardBlock() when scoreCard != null:
+return scoreCard(_that.id,_that.globalScore);case SduiAuditTrailBlock() when auditTrail != null:
+return auditTrail(_that.id);case SduiRadarChartBlock() when matrix3d != null:
 return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock() when compare2d != null:
 return compare2d(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock() when metrics1d != null:
 return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock() when matrixSummary != null:
@@ -1211,9 +1231,9 @@ as List<SduiBlockDTO>,
 /// @nodoc
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
-class SduiHeaderBlock extends SduiBlockDTO {
-  const SduiHeaderBlock({this.id, required this.title, final  List<String> badges = const [], @JsonKey(name: 'metadata_lines') final  List<String> metadataLines = const [], this.costs, final  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, final  String? $type}): _badges = badges,_metadataLines = metadataLines,_tokens = tokens,$type = $type ?? 'header',super._();
-  factory SduiHeaderBlock.fromJson(Map<String, dynamic> json) => _$SduiHeaderBlockFromJson(json);
+class SduiMetadataBlock extends SduiBlockDTO {
+  const SduiMetadataBlock({this.id, required this.title, final  List<String> badges = const [], @JsonKey(name: 'metadata_lines') final  List<String> metadataLines = const [], this.costs, final  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, final  String? $type}): _badges = badges,_metadataLines = metadataLines,_tokens = tokens,$type = $type ?? 'metadata',super._();
+  factory SduiMetadataBlock.fromJson(Map<String, dynamic> json) => _$SduiMetadataBlockFromJson(json);
 
 @override final  String? id;
  final  String title;
@@ -1251,16 +1271,16 @@ final String $type;
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$SduiHeaderBlockCopyWith<SduiHeaderBlock> get copyWith => _$SduiHeaderBlockCopyWithImpl<SduiHeaderBlock>(this, _$identity);
+$SduiMetadataBlockCopyWith<SduiMetadataBlock> get copyWith => _$SduiMetadataBlockCopyWithImpl<SduiMetadataBlock>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$SduiHeaderBlockToJson(this, );
+  return _$SduiMetadataBlockToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiHeaderBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other._badges, _badges)&&const DeepCollectionEquality().equals(other._metadataLines, _metadataLines)&&(identical(other.costs, costs) || other.costs == costs)&&const DeepCollectionEquality().equals(other._tokens, _tokens)&&(identical(other.customPrefaceMd, customPrefaceMd) || other.customPrefaceMd == customPrefaceMd));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiMetadataBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&const DeepCollectionEquality().equals(other._badges, _badges)&&const DeepCollectionEquality().equals(other._metadataLines, _metadataLines)&&(identical(other.costs, costs) || other.costs == costs)&&const DeepCollectionEquality().equals(other._tokens, _tokens)&&(identical(other.customPrefaceMd, customPrefaceMd) || other.customPrefaceMd == customPrefaceMd));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1269,15 +1289,15 @@ int get hashCode => Object.hash(runtimeType,id,title,const DeepCollectionEqualit
 
 @override
 String toString() {
-  return 'SduiBlockDTO.header(id: $id, title: $title, badges: $badges, metadataLines: $metadataLines, costs: $costs, tokens: $tokens, customPrefaceMd: $customPrefaceMd)';
+  return 'SduiBlockDTO.metadata(id: $id, title: $title, badges: $badges, metadataLines: $metadataLines, costs: $costs, tokens: $tokens, customPrefaceMd: $customPrefaceMd)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $SduiHeaderBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
-  factory $SduiHeaderBlockCopyWith(SduiHeaderBlock value, $Res Function(SduiHeaderBlock) _then) = _$SduiHeaderBlockCopyWithImpl;
+abstract mixin class $SduiMetadataBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
+  factory $SduiMetadataBlockCopyWith(SduiMetadataBlock value, $Res Function(SduiMetadataBlock) _then) = _$SduiMetadataBlockCopyWithImpl;
 @override @useResult
 $Res call({
  String? id, String title, List<String> badges,@JsonKey(name: 'metadata_lines') List<String> metadataLines, String? costs, Map<String, String>? tokens,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd
@@ -1288,17 +1308,17 @@ $Res call({
 
 }
 /// @nodoc
-class _$SduiHeaderBlockCopyWithImpl<$Res>
-    implements $SduiHeaderBlockCopyWith<$Res> {
-  _$SduiHeaderBlockCopyWithImpl(this._self, this._then);
+class _$SduiMetadataBlockCopyWithImpl<$Res>
+    implements $SduiMetadataBlockCopyWith<$Res> {
+  _$SduiMetadataBlockCopyWithImpl(this._self, this._then);
 
-  final SduiHeaderBlock _self;
-  final $Res Function(SduiHeaderBlock) _then;
+  final SduiMetadataBlock _self;
+  final $Res Function(SduiMetadataBlock) _then;
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = null,Object? badges = null,Object? metadataLines = null,Object? costs = freezed,Object? tokens = freezed,Object? customPrefaceMd = freezed,}) {
-  return _then(SduiHeaderBlock(
+  return _then(SduiMetadataBlock(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,badges: null == badges ? _self._badges : badges // ignore: cast_nullable_to_non_nullable
@@ -1306,6 +1326,154 @@ as List<String>,metadataLines: null == metadataLines ? _self._metadataLines : me
 as List<String>,costs: freezed == costs ? _self.costs : costs // ignore: cast_nullable_to_non_nullable
 as String?,tokens: freezed == tokens ? _self._tokens : tokens // ignore: cast_nullable_to_non_nullable
 as Map<String, String>?,customPrefaceMd: freezed == customPrefaceMd ? _self.customPrefaceMd : customPrefaceMd // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class SduiScoreCardBlock extends SduiBlockDTO {
+  const SduiScoreCardBlock({this.id, @JsonKey(name: 'global_score') this.globalScore, final  String? $type}): $type = $type ?? 'score_card',super._();
+  factory SduiScoreCardBlock.fromJson(Map<String, dynamic> json) => _$SduiScoreCardBlockFromJson(json);
+
+@override final  String? id;
+@JsonKey(name: 'global_score') final  double? globalScore;
+
+@JsonKey(name: 'block_type')
+final String $type;
+
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SduiScoreCardBlockCopyWith<SduiScoreCardBlock> get copyWith => _$SduiScoreCardBlockCopyWithImpl<SduiScoreCardBlock>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SduiScoreCardBlockToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiScoreCardBlock&&(identical(other.id, id) || other.id == id)&&(identical(other.globalScore, globalScore) || other.globalScore == globalScore));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,globalScore);
+
+@override
+String toString() {
+  return 'SduiBlockDTO.scoreCard(id: $id, globalScore: $globalScore)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SduiScoreCardBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
+  factory $SduiScoreCardBlockCopyWith(SduiScoreCardBlock value, $Res Function(SduiScoreCardBlock) _then) = _$SduiScoreCardBlockCopyWithImpl;
+@override @useResult
+$Res call({
+ String? id,@JsonKey(name: 'global_score') double? globalScore
+});
+
+
+
+
+}
+/// @nodoc
+class _$SduiScoreCardBlockCopyWithImpl<$Res>
+    implements $SduiScoreCardBlockCopyWith<$Res> {
+  _$SduiScoreCardBlockCopyWithImpl(this._self, this._then);
+
+  final SduiScoreCardBlock _self;
+  final $Res Function(SduiScoreCardBlock) _then;
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? globalScore = freezed,}) {
+  return _then(SduiScoreCardBlock(
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String?,globalScore: freezed == globalScore ? _self.globalScore : globalScore // ignore: cast_nullable_to_non_nullable
+as double?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class SduiAuditTrailBlock extends SduiBlockDTO {
+  const SduiAuditTrailBlock({this.id, final  String? $type}): $type = $type ?? 'audit_trail',super._();
+  factory SduiAuditTrailBlock.fromJson(Map<String, dynamic> json) => _$SduiAuditTrailBlockFromJson(json);
+
+@override final  String? id;
+
+@JsonKey(name: 'block_type')
+final String $type;
+
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SduiAuditTrailBlockCopyWith<SduiAuditTrailBlock> get copyWith => _$SduiAuditTrailBlockCopyWithImpl<SduiAuditTrailBlock>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SduiAuditTrailBlockToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SduiAuditTrailBlock&&(identical(other.id, id) || other.id == id));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id);
+
+@override
+String toString() {
+  return 'SduiBlockDTO.auditTrail(id: $id)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SduiAuditTrailBlockCopyWith<$Res> implements $SduiBlockDTOCopyWith<$Res> {
+  factory $SduiAuditTrailBlockCopyWith(SduiAuditTrailBlock value, $Res Function(SduiAuditTrailBlock) _then) = _$SduiAuditTrailBlockCopyWithImpl;
+@override @useResult
+$Res call({
+ String? id
+});
+
+
+
+
+}
+/// @nodoc
+class _$SduiAuditTrailBlockCopyWithImpl<$Res>
+    implements $SduiAuditTrailBlockCopyWith<$Res> {
+  _$SduiAuditTrailBlockCopyWithImpl(this._self, this._then);
+
+  final SduiAuditTrailBlock _self;
+  final $Res Function(SduiAuditTrailBlock) _then;
+
+/// Create a copy of SduiBlockDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,}) {
+  return _then(SduiAuditTrailBlock(
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

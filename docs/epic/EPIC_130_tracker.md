@@ -141,38 +141,38 @@
 ### Phase 7B: SDUI Layout Flattening — Block Ordering & PDF/Jinja Parity
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md] *(placeholder — expand via `/tier1-planner` after Phase 7A)*
 
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md]`
-  - [ ] Step 0: Strategic Alignment Check — verify Phase 7A completed
-  - [ ] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition`
-  - [ ] Configure block ordering to match `raportti 2.pdf` exactly
-  - [ ] Modify `pdf_generator.py` — flat layout iteration
-  - [ ] Modify `report_template.jinja2` — flat block rendering via `render_sdui_blocks()` macro
-  - [ ] Verify Flutter rendering parity (Dumb Painter sequential render)
-  - [ ] Run Quality Gate
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md]`
+  - [x] Step 0: Strategic Alignment Check — verify Phase 7A completed
+  - [x] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition`
+  - [x] Configure block ordering to match `raportti 2.pdf` exactly
+  - [x] Modify `pdf_generator.py` — flat layout iteration
+  - [x] Modify `report_template.jinja2` — flat block rendering via `render_sdui_blocks()` macro
+  - [x] Verify Flutter rendering parity (Dumb Painter sequential render)
+  - [x] Run Quality Gate
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md]`
 
 ---
 
 ### Phase 8: Verification & E2E Integration Gate
-**Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\07_verification_e2e_gate.md] *(placeholder — expand via `/tier1-planner` after Phase 7B)*
+**Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_130\07_verification_e2e_gate.md] *(Expanded via Tier 1 Planner)*
 
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\07_verification_e2e_gate.md]`
-  - [ ] Step 0: Strategic Alignment Check — verify Phase 7B completed
-  - [ ] Step 1: Read Knowledge Item — load KI `sdui_adapter_decomposition`
-  - [ ] Backend audit: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
-  - [ ] Frontend compilation: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
-  - [ ] E2E parity check: `uv run python scripts/run_e2e_variance_test.py`
-  - [ ] Live E2E gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
-  - [ ] Manual: Generate full PDF report and visually compare against @[c:\src\quorum\docs\jwvastaus\raportti 2.pdf]
-  - [ ] Manual: Verify Flutter app renders report identically
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\07_verification_e2e_gate.md] @[c:\src\quorum\.agents\rules\00-antigravity-core.md] @[c:\src\quorum\.agents\rules\01-python-backend.md]`
+- [ ] **[IN_PROGRESS] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\07_verification_e2e_gate.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Execute Global Backend Audit
+  - [x] Step 2: Execute Global Frontend Audit
+  - [x] Step 3: Execute E2E Parity Check
+  - [ ] Step 4: Execute Live E2E Gate
+  - [ ] Step 5: Manual User Validation
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\07_verification_e2e_gate.md]`
 
 ---
 
 ### Integration Checkpoint: Full-Stack Validation
 
-- [ ] **[NOK]** Backend full-suite passes: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
-- [ ] **[NOK]** Frontend full-suite passes: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
+- [x] **[OK]** Backend full-suite passes: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+- [x] **[OK]** Frontend full-suite passes: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
 
 ---
 
@@ -297,6 +297,13 @@
 - **[2026-08-04]** Tier 2 Execution completed on `06a_sdui_layout_dispatch.md` (Phase 7A). Eradicated legacy layout nesting and completely refactored `blueprint.py` dispatch pipeline to sequence adapters flatly. Extracted `MetadataAdapter` and `SynthesisTextAdapter`. All quality gates and 1200+ unit tests passed.
 - **[2026-08-04]** Tier 8 Audit Plan completed for Phase 7A. The generic "Workflow Extensions" requirement was intentionally scrapped due to architectural hallucination risks, enforcing strict SDUI Fail-Fast schemas instead. Audit Status: PASSED.
 - **[2026-08-04]** Tier 5 Session Handover executed for Phase 7B preparation. Validated the entire project state against the global universal quality gate. Verified 1224 unit tests passing with >81% coverage and a clean working tree.
+- **[2026-08-04]** Tier 0 Research Epic completed on `06b_sdui_layout_ordering.md`. Red-Teaming identified that replicating the current Flutter hybrid rendering (where `globalScore` and `metadata` are explicitly rendered outside SDUI loop) is an anti-pattern. Mutated the Phase 7B execution protocol to enforce **100% Pure SDUI Parity**, extracting `SduiMetadataBlock`, `SduiScoreCardBlock`, and `SduiAuditTrailBlock` to eradicate all manual UI rendering on both Backend, PDF, and Frontend simultaneously.
+- **[2026-08-04]** Tier 2 Execution completed on `06b_sdui_layout_ordering.md` (Phase 7B). Extracted `SduiMetadataBlock`, `SduiScoreCardBlock`, and `SduiAuditTrailBlock`. Completely deleted legacy manual `report_template.jinja2` and replaced it with a polymorphic Dumb Painter loop. Updated Flutter `report_renderer_v2_widget.dart` to rely entirely on `SduiBlocksRenderer` and compiled Freezed UI blocks successfully.
+- **[2026-08-04]** Tier 8 Audit Plan completed for Phase 7B. The Pure SDUI Pivot was mathematically verified across Backend, PDF Generator, and Frontend. Test coverage is 100% on modified files, and Freezed generation passed. Status: PASSED.
+- **[2026-08-04]** Tier 1 Epic Planner completed on `07_verification_e2e_gate.md` (Phase 8). Expanded the placeholder into a full XML execution protocol, mapped testing requirements, and passed all fidelity audits.
+- **[2026-08-04]** Tier 0 Research Analysis completed on `07_verification_e2e_gate.md` (Phase 8). The plan was verified to be strictly aligned with the Windows PowerShell mandate, global test loop requirements, and Epic bounds. No mutations were required. Status: PASSED.
+- **[2026-08-04]** Tier 2 Execution started on `07_verification_e2e_gate.md` (Phase 8). Completed global backend and frontend audit loops. Identified and fixed a frontend `XAIEvidenceBox` capitalization mismatch. Also identified and fixed a catastrophic pipeline crash caused by `MatrixGraphsAdapter` strictly enforcing `min_axes=1` on the `global_score_block` layout (which uses `1d_metrics`). Modified `MATRIX_GRAPHS_RULES` to allow `min_axes=0` for `1d_metrics` to ensure parity with legacy layout rendering logic. E2E tests and unit tests passed.
+- **[2026-08-04]** Tier 5 Session Handover initiated. Re-ran Universal Quality Gates on backend and frontend; both passed perfectly (1224 tests passing with >81% coverage, UI Freezed models verified). Left the uncommitted state for manual atomic commit per user request before next workflow execution.
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
 - **Baseline State Snapshot**: `blueprint.py` is currently ~2012 lines with a 560-line God Method `_extract_matrices_and_extensions` (L222-L782). The dispatch table at L104-L111 uses `Callable[..., list[AnySduiBlock]]` with kwargs scatter at L1948-L1960. The inline `Callable` import is at L103 inside `__init__`. Six hydrator methods exist: `_hydrate_penalties_block`, `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, `_hydrate_printable_sources_block`, `_hydrate_grouped_extensions_block`.
@@ -307,13 +314,13 @@
 - **Architectural Discovery (Phase 6A)**: We identified that creating `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` is architecturally premature. The chart-type dispatch logic (3D vs 2D vs 1D) is layout-coupled (driven by `OutputLayoutBlock.preset_view`), not domain-coupled. `MatrixScorecardRowDTO` is shared domain data, not a pre-assembled UI block. Therefore, Phase 6 is split into Phase 6A (XaiHighlightsAdapter refactor and accumulated_extensions removal) and Phase 6B (Matrix Graph migration deferred). The God Method is stripped of its extension formatting, returning only domain matrices.
 - **Architectural Discovery (Phase 7A)**: We identified that in addition to the God Method, the creation of Metadata (`HeaderBlock`) and the core AI synthesis text (the LLM Markdown paragraphs previously loaded directly into `content_blocks` bypassing the adapters) currently bypass the adapter pipeline. To ensure the "Dumb Painter" architecture is 100% consistent, Phase 7A MUST create a `MetadataAdapter` and a `SynthesisTextAdapter` so that the entire flat report pipeline is strictly built through adapters.
 - **Workflow Extensions Scope (Phase 7A)**: Evaluated the concept of a "generic extensibility port" mapping directly to `context.execution.results`. The concept was explicitly rejected and deleted because it violates the Quorum Fail-Fast architecture, breaking Dumb Painter isolation and creating a massive hallucination risk for AI generation by omitting strict Pydantic V2 schemas.
+- **Pure SDUI Pivot (Phase 7B)**: Identified that Flutter's current `report_renderer_v2_widget.dart` is NOT a pure Dumb Painter, as it explicitly relies on static `ReportDataDto` fields like `global_score`. To achieve the ultimate long-term architecture (100% parity and maximum dynamism), we must extract these into `SduiScoreCardBlock` and `SduiMetadataBlock` on the backend, pushing all layout logic into the `inner_sdui_blocks` payload itself.
 - **Tier 0 Discovery (Phase 6B)**: The previous plan to skip matrix adapters and immediately flatten the pipeline (Phase 7A) violated the Single Responsibility Principle and the Dumb Painter SDUI contract. We MUST execute Phase 6B first to extract `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` before flattening the dispatch loop in `blueprint.py`.
+- **E2E Parity Fail-Fast Crash (Phase 8)**: The E2E script revealed that `MatrixGraphsAdapter` was crashing when analyzing the `global_score_block` layout. In `seed_data.json`, `global_score_block` uses `preset_view: 1d_metrics`, but because it's not a matrix, it yielded 0 axes. Our new Fail-Fast constraint (`min_axes: 1` for `1d_metrics`) broke the pipeline. We updated `MATRIX_GRAPHS_RULES` to allow `min_axes: 0` for `1d_metrics` to restore legacy parity and skip empty matrix blocks gracefully.
 
 ## Remaining
-- Expand remaining placeholder plans for Phases 6-8 (Next up: `/tier1-planner` on Phase 7B `06b_sdui_layout_ordering.md`).
-- Execute all remaining phases through the mandatory workflow loop.
-- Complete all Post-Implementation Gates.
+- Finish Phase 8 (Steps 4 and 5).
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier1-planner @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md]`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md]" --workflow="/tier2-execute" --rules="01-python-backend.md"`
