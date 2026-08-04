@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.dtos.base import BaseDTO
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 
 
 class TraceMatrixExtensionsDTO(BaseDTO):
@@ -36,7 +37,7 @@ class TraceMatrixPayloadDTO(BaseDTO):
     raw_score: Annotated[float | None, Field(description="The raw score calculated")] = None
     normalized_score: Annotated[float | None, Field(description="The normalized score")] = None
     justification: Annotated[str | None, Field(description="The justification text")] = None
-    level_breakdown: Annotated[dict[str, Any] | None, Field(description="Breakdown of levels")] = None
+    level_breakdown: Annotated[dict[str, LevelStatsDTO] | None, Field(description="Breakdown of levels")] = None
     extensions: Annotated[TraceMatrixExtensionsDTO | None, Field(description="Additional extensions")] = None
     evaluated_atoms: Annotated[dict[str, bool | str] | None, Field(description="Evaluated atoms mapping")] = None
     xai_log: Annotated[dict[str, Any] | None, Field(description="XAI audit log")] = None

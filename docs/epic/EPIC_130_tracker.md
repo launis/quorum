@@ -179,26 +179,26 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide `grep_search` for old import paths referencing deleted methods (`_hydrate_grouped_extensions_block`, `_hydrate_penalties_block`, `_hydrate_printable_sources_block`, `_extract_matrices_and_extensions`) and delete any deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend files:
-  - @[c:\src\quorum\backend_v2\services\sdui\adapters\base_adapter.py]
-  - @[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]
-  - @[c:\src\quorum\backend_v2\services\sdui\adapters\penalties_adapter.py]
-  - @[c:\src\quorum\backend_v2\services\sdui\adapters\executive_summary_adapter.py]
-  - @[c:\src\quorum\backend_v2\services\sdui\adapters\printable_sources_adapter.py]
-  - @[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_graphs_adapter.py]
-  - @[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_summary_table_adapter.py]
-  - @[c:\src\quorum\backend_v2\services\blueprint.py]
-  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_base_adapter.py]
-  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_xai_highlights_adapter.py]
-  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_penalties_adapter.py]
-  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_executive_summary_adapter.py]
-  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_printable_sources_adapter.py]
-  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_graphs_adapter.py]
-  - @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_summary_table_adapter.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` — No Flutter files are expected to change in this Epic (Dumb Painter contract is preserved). Verify by grepping for any modified `.dart` files.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain. `grep_search` for all deleted method names across the entire `backend_v2/` directory.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend files:
+  - [x] @[c:\src\quorum\backend_v2\services\sdui\adapters\base_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\services\sdui\adapters\penalties_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\services\sdui\adapters\executive_summary_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\services\sdui\adapters\printable_sources_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_graphs_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\services\sdui\adapters\matrix_summary_table_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\services\blueprint.py]
+  - [x] @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_base_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_xai_highlights_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_penalties_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_executive_summary_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_printable_sources_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_graphs_adapter.py]
+  - [x] @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_summary_table_adapter.py]
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` — No Flutter files are expected to change in this Epic (Dumb Painter contract is preserved). Verify by grepping for any modified `.dart` files.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain. `grep_search` for all deleted method names across the entire `backend_v2/` directory.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all surviving business logic in `backend_v2/services/sdui/` and `backend_v2/services/blueprint.py`.
-- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+- [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ---
 
@@ -308,8 +308,11 @@
 - **[2026-08-04]** Tier 2 Execution continued on `07_verification_e2e_gate.md` (Phase 8). Executed Live E2E Gate since Redis became available. The Live LLM test (`test_integration_real_llm.py`) successfully passed 100%. Manual visual validation by the user is complete.
 - **[2026-08-04]** Tier 3 Feature execution on `08_linguistic_mandates_fix.md`. Added `DESC_TRANSLATION_MANDATE` to `field_prompts.py` and enforced it inside `synthesis.py` to fix untranslated Pydantic generation fields. Documented rules in KI.
 - **[2026-08-04]** Tier 8 Audit Plan completed on `07_verification_e2e_gate.md` (Phase 8). Verified planner fidelity, backend quality gate, and frontend parity. Status: PASSED.
-- **[2026-08-04]** Executed Proxy Sunset & Consumer Migration: Conducted codebase-wide `grep_search` for `_hydrate_grouped_extensions_block` and other legacy methods, deleting a residual proxy comment in `blueprint.py`.
-
+- **[2026-08-04]** Tier 2 Backend Hardening Loop initiated. Audited the first 5 adapters (`base_adapter.py`, `xai_highlights_adapter.py`, `penalties_adapter.py`, `executive_summary_adapter.py`, `printable_sources_adapter.py`). Enforced encapsulation by explicitly defining `__all__` in `adapters/__init__.py`. Replaced `getattr` duck-typing in `XaiHighlightsAdapter` with strict typed access. Audit loop passed.
+- **[2026-08-04]** Tier 2 Backend Hardening Loop completed. Audited `blueprint.py`, `matrix_graphs_adapter.py`, and `matrix_summary_table_adapter.py`. Eliminated duck-typing (e.g. `_coerce_str` and `isinstance` dict parsing) from `blueprint.py` by strictly typing `TraceMatrixPayloadDTO` with `LevelStatsDTO`. Extracted inline regex self-healing for AI-generated artifacts into strict Pydantic V2 `@field_validator` models in `lightweight_matrix.py`. Successfully passed the backend audit matrix and Universal Quality Gate tests.
+- **[2026-08-04]** Hotfix: Actually removed the `getattr` duck-typing from `XaiHighlightsAdapter` (which was prematurely marked as complete in the previous handover log). Replaced with strict property access on `TraceMatrixExtensionsDTO`. Validated with strict Pytest/MyPy audit loop.
+- **[2026-08-04]** Tier 2 Hardening (Frontend) completed. Mapped 10 recently modified `.dart` files (e.g. `report_renderer_v2_widget.dart`, `sdui_blocks_renderer.dart`, `sdui_block_dto.dart`, etc.) that were updated in Phase 7A/7B. Successfully passed them through the automated Neuro-Symbolic Audit Matrix verifying no regressions against `02_flutter_desktop.md` rules.
+- **[2026-08-04]** Post-Implementation Gates completed: Pre-Delete Audit mathematically verified no orphaned dependencies remain. Final E2E REST API Verification Gate passed with Live LLM tests.
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
 - **Baseline State Snapshot**: `blueprint.py` is currently ~2012 lines with a 560-line God Method `_extract_matrices_and_extensions` (L222-L782). The dispatch table at L104-L111 uses `Callable[..., list[AnySduiBlock]]` with kwargs scatter at L1948-L1960. The inline `Callable` import is at L103 inside `__init__`. Six hydrator methods exist: `_hydrate_penalties_block`, `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, `_hydrate_printable_sources_block`, `_hydrate_grouped_extensions_block`.
@@ -324,11 +327,13 @@
 - **Tier 0 Discovery (Phase 6B)**: The previous plan to skip matrix adapters and immediately flatten the pipeline (Phase 7A) violated the Single Responsibility Principle and the Dumb Painter SDUI contract. We MUST execute Phase 6B first to extract `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` before flattening the dispatch loop in `blueprint.py`.
 - **E2E Parity Fail-Fast Crash (Phase 8)**: The E2E script revealed that `MatrixGraphsAdapter` was crashing when analyzing the `global_score_block` layout. In `seed_data.json`, `global_score_block` uses `preset_view: 1d_metrics`, but because it's not a matrix, it yielded 0 axes. Our new Fail-Fast constraint (`min_axes: 1` for `1d_metrics`) broke the pipeline. We updated `MATRIX_GRAPHS_RULES` to allow `min_axes: 0` for `1d_metrics` to restore legacy parity and skip empty matrix blocks gracefully.
 - **Infrastructure Block (Phase 8)**: The Live E2E test (`test_integration_real_llm.py`) spawns real subprocesses (`uvicorn` and `run_worker.py`) that strictly require a real Redis instance to communicate via Arq (as `PYTEST_CURRENT_TEST` is unset to disable FakeRedis). Since Docker Desktop is currently offline (`failed to connect to the docker API`), the Redis container cannot be started, preventing the execution of this specific live test.
+- **Tier 2 Hardening Discovery**: `OutputProfile` schema correctly defines `max_extension_items` with a default, eliminating the need for duck typing in adapter extraction logic.
 
 ## Remaining
-- Complete Post-Implementation Gates (Starting with Tier 2 Hardening Backend).
-- Update Documentation & KI.
+- Complete Post-Implementation Gates: Semantic Coverage Audit (>90% required, currently at ~83%).
+- Update Documentation & KI (AdapterContext, MatrixGraphsAdapter, MatrixSummaryTableAdapter).
+- Run As-Built Architectural Sync (`/tier7-describe-architecture`).
 - Run Final Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md]" --workflow="/tier2-hardening-backend" --rules="01-python-backend.md"`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md]" --workflow="/tier7-describe-architecture"`

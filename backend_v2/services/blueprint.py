@@ -141,73 +141,6 @@ class BlueprintTransformer:
 
         return " ".join(cleaned).strip()
 
-    @staticmethod
-    def _coerce_str(val: Any) -> str | None:
-        """Flattens list elements and converts mixed types to string.
-
-        Args:
-            val: Any input value.
-
-        Returns:
-            A string representation of the value, or None if the input is None.
-        """
-        if val is None:
-            return None
-        if isinstance(val, list):
-            return "\n".join(str(item) for item in val if item is not None)
-        if isinstance(val, (dict, set)):
-            return str(val)
-        return str(val).strip()
-
-    @staticmethod
-    def _coerce_float(val: Any) -> float | None:
-        """Coerces percentage marks and empty strings to prevent strict float crashes.
-
-        Args:
-            val: Any numeric or string value.
-
-        Returns:
-            The float value, or None if conversion fails.
-        """
-        if val is None:
-            return None
-        if isinstance(val, (int, float)):
-            return float(val)
-        s_val = str(val).strip()
-        if not s_val:
-            return None
-        s_val = s_val.replace("%", "").strip()
-        try:
-            return float(s_val)
-        except ValueError:
-            logger.warning("[BlueprintTransformer] Could not coerce value '%s' to float, returning None.", val)
-            return None
-
-    @staticmethod
-    def _coerce_bool(val: Any) -> bool | None:
-        """Translates descriptive risk text or truthy constants into a boolean.
-
-        Args:
-            val: Any input representing a truth value.
-
-        Returns:
-            The parsed boolean value, or None if input is empty.
-        """
-        if val is None:
-            return None
-        if isinstance(val, bool):
-            return val
-        if isinstance(val, (int, float)):
-            return bool(val)
-        s_val = str(val).strip().lower()
-        if not s_val:
-            return None
-        if s_val in ("false", "no", "0", "none", "null", "undefined"):
-            return False
-        if s_val in ("true", "yes", "1"):
-            return True
-        return True
-
     def _apply_pii_masking(self, text: str) -> str:
         """Applies regex-based PII masking to text.
 
@@ -453,31 +386,30 @@ class BlueprintTransformer:
 
             axis_level_breakdown = None
             raw_breakdown = matrix_payload.level_breakdown
-            if raw_breakdown and isinstance(raw_breakdown, dict):
+            if raw_breakdown:
                 clean_level_dict = {}
                 for lvl_key, lvl_data in raw_breakdown.items():
-                    if isinstance(lvl_data, dict):
-                        try:
-                            f_lvl = float(lvl_key)
-                            is_int = f_lvl.is_integer()
-                            c_key = str(int(f_lvl)) if is_int else str(lvl_key)
-                            hits = lvl_data.get("hits", 0)
-                            total = lvl_data.get("total", 0)
-                            clean_level_dict[c_key] = f"{hits}/{total}"
-                        except ValueError as v_err:
-                            logger.error(
-                                "[BlueprintTransformer] %s: Fail-Fast: Invalid level key '%s' "
-                                "in matrix breakdown for '%s'.",
-                                ErrorCodes.VALIDATION_FAILED.name,
-                                lvl_key,
-                                b_id,
-                                exc_info=True,
-                            )
-                            raise AppException(
-                                message=(f"Fail-Fast: Invalid level key '{lvl_key}' in matrix breakdown for '{b_id}'."),
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            ) from v_err
+                    try:
+                        f_lvl = float(lvl_key)
+                        is_int = f_lvl.is_integer()
+                        c_key = str(int(f_lvl)) if is_int else str(lvl_key)
+                        hits = lvl_data.hits
+                        total = lvl_data.total
+                        clean_level_dict[c_key] = f"{hits}/{total}"
+                    except ValueError as v_err:
+                        logger.error(
+                            "[BlueprintTransformer] %s: Fail-Fast: Invalid level key '%s' "
+                            "in matrix breakdown for '%s'.",
+                            ErrorCodes.VALIDATION_FAILED.name,
+                            lvl_key,
+                            b_id,
+                            exc_info=True,
+                        )
+                        raise AppException(
+                            message=(f"Fail-Fast: Invalid level key '{lvl_key}' in matrix breakdown for '{b_id}'."),
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from v_err
                 axis_level_breakdown = clean_level_dict
 
             ext = matrix_payload.extensions
@@ -546,11 +478,7 @@ class BlueprintTransformer:
                                                 exact_quotes=[],
                                                 internal_logic_en=r_step,
                                                 status=ExecutionStatus.FAILED,
-                                                semantic_reasoning=re.sub(
-                                                    r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]",
-                                                    "",
-                                                    val_data.semantic_reasoning,
-                                                ).strip(),
+                                                semantic_reasoning=val_data.semantic_reasoning,
                                                 contextual_override=False,
                                                 structural_location="N/A",
                                                 chart_display_label="N/A",
@@ -591,11 +519,7 @@ class BlueprintTransformer:
                                                 exact_quotes=parsed_quotes,
                                                 internal_logic_en=val_data_cog.internal_logic_en,
                                                 status=calc_status,
-                                                semantic_reasoning=re.sub(
-                                                    r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]",
-                                                    "",
-                                                    val_data_cog.semantic_reasoning,
-                                                ).strip(),
+                                                semantic_reasoning=val_data_cog.semantic_reasoning,
                                                 contextual_override=val_data_cog.contextual_override,
                                                 structural_location=val_data_cog.structural_location,
                                                 chart_display_label=val_data_cog.chart_display_label,
@@ -675,16 +599,14 @@ class BlueprintTransformer:
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
                 row_explanation=cleaned_explanation,
-                evidence_type=self._coerce_str(ext.evidence_type) if ext else None,  # type: ignore[arg-type]
-                cited_source_id=self._coerce_str(ext.source_id) if ext else None,
-                cited_text_quote=self._coerce_str(ext.citation) if ext else None,
-                cited_web_citation=self._coerce_str(ext.google_citation) if ext else None,
-                confidence=self._coerce_float(ext.confidence) if ext else None,
-                contextual_override=self._coerce_bool(ext.contextual_override) if ext else None,
+                evidence_type=ext.evidence_type if ext else None,  # type: ignore[arg-type]
+                cited_source_id=ext.source_id if ext else None,
+                cited_text_quote=ext.citation if ext else None,
+                cited_web_citation=ext.google_citation if ext else None,
+                confidence=ext.confidence if ext else None,
+                contextual_override=ext.contextual_override if ext else None,
                 semantic_reasoning=(
-                    self._coerce_str(ext.semantic_reasoning)
-                    if ext and ext.semantic_reasoning
-                    else self._coerce_str(matrix_payload.justification)
+                    ext.semantic_reasoning if ext and ext.semantic_reasoning else matrix_payload.justification
                 ),
                 level_breakdown=axis_level_breakdown,
                 level_names=level_names,

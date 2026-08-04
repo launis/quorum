@@ -123,12 +123,10 @@ class XaiHighlightsAdapter:
                         acc_severity.value,
                     )
 
-                    max_lines = getattr(profile, "max_extension_items", 999)
-                    if not max_lines:
-                        max_lines = 999
+                    max_lines = profile.max_extension_items if profile.max_extension_items else 999
 
                     accordion = next(
-                        (b for b in global_exts if getattr(b, "title", None) == label_str),
+                        (b for b in global_exts if b.title == label_str),
                         None,
                     )
                     if not accordion:
@@ -140,7 +138,7 @@ class XaiHighlightsAdapter:
                     for line in lines:
                         if len(accordion.children) >= max_lines:
                             break
-                        if not any(getattr(c, "text", "") == line for c in accordion.children):
+                        if not any(isinstance(c, AlertBlock) and c.text == line for c in accordion.children):
                             block = AlertBlock(
                                 severity=VisualIntent.INFO,
                                 text=f"**{label_str}**: {line}",
@@ -149,13 +147,13 @@ class XaiHighlightsAdapter:
                             )
                             accordion.children.append(block)
 
-            _add_ext("coaching", getattr(ext, "coaching", None))
-            _add_ext("falsification", getattr(ext, "falsification", None))
-            _add_ext("remediation_steps", getattr(ext, "remediation_steps", None))
-            _add_ext("missing_context", getattr(ext, "missing_context", None))
-            _add_ext("emotional_sentiment", getattr(ext, "emotional_sentiment", None))
-            _add_ext("theory_link", getattr(ext, "theory_link", None))
-            _add_ext("risk_flag", getattr(ext, "risk_flag", None))
+            _add_ext("coaching", ext.coaching)
+            _add_ext("falsification", ext.falsification)
+            _add_ext("remediation_steps", ext.remediation_steps)
+            _add_ext("missing_context", ext.missing_context)
+            _add_ext("emotional_sentiment", ext.emotional_sentiment)
+            _add_ext("theory_link", ext.theory_link)
+            _add_ext("risk_flag", ext.risk_flag)
 
         blocks.extend(cast(list[AnySduiBlock], global_exts))
         return blocks
