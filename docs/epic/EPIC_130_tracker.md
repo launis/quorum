@@ -163,7 +163,7 @@
   - [x] Step 1: Execute Global Backend Audit
   - [x] Step 2: Execute Global Frontend Audit
   - [x] Step 3: Execute E2E Parity Check
-  - [ ] Step 4: Execute Live E2E Gate
+  - [ ] **[BLOCKED]** Step 4: Execute Live E2E Gate (Blocked: Docker Desktop API is offline, cannot start Redis container for subprocess integration test)
   - [ ] Step 5: Manual User Validation
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\07_verification_e2e_gate.md]`
 
@@ -317,9 +317,11 @@
 - **Pure SDUI Pivot (Phase 7B)**: Identified that Flutter's current `report_renderer_v2_widget.dart` is NOT a pure Dumb Painter, as it explicitly relies on static `ReportDataDto` fields like `global_score`. To achieve the ultimate long-term architecture (100% parity and maximum dynamism), we must extract these into `SduiScoreCardBlock` and `SduiMetadataBlock` on the backend, pushing all layout logic into the `inner_sdui_blocks` payload itself.
 - **Tier 0 Discovery (Phase 6B)**: The previous plan to skip matrix adapters and immediately flatten the pipeline (Phase 7A) violated the Single Responsibility Principle and the Dumb Painter SDUI contract. We MUST execute Phase 6B first to extract `MatrixGraphsAdapter` and `MatrixSummaryTableAdapter` before flattening the dispatch loop in `blueprint.py`.
 - **E2E Parity Fail-Fast Crash (Phase 8)**: The E2E script revealed that `MatrixGraphsAdapter` was crashing when analyzing the `global_score_block` layout. In `seed_data.json`, `global_score_block` uses `preset_view: 1d_metrics`, but because it's not a matrix, it yielded 0 axes. Our new Fail-Fast constraint (`min_axes: 1` for `1d_metrics`) broke the pipeline. We updated `MATRIX_GRAPHS_RULES` to allow `min_axes: 0` for `1d_metrics` to restore legacy parity and skip empty matrix blocks gracefully.
+- **Infrastructure Block (Phase 8)**: The Live E2E test (`test_integration_real_llm.py`) spawns real subprocesses (`uvicorn` and `run_worker.py`) that strictly require a real Redis instance to communicate via Arq (as `PYTEST_CURRENT_TEST` is unset to disable FakeRedis). Since Docker Desktop is currently offline (`failed to connect to the docker API`), the Redis container cannot be started, preventing the execution of this specific live test.
 
 ## Remaining
-- Finish Phase 8 (Steps 4 and 5).
+- Start Docker Desktop to enable Redis.
+- Finish Phase 8 (Steps 4 and 5) once Redis is available.
 - Run Final Epic Audit.
 
 ## Resume Command
