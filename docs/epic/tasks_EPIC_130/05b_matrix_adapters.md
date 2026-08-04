@@ -31,6 +31,7 @@
     <constraint invariant="knowledge_item_preflight">Read KI `sdui_adapter_decomposition` (`ki_sdui_adapter_pattern.md`) before creating adapters.</constraint>
     <action>Create `c:\src\quorum\backend_v2\services\sdui\adapters\matrix_graphs_adapter.py`.</action>
     <action>The `build(context: AdapterContext)` method must iterate over `context.profile.layouts`. For layouts matching `"3d_matrix"`, `"2d_compare"`, or `"1d_metrics"`, it must map the corresponding matrices from `context.execution.results` into the appropriate SDUI blocks.</action>
+    <action>Implement Explicit Graceful Degradation: If a layout requires more axes than provided (e.g. 3D needs 3 but got 2), downgrade the view to `2d_compare` or `1d_metrics`/`text_only`, log a highly visible WARNING, and return the downgraded structure instead of crashing.</action>
     <action>Ensure extrema (min/max) are dynamically resolved from the model scales.</action>
     <action>Yield the graph block followed by any AI justification texts (`ParagraphBlock`s) generated for that matrix.</action>
   </step>
@@ -43,7 +44,7 @@
 
   <step id="3" name="TEST CONTRACT FULFILLMENT">
     <action>Create `c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_graphs_adapter.py` and `c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_summary_table_adapter.py`.</action>
-    <action>Implement at least two negative test scenarios per adapter (e.g. empty matrices, missing layouts, malformed bounds).</action>
+    <action>Implement at least two negative/boundary test scenarios per adapter (e.g. missing layouts, malformed bounds). For `MatrixGraphsAdapter`, explicitly test the Graceful Degradation behavior (providing 1 axis for a 3D matrix layout and asserting it degrades properly).</action>
     <action>Use Pytest fixtures and `polyfactory` for deterministic mock data.</action>
   </step>
 

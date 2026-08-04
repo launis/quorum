@@ -21,6 +21,10 @@ DESC_REASONING_TRACE = (
     "You MUST write this trace in the {target_locale} locale."
 )
 
+DESC_TRANSLATION_MANDATE = (
+    "MUST BE TRANSLATED TO <required_output_language>!"
+)
+
 DESC_EVALUATION_NOTES = "General qualitative evaluation notes and analytical synthesis."
 STRICT_JSON_STRUCTURE_MANDATE = (
     "\n\n<json_structure_mandate>\n"

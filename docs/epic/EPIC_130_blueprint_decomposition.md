@@ -195,7 +195,7 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
    - **Step 3 (Matrix Graphs & Justifications):** For every matrix, output the elements in a strictly flattened Dumb Painter sequence using ONLY these exact block types:
      1. **Title Block**: MUST be exactly a `MarkdownBlock` (formatted as `### {title}`).
      2. **Explanation Block**: MUST be exactly a `ParagraphBlock` containing the LLM synthesis text.
-     3. **Graph/Data Block**: MUST be exactly one of `SduiRadarChartBlock`, `SduiScatterPlotBlock`, or `SduiMetrics1DBlock` (with its internal `title` explicitly set to `None`). If the matrix is `text_only`, this third step is omitted entirely, leaving only `MarkdownBlock` -> `ParagraphBlock`.
+     3. **Graph/Data Block**: MUST be exactly one of `SduiRadarChartBlock`, `SduiScatterPlotBlock`, or `SduiMetrics1DBlock` (with its internal `title` explicitly set to `None`). If the matrix is `text_only` (or gracefully degraded to `text_only`/`1d_metrics` due to missing axes), this third step is omitted entirely (or just unpacks inner blocks), leaving only `MarkdownBlock` -> `ParagraphBlock`.
    - **Step 4 (Extensions):** Blocks from `xai_highlights_adapter` and `penalties_adapter` (`AccordionBlock`, `AlertBlock`).
      - *Source*: Read mapped data directly from `context.accumulated_extensions` and `context.penalties_applied`.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The text content, explicit rows per extension, and exact data fetch patterns are tightly regulated and must be executed by the LLM exactly as currently implemented.
@@ -203,7 +203,7 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
      - *Source*: Dynamically aggregated directly from `context.execution.results` by the matrix summary table adapter.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The explanation column must be formed AI-assisted exactly as before.
    - **Step 6 (Sources):** `PrintableSourcesBlock` from `printable_sources_adapter`.
-     - *Source*: Mapped directly from `context.mcp_audit_map`.
+     - *Source*: Mapped directly from `context.profile_cache.cited_sources`. Furthermore, MUST extract `source_urls` from `context.mcp_audit_map` traces and forcibly inject them as bullet points at the end of the bibliography to guarantee MCP tool links (like Tavily Search) are printed.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. This must be processed taking language into account as always before.
    The flattening is achieved by using `.extend()` on the adapter results during the configured loop.
 3. **GLOBAL LINGUISTIC MANDATE**: Always fetch the language and format strictly according to `@[c:\src\quorum\backend_v2\models\prompts\global_mandates.py]` and `@[c:\src\quorum\backend_v2\models\prompts\linguistic_directives.py]`, exactly as done previously.
@@ -220,6 +220,7 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 1. Run backend tests: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
 2. Run frontend compilation: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
 3. Execute parity check: `uv run python scripts/run_e2e_variance_test.py`
+4. **Linguistic Mandates Fix (Post-Execution Issue):** Ensure all `SynthesisOutputDTO` fields involving text synthesis (e.g. `cited_sources`, `row_explanation`) strictly include `DESC_TRANSLATION_MANDATE` inside the Pydantic field description to prevent English language bleed. Document this requirement as an architectural rule in `ki_domain_model_prompt_separation.md`.
 
 ---
 

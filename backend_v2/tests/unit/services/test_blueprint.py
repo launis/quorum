@@ -322,8 +322,10 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
 
     assert isinstance(dto, ReportDataDTO)
     assert len(dto.inner_sdui_blocks) >= 1
+    # Ensure text_only layout does NOT generate a 1d_metrics block anymore,
+    # but instead gracefully outputs its text blocks (or title).
     matrices = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "1d_metrics"]
-    assert len(matrices) >= 1
+    assert len(matrices) == 0
 
 
 @pytest.fixture

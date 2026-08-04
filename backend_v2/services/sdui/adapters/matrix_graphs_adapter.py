@@ -7,7 +7,7 @@ Visual rules are co-located as a module-level MATRIX_GRAPHS_RULES dictionary to 
 import logging
 from typing import Any
 
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     ParagraphBlock,
@@ -69,7 +69,11 @@ class MatrixGraphsAdapter:
         all_parsed_matrices = context.parsed_matrices
         section_syntheses = context.profile_cache.section_syntheses if context.profile_cache else {}
 
-        for idx, layout_def in enumerate(context.profile.layouts):
+        sort_order = {"3d_matrix": 0, "2d_compare": 1, "1d_metrics": 2, "text_only": 3}
+        layouts_with_idx = list(enumerate(context.profile.layouts))
+        layouts_with_idx.sort(key=lambda item: sort_order.get(item[1].preset_view, 99))
+
+        for original_idx, layout_def in layouts_with_idx:
             preset_view = layout_def.preset_view
 
             # Only handle graph preset views
@@ -106,20 +110,21 @@ class MatrixGraphsAdapter:
                 ) from e
 
             if len(axes) < rule["min_axes"]:
-                msg = f"Structurally incompatible: layout '{preset_view}' requires at least {rule['min_axes']} axes, found {len(axes)}."
-                logger.error("[MatrixGraphsAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
+                original_preset = preset_view
+                if len(axes) == 2:
+                    preset_view = "2d_compare"
+                else:
+                    preset_view = "1d_metrics"
+
+                msg = f"Gracefully degrading layout '{original_preset}' to '{preset_view}' because it requires at least {rule['min_axes']} axes, but found {len(axes)}."
+                logger.warning("[MatrixGraphsAdapter] GRACEFUL_DEGRADATION: %s", msg)
 
             if text_delivery_mode in ["titles_only", "none"]:
                 axes = [axis.model_copy(update={"inner_sdui_blocks": []}) for axis in axes]
 
             if axes or preset_view == "text_only" or layout_def.synthesis:
                 synthesis_config = layout_def.synthesis
-                layout_id = f"layout_{idx}_{preset_view}"
+                layout_id = f"layout_{original_idx}_{preset_view}"
 
                 section_blocks: list[AnySduiBlock] | None = None
                 if synthesis_config and layout_id in section_syntheses:
@@ -138,7 +143,10 @@ class MatrixGraphsAdapter:
                         blocks.append(SduiRadarChartBlock(title=layout_def.title, axes=axes))
                     elif preset_view == "2d_compare":
                         blocks.append(SduiScatterPlotBlock(title=layout_def.title, axes=axes))
-                    elif preset_view in ["1d_metrics", "text_only"]:
+                    elif preset_view == "1d_metrics":
                         blocks.append(SduiMetrics1DBlock(title=layout_def.title, axes=axes))
+                    elif preset_view == "text_only":
+                        for axis in axes:
+                            blocks.extend(axis.inner_sdui_blocks)
 
         return blocks

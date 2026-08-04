@@ -9647,7 +9647,7 @@
           ]
         },
         {
-          "preset_view": "1d_metrics",
+          "preset_view": "text_only",
           "title": null,
           "description": null,
           "is_synthesis_enabled": true,

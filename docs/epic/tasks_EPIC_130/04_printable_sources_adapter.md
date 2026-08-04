@@ -45,8 +45,8 @@
     <action>Create `@[c:\src\quorum\backend_v2\services\sdui\adapters\printable_sources_adapter.py]` [NEW].</action>
     <action>Implement SECTION 1: `PRINTABLE_SOURCES_RULES = {}`.</action>
     <action>Implement SECTION 2: `PrintableSourcesAdapter` with `@staticmethod def build(context: AdapterContext) -> list[AnySduiBlock]:`.</action>
-    <action>Extract the logic from `_hydrate_printable_sources_block`. If `context.profile_cache` is `None` or `context.profile_cache.cited_sources` is empty, return an empty list.</action>
-    <action>Iterate over `cited_sources`, prefix with "- " if not already prefixed, and return `[MarkdownBlock(text=md_content)]`.</action>
+    <action>Extract the logic from `_hydrate_printable_sources_block`. If `context.profile_cache` is `None` or `context.profile_cache.cited_sources` is empty AND `mcp_audit_map` has no `source_urls`, return an empty list.</action>
+    <action>Iterate over `cited_sources`, prefix with "- " if not already prefixed. Also unconditionally extract `source_urls` from `context.mcp_audit_map` traces (if present) and append them as bullets to the end. Return `[MarkdownBlock(text=md_content)]`.</action>
   </step>
 
   <step id="2" name="Modify blueprint.py">
@@ -75,6 +75,10 @@
       <test name="test_build_preserves_existing_bullet_prefix" category="positive">
         <input>AdapterContext with profile_cache.cited_sources=["- Source 1", "Source 2"]</input>
         <expected>returns [MarkdownBlock(text="- Source 1\n- Source 2", ...)]</expected>
+      </test>
+      <test name="test_build_appends_mcp_urls" category="positive">
+        <input>AdapterContext with cited_sources and mcp_audit_map containing traces with source_urls</input>
+        <expected>returns MarkdownBlock ending with the MCP URLs</expected>
       </test>
     </test_contracts>
   </step>

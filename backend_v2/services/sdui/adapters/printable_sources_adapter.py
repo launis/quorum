@@ -58,16 +58,30 @@ class PrintableSourcesAdapter:
         # 1. READ: Extract only the data this adapter needs from the context
         profile_cache = context.profile_cache
 
-        if not profile_cache or not profile_cache.cited_sources:
-            return blocks
+        cited_urls: set[str] = set()
+        md_lines: list[str] = []
 
-        # 2. TRANSFORM: Iterate and assemble blocks
-        md_lines = []
-        for src in profile_cache.cited_sources:
-            if not src.strip().startswith("-"):
-                md_lines.append(f"- {src}")
-            else:
-                md_lines.append(src)
+        if profile_cache and profile_cache.cited_sources:
+            for src in profile_cache.cited_sources:
+                if not src.strip().startswith("-"):
+                    md_lines.append(f"- {src}")
+                else:
+                    md_lines.append(src)
+                # Keep track of urls to avoid duplicating them if mcp_audit_map also has them
+                if "http" in src:
+                    cited_urls.add(src.strip())
+
+        # Extract source URLs from Tavily search / MCP Audit tools
+        if context.mcp_audit_map:
+            for trace in context.mcp_audit_map.values():
+                if trace.source_urls:
+                    for url in trace.source_urls:
+                        if url not in cited_urls:
+                            md_lines.append(f"- {url}")
+                            cited_urls.add(url)
+
+        if not md_lines:
+            return blocks
 
         md_content = "\n".join(md_lines)
         blocks.append(MarkdownBlock(text=md_content))

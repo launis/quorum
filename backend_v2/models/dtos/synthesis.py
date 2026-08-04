@@ -9,6 +9,7 @@ from typing import Annotated, Any
 from pydantic import Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.prompts.field_prompts import DESC_TRANSLATION_MANDATE
 from backend_v2.models.view.sdui import (
     AlertBlock,
     BulletListBlock,
@@ -66,7 +67,7 @@ class XaiHighlightItem(V2CoreBase):
     content: Annotated[
         str,
         Field(
-            description="The synthesized, deduplicated insight or tip. Max 2 sentences. MUST BE TRANSLATED TO <required_output_language>!"
+            description=f"The synthesized, deduplicated insight or tip. Max 2 sentences. {DESC_TRANSLATION_MANDATE}"
         ),
     ]
 
@@ -83,7 +84,7 @@ class SynthesisRowExplanationDTO(V2CoreBase):
     matrix_id: Annotated[str, Field(description="The ID of the matrix")]
     row_explanation: Annotated[
         str,
-        Field(description="The ultra-short synthesized explanation. MUST BE TRANSLATED TO <required_output_language>!"),
+        Field(description=f"The ultra-short synthesized explanation. {DESC_TRANSLATION_MANDATE}"),
     ]
     curated_quotes: Annotated[
         list[str],
@@ -125,17 +126,17 @@ class SynthesisOutputDTO(V2CoreBase):
     user_role: Annotated[
         str,
         Field(
-            description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT).",
+            description=f"Extracted targeted user role for the output (e.g. ROLE_ARCHITECT). {DESC_TRANSLATION_MANDATE}",
         ),
     ]
-    user_role_justification: Annotated[str, Field(description="LLM justification for role mapping.")]
+    user_role_justification: Annotated[str, Field(description=f"LLM justification for role mapping. {DESC_TRANSLATION_MANDATE}")]
 
     content_blocks: Annotated[
         list[LlmSduiBlock],
         Field(default_factory=list, description="The fully synthesized structured SDUI content blocks."),
     ]
     cited_sources: Annotated[
-        list[str], Field(default_factory=list, description="List of references or citations found.")
+        list[str], Field(default_factory=list, description=f"List of references or citations found. {DESC_TRANSLATION_MANDATE}")
     ]
     section_syntheses: Annotated[
         list[SynthesisSectionDTO],

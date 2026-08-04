@@ -1,6 +1,3 @@
-import pytest
-
-from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, OutputLayoutBlock, OutputProfile
 from backend_v2.models.view.sdui import SduiRadarChartBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -32,8 +29,7 @@ def test_matrix_graphs_adapter_empty_layouts():
     assert len(blocks) == 0
 
 
-def test_matrix_graphs_adapter_structural_failure():
-    # 3d_matrix requires 3 axes, providing 1 will raise AppException
+def test_matrix_graphs_adapter_graceful_degradation():
     profile = OutputProfile(
         id="prf_1234567890abcdef",
         slug="test",
@@ -42,7 +38,7 @@ def test_matrix_graphs_adapter_structural_failure():
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
-                title=I18nText(default_locale="en", translations={"en": "Graph"}),
+                title=I18nText(default_locale="en", translations={"en": "Graph 3D"}),
                 target_blocks=["m1"],
                 text_delivery_mode="none",
             )
@@ -72,10 +68,11 @@ def test_matrix_graphs_adapter_structural_failure():
             )
         },
     )
-    with pytest.raises(AppException) as exc:
-        MatrixGraphsAdapter.build(context)
 
-    assert "Structurally incompatible: layout '3d_matrix' requires at least 3 axes, found 1." in str(exc.value)
+    # Degrades from 3d_matrix (needs 3) to 1d_metrics (needs 1)
+    # 1d_metrics just unpacks inner_sdui_blocks, which are empty here.
+    blocks = MatrixGraphsAdapter.build(context)
+    assert len(blocks) == 0
 
 
 def test_matrix_graphs_adapter_success():
