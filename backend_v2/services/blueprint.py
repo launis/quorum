@@ -431,8 +431,7 @@ class BlueprintTransformer:
                 final_explanation = row_explanations_cache.get(b_id, "")
 
             evaluated_atoms_list = []
-            clustered_row_sources = []
-            used_evidence_ids_set = set()
+            clustered_row_sources: list[Any] = []
 
             if "quotes" in matrix_visible_cols:
                 step_evals_map = {}
@@ -454,80 +453,32 @@ class BlueprintTransformer:
                                 ev_data = step_evals_map.get(atom_id)
 
                                 if ev_data:
-                                    is_matrix = pb_meta.category_id == "matrix"
-                                    parsed_quotes = []
-
                                     try:
-                                        if is_matrix:
-                                            # Strict validation for Matrix Output
-                                            val_data = MatrixEvaluationItemDTO.model_validate(ev_data)
+                                        # Strict validation for Matrix Output
+                                        val_data = MatrixEvaluationItemDTO.model_validate(ev_data)
 
-                                            r_step = ReasoningStepDTO(
-                                                step_1_identify_premise="",
-                                                step_2_scan_source="",
-                                                step_3_evaluate_anti_patterns="",
-                                                step_4_final_conclusion="",
-                                            )
+                                        r_step = ReasoningStepDTO(
+                                            step_1_identify_premise="",
+                                            step_2_scan_source="",
+                                            step_3_evaluate_anti_patterns="",
+                                            step_4_final_conclusion="",
+                                        )
 
-                                            s_atom = ScorecardAtomDTO(
-                                                atom_id=atom_id,
-                                                level=l_val,
-                                                level_name=l_name,
-                                                claim_label=claim_label,
-                                                extracted_facts={},
-                                                exact_quotes=[],
-                                                internal_logic_en=r_step,
-                                                status=ExecutionStatus.FAILED,
-                                                semantic_reasoning=val_data.semantic_reasoning,
-                                                contextual_override=False,
-                                                structural_location="N/A",
-                                                chart_display_label="N/A",
-                                                visual_intent=VisualIntent.NEUTRAL,
-                                            )
-                                        else:
-                                            # Strict validation for Cognitive Output
-                                            val_data_cog = AtomEvaluationItemDTO.model_validate(ev_data)
-
-                                            for qt in val_data_cog.exact_quotes:
-                                                source_id = qt.source_id or "unknown"
-                                                parsed_quotes.append(
-                                                    QuoteEvidenceDTO(
-                                                        quote=qt.text,
-                                                        source_alias=[source_id],
-                                                        verified_source_ids=[],
-                                                        unverified_aliases=[],
-                                                        is_verified=False,
-                                                    )
-                                                )
-
-                                            evidence_found = (
-                                                val_data_cog.status == "PASS" or val_data_cog.evidence_found
-                                            )
-                                            is_dlq = evidence_found is True and not parsed_quotes
-                                            calc_status = (
-                                                ExecutionStatus.PASSED
-                                                if (evidence_found and not is_dlq)
-                                                else ExecutionStatus.FAILED
-                                            )
-
-                                            s_atom = ScorecardAtomDTO(
-                                                atom_id=atom_id,
-                                                level=l_val,
-                                                level_name=l_name,
-                                                claim_label=claim_label,
-                                                extracted_facts=val_data_cog.extracted_facts,
-                                                exact_quotes=parsed_quotes,
-                                                internal_logic_en=val_data_cog.internal_logic_en,
-                                                status=calc_status,
-                                                semantic_reasoning=val_data_cog.semantic_reasoning,
-                                                contextual_override=val_data_cog.contextual_override,
-                                                structural_location=val_data_cog.structural_location,
-                                                chart_display_label=val_data_cog.chart_display_label,
-                                                visual_intent=val_data_cog.visual_intent,
-                                            )
-
-                                            for u_id in val_data_cog.used_evidence_ids:
-                                                used_evidence_ids_set.add(u_id)
+                                        s_atom = ScorecardAtomDTO(
+                                            atom_id=atom_id,
+                                            level=l_val,
+                                            level_name=l_name,
+                                            claim_label=claim_label,
+                                            extracted_facts={},
+                                            exact_quotes=[],
+                                            internal_logic_en=r_step,
+                                            status=ExecutionStatus.FAILED,
+                                            semantic_reasoning=val_data.semantic_reasoning,
+                                            contextual_override=False,
+                                            structural_location="N/A",
+                                            chart_display_label="N/A",
+                                            visual_intent=VisualIntent.NEUTRAL,
+                                        )
 
                                     except Exception as e:
                                         # Fail-Fast requirement: Crash loudly if the model does not validate
@@ -569,10 +520,7 @@ class BlueprintTransformer:
                                     evaluated_atoms_list.append(s_atom)
                                     step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
 
-                if mcp_audit_map:
-                    for uid in used_evidence_ids_set:
-                        if uid in mcp_audit_map:
-                            clustered_row_sources.append(mcp_audit_map[uid])
+
 
             score_display_label = "-"
             if score_float is not None:
@@ -615,7 +563,7 @@ class BlueprintTransformer:
                 is_evaluative=pb_meta.is_evaluative,
                 evaluated_atoms=evaluated_atoms_list,
                 clustered_row_sources=clustered_row_sources,
-                used_evidence_ids=list(used_evidence_ids_set),
+                used_evidence_ids=[],
                 inner_sdui_blocks=inner_sdui_blocks,
             )
 

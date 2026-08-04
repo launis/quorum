@@ -197,7 +197,7 @@
   - [x] @[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_matrix_summary_table_adapter.py]
 - [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` — No Flutter files are expected to change in this Epic (Dumb Painter contract is preserved). Verify by grepping for any modified `.dart` files.
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain. `grep_search` for all deleted method names across the entire `backend_v2/` directory.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all surviving business logic in `backend_v2/services/sdui/` and `backend_v2/services/blueprint.py`.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all surviving business logic in `backend_v2/services/sdui/` and `backend_v2/services/blueprint.py`.
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ---
@@ -335,8 +335,7 @@
 - **Tier 2 Hardening Discovery**: `OutputProfile` schema correctly defines `max_extension_items` with a default, eliminating the need for duck typing in adapter extraction logic.
 
 ## Remaining
-- Complete Post-Implementation Gates: Semantic Coverage Audit (>90% required). Currently at 76% total (SDUI adapters ~90%, but `blueprint.py` is at 67%). Execute the generated Implementation Plan to expand `blueprint.py` test coverage.
 - Run Final Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier2-execute @[C:\Users\risto\.gemini\antigravity-ide\brain\dc49c716-0bdb-46e7-b6b3-f3420ceee206\implementation_plan.md]`
+`/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_130_blueprint_decomposition.md]`

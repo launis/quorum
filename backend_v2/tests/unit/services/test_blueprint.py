@@ -1852,7 +1852,7 @@ async def test_blueprint_transformer_unrecognized_text_delivery_mode(mock_repo_t
                 OutputLayoutBlock.model_construct(
                     preset_view="text_only",
                     target_blocks=["*"],
-                    text_delivery_mode="invalid_mode",
+                    text_delivery_mode="invalid_mode",  # type: ignore[arg-type]
                 )
             ],
             visible_block_extensions=[],
@@ -1878,3 +1878,375 @@ async def test_blueprint_transformer_unrecognized_text_delivery_mode(mock_repo_t
 
     assert "Unrecognized text_delivery_mode: 'invalid_mode'" in str(exc_info.value)
     assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_apply_pii_masking(mock_repo_transformer: Any) -> None:
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+    result = transformer._apply_pii_masking("Contact me at test@example.com or 555-123-4567.")
+    assert "[REDACTED EMAIL]" in result
+    assert "[REDACTED PHONE]" in result
+    assert "test@example.com" not in result
+    assert "555-123-4567" not in result
+
+
+@pytest.mark.asyncio
+async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_transformer: Any) -> None:
+    from backend_v2.models.v2_core import OutputLayoutBlock, OutputProfile
+    from backend_v2.services.blueprint import BlueprintTransformer
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    # 1. Provide custom scale and normalized_100 profiles to hit 337-339, 354-355
+    profile_custom = OutputProfile(
+        id="prf_1111111111111111",
+        slug="test",
+        workflow_id="wf_1111111111111111",
+        name=I18nText(default_locale="en", translations={"en": "test"}),
+        display_scale="custom",
+        layouts=[
+            OutputLayoutBlock(
+                preset_view="3d_matrix",
+                matrix_visible_columns=["quotes"],  # Hit 213-214 and 437
+            )
+        ],
+    )
+
+    # 2. Provide results with `block_id` = 'evaluations' to hit 457-546
+    results = [
+        SimpleNamespace(
+            step_id="step_1",
+            block_id="matrix_logic1234",
+            payload={
+                "raw_score": None,  # Hit 251-255
+                "normalized_score": None,
+                "level_breakdown": {},
+                "evaluated_atoms": {"tda_11111111111111111111111111111111": True},
+                "extensions": {},
+            },
+        ),
+        SimpleNamespace(
+            step_id="step_1",
+            block_id="matrix_logic1234",  # Duplicate to trigger collision counter 380-385
+            payload={
+                "raw_score": 100.0,
+                "normalized_score": 100.0,
+                "level_breakdown": {"100.0": {"hits": 1, "total": 1}},
+                "evaluated_atoms": {},
+                "extensions": {},
+            },
+        ),
+        SimpleNamespace(
+            step_id="step_1",
+            block_id="evaluations",
+            payload=[
+                {
+                    "atom_id": "tda_11111111111111111111111111111111",
+                    "semantic_reasoning": "Sem reasoning",
+                }
+            ],
+        ),
+    ]
+
+    mock_label = I18nText(default_locale="en", translations={"en": "Logic"})
+    mock_desc = I18nText(default_locale="en", translations={"en": "Description"})
+    mock_name = I18nText(default_locale="en", translations={"en": "Full"})
+    mock_claim = I18nText(default_locale="en", translations={"en": "claim"})
+
+    blocks_by_id: Any = {
+        "matrix_logic1234": SimpleNamespace(
+            id="blk_1234abcd1234abcd",
+            slug="matrix_logic1234",
+            category_id="matrix",
+            type="float",
+            is_evaluative=True,
+            description=mock_desc,
+            label=mock_label,
+            computed_min=0,
+            computed_max=100,
+            scale_min=0,
+            scale_max=10,
+            scales=[
+                SimpleNamespace(
+                    score=100.0,
+                    name=mock_name,
+                    claims=[
+                        SimpleNamespace(
+                            label=mock_claim,
+                            tda_assertions=[SimpleNamespace(tda_id="tda_11111111111111111111111111111111")],
+                        )
+                    ],
+                )
+            ],
+        )
+    }
+
+    workflow_steps: Any = {
+        "step_1": SimpleNamespace(
+            id="step_1",
+            depends_on=[],
+        )
+    }
+
+    mcp_audit_map: Any = {"doc1": SimpleNamespace(tool_id="test", step_name="step_1", query="query", source_urls=[])}
+
+    evaluative, info, parsed, atoms = transformer._parse_matrix_trace_results(
+        results=results,
+        locale="en",
+        blocks_by_id=blocks_by_id,
+        workflow_steps=workflow_steps,
+        profile=profile_custom,
+        row_explanations_cache={"matrix_logic1234": "Explanation"},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+        mcp_audit_map=mcp_audit_map,
+    )
+
+    assert len(evaluative) == 2
+    assert "tda_11111111111111111111111111111111" in atoms["step_1"]
+
+
+@pytest.mark.asyncio
+async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transformer: Any) -> None:
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.services.blueprint import BlueprintTransformer
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    profile = OutputProfile(
+        id="prf_1111111111111111",
+        slug="test",
+        workflow_id="wf_1111111111111111",
+        name=I18nText(default_locale="en", translations={"en": "test"}),
+        layouts=[],
+    )
+
+    blocks_by_id: Any = {
+        "matrix_logic1234": SimpleNamespace(
+            id="blk_1234abcd1234abcd",
+            slug="matrix_logic1234",
+            category_id="matrix",
+            type="float",
+            is_evaluative=True,
+            description=MagicMock(),
+            label=MagicMock(),
+            computed_min=0,
+            computed_max=100,
+            scales=None,
+        )
+    }
+
+    # 1. Invalid matrix payload format (not a dict) -> lines 226-231
+    results = [SimpleNamespace(step_id="step_1", block_id="matrix_logic1234", payload="invalid_payload_string")]
+    with pytest.raises(AppException) as exc:
+        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+    assert "expected dict" in str(exc.value)
+
+    # 2. Validation failure inside TraceMatrixPayloadDTO -> lines 238-241
+    results = [
+        SimpleNamespace(
+            step_id="step_1",
+            block_id="matrix_logic1234",
+            payload={"invalid_key": "value"},  # Fails TraceMatrixPayloadDTO validation
+        )
+    ]
+    with pytest.raises(AppException) as exc:
+        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+    assert "Invalid matrix payload format" in str(exc.value)
+
+    # 3. Missing I18n label -> lines 264-269
+    blocks_by_id["matrix_logic1234"].label = None
+    results = [
+        SimpleNamespace(
+            step_id="step_1",
+            block_id="matrix_logic1234",
+            payload={"raw_score": 100.0, "level_breakdown": {}, "evaluated_atoms": {}, "extensions": {}},
+        )
+    ]
+    with pytest.raises(AppException) as exc:
+        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+    assert "missing a required I18n label" in str(exc.value)
+
+    # 4. Missing scales -> lines 293-298
+    blocks_by_id["matrix_logic1234"].label = MagicMock()
+    with pytest.raises(AppException) as exc:
+        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+    assert "initialized as matrix but has no scales" in str(exc.value)
+
+    # 5. Missing computed_min/max
+    blocks_by_id["matrix_logic1234"].scales = []
+    blocks_by_id["matrix_logic1234"].computed_min = None
+    with pytest.raises(AppException) as exc:
+        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+    assert "missing Pydantic computed_min/max" in str(exc.value)
+    blocks_by_id["matrix_logic1234"].computed_min = 0
+
+    # 6. Missing scale name
+    blocks_by_id["matrix_logic1234"].scales = [SimpleNamespace(score=100.0, name=None)]
+    with pytest.raises(AppException) as exc:
+        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+    assert "missing 'name'" in str(exc.value)
+
+    # 7. Invalid breakdown key
+    blocks_by_id["matrix_logic1234"].scales = [SimpleNamespace(score=100.0, name=MagicMock(), claims=[])]
+    results[0].payload["level_breakdown"] = {"invalid_float": {"hits": 1, "total": 1}}
+    with pytest.raises(AppException) as exc:
+        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+    assert "Invalid level key 'invalid_float'" in str(exc.value)
+
+    # 8. Missing row_explanations_cache
+    results[0].payload["level_breakdown"] = {}
+    object.__setattr__(profile, "synthesis", SimpleNamespace(row_explanations_block_id="foo"))
+    with pytest.raises(AppException) as exc:
+        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+    assert "row_explanations_cache missing entry" in str(exc.value)
+
+
+from unittest.mock import patch
+
+
+@patch("backend_v2.services.blueprint.scan_report_for_slop")
+@pytest.mark.asyncio
+async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_transformer: Any) -> None:
+    mock_scan.return_value = ["slop_1", "slop_2", "slop_3", "slop_4", "slop_5"]
+
+    from types import SimpleNamespace
+
+    mock_repo_transformer.get_workflow.return_value.expected_inputs = [
+        SimpleNamespace(scan_for_performative_patterns=True)
+    ]
+
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000101",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.PASSED,
+        active_profile_id="prf_dddd1111dddd1111",
+        execution_trace=[
+            TraceEvent(
+                step_name="step_1",
+                event_type="output",
+                content={
+                    "scoring_result": {
+                        "total_score": 100.0,
+                        "penalties_applied": ["PENALTY_SECURITY:10", "PENALTY_POST_HOC:15", "PENALTY_INVALID:20"],
+                    },
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 100.0,
+                        "normalized_score": 100.0,
+                        "level_breakdown": {},
+                        "evaluated_atoms": {},
+                        "extensions": {},
+                    },
+                },
+            )
+        ],
+        metadata={"target_locale": "en"},
+    )
+
+    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
+        [
+            {
+                "id": "blk_1234abcd1234abcd",
+                "slug": "matrix_test",
+                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "category_id": "matrix",
+                "type": "float",
+                "is_evaluative": True,
+                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "computed_min": 0,
+                "computed_max": 100,
+                "scales": [
+                    {
+                        "score": 100,
+                        "name": {"default_locale": "en", "translations": {"en": "Full"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "ai_description": "desc",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+    )
+
+    from backend_v2.models.v2_core import OutputLayoutBlock, OutputProfile
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [
+        OutputProfile.model_construct(
+            id="prf_dddd1111dddd1111",
+            slug="default",
+            workflow_id="wf_1234abcd1234abcd",
+            name=I18nText(default_locale="en", translations={"en": "Default"}),
+            display_scale="normalized_100",
+            metric_mappings={},
+            layouts=[
+                OutputLayoutBlock.model_construct(
+                    preset_view="text_only",
+                    target_blocks=["*"],
+                ),
+            ],
+            visible_block_extensions=[],
+            visible_workflow_extensions=[],
+            max_extension_items=2,
+            strictness_level=85,
+        )
+    ]
+
+    mock_repo_transformer.get_system_config.return_value = {
+        "id": "sys_1234abcd1234abcd",
+        "lexicon_configs": {
+            "en": {"language_code": "en", "language_name": "English", "words": ["slop_phrase"], "fuzz_threshold": 80}
+        },
+    }
+
+    from backend_v2.services.blueprint import BlueprintTransformer
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    # Expect Exception for PENALTY_INVALID:20
+    with pytest.raises(AppException) as exc:
+        await transformer.build_report_dto("exe_0000000000000101")
+    assert "unsupported penalty string detected" in str(exc.value)
+
+    # Remove invalid penalty
+    mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"][
+        "penalties_applied"
+    ] = ["PENALTY_SECURITY:10", "PENALTY_POST_HOC:15"]
+
+    dto = await transformer.build_report_dto("exe_0000000000000101")
+    assert dto.has_warning is True
