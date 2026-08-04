@@ -8,6 +8,8 @@ XAI_AESTHETICS_RULES dictionary to enforce separation of presentation from logic
 import logging
 from typing import Any, Literal, cast
 
+from pydantic import ValidationError
+
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
@@ -74,7 +76,7 @@ class XaiHighlightsAdapter:
             try:
                 mapped_block_data = LightweightMatrixOutput.map_llm_extensions_to_domain(dto.payload)
                 matrix_payload = TraceMatrixPayloadDTO.model_validate(mapped_block_data)
-            except Exception:
+            except ValidationError:
                 continue
 
             ext = matrix_payload.extensions

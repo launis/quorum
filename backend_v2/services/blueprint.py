@@ -18,12 +18,10 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.linguistics import scan_report_for_slop
 from backend_v2.models.dtos.lightweight_matrix import (
-    AtomEvaluationItemDTO,
     LightweightMatrixOutput,
     MatrixEvaluationItemDTO,
     ReasoningStepDTO,
 )
-from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
@@ -519,8 +517,6 @@ class BlueprintTransformer:
                                     )
                                     evaluated_atoms_list.append(s_atom)
                                     step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
-
-
 
             score_display_label = "-"
             if score_float is not None:

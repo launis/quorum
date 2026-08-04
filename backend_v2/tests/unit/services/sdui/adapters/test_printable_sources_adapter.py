@@ -138,7 +138,7 @@ def test_build_ep_mcp_audit_traces(valid_output_profile_fixture: OutputProfile) 
             tool_id="test_tool",
             step_name="test_step",
             query="test_query",
-            source_urls=["https://mcp.example.com/doc1", "https://mcp.example.com/doc2"]
+            source_urls=["https://mcp.example.com/doc1", "https://mcp.example.com/doc2"],
         )
     }
     context = AdapterContext(
@@ -170,7 +170,7 @@ def test_build_bva_duplicate_prevention(valid_output_profile_fixture: OutputProf
             tool_id="test_tool",
             step_name="test_step",
             query="test_query",
-            source_urls=["https://shared.example.com/doc", "https://unique.example.com/doc"]
+            source_urls=["https://shared.example.com/doc", "https://unique.example.com/doc"],
         )
     }
     context = AdapterContext(

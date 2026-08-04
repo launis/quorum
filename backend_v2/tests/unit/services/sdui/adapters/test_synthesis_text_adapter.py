@@ -47,10 +47,7 @@ def test_synthesis_text_adapter_builds_markdown_blocks() -> None:
 
 def test_synthesis_text_adapter_pii_masking_trigger() -> None:
     """EP (PII Masking Trigger): Mock profile.layouts where enable_pii_masking = True to trigger the masking logic."""
-    layout = OutputLayoutBlock(
-        preset_view="default",
-        synthesis=SynthesisConfigDTO(enable_pii_masking=True)
-    )
+    layout = OutputLayoutBlock(preset_view="default", synthesis=SynthesisConfigDTO(enable_pii_masking=True))
     profile = OutputProfile(
         id="prf_0123456789abcdef",
         slug="test-slug",

@@ -203,6 +203,7 @@ def test_matrix_summary_table_adapter_empty_scorecard_atoms():
     assert len(blocks[0].axes) == 1
     assert blocks[0].axes[0].evaluated_atoms == []
 
+
 def test_matrix_summary_table_adapter_wildcard_target_blocks():
     """EP (Wildcard Target Blocks): Provide target_blocks=["*"] to trigger the list(all_parsed_matrices.values()) branch."""
     profile = OutputProfile(
@@ -249,7 +250,7 @@ def test_matrix_summary_table_adapter_wildcard_target_blocks():
                 is_evaluative=True,
                 label_i18n=I18nText(default_locale="en", translations={"en": "M2"}),
                 row_explanation="expl2",
-            )
+            ),
         },
     )
     blocks = MatrixSummaryTableAdapter.build(context)
@@ -279,11 +280,7 @@ def test_matrix_summary_table_adapter_layout_description_and_section_syntheses()
         ],
     )
     cache = RenderedSynthesisCache(
-        section_syntheses={
-            "layout_0_matrix_summary": [
-                MarkdownBlock(text="Synthesis markdown content")
-            ]
-        }
+        section_syntheses={"layout_0_matrix_summary": [MarkdownBlock(text="Synthesis markdown content")]}
     )
     context = AdapterContext(
         execution=None,
@@ -319,16 +316,23 @@ def test_matrix_summary_table_adapter_layout_description_and_section_syntheses()
 
 
 class MockDict:
-    def __contains__(self, item):
+    """Mock dictionary for testing KeyError."""
+
+    def __contains__(self, item: object) -> bool:
+        """Mock contains."""
         return True
-    def __getitem__(self, item):
+
+    def __getitem__(self, item: object) -> object:
+        """Mock getitem."""
         raise KeyError(item)
+
 
 def test_matrix_summary_table_adapter_key_error(monkeypatch: pytest.MonkeyPatch):
     """Negative Path (Configuration Error): Mock a deletion in MATRIX_SUMMARY_RULES dynamically to trigger KeyError."""
     from backend_v2.services.sdui.adapters import matrix_summary_table_adapter
+
     monkeypatch.setattr(matrix_summary_table_adapter, "MATRIX_SUMMARY_RULES", MockDict())
-    
+
     profile = OutputProfile(
         id="prf_1234567890abcdef",
         slug="test",

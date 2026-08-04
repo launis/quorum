@@ -308,6 +308,7 @@ class MatrixEvaluationItemDTO(V2CoreBase):
     def _clean_validation_decision(cls, v: Any) -> Any:
         if isinstance(v, str):
             import re
+
             return re.sub(r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]", "", v).strip()
         return v
 
@@ -448,6 +449,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
     def _clean_validation_decision(cls, v: Any) -> Any:
         if isinstance(v, str):
             import re
+
             return re.sub(r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]", "", v).strip()
         return v
 
