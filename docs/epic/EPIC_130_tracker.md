@@ -315,4 +315,4 @@
 - Run Final Epic Audit.
 
 ## Resume Command
-`/tier2-execute @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\06a_sdui_layout_dispatch.md]`
+`/tier1-planner @[c:\src\quorum\docs\epic\EPIC_130_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_130\06b_sdui_layout_ordering.md]`
