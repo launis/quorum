@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend_v2.models.v2_core import I18nText, OutputProfile, RenderedSynthesisCache
+from backend_v2.models.v2_core import I18nText, MCPAuditTrace, OutputProfile, RenderedSynthesisCache
 from backend_v2.models.view.sdui import MarkdownBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.printable_sources_adapter import (
@@ -105,3 +105,89 @@ def test_build_preserves_existing_bullet_prefix(valid_output_profile_fixture: Ou
     assert len(blocks) == 1
     assert isinstance(blocks[0], MarkdownBlock)
     assert blocks[0].text == "- Source 1\n- Source 2"
+
+
+def test_build_ep_valid_http_source(valid_output_profile_fixture: OutputProfile) -> None:
+    """EP (Valid HTTP Source): Add a test where a cited source contains 'http' to verify cited_urls tracking."""
+    cache = RenderedSynthesisCache(
+        cited_sources=["- https://example.com/source1", "Plain text source"],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
+    )
+    blocks = PrintableSourcesAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert "- https://example.com/source1" in blocks[0].text
+    assert "- Plain text source" in blocks[0].text
+
+
+def test_build_ep_mcp_audit_traces(valid_output_profile_fixture: OutputProfile) -> None:
+    """EP (MCP Audit Traces): Mock mcp_audit_map containing traces with source_urls to verify correct extraction."""
+    mcp_audit_map = {
+        "trace_1": MCPAuditTrace(
+            tool_id="test_tool",
+            step_name="test_step",
+            query="test_query",
+            source_urls=["https://mcp.example.com/doc1", "https://mcp.example.com/doc2"]
+        )
+    }
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=mcp_audit_map,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
+    )
+    blocks = PrintableSourcesAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert "- https://mcp.example.com/doc1" in blocks[0].text
+    assert "- https://mcp.example.com/doc2" in blocks[0].text
+
+
+def test_build_bva_duplicate_prevention(valid_output_profile_fixture: OutputProfile) -> None:
+    """BVA (Duplicate Prevention): Provide source_urls in the MCP map that already exist in cited_urls to ensure duplicates are filtered out."""
+    cache = RenderedSynthesisCache(
+        cited_sources=["- https://shared.example.com/doc"],
+    )
+    mcp_audit_map = {
+        "trace_1": MCPAuditTrace(
+            tool_id="test_tool",
+            step_name="test_step",
+            query="test_query",
+            source_urls=["https://shared.example.com/doc", "https://unique.example.com/doc"]
+        )
+    }
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=mcp_audit_map,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
+    )
+    blocks = PrintableSourcesAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], MarkdownBlock)
+    # The duplicated URL should only appear once
+    assert blocks[0].text.count("https://shared.example.com/doc") == 1
+    assert "- https://unique.example.com/doc" in blocks[0].text

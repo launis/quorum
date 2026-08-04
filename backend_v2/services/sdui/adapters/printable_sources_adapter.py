@@ -69,7 +69,8 @@ class PrintableSourcesAdapter:
                     md_lines.append(src)
                 # Keep track of urls to avoid duplicating them if mcp_audit_map also has them
                 if "http" in src:
-                    cited_urls.add(src.strip())
+                    clean_url = src.replace("- ", "").strip()
+                    cited_urls.add(clean_url)
 
         # Extract source URLs from Tavily search / MCP Audit tools
         if context.mcp_audit_map:

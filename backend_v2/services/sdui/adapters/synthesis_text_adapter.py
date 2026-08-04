@@ -70,9 +70,9 @@ class SynthesisTextAdapter:
 
             # Apply PII masking if requested by profile layouts
             pii_masking = False
-            if context.profile and hasattr(context.profile, "layouts") and context.profile.layouts:
+            if context.profile and context.profile.layouts:
                 for layout in context.profile.layouts:
-                    if getattr(layout, "pii_masking", False):
+                    if layout.synthesis and layout.synthesis.enable_pii_masking:
                         pii_masking = True
                         break
 

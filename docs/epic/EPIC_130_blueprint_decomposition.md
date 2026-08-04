@@ -203,7 +203,7 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
      - *Source*: Dynamically aggregated directly from `context.execution.results` by the matrix summary table adapter.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. The explanation column must be formed AI-assisted exactly as before.
    - **Step 6 (Sources):** `PrintableSourcesBlock` from `printable_sources_adapter`.
-     - *Source*: Mapped directly from `context.profile_cache.cited_sources`. Furthermore, MUST extract `source_urls` from `context.mcp_audit_map` traces and forcibly inject them as bullet points at the end of the bibliography to guarantee MCP tool links (like Tavily Search) are printed.
+     - *Source*: Mapped directly from `context.profile_cache.cited_sources`. Furthermore, MUST extract `source_urls` from `context.mcp_audit_map` traces and forcibly inject them as bullet points at the end of the bibliography to guarantee MCP tool links (specifically: Tavily Search) are printed.
      - *LLM Instruction Mandate*: **CRITICAL**: The genuine LLM instruction rule MUST be applied. This must be processed taking language into account as always before.
    The flattening is achieved by using `.extend()` on the adapter results during the configured loop.
 3. **GLOBAL LINGUISTIC MANDATE**: Always fetch the language and format strictly according to `@[c:\src\quorum\backend_v2\models\prompts\global_mandates.py]` and `@[c:\src\quorum\backend_v2\models\prompts\linguistic_directives.py]`, exactly as done previously.
@@ -220,7 +220,7 @@ This Epic introduces a **self-contained adapter pattern** where each report outp
 1. Run backend tests: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
 2. Run frontend compilation: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
 3. Execute parity check: `uv run python scripts/run_e2e_variance_test.py`
-4. **Linguistic Mandates Fix (Post-Execution Issue):** Ensure all `SynthesisOutputDTO` fields involving text synthesis (e.g. `cited_sources`, `row_explanation`) strictly include `DESC_TRANSLATION_MANDATE` inside the Pydantic field description to prevent English language bleed. Document this requirement as an architectural rule in `ki_domain_model_prompt_separation.md`.
+4. **Linguistic Mandates Fix (Post-Execution Issue):** Ensure all `SynthesisOutputDTO` fields involving text synthesis (specifically: `cited_sources`, `row_explanation`) strictly include `DESC_TRANSLATION_MANDATE` inside the Pydantic field description to prevent English language bleed. Document this requirement as an architectural rule in `ki_domain_model_prompt_separation.md`.
 
 ---
 

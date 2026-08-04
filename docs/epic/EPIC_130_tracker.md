@@ -204,8 +204,8 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** Create/Update Knowledge Item (KI) for new SSOTs: `AdapterContext`, `MatrixGraphsAdapter`, `MatrixSummaryTableAdapter` in `<appDataDir>/knowledge/`.
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** Create/Update Knowledge Item (KI) for new SSOTs: `AdapterContext`, `MatrixGraphsAdapter`, `MatrixSummaryTableAdapter` in `<appDataDir>/knowledge/`. (Verified KI `sdui_adapter_pattern` already intrinsically documents these components).
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ---
 
@@ -313,6 +313,11 @@
 - **[2026-08-04]** Hotfix: Actually removed the `getattr` duck-typing from `XaiHighlightsAdapter` (which was prematurely marked as complete in the previous handover log). Replaced with strict property access on `TraceMatrixExtensionsDTO`. Validated with strict Pytest/MyPy audit loop.
 - **[2026-08-04]** Tier 2 Hardening (Frontend) completed. Mapped 10 recently modified `.dart` files (e.g. `report_renderer_v2_widget.dart`, `sdui_blocks_renderer.dart`, `sdui_block_dto.dart`, etc.) that were updated in Phase 7A/7B. Successfully passed them through the automated Neuro-Symbolic Audit Matrix verifying no regressions against `02_flutter_desktop.md` rules.
 - **[2026-08-04]** Post-Implementation Gates completed: Pre-Delete Audit mathematically verified no orphaned dependencies remain. Final E2E REST API Verification Gate passed with Live LLM tests.
+- **[2026-08-04]** Tier 8 Audit Epic initiated. Executed boundaries audit on `EPIC_130_blueprint_decomposition.md` and fixed two markdown boundary violations (banned ambiguous language). Executed Semantic Coverage check for `backend_v2/services/sdui/` and `blueprint.py`, verifying current coverage at 74% (failing the >90% gate).
+- [x] **[2026-08-04]** Tier 0 Research & Analysis completed. Red-teamed the Test Coverage Expansion plan. Ensured Epic boundaries and Fail-Fast constraints were preserved. Plan is verified and ready for execution.
+- **[2026-08-04]** Tier 2 Execution continued on the Test Coverage Expansion plan. Verified that `test_matrix_graphs_adapter.py` and `test_xai_highlights_adapter.py` could not implement the originally planned EP tests because the plan violated the strict Pydantic V2 definitions of `SduiRadarChartBlock` and `XaiHighlightsAdapter` inputs. Implemented valid BVA tests where applicable instead, fulfilling the constraint.
+- **[2026-08-04]** Tier 2 Execution identified and fixed a URL deduplication bug in `PrintableSourcesAdapter` preventing strict parity with the `mcp_audit_map` during coverage expansion.
+- **[2026-08-04]** Current Semantic Coverage for `backend_v2/services/sdui/` adapters is between 84% and 100%. However, `blueprint.py` is currently at 67% coverage, resulting in a total combined coverage of 76%.
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
 - **Baseline State Snapshot**: `blueprint.py` is currently ~2012 lines with a 560-line God Method `_extract_matrices_and_extensions` (L222-L782). The dispatch table at L104-L111 uses `Callable[..., list[AnySduiBlock]]` with kwargs scatter at L1948-L1960. The inline `Callable` import is at L103 inside `__init__`. Six hydrator methods exist: `_hydrate_penalties_block`, `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, `_hydrate_printable_sources_block`, `_hydrate_grouped_extensions_block`.
@@ -330,10 +335,8 @@
 - **Tier 2 Hardening Discovery**: `OutputProfile` schema correctly defines `max_extension_items` with a default, eliminating the need for duck typing in adapter extraction logic.
 
 ## Remaining
-- Complete Post-Implementation Gates: Semantic Coverage Audit (>90% required, currently at ~83%).
-- Update Documentation & KI (AdapterContext, MatrixGraphsAdapter, MatrixSummaryTableAdapter).
-- Run As-Built Architectural Sync (`/tier7-describe-architecture`).
+- Complete Post-Implementation Gates: Semantic Coverage Audit (>90% required). Currently at 76% total (SDUI adapters ~90%, but `blueprint.py` is at 67%). Execute the generated Implementation Plan to expand `blueprint.py` test coverage.
 - Run Final Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md]" --workflow="/tier7-describe-architecture"`
+`/tier2-execute @[C:\Users\risto\.gemini\antigravity-ide\brain\dc49c716-0bdb-46e7-b6b3-f3420ceee206\implementation_plan.md]`

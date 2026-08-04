@@ -138,3 +138,37 @@ def test_matrix_graphs_adapter_success():
     assert len(blocks) == 1
     assert isinstance(blocks[0], SduiRadarChartBlock)
     assert len(blocks[0].axes) == 3
+
+
+def test_matrix_graphs_adapter_empty_valid_layout():
+    """BVA (Empty Valid Layout): Pass a layout block requesting a valid preset 1d_metrics but without matching parsed_matrices."""
+    profile = OutputProfile(
+        id="prf_1234567890abcdef",
+        slug="test",
+        workflow_id="wf_123",
+        name=I18nText(default_locale="en", translations={"en": "test"}),
+        layouts=[
+            OutputLayoutBlock(
+                preset_view="1d_metrics",
+                title=I18nText(default_locale="en", translations={"en": "Metrics"}),
+                target_blocks=["missing_id"],
+                text_delivery_mode="none",
+            )
+        ],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        synthesis_md=None,
+        parsed_matrices={},
+    )
+    blocks = MatrixGraphsAdapter.build(context)
+    # The adapter skips creating the graph block when axes are empty and it's not text_only.
+    assert len(blocks) == 0

@@ -17,7 +17,7 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 
 ### 2.3. Unified Model Multiplexing
 - **Law:** Business logic must never be hardcoded to a specific model version (e.g., `gemini-2.5-pro`).
-- **Enforcement:** The orchestration engine routes all LLM requests through a dynamic Model Registry defined in `seed_data.json`. Operations request logical model tiers (e.g., "fast", "deep", "synthesis") rather than physical model names. This allows administrators to hot-swap models globally without altering a single line of Python code.
+- **Enforcement:** The orchestration engine routes all LLM requests through a dynamic Model Registry defined in the central static data vault. Operations request logical model tiers (e.g., "fast", "deep", "synthesis") rather than physical model names. This allows administrators to hot-swap models globally without altering a single line of Python code.
 
 ### 2.4. Data Ingestion & RAG Preflight
 - **Law:** The engine must handle dynamic external context gracefully.
@@ -29,7 +29,7 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 
 ### 2.6. Background Execution & Celery Workers
 - **Law:** Heavy cognitive executions must never block the synchronous HTTP request-response cycle.
-- **Enforcement:** The system strictly decouples API entry points from LLM execution utilizing a background worker (`worker.py`). The synchronous FastAPI routes must instantly return an `Execution ID` or a `202 Accepted` status. The orchestration DAG, LLM multiplexing, and heavy synthesis are executed asynchronously by the worker pool, reporting state progression back via the `ExecutionStatus` enum.
+- **Enforcement:** The system strictly decouples API entry points from LLM execution utilizing an asynchronous background worker. The synchronous FastAPI routes must instantly return an `Execution ID` or a `202 Accepted` status. The orchestration DAG, LLM multiplexing, and heavy synthesis are executed asynchronously by the worker pool, reporting state progression back via the `ExecutionStatus` enum.
 
 ## 3. Logical Data Flow
 ```mermaid

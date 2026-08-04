@@ -1,7 +1,7 @@
 # Data Seeding & Ontology
 
 ## 1. Executive Summary
-The **Data Seeding & Ontology** capability dictates that the Compound AI System is fundamentally **data-driven**, not code-driven. The entire behavior of the system—ranging from LLM instructions (PromptBlocks), allowed models, MCP tool gateways, to performative vocabularies—is defined externally in the `seed_data.json` repository. The backend's primary role is simply to parse, hydrate, and route this declarative ontology rather than hardcoding operational instructions.
+The **Data Seeding & Ontology** capability dictates that the Compound AI System is fundamentally **data-driven**, not code-driven. The entire behavior of the system—ranging from LLM instructions (PromptBlocks), allowed models, MCP tool gateways, to performative vocabularies—is defined externally in the central static data vault. The backend's primary role is simply to parse, hydrate, and route this declarative ontology rather than hardcoding operational instructions.
 
 ## 2. Core Architectural Invariants (The Laws)
 
@@ -12,8 +12,8 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Enforcement:** All dynamic rules must be modeled as a unified `PromptBlock` entity within the database. The system utilizes Polymorphic Collection Parsing to automatically route different categories of data (e.g., `system_config`, `prompt_blocks`, `mcp_gateways`) into their respective Pydantic validation structures, simplifying the LLM DAG engine.
 
 ### 2.2. Single Source of Truth (SSOT) Immutability
-- **Law:** The JSON structure of `seed_data.json` is the highest architectural authority for data shape.
-- **Enforcement:** You MUST NEVER physically alter the root persistence arrays in the `seed_data.json` to match transient API shapes. While the backend API may expose nested, stitched structures (e.g., combining Workflows and Profiles), the underlying physical seed data must remain flat and relational to avoid cascading data corruption.
+- **Law:** The JSON structure of the central static data vault is the highest architectural authority for data shape.
+- **Enforcement:** You MUST NEVER physically alter the root persistence arrays in the central static data vault to match transient API shapes. While the backend API may expose nested, stitched structures (e.g., combining Workflows and Profiles), the underlying physical seed data must remain flat and relational to avoid cascading data corruption.
 
 ### 2.3. The Y-Funnel Pre-Hook Architecture
 - **Law:** Data transformations during seeding must not pollute the pure domain objects.
@@ -30,7 +30,7 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
-    A[seed_data.json] --> B[Seed Loader Utility]
+    A[Central Static Data Vault] --> B[Seed Loader Utility]
     B --> C{Polymorphic Router}
     C -- Type: system_config --> D[System Config Models]
     C -- Type: prompt_blocks --> E[PromptBlock Models]
