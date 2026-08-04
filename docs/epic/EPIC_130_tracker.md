@@ -307,6 +307,8 @@
 - **[2026-08-04]** Tier 5 Session Handover initiated. Re-ran Universal Quality Gates on backend and frontend; both passed perfectly (1224 tests passing with >81% coverage, UI Freezed models verified). Left the uncommitted state for manual atomic commit per user request before next workflow execution.
 - **[2026-08-04]** Tier 2 Execution continued on `07_verification_e2e_gate.md` (Phase 8). Executed Live E2E Gate since Redis became available. The Live LLM test (`test_integration_real_llm.py`) successfully passed 100%. Manual visual validation by the user is the final remaining step for Phase 8.
 - **[2026-08-04]** Tier 3 Feature execution on `08_linguistic_mandates_fix.md`. Added `DESC_TRANSLATION_MANDATE` to `field_prompts.py` and enforced it inside `synthesis.py` to fix untranslated Pydantic generation fields. Documented rules in KI.
+- **[2026-08-04]** Tier 8 Audit Plan completed on `07_verification_e2e_gate.md` (Phase 8). Verified planner fidelity, backend quality gate, and frontend parity. Status: PASSED.
+
 ## Learned
 - **Red Team Pivot (Phase 6)**: The original plan to extract a monolithic MatrixExtractorService was rejected by the Red Team. To ensure true Dumb Painter isolation, we must extract distinct SDUI adapters directly (MatrixGraphsAdapter and MatrixSummaryTableAdapter) and refactor XaiHighlightsAdapter to read directly from execution.results. The accumulated_extensions field will be removed from AdapterContext.
 - **Baseline State Snapshot**: `blueprint.py` is currently ~2012 lines with a 560-line God Method `_extract_matrices_and_extensions` (L222-L782). The dispatch table at L104-L111 uses `Callable[..., list[AnySduiBlock]]` with kwargs scatter at L1948-L1960. The inline `Callable` import is at L103 inside `__init__`. Six hydrator methods exist: `_hydrate_penalties_block`, `_hydrate_global_score_block`, `_hydrate_audit_trail_block`, `_hydrate_jargon_ratio_block`, `_hydrate_printable_sources_block`, `_hydrate_grouped_extensions_block`.
@@ -324,10 +326,9 @@
 
 ## Remaining
 - Manual User Validation (Phase 8 Step 5): Manually generate the PDF and visually compare it to `raportti 2.pdf`. Verify the Flutter app renders the exact same structure dynamically.
-- Run Phase 8 Audit (`/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_130\07_verification_e2e_gate.md]`).
-- Complete Post-Implementation Gates.
+- Complete Post-Implementation Gates (Starting with Tier 2 Hardening Backend).
 - Update Documentation & KI.
 - Run Final Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md]" --workflow="/tier2-execute" --rules="01-python-backend.md"`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_130_tracker.md]" --workflow="/tier2-hardening-backend" --rules="01-python-backend.md"`
