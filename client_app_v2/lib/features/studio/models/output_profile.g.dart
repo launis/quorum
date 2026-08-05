@@ -317,6 +317,7 @@ _OutputProfile _$OutputProfileFromJson(
         'metric_mappings',
         'layouts',
         'content_blocks',
+        'target_block_order',
         'synthesis',
         'performativity_detector_step_id',
       ],
@@ -440,6 +441,23 @@ _OutputProfile _$OutputProfileFromJson(
                 .toList() ??
             const [],
       ),
+      targetBlockOrder: $checkedConvert(
+        'target_block_order',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const [
+              'metadata_block',
+              'executive_summary_block',
+              'synthesis_text_block',
+              'matrix_graphs_block',
+              'grouped_extensions_block',
+              'penalties_block',
+              'matrix_summary_table_block',
+              'printable_sources_block',
+              'global_score_block',
+              'audit_trail_block',
+            ],
+      ),
       synthesis: $checkedConvert(
         'synthesis',
         (v) => v == null
@@ -471,6 +489,7 @@ _OutputProfile _$OutputProfileFromJson(
     'extensionLabels': 'extension_labels',
     'metricMappings': 'metric_mappings',
     'contentBlocks': 'content_blocks',
+    'targetBlockOrder': 'target_block_order',
     'performativityDetectorStepId': 'performativity_detector_step_id',
   },
 );
@@ -511,6 +530,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
+  'target_block_order': instance.targetBlockOrder,
   'synthesis': instance.synthesis?.toJson(),
   'performativity_detector_step_id': instance.performativityDetectorStepId,
 };

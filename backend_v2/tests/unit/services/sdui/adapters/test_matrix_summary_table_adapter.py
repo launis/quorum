@@ -2,7 +2,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, OutputLayoutBlock, OutputProfile
-from backend_v2.models.view.sdui import SduiMatrixTableBlock
+from backend_v2.models.view.sdui import SduiMatrixTableBlock, MarkdownBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
 
@@ -106,10 +106,12 @@ def test_matrix_summary_table_adapter_success():
         },
     )
     blocks = MatrixSummaryTableAdapter.build(context)
-    assert len(blocks) == 1
-    assert isinstance(blocks[0], SduiMatrixTableBlock)
-    assert len(blocks[0].axes) == 1
-    assert blocks[0].matrix_visible_columns == ["label", "score"]
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "### Table Summary"
+    assert isinstance(blocks[1], SduiMatrixTableBlock)
+    assert len(blocks[1].axes) == 1
+    assert blocks[1].matrix_visible_columns == ["label", "score"]
 
 
 def test_matrix_summary_table_adapter_validation_missing_id():
@@ -198,10 +200,11 @@ def test_matrix_summary_table_adapter_empty_scorecard_atoms():
         },
     )
     blocks = MatrixSummaryTableAdapter.build(context)
-    assert len(blocks) == 1
-    assert isinstance(blocks[0], SduiMatrixTableBlock)
-    assert len(blocks[0].axes) == 1
-    assert blocks[0].axes[0].evaluated_atoms == []
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert isinstance(blocks[1], SduiMatrixTableBlock)
+    assert len(blocks[1].axes) == 1
+    assert blocks[1].axes[0].evaluated_atoms == []
 
 
 def test_matrix_summary_table_adapter_wildcard_target_blocks():
@@ -254,9 +257,10 @@ def test_matrix_summary_table_adapter_wildcard_target_blocks():
         },
     )
     blocks = MatrixSummaryTableAdapter.build(context)
-    assert len(blocks) == 1
-    assert isinstance(blocks[0], SduiMatrixTableBlock)
-    assert len(blocks[0].axes) == 2
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert isinstance(blocks[1], SduiMatrixTableBlock)
+    assert len(blocks[1].axes) == 2
 
 
 def test_matrix_summary_table_adapter_layout_description_and_section_syntheses():
@@ -307,12 +311,14 @@ def test_matrix_summary_table_adapter_layout_description_and_section_syntheses()
         },
     )
     blocks = MatrixSummaryTableAdapter.build(context)
-    assert len(blocks) == 3
-    assert isinstance(blocks[0], ParagraphBlock)
-    assert blocks[0].text == "Test description"
-    assert isinstance(blocks[1], MarkdownBlock)
-    assert blocks[1].text == "Synthesis markdown content"
-    assert isinstance(blocks[2], SduiMatrixTableBlock)
+    assert len(blocks) == 4
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "### Table Summary"
+    assert isinstance(blocks[1], ParagraphBlock)
+    assert blocks[1].text == "Test description"
+    assert isinstance(blocks[2], MarkdownBlock)
+    assert blocks[2].text == "Synthesis markdown content"
+    assert isinstance(blocks[3], SduiMatrixTableBlock)
 
 
 class MockDict:

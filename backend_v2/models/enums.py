@@ -115,6 +115,10 @@ class TargetBlockType(StrEnum):
     EXECUTIVE_SUMMARY_BLOCK = "executive_summary_block"
     METADATA_BLOCK = "metadata_block"
     SYNTHESIS_TEXT_BLOCK = "synthesis_text_block"
+    MATRIX_GRAPHS_BLOCK = "matrix_graphs_block"
+    MATRIX_SUMMARY_TABLE_BLOCK = "matrix_summary_table_block"
+    VARIANCE_VALIDATION_BLOCK = "variance_validation_block"
+    AUTHENTICITY_EVALUATION_BLOCK = "authenticity_evaluation_block"
 
 
 class VisualIntent(StrEnum):

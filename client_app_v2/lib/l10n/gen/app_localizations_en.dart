@@ -3223,6 +3223,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get targetBlockOrderTitle => 'Target Block Order';
+
+  @override
+  String get targetBlockOrderSubtitle =>
+      'Drag and drop to reorder the blocks dispatched during execution.';
+
+  @override
   String get studioViewsProfileIdRequired => 'Profile ID is required';
 
   @override

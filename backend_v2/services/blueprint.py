@@ -1,6 +1,5 @@
 """Blueprint Transformer Service for V3 Extreme MVC."""
 
-import json
 import logging
 import re
 from collections.abc import Callable
@@ -17,41 +16,27 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.linguistics import scan_report_for_slop
-from backend_v2.models.dtos.lightweight_matrix import (
-    LightweightMatrixOutput,
-    MatrixEvaluationItemDTO,
-    ReasoningStepDTO,
-)
-from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.enums import (
-    ExecutionStatus,
     SystemConfigID,
     TargetBlockType,
     VirtualSystemStepID,
-    VisualIntent,
-    XaiExtensionType,
 )
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
-    I18nText,
-    MatrixScorecardRowDTO,
     MCPAuditTrace,
     OutputProfile,
     PromptBlock,
     ReportDataDTO,
-    ScorecardAtomDTO,
-    StepRule,
     SystemConfigPerformativeLexicons,
 )
 from backend_v2.models.view.sdui import (
-    AlertBlock,
     AnySduiBlock,
-    MarkdownBlock,
     ParagraphBlock,
-    SduiGridBlock,
-    SduiMetrics1DBlock,
     SduiRadarChartBlock,
 )
+from backend_v2.services.matrix_domain_parser import MatrixDomainParser
+from backend_v2.services.sdui.adapters.authenticity_adapter import AuthenticityAdapter
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 from backend_v2.services.sdui.adapters.global_score_adapter import GlobalScoreAdapter
@@ -62,9 +47,9 @@ from backend_v2.services.sdui.adapters.metadata_adapter import MetadataAdapter
 from backend_v2.services.sdui.adapters.penalties_adapter import PenaltiesAdapter
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
 from backend_v2.services.sdui.adapters.synthesis_text_adapter import SynthesisTextAdapter
+from backend_v2.services.sdui.adapters.variance_adapter import VarianceAdapter
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 from backend_v2.settings import get_settings
-from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
 logger = logging.getLogger(__name__)
 
@@ -111,33 +96,11 @@ class BlueprintTransformer:
             TargetBlockType.EXECUTIVE_SUMMARY_BLOCK: lambda ctx: ExecutiveSummaryAdapter.build(ctx),
             TargetBlockType.METADATA_BLOCK: lambda ctx: MetadataAdapter.build(ctx),
             TargetBlockType.SYNTHESIS_TEXT_BLOCK: lambda ctx: SynthesisTextAdapter.build(ctx),
+            TargetBlockType.MATRIX_GRAPHS_BLOCK: lambda ctx: MatrixGraphsAdapter.build(ctx),
+            TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK: lambda ctx: MatrixSummaryTableAdapter.build(ctx),
+            TargetBlockType.VARIANCE_VALIDATION_BLOCK: lambda ctx: VarianceAdapter.build(ctx),
+            TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK: lambda ctx: AuthenticityAdapter.build(ctx),
         }
-
-    @staticmethod
-    def _clean_hallucinated_numbers(text: str) -> str:
-        """Removes sentences that contain numeric evaluations to prevent hallucinations.
-
-        Args:
-            text: Raw input text.
-
-        Returns:
-            Cleaned text string.
-        """
-        if not text:
-            return ""
-
-        sentences = re.split(r"(?<=[.!?]) +", text)
-        cleaned = []
-
-        # Regex checks for words like taso, tason, tasolle, arvosana,
-        # piste etc. followed by an optional colon and a number
-        pattern = re.compile(r"(?i)(taso|arvosana|level|piste|score|grade)[a-zäö]*\s*:?\s*\d")
-
-        for s in sentences:
-            if not pattern.search(s):
-                cleaned.append(s)
-
-        return " ".join(cleaned).strip()
 
     def _apply_pii_masking(self, text: str) -> str:
         """Applies regex-based PII masking to text.
@@ -148,435 +111,10 @@ class BlueprintTransformer:
         Returns:
             The redacted string.
         """
-        import re
-
         # Basic regex fallbacks. Can be replaced with Presidio later.
         text = re.sub(r"[\w\.-]+@[\w\.-]+", "[REDACTED EMAIL]", text)
         text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[REDACTED PHONE]", text)
         return text
-
-    def _parse_matrix_trace_results(
-        self,
-        results: list[Any],
-        locale: str,
-        blocks_by_id: dict[str, PromptBlock],
-        workflow_steps: dict[str, StepRule],
-        profile: OutputProfile,
-        row_explanations_cache: dict[str, str],
-        workflow_ext_values: list[str],
-        row_curated_quotes_cache: dict[str, list[str]],
-        has_synthesis_cache: bool = False,
-        rejected_evq_ids: set[str] | None = None,
-        mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
-        source_identity_manifest: dict[str, str] | None = None,
-        execution: Any = None,
-    ) -> tuple[
-        list[MatrixScorecardRowDTO],
-        list[MatrixScorecardRowDTO],
-        dict[str, MatrixScorecardRowDTO],
-        dict[str, dict[str, ScorecardAtomDTO]],
-    ]:
-        """Parses folded results into MatrixScorecardRowDTOs.
-
-        Args:
-            results: Folded state trace output.
-            locale: Desired output locale.
-            blocks_by_id: Map of PromptBlock IDs to their definitions.
-            workflow_steps: Map of step IDs to their StepRule definitions.
-            profile: The OutputProfile determining which extensions and layouts are valid.
-            row_explanations_cache: Rendered explanations to override raw LLM justification.
-            workflow_ext_values: List of requested workflow-level extension types.
-            rejected_evq_ids: Set of IDs for rejected evidence quotes.
-            mcp_audit_map: Map of audit trace ID to trace model.
-            source_identity_manifest: Optional map of source ID to display names.
-            execution: The execution record.
-
-        Returns:
-            A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms).
-
-        Raises:
-            AppException: Triggered if strict matrix structure constraints are violated.
-        """
-        evaluative_matrices: list[MatrixScorecardRowDTO] = []
-        informational_matrices: list[MatrixScorecardRowDTO] = []
-        all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
-        step_scorecard_atoms: dict[str, dict[str, ScorecardAtomDTO]] = {}
-
-        # Safe attribute access using V2 Models
-        display_scale = profile.display_scale
-        matrix_visible_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
-        if profile.layouts:
-            for lay in profile.layouts:
-                if lay.preset_view == "3d_matrix" and lay.matrix_visible_columns:
-                    matrix_visible_cols = lay.matrix_visible_columns
-                    break
-
-        for dto in results:
-            step_id = dto.step_id
-            b_id = dto.block_id
-            block_data = dto.payload
-
-            pb_meta = blocks_by_id.get(b_id)
-            if not pb_meta or pb_meta.category_id != "matrix":
-                continue
-
-            if not isinstance(block_data, dict):
-                msg = (
-                    f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': "
-                    f"expected dict, got {type(block_data)}"
-                )
-                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
-
-            try:
-                mapped_block_data = LightweightMatrixOutput.map_llm_extensions_to_domain(block_data)
-                matrix_payload = TraceMatrixPayloadDTO.model_validate(mapped_block_data)
-            except Exception as e:
-                msg = f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': {e}"
-                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                ) from e
-
-            true_atoms = None
-            total_atoms = None
-            raw_score = matrix_payload.raw_score
-            norm_score = matrix_payload.normalized_score
-
-            if matrix_payload.evaluated_atoms:
-                true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
-                total_atoms = len(matrix_payload.evaluated_atoms)
-                if total_atoms > 0 and raw_score is None:
-                    raw_score = true_atoms / total_atoms
-                    norm_score = raw_score * 100.0
-
-            axis_name = pb_meta.label.resolve(locale) if pb_meta.label else b_id
-            if not axis_name:
-                axis_name = b_id
-            if pb_meta.is_evaluative:
-                axis_name += " *"
-
-            if not pb_meta.label:
-                logger.error(
-                    "[BlueprintTransformer] %s: Fail-Fast: PromptBlock '%s' is missing a required I18n label.",
-                    ErrorCodes.CONFIGURATION_ERROR.name,
-                    b_id,
-                )
-                raise AppException(
-                    message=f"Fail-Fast: PromptBlock '{b_id}' is missing a required I18n label.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-            axis_description = pb_meta.description.resolve(locale) if pb_meta.description else ""
-
-            if pb_meta.computed_min is None or pb_meta.computed_max is None:
-                logger.error(
-                    "[BlueprintTransformer] %s: PromptBlock '%s' missing Pydantic computed_min/max.",
-                    ErrorCodes.CONFIGURATION_ERROR.name,
-                    b_id,
-                )
-                raise AppException(
-                    message=f"PromptBlock '{b_id}' missing Pydantic computed_min/max.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-            math_min = float(pb_meta.computed_min)
-            math_max = float(pb_meta.computed_max)
-
-            scales_def = pb_meta.scales
-            if not scales_def:
-                logger.error(
-                    "[BlueprintTransformer] %s: PromptBlock '%s' initialized as matrix but has no scales.",
-                    ErrorCodes.CONFIGURATION_ERROR.name,
-                    b_id,
-                )
-                raise AppException(
-                    message=f"PromptBlock '{b_id}' initialized as matrix but has no scales.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-            level_names: dict[str, str] = {}
-            ui_boundary_labels: dict[str, str] = {}
-            for s in scales_def:
-                s_score = float(s.score)
-                if not s.name:
-                    logger.error(
-                        "[BlueprintTransformer] %s: Fail-Fast: MatrixScale in block '%s' missing 'name'.",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                        b_id,
-                    )
-                    raise AppException(
-                        message=f"Fail-Fast: MatrixScale in block '{b_id}' missing 'name'.",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-                s_label = s.name.resolve(locale)
-
-                int_str = str(int(s_score)) if s_score.is_integer() else str(s_score)
-                float_str = str(s_score)
-                level_names[int_str] = s_label
-                if float_str != int_str:
-                    level_names[float_str] = s_label
-
-                if s_score == math_min:
-                    ui_boundary_labels["0.0"] = s_label
-                if s_score == math_max:
-                    ui_boundary_labels["1.0"] = s_label
-
-            display_scale_min = math_min
-            display_scale_max = math_max
-
-            active_score_key = "raw_score"
-            if display_scale == "normalized_100":
-                active_score_key = "normalized_score"
-                display_scale_min = 0.0
-                display_scale_max = 100.0
-            elif display_scale == "custom":
-                scale_min_val = pb_meta.scale_min
-                scale_max_val = pb_meta.scale_max
-                if scale_min_val is None or scale_max_val is None:
-                    logger.error(
-                        "[BlueprintTransformer] %s: UI bounds missing for PromptBlock '%s' under custom scale.",
-                        ErrorCodes.CONFIGURATION_ERROR.name,
-                        b_id,
-                    )
-                    raise AppException(
-                        message=f"UI bounds missing for PromptBlock '{b_id}' under custom scale.",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                    )
-                display_scale_min = float(scale_min_val)
-                display_scale_max = float(scale_max_val)
-
-            if active_score_key == "normalized_score":
-                target_val = matrix_payload.normalized_score
-            else:
-                target_val = matrix_payload.raw_score
-
-            if target_val is None:
-                target_val = raw_score
-
-            score_float = float(round(float(target_val), 1)) if target_val is not None else None
-            if display_scale == "normalized_100" and score_float is not None:
-                score_float = float(round(score_float))
-
-            ui_plot_ratio = None
-            if raw_score is not None:
-                if math_max == math_min:
-                    ratio = 0.0
-                else:
-                    ratio = (float(raw_score) - math_min) / (math_max - math_min)
-                ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
-
-            original_axis_name = axis_name
-            collision_counter = 1
-            while any(ext.name == axis_name for ext in all_parsed_matrices.values()):
-                step_node = workflow_steps[step_id]
-                step_title = step_node.id
-                axis_name = f"{original_axis_name} ({step_title})"
-                if any(ext.name == axis_name for ext in all_parsed_matrices.values()):
-                    axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
-                    collision_counter += 1
-
-            axis_level_breakdown = None
-            raw_breakdown = matrix_payload.level_breakdown
-            if raw_breakdown:
-                clean_level_dict = {}
-                for lvl_key, lvl_data in raw_breakdown.items():
-                    try:
-                        f_lvl = float(lvl_key)
-                        is_int = f_lvl.is_integer()
-                        c_key = str(int(f_lvl)) if is_int else str(lvl_key)
-                        hits = lvl_data.hits
-                        total = lvl_data.total
-                        clean_level_dict[c_key] = f"{hits}/{total}"
-                    except ValueError as v_err:
-                        logger.error(
-                            "[BlueprintTransformer] %s: Fail-Fast: Invalid level key '%s' "
-                            "in matrix breakdown for '%s'.",
-                            ErrorCodes.VALIDATION_FAILED.name,
-                            lvl_key,
-                            b_id,
-                            exc_info=True,
-                        )
-                        raise AppException(
-                            message=(f"Fail-Fast: Invalid level key '{lvl_key}' in matrix breakdown for '{b_id}'."),
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        ) from v_err
-                axis_level_breakdown = clean_level_dict
-
-            ext = matrix_payload.extensions
-
-            synthesis_expected = (
-                profile.synthesis is not None and profile.synthesis.row_explanations_block_id is not None
-            )
-            if synthesis_expected:
-                if b_id not in row_explanations_cache:
-                    msg = f"Fail-Fast: row_explanations_cache missing entry for matrix '{b_id}'. Worker synthesis incomplete."
-                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                    )
-                final_explanation = row_explanations_cache[b_id]
-            else:
-                final_explanation = row_explanations_cache.get(b_id, "")
-
-            evaluated_atoms_list = []
-            clustered_row_sources: list[Any] = []
-
-            if "quotes" in matrix_visible_cols:
-                step_evals_map = {}
-                for r_dto in results:
-                    if r_dto.step_id == step_id and r_dto.block_id == "evaluations" and isinstance(r_dto.payload, list):
-                        for ev in r_dto.payload:
-                            if isinstance(ev, dict) and "atom_id" in ev:
-                                step_evals_map[ev["atom_id"]] = ev
-                        break
-
-                if pb_meta.scales:
-                    for scale in pb_meta.scales:
-                        l_val = int(scale.score)
-                        l_name = level_names.get(str(l_val), f"Taso {l_val}")
-                        for claim in scale.claims:
-                            claim_label = claim.label.resolve(locale) if isinstance(claim.label, I18nText) else "Väite"
-                            for tda in claim.tda_assertions:
-                                atom_id = tda.tda_id
-                                ev_data = step_evals_map.get(atom_id)
-
-                                if ev_data:
-                                    try:
-                                        # Strict validation for Matrix Output
-                                        val_data = MatrixEvaluationItemDTO.model_validate(ev_data)
-
-                                        r_step = ReasoningStepDTO(
-                                            step_1_identify_premise="",
-                                            step_2_scan_source="",
-                                            step_3_evaluate_anti_patterns="",
-                                            step_4_final_conclusion="",
-                                        )
-
-                                        s_atom = ScorecardAtomDTO(
-                                            atom_id=atom_id,
-                                            level=l_val,
-                                            level_name=l_name,
-                                            claim_label=claim_label,
-                                            extracted_facts={},
-                                            exact_quotes=[],
-                                            internal_logic_en=r_step,
-                                            status=ExecutionStatus.FAILED,
-                                            semantic_reasoning=val_data.semantic_reasoning,
-                                            contextual_override=False,
-                                            structural_location="N/A",
-                                            chart_display_label="N/A",
-                                            visual_intent=VisualIntent.NEUTRAL,
-                                        )
-
-                                    except Exception as e:
-                                        # Fail-Fast requirement: Crash loudly if the model does not validate
-                                        logger.error(
-                                            "LLM output violated strictly typed schema during Display parsing for atom %s",
-                                            atom_id,
-                                            exc_info=True,
-                                        )
-                                        raise AppException(
-                                            message=f"Strict type validation failed for atom {atom_id}",
-                                            status_code=500,
-                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                        ) from e
-
-                                    evaluated_atoms_list.append(s_atom)
-                                    step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
-                                else:
-                                    dummy_reasoning = ReasoningStepDTO(
-                                        step_1_identify_premise="",
-                                        step_2_scan_source="",
-                                        step_3_evaluate_anti_patterns="",
-                                        step_4_final_conclusion="",
-                                    )
-                                    s_atom = ScorecardAtomDTO(
-                                        atom_id=atom_id,
-                                        level=l_val,
-                                        level_name=l_name,
-                                        claim_label=claim_label,
-                                        extracted_facts={},
-                                        exact_quotes=[],
-                                        internal_logic_en=dummy_reasoning,
-                                        status=ExecutionStatus.FAILED,
-                                        semantic_reasoning="",
-                                        contextual_override=False,
-                                        structural_location="N/A",
-                                        chart_display_label="N/A",
-                                        visual_intent=VisualIntent.NEUTRAL,
-                                    )
-                                    evaluated_atoms_list.append(s_atom)
-                                    step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
-
-            score_display_label = "-"
-            if score_float is not None:
-                max_val = display_scale_max if display_scale_max is not None else 100.0
-                score_display_label = f"{score_float:.1f} / {max_val:.1f}"
-
-            cleaned_explanation = self._clean_hallucinated_numbers(final_explanation)
-            inner_sdui_blocks: list[AnySduiBlock] = [
-                ParagraphBlock(text=f"**{axis_name}**", exact_quotes=[], citations=[])
-            ]
-            if cleaned_explanation:
-                inner_sdui_blocks.append(MarkdownBlock(text=cleaned_explanation))
-
-            row_dto = MatrixScorecardRowDTO(
-                block_id=b_id,
-                name=axis_name,
-                label_i18n=pb_meta.label,
-                description=axis_description,
-                score=score_float,
-                score_display_label=score_display_label,
-                scale_min=display_scale_min,
-                scale_max=display_scale_max,
-                normalized_score=float(norm_score) if norm_score is not None else None,
-                true_atoms=true_atoms,
-                total_atoms=total_atoms,
-                row_explanation=cleaned_explanation,
-                evidence_type=ext.evidence_type if ext else None,  # type: ignore[arg-type]
-                cited_source_id=ext.source_id if ext else None,
-                cited_text_quote=ext.citation if ext else None,
-                cited_web_citation=ext.google_citation if ext else None,
-                confidence=ext.confidence if ext else None,
-                contextual_override=ext.contextual_override if ext else None,
-                semantic_reasoning=(
-                    ext.semantic_reasoning if ext and ext.semantic_reasoning else matrix_payload.justification
-                ),
-                level_breakdown=axis_level_breakdown,
-                level_names=level_names,
-                ui_boundary_labels=ui_boundary_labels,
-                ui_plot_ratio=ui_plot_ratio,
-                is_evaluative=pb_meta.is_evaluative,
-                evaluated_atoms=evaluated_atoms_list,
-                clustered_row_sources=clustered_row_sources,
-                used_evidence_ids=[],
-                inner_sdui_blocks=inner_sdui_blocks,
-            )
-
-            unique_k = f"{step_id}_{b_id}"
-            all_parsed_matrices[unique_k] = row_dto
-
-            if pb_meta.is_evaluative:
-                evaluative_matrices.append(row_dto)
-            else:
-                informational_matrices.append(row_dto)
-
-        return (
-            evaluative_matrices,
-            informational_matrices,
-            all_parsed_matrices,
-            step_scorecard_atoms,
-        )
 
     def _hydrate_global_score_block(self, **kwargs: Any) -> list[AnySduiBlock]:
         """Placeholder for future global score hydration logic."""
@@ -796,7 +334,7 @@ class BlueprintTransformer:
             informational_matrices,
             all_parsed_matrices,
             step_scorecard_atoms,
-        ) = self._parse_matrix_trace_results(
+        ) = MatrixDomainParser.parse_matrices(
             results=results,
             locale=locale,
             blocks_by_id=blocks_by_id,
@@ -811,319 +349,6 @@ class BlueprintTransformer:
             source_identity_manifest=None,
             execution=execution,
         )
-
-        variance_sdui_blocks: list[AnySduiBlock] | None = None
-        auth_sdui_blocks: list[AnySduiBlock] | None = None
-        cv = execution.context_variables
-
-        def get_metric_label(key: str) -> str:
-            lbl = profile.metric_mappings.get(key) if profile and hasattr(profile, "metric_mappings") else None
-            if not lbl:
-                raise AppException(
-                    message=f"Strict Fail-Fast: Missing metric_mappings translation for '{key}'.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-            return lbl.resolve(locale)
-
-        for wf_ext in workflow_ext_values:
-            if wf_ext == "variance_validation":
-                authenticity_score = None
-                performative_phrases_count = None
-                if cv is None:
-                    raise AppException(
-                        message="Fail-Fast: context_variables cannot be None in ExecutionRecord.",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-
-                # Retrieve authenticity score from step_detector payload in context_variables
-                step_det = cv.get("step_detector")
-                if step_det is not None:
-                    from pydantic import ValidationError
-
-                    from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-
-                    try:
-                        det_out = LightweightMatrixOutput.model_validate(step_det, strict=False)
-                        if det_out.raw_score is not None:
-                            authenticity_score = float(det_out.raw_score)
-                    except ValidationError as ve:
-                        logger.warning(
-                            "[BlueprintTransformer] Non-fatal schema mismatch in step_detector payload: %s", ve
-                        )
-
-                if authenticity_score is None:
-                    # Dynamically resolve authenticity score from the performativity detector step in the folded trace
-                    performativity_step_ids = {
-                        step.id
-                        for step in workflow_obj.steps
-                        if profile
-                        and getattr(profile, "performativity_detector_step_id", None)
-                        and step.task_blueprint == profile.performativity_detector_step_id
-                    }
-                    for result_dto in results:
-                        if result_dto.step_id in performativity_step_ids:
-                            payload = result_dto.payload
-                            if isinstance(payload, dict) and "raw_score" in payload:
-                                raw_val = payload.get("raw_score")
-                                if raw_val is not None:
-                                    block = blocks_by_id.get(result_dto.block_id)
-                                    if block and block.computed_min is not None and block.computed_max is not None:
-                                        math_min = float(block.computed_min)
-                                        math_max = float(block.computed_max)
-                                        if math_max > math_min:
-                                            # Scale the authenticity score from [math_min, math_max] to the [1.0, 3.0] scale
-                                            authenticity_score = (
-                                                (float(raw_val) - math_min) / (math_max - math_min)
-                                            ) * 2.0 + 1.0
-                                            break
-                                        else:
-                                            msg_bounds = f"PromptBlock '{result_dto.block_id}' has invalid math boundaries: math_min={math_min}, math_max={math_max}"
-                                            logger.error(
-                                                "[BlueprintTransformer] %s: %s",
-                                                ErrorCodes.VALIDATION_FAILED.name,
-                                                msg_bounds,
-                                            )
-                                            raise AppException(
-                                                message=msg_bounds,
-                                                status_code=500,
-                                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                            )
-                                    else:
-                                        msg_missing = f"PromptBlock '{result_dto.block_id}' computed bounds are missing or block not found."
-                                        logger.error(
-                                            "[BlueprintTransformer] %s: %s",
-                                            ErrorCodes.VALIDATION_FAILED.name,
-                                            msg_missing,
-                                        )
-                                        raise AppException(
-                                            message=msg_missing,
-                                            status_code=500,
-                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                        )
-
-                # Retrieve performative phrases count from step_linguistics payload in context_variables
-                step_ling = cv.get("step_linguistics")
-                if step_ling is not None:
-                    from pydantic import ValidationError
-
-                    from backend_v2.models.domain.linguistics import LinguisticsResultDTO
-
-                    try:
-                        ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
-                        patterns = ling_out.performative_patterns
-                        if isinstance(patterns, list):
-                            performative_phrases_count = len(patterns)
-                    except ValidationError as ve:
-                        logger.warning(
-                            "[BlueprintTransformer] Non-fatal schema mismatch in step_linguistics payload: %s", ve
-                        )
-
-                if performative_phrases_count is None:
-                    # Dynamically resolve linguistics performative patterns count from decision events in execution trace
-                    for event in reversed(execution.execution_trace):
-                        if event.event_type == "decision" and "step_linguistics" in event.content:
-                            trace_ling = event.content.get("step_linguistics")
-                            if isinstance(trace_ling, dict) and "performative_patterns" in trace_ling:
-                                trace_patterns = trace_ling.get("performative_patterns")
-                                if isinstance(trace_patterns, list):
-                                    performative_phrases_count = len(trace_patterns)
-                                    break
-
-                if authenticity_score is None or performative_phrases_count is None:
-                    msg = (
-                        "Strict Fail-Fast Enforced: 'variance_validation' requested but authenticity_score "
-                        f"({authenticity_score}) or performative_phrases_count ({performative_phrases_count}) is missing."
-                    )
-                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-
-                variance_res = calculate_mechanical_cognitive_variance(
-                    llm_authenticity_score=authenticity_score,
-                    performative_phrases_count=performative_phrases_count,
-                )
-
-                lbl_mech = get_metric_label("variance_mechanical")
-                lbl_cog = get_metric_label("variance_cognitive")
-                lbl_var = get_metric_label("variance_total")
-                lbl_align = get_metric_label("alignment_verdict")
-
-                auth_score_rounded = round(float(authenticity_score), 2)
-                var_score_rounded = round(float(variance_res["variance_score"]), 2)
-                is_aligned = str(variance_res["alignment_verdict"]) == "ALIGNED"
-                align_val = get_metric_label("alignment_aligned" if is_aligned else "alignment_misaligned")
-
-                grid_block = SduiGridBlock(
-                    items=[
-                        ParagraphBlock(text=f"{lbl_mech}: {performative_phrases_count}", exact_quotes=[], citations=[]),
-                        ParagraphBlock(text=f"{lbl_cog}: {auth_score_rounded}", exact_quotes=[], citations=[]),
-                        ParagraphBlock(text=f"{lbl_var}: {var_score_rounded}", exact_quotes=[], citations=[]),
-                    ]
-                )
-                alert_block = AlertBlock(
-                    severity=VisualIntent.INFO if is_aligned else VisualIntent.WARNING,
-                    text=f"{lbl_align}: {align_val}",
-                    exact_quotes=[],
-                    citations=[],
-                )
-
-                # Fetch LLM variance explanation from cache or use fallback
-                llm_explanation = row_explanations_cache.get("variance_validation", "")
-                if not llm_explanation:
-                    fallback_template = get_metric_label("variance_fallback_explanation")
-                    llm_explanation = fallback_template.format(performative_phrases_count, auth_score_rounded)
-
-                variance_label = (
-                    profile.extension_labels.get(XaiExtensionType.VARIANCE_VALIDATION)
-                    if profile and profile.extension_labels
-                    else None
-                )
-                if not variance_label:
-                    msg = f"Strict Fail-Fast: Missing extension_labels mapping for {XaiExtensionType.VARIANCE_VALIDATION.value} in OutputProfile."
-                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-                title_str = variance_label.resolve(locale)
-                variance_text = (
-                    f"**{title_str}:** {auth_score_rounded}/100  \n**{lbl_align}:** {align_val}\n\n{llm_explanation}"
-                )
-
-                variance_kwargs: dict[str, Any] = {
-                    "block_id": "variance_metrics_row",
-                    "name": "Variance Metrics",
-                    "label_i18n": variance_label,
-                    "row_explanation": "Variance metrics dashboard",
-                    "is_evaluative": False,
-                    "inner_sdui_blocks": [grid_block, alert_block],
-                }
-                row_dto = MatrixScorecardRowDTO(**variance_kwargs)
-                variance_sdui_blocks = []
-                title_str_label = variance_label.resolve(locale) if variance_label else "Variance Metrics"
-                variance_sdui_blocks.append(
-                    ParagraphBlock(text=f"**{title_str_label}**", exact_quotes=[], citations=[])
-                )
-                variance_sdui_blocks.append(SduiMetrics1DBlock(axes=[row_dto]))
-                variance_sdui_blocks.append(MarkdownBlock(text=variance_text))
-
-            if wf_ext == "authenticity_evaluation":
-                authenticity_score = None
-                if cv is not None:
-                    step_det = cv.get("step_detector")
-                    if step_det is not None:
-                        det_payload = json.loads(step_det) if isinstance(step_det, str) else step_det
-                        raw_auth = det_payload.get("raw_score")
-                        if raw_auth is not None:
-                            authenticity_score = float(raw_auth)
-
-                if authenticity_score is None:
-                    # Dynamically resolve authenticity score from the performativity detector step in the raw trace
-                    performativity_step_names = {
-                        step.id
-                        for step in workflow_obj.steps
-                        if profile
-                        and getattr(profile, "performativity_detector_step_id", None)
-                        and step.task_blueprint == profile.performativity_detector_step_id
-                    }
-                    for event in reversed(execution.execution_trace):
-                        if getattr(event, "step_name", None) in performativity_step_names:
-                            payload = getattr(event, "content", {})
-                            if isinstance(payload, dict):
-                                # Matrix scores are nested under their criteria block ID keys
-                                for _block_key, block_val in payload.items():
-                                    if isinstance(block_val, dict) and "raw_score" in block_val:
-                                        raw_val = block_val.get("raw_score")
-                                        if raw_val is not None:
-                                            authenticity_score = float(raw_val)
-                                            break
-                                if authenticity_score is not None:
-                                    break
-
-                if authenticity_score is None:
-                    msg = (
-                        "Strict Fail-Fast Enforced: 'authenticity_evaluation' requested but authenticity_score "
-                        f"({authenticity_score}) is missing."
-                    )
-                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-
-                auth_score_rounded = round(float(authenticity_score), 2)
-
-                lbl_jargon = get_metric_label("jargon_score")
-                lbl_auth_level = get_metric_label("authenticity_level")
-
-                grid_block = SduiGridBlock(
-                    items=[
-                        ParagraphBlock(text=f"{lbl_jargon}: {auth_score_rounded}", exact_quotes=[], citations=[]),
-                    ]
-                )
-
-                alert_severity: VisualIntent = VisualIntent.INFO if auth_score_rounded >= 80 else VisualIntent.WARNING
-                if auth_score_rounded < 50:
-                    alert_severity = VisualIntent.ERROR
-
-                lvl_key = (
-                    "level_high"
-                    if auth_score_rounded >= 80
-                    else "level_medium"
-                    if auth_score_rounded >= 50
-                    else "level_low"
-                )
-                lbl_lvl = get_metric_label(lvl_key)
-
-                alert_block = AlertBlock(
-                    severity=alert_severity,
-                    text=f"{lbl_auth_level}: {lbl_lvl}",
-                    exact_quotes=[],
-                    citations=[],
-                )
-
-                llm_explanation = row_explanations_cache.get("authenticity_evaluation", "")
-                if not llm_explanation:
-                    fallback_template = get_metric_label("authenticity_fallback_explanation")
-                    llm_explanation = fallback_template.format(auth_score_rounded)
-
-                auth_label = (
-                    profile.extension_labels.get(XaiExtensionType.AUTHENTICITY_EVALUATION)
-                    if profile and profile.extension_labels
-                    else None
-                )
-                if not auth_label:
-                    msg = f"Strict Fail-Fast: Missing extension_labels mapping for {XaiExtensionType.AUTHENTICITY_EVALUATION.value} in OutputProfile."
-                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-                title_str = auth_label.resolve(locale)
-                auth_text = f"**{title_str}:** {auth_score_rounded}/100\n\n{llm_explanation}"
-
-                auth_kwargs: dict[str, Any] = {
-                    "block_id": "authenticity_metrics_row",
-                    "name": "Authenticity Metrics",
-                    "label_i18n": auth_label,
-                    "row_explanation": "Authenticity metrics dashboard",
-                    "is_evaluative": False,
-                    "inner_sdui_blocks": [grid_block, alert_block],
-                }
-                auth_row_dto = MatrixScorecardRowDTO(**auth_kwargs)
-                auth_sdui_blocks = []
-                title_str_label = auth_label.resolve(locale) if auth_label else "Authenticity Metrics"
-                auth_sdui_blocks.append(ParagraphBlock(text=f"**{title_str_label}**", exact_quotes=[], citations=[]))
-                auth_sdui_blocks.append(SduiMetrics1DBlock(axes=[auth_row_dto]))
-                auth_sdui_blocks.append(MarkdownBlock(text=auth_text))
 
         modified_step_states = False
         new_step_states = dict(execution.step_states)
@@ -1169,9 +394,11 @@ class BlueprintTransformer:
             temp_visualization_blocks.extend(MatrixGraphsAdapter.build(adapter_ctx))
             temp_visualization_blocks.extend(MatrixSummaryTableAdapter.build(adapter_ctx))
 
+            variance_sdui_blocks = VarianceAdapter.build(adapter_ctx)
             if variance_sdui_blocks:
                 temp_visualization_blocks.extend(variance_sdui_blocks)
 
+            auth_sdui_blocks = AuthenticityAdapter.build(adapter_ctx)
             if auth_sdui_blocks:
                 temp_visualization_blocks.extend(auth_sdui_blocks)
 
@@ -1445,33 +672,13 @@ class BlueprintTransformer:
                 parsed_matrices=all_parsed_matrices,
             )
 
-            dispatch_order = [
-                TargetBlockType.METADATA_BLOCK,
-                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
-                TargetBlockType.SYNTHESIS_TEXT_BLOCK,
-                "matrix_graphs_block",
-                TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
-                TargetBlockType.PENALTIES_BLOCK,
-                "matrix_summary_table_block",
-                TargetBlockType.PRINTABLE_SOURCES_BLOCK,
-                TargetBlockType.GLOBAL_SCORE_BLOCK,
-                TargetBlockType.AUDIT_TRAIL_BLOCK,
-            ]
+            dispatch_order = profile.target_block_order
 
             for target_k in dispatch_order:
-                if target_k == "matrix_graphs_block":
-                    inner_sdui_blocks.extend(MatrixGraphsAdapter.build(adapter_context))
-                elif target_k == "matrix_summary_table_block":
-                    inner_sdui_blocks.extend(MatrixSummaryTableAdapter.build(adapter_context))
-                elif target_k in self._target_block_hydrators:
+                if str(target_k) in self._target_block_hydrators:
                     hydrated_blocks = self._target_block_hydrators[str(target_k)](adapter_context)
                     if hydrated_blocks:
                         inner_sdui_blocks.extend(hydrated_blocks)
-
-            if variance_sdui_blocks:
-                inner_sdui_blocks.extend(variance_sdui_blocks)
-            if auth_sdui_blocks:
-                inner_sdui_blocks.extend(auth_sdui_blocks)
 
             if not inner_sdui_blocks:
                 inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]

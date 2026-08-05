@@ -4,8 +4,17 @@ from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field
 
+from backend_v2.models.domain.metadata import StepMetadataDTO
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+
+
+class TraceEventMetadataEnvelope(BaseDTO):
+    """Strict hydration schema for extracting metadata from a trace event."""
+
+    model_config = ConfigDict(strict=False, extra="ignore")
+
+    step_metadata: Annotated[StepMetadataDTO | None, Field(alias="_step_metadata", default=None)]
 
 
 class TraceMatrixExtensionsDTO(BaseDTO):

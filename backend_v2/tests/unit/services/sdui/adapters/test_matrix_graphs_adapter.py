@@ -1,5 +1,5 @@
 from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, OutputLayoutBlock, OutputProfile
-from backend_v2.models.view.sdui import SduiRadarChartBlock
+from backend_v2.models.view.sdui import SduiRadarChartBlock, MarkdownBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
 
@@ -70,9 +70,12 @@ def test_matrix_graphs_adapter_graceful_degradation():
     )
 
     # Degrades from 3d_matrix (needs 3) to 1d_metrics (needs 1)
-    # 1d_metrics just unpacks inner_sdui_blocks, which are empty here.
     blocks = MatrixGraphsAdapter.build(context)
-    assert len(blocks) == 0
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "### Graph 3D"
+    from backend_v2.models.view.sdui import SduiMetrics1DBlock
+    assert isinstance(blocks[1], SduiMetrics1DBlock)
 
 
 def test_matrix_graphs_adapter_success():
@@ -135,9 +138,11 @@ def test_matrix_graphs_adapter_success():
         },
     )
     blocks = MatrixGraphsAdapter.build(context)
-    assert len(blocks) == 1
-    assert isinstance(blocks[0], SduiRadarChartBlock)
-    assert len(blocks[0].axes) == 3
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "### Graph 3D"
+    assert isinstance(blocks[1], SduiRadarChartBlock)
+    assert len(blocks[1].axes) == 3
 
 
 def test_matrix_graphs_adapter_empty_valid_layout():

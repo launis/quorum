@@ -81,6 +81,7 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
         timestamp_isot=datetime.now(timezone.utc).isoformat(),
         unix_time=unix_time,
         v2_engine=True,
+        task_blueprint=state.task_blueprint,
     )
 
     result_dto = MetadataHookResultDTO(step_metadata=metadata)

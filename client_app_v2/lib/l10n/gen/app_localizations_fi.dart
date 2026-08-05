@@ -3240,8 +3240,15 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String studioViewsErrorLoadingWorkflows(String error) {
-    return 'Virhe työnkulkujen latauksessa: $error';
+    return 'Virhe ladattaessa työnkulkuja: $error';
   }
+
+  @override
+  String get targetBlockOrderTitle => 'Suorituslohkojen järjestys';
+
+  @override
+  String get targetBlockOrderSubtitle =>
+      'Raahaa ja pudota muuttaaksesi suoritettavien lohkojen järjestystä.';
 
   @override
   String get studioViewsProfileIdRequired => 'Profiilin ID on pakollinen';

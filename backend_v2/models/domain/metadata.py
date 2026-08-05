@@ -45,6 +45,7 @@ class StepMetadataDTO(V2CoreBase):
     timestamp_isot: Annotated[str, Field(min_length=1)]
     unix_time: Annotated[int, Field(description="Unix timestamp")]
     v2_engine: bool = True
+    task_blueprint: Annotated[str | None, Field(default=None)] = None
 
     @field_validator("unix_time")
     @classmethod

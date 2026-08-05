@@ -752,6 +752,49 @@ class OutputProfileCrudView extends HookConsumerWidget {
       );
     }
 
+    Widget buildTargetBlockOrderPane() {
+      return Card(
+        child: Padding(
+          padding: AppSpacing.p16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.targetBlockOrderTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              AppSpacing.h8,
+              Text(
+                l10n.targetBlockOrderSubtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              AppSpacing.h16,
+              ReorderableListView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                onReorder: (oldIndex, newIndex) {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+                  final list = List<String>.from(payload.targetBlockOrder);
+                  final item = list.removeAt(oldIndex);
+                  list.insert(newIndex, item);
+                  updatePayload(payload.copyWith(targetBlockOrder: list));
+                },
+                children: payload.targetBlockOrder.map((blockId) {
+                  return ListTile(
+                    key: ValueKey(blockId),
+                    title: Text(blockId),
+                    trailing: const Icon(Icons.drag_handle),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return AppExceptionBoundary(
       child: Scaffold(
         appBar: AppBar(
@@ -822,6 +865,14 @@ class OutputProfileCrudView extends HookConsumerWidget {
                         child: buildLayoutPane(),
                       ),
                     ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      flex: 1,
+                      child: SingleChildScrollView(
+                        padding: AppSpacing.p16,
+                        child: buildTargetBlockOrderPane(),
+                      ),
+                    ),
                   ],
                 );
               } else {
@@ -829,9 +880,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   padding: AppSpacing.p16,
                   children: [
                     buildIdentityPane(),
-
                     AppSpacing.h24,
                     buildLayoutPane(),
+                    AppSpacing.h24,
+                    buildTargetBlockOrderPane(),
                   ],
                 );
               }

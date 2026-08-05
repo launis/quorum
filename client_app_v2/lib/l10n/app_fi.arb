@@ -1297,6 +1297,9 @@
   "blockLevelExtensionsLabel": "Vaihekohtaiset laajennokset (Block-level)",
   "workflowLevelExtensionsLabel": "Globaalit työnkulun laajennokset (Workflow-level)",
   "toggleLayoutTooltip": "Vaihda asettelua",
+  "studioViewsErrorLoadingWorkflows": "Virhe ladattaessa työnkulkuja: {error}",
+  "targetBlockOrderTitle": "Suorituslohkojen järjestys",
+  "targetBlockOrderSubtitle": "Raahaa ja pudota muuttaaksesi suoritettavien lohkojen järjestystä.",
   "studioViewsErrorLoadingExtensions": "Virhe ladattaessa laajennuksia: {error}",
   "@studioViewsErrorLoadingExtensions": {
     "placeholders": {

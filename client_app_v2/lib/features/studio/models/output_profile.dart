@@ -116,6 +116,20 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'content_blocks')
     @Default([])
     List<SduiBlockDTO> contentBlocks,
+    @JsonKey(name: 'target_block_order')
+    @Default([
+      'metadata_block',
+      'executive_summary_block',
+      'synthesis_text_block',
+      'matrix_graphs_block',
+      'grouped_extensions_block',
+      'penalties_block',
+      'matrix_summary_table_block',
+      'printable_sources_block',
+      'global_score_block',
+      'audit_trail_block',
+    ])
+    List<String> targetBlockOrder,
     SynthesisConfigDTO? synthesis,
     @JsonKey(name: 'performativity_detector_step_id')
     String? performativityDetectorStepId,

@@ -10,6 +10,7 @@ from typing import Any
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
+    MarkdownBlock,
     ParagraphBlock,
     SduiMatrixTableBlock,
 )
@@ -110,6 +111,9 @@ class MatrixSummaryTableAdapter:
                 if synthesis_config and layout_id in section_syntheses:
                     section_blocks = list(section_syntheses[layout_id])
 
+                if layout_def.title:
+                    blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
+
                 if layout_def.description:
                     blocks.append(
                         ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
@@ -120,7 +124,7 @@ class MatrixSummaryTableAdapter:
 
                 blocks.append(
                     SduiMatrixTableBlock(
-                        title=layout_def.title,
+                        title=None,
                         axes=axes,
                         matrix_column_labels=layout_def.matrix_column_labels,
                         matrix_visible_columns=layout_def.matrix_visible_columns,

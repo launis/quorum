@@ -10,6 +10,7 @@ from typing import Any
 from backend_v2.exceptions import AppException, ConfigurationError
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
+    MarkdownBlock,
     ParagraphBlock,
     SduiMetrics1DBlock,
     SduiRadarChartBlock,
@@ -61,6 +62,7 @@ class MatrixGraphsAdapter:
             ConfigurationError: If output profile specifies an invalid text delivery mode.
         """
         blocks: list[AnySduiBlock] = []
+        seen_axes: set[str] = set()
 
         if not context.profile.layouts:
             return blocks
@@ -92,10 +94,14 @@ class MatrixGraphsAdapter:
             if target_blocks and "*" not in target_blocks:
                 for target_k in target_blocks:
                     matched = next((axis for axis in all_parsed_matrices.values() if axis.block_id == target_k), None)
-                    if matched:
+                    if matched and matched.block_id not in seen_axes:
                         axes.append(matched)
+                        seen_axes.add(matched.block_id)
             else:
-                axes = list(all_parsed_matrices.values())
+                for axis in all_parsed_matrices.values():
+                    if axis.block_id not in seen_axes:
+                        axes.append(axis)
+                        seen_axes.add(axis.block_id)
 
             # Fail-fast validation based on AESTHETICS RULES
             try:
@@ -130,23 +136,35 @@ class MatrixGraphsAdapter:
                 if synthesis_config and layout_id in section_syntheses:
                     section_blocks = list(section_syntheses[layout_id])
 
-                if layout_def.description:
-                    blocks.append(
-                        ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
-                    )
-
                 if section_blocks:
                     blocks.extend(section_blocks)
 
-                if preset_view in ["3d_matrix", "2d_compare"] or text_delivery_mode != "none":
+                if preset_view in ["3d_matrix", "2d_compare", "1d_metrics"]:
+                    if layout_def.title:
+                        blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
+                    if layout_def.description:
+                        blocks.append(
+                            ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
+                        )
+
                     if preset_view == "3d_matrix":
-                        blocks.append(SduiRadarChartBlock(title=layout_def.title, axes=axes))
+                        blocks.append(SduiRadarChartBlock(title=None, axes=axes))
                     elif preset_view == "2d_compare":
-                        blocks.append(SduiScatterPlotBlock(title=layout_def.title, axes=axes))
+                        blocks.append(SduiScatterPlotBlock(title=None, axes=axes))
                     elif preset_view == "1d_metrics":
-                        blocks.append(SduiMetrics1DBlock(title=layout_def.title, axes=axes))
-                    elif preset_view == "text_only":
-                        for axis in axes:
-                            blocks.extend(axis.inner_sdui_blocks)
+                        blocks.append(SduiMetrics1DBlock(title=None, axes=axes))
+                elif preset_view == "text_only" and text_delivery_mode != "none":
+                    if layout_def.title:
+                        blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
+                    if layout_def.description:
+                        blocks.append(
+                            ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
+                        )
+
+                    for axis in axes:
+                        if text_delivery_mode in ["full", "titles_only"]:
+                            blocks.append(ParagraphBlock(text=f"**{axis.name}**", exact_quotes=[], citations=[]))
+                        if text_delivery_mode == "full" and axis.row_explanation:
+                            blocks.append(MarkdownBlock(text=axis.row_explanation))
 
         return blocks

@@ -50,6 +50,7 @@ from backend_v2.models.v2_core import (
     RenderedSynthesisCache,
     ReportDataDTO,
 )
+from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 from backend_v2.services.blueprint import BlueprintTransformer
 
 
@@ -817,13 +818,23 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         status=ExecutionStatus.PASSED,
         execution_trace=[
             TraceEvent(
-                step_name="sr_1234",
+                step_name="sr_5f3dd7712a7f4bb3",
                 event_type="output",
                 content={
                     "blk_fb15f8dcf23f4865": {
-                        "raw_score": 4.0,
-                        "normalized_score": 75.55,
-                    }
+                        "raw_score": 85.00,
+                        "normalized_score": 85.00,
+                    },
+                    "_step_metadata": {
+                        "execution_id": "exe_0000000000000009",
+                        "workflow_id": "wf_1234abcd1234abcd",
+                        "step_id": "sr_5f3dd7712a7f4bb3",
+                        "initiator_id": "system",
+                        "timestamp_isot": "2026-08-05T00:00:00Z",
+                        "unix_time": 1700000000,
+                        "v2_engine": True,
+                        "task_blueprint": "sp_7f9649114d2344dc",
+                    },
                 },
             )
         ],
@@ -1074,15 +1085,32 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 event_type="output",
                 content={
                     "blk_fb15f8dcf23f4865": {
-                        "raw_score": 4.0222,
+                        "raw_score": 2.51,
                         "normalized_score": 75.55,
-                    }
+                    },
+                    "_step_metadata": {
+                        "execution_id": "exe_0000000000000011",
+                        "workflow_id": "wf_1234abcd1234abcd",
+                        "step_id": "sr_1d7e6d26b02b457b",
+                        "initiator_id": "system",
+                        "timestamp_isot": "2026-08-05T00:00:00Z",
+                        "unix_time": 1700000000,
+                        "v2_engine": True,
+                        "task_blueprint": "sp_7f9649114d2344dc",
+                    },
                 },
             ),
             TraceEvent(
                 step_name="sr_f0a26d17cc9b48a7",
                 event_type="decision",
-                content={"step_linguistics": {"performative_patterns": []}},
+                content={
+                    "step_linguistics": {
+                        "performative_patterns": [
+                            {"pattern_id": "p1", "detected_phrase": "phrase1", "category": "performative"},
+                            {"pattern_id": "p2", "detected_phrase": "phrase2", "category": "performative"},
+                        ]
+                    }
+                },
             ),
         ],
         active_profile_id="prf_dddd1111dddd1111",
@@ -1197,7 +1225,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
-                "performativity_detector_step_id": "sp_7f9649114d2344dc",
+                "performativity_detector_step_id": "sr_1d7e6d26b02b457b",
             }
         ]
     )
@@ -1235,8 +1263,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert isinstance(alert_block, AlertBlock)
 
     assert "Cognitive: 2.51" in getattr(grid_block.items[1], "text", "")
-    # target mechanical is 3.0, variance is 0.4889
-    assert "Variance: 0.49" in getattr(grid_block.items[2], "text", "")
+    assert "Variance: 0.09" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "info"
     assert "ALIGNED" in alert_block.text
@@ -1416,6 +1443,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
 @pytest.mark.asyncio
 async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
     """Proves that BlueprintTransformer correctly calls get_system_config on system_repo."""
+    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
     from backend_v2.services.blueprint import BlueprintTransformer
 
     mock_system_repo = AsyncMock()
@@ -1705,7 +1733,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
             },
             max_extension_items=2,
             strictness_level=85,
-            performativity_detector_step_id="sp_7f9649114d2344dc",
+            performativity_detector_step_id="stp_1234abcd1234abcd",
         )
     ]
 
@@ -1901,6 +1929,7 @@ async def test_blueprint_apply_pii_masking(mock_repo_transformer: Any) -> None:
 @pytest.mark.asyncio
 async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_transformer: Any) -> None:
     from backend_v2.models.v2_core import OutputLayoutBlock, OutputProfile
+    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
     from backend_v2.services.blueprint import BlueprintTransformer
 
     transformer = BlueprintTransformer(
@@ -2006,7 +2035,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
 
     mcp_audit_map: Any = {"doc1": SimpleNamespace(tool_id="test", step_name="step_1", query="query", source_urls=[])}
 
-    evaluative, info, parsed, atoms = transformer._parse_matrix_trace_results(
+    evaluative, info, parsed, atoms = MatrixDomainParser.parse_matrices(
         results=results,
         locale="en",
         blocks_by_id=blocks_by_id,
@@ -2026,6 +2055,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
 async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transformer: Any) -> None:
     from backend_v2.exceptions import AppException
     from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
     from backend_v2.services.blueprint import BlueprintTransformer
 
     transformer = BlueprintTransformer(
@@ -2064,7 +2094,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     # 1. Invalid matrix payload format (not a dict) -> lines 226-231
     results = [SimpleNamespace(step_id="step_1", block_id="matrix_logic1234", payload="invalid_payload_string")]
     with pytest.raises(AppException) as exc:
-        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "expected dict" in str(exc.value)
 
     # 2. Validation failure inside TraceMatrixPayloadDTO -> lines 238-241
@@ -2076,7 +2106,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         )
     ]
     with pytest.raises(AppException) as exc:
-        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "Invalid matrix payload format" in str(exc.value)
 
     # 3. Missing I18n label -> lines 264-269
@@ -2089,41 +2119,41 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         )
     ]
     with pytest.raises(AppException) as exc:
-        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "missing a required I18n label" in str(exc.value)
 
     # 4. Missing scales -> lines 293-298
     blocks_by_id["matrix_logic1234"].label = MagicMock()
     with pytest.raises(AppException) as exc:
-        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "initialized as matrix but has no scales" in str(exc.value)
 
     # 5. Missing computed_min/max
     blocks_by_id["matrix_logic1234"].scales = []
     blocks_by_id["matrix_logic1234"].computed_min = None
     with pytest.raises(AppException) as exc:
-        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "missing Pydantic computed_min/max" in str(exc.value)
     blocks_by_id["matrix_logic1234"].computed_min = 0
 
     # 6. Missing scale name
     blocks_by_id["matrix_logic1234"].scales = [SimpleNamespace(score=100.0, name=None)]
     with pytest.raises(AppException) as exc:
-        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "missing 'name'" in str(exc.value)
 
     # 7. Invalid breakdown key
     blocks_by_id["matrix_logic1234"].scales = [SimpleNamespace(score=100.0, name=MagicMock(), claims=[])]
     results[0].payload["level_breakdown"] = {"invalid_float": {"hits": 1, "total": 1}}
     with pytest.raises(AppException) as exc:
-        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "Invalid level key 'invalid_float'" in str(exc.value)
 
     # 8. Missing row_explanations_cache
     results[0].payload["level_breakdown"] = {}
     object.__setattr__(profile, "synthesis", SimpleNamespace(row_explanations_block_id="foo"))
     with pytest.raises(AppException) as exc:
-        transformer._parse_matrix_trace_results(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "row_explanations_cache missing entry" in str(exc.value)
 
 
@@ -2226,6 +2256,7 @@ async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_tra
         },
     }
 
+    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
     from backend_v2.services.blueprint import BlueprintTransformer
 
     transformer = BlueprintTransformer(

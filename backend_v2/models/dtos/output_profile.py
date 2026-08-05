@@ -277,6 +277,23 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     user_role_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
     extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
     metric_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict, exclude=True)]
+    target_block_order: Annotated[
+        list[str],
+        Field(
+            default_factory=lambda: [
+                "metadata_block",
+                "executive_summary_block",
+                "synthesis_text_block",
+                "matrix_graphs_block",
+                "grouped_extensions_block",
+                "penalties_block",
+                "matrix_summary_table_block",
+                "printable_sources_block",
+                "global_score_block",
+                "audit_trail_block",
+            ]
+        ),
+    ]
 
     visible_metadata: Annotated[
         list[str], Field(default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"])

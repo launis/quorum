@@ -1299,6 +1299,23 @@ class OutputProfile(V2CoreBase):
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Global synthesis configuration for the executive summary."
     )
+    target_block_order: list[str] = Field(
+        default_factory=lambda: [
+            "metadata_block",
+            "executive_summary_block",
+            "synthesis_text_block",
+            "matrix_graphs_block",
+            "grouped_extensions_block",
+            "penalties_block",
+            "matrix_summary_table_block",
+            "variance_validation_block",
+            "authenticity_evaluation_block",
+            "printable_sources_block",
+            "global_score_block",
+            "audit_trail_block",
+        ],
+        description="The exact dynamic block sequence for the SDUI output. Drives the dispatch loop in blueprint.py.",
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."

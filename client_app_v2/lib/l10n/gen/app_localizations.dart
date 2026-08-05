@@ -5912,6 +5912,18 @@ abstract class AppLocalizations {
   /// **'Error loading workflows: {error}'**
   String studioViewsErrorLoadingWorkflows(String error);
 
+  /// No description provided for @targetBlockOrderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Block Order'**
+  String get targetBlockOrderTitle;
+
+  /// No description provided for @targetBlockOrderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag and drop to reorder the blocks dispatched during execution.'**
+  String get targetBlockOrderSubtitle;
+
   /// No description provided for @studioViewsProfileIdRequired.
   ///
   /// In en, this message translates to:
