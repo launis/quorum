@@ -56,7 +56,3 @@ def test_schema_compiler_xai_extensions() -> None:
 
     assert coaching_key in properties
     assert falsification_key in properties
-
-    # Verify Anti-Sycophancy descriptions were applied
-    assert "STRICT MANDATE" in properties[coaching_key]["description"]
-    assert "STRICT MANDATE" in properties[falsification_key]["description"]

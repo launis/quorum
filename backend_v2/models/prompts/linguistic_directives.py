@@ -6,6 +6,8 @@ This module acts as the Single Source of Truth for language mandates.
 
 from backend_v2.models.prompts.global_mandates import LANGUAGE_MANDATE
 
+DESC_TRANSLATION_MANDATE = "Translated into the target locale."
+
 
 def build_linguistic_context(
     *,

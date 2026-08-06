@@ -34,7 +34,6 @@ def test_build_empty_profile_cache_returns_empty(valid_output_profile_fixture: O
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = PrintableSourcesAdapter.build(context)
     assert blocks == []
@@ -55,7 +54,6 @@ def test_build_empty_cited_sources_returns_empty(valid_output_profile_fixture: O
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = PrintableSourcesAdapter.build(context)
     assert blocks == []
@@ -76,7 +74,6 @@ def test_build_formats_cited_sources_as_markdown(valid_output_profile_fixture: O
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
@@ -99,7 +96,6 @@ def test_build_preserves_existing_bullet_prefix(valid_output_profile_fixture: Ou
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
@@ -122,7 +118,6 @@ def test_build_ep_valid_http_source(valid_output_profile_fixture: OutputProfile)
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
@@ -151,7 +146,6 @@ def test_build_ep_mcp_audit_traces(valid_output_profile_fixture: OutputProfile) 
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
@@ -183,7 +177,6 @@ def test_build_bva_duplicate_prevention(valid_output_profile_fixture: OutputProf
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1

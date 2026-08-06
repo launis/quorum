@@ -71,9 +71,7 @@ class MatrixGraphsAdapter:
         all_parsed_matrices = context.parsed_matrices
         section_syntheses = context.profile_cache.section_syntheses if context.profile_cache else {}
 
-        sort_order = {"3d_matrix": 0, "2d_compare": 1, "1d_metrics": 2, "text_only": 3}
         layouts_with_idx = list(enumerate(context.profile.layouts))
-        layouts_with_idx.sort(key=lambda item: sort_order.get(item[1].preset_view, 99))
 
         for original_idx, layout_def in layouts_with_idx:
             preset_view = layout_def.preset_view
@@ -90,18 +88,21 @@ class MatrixGraphsAdapter:
                 )
 
             target_blocks = layout_def.target_blocks
+            consumes_axes = preset_view != "text_only" or text_delivery_mode != "none"
             axes = []
             if target_blocks and "*" not in target_blocks:
                 for target_k in target_blocks:
                     matched = next((axis for axis in all_parsed_matrices.values() if axis.block_id == target_k), None)
                     if matched and matched.block_id not in seen_axes:
                         axes.append(matched)
-                        seen_axes.add(matched.block_id)
+                        if consumes_axes:
+                            seen_axes.add(matched.block_id)
             else:
                 for axis in all_parsed_matrices.values():
                     if axis.block_id not in seen_axes:
                         axes.append(axis)
-                        seen_axes.add(axis.block_id)
+                        if consumes_axes:
+                            seen_axes.add(axis.block_id)
 
             # Fail-fast validation based on AESTHETICS RULES
             try:
@@ -136,31 +137,26 @@ class MatrixGraphsAdapter:
                 if synthesis_config and layout_id in section_syntheses:
                     section_blocks = list(section_syntheses[layout_id])
 
+                should_render_content = preset_view in ["3d_matrix", "2d_compare", "1d_metrics", "text_only"]
+
+                if should_render_content:
+                    if layout_def.title:
+                        blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
+                    if layout_def.description:
+                        blocks.append(
+                            ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
+                        )
+
                 if section_blocks:
                     blocks.extend(section_blocks)
 
-                if preset_view in ["3d_matrix", "2d_compare", "1d_metrics"]:
-                    if layout_def.title:
-                        blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
-                    if layout_def.description:
-                        blocks.append(
-                            ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
-                        )
-
-                    if preset_view == "3d_matrix":
-                        blocks.append(SduiRadarChartBlock(title=None, axes=axes))
-                    elif preset_view == "2d_compare":
-                        blocks.append(SduiScatterPlotBlock(title=None, axes=axes))
-                    elif preset_view == "1d_metrics":
-                        blocks.append(SduiMetrics1DBlock(title=None, axes=axes))
+                if preset_view == "3d_matrix":
+                    blocks.append(SduiRadarChartBlock(title=None, axes=axes))
+                elif preset_view == "2d_compare":
+                    blocks.append(SduiScatterPlotBlock(title=None, axes=axes))
+                elif preset_view == "1d_metrics":
+                    blocks.append(SduiMetrics1DBlock(title=None, axes=axes))
                 elif preset_view == "text_only" and text_delivery_mode != "none":
-                    if layout_def.title:
-                        blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
-                    if layout_def.description:
-                        blocks.append(
-                            ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
-                        )
-
                     for axis in axes:
                         if text_delivery_mode in ["full", "titles_only"]:
                             blocks.append(ParagraphBlock(text=f"**{axis.name}**", exact_quotes=[], citations=[]))

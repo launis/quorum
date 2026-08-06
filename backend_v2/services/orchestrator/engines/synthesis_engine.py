@@ -69,6 +69,14 @@ class SynthesisEngine:
 
             local_messages = [dict(msg) for msg in request.hydrated_messages]
 
+            matrix_reducer_output = request.context.context_variables.get("__MATRIX_REDUCER_OUTPUT__")
+            raw_xai_extensions_str = ""
+            if matrix_reducer_output and "raw_extensions" in matrix_reducer_output:
+                import json
+
+                extensions_json = json.dumps(matrix_reducer_output["raw_extensions"], indent=2)
+                raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
+
             local_messages.append(
                 {
                     "role": "user",
@@ -77,6 +85,7 @@ class SynthesisEngine:
                         "<user_payload>\n"
                         f"{blackboard.to_markdown_synthesis_injection()}\n"
                         "</user_payload>"
+                        f"{raw_xai_extensions_str}"
                     ),
                 }
             )

@@ -165,12 +165,17 @@ async def _fetch_historical_context(
             else:
                 continue
 
-        if not best_cache or not best_cache.content_blocks:
+        if not best_cache or not best_cache.section_syntheses:
             continue
 
-        valid_past.append(
-            (e, json.dumps([b.model_dump(mode="json") for b in best_cache.content_blocks], ensure_ascii=False))
-        )
+        all_blocks = []
+        for blocks in best_cache.section_syntheses.values():
+            all_blocks.extend(blocks)
+
+        if not all_blocks:
+            continue
+
+        valid_past.append((e, json.dumps([b.model_dump(mode="json") for b in all_blocks], ensure_ascii=False)))
 
     valid_past.sort(key=lambda x: x[0].completed_at or x[0].created_at, reverse=True)
 

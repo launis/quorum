@@ -724,3 +724,4 @@ class LightweightMatrixDTO(V2CoreBase):
     execution_id: str
     reduced_atoms: list[ReducedAtomDTO]
     global_metrics: dict[str, Any]
+    raw_extensions: list[dict[str, Any]] = Field(default_factory=list)

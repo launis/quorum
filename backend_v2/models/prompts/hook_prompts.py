@@ -37,8 +37,7 @@ INTERACTION_RULES = (
 
 SYNTHESIS_SDUI_MANDATES = (
     "<sdui_mandate>\n"
-    "- SDUI CONTENT BLOCKS MANDATE: You must structure your entire response using ONLY "
-    "the allowed SDUI `content_blocks`.\n"
+    "- SDUI POLYMORPHIC SYNTHESIS MANDATE: You must structure your entire response by mapping your output directly into the section_syntheses dictionary according to the requested layout IDs.\n"
     "- ALLOWED SDUI BLOCKS: 'paragraph', 'bullet_list', 'alert_box', 'quote_card', 'warning_card'. "
     "NO OTHER TYPES ARE ALLOWED.\n"
     '- BULLET LISTS MUST USE OBJECTS: For `bullet_list`, the `items` array MUST contain objects with a `text` field (e.g. `[{"text": "kohta 1"}]`), NOT raw strings!\n'

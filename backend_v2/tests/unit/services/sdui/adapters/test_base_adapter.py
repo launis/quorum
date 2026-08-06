@@ -31,7 +31,6 @@ def test_adapter_context_valid_construction(valid_output_profile_fixture: Output
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     assert context.locale == "fi"
     assert context.penalties_applied == []
@@ -49,7 +48,6 @@ def test_adapter_context_frozen_rejects_mutation(valid_output_profile_fixture: O
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     with pytest.raises(ValidationError):
         context.locale = "en"  # type: ignore[misc]
@@ -68,7 +66,6 @@ def test_adapter_context_forbids_extra_fields(valid_output_profile_fixture: Outp
             profile_cache=None,
             user_name=None,
             org_name=None,
-            synthesis_md=None,
             unknown_field="hax",  # type: ignore[call-arg]
         )
     assert "Extra inputs are not permitted" in str(exc_info.value)
@@ -96,6 +93,5 @@ def test_adapter_context_strict_type_enforcement(valid_output_profile_fixture: O
             profile_cache=None,
             user_name=None,
             org_name=None,
-            synthesis_md=None,
         )
     assert "Input should be a valid string" in str(exc_info.value)

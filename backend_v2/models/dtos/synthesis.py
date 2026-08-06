@@ -4,12 +4,12 @@ Strict Pydantic V2 definitions for the SSOT. Contains structured inputs and
 outputs of the reporting synthesis pipeline.
 """
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.prompts.field_prompts import DESC_TRANSLATION_MANDATE
+from backend_v2.models.prompts.linguistic_directives import DESC_TRANSLATION_MANDATE
 from backend_v2.models.view.sdui import (
     AlertBlock,
     BulletListBlock,
@@ -36,20 +36,6 @@ class SynthesisSectionDTO(V2CoreBase):
     content_blocks: Annotated[
         list[LlmSduiBlock], Field(..., description="Structured SDUI content blocks for this section")
     ]
-
-    @model_validator(mode="before")
-    @classmethod
-    def _sanitize_null_collections(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            if data.get("content_blocks") is None:
-                data["content_blocks"] = []
-            blocks = data.get("content_blocks")
-            if isinstance(blocks, list):
-                for b in blocks:
-                    if isinstance(b, dict):
-                        if "type" in b and "block_type" not in b:
-                            b["block_type"] = b.pop("type")
-        return data
 
 
 class XaiHighlightItem(V2CoreBase):
@@ -131,10 +117,6 @@ class SynthesisOutputDTO(V2CoreBase):
         str, Field(description=f"LLM justification for role mapping. {DESC_TRANSLATION_MANDATE}")
     ]
 
-    content_blocks: Annotated[
-        list[LlmSduiBlock],
-        Field(default_factory=list, description="The fully synthesized structured SDUI content blocks."),
-    ]
     cited_sources: Annotated[
         list[str],
         Field(default_factory=list, description=f"List of references or citations found. {DESC_TRANSLATION_MANDATE}"),
@@ -146,15 +128,10 @@ class SynthesisOutputDTO(V2CoreBase):
             description="List of synthesized sections. You MUST generate one item here for EVERY <section_instruction> provided in the system prompt!",
         ),
     ]
-
-    @model_validator(mode="before")
-    @classmethod
-    def _sanitize_sdui_blocks(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            blocks = data.get("content_blocks")
-            if isinstance(blocks, list):
-                for b in blocks:
-                    if isinstance(b, dict):
-                        if "type" in b and "block_type" not in b:
-                            b["block_type"] = b.pop("type")
-        return data
+    xai_highlights: Annotated[
+        list[XaiHighlightItem],
+        Field(
+            default_factory=list,
+            description="List of synthesized XAI highlights deduced from the evaluation phase.",
+        ),
+    ]

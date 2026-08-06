@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
 from backend_v2.models.v2_core import PromptBlock
 
@@ -243,6 +244,7 @@ class PromptFactory:
 
         exec_params = f"<execution_context>\n<target_locale>{target_locale}</target_locale>\n"
         exec_params += f"{linguistic_ctx}\n"
+        exec_params += f"{GLOBAL_MANDATES_XML}\n"
         if execution_time:
             exec_params += f"<document_date>{execution_time}</document_date>\n"
         exec_params += "</execution_context>\n"

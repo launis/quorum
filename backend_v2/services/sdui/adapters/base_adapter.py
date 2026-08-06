@@ -34,7 +34,6 @@ class AdapterContext(BaseModel):
     profile_cache: RenderedSynthesisCache | None
     user_name: str | None
     org_name: str | None
-    synthesis_md: str | None
     parsed_matrices: dict[str, MatrixScorecardRowDTO] = Field(default_factory=dict)
 
 

@@ -141,5 +141,4 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
             break
 
     assert found_payload is not None, "Execution record was not updated with profile_syntheses"
-    assert "prof_1111111111111111" in found_payload["profile_syntheses"]
-    assert isinstance(found_payload["profile_syntheses"]["prof_1111111111111111"]["content_blocks"], list)
+    assert isinstance(found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"], dict)

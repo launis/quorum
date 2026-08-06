@@ -592,6 +592,10 @@ class DAGExecutor:
                         async with _update_lock:
                             exec_record.execution_trace.append(reduce_event)
                             projector.apply_delta(reduce_event)
+
+                            new_cv = dict(exec_record.context_variables)
+                            new_cv["__MATRIX_REDUCER_OUTPUT__"] = lightweight_matrix.model_dump()
+                            exec_record = exec_record.model_copy(update={"context_variables": new_cv})
                         logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
                     except Exception as e:
                         logger.error(

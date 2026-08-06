@@ -50,8 +50,8 @@ from backend_v2.models.v2_core import (
     RenderedSynthesisCache,
     ReportDataDTO,
 )
-from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 from backend_v2.services.blueprint import BlueprintTransformer
+from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
 
 def dict_to_obj(d: Any) -> Any:
@@ -614,74 +614,6 @@ def mock_repo_sdui() -> AsyncMock:
 
 
 @pytest.mark.asyncio
-async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock) -> None:
-    transformer = BlueprintTransformer(
-        exec_repo=mock_repo_sdui,
-        workflow_repo=mock_repo_sdui,
-        comp_repo=mock_repo_sdui,
-        prompt_block_repo=mock_repo_sdui,
-        output_profile_repo=mock_repo_sdui,
-        identity_repo=mock_repo_sdui,
-        system_repo=mock_repo_sdui,
-    )  # noqa: E501
-
-    mock_execution = ExecutionRecord(
-        id="exe_1111111122222222",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        profile_syntheses={
-            "prf_1234abcd1234abcd": RenderedSynthesisCache(
-                section_syntheses={
-                    "layout_0_text_only": [
-                        __import__("backend_v2.models.view.sdui", fromlist=["MarkdownBlock"]).MarkdownBlock(
-                            text="### Title\n<script>alert('xss');</script>Some content."
-                        )
-                    ]
-                }
-            )
-        },
-        execution_trace=[
-            TraceEvent(
-                event_type="output",
-                step_name="step_1",
-                content={
-                    "has_warning": True,
-                },
-            )
-        ],
-    )
-    mock_repo_sdui.get_execution.return_value = mock_execution
-    mock_repo_sdui.get_workflow.return_value = dict_to_obj(
-        {
-            "id": "wor_1234abcd1234abcd",
-            "allowed_exports": ["pdf"],
-            "historical_context_mode": "DISABLED",
-            "slug": "mock-workflow",
-            "name": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
-            "description": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
-            "status": "published",
-            "version": 1,
-            "default_profile_id": "prf_1234abcd1234abcd",
-            "default_strictness_level": 85,
-            "default_scoring_strategy": ScoringStrategy.WATERFALL,
-            "steps": [],
-        }
-    )
-
-    dto = await transformer.build_report_dto("exe_1111111122222222", accept_language="en")
-    assert dto.has_warning is True
-
-    assert dto.inner_sdui_blocks is not None
-    assert len(dto.inner_sdui_blocks) > 0
-    from backend_v2.models.view.sdui import MarkdownBlock
-
-    markdown_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, MarkdownBlock)]
-    assert len(markdown_blocks) > 0
-    safe_md = getattr(markdown_blocks[0], "text", "")
-
-    assert "Some content." in safe_md
-
-
 # ---------------------------------------------------------------------------
 # Phase 2: Suffix-based flat key extraction (no isinstance(v, dict) fallback)
 # ---------------------------------------------------------------------------
@@ -1323,9 +1255,12 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         metadata={"target_locale": "en"},
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                content_blocks=[],
                 cited_sources=[],
                 section_syntheses={},
+                xai_highlights=[
+                    {"extension_type": "remediation_steps", "content": "Do this to fix."},
+                    {"extension_type": "falsification", "content": "This is false."},
+                ],
             )
         },
     )
@@ -1410,9 +1345,9 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         metadata={"target_locale": "unknown_lang"},  # Unknown language
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                content_blocks=[],
                 cited_sources=[],
                 section_syntheses={},
+                xai_highlights=[{"extension_type": "coaching", "content": "Good job."}],
             )
         },
     )
@@ -1437,13 +1372,12 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
 
     coaching_alert = next((b for b in alert_blocks if "Good job" in getattr(b, "text", "")), None)
     assert coaching_alert is not None
-    assert "**Coaching**" in coaching_alert.text
+    assert accordions[0].title == "Coaching"
 
 
 @pytest.mark.asyncio
 async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
     """Proves that BlueprintTransformer correctly calls get_system_config on system_repo."""
-    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
     from backend_v2.services.blueprint import BlueprintTransformer
 
     mock_system_repo = AsyncMock()
@@ -1599,11 +1533,7 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
         id="exe_0000000000000009",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
-        profile_syntheses={
-            "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                synthesized_markdown="Global MD", row_explanations={"blk_1234abcd1234abcd": "Matrix explanation"}
-            )
-        },
+        profile_syntheses={"prf_dddd1111dddd1111": RenderedSynthesisCache()},
         execution_trace=[
             TraceEvent(
                 step_name="step_test",
@@ -1929,10 +1859,9 @@ async def test_blueprint_apply_pii_masking(mock_repo_transformer: Any) -> None:
 @pytest.mark.asyncio
 async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_transformer: Any) -> None:
     from backend_v2.models.v2_core import OutputLayoutBlock, OutputProfile
-    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
     from backend_v2.services.blueprint import BlueprintTransformer
 
-    transformer = BlueprintTransformer(
+    _transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
@@ -2055,10 +1984,9 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
 async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transformer: Any) -> None:
     from backend_v2.exceptions import AppException
     from backend_v2.models.v2_core import OutputProfile
-    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
     from backend_v2.services.blueprint import BlueprintTransformer
 
-    transformer = BlueprintTransformer(
+    _transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
         comp_repo=mock_repo_transformer,
@@ -2256,7 +2184,6 @@ async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_tra
         },
     }
 
-    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
     from backend_v2.services.blueprint import BlueprintTransformer
 
     transformer = BlueprintTransformer(

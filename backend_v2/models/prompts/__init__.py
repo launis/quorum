@@ -39,12 +39,10 @@ from .hook_prompts import (
     SYNTHESIS_XAI_CURATION,
 )
 from .linguistic_directives import build_linguistic_context
-from .validation_prompts import BasePromptModel, TdaValidationPrompt
 
 __all__ = [
     "ANTI_ID_MANDATE",
     "ANTI_SCORE_MANDATE",
-    "BasePromptModel",
     "DESC_CONTEXTUAL_OVERRIDE",
     "DESC_EVALUATION_NOTES",
     "DESC_EXACT_QUOTES",
@@ -66,7 +64,6 @@ __all__ = [
     "SYNTHESIS_STATE_ISOLATION_MANDATE",
     "SYNTHESIS_XAI_CURATION",
     "TONE_MANDATE",
-    "TdaValidationPrompt",
     "VERBATIM_EXTRACTION_MANDATE",
     "XAI_DESC_CITATION",
     "XAI_DESC_COACHING",

@@ -1067,14 +1067,6 @@ async def generate_profile_synthesis_and_pdf_task(
             for sec in synthesis_res.section_syntheses:
                 sec_dict[sec.layout_id] = cast(list[AnySduiBlock], sec.content_blocks if sec.content_blocks else [])
 
-        raw_content = synthesis_res.content_blocks if synthesis_res and synthesis_res.content_blocks else []
-        # Concatenate SDUI text blocks into synthesized_markdown for PDF rendering
-        flat_md_parts = []
-        for b in raw_content:
-            b_dict = b.model_dump(exclude_none=True)
-            if "text" in b_dict:
-                flat_md_parts.append(str(b_dict["text"]))
-
         _raw_row_explanations = (
             {item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
             if row_expl_res and row_expl_res.explanations
@@ -1100,11 +1092,10 @@ async def generate_profile_synthesis_and_pdf_task(
             cache_row_explanations["variance_validation"] = variance_expl
 
         cache = RenderedSynthesisCache(
-            synthesized_markdown="\n\n".join(flat_md_parts),
-            content_blocks=cast(list[AnySduiBlock], raw_content),
             section_syntheses=sec_dict,
             row_explanations=cache_row_explanations,
             cited_sources=synthesis_res.cited_sources if synthesis_res else [],
+            xai_highlights=synthesis_res.xai_highlights if synthesis_res else [],
             user_role=synthesis_res.user_role if synthesis_res else None,
             user_role_justification=synthesis_res.user_role_justification if synthesis_res else None,
         )

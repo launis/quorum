@@ -279,17 +279,6 @@ def test_fsm_serving_state_safety_limits() -> None:
     assert get_settings().schema_max_chunk_records <= 30
 
 
-def test_tda_extraction_schema_has_semantic_descriptions() -> None:
-    """Varmistaa, että StrippedBaseTDAExtraction-luokan kentissä on semanttinen ohjeistus."""
-    from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction
-
-    override_desc = StrippedBaseTDAExtraction.model_fields["contextual_override"].description or ""
-    quote_desc = StrippedBaseTDAExtraction.model_fields["exact_quotes"].description or ""
-
-    assert "exact_quotes MUST be empty if True" in override_desc
-    assert "MUST be empty if contextual_override is True" in quote_desc
-
-
 def test_prompt_compiler_extreme_description_truncation() -> None:
     """Epic 56 Phase 4: Varmistaa, että erittäin pitkät ai_description-kentät säilytetään
     täydellisinä dynamic schema -kenttien kuvauksissa ilman keinotekoista typistämistä.

@@ -6,11 +6,8 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 """
 
 import logging
-import re
 
-import bleach
-
-from backend_v2.models.view.sdui import AnySduiBlock, MarkdownBlock
+from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
@@ -40,13 +37,6 @@ class SynthesisTextAdapter:
     """
 
     @staticmethod
-    def _apply_pii_masking(text: str) -> str:
-        """Applies regex-based PII masking to text."""
-        text = re.sub(r"[\w\.-]+@[\w\.-]+", "[REDACTED EMAIL]", text)
-        text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[REDACTED PHONE]", text)
-        return text
-
-    @staticmethod
     def build(context: AdapterContext) -> list[AnySduiBlock]:
         """Build SDUI blocks from the adapter context.
 
@@ -63,50 +53,5 @@ class SynthesisTextAdapter:
         if context.profile and context.profile.content_blocks:
             for cb in context.profile.content_blocks:
                 blocks.append(cb.model_copy(deep=True))
-
-        # 2. TRANSFORM: Insert synthesis text
-        if context.synthesis_md:
-            text = context.synthesis_md
-
-            # Apply PII masking if requested by profile layouts
-            pii_masking = False
-            if context.profile and context.profile.layouts:
-                for layout in context.profile.layouts:
-                    if layout.synthesis and layout.synthesis.enable_pii_masking:
-                        pii_masking = True
-                        break
-
-            if pii_masking:
-                text = SynthesisTextAdapter._apply_pii_masking(text)
-
-            # Apply HTML sanitization
-            text = bleach.clean(
-                text,
-                tags=[
-                    "b",
-                    "i",
-                    "strong",
-                    "em",
-                    "p",
-                    "br",
-                    "ul",
-                    "ol",
-                    "li",
-                    "a",
-                    "h1",
-                    "h2",
-                    "h3",
-                    "h4",
-                    "h5",
-                    "h6",
-                    "blockquote",
-                    "code",
-                    "pre",
-                ],
-                attributes={"a": ["href", "title"]},
-                strip=True,
-            )
-
-            blocks.append(MarkdownBlock(text=text))
 
         return blocks

@@ -211,29 +211,16 @@ class BlueprintTransformer:
                 blocks_by_id[b.id] = b
 
         has_warning = False
-        synthesis_md = None
         scoring_out = None
-
-        synthesis_block_id = None
 
         for dto in results:
             if dto.block_id == VirtualSystemStepID.SCORING_RESULT.value and isinstance(dto.payload, dict):
                 scoring_out = dto.payload
             if dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload:
                 has_warning = True
-            if dto.block_id == VirtualSystemStepID.SYNTHESIZED_MARKDOWN.value and dto.payload:
-                synthesis_md = dto.payload
-
-            # Epic 94: Polymorphic dynamic block mapping
-            if synthesis_block_id and isinstance(dto.payload, dict) and synthesis_block_id in dto.payload:
-                synthesis_md = dto.payload[synthesis_block_id]
 
         profile_cache = execution.profile_syntheses.get(resolved_pid)
-        original_synthesis_md = synthesis_md
         section_syntheses: dict[str, list[AnySduiBlock]] = {}
-        content_blocks: list[AnySduiBlock] = (
-            [b.model_copy(deep=True) for b in profile.content_blocks] if profile.content_blocks else []
-        )
 
         if profile_cache:
             section_syntheses = profile_cache.section_syntheses
@@ -243,14 +230,7 @@ class BlueprintTransformer:
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
-            # The OutputProfile is the Single Source of Truth for SDUI layout.
-            if not content_blocks and profile_cache.content_blocks:
-                content_blocks = [b.model_copy(deep=True) for b in profile_cache.content_blocks]
-            synthesis_md = profile_cache.synthesized_markdown or original_synthesis_md
-
             # Note: profile_cache.user_role_justification is internal English reasoning and should not be printed directly.
-        else:
-            synthesis_md = original_synthesis_md
 
         if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
             has_warning = True
@@ -383,7 +363,6 @@ class BlueprintTransformer:
                 profile_cache=profile_cache,
                 user_name=None,
                 org_name=None,
-                synthesis_md=synthesis_md,
                 parsed_matrices=all_parsed_matrices,
             )
 
@@ -668,7 +647,6 @@ class BlueprintTransformer:
                 profile_cache=profile_cache,
                 user_name=user_name,
                 org_name=org_name,
-                synthesis_md=synthesis_md,
                 parsed_matrices=all_parsed_matrices,
             )
 

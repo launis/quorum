@@ -1510,8 +1510,6 @@ class ExecutionStepState(V2CoreBase):
 class RenderedSynthesisCache(V2CoreBase):
     """Cached synthesis results tied to a specific OutputProfile ID."""
 
-    synthesized_markdown: str = Field(default="", description="Compiled Markdown content for the report")
-    content_blocks: list[AnySduiBlock] = Field(default_factory=list, description="Global synthesis SDUI content blocks")
     section_syntheses: dict[str, list[AnySduiBlock]] = Field(
         default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis blocks"
     )
@@ -1520,6 +1518,7 @@ class RenderedSynthesisCache(V2CoreBase):
     )
     row_curated_quotes: dict[str, list[str]] = Field(default_factory=dict, description="Curated quotes by matrix ID")
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
+    xai_highlights: list[Any] = Field(default_factory=list, description="Synthesized XAI highlights and tips")
     user_role: str | None = Field(default=None, description="User role")
     user_role_justification: str | None = Field(default=None, description="User role justification")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

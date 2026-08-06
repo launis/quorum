@@ -26,7 +26,6 @@ def test_build_missing_execution_raises_app_exception() -> None:
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={},
     )
 
@@ -64,7 +63,6 @@ def test_build_missing_metrics_raises_app_exception() -> None:
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={},
     )
 

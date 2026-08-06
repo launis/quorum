@@ -24,7 +24,6 @@ def test_build_valid_role_returns_paragraph_block() -> None:
         },
     )
     cache = RenderedSynthesisCache(
-        synthesized_markdown="",
         user_role=RoleClassification.NAVIGATOR.value,
         user_role_justification="",
         section_syntheses={},
@@ -39,7 +38,6 @@ def test_build_valid_role_returns_paragraph_block() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
 
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -51,7 +49,6 @@ def test_build_valid_role_returns_paragraph_block() -> None:
 def test_build_missing_user_role_returns_empty_list() -> None:
     """Test that missing user role in cache returns empty list."""
     cache = RenderedSynthesisCache(
-        synthesized_markdown="",
         user_role=None,
         user_role_justification="",
         section_syntheses={},
@@ -74,7 +71,6 @@ def test_build_missing_user_role_returns_empty_list() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
 
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -93,7 +89,6 @@ def test_build_invalid_role_classification_raises_app_exception() -> None:
         user_role_mappings={},
     )
     cache = RenderedSynthesisCache(
-        synthesized_markdown="",
         user_role="UNKNOWN_ROLE",
         user_role_justification="",
         section_syntheses={},
@@ -108,7 +103,6 @@ def test_build_invalid_role_classification_raises_app_exception() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
 
     with pytest.raises(AppException) as exc:
@@ -134,7 +128,6 @@ def test_build_missing_user_role_label_raises_app_exception() -> None:
         },
     )
     cache = RenderedSynthesisCache(
-        synthesized_markdown="",
         user_role=RoleClassification.NAVIGATOR.value,
         user_role_justification="",
         section_syntheses={},
@@ -149,7 +142,6 @@ def test_build_missing_user_role_label_raises_app_exception() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
 
     with pytest.raises(AppException) as exc:
@@ -171,7 +163,6 @@ def test_build_missing_role_mapping_raises_app_exception() -> None:
         user_role_mappings={},  # Missing NAVIGATOR
     )
     cache = RenderedSynthesisCache(
-        synthesized_markdown="",
         user_role=RoleClassification.NAVIGATOR.value,
         user_role_justification="",
         section_syntheses={},
@@ -186,7 +177,6 @@ def test_build_missing_role_mapping_raises_app_exception() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
 
     with pytest.raises(AppException) as exc:

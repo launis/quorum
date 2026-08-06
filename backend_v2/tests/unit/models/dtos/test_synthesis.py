@@ -32,7 +32,6 @@ def test_synthesis_output_strictness() -> None:
     dto = SynthesisOutputDTO(
         user_role="ROLE_ARCHITECT",
         user_role_justification="Test",
-        content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title", exact_quotes=[], citations=[])],
         cited_sources=["source1"],
         section_syntheses=[
             SynthesisSectionDTO(
@@ -41,12 +40,11 @@ def test_synthesis_output_strictness() -> None:
             )
         ],
     )
-    assert len(dto.content_blocks) == 1
+    assert len(dto.section_syntheses) == 1
 
     with pytest.raises(ValidationError):
         SynthesisOutputDTO(
             user_role="ROLE_ARCHITECT",
             user_role_justification="Test",
-            content_blocks=[ParagraphBlock(block_type="paragraph", text="# Title", exact_quotes=[], citations=[])],
             extra="fail",
         )  # type: ignore

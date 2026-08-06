@@ -32,7 +32,6 @@ def test_metadata_adapter_builds_header_block() -> None:
         profile_cache=None,
         user_name="John Doe",
         org_name="Acme Corp",
-        synthesis_md=None,
     )
 
     blocks = MetadataAdapter.build(context)

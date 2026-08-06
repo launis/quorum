@@ -2,7 +2,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, OutputLayoutBlock, OutputProfile
-from backend_v2.models.view.sdui import SduiMatrixTableBlock, MarkdownBlock
+from backend_v2.models.view.sdui import MarkdownBlock, SduiMatrixTableBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
 
@@ -25,7 +25,6 @@ def test_matrix_summary_table_adapter_empty_layouts():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={},
     )
     blocks = MatrixSummaryTableAdapter.build(context)
@@ -57,7 +56,6 @@ def test_matrix_summary_table_adapter_structural_failure():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={},
     )
     with pytest.raises(AppException) as exc:
@@ -91,7 +89,6 @@ def test_matrix_summary_table_adapter_success():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",
@@ -139,7 +136,6 @@ def test_matrix_summary_table_adapter_validation_missing_id():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",
@@ -184,7 +180,6 @@ def test_matrix_summary_table_adapter_empty_scorecard_atoms():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",
@@ -232,7 +227,6 @@ def test_matrix_summary_table_adapter_wildcard_target_blocks():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",
@@ -296,7 +290,6 @@ def test_matrix_summary_table_adapter_layout_description_and_section_syntheses()
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",
@@ -362,7 +355,6 @@ def test_matrix_summary_table_adapter_key_error(monkeypatch: pytest.MonkeyPatch)
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",

@@ -50,7 +50,6 @@ def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fix
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = XaiHighlightsAdapter.build(context)
     assert blocks == []
@@ -81,10 +80,15 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
         mcp_audit_map=None,
         global_score=None,
         profile=valid_output_profile_fixture,
-        profile_cache=None,
+        profile_cache=__import__(
+            "backend_v2.models.v2_core", fromlist=["RenderedSynthesisCache"]
+        ).RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[{"extension_type": "coaching", "content": "Good job!\\nKeep it up!"}],
+        ),
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
     blocks = XaiHighlightsAdapter.build(context)
     assert len(blocks) == 1
@@ -118,10 +122,18 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
         mcp_audit_map=None,
         global_score=None,
         profile=valid_output_profile_fixture,
-        profile_cache=None,
+        profile_cache=__import__(
+            "backend_v2.models.v2_core", fromlist=["RenderedSynthesisCache"]
+        ).RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[
+                {"extension_type": "coaching", "content": "Good job!"},
+                {"extension_type": "falsification", "content": "Bad logic!"},
+            ],
+        ),
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
 
     blocks = XaiHighlightsAdapter.build(context)
@@ -144,7 +156,6 @@ def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfi
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
     )
 
     XaiHighlightsAdapter.build(context)

@@ -1,5 +1,5 @@
 from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, OutputLayoutBlock, OutputProfile
-from backend_v2.models.view.sdui import SduiRadarChartBlock, MarkdownBlock
+from backend_v2.models.view.sdui import MarkdownBlock, SduiRadarChartBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
 
@@ -22,7 +22,6 @@ def test_matrix_graphs_adapter_empty_layouts():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={},
     )
     blocks = MatrixGraphsAdapter.build(context)
@@ -54,7 +53,6 @@ def test_matrix_graphs_adapter_graceful_degradation():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",
@@ -75,6 +73,7 @@ def test_matrix_graphs_adapter_graceful_degradation():
     assert isinstance(blocks[0], MarkdownBlock)
     assert blocks[0].text == "### Graph 3D"
     from backend_v2.models.view.sdui import SduiMetrics1DBlock
+
     assert isinstance(blocks[1], SduiMetrics1DBlock)
 
 
@@ -103,7 +102,6 @@ def test_matrix_graphs_adapter_success():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={
             "m1": MatrixScorecardRowDTO(
                 block_id="m1",
@@ -171,7 +169,6 @@ def test_matrix_graphs_adapter_empty_valid_layout():
         profile_cache=None,
         user_name=None,
         org_name=None,
-        synthesis_md=None,
         parsed_matrices={},
     )
     blocks = MatrixGraphsAdapter.build(context)

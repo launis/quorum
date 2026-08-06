@@ -279,9 +279,9 @@ MOCK_XAI_OUTPUT = XAIOutput(
 )
 
 MOCK_SYNTHESIS_OUTPUT = SynthesisOutputDTO(
-    content_blocks=[],
     cited_sources=[],
     section_syntheses=[],
+    xai_highlights=[],
     user_role="Mock Analyst",
     user_role_justification="Default mock role assignment",
 )

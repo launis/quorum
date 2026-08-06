@@ -9,6 +9,7 @@ import logging
 
 from pydantic import ValidationError
 
+import backend_v2.utils.scoring.variance_engine as variance_engine
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
@@ -23,7 +24,6 @@ from backend_v2.models.view.sdui import (
     SduiMetrics1DBlock,
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
-import backend_v2.utils.scoring.variance_engine as variance_engine
 
 logger = logging.getLogger(__name__)
 
