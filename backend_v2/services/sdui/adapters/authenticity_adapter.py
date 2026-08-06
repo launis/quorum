@@ -7,10 +7,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
-from pydantic import ValidationError
-
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
 from backend_v2.models.view.sdui import (
@@ -117,80 +114,18 @@ class AuthenticityAdapter:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        cv = context.execution.context_variables
-        if cv is None:
-            msg = "Fail-Fast: context_variables cannot be None in ExecutionRecord."
-            logger.error(
-                "[AuthenticityAdapter] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                exc_info=True,
-            )
+        if not context.profile_cache or not context.profile_cache.extension_metrics:
+            msg = "Strict Fail-Fast Enforced: 'authenticity_evaluation' requested but extension_metrics is missing in cache."
+            logger.error("[AuthenticityAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        authenticity_score: float | None = None
-
-        step_det = cv.get("step_detector")
-        if step_det is not None:
-            try:
-                det_out = LightweightMatrixOutput.model_validate(step_det, strict=False)
-                if det_out.raw_score is not None:
-                    authenticity_score = float(det_out.raw_score)
-            except ValidationError as ve:
-                logger.warning("[AuthenticityAdapter] Non-fatal schema mismatch in step_detector payload: %s", ve)
-                # Fallback to dictionary parsing if validation fails but raw dict is present
-                if isinstance(step_det, dict):
-                    raw_auth = step_det.get("raw_score")
-                    if raw_auth is not None:
-                        authenticity_score = float(raw_auth)
-                elif isinstance(step_det, str):
-                    import json
-
-                    try:
-                        det_payload = json.loads(step_det)
-                        raw_auth = det_payload.get("raw_score")
-                        if raw_auth is not None:
-                            authenticity_score = float(raw_auth)
-                    except json.JSONDecodeError:
-                        pass
-
+        authenticity_score = context.profile_cache.extension_metrics.authenticity_score
         if authenticity_score is None:
-            perf_step_id = context.profile.performativity_detector_step_id
-            if perf_step_id:
-                from backend_v2.models.dtos.trace import TraceEventMetadataEnvelope, TraceMatrixPayloadDTO
-
-                for event in reversed(context.execution.execution_trace):
-                    try:
-                        env = TraceEventMetadataEnvelope.model_validate(event.content, strict=False)
-                        if event.step_name == perf_step_id or (
-                            env.step_metadata and env.step_metadata.task_blueprint == perf_step_id
-                        ):
-                            for key, val in event.content.items():
-                                if key == "_step_metadata":
-                                    continue
-                                try:
-                                    payload = TraceMatrixPayloadDTO.model_validate(val, strict=False)
-                                    if payload.raw_score is not None:
-                                        authenticity_score = float(payload.raw_score)
-                                        break
-                                except ValidationError:
-                                    pass
-                            if authenticity_score is not None:
-                                break
-                    except ValidationError as ve:
-                        logger.warning(
-                            "[AuthenticityAdapter] Non-fatal schema mismatch in execution trace payload: %s", ve
-                        )
-
-        if authenticity_score is None:
-            msg = (
-                "Strict Fail-Fast Enforced: 'authenticity_evaluation' requested but authenticity_score "
-                f"({authenticity_score}) is missing."
-            )
+            msg = "Strict Fail-Fast Enforced: 'authenticity_evaluation' requested but authenticity_score is missing."
             logger.error("[AuthenticityAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,

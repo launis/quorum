@@ -44,6 +44,7 @@ from backend_v2.models.enums import ExecutionStatus, ScoringStrategy, XaiExtensi
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
+    ExtensionMetricsDTO,
     I18nText,
     OutputLayoutBlock,
     OutputProfile,
@@ -771,14 +772,17 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
             )
         ],
         active_profile_id="prf_dddd1111dddd1111",
-        context_variables={
-            "step_detector": {"raw_score": 4.0},
-            "step_linguistics": {
-                "performative_patterns": [
-                    {"pattern_id": "pat_1", "detected_phrase": "basically", "category": "performative_filler"}
-                ]
-            },
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                extension_metrics=ExtensionMetricsDTO(
+                    authenticity_score=4.0,
+                    performative_phrases_count=1,
+                    variance_score=1.2,
+                    alignment_verdict="MISALIGNED",
+                )
+            )
         },
+        context_variables={},
         metadata={"target_locale": "en"},
     )
 
@@ -940,7 +944,11 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
         status=ExecutionStatus.PASSED,
         execution_trace=[],
         active_profile_id="prf_dddd1111dddd1111",
-        context_variables={},  # Empty context variables to trigger the crash
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                extension_metrics=None  # Missing metrics to trigger the crash
+            )
+        },
         metadata={"target_locale": "en"},
     )
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
@@ -1001,7 +1009,10 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
         await transformer.build_report_dto("exe_0000000000000010", accept_language="en")
 
     assert exc_info.value.status_code == 500
-    assert "Strict Fail-Fast Enforced: 'variance_validation' requested but authenticity_score" in exc_info.value.message
+    assert (
+        "Strict Fail-Fast Enforced: 'variance_validation' requested but extension_metrics is missing in cache"
+        in exc_info.value.message
+    )
 
 
 @pytest.mark.asyncio
@@ -1046,6 +1057,16 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             ),
         ],
         active_profile_id="prf_dddd1111dddd1111",
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                extension_metrics=ExtensionMetricsDTO(
+                    authenticity_score=2.51,
+                    performative_phrases_count=2,
+                    variance_score=0.09,
+                    alignment_verdict="ALIGNED",
+                )
+            )
+        },
         context_variables={},  # Empty to force fallback lookup
         metadata={"target_locale": "en"},
     )
@@ -1594,6 +1615,16 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
         active_profile_id="prf_dddd1111dddd1111",
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                extension_metrics=ExtensionMetricsDTO(
+                    authenticity_score=85.0,
+                    performative_phrases_count=0,
+                    variance_score=0.0,
+                    alignment_verdict="ALIGNED",
+                )
+            )
+        },
         execution_trace=[
             TraceEvent(
                 step_name="stp_1234abcd1234abcd",

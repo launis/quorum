@@ -7,12 +7,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
-from pydantic import ValidationError
-
-import backend_v2.utils.scoring.variance_engine as variance_engine
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.linguistics import LinguisticsResultDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
 from backend_v2.models.view.sdui import (
@@ -110,87 +105,9 @@ class VarianceAdapter:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        cv = context.execution.context_variables
-        if cv is None:
-            msg = "Fail-Fast: context_variables cannot be None in ExecutionRecord."
-            logger.error(
-                "[VarianceAdapter] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                exc_info=True,
-            )
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-
-        authenticity_score: float | None = None
-        performative_phrases_count: int | None = None
-
-        step_det = cv.get("step_detector")
-        if step_det is not None:
-            try:
-                det_out = LightweightMatrixOutput.model_validate(step_det, strict=False)
-                if det_out.raw_score is not None:
-                    authenticity_score = float(det_out.raw_score)
-            except ValidationError as ve:
-                logger.warning("[VarianceAdapter] Non-fatal schema mismatch in step_detector payload: %s", ve)
-
-        if authenticity_score is None:
-            perf_step_id = context.profile.performativity_detector_step_id
-            if perf_step_id:
-                from backend_v2.models.dtos.trace import TraceEventMetadataEnvelope, TraceMatrixPayloadDTO
-
-                for event in reversed(context.execution.execution_trace):
-                    try:
-                        env = TraceEventMetadataEnvelope.model_validate(event.content, strict=False)
-                        if event.step_name == perf_step_id or (
-                            env.step_metadata and env.step_metadata.task_blueprint == perf_step_id
-                        ):
-                            for key, val in event.content.items():
-                                if key == "_step_metadata":
-                                    continue
-                                try:
-                                    payload = TraceMatrixPayloadDTO.model_validate(val, strict=False)
-                                    if payload.raw_score is not None:
-                                        authenticity_score = float(payload.raw_score)
-                                        break
-                                except ValidationError:
-                                    pass
-                            if authenticity_score is not None:
-                                break
-                    except ValidationError as ve:
-                        logger.warning("[VarianceAdapter] Non-fatal schema mismatch in execution trace payload: %s", ve)
-
-        step_ling = cv.get("step_linguistics")
-        if step_ling is not None:
-            try:
-                ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
-                patterns = ling_out.performative_patterns
-                if isinstance(patterns, list):
-                    performative_phrases_count = len(patterns)
-            except ValidationError as ve:
-                logger.warning("[VarianceAdapter] Non-fatal schema mismatch in step_linguistics payload: %s", ve)
-
-        if performative_phrases_count is None:
-            for event in reversed(context.execution.execution_trace):
-                if event.event_type == "decision" and "step_linguistics" in event.content:
-                    try:
-                        ling_out = LinguisticsResultDTO.model_validate(event.content["step_linguistics"], strict=False)
-                        if isinstance(ling_out.performative_patterns, list):
-                            performative_phrases_count = len(ling_out.performative_patterns)
-                            break
-                    except ValidationError as ve:
-                        logger.warning(
-                            "[VarianceAdapter] Non-fatal schema mismatch in execution trace step_linguistics payload: %s",
-                            ve,
-                        )
-
-        if authenticity_score is None or performative_phrases_count is None:
+        if not context.profile_cache or not context.profile_cache.extension_metrics:
             msg = (
-                "Strict Fail-Fast Enforced: 'variance_validation' requested but authenticity_score "
-                f"({authenticity_score}) or performative_phrases_count ({performative_phrases_count}) is missing."
+                "Strict Fail-Fast Enforced: 'variance_validation' requested but extension_metrics is missing in cache."
             )
             logger.error("[VarianceAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
@@ -199,10 +116,23 @@ class VarianceAdapter:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        variance_res = variance_engine.calculate_mechanical_cognitive_variance(
-            llm_authenticity_score=authenticity_score,
-            performative_phrases_count=performative_phrases_count,
-        )
+        metrics = context.profile_cache.extension_metrics
+        if (
+            metrics.authenticity_score is None
+            or metrics.performative_phrases_count is None
+            or metrics.variance_score is None
+            or metrics.alignment_verdict is None
+        ):
+            msg = "Strict Fail-Fast Enforced: 'variance_validation' requested but metrics are incomplete."
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        authenticity_score = metrics.authenticity_score
+        performative_phrases_count = metrics.performative_phrases_count
 
         def get_metric_label(key: str) -> str:
             lbl = context.profile.metric_mappings.get(key)
@@ -222,8 +152,8 @@ class VarianceAdapter:
         lbl_align = get_metric_label("alignment_verdict")
 
         auth_score_rounded = float(f"{float(authenticity_score):.2f}")
-        var_score_rounded = float(f"{float(variance_res['variance_score']):.2f}")
-        is_aligned = str(variance_res["alignment_verdict"]) == "ALIGNED"
+        var_score_rounded = float(f"{float(metrics.variance_score):.2f}")
+        is_aligned = str(metrics.alignment_verdict) == "ALIGNED"
 
         lvl_key = "aligned" if is_aligned else "misaligned"
         align_val = get_metric_label(f"alignment_{lvl_key}")

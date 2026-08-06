@@ -967,6 +967,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
 
             t_variance = None
+            ext_metrics = None
             if (
                 active_profile_dto
                 and active_profile_dto.visible_workflow_extensions
@@ -1011,6 +1012,21 @@ async def generate_profile_synthesis_and_pdf_task(
                     # If it's missing, blueprint.py will Fail-Fast anyway, so we just skip the explanation here.
 
                 if authenticity_score is not None and performative_phrases_count is not None:
+                    import backend_v2.utils.scoring.variance_engine as variance_engine
+                    from backend_v2.models.v2_core import ExtensionMetricsDTO
+
+                    variance_res = variance_engine.calculate_mechanical_cognitive_variance(
+                        llm_authenticity_score=authenticity_score,
+                        performative_phrases_count=performative_phrases_count,
+                    )
+
+                    ext_metrics = ExtensionMetricsDTO(
+                        authenticity_score=float(authenticity_score),
+                        performative_phrases_count=float(performative_phrases_count),
+                        variance_score=float(variance_res["variance_score"]),
+                        alignment_verdict=str(variance_res["alignment_verdict"]),
+                    )
+
                     pb_var = await repo.get_prompt_block("blk_2d2344ab9d744163")
                     if pb_var:
                         r_pb_var = PromptBlock.model_validate(pb_var)
@@ -1098,6 +1114,7 @@ async def generate_profile_synthesis_and_pdf_task(
             xai_highlights=synthesis_res.xai_highlights if synthesis_res else [],
             user_role=synthesis_res.user_role if synthesis_res else None,
             user_role_justification=synthesis_res.user_role_justification if synthesis_res else None,
+            extension_metrics=ext_metrics,
         )
 
         # Add new synthesis to record

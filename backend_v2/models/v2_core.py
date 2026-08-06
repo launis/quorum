@@ -86,6 +86,7 @@ __all__ = [
     "ExtractedValueDTO",
     "AtomResultDTO",
     "ExecutionMetricsDTO",
+    "ExtensionMetricsDTO",
     "ReportDataDTO",
 ]
 
@@ -1507,6 +1508,15 @@ class ExecutionStepState(V2CoreBase):
     )
 
 
+class ExtensionMetricsDTO(V2CoreBase):
+    """Pre-calculated numeric or boolean metrics for UI adapters."""
+
+    authenticity_score: float | None = None
+    performative_phrases_count: float | None = None
+    variance_score: float | None = None
+    alignment_verdict: str | None = None
+
+
 class RenderedSynthesisCache(V2CoreBase):
     """Cached synthesis results tied to a specific OutputProfile ID."""
 
@@ -1521,6 +1531,9 @@ class RenderedSynthesisCache(V2CoreBase):
     xai_highlights: list[Any] = Field(default_factory=list, description="Synthesized XAI highlights and tips")
     user_role: str | None = Field(default=None, description="User role")
     user_role_justification: str | None = Field(default=None, description="User role justification")
+    extension_metrics: ExtensionMetricsDTO | None = Field(
+        default=None, description="Pre-calculated numeric or boolean metrics for UI adapters"
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
