@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
+from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, ExtensionMetricsDTO, RenderedSynthesisCache
 from backend_v2.services.blueprint import BlueprintTransformer
 
 
@@ -35,6 +35,11 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
         status=ExecutionStatus.PASSED,
         context_variables={"step_detector": json.dumps({"raw_score": 75.0})},
         execution_trace=[],
+        profile_syntheses={
+            "prf_1234567812345678": RenderedSynthesisCache(
+                extension_metrics=ExtensionMetricsDTO(authenticity_score=75.0)
+            )
+        },
     )
 
     mock_profile_repo = AsyncMock()
@@ -58,6 +63,9 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
     }
 
     mock_profile_repo.get_all_output_profiles.return_value = [mock_profile_dict]
+    mock_profile_repo.get_profile_synthesis_cache.return_value = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(authenticity_score=75.0)
+    )
 
     # Initialize transformer
     transformer = BlueprintTransformer(
