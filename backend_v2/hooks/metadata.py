@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.metadata import MetadataHookPayloadDTO, MetadataHookResultDTO, StepMetadataDTO
+from backend_v2.models.enums import VirtualSystemStepID
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
     return HookResult(
         success=True,
         state_delta={
-            "step_metadata": result_dto.step_metadata.model_dump(mode="json"),
+            VirtualSystemStepID.STEP_METADATA.value: result_dto.step_metadata.model_dump(mode="json"),
             # Ensure we always provide a deterministic audit signature
             "_audit_signature": f"{step_id}:{execution_id}:{unix_time}",
         },

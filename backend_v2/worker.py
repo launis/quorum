@@ -1017,11 +1017,7 @@ async def generate_profile_synthesis_and_pdf_task(
                                 performative_phrases_count = len(patterns)
 
                         # Extract Performativity Detector output using the canonical step_id from profile
-                        if (
-                            event.event_type == "output"
-                            and perf_step_id
-                            and authenticity_score is None
-                        ):
+                        if event.event_type == "output" and perf_step_id and authenticity_score is None:
                             step_meta = event.content.get("_step_metadata")
                             if isinstance(step_meta, dict):
                                 event_blueprint = step_meta.get("task_blueprint")

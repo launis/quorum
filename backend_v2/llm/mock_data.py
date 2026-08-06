@@ -398,5 +398,8 @@ def get_fallback_data(key: str) -> dict[str, Any]:
         ]
         return {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"}
 
+    if key == "variance_explainer":
+        return {"row_explanation": "Mock explanation for variance."}
+
     # STRICT FAIL-FAST: No silent dictionary fallbacks
     raise ValueError(f"Strict Mock Data Error: Mock data not found for key '{key}'")

@@ -80,7 +80,8 @@ def test_inject_step_metadata_custom_values() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    meta = result.state_delta["step_metadata"]
+    meta = result.state_delta["_step_metadata"]
+    assert "step_metadata" not in result.state_delta, "Hook must use underscore-prefixed SSOT key"
     assert meta["execution_id"] == "exec_555"
     assert meta["workflow_id"] == "wf_999"
     assert meta["step_id"] == "step_123"
