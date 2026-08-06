@@ -971,43 +971,72 @@ async def generate_profile_synthesis_and_pdf_task(
             if (
                 active_profile_dto
                 and active_profile_dto.visible_workflow_extensions
-                and "variance_validation" in active_profile_dto.visible_workflow_extensions
+                and (
+                    "variance_validation" in active_profile_dto.visible_workflow_extensions
+                    or "authenticity_evaluation" in active_profile_dto.visible_workflow_extensions
+                )
             ):
                 authenticity_score = None
                 performative_phrases_count = None
                 cv = execution.context_variables
-                if cv is not None:
-                    step_det = cv.get("step_detector")
-                    if step_det is not None:
-                        try:
-                            det_out = LightweightMatrixOutput.model_validate(step_det, strict=False)
-                            if det_out.raw_score is not None:
-                                authenticity_score = float(det_out.raw_score)
-                        except Exception:
-                            pass
 
+                # 1. Linguistics comes from global_context_vars via the linguistics post-hook
+                if cv is not None:
                     step_ling = cv.get("step_linguistics")
                     if step_ling is not None:
                         from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 
-                        try:
-                            ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
+                        ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
+                        patterns = ling_out.performative_patterns
+                        if isinstance(patterns, list):
+                            performative_phrases_count = len(patterns)
+
+                # 2. Performativity Detector comes from the DAG step output in the trace
+                perf_step_id = active_profile_dto.performativity_detector_step_id
+
+                # Dynamically resolve missing values from execution trace
+                if authenticity_score is None or performative_phrases_count is None:
+                    from backend_v2.models.state import TraceEvent
+
+                    for event in reversed(execution.execution_trace):
+                        if not isinstance(event, TraceEvent):
+                            continue
+
+                        # Fallback for Linguistics (decision event with is_context_update)
+                        if (
+                            event.event_type == "decision"
+                            and performative_phrases_count is None
+                            and "step_linguistics" in event.content
+                        ):
+                            trace_ling = event.content.get("step_linguistics")
+                            from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+
+                            ling_out = LinguisticsResultDTO.model_validate(trace_ling, strict=False)
                             patterns = ling_out.performative_patterns
                             if isinstance(patterns, list):
                                 performative_phrases_count = len(patterns)
-                        except Exception:
-                            pass
 
-                if authenticity_score is None or performative_phrases_count is None:
-                    # Dynamically resolve from execution trace if missing in context_variables
-                    for event in reversed(execution.execution_trace):
-                        if event.event_type == "decision" and "step_linguistics" in event.content:
-                            trace_ling = event.content.get("step_linguistics")
-                            if isinstance(trace_ling, dict) and "performative_patterns" in trace_ling:
-                                trace_patterns = trace_ling.get("performative_patterns")
-                                if isinstance(trace_patterns, list):
-                                    performative_phrases_count = len(trace_patterns)
-                                    break
+                        # Extract Performativity Detector output using the canonical step_id from profile
+                        if (
+                            event.event_type == "output"
+                            and perf_step_id
+                            and authenticity_score is None
+                        ):
+                            step_meta = event.content.get("_step_metadata")
+                            if isinstance(step_meta, dict):
+                                event_blueprint = step_meta.get("task_blueprint")
+                                if event_blueprint == perf_step_id:
+                                    for key, val in event.content.items():
+                                        if key.startswith("blk_"):
+                                            mapped_val = LightweightMatrixOutput.map_llm_extensions_to_domain(val)
+                                            det_out = LightweightMatrixOutput.model_validate(mapped_val, strict=False)
+                                            if det_out.raw_score is not None:
+                                                authenticity_score = float(det_out.raw_score)
+                                            break
+
+                        if authenticity_score is not None and performative_phrases_count is not None:
+                            break
+
                     # For authenticity_score, we skip the complex fallback in worker.py.
                     # If it's missing, blueprint.py will Fail-Fast anyway, so we just skip the explanation here.
 

@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.settings import get_settings
@@ -142,3 +143,320 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
 
     assert found_payload is not None, "Execution record was not updated with profile_syntheses"
     assert isinstance(found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"], dict)
+
+
+def _setup_mock_repo_for_metrics(
+    mock_repo: AsyncMock, trace_content_ling: dict[str, Any] | None, trace_content_det: dict[str, Any] | None
+) -> None:
+    trace_events = []
+    if trace_content_ling is not None:
+        trace_events.append(
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="decision",
+                step_name="ling",
+                content={"step_linguistics": trace_content_ling},
+            )
+        )
+    if trace_content_det is not None:
+        trace_events.append(
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="output",
+                step_name="sr_det_step12345678",
+                content=trace_content_det,
+            )
+        )
+
+    mock_execution = ExecutionRecord(
+        id="exec_1234567812345678",
+        workflow_id="wf_1234567812345678",
+        output_profile_id="prof_1111111111111111",
+        status=ExecutionStatus.PASSED,
+        execution_trace=trace_events,
+        context_variables={},
+    )
+    mock_repo.get_execution.return_value = mock_execution
+    mock_repo.get_workflow_by_id.return_value = {
+        "id": "wf_1234567812345678",
+        "slug": "test_workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "status": "draft",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "version": 1,
+        "default_profile_id": "prof_1111111111111111",
+        "expected_inputs": [],
+        "steps": [],
+    }
+    mock_repo.get_all_steps.return_value = []
+    mock_repo.get_model_registry.return_value = {
+        "id": "cfg_1111111111111111",
+        "type": "model_registry",
+        "slug": "model_registry",
+        "models": {
+            "synthesis": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
+            "strict": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
+        },
+    }
+    mock_repo.get_all_prompt_blocks.return_value = []
+
+    async def _mock_get_prompt_block(block_id: str) -> dict[str, Any]:
+        return {
+            "id": block_id,
+            "slug": "synthesis_prompt",
+            "type": "instruction",
+            "label": {"default_locale": "en", "translations": {"en": "Synth System"}},
+            "description": {"default_locale": "en", "translations": {"en": "System prompt for synthesis"}},
+            "ai_description": "You are an AI.",
+            "category_id": "system_rule",
+        }
+
+    mock_repo.get_prompt_block.side_effect = _mock_get_prompt_block
+    mock_repo.get_all_prompt_blocks.return_value = []
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof",
+        "name": {"default_locale": "en", "translations": {"en": "test"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "visible_workflow_extensions": ["variance_validation"],
+        "performativity_detector_step_id": "sp_det_step",
+        "layouts": [],
+    }
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_extracts_metrics_from_trace(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={
+            "performative_patterns": [
+                {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"},
+                {"pattern_id": "2", "detected_phrase": "phrase2", "category": "cat2"},
+            ]
+        },
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": 2.5,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_1234567812345678",
+                "step_id": "sr_det_step12345678",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+                "task_blueprint": "sp_det_step",
+            },
+        },
+    )
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+    )
+
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None
+    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    assert metrics is not None
+    assert metrics["authenticity_score"] == 2.5
+    assert metrics["performative_phrases_count"] == 2.0
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_missing_metrics_remains_none(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+    )
+
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None
+    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    assert metrics is None
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_malformed_metrics_remains_none(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={
+            "performative_patterns": [{"pattern_id": "1", "detected_phrase": "one", "category": "cat"}]
+        },
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": None,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_1234567812345678",
+                "step_id": "sr_det_step12345678",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+                "task_blueprint": "sp_det_step",
+            },
+        },
+    )
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+    )
+
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None
+    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    assert metrics is None
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock, mock_repo_class: AsyncMock) -> None:
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={
+            "performative_patterns": [{"pattern_id": "1", "detected_phrase": "one", "category": "cat"}]
+        },
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": 2.5,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+        },
+    )
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+    )
+
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None
+    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    assert metrics is None
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={
+            "performative_patterns": [{"pattern_id": "1", "detected_phrase": "one", "category": "cat"}]
+        },
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": 2.5,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_1234567812345678",
+                "step_id": "sr_det_step12345678",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+            },
+        },
+    )
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+    )
+
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None
+    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    assert metrics is None
