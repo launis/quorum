@@ -64,7 +64,7 @@
 
 ### Phase 6: Verification & E2E Integration Gate
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]`
   - [ ] Step 6.1: Global Python backend audit loop
   - [ ] Step 6.2: Global Flutter audit loop
@@ -140,6 +140,7 @@
 - Completed Tier 8 Audit for Phase 4 to verify compliance and generated `red_team_audit_04_import_migration_plan.md`.
 - Successfully executed Phase 5: Verified Enum parity via Flutter audit loop. No domain code changes were required as backend literals do not cross the SDUI boundary.
 - Completed Tier 8 Audit for Phase 5 to verify compliance (no domain changes required).
+- Completed Tier 0 Research for Phase 6: Mutated the stub implementation plan into a rigorous XML-compliant Quorum execution protocol containing exact command syntax for the global backend audit, global frontend audit, and final E2E REST API verification gates.
 
 ## Learned
 - **Baseline State Snapshot**: The original Epic `EPIC_133A_lightweight_matrix.md` describes a massive "God Code" file `backend_v2/models/dtos/lightweight_matrix.py` (728 lines) violating architectural constraints.
@@ -154,7 +155,7 @@
 - **Phase 5 Falsification:** Tier 0 Research falsified the need to update `enums.dart`. The newly extracted models (`AtomEvaluationItemDTO`, `LightweightExtractionAtom`, etc.) are internal backend orchestrator DTOs that do NOT cross the SDUI boundary. Therefore, their `status` string fields ("PASS", "FAIL", "CONTESTED", "DLQ") do not require Freezed model enum syncing in Flutter. The plan was updated to simply verify Flutter compilation via the audit script.
 
 ## Remaining
-- Initiate Tier 0 Research for Phase 6 (Verification & E2E Integration Gate).
+- Execute Phase 6 (Verification & E2E Integration Gate).
 
 ## Resume Command
-`/tier5-resume --workflow="/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`
+`/tier5-resume --workflow="/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`
