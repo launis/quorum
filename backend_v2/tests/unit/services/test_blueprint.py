@@ -1573,7 +1573,7 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
                             "exact_quotes": [],
                             "semantic_reasoning": "This is a matrix block evaluation.",
                             "contextual_override": False,
-                            "structural_location": "N/A",
+                            "structural_location": None,
                             "chart_display_label": "Test",
                             "visual_intent": "positive",
                             # MISSING chart_display_label and visual_intent !

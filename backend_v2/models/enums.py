@@ -255,6 +255,15 @@ class SearchStatus(StrEnum):
     DLQ_ERROR = "DLQ_ERROR"
 
 
+class AtomEvaluationStatus(StrEnum):
+    """Lifecycle status for individual atom evaluation logic."""
+
+    PASS = "PASS"
+    FAIL = "FAIL"
+    CONTESTED = "CONTESTED"
+    DLQ = "DLQ"
+
+
 class ExecutionStatus(StrEnum):
     """Execution lifecycle status.
 
@@ -624,6 +633,7 @@ LaxSimulationType = Annotated[SimulationType, Field(strict=False)]
 LaxRoleClassification = Annotated[RoleClassification, Field(strict=False)]
 LaxInteractionStrategy = Annotated[InteractionStrategy, Field(strict=False)]
 LaxTargetBlockType = Annotated[TargetBlockType, Field(strict=False)]
+LaxAtomEvaluationStatus = Annotated[AtomEvaluationStatus, Field(strict=False)]
 
 
 class SpecialAliasChoices(StrEnum):

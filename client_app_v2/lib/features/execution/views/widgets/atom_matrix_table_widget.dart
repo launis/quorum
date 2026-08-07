@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/theme/app_colors.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/models/enums.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -452,12 +453,10 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   final itemsToRender = <Widget>[];
 
                   for (final atom in atoms) {
-                    final lowerStatus = atom.status?.toLowerCase() ?? '';
+                    final statusName = atom.status?.name.toLowerCase() ?? '';
                     // Filter non-renderable atoms from Display Tier
                     final isSkipped =
-                        lowerStatus == 'skipped' ||
-                        lowerStatus == 'none' ||
-                        lowerStatus == 'dlq' ||
+                        statusName == 'dlq' ||
                         atom.semanticReasoning.startsWith(
                           'Chunk Processing Failed',
                         );
@@ -469,8 +468,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                   'PASS' ||
                               atom.humanOverride!.newStatus.toUpperCase() ==
                                   'CONTESTED')
-                        : (atom.status?.toUpperCase() == 'PASS' ||
-                              atom.status?.toUpperCase() == 'CONTESTED');
+                        : (atom.status == AtomEvaluationStatus.pass ||
+                              atom.status == AtomEvaluationStatus.contested);
 
                     // 1. AI Evidence rendering
                     final aiQuotes = _buildQuoteWidgets(

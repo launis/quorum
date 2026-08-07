@@ -17,7 +17,7 @@ def test_report_data_dto_strictness_level_validation() -> None:
 
 
 def test_scorecard_atom_dto_firewall() -> None:
-    from backend_v2.models.enums import ExecutionStatus, VisualIntent
+    from backend_v2.models.enums import AtomEvaluationStatus, VisualIntent
     from backend_v2.models.v2_core import ScorecardAtomDTO
 
     larger_payload = {
@@ -33,10 +33,10 @@ def test_scorecard_atom_dto_firewall() -> None:
             "step_3_evaluate_anti_patterns": "3",
             "step_4_final_conclusion": "4",
         },
-        "status": ExecutionStatus.PASSED,
+        "status": AtomEvaluationStatus.PASS,
         "semantic_reasoning": "Reason",
         "contextual_override": False,
-        "structural_location": "N/A",
+        "structural_location": None,
         "chart_display_label": "N/A",
         "visual_intent": VisualIntent.NEUTRAL,
         "db_secret_key": "should_be_stripped",

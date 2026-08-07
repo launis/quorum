@@ -28,7 +28,9 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
   void initState() {
     super.initState();
     _selectedStatus =
-        widget.atom.humanOverride?.newStatus ?? widget.atom.status ?? 'PASS';
+        widget.atom.humanOverride?.newStatus ??
+        widget.atom.status?.name.toUpperCase() ??
+        'PASS';
     // Validate that it's one of PASS, FAIL, CONTESTED
     final upperStatus = _selectedStatus.toUpperCase();
     if (upperStatus != 'PASS' &&

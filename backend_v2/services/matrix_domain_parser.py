@@ -10,7 +10,7 @@ from backend_v2.models.dtos.atom_evaluation import (
     ReasoningStepDTO,
 )
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
-from backend_v2.models.enums import ExecutionStatus, VisualIntent
+from backend_v2.models.enums import AtomEvaluationStatus, VisualIntent
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixScorecardRowDTO,
@@ -366,10 +366,10 @@ class MatrixDomainParser:
                                             extracted_facts={},
                                             exact_quotes=[],
                                             internal_logic_en=r_step,
-                                            status=ExecutionStatus.FAILED,
+                                            status=AtomEvaluationStatus.FAIL,
                                             semantic_reasoning=val_data.semantic_reasoning,
                                             contextual_override=False,
-                                            structural_location="N/A",
+                                            structural_location=None,
                                             chart_display_label="N/A",
                                             visual_intent=VisualIntent.NEUTRAL,
                                         )
@@ -403,10 +403,10 @@ class MatrixDomainParser:
                                         extracted_facts={},
                                         exact_quotes=[],
                                         internal_logic_en=dummy_reasoning,
-                                        status=ExecutionStatus.FAILED,
+                                        status=AtomEvaluationStatus.FAIL,
                                         semantic_reasoning="",
                                         contextual_override=False,
-                                        structural_location="N/A",
+                                        structural_location=None,
                                         chart_display_label="N/A",
                                         visual_intent=VisualIntent.NEUTRAL,
                                     )

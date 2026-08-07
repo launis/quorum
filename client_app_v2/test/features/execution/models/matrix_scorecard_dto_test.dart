@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
+import 'package:client_app/core/models/enums.dart';
 
 void main() {
   group('ScorecardAtomDto', () {
@@ -20,17 +21,17 @@ void main() {
           'step_3_evaluate_anti_patterns': 'e',
           'step_4_final_conclusion': 'c',
         },
-        'status': 'SKIPPED',
+        'status': 'PASS',
         'semantic_reasoning': 'because',
         'contextual_override': false,
-        'structural_location': 'doc.txt',
+        'structural_location': null,
         'chart_display_label': 'Skipped',
         'visual_intent': 'NEUTRAL',
       };
 
       final dto = ScorecardAtomDto.fromJson(json);
       expect(dto.atomId, 'atm_123');
-      expect(dto.status, 'SKIPPED');
+      expect(dto.status, AtomEvaluationStatus.pass);
       expect(dto.exactQuotes.length, 2);
     });
   });
@@ -61,7 +62,7 @@ void main() {
               'step_3_evaluate_anti_patterns': 'e',
               'step_4_final_conclusion': 'c',
             },
-            'status': 'OK',
+            'status': 'PASS',
             'semantic_reasoning': 'r',
             'contextual_override': false,
             'structural_location': 'L',
@@ -81,7 +82,7 @@ void main() {
               'step_3_evaluate_anti_patterns': 'e',
               'step_4_final_conclusion': 'c',
             },
-            'status': 'OK',
+            'status': 'PASS',
             'semantic_reasoning': 'r',
             'contextual_override': false,
             'structural_location': 'L',
@@ -101,7 +102,7 @@ void main() {
               'step_3_evaluate_anti_patterns': 'e',
               'step_4_final_conclusion': 'c',
             },
-            'status': 'OK',
+            'status': 'PASS',
             'semantic_reasoning': 'r',
             'contextual_override': false,
             'structural_location': 'L',

@@ -810,7 +810,7 @@ as DateTime,
 /// @nodoc
 mixin _$ScorecardAtomDto {
 
-@JsonKey(name: 'atom_id') String get atomId; int get level;@JsonKey(name: 'level_name') String get levelName;@JsonKey(name: 'claim_label') String get claimLabel;@JsonKey(name: 'extracted_facts') Map<String, String?> get extractedFacts;@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> get exactQuotes;@JsonKey(name: 'internal_logic_en') ReasoningStepDto get internalLogicEn; String? get status;@JsonKey(name: 'semantic_reasoning') String get semanticReasoning;@JsonKey(name: 'contextual_override') bool get contextualOverride;@JsonKey(name: 'structural_location') String get structuralLocation;@JsonKey(name: 'human_override') HumanOverrideDto? get humanOverride;@JsonKey(name: 'chart_display_label') String get chartDisplayLabel;@JsonKey(name: 'visual_intent') VisualIntent get visualIntent;
+@JsonKey(name: 'atom_id') String get atomId; int get level;@JsonKey(name: 'level_name') String get levelName;@JsonKey(name: 'claim_label') String get claimLabel;@JsonKey(name: 'extracted_facts') Map<String, String?> get extractedFacts;@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> get exactQuotes;@JsonKey(name: 'internal_logic_en') ReasoningStepDto get internalLogicEn; AtomEvaluationStatus? get status;@JsonKey(name: 'semantic_reasoning') String get semanticReasoning;@JsonKey(name: 'contextual_override') bool get contextualOverride;@JsonKey(name: 'structural_location') String? get structuralLocation;@JsonKey(name: 'human_override') HumanOverrideDto? get humanOverride;@JsonKey(name: 'chart_display_label') String get chartDisplayLabel;@JsonKey(name: 'visual_intent') VisualIntent get visualIntent;
 /// Create a copy of ScorecardAtomDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -836,7 +836,7 @@ abstract mixin class $ScorecardAtomDtoCopyWith<$Res>  {
   factory $ScorecardAtomDtoCopyWith(ScorecardAtomDto value, $Res Function(ScorecardAtomDto) _then) = _$ScorecardAtomDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'atom_id') String atomId, int level,@JsonKey(name: 'level_name') String levelName,@JsonKey(name: 'claim_label') String claimLabel,@JsonKey(name: 'extracted_facts') Map<String, String?> extractedFacts,@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> exactQuotes,@JsonKey(name: 'internal_logic_en') ReasoningStepDto internalLogicEn, String? status,@JsonKey(name: 'semantic_reasoning') String semanticReasoning,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'structural_location') String structuralLocation,@JsonKey(name: 'human_override') HumanOverrideDto? humanOverride,@JsonKey(name: 'chart_display_label') String chartDisplayLabel,@JsonKey(name: 'visual_intent') VisualIntent visualIntent
+@JsonKey(name: 'atom_id') String atomId, int level,@JsonKey(name: 'level_name') String levelName,@JsonKey(name: 'claim_label') String claimLabel,@JsonKey(name: 'extracted_facts') Map<String, String?> extractedFacts,@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> exactQuotes,@JsonKey(name: 'internal_logic_en') ReasoningStepDto internalLogicEn, AtomEvaluationStatus? status,@JsonKey(name: 'semantic_reasoning') String semanticReasoning,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'structural_location') String? structuralLocation,@JsonKey(name: 'human_override') HumanOverrideDto? humanOverride,@JsonKey(name: 'chart_display_label') String chartDisplayLabel,@JsonKey(name: 'visual_intent') VisualIntent visualIntent
 });
 
 
@@ -853,7 +853,7 @@ class _$ScorecardAtomDtoCopyWithImpl<$Res>
 
 /// Create a copy of ScorecardAtomDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? atomId = null,Object? level = null,Object? levelName = null,Object? claimLabel = null,Object? extractedFacts = null,Object? exactQuotes = null,Object? internalLogicEn = null,Object? status = freezed,Object? semanticReasoning = null,Object? contextualOverride = null,Object? structuralLocation = null,Object? humanOverride = freezed,Object? chartDisplayLabel = null,Object? visualIntent = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? atomId = null,Object? level = null,Object? levelName = null,Object? claimLabel = null,Object? extractedFacts = null,Object? exactQuotes = null,Object? internalLogicEn = null,Object? status = freezed,Object? semanticReasoning = null,Object? contextualOverride = null,Object? structuralLocation = freezed,Object? humanOverride = freezed,Object? chartDisplayLabel = null,Object? visualIntent = null,}) {
   return _then(_self.copyWith(
 atomId: null == atomId ? _self.atomId : atomId // ignore: cast_nullable_to_non_nullable
 as String,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
@@ -863,10 +863,10 @@ as String,extractedFacts: null == extractedFacts ? _self.extractedFacts : extrac
 as Map<String, String?>,exactQuotes: null == exactQuotes ? _self.exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
 as List<QuoteEvidenceDto>,internalLogicEn: null == internalLogicEn ? _self.internalLogicEn : internalLogicEn // ignore: cast_nullable_to_non_nullable
 as ReasoningStepDto,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as String?,semanticReasoning: null == semanticReasoning ? _self.semanticReasoning : semanticReasoning // ignore: cast_nullable_to_non_nullable
+as AtomEvaluationStatus?,semanticReasoning: null == semanticReasoning ? _self.semanticReasoning : semanticReasoning // ignore: cast_nullable_to_non_nullable
 as String,contextualOverride: null == contextualOverride ? _self.contextualOverride : contextualOverride // ignore: cast_nullable_to_non_nullable
-as bool,structuralLocation: null == structuralLocation ? _self.structuralLocation : structuralLocation // ignore: cast_nullable_to_non_nullable
-as String,humanOverride: freezed == humanOverride ? _self.humanOverride : humanOverride // ignore: cast_nullable_to_non_nullable
+as bool,structuralLocation: freezed == structuralLocation ? _self.structuralLocation : structuralLocation // ignore: cast_nullable_to_non_nullable
+as String?,humanOverride: freezed == humanOverride ? _self.humanOverride : humanOverride // ignore: cast_nullable_to_non_nullable
 as HumanOverrideDto?,chartDisplayLabel: null == chartDisplayLabel ? _self.chartDisplayLabel : chartDisplayLabel // ignore: cast_nullable_to_non_nullable
 as String,visualIntent: null == visualIntent ? _self.visualIntent : visualIntent // ignore: cast_nullable_to_non_nullable
 as VisualIntent,
@@ -975,7 +975,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride, @JsonKey(name: 'chart_display_label')  String chartDisplayLabel, @JsonKey(name: 'visual_intent')  VisualIntent visualIntent)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  AtomEvaluationStatus? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String? structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride, @JsonKey(name: 'chart_display_label')  String chartDisplayLabel, @JsonKey(name: 'visual_intent')  VisualIntent visualIntent)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ScorecardAtomDto() when $default != null:
 return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation,_that.humanOverride,_that.chartDisplayLabel,_that.visualIntent);case _:
@@ -996,7 +996,7 @@ return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride, @JsonKey(name: 'chart_display_label')  String chartDisplayLabel, @JsonKey(name: 'visual_intent')  VisualIntent visualIntent)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  AtomEvaluationStatus? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String? structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride, @JsonKey(name: 'chart_display_label')  String chartDisplayLabel, @JsonKey(name: 'visual_intent')  VisualIntent visualIntent)  $default,) {final _that = this;
 switch (_that) {
 case _ScorecardAtomDto():
 return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation,_that.humanOverride,_that.chartDisplayLabel,_that.visualIntent);case _:
@@ -1016,7 +1016,7 @@ return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  String? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride, @JsonKey(name: 'chart_display_label')  String chartDisplayLabel, @JsonKey(name: 'visual_intent')  VisualIntent visualIntent)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'atom_id')  String atomId,  int level, @JsonKey(name: 'level_name')  String levelName, @JsonKey(name: 'claim_label')  String claimLabel, @JsonKey(name: 'extracted_facts')  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes')  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en')  ReasoningStepDto internalLogicEn,  AtomEvaluationStatus? status, @JsonKey(name: 'semantic_reasoning')  String semanticReasoning, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'structural_location')  String? structuralLocation, @JsonKey(name: 'human_override')  HumanOverrideDto? humanOverride, @JsonKey(name: 'chart_display_label')  String chartDisplayLabel, @JsonKey(name: 'visual_intent')  VisualIntent visualIntent)?  $default,) {final _that = this;
 switch (_that) {
 case _ScorecardAtomDto() when $default != null:
 return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.extractedFacts,_that.exactQuotes,_that.internalLogicEn,_that.status,_that.semanticReasoning,_that.contextualOverride,_that.structuralLocation,_that.humanOverride,_that.chartDisplayLabel,_that.visualIntent);case _:
@@ -1031,7 +1031,7 @@ return $default(_that.atomId,_that.level,_that.levelName,_that.claimLabel,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ScorecardAtomDto implements ScorecardAtomDto {
-  const _ScorecardAtomDto({@JsonKey(name: 'atom_id') required this.atomId, required this.level, @JsonKey(name: 'level_name') required this.levelName, @JsonKey(name: 'claim_label') required this.claimLabel, @JsonKey(name: 'extracted_facts') required final  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes') required final  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en') required this.internalLogicEn, this.status, @JsonKey(name: 'semantic_reasoning') required this.semanticReasoning, @JsonKey(name: 'contextual_override') required this.contextualOverride, @JsonKey(name: 'structural_location') required this.structuralLocation, @JsonKey(name: 'human_override') this.humanOverride, @JsonKey(name: 'chart_display_label') required this.chartDisplayLabel, @JsonKey(name: 'visual_intent') required this.visualIntent}): _extractedFacts = extractedFacts,_exactQuotes = exactQuotes;
+  const _ScorecardAtomDto({@JsonKey(name: 'atom_id') required this.atomId, required this.level, @JsonKey(name: 'level_name') required this.levelName, @JsonKey(name: 'claim_label') required this.claimLabel, @JsonKey(name: 'extracted_facts') required final  Map<String, String?> extractedFacts, @JsonKey(name: 'exact_quotes') required final  List<QuoteEvidenceDto> exactQuotes, @JsonKey(name: 'internal_logic_en') required this.internalLogicEn, this.status, @JsonKey(name: 'semantic_reasoning') required this.semanticReasoning, @JsonKey(name: 'contextual_override') required this.contextualOverride, @JsonKey(name: 'structural_location') this.structuralLocation, @JsonKey(name: 'human_override') this.humanOverride, @JsonKey(name: 'chart_display_label') required this.chartDisplayLabel, @JsonKey(name: 'visual_intent') required this.visualIntent}): _extractedFacts = extractedFacts,_exactQuotes = exactQuotes;
   factory _ScorecardAtomDto.fromJson(Map<String, dynamic> json) => _$ScorecardAtomDtoFromJson(json);
 
 @override@JsonKey(name: 'atom_id') final  String atomId;
@@ -1053,10 +1053,10 @@ class _ScorecardAtomDto implements ScorecardAtomDto {
 }
 
 @override@JsonKey(name: 'internal_logic_en') final  ReasoningStepDto internalLogicEn;
-@override final  String? status;
+@override final  AtomEvaluationStatus? status;
 @override@JsonKey(name: 'semantic_reasoning') final  String semanticReasoning;
 @override@JsonKey(name: 'contextual_override') final  bool contextualOverride;
-@override@JsonKey(name: 'structural_location') final  String structuralLocation;
+@override@JsonKey(name: 'structural_location') final  String? structuralLocation;
 @override@JsonKey(name: 'human_override') final  HumanOverrideDto? humanOverride;
 @override@JsonKey(name: 'chart_display_label') final  String chartDisplayLabel;
 @override@JsonKey(name: 'visual_intent') final  VisualIntent visualIntent;
@@ -1087,7 +1087,7 @@ abstract mixin class _$ScorecardAtomDtoCopyWith<$Res> implements $ScorecardAtomD
   factory _$ScorecardAtomDtoCopyWith(_ScorecardAtomDto value, $Res Function(_ScorecardAtomDto) _then) = __$ScorecardAtomDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'atom_id') String atomId, int level,@JsonKey(name: 'level_name') String levelName,@JsonKey(name: 'claim_label') String claimLabel,@JsonKey(name: 'extracted_facts') Map<String, String?> extractedFacts,@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> exactQuotes,@JsonKey(name: 'internal_logic_en') ReasoningStepDto internalLogicEn, String? status,@JsonKey(name: 'semantic_reasoning') String semanticReasoning,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'structural_location') String structuralLocation,@JsonKey(name: 'human_override') HumanOverrideDto? humanOverride,@JsonKey(name: 'chart_display_label') String chartDisplayLabel,@JsonKey(name: 'visual_intent') VisualIntent visualIntent
+@JsonKey(name: 'atom_id') String atomId, int level,@JsonKey(name: 'level_name') String levelName,@JsonKey(name: 'claim_label') String claimLabel,@JsonKey(name: 'extracted_facts') Map<String, String?> extractedFacts,@JsonKey(name: 'exact_quotes') List<QuoteEvidenceDto> exactQuotes,@JsonKey(name: 'internal_logic_en') ReasoningStepDto internalLogicEn, AtomEvaluationStatus? status,@JsonKey(name: 'semantic_reasoning') String semanticReasoning,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'structural_location') String? structuralLocation,@JsonKey(name: 'human_override') HumanOverrideDto? humanOverride,@JsonKey(name: 'chart_display_label') String chartDisplayLabel,@JsonKey(name: 'visual_intent') VisualIntent visualIntent
 });
 
 
@@ -1104,7 +1104,7 @@ class __$ScorecardAtomDtoCopyWithImpl<$Res>
 
 /// Create a copy of ScorecardAtomDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? atomId = null,Object? level = null,Object? levelName = null,Object? claimLabel = null,Object? extractedFacts = null,Object? exactQuotes = null,Object? internalLogicEn = null,Object? status = freezed,Object? semanticReasoning = null,Object? contextualOverride = null,Object? structuralLocation = null,Object? humanOverride = freezed,Object? chartDisplayLabel = null,Object? visualIntent = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? atomId = null,Object? level = null,Object? levelName = null,Object? claimLabel = null,Object? extractedFacts = null,Object? exactQuotes = null,Object? internalLogicEn = null,Object? status = freezed,Object? semanticReasoning = null,Object? contextualOverride = null,Object? structuralLocation = freezed,Object? humanOverride = freezed,Object? chartDisplayLabel = null,Object? visualIntent = null,}) {
   return _then(_ScorecardAtomDto(
 atomId: null == atomId ? _self.atomId : atomId // ignore: cast_nullable_to_non_nullable
 as String,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
@@ -1114,10 +1114,10 @@ as String,extractedFacts: null == extractedFacts ? _self._extractedFacts : extra
 as Map<String, String?>,exactQuotes: null == exactQuotes ? _self._exactQuotes : exactQuotes // ignore: cast_nullable_to_non_nullable
 as List<QuoteEvidenceDto>,internalLogicEn: null == internalLogicEn ? _self.internalLogicEn : internalLogicEn // ignore: cast_nullable_to_non_nullable
 as ReasoningStepDto,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as String?,semanticReasoning: null == semanticReasoning ? _self.semanticReasoning : semanticReasoning // ignore: cast_nullable_to_non_nullable
+as AtomEvaluationStatus?,semanticReasoning: null == semanticReasoning ? _self.semanticReasoning : semanticReasoning // ignore: cast_nullable_to_non_nullable
 as String,contextualOverride: null == contextualOverride ? _self.contextualOverride : contextualOverride // ignore: cast_nullable_to_non_nullable
-as bool,structuralLocation: null == structuralLocation ? _self.structuralLocation : structuralLocation // ignore: cast_nullable_to_non_nullable
-as String,humanOverride: freezed == humanOverride ? _self.humanOverride : humanOverride // ignore: cast_nullable_to_non_nullable
+as bool,structuralLocation: freezed == structuralLocation ? _self.structuralLocation : structuralLocation // ignore: cast_nullable_to_non_nullable
+as String?,humanOverride: freezed == humanOverride ? _self.humanOverride : humanOverride // ignore: cast_nullable_to_non_nullable
 as HumanOverrideDto?,chartDisplayLabel: null == chartDisplayLabel ? _self.chartDisplayLabel : chartDisplayLabel // ignore: cast_nullable_to_non_nullable
 as String,visualIntent: null == visualIntent ? _self.visualIntent : visualIntent // ignore: cast_nullable_to_non_nullable
 as VisualIntent,

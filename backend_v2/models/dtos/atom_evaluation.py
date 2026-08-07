@@ -1,10 +1,15 @@
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from pydantic import Field, PrivateAttr, ValidationInfo, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import DEFAULT_NULL_HYPOTHESIS_BLACKLIST, LaxVisualIntent
+from backend_v2.models.enums import (
+    DEFAULT_NULL_HYPOTHESIS_BLACKLIST,
+    AtomEvaluationStatus,
+    LaxAtomEvaluationStatus,
+    LaxVisualIntent,
+)
 from backend_v2.settings import get_settings
 
 _settings = get_settings()
@@ -70,7 +75,7 @@ class LightweightExtractionAtom(V2CoreBase):
         ),
     ]
     status: Annotated[
-        Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None,
+        LaxAtomEvaluationStatus | None,
         Field(default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."),
     ]
     confidence: float | None = None
@@ -126,12 +131,12 @@ class LightweightExtractionAtom(V2CoreBase):
             Evaluated boolean rule, or string 'DLQ' if dead letter queue was hit.
         """
         if self.status:
-            if self.status == "DLQ":
+            if self.status == AtomEvaluationStatus.DLQ:
                 return "DLQ"
             # Phase 1: CONTESTED bypasses inversion logic
-            if self.status == "CONTESTED":
+            if self.status == AtomEvaluationStatus.CONTESTED:
                 return True
-            evidence_found = self.status == "PASS"
+            evidence_found = self.status == AtomEvaluationStatus.PASS
             if inverse_evidence:
                 return not evidence_found
             return evidence_found
@@ -146,12 +151,12 @@ class LightweightExtractionAtom(V2CoreBase):
         return False
 
     @property
-    def structural_location(self) -> str:
-        return "N/A"
+    def structural_location(self) -> str | None:
+        return None
 
     @property
-    def semantic_reasoning(self) -> str:
-        return "N/A (Lightweight extraction)"
+    def semantic_reasoning(self) -> str | None:
+        return None
 
 
 class MatrixEvaluationItemDTO(V2CoreBase):
@@ -214,7 +219,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
         ),
     ]
     status: Annotated[
-        Literal["PASS", "FAIL", "CONTESTED", "DLQ"] | None,
+        LaxAtomEvaluationStatus | None,
         Field(default=None, description="The evaluation status. Must be one of PASS, FAIL, CONTESTED, DLQ."),
     ]
     chart_display_label: Annotated[
@@ -261,11 +266,12 @@ class AtomEvaluationItemDTO(V2CoreBase):
         ),
     ]
     structural_location: Annotated[
-        str,
+        str | None,
         Field(
+            default=None,
             description=(
                 "Exact structural location (e.g. 'page 3', 'paragraph 2'). Must be in the Localized "
-                "Target Language. If contextual_override is False, you MUST output 'N/A'. "
+                "Target Language. If contextual_override is False, output null. "
                 "If contextual_override is True, you MUST provide the concrete location."
             ),
         ),
@@ -343,12 +349,12 @@ class AtomEvaluationItemDTO(V2CoreBase):
             return True
 
         if self.status:
-            if self.status == "DLQ":
+            if self.status == AtomEvaluationStatus.DLQ:
                 return "DLQ"
             # Phase 1: CONTESTED bypasses inversion logic
-            if self.status == "CONTESTED":
+            if self.status == AtomEvaluationStatus.CONTESTED:
                 return True
-            evidence_found = self.status == "PASS"
+            evidence_found = self.status == AtomEvaluationStatus.PASS
             if inverse_evidence:
                 return not evidence_found
             return evidence_found
@@ -385,7 +391,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
             if len(reasoning) < 50:
                 raise ValueError("Contextual override requires semantic_reasoning to be at least 50 characters long.")
 
-            if not self.structural_location or self.structural_location.strip().upper() == "N/A":
+            if not self.structural_location:
                 raise ValueError(
                     "Contextual override requires an explicit structural_location reference "
                     "(e.g., 'page 3', 'paragraph 2')."
@@ -409,7 +415,7 @@ class ReducedAtomDTO(V2CoreBase):
     """Reduced atom data for synthesis, containing only what is strictly necessary."""
 
     tda_id: str
-    status: str
+    status: LaxAtomEvaluationStatus
     reasoning: str | None = None
     source_quote: str | None = None
     extracted_data: dict[str, Any] | None = None

@@ -245,7 +245,7 @@ void main() {
                 step3EvaluateAntiPatterns: '',
                 step4FinalConclusion: '',
               ),
-              status: 'FAIL',
+              status: AtomEvaluationStatus.fail,
               semanticReasoning: 'AI reasoning',
               contextualOverride: false,
               structuralLocation: '',

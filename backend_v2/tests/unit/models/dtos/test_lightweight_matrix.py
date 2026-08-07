@@ -28,7 +28,7 @@ def _make_atom_raw(status: str | None = None) -> dict[str, Any]:
         "visual_intent": "info",
         "semantic_reasoning": "reason",
         "contextual_override": False,
-        "structural_location": "N/A",
+        "structural_location": None,
         "status": status,
         "counter_quote": None,
     }
@@ -152,8 +152,8 @@ def test_lightweight_extraction_atom_properties() -> None:
     assert item.evidence_found is True
     assert item.calculate_rule_satisfied(inverse_evidence=False) is True
     assert item.contextual_override is False
-    assert item.structural_location == "N/A"
-    assert "Lightweight extraction" in item.semantic_reasoning
+    assert item.structural_location is None
+    assert item.semantic_reasoning is None
 
     raw_fail = _make_lightweight_raw()
     raw_fail["extracted_facts"] = {"fact": "null"}

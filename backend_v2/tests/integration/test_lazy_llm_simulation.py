@@ -82,7 +82,7 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
             visual_intent="info",
             atom_id="atom_no_anchor",
             contextual_override=True,
-            structural_location="N/A",
+            structural_location=None,
             semantic_reasoning=(
                 "This is a very long semantic explanation that is definitely over fifty characters "
                 "long, but completely lacks any spatial referencing or structural location anchors."
@@ -160,7 +160,7 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
         visual_intent="info",
         atom_id=assertion.tda_id,
         contextual_override=False,
-        structural_location="N/A",
+        structural_location=None,
         semantic_reasoning="No evidence found for failure before phase 2 in the sliced context.",
         exact_quotes=[{"text": "None", "source_alias": "N/A"}],  # Blacklisted sentinel meaning no quote found
         internal_logic_en=ReasoningStepDTO(

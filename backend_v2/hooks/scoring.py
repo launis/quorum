@@ -951,7 +951,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
                                             elif getattr(ev_dto, "contextual_override", False) and effective_override:
                                                 l_raw = getattr(ev_dto, "structural_location", None)
-                                                loc = l_raw if l_raw and l_raw != "N/A" else "Tuntematon sijainti"
+                                                loc = l_raw if l_raw else "Tuntematon sijainti"
                                                 r_raw = (
                                                     getattr(ev_dto, "semantic_reasoning", None)
                                                     if not is_dag_mode

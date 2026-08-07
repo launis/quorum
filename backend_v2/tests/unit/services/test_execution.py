@@ -4,6 +4,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.enums import AtomEvaluationStatus
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, FrozenContext, WorkflowInputs
 from backend_v2.services.execution import ExecutionService, create_execution_record
 
@@ -545,10 +546,10 @@ async def test_override_atom_success() -> None:
             step_3_evaluate_anti_patterns="",
             step_4_final_conclusion="",
         ),
-        status=ExecutionStatus.FAILED,
+        status=AtomEvaluationStatus.FAIL,
         semantic_reasoning="",
         contextual_override=False,
-        structural_location="N/A",
+        structural_location=None,
         chart_display_label="N/A",
         visual_intent=VisualIntent.NEUTRAL,
     )
@@ -568,7 +569,7 @@ async def test_override_atom_success() -> None:
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(
-        new_status=ExecutionStatus.PASSED,
+        new_status=AtomEvaluationStatus.PASS,
         reason="Override reason",
         evidence_quotes=[],
     )
@@ -634,10 +635,10 @@ async def test_get_execution_export_bytes_success() -> None:
                         step_3_evaluate_anti_patterns="",
                         step_4_final_conclusion="",
                     ),
-                    status=ExecutionStatus.PASSED,
+                    status=AtomEvaluationStatus.PASS,
                     semantic_reasoning="",
                     contextual_override=False,
-                    structural_location="N/A",
+                    structural_location=None,
                     chart_display_label="N/A",
                     visual_intent=VisualIntent.NEUTRAL,
                 )
@@ -730,10 +731,10 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
                         step_3_evaluate_anti_patterns="",
                         step_4_final_conclusion="",
                     ),
-                    status=ExecutionStatus.PASSED,
+                    status=AtomEvaluationStatus.PASS,
                     semantic_reasoning="",
                     contextual_override=False,
-                    structural_location="N/A",
+                    structural_location=None,
                     chart_display_label="N/A",
                     visual_intent=VisualIntent.NEUTRAL,
                 )

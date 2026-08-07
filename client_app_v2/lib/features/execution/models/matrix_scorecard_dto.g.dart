@@ -199,7 +199,10 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
             'internal_logic_en',
             (v) => ReasoningStepDto.fromJson(v as Map<String, dynamic>),
           ),
-          status: $checkedConvert('status', (v) => v as String?),
+          status: $checkedConvert(
+            'status',
+            (v) => $enumDecodeNullable(_$AtomEvaluationStatusEnumMap, v),
+          ),
           semanticReasoning: $checkedConvert(
             'semantic_reasoning',
             (v) => v as String,
@@ -210,7 +213,7 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
           ),
           structuralLocation: $checkedConvert(
             'structural_location',
-            (v) => v as String,
+            (v) => v as String?,
           ),
           humanOverride: $checkedConvert(
             'human_override',
@@ -254,7 +257,7 @@ Map<String, dynamic> _$ScorecardAtomDtoToJson(_ScorecardAtomDto instance) =>
       'extracted_facts': instance.extractedFacts,
       'exact_quotes': instance.exactQuotes.map((e) => e.toJson()).toList(),
       'internal_logic_en': instance.internalLogicEn.toJson(),
-      'status': instance.status,
+      'status': _$AtomEvaluationStatusEnumMap[instance.status],
       'semantic_reasoning': instance.semanticReasoning,
       'contextual_override': instance.contextualOverride,
       'structural_location': instance.structuralLocation,
@@ -262,6 +265,13 @@ Map<String, dynamic> _$ScorecardAtomDtoToJson(_ScorecardAtomDto instance) =>
       'chart_display_label': instance.chartDisplayLabel,
       'visual_intent': _$VisualIntentEnumMap[instance.visualIntent]!,
     };
+
+const _$AtomEvaluationStatusEnumMap = {
+  AtomEvaluationStatus.pass: 'PASS',
+  AtomEvaluationStatus.fail: 'FAIL',
+  AtomEvaluationStatus.contested: 'CONTESTED',
+  AtomEvaluationStatus.dlq: 'DLQ',
+};
 
 const _$VisualIntentEnumMap = {
   VisualIntent.success: 'success',

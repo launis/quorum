@@ -20,7 +20,7 @@ def test_atom_evaluation_item_dto_contested_state() -> None:
         status="CONTESTED",
         semantic_reasoning="Reasoning",
         contextual_override=False,
-        structural_location="N/A",
+        structural_location=None,
     )
     # Phase 1: CONTESTED bypasses inversion logic
     assert item.calculate_rule_satisfied(inverse_evidence=False) is True
