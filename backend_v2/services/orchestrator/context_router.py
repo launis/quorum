@@ -71,8 +71,7 @@ class ContextRouter:
                         message=msg,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
-                mapped_trace = LightweightMatrixOutput.map_llm_extensions_to_domain(trace_event)
-                validated_trace = LightweightMatrixOutput.model_validate(mapped_trace)
+                validated_trace = LightweightMatrixOutput.model_validate(trace_event)
             else:
                 validated_trace = LightweightMatrixOutput.model_validate(trace_event)
         except ConfigurationError:

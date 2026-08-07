@@ -680,8 +680,7 @@ async def generate_profile_synthesis_and_pdf_task(
             data = step_dto.payload
             if pb_id in blocks_meta:
                 try:
-                    mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(data)
-                    lw_matrix = LightweightMatrixOutput.model_validate(mapped_data, strict=False)
+                    lw_matrix = LightweightMatrixOutput.model_validate(data, strict=False)
                     if lw_matrix.level_breakdown:
                         stats = {
                             float(k): LevelStatsDTO(hits=v["hits"], total=v["total"], dlqs=v.get("dlqs"))
@@ -1024,8 +1023,7 @@ async def generate_profile_synthesis_and_pdf_task(
                                 if event_blueprint == perf_step_id:
                                     for key, val in event.content.items():
                                         if key.startswith("blk_"):
-                                            mapped_val = LightweightMatrixOutput.map_llm_extensions_to_domain(val)
-                                            det_out = LightweightMatrixOutput.model_validate(mapped_val, strict=False)
+                                            det_out = LightweightMatrixOutput.model_validate(val, strict=False)
                                             if det_out.raw_score is not None:
                                                 authenticity_score = float(det_out.raw_score)
                                             break

@@ -1,5 +1,3 @@
-import pytest
-
 from backend_v2.models.dtos.atom_evaluation import (
     AtomEvaluationItemDTO,
     ReasoningStepDTO,

@@ -6,37 +6,9 @@ from pydantic import ValidationError
 from backend_v2.models.dtos.atom_evaluation import (
     AtomEvaluationItemDTO,
     LightweightExtractionAtom,
-    MatrixEvaluationItemDTO,
 )
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
-
-
-def test_lightweight_matrix_output_map_llm_extensions() -> None:
-    raw_data = {"raw_score": 50.0, "normalized_score": 150.0, "extensions": "not a dict"}
-    with pytest.raises(ValidationError):
-        LightweightMatrixOutput.model_validate(raw_data)
-
-    mapped = LightweightMatrixOutput.map_llm_extensions_to_domain(
-        {
-            "step_1_evidence_scan": "just text",
-            "semantic_reasoning": "just text 2",
-            "step_2_mitigating_context": "ctx",
-            "contextual_override": "override",
-            "exact_quotes": "quote",
-            "random_dynamic_key": "val",
-            "extensions": "string",
-        }
-    )
-
-    assert mapped["justification"] == "just text 2"
-    assert mapped["extensions"]["justification"] == "just text 2"
-    assert mapped["extensions"]["missing_context"] == "ctx"
-    assert mapped["extensions"]["contextual_override"] == "override"
-    assert mapped["extensions"]["citation"] == "quote"
-    assert mapped["extensions"]["random_dynamic_key"] == "val"
-
-    assert LightweightMatrixOutput.map_llm_extensions_to_domain("string") == "string"
 
 
 def _make_atom_raw(status: str | None = None) -> dict[str, Any]:
@@ -118,17 +90,6 @@ def test_atom_evaluation_item_dto_context_override() -> None:
         AtomEvaluationItemDTO.model_validate(raw2, context=_ctx)
 
 
-def test_matrix_evaluation_item_dto_clean_decision() -> None:
-    item = MatrixEvaluationItemDTO.model_validate(
-        {
-            "atom_id": "1",
-            "semantic_reasoning": "Some reasoning \\n\\n[5. VALIDATION DECISION: PASS]",
-        },
-        context=_ctx,
-    )
-    assert item.semantic_reasoning == "Some reasoning"
-
-
 def test_atom_evaluation_item_dto_truncate_label() -> None:
     raw = _make_atom_raw()
     raw["chart_display_label"] = "This is a very long label that goes over 25 characters and many words and more words"
@@ -137,11 +98,16 @@ def test_atom_evaluation_item_dto_truncate_label() -> None:
 
 
 def test_atom_evaluation_item_dto_enforce_null_hypothesis() -> None:
-    context = {
-        "alias_map": {"doc1": "real_doc"},
-        "mcp_source_texts": {"real_doc": "matching quote text here"},
-        "locale": "en",
-        "strictness_level": 100,
+    alias_map = {"doc1": "real_doc"}
+    mcp_source_texts = {"real_doc": "matching quote text here"}
+    locale = "en"
+    strictness_level = 100
+
+    context: dict[str, Any] = {
+        "alias_map": alias_map,
+        "mcp_source_texts": mcp_source_texts,
+        "locale": locale,
+        "strictness_level": strictness_level,
     }
     raw = _make_atom_raw()
     raw["semantic_reasoning"] = "Check doc1"
@@ -151,10 +117,10 @@ def test_atom_evaluation_item_dto_enforce_null_hypothesis() -> None:
     validated = AtomEvaluationItemDTO.model_validate(raw, context=context)
     validated = AnchorValidationService.process_atom_evaluation(
         validated,
-        alias_map=context["alias_map"],
-        mcp_source_texts=context["mcp_source_texts"],
-        locale=context["locale"],
-        strictness_level=context["strictness_level"],
+        alias_map=alias_map,
+        mcp_source_texts=mcp_source_texts,
+        locale=locale,
+        strictness_level=strictness_level,
     )
     assert "real_doc" in validated.semantic_reasoning
 
@@ -204,3 +170,27 @@ def test_lightweight_extraction_atom_properties() -> None:
 
     item_pass = LightweightExtractionAtom.model_validate(_make_lightweight_raw(status="PASS"), context=_ctx)
     assert item_pass.calculate_rule_satisfied(inverse_evidence=True) is False
+
+
+def test_legacy_key_rejected_by_extra_forbid() -> None:
+    raw_data = {
+        "raw_score": 50.0,
+        "normalized_score": 50.0,
+        "step_1_evidence_scan": "Legacy key",
+    }
+    with pytest.raises(ValidationError):
+        LightweightMatrixOutput.model_validate(raw_data)
+
+
+def test_dirty_reasoning_passes_through_unchanged() -> None:
+    from backend_v2.models.dtos.atom_evaluation import MatrixEvaluationItemDTO
+
+    dirty_string = "Some reasoning \\n\\n[5. VALIDATION DECISION: PASS]"
+    item = MatrixEvaluationItemDTO.model_validate(
+        {
+            "atom_id": "1",
+            "semantic_reasoning": dirty_string,
+        },
+        context=_ctx,
+    )
+    assert item.semantic_reasoning == dirty_string

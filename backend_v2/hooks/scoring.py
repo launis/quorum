@@ -449,8 +449,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         for k in matrix_blocks_meta.keys():
             if k in judge_model:
                 try:
-                    mapped = LightweightMatrixOutput.map_llm_extensions_to_domain(judge_model[k])
-                    matrix_dto = LightweightMatrixOutput.model_validate(mapped)
+                    matrix_dto = LightweightMatrixOutput.model_validate(judge_model[k])
                     matrix_keys.append((k, matrix_dto))
                 except ValidationError as e:
                     msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput format for '{k}': {e}"
@@ -1154,8 +1153,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             raw_input_val = new_payload[pb_id]
 
             try:
-                mapped = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_input_val)
-                parsed_payload = LightweightMatrixOutput.model_validate(mapped)
+                parsed_payload = LightweightMatrixOutput.model_validate(raw_input_val)
             except Exception as e:
                 # Strictly fail-fast, Graceful Degradation is banned!
                 msg = f"Strict Fail-Fast Enforced: Invalid input for normalization at PromptBlock '{pb_id}': {e}"
@@ -1335,8 +1333,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
                 pb_model = PromptBlock.model_validate(pb_data)
                 if pb_model.category_id == "matrix":
                     try:
-                        mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(v)
-                        _ = LightweightMatrixOutput.model_validate(mapped_data)
+                        _ = LightweightMatrixOutput.model_validate(v)
                         matrix_keys.append(k)
                     except Exception as e:
                         msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput for matrix '{k}': {e}"
@@ -1347,8 +1344,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
 
     for pb_id in matrix_keys:
         raw_data = payload[pb_id]
-        mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_data)
-        existing_matrix = LightweightMatrixOutput.model_validate(mapped_data)
+        existing_matrix = LightweightMatrixOutput.model_validate(raw_data)
 
         pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
         if not pb_data:

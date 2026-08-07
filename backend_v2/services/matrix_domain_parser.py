@@ -9,7 +9,6 @@ from backend_v2.models.dtos.atom_evaluation import (
     MatrixEvaluationItemDTO,
     ReasoningStepDTO,
 )
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import (
@@ -131,8 +130,7 @@ class MatrixDomainParser:
                 )
 
             try:
-                mapped_block_data = LightweightMatrixOutput.map_llm_extensions_to_domain(block_data)
-                matrix_payload = TraceMatrixPayloadDTO.model_validate(mapped_block_data)
+                matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data)
             except Exception as e:
                 msg = f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': {e}"
                 logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

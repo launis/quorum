@@ -1,4 +1,3 @@
-import re
 from typing import Annotated, Any, Literal
 
 from pydantic import Field, PrivateAttr, ValidationInfo, field_validator, model_validator
@@ -161,13 +160,6 @@ class MatrixEvaluationItemDTO(V2CoreBase):
     atom_id: str
     semantic_reasoning: str = ""
 
-    @field_validator("semantic_reasoning", mode="before")
-    @classmethod
-    def _clean_validation_decision(cls, v: Any) -> Any:
-        if isinstance(v, str):
-            return re.sub(r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]", "", v).strip()
-        return v
-
 
 class AtomEvaluationItemDTO(V2CoreBase):
     """Strict schema for individual atom evaluations in the waterfall pipeline.
@@ -290,13 +282,6 @@ class AtomEvaluationItemDTO(V2CoreBase):
             max_len = _schema_max_quotes
             if len(v) > max_len:
                 return v[:max_len]
-        return v
-
-    @field_validator("semantic_reasoning", mode="before")
-    @classmethod
-    def _clean_validation_decision(cls, v: Any) -> Any:
-        if isinstance(v, str):
-            return re.sub(r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]", "", v).strip()
         return v
 
     @field_validator("chart_display_label", mode="before")
