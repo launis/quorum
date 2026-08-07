@@ -14,7 +14,7 @@
 
 ### Phase 1: Golden Master & Coverage Verification
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\01_golden_master_and_coverage_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\01_golden_master_and_coverage_plan.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\01_golden_master_and_coverage_plan.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\01_golden_master_and_coverage_plan.md]`
   - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
   - [ ] Step 1: VERIFY COVERAGE
@@ -130,4 +130,4 @@
 - Proceed to execution of Phase 1 (Golden Master & Coverage Verification) using the `/tier0-research-plan` -> `/tier2-execute` loop.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier0-research-plan --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\01_golden_master_and_coverage_plan.md]"`
+`/tier2-execute @[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md] @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\01_golden_master_and_coverage_plan.md]`

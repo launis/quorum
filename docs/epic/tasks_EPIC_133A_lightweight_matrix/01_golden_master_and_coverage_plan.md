@@ -32,11 +32,11 @@
 
   <step id="1" name="VERIFY COVERAGE">
     <action>Run `uv run pytest --cov=backend_v2.models.dtos.lightweight_matrix backend_v2/tests/ --cov-report=term-missing` to verify current test coverage of the target file.</action>
-    <action>If coverage is below 80%, you MUST write Golden Master tests capturing the exact current output BEFORE proceeding.</action>
+    <action>If coverage is below 80%, you MUST write Golden Master tests capturing the exact current output BEFORE proceeding. Golden Master tests MUST be written to exactly `backend_v2/tests/unit/models/dtos/test_lightweight_matrix_golden.py`.</action>
   </step>
 
   <step id="2" name="CATALOG IMPORT CONSUMERS">
-    <action>Catalog all 23+ import consumers discovered via workspace grep. The complete import consumer list is defined in Epic Phase 1, Step 1.2.</action>
+    <action>Catalog the following explicit import consumers: `backend_v2/worker.py`, `backend_v2/utils/scoring/waterfall_engine.py`, `backend_v2/utils/scoring/pure_math_engine.py`, `backend_v2/utils/scoring/base_engine.py`, `backend_v2/utils/scoring/average_engine.py`, `backend_v2/utils/math_utils.py`, `backend_v2/services/orchestrator/context_router.py`, `backend_v2/services/orchestrator/matrix_reducer.py`, `backend_v2/services/matrix_domain_parser.py`, `backend_v2/models/v2_core.py`, `backend_v2/models/dtos/trace.py`, `backend_v2/hooks/scoring.py`, `backend_v2/tests/unit/utils/test_math_utils.py`, `backend_v2/tests/unit/utils/scoring/test_waterfall_engine.py`, `backend_v2/tests/unit/utils/scoring/test_average_engine.py`, `backend_v2/tests/unit/test_bug_lightweight_atom_truncation.py`, `backend_v2/tests/unit/services/orchestrator/test_context_router.py`, `backend_v2/tests/unit/services/test_execution.py`, `backend_v2/tests/unit/models/dtos/test_lightweight_matrix_schema.py`, `backend_v2/tests/unit/models/dtos/test_lightweight_matrix.py`, `backend_v2/tests/integration/test_lazy_llm_simulation.py`.</action>
   </step>
 
   <validation_gate>
