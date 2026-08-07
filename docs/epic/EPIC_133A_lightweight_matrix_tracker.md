@@ -48,12 +48,12 @@
 ### Phase 4: Import Migration (Batched Strangler Fig Sunset)
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
-  - [ ] Step 4.1: Migrate Batch 1 (5 Test Files)
-  - [ ] Step 4.2: Migrate Batch 2 (5 Core Files)
-  - [ ] Step 4.3: Remove Proxy Re-exports from lightweight_matrix.py
-  - [ ] Step 4.4: Final global audit loop (backend_audit_loop.py)
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
+  - [x] Step 4.1: Migrate Batch 1 (5 Test Files)
+  - [x] Step 4.2: Migrate Batch 2 (5 Core Files)
+  - [x] Step 4.3: Remove Proxy Re-exports from lightweight_matrix.py
+  - [x] Step 4.4: Final global audit loop (backend_audit_loop.py)
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
 
 ### Phase 5: Frontend Flutter UI Enum Synchronization
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\05_frontend_flutter_ui_enum_synchronization_plan.md]
@@ -136,6 +136,8 @@
 - Completed Tier 8 Audit for Phase 3 to verify compliance and generated `red_team_audit_03_service_logic.md`.
 - Initiated Tier 0 Research for Phase 4 (`04_import_migration_plan.md`).
 - Completed Tier 0 Research for Phase 4: Validated exhaustive consumer list, mutated the migration plan to enforce multi-line import safety, and established strict line bounds for the Strangler Fig sunset.
+- Successfully executed Phase 4: Migrated 10 consumer files in batches to use `atom_evaluation.py` and completely removed the Strangler Fig proxies from `lightweight_matrix.py`. Passed all atomic audit loops.
+- Completed Tier 8 Audit for Phase 4 to verify compliance and generated `red_team_audit_04_import_migration_plan.md`.
 
 ## Learned
 - **Baseline State Snapshot**: The original Epic `EPIC_133A_lightweight_matrix.md` describes a massive "God Code" file `backend_v2/models/dtos/lightweight_matrix.py` (728 lines) violating architectural constraints.
@@ -146,9 +148,10 @@
 - **Phase 4 Ambiguity Discovery:** We discovered that `04_import_migration_plan.md` is an incomplete stub lacking mandatory XML blocks. Crucially, the directive to "migrate 23+ files" blindly is dangerous because only 6 models were moved to `atom_evaluation.py`, while others (like `LevelStatsDTO`, `OutputProfileConfig`) remain in `lightweight_matrix.py`.
 - **Phase 4 Multi-line Import Danger:** We discovered that blind `multi_replace_file_content` will corrupt python code formatting for multi-line parenthesis imports (e.g., in `matrix_domain_parser.py`). We must use `view_file` to capture exact blocks before replacing them during the execution phase.
 - **Phase 4 Scope Finalization:** Global `grep_search` proved that only exactly 10 files import the 6 extracted models. The migration batches are mathematically exhaustive.
+- **Phase 4 Audit:** The backend audit loop proved 100% type integrity after Strangler Fig proxy removal, confirming no zombie references remained.
 
 ## Remaining
-- Execute Phase 4 (Batched Strangler Fig Sunset) in strictly bounded batches of 5 files to prevent context amnesia, paying careful attention to multi-line import preservation.
+- Execute Phase 5: Frontend Flutter UI Enum Synchronization (Tier 0 Research).
 
 ## Resume Command
-`/tier5-resume --workflow="/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`
+`/tier5-resume --workflow="/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\05_frontend_flutter_ui_enum_synchronization_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`
