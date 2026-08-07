@@ -69,6 +69,7 @@ def base_request() -> EngineExecutionRequest:
     )
 
 
+@pytest.mark.asyncio
 async def test_synthesis_engine_missing_blackboard_crashes(
     engine: SynthesisEngine, base_request: EngineExecutionRequest
 ) -> None:
@@ -83,6 +84,7 @@ async def test_synthesis_engine_missing_blackboard_crashes(
     assert exc_info.value.details.get("error_code") == "SYNTHESIS_ENGINE_ERROR"
 
 
+@pytest.mark.asyncio
 async def test_synthesis_engine_happy_path(
     engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
 ) -> None:
@@ -108,6 +110,7 @@ async def test_synthesis_engine_happy_path(
     assert trace.content["_step_metadata"]["token_usage"]["total_tokens"] == 30
 
 
+@pytest.mark.asyncio
 async def test_synthesis_engine_immutable_messages(
     engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
 ) -> None:
@@ -124,6 +127,7 @@ async def test_synthesis_engine_immutable_messages(
     assert len(base_request.hydrated_messages) == original_messages_len  # type: ignore
 
 
+@pytest.mark.asyncio
 async def test_synthesis_engine_exception_wrapping(
     engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
 ) -> None:

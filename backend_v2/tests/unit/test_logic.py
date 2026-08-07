@@ -33,6 +33,7 @@ async def _test_logic_strategy_missing_blueprint() -> None:
     _context = MagicMock()
 
 
+@pytest.mark.asyncio
 async def test_logic_strategy_missing_blueprint() -> None:
     repo = MagicMock()
     compiler = MagicMock()
