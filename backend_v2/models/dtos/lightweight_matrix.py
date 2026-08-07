@@ -3,12 +3,6 @@ from typing import Annotated, Any
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.dtos.atom_evaluation import AtomEvaluationItemDTO as AtomEvaluationItemDTO
-from backend_v2.models.dtos.atom_evaluation import LightweightExtractionAtom as LightweightExtractionAtom
-from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO as LightweightMatrixDTO
-from backend_v2.models.dtos.atom_evaluation import MatrixEvaluationItemDTO as MatrixEvaluationItemDTO
-from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO as ReasoningStepDTO
-from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO as ReducedAtomDTO
 from backend_v2.models.enums import LaxXaiExtensionType
 
 
