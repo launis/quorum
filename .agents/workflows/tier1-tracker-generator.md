@@ -29,9 +29,15 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
       <action>Generate `# Session Handover Context` at the bottom with `## Achieved`, `## Learned`, `## Remaining`, and `## Resume Command`.</action>
       <constraint name="TRACKER FORMAT">
         - **Header Metadata**: Include `@-reference` links to original Epic (`@[c:\src\quorum\docs\epic\EPIC_XXX.md]`) and Task Directory (`@[c:\src\quorum\docs\epic\tasks_EPIC_XXX/]`).
-        - **`## Phase Execution Status`**: List `[NOK]` / `[OK]` tasks for Red-Teaming (`/tier0-research-plan`) and Execution (`/tier2-execute`) for each Phase. **CRITICAL:** You MUST indent and list every single `<step id>` from your XML plan as individual `[ ]` checkboxes under the execution command to allow micro-tracking of partial execution failures.
+        - **`## Phase Execution Status`**: For EACH Phase, you MUST follow this EXACT format:
+          1. Immediately below the Phase header, write `**Plan:** @[path_to_plan.md]`.
+          2. Add `- [ ] **[NOK] Red-Teaming:** \`/tier0-research-plan ...\``.
+          3. Add `- [ ] **[NOK] Execution:** \`/tier2-execute ...\``.
+          4. **CRITICAL:** You MUST indent and list every single `<step id>` from your XML plan as individual `- [ ] Step X:` checkboxes UNDER the Execution command to allow micro-tracking of partial execution failures. Include the step name and a short description.
+          5. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan ...\``.
         - **`### Integration Checkpoint: Full-Stack Validation`**: Backend and Frontend full-stack integration test gates.
         - **`### Post-Implementation Gates`**:
+          - `[ ] **[NOK] Golden Master & Test Restoration Audit**`: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
           - `[ ] **[NOK] Proxy Sunset & Consumer Migration**`: Codebase-wide search/replace of old import paths & delete deprecated proxies.
           - `[ ] **[NOK] Tier 2 Hardening (Backend)**`: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
           - `[ ] **[NOK] Tier 2 Hardening (Frontend)**`: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.

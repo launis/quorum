@@ -214,6 +214,12 @@ trigger: always_on
         <catastrophic_reason>Prioritizing the survival of legacy tests over the enforcement of modern architecture creates a paradox where the AI intentionally corrupts the system to achieve "green tests".</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="anti_test_skipping_mandate">
+        <banned_pattern>Silencing failing tests by adding `@pytest.mark.skip` (e.g., "Legacy architecture obsolete") or commenting them out to achieve a green test suite or pass coverage checks.</banned_pattern>
+        <mandatory_pattern>You MUST NOT automatically skip tests. If a test fails because it relies on legacy architecture or outdated fixtures, you MUST UN-SKIP and FIX the test to adapt it to the new architecture. Skipping tests destroys the Golden Master safety net and invalidates the atomic audit trail.</mandatory_pattern>
+        <catastrophic_reason>Skipping tests creates a false sense of security (Fake Green) and permanently deletes the business logic constraints that those tests were enforcing, guaranteeing regressions in production.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="mocking_mandate_for_llm">
         <banned_pattern>Executing direct HTTP calls to external LLM services or performing slow network requests during unit testing or CI/CD pipelines.</banned_pattern>
         <mandatory_pattern>Test Mandate Exception: When testing LLM interfaces or network operations, you MUST ABSOLUTELY use mocked JSON fixtures to mock the responses. You must utilize the global `backend_v2/llm/mock.py` and `mock_data.py` framework files when constructing Pytest fixtures. Live LLM calls during tests are strictly forbidden to prevent flaky, slow, and expensive test suites.</mandatory_pattern>

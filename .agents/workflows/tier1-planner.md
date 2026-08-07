@@ -101,9 +101,9 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     </rule_block>
     
     <rule_block id="test_coverage_prerequisite">
-      <banned_pattern>Extracting or deeply modifying legacy files that have less than 75% coverage without writing Characterization Tests first.</banned_pattern>
-      <mandatory_pattern>If the Epic involves modifying legacy files with test coverage below 75%, do NOT stop or ignore it. You MUST generate a "Phase 0: Coverage Bootstrap Plan" focused on Characterization Tests (Golden Master tests) to lock in current behavior. This Phase 0 plan must be added to the Tracker as a strict blocker that Tier 2 must execute before any actual feature extraction or code modification begins.</mandatory_pattern>
-      <catastrophic_reason>Modifying massive, untested legacy files is blind surgery. Without 75% coverage, business logic will be silently destroyed. Using Characterization Tests safely scaffolds the legacy code before surgery.</catastrophic_reason>
+      <banned_pattern>Extracting or deeply modifying legacy files that have less than 75% coverage without writing Characterization Tests first, OR proposing to write new tests from scratch without first checking for and un-skipping disabled existing tests.</banned_pattern>
+      <mandatory_pattern>If the Epic involves modifying legacy files with test coverage below 75%, do NOT stop or ignore it. You MUST generate a "Phase 0: Coverage Bootstrap Plan" focused on Characterization Tests (Golden Master tests) to lock in current behavior. CRITICAL: Your Phase 0 plan MUST mandate scanning for existing skipped tests (e.g., `@pytest.mark.skip`) and explicitly require UN-SKIPPING and FIXING those tests BEFORE writing any new tests from scratch. This Phase 0 plan must be added to the Tracker as a strict blocker that Tier 2 must execute before any actual feature extraction or code modification begins.</mandatory_pattern>
+      <catastrophic_reason>Modifying massive, untested legacy files is blind surgery. Ignoring skipped tests deletes existing business logic assertions. Using Characterization Tests safely scaffolds the legacy code before surgery.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="circular_dependency_prevention">
