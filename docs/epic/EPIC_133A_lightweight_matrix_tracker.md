@@ -47,11 +47,12 @@
 
 ### Phase 4: Import Migration (Batched Strangler Fig Sunset)
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
-  - [ ] Step 4.1: Update import paths in batches of max 5 files
-  - [ ] Step 4.2: Remove Strangler Fig re-exports from lightweight_matrix.py
-  - [ ] Step 4.3: Final global audit loop for zero import errors
+  - [ ] Step 4.1: Migrate Batch 1 (5 Test Files)
+  - [ ] Step 4.2: Migrate Batch 2 (5 Core Files)
+  - [ ] Step 4.3: Remove Proxy Re-exports from lightweight_matrix.py
+  - [ ] Step 4.4: Final global audit loop (backend_audit_loop.py)
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]`
 
 ### Phase 5: Frontend Flutter UI Enum Synchronization
