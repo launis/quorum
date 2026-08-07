@@ -4,7 +4,7 @@ import logging
 from typing import Any, Literal
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixDTO, ReducedAtomDTO
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.v2_core import ExecutionRecord, TDAAssertion
 

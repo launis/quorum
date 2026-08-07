@@ -5,11 +5,11 @@ import re
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.lightweight_matrix import (
-    LightweightMatrixOutput,
+from backend_v2.models.dtos.atom_evaluation import (
     MatrixEvaluationItemDTO,
     ReasoningStepDTO,
 )
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import (

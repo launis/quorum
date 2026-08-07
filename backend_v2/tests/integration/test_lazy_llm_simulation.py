@@ -10,7 +10,7 @@ import random
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO, ReasoningStepDTO
+from backend_v2.models.dtos.atom_evaluation import AtomEvaluationItemDTO, ReasoningStepDTO
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
