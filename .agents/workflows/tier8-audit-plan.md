@@ -65,11 +65,13 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
     <step id="2">AS-BUILT MAPPING & FORENSIC SEARCH: 
       - Actively use `grep_search` and `view_file` to trace every requirement from the plan into the physical codebase.
       - Verify that the stated features exist, are wired correctly, and are not just "dead code" (e.g., check that new classes or functions are actually imported and called).
+      - MANDATORY CIRCUIT BREAKER: If a `grep_search` for a specific requirement fails 3 times sequentially, immediately abort the search and mark it as "NOT FOUND" in your gap analysis.
     </step>
 
     <step id="3">DESTRUCTIVE OPERATION AUDIT: 
       - Specifically search for symbols, classes, or files the plan mandated to `[DELETE]`. 
       - Verify they are completely eradicated from the system and no "zombie dependencies" or proxy imports remain. Use `grep_search` to ensure the old symbol names no longer appear in the codebase.
+      - MANDATORY CIRCUIT BREAKER: If a `grep_search` fails 3 times while looking for old symbols, accept that they are deleted or unrecognizable and move on. Do not enter an infinite search loop.
     </step>
 
     <step id="4">MODERNITY, COMPLIANCE & QUALITY GATE VERIFICATION: 
@@ -78,14 +80,16 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
       - SCOPED SDUI Parity: If the plan is Backend-only, do NOT fail the audit for missing Frontend implementations (they belong to the next phase). Enforce SDUI Parity ONLY if the plan spans both domains or if it is the final Integration Checkpoint.
       - You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.
       - MATHEMATICAL PROOF MANDATE: You MUST physically execute the universal quality gate scripts (`uv run python scripts/backend_audit_loop.py <target_dirs>` or `flutter_audit_loop.py`) on the primary directories touched by this plan.
+      - SCRIPT CRASH FALLBACK: If the quality gate script crashes due to an environment error (e.g., Python `ImportError`, missing package, or script execution failure) rather than producing a normal test/linter failure, you MUST explicitly document it as an "Environment/Infrastructure Failure" in your report. Do not incorrectly fail the codebase implementation audit due to a local environment crash.
     </step>
 
     <step id="5">COMPLETION GAP ANALYSIS: 
       - Identify "Orphan Requirements" — things requested by the plan that cannot be found in the current codebase or are only partially implemented.
+      - TASK TRACKER VERIFICATION: If a `task.md` was found, verify that all checkboxes are marked as completed `[x]`. If any items remain uncompleted `[ ]` or in-progress `[/]`, flag them as tracking gaps in the audit report.
     </step>
 
     <step id="6">RETROSPECTIVE REPORT GENERATION & HANDOVER: 
-      - Produce a final `plan_audit_report.md` artifact containing a strict Pass/Fail traceability matrix.
+      - Produce a final `red_team_audit_[target_name].md` artifact containing a strict Pass/Fail traceability matrix.
       - Provide a concrete list of required fixes.
       - MANDATORY ROUTING: You MUST provide the exact `/tier5-resume` command for the user's next action. 
         - IF the audit FAILED: Provide a command to resume `/tier2-execute` to implement the fixes.

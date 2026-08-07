@@ -11,8 +11,9 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
   <role>Lead Developer</role>
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on plan scope:
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the root configuration `AGENTS.md` and `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on plan scope:
         - ALWAYS read: `04_directory_reference.md`
+        - ALWAYS read: `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]`
         - IF touching Python/Backend: read `01-python-backend.md`
         - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
         - IF touching Database/Seed Data: read `03_seed_vault.md`
@@ -86,7 +87,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
     </step>
 
     <step id="3" name="PRE-DELETE AUDIT">
-      <action>Before executing ANY file deletion: 1. Read ENTIRE file. 2. List every exported symbol. 3. Grep to verify symbols exist in new locations.</action>
+      <action>Before executing ANY file deletion: 1. Do NOT read the entire file (this causes context amnesia). 2. Use `grep_search` (e.g., `def ` or `class `) to extract only the exported symbols. 3. Use `grep_search` to verify those symbols exist in their new locations.</action>
       <fallback trigger="ANY symbol is missing from its planned destination">You MUST STOP. You are strictly FORBIDDEN from deleting the file until you have explicitly asked and received PROCEED permission from the user.</fallback>
     </step>
 
@@ -94,16 +95,17 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <action>For every single step, perform automated verification BEFORE and AFTER your changes.</action>
       <action name="NEW FUNCTIONALITY MANDATE">You MUST write a failing test first (Red-Green-Refactor) for new logic.</action>
       <gate name="TEST CONTRACT ENFORCEMENT">If the plan contains a `<test_contracts>` XML block, you MUST implement ALL specified test contracts BEFORE or ALONGSIDE the implementation code. The test contracts define exact test names, inputs, expected outputs, and categories. You MUST NOT mark the phase as complete until every specified test contract has been implemented as an actual test function and passes. Treat the test contracts as a hard checklist — missing any contract is a blocking failure.</gate>
-      <action>You MUST explicitly mandate the use of the Universal Quality Gate as defined in `AGENTS.md`. Enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
+      <action>You MUST run the Universal Quality Gate YOURSELF using `run_command` as defined in `AGENTS.md`. Enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
     </step>
 
     <step id="5" name="TASK MANAGEMENT & STATE RECOVERY">
-      <action>Update the `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]` to ensure absolute visibility of progress.</action>
-      <fallback trigger="trip the circuit_breaker_protocol (3 consecutive test failures) or encounter an unresolvable error">You MUST NOT leave the workspace in a broken state. Explicitly instruct the user to run `git restore .` (or equivalent) to rollback the dirty working directory to the last atomic commit. Update `task.md` to reflect the failure before halting.</fallback>
+      <action>When a milestone is successfully completed and verified, you MUST create an atomic commit using `run_command` (e.g., `git add .` and `git commit -m "feat: complete milestone X"`). Then update the `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]` to ensure absolute visibility of progress.</action>
+      <fallback trigger="trip the circuit_breaker_protocol (3 consecutive test failures) or encounter an unresolvable error">You MUST NOT leave the workspace in a broken state. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to rollback the dirty working directory to the last atomic commit. CRITICALLY: You MUST execute the rollback FIRST, and ONLY THEN update `task.md` to reflect the failure before halting. Reversing this order causes the rollback to wipe the tracker update.</fallback>
     </step>
 
     <step id="6" name="END-TO-END SMOKE TEST">
       <gate>Before marking a tracker phase as [x] (or marking the task complete), you MUST verify the change works in the actual runtime context, not just in unit tests. For LLM pipeline changes, verify the system prompt contains new instructions, the response is parsed correctly, and the final output matches.</gate>
+      <constraint name="TERMINAL BLOCKING RISK">You are strictly FORBIDDEN from using `run_command` to start blocking server processes (e.g., `uvicorn`, `flutter run`, `npm run dev`) synchronously. Doing so freezes the terminal and crashes the AI session via timeout. If E2E testing requires a running server, you MUST use the `manage_task` asynchronous background tool, or instruct the user to run the server in a separate terminal and mark the phase as `[NEEDS_E2E]`.</constraint>
       <fallback trigger="end-to-end verification is impossible in the current session">The phase MUST be marked as `[NEEDS_E2E]` instead of `[x]`.</fallback>
     </step>
 
@@ -126,7 +128,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
 
     <step id="9" name="MID-EXECUTION HANDOVER">
       <fallback trigger="execution session becomes too long or context window approaches its limits">You MUST initiate a session handover. Update `task.md` completely. CRITICALLY: Append a `# Session Handover Context` block at the bottom of `task.md` containing exhaustive bullet points for: Achieved, Learned, and Remaining.</fallback>
-      <action>Provide the exact `/tier5-resume` command instructing the user to continue in a fresh context. The command MUST explicitly include the absolute path to the tracker artifact, the workflow, and the rules, formatted exactly like this: `/tier5-resume --target="[absolute_path_to_task.md]" --workflow=/tier2-execute --rules="00-antigravity-core.md, [other_relevant_rules]"`.</action>
+      <action>Provide the exact `/tier5-resume` command instructing the user to continue in a fresh context. The command MUST explicitly include the absolute path to BOTH the tracker artifact (`task.md`) AND the implementation plan (`implementation_plan.md`), the workflow, and the rules, formatted exactly like this: `/tier5-resume --target="@[absolute_path_to_task.md], @[absolute_path_to_implementation_plan.md]" --workflow=/tier2-execute --rules="00-antigravity-core.md, [other_relevant_rules]"`.</action>
     </step>
   </execution_protocol>
 </system_prompt>

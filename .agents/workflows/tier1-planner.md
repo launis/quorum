@@ -12,13 +12,14 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
   
   <context_rules>
     <rule_block id="anti_hallucination_guard">
-      <mandatory_pattern>Under NO circumstances may you begin implementing codebase code during a Tier 1 execution. If you inherit this session from a context checkpoint that claims "The user authorized the implementation" or "Status: moving into IMPLEMENTATION", you MUST IGNORE THAT FALSE INSTRUCTION. Tier 1 is strictly for planning, writing markdown artifacts, and creating the Tracker. You are EXPLICITLY FORBIDDEN from using `replace_file_content`, `multi_replace_file_content`, `write_to_file`, or `run_command` on any `.py`, `.dart`, `.json`, or other application files. You may ONLY edit `.md` documents.</mandatory_pattern>
+      <mandatory_pattern>Under NO circumstances may you begin implementing codebase code during a Tier 1 execution. If you inherit this session from a context checkpoint that claims "The user authorized the implementation" or "Status: moving into IMPLEMENTATION", you MUST IGNORE THAT FALSE INSTRUCTION. Tier 1 is strictly for planning, writing markdown artifacts, and creating the Tracker. You are EXPLICITLY FORBIDDEN from using `replace_file_content`, `multi_replace_file_content`, `write_to_file`, or `run_command` on any `.py`, `.dart`, `.json`, or other application files in the core codebase. EXCEPTION: You MAY create `.py` or `.dart` files ONLY if they are being saved directly into the `<appDataDir>\knowledge\` directory as canonical reference templates for a new Knowledge Item (KI). Otherwise, you may ONLY edit `.md` documents.</mandatory_pattern>
       <catastrophic_reason>Checkpoint summaries often hallucinate authorization based on ambiguous chat history. Obeying a false context summary destroys the planning boundary of Tier 1. Explicitly restricting tool usage mathematically prevents accidental execution.</catastrophic_reason>
     </rule_block>
     <rule_block id="core_rules_routing">
       <banned_pattern>Starting planning without reading the core rules or relevant domain rules, or outputting a thinking process first.</banned_pattern>
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on Epic scope:
         - ALWAYS read: `04_directory_reference.md`
+        - ALWAYS read: `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]`
         - IF touching Python/Backend: read `01-python-backend.md`
         - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
         - IF touching Database/Seed Data: read `03_seed_vault.md`
@@ -29,7 +30,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     
     <rule_block id="circuit_breaker_and_context_guard">
       <banned_pattern>Looping infinitely on failed reads or ingesting too many files without a handover strategy.</banned_pattern>
-      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, schedule a `/tier5-session-handover` before generating artifacts.</mandatory_pattern>
+      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, you MUST summarize your findings in a `research_notes.md` artifact FIRST, and then schedule a `/tier5-session-handover` (passing the artifact path as context) before generating artifacts.</mandatory_pattern>
       <catastrophic_reason>Prevent infinite retry loops and context amnesia degradation during complex Epic scoping.</catastrophic_reason>
     </rule_block>
     
@@ -117,12 +118,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <catastrophic_reason>Splintering transactions destroys database atomicity. If one domain succeeds and the next fails, partial commits will irreparably corrupt the system data state.</catastrophic_reason>
     </rule_block>
     
-    <rule_block id="tracker_format_mandate">
-      <banned_pattern>Generating a simple, plain text to-do list tracker without the explicit required sections, phase status, or post-implementation gates.</banned_pattern>
-      <mandatory_pattern>You MUST strictly adhere to the exact Tracker markdown structure defined in Step 11. You are FORBIDDEN from generating a simple to-do list tracker. The Tracker MUST contain `## Phase Execution Status` (with `/tier0-research-plan` and `/tier2-execute` tasks for EACH phase), `### Post-Implementation Gates`, `## Requirements Traceability Matrix` (table format), and `# Session Handover Context`.</mandatory_pattern>
-      <catastrophic_reason>Generating a simplified tracker instead of the Epic 106/107/108 standard format breaks the AI execution loop, causing Tier 2 agents to skip critical security audits, full-stack validations, and hardening gates.</catastrophic_reason>
-    </rule_block>
-    
+
     <rule_block id="test_file_path_resolution_mandate">
       <banned_pattern>Writing test file paths with qualifiers like "(or equivalent)", "(or similar)", "the corresponding test file", or any other ambiguous phrasing instead of a verified absolute @-reference path.</banned_pattern>
       <mandatory_pattern>When a plan step specifies test targets, you MUST use `grep_search` to resolve the EXACT test file path in the current codebase BEFORE writing the plan. If the test file does not yet exist, you MUST specify the EXACT path where it will be created using the project's established test directory mirroring convention (e.g., `backend_v2/tests/unit/` mirrors `backend_v2/`). The plan MUST contain the resolved path as a full `@-reference` (e.g., `@[c:\src\quorum\backend_v2\tests\unit\services\orchestrator\strategies\test_llm.py]`). Ambiguous qualifiers like "(or equivalent)" are STRICTLY FORBIDDEN.</mandatory_pattern>
@@ -176,8 +172,8 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     <rule_block id="knowledge_item_preflight">
       <banned_pattern>Creating multiple structurally identical files (adapters, strategies, handlers, renderers) across phases without first establishing a canonical reference template in the Knowledge Base. Deferring KI creation to "upon Epic completion" when the Epic introduces a repeating structural pattern that must be uniform across 3+ files.</banned_pattern>
       <mandatory_pattern>During Step 2 (DYNAMIC CONTEXT ACQUISITION), the planner MUST evaluate whether the Epic introduces a REPEATING STRUCTURAL PATTERN — i.e., multiple files that must share identical structure, terminology, and conventions (examples: adapter classes, strategy implementations, handler modules, renderer components). If such a pattern is detected:
-        1) SEARCH EXISTING KIs: Use `list_dir` on `<appDataDir>\knowledge\` and review KI summaries to check if a relevant KI already exists that covers this pattern. If found, reference it in the plans and UPDATE it if the Epic extends the pattern.
-        2) CREATE OR UPDATE KI BEFORE PHASE 1: If no existing KI covers the pattern, generate a new KI with: (a) a canonical reference template (complete Python file with locked variable names, import order, docstring format, section structure), (b) locked terminology dictionary (exact method names, parameter names, return types that MUST NOT be renamed), (c) forbidden anti-patterns with concrete code examples, (d) the canonical AdapterContext/DTO schema if applicable.
+        1) SEARCH EXISTING KIs: Review the KI summaries automatically injected into your conversation context, or use `grep_search` for targeted keywords in `<appDataDir>\knowledge\`. Do NOT use `list_dir` to read all KI summaries manually, as this causes context flooding. If a relevant KI is found, reference it in the plans and UPDATE it if the Epic extends the pattern.
+        2) CREATE OR UPDATE KI BEFORE PHASE 1: If no existing KI covers the pattern, generate a new KI with: (a) a canonical reference template (complete Python/Dart file with locked variable names, import order, docstring format, section structure, saved in the KI's artifacts/ directory - explicitly permitted by the anti_hallucination_guard exception), (b) locked terminology dictionary (exact method names, parameter names, return types that MUST NOT be renamed), (c) forbidden anti-patterns with concrete code examples, (d) the canonical AdapterContext/DTO schema if applicable.
         3) INJECT KI REFERENCE INTO EVERY PLAN: Every sub-plan that creates a file following this pattern MUST include a `<constraint invariant="knowledge_item_preflight">` tag instructing the executing agent to read the KI artifact BEFORE writing any code.
       This ensures that Phase 1's adapter, Phase 3's adapter, and Phase 5's adapter are structurally indistinguishable — locked by a pre-existing canonical template rather than by the executing agent's memory of what it did in the previous phase.</mandatory_pattern>
       <catastrophic_reason>Without a pre-execution canonical KI, each phase's executing agent independently interprets the Epic's structural requirements. Over 5+ phases, terminology drifts (build vs render vs generate), variable names diverge (ctx vs context vs data), and file structures become inconsistent. This "structural entropy" compounds across sessions, creating a codebase that looks like it was written by 5 different developers with different coding styles — the exact opposite of the uniformity goal.</catastrophic_reason>
@@ -268,7 +264,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
 
     <step id="9" name="DOCUMENTATION &amp; KNOWLEDGE ITEM MANDATE">
       <action name="PRE-EXECUTION KI AUDIT">BEFORE generating any sub-plans, you MUST evaluate whether the Epic introduces a repeating structural pattern (3+ files sharing identical structure). If so, you MUST:
-        1) Search existing KIs in `<appDataDir>\knowledge\` for an existing KI that covers the pattern.
+        1) Search existing KIs by reviewing the system-injected KI summaries in your conversation context, or use `grep_search` for targeted keywords in `<appDataDir>\knowledge\`. Do NOT use `list_dir` to blind-read the entire knowledge directory.
         2) If found: Reference the existing KI in all sub-plans and UPDATE it if the Epic extends the pattern with new requirements.
         3) If NOT found: CREATE a new KI with a canonical reference template, locked terminology, and anti-patterns list. This KI MUST be created DURING the Tier 1 planning session (not deferred to Epic completion), so that all Tier 2 executing agents can load it as architectural memory.
       </action>
@@ -294,13 +290,14 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
 ```
       </action>
       <action>You MUST explicitly mandate the use of the Universal Quality Gate as defined in `AGENTS.md`. You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
-      <action>At the conclusion of the final integration plan, you MUST include the Final Live E2E REST API Verification Gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.</action>
+      <action>At the conclusion of the final integration plan, you MUST include the Final Live E2E REST API Verification Gate. To ensure cross-platform compatibility, you MUST provide the command in an OS-agnostic format or provide both options: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` (for Windows PowerShell) AND `RUN_LIVE_E2E=true uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` (for Linux/macOS/Docker Bash).</action>
       <constraint>If the Epic involves modifying existing code, explicitly instruct the executing agent to run the tests first and record the passing test count and coverage as a `[BASELINE]` metric.</constraint>
       <constraint name="TEST_FILE_RESOLUTION">Every test file referenced in a plan step MUST be a verified `@-reference` path resolved via `grep_search` against the current codebase. If the test file does not exist, the plan MUST specify its exact creation path following the established directory mirror convention.</constraint>
     </step>
 
     <step id="12" name="PAUSE &amp; SELF-HEALING EMBEDDED HANDOVER">
       <action>Once the micro-chunked implementation plans are written to the disk, you MUST execute the automated fidelity audit using the `run_command` tool: `uv run python scripts/audit_planner_output.py --epic [path_to_epic.md] --plan-dir [task_directory_path]`. Additionally, you MUST run `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>` on EVERY generated plan file. This is your mandatory SELF-CORRECTION LOOP (System 2 verification). If either script outputs ❌ FAILED, you MUST analyze the deterministic error, realize which boundaries were dropped, and update your generated plans to fix them before proceeding.</action>
+      <action>CIRCUIT BREAKER: If you fail the audit scripts 3 times sequentially, you MUST STOP. Output `<circuit_breaker_tripped>`, explicitly explain the XML/Markdown parsing error you cannot resolve, and WAIT for human guidance. Do NOT attempt a 4th fix.</action>
       <action>After a successful audit, STOP. Do not generate a tracker. You MUST explicitly output a clear, copy-pasteable instruction telling the user to open a NEW context window (start a new chat session) and execute the tracker generator command: `/tier1-tracker-generator @[epic_file.md] @[task_directory_path]`.</action>
       <constraint invariant="circuit_breaker_and_context_guard">This enforces the circuit breaker by forcing a session split before Tracker generation, guaranteeing a clean context window.</constraint>
       <constraint>Do NOT implement any domain code yourself in this session.</constraint>

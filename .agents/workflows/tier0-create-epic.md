@@ -26,7 +26,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
       <catastrophic_reason>Failing to load comprehensive domain rules leads to Context Amnesia and Epic proposals that violate core system boundaries.</catastrophic_reason>
     </rule_block>
     <rule_block id="circuit_breaker_and_context_guard">
-      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, schedule a `/tier5-session-handover` before generating the final Epic document.</mandatory_pattern>
+      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, you MUST first compile your findings into a temporary Markdown file (e.g., `docs/epic/EPIC_[num]_research.md`), and THEN schedule a `/tier5-session-handover` explicitly providing the `@-reference` to this file so the next session can resume drafting without context loss.</mandatory_pattern>
       <catastrophic_reason>Prevent infinite retry loops and context amnesia degradation during complex Epic scoping.</catastrophic_reason>
     </rule_block>
     <rule_block id="english_language_mandate">
@@ -44,7 +44,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
       <catastrophic_reason>Assuming LLMs can perfectly preserve 100% of character-level boundaries from prompts without rigid double-checking leads to silent context drift and catastrophic hallucination downstream.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. PROMPT BOUNDARY PRESERVATION: If the user provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated Epic.</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[backend_v2/target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. PROMPT BOUNDARY PRESERVATION: If the user provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated Epic.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` or dropping user-defined bounds forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
     <rule_block id="knowledge_base_mandate">
@@ -64,7 +64,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
 
     <step id="2" name="SYSTEM 2 DESIGN &amp; CHAIN-OF-THOUGHT">
       <action>Before writing the Epic document, create a `<thinking_process>` block to analyze high-level business goals, core problems, and architectural objectives.</action>
-      <action name="SCIENTIFIC VALIDATION MANDATE">You MUST use the `search_web` tool to find the most modern (e.g., 2025-2026) scientific or industrial validation and research for the proposed architectural changes. This external research MUST actively influence how the Epic is constructed.</action>
+      <action name="CONDITIONAL SCIENTIFIC VALIDATION">IF the Epic introduces major architectural shifts, new design patterns, or complex external integrations, you MUST use the `search_web` tool to find modern (e.g., 2025-2026) scientific or industrial validation. However, for trivial, internal, or routine refactoring (e.g., renaming DTOs), SKIP this step to avoid hallucinating sources.</action>
       <constraint name="QUORUM MODERNITY GATE &amp; CROSS-EPIC INVARIANTS AUDIT">
         Ensure the design respects:
         1. Zero Legacy State Support Mandate: No backward compatibility for past runs. Clean slate DB re-seeding (`uv run python backend_v2/seed/run_seed.py local`).
@@ -83,7 +83,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
 
     <step id="3" name="STANDARDIZED QUORUM EPIC ARCHITECTURE">
       <action>Draft the Epic file adhering to the comprehensive Quorum Epic Template.</action>
-      <action>Insert a `> [!NOTE]` block titled `**Scientific & Industrial Validation (2025-2026)**` at the very beginning of the document (immediately under the Epic title), containing the external justification and key source references found in Step 2.</action>
+      <action>IF you found relevant scientific/industrial validation in Step 2, insert a `> [!NOTE]` block titled `**Scientific & Industrial Validation (2025-2026)**` at the very beginning of the document (immediately under the Epic title). If none was found or needed, omit this block.</action>
       <constraint name="TEMPLATE HEADINGS">
         - `## 1. Goal Description & Background (Objective & Problem Statement)`: High-level business objectives, problem statement, and strategic scope.
         - `## 2. Architectural Impact & Compliance Matrix`: 
@@ -99,7 +99,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
           - **Definition of Done (DoD)**: Explicit quality requirements.
           - **Automated Unit Tests**: (`backend_audit_loop.py`, `flutter_audit_loop.py`).
           - **Manual Verification Steps**: DB re-seed, PDF inspection, UI audit.
-          - **MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
+          - **MANDATORY Final E2E REST API Verification Gate**: Set environment variable `RUN_LIVE_E2E=true` and run `uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
       </constraint>
     </step>
 
@@ -109,14 +109,14 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
     </step>
 
     <step id="5" name="EPIC DOCUMENT PERSISTENCE">
-      <action>Save the Epic document to absolute path `c:\src\quorum\docs\epic\EPIC_[num]_[descriptive_name].md` using `write_to_file`. Always provide valid `ArtifactMetadata`.</action>
-      <constraint>Wrap all referenced file paths in `@-reference` syntax (e.g. `@[c:\src\quorum\backend_v2\models\v2_core.py]`).</constraint>
+      <action>Save the Epic document to `docs/epic/EPIC_[num]_[descriptive_name].md` using `write_to_file` (resolve the absolute path dynamically based on the workspace). Always provide valid `ArtifactMetadata`.</action>
+      <constraint>Wrap all referenced file paths in `@-reference` syntax (e.g. `@[backend_v2/models/v2_core.py]`).</constraint>
       <action>IF updating an existing Epic, use `multi_replace_file_content` for surgical edits.</action>
-      <action name="SELF HEALING BOUNDARY AUDIT">After creating or updating the Epic document, you MUST physically run the boundaries audit script on it: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run until it passes.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After creating or updating the Epic document, you MUST physically run the boundaries audit script on it: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run. If it fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>` to avoid an infinite loop, and ask the user for assistance.</action>
     </step>
 
     <step id="6" name="USER GUIDANCE &amp; NEXT STEPS">
-      <action>Present the newly created Epic document link (`@[c:\src\quorum\docs\epic\EPIC_[num]_[descriptive_name].md]`).</action>
+      <action>Present the newly created Epic document link (using `@-reference` syntax with the resolved absolute path).</action>
       <action>Instruct the user: "Step 1 (Drafting) complete. To perform System 2 Red-Teaming and falsification on this Epic before planning, open a fresh chat session and run `/tier0-research-epic` pointing to this Epic document. Alternatively, if the Epic is already fully approved, run `/tier1-planner`."</action>
     </step>
   </execution_protocol>

@@ -25,7 +25,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     
     <rule_block id="circuit_breaker_and_context_guard">
       <banned_pattern>Endlessly retrying failed directory inspections or silently inspecting massive numbers of files without scheduling a handover.</banned_pattern>
-      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, schedule a `/tier5-session-handover` before generating artifacts.</mandatory_pattern>
+      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, you MUST summarize your findings in a `research_notes.md` artifact FIRST, and then schedule a `/tier5-session-handover` (passing the artifact path as context) before generating artifacts.</mandatory_pattern>
       <catastrophic_reason>Prevent infinite retry loops and context amnesia degradation during plan creation or analysis.</catastrophic_reason>
     </rule_block>
     

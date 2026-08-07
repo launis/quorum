@@ -72,10 +72,10 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
       - ATOMIC BATCHING: Write tests for ONE module at a time. Do NOT batch tests across multiple modules.
     </step>
 
-    <step id="5">QUALITY GATE (Per Module): After writing tests for the current module, you MUST run the Universal Quality Gate YOURSELF as defined in `AGENTS.md`. DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your tests (Circuit Breaker trips), you MUST STOP. Instruct the user to run `git restore .` to wipe the corrupted workspace state. Mark the module as `[BLOCKED]` in the tracker.
+    <step id="5">QUALITY GATE (Per Module): After writing tests for the current module, you MUST run the Universal Quality Gate YOURSELF as defined in `AGENTS.md`. DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your tests (Circuit Breaker trips), you MUST STOP. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to wipe the corrupted workspace state. CRITICALLY: You MUST execute the rollback FIRST, and ONLY THEN mark the module as `[BLOCKED]` in the tracker. Reversing this order causes the rollback to wipe the tracker update.</step>
     </step>
 
-    <step id="6">ATOMIC COMMIT (Per Module): Once all tests pass for the current module, instruct the user to perform an atomic `git commit` with the specific test files staged. Use the format: `git commit -m "test: expand negative/edge-case coverage for [module_name]"`. Do NOT use `git add .`.
+    <step id="6">ATOMIC COMMIT (Per Module): Once all tests pass for the current module, you MUST immediately create an atomic commit using `run_command` with the specific test files staged. Use the format: `git add <test_files>` and `git commit -m "test: expand negative/edge-case coverage for [module_name]"`. Do NOT use `git add .`. This locks in the coverage for the module.
     </step>
 
     <step id="7">LOOP OR HALT: After committing, evaluate whether to continue:

@@ -58,7 +58,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
   <execution_protocol level="8_audit_epic">
     <step id="1">DYNAMIC CONTEXT ACQUISITION: 
       - Locate and read the target Epic document (`docs/epic/EPIC_XXX_...md`). 
-      - You MUST physically run the boundaries audit script on the Epic document before auditing: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, report the boundary errors.
+      - You MUST physically run the boundaries audit script on the Epic document before auditing: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, report the boundary errors and HALT execution immediately. You MUST NOT proceed with the audit on an invalid Epic document.
       - Deconstruct it into measurable requirements (Features, Deprecations, Architectural Mandates). 
       - CRITICAL LIMIT: To prevent Context Amnesia, if the Epic has multiple phases, you MUST only audit ONE Phase per session. Focus entirely on the specific phase requested by the user or the next pending phase.
     </step>
@@ -66,6 +66,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
     <step id="2">AS-BUILT MAPPING & FORENSIC SEARCH: 
       - Actively use `grep_search` and `view_file` to trace every requirement from the targeted Phase into the physical codebase (`backend_v2`, `client_app_v2`).
       - Verify that the stated features exist, are wired correctly, and are not just "dead code".
+      - ENFORCE CIRCUIT BREAKER: Obey the `circuit_breaker_and_context_guard` rule. If a feature cannot be found after 3 `grep_search` attempts, stop searching and mark it as "NOT FOUND".
     </step>
 
     <step id="3">DESTRUCTIVE OPERATION AUDIT: 
@@ -77,6 +78,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
       - Inspect the actual implementations of the Epic's features for Quorum 2026 laws (TaskGroup, Pydantic V2 DTOs, No-String Mandate, SDUI Parity, no lazy fallbacks).
       - You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.
       - MATHEMATICAL PROOF MANDATE: You MUST physically execute the universal quality gate scripts (`uv run python scripts/backend_audit_loop.py <target_dirs>` or `flutter_audit_loop.py`) on the primary directories touched by this Epic Phase. An Epic Phase CANNOT pass the audit if it has failing tests, type errors, or insufficient test coverage. Visual inspection is not enough.
+      - TRANSIENT ERROR MITIGATION: If the quality gate fails due to a transient environment error (e.g., database file lock, network timeout, missing dependency) rather than a genuine architectural or test assertion failure, you MUST NOT immediately fail the Epic audit. You MUST attempt to resolve the environment issue or flag it as an 'Environment Block' and request user intervention before marking the audit as failed.
     </step>
 
     <step id="5">COMPLETION GAP ANALYSIS: 
@@ -85,7 +87,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
 
     <step id="6">RETROSPECTIVE REPORT GENERATION & HANDOVER: 
       - Produce or incrementally update a final `EPIC_XXX_audit_report.md` artifact in the `docs/epic/` directory containing a strict Pass/Fail traceability matrix.
-      - If there are remaining Phases to audit, you MUST mandate a `/tier5-session-handover` to continue the audit in a fresh context window. Provide the exact resume command (e.g. `/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_XXX_audit_report.md]" --workflow=/tier8-audit-epic ...`).
+      - If there are remaining Phases to audit, you MUST mandate a `/tier5-session-handover` to continue the audit in a fresh context window. Provide the exact resume command (e.g. `/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_XXX_audit_report.md]" --workflow=/tier8-audit-epic --rules=backend|frontend ...`).
     </step>
   </execution_protocol>
 </system_prompt>

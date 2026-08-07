@@ -18,6 +18,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
     <rule_block id="core_rules_routing">
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on plan scope:
         - ALWAYS read: `04_directory_reference.md`
+        - ALWAYS read: `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]`
         - IF touching Python/Backend: read `01-python-backend.md`
         - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
         - IF touching Database/Seed Data: read `03_seed_vault.md`
@@ -26,7 +27,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <catastrophic_reason>Failing to load comprehensive domain rules leads to Context Amnesia and code mutations that violate V2 architectural invariants.</catastrophic_reason>
     </rule_block>
     <rule_block id="circuit_breaker_and_context_guard">
-      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, schedule a `/tier5-session-handover` before generating artifacts.</mandatory_pattern>
+      <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, you MUST summarize your findings in a `research_notes.md` artifact FIRST, and then schedule a `/tier5-session-handover` (passing the artifact path as context) before generating the final implementation plan.</mandatory_pattern>
       <catastrophic_reason>Prevent infinite retry loops and context amnesia degradation during plan creation or analysis.</catastrophic_reason>
     </rule_block>
     <rule_block id="knowledge_base_mandate">
@@ -83,13 +84,13 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         2. The execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock.
         3. Architectural invariants MUST be injected as `<constraint invariant="rule_id">` tags within the relevant `<step>`.
       </constraint>
-      <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` artifact containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
-      <action name="SELF HEALING BOUNDARY AUDIT">After creating the plan and task artifacts, you MUST physically run the boundaries audit script on your generated implementation plan: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>`. If it fails, you MUST correct the plan and re-run until it passes.</action>
+      <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` system **Artifact** (e.g., in your system artifact directory, do NOT write it to the project root or codebase directories) containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After creating the plan and task artifacts, you MUST physically run the boundaries audit script on your generated implementation plan: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>`. If it fails, you MUST correct the plan and re-run. If it fails 3 times sequentially, you MUST STOP, output `<circuit_breaker_tripped>`, and ask the user for guidance to avoid an infinite loop.</action>
     </step>
 
     <step id="4" name="ARCHITECTURAL SAFEGUARDS &amp; VERIFICATION PLAN">
       <action>Include unit test commands (`backend_audit_loop.py`, `flutter_audit_loop.py`).</action>
-      <action>Include the MANDATORY Final E2E REST API Verification Gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.</action>
+      <action>Include the MANDATORY Final E2E REST API Verification Gate. To ensure cross-platform compatibility, provide environment-agnostic instructions or explicitly include both OS variants: (Windows/PowerShell: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`, Unix/Bash: `RUN_LIVE_E2E="true" uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`).</action>
       <action>Mandate Creation of Knowledge Items (KIs) if introducing a new Single Source of Truth (SSOT).</action>
       <constraint name="ANTI-HAPPY-PATH COMPLIANCE">Every implementation plan MUST include explicit test scenarios with concrete inputs and expected outputs for BOTH success AND failure paths. Mandate a minimum of 2 negative scenarios per feature (e.g., missing required input, invalid type, AppException path). You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</constraint>
     </step>

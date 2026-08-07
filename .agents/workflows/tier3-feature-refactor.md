@@ -11,7 +11,7 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
   <role>Senior Developer</role>
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md`. Analyze your task dynamically: IF modifying the Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. NEVER load legacy `hardening.xml`. You MUST synchronize your understanding with the system's Knowledge Item (KI) guidelines to prevent architectural regressions.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md` AND `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]`. Analyze your task dynamically: IF modifying the Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. NEVER load legacy `hardening.xml`. You MUST synchronize your understanding with the system's Knowledge Item (KI) guidelines to prevent architectural regressions.</mandatory_pattern>
       <catastrophic_reason>Loading deprecated XML rules or ignoring KI guidelines causes the agent to re-introduce V1 legacy patterns, destroying the Phase 9 architecture.</catastrophic_reason>
     </rule_block>
     <rule_block id="schema_first_mandate">
@@ -80,7 +80,7 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
       <action>Actively use search tools (`grep_search`, `view_file`) to precisely target related files.</action>
       <action name="PRE-FLIGHT DUPLICATION CHECK">Before creating your execution plan, verify that the planned refactoring outcome does not already exist in the codebase from a prior agent session. Use `grep_search` to check for the target function names, class definitions, or rule block IDs. If the refactoring is already complete, report this to the user and HALT instead of re-executing.</action>
       <action>Create an exhaustive, detailed execution plan containing specific `TARGET (Modify)` and `CONTEXT (Read-Only)` files.</action>
-      <action name="DESTRUCTIVE OPERATION INVENTORY">If refactoring involves DELETING or REPLACING any source file, you MUST line-by-line inventory every exported symbol and map its new location.</action>
+      <action name="DESTRUCTIVE OPERATION INVENTORY">If refactoring involves DELETING or REPLACING any source file, you MUST NOT read the file line-by-line. Use `grep_search` (e.g. `def ` or `class `) to inventory every exported symbol and map its new location.</action>
       <action name="BIDIRECTIONAL INTEGRATION CHECK">For any new parser or data consumer, you MUST explicitly document the corresponding PRODUCER.</action>
     </step>
     
@@ -98,7 +98,7 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
       <action>If the `conditional_context_quarantine` threshold was breached, you MUST NOT execute the code. Instead, jump directly to Step 8 (MID-EXECUTION HANDOVER) to stop the session.</action>
       <action>Present the execution plan, get confirmation ("PERMISSION GRANTED") from the user, and write the code (ONLY if below threshold).</action>
       <action>You MUST update the Domain Code AND its corresponding Unit Tests symmetrically in the SAME atomic tool-call batch before running any tests to avoid asymmetrical compile errors.</action>
-      <gate name="PRE-DELETE AUDIT">Before executing ANY file deletion listed in your plan, you MUST read the file and grep for all its exported symbols to guarantee they exist in their new locations.</gate>
+      <gate name="PRE-DELETE AUDIT">Before executing ANY file deletion listed in your plan, you MUST NOT read the entire file. You MUST use `grep_search` (e.g. `def ` or `class `) to extract its exported symbols and then use `grep_search` to guarantee they exist in their new locations.</gate>
     </step>
     
     <step id="5" name="RED-GREEN-REFACTOR &amp; ESCALATION MANDATE">
@@ -106,8 +106,9 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
       <action>You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
       <gate name="TEST CONTRACT ENFORCEMENT">If the plan contains `<test_contracts>` XML blocks, you MUST verify that ALL specified test contracts have been implemented as actual test functions and pass. If executing in-session without a Tier 1 plan, verify that your self-generated test contracts from the thinking process have been implemented. Missing any contract is a blocking failure.</gate>
       <constraint>Do NOT tell the user to run the tests.</constraint>
-      <fallback trigger="Quality Gate fails 3 times, tripping the Circuit Breaker">You MUST STOP attempting to duct-tape the code. Explicitly instruct the user to run `git restore .` to completely wipe the corrupted workspace state before re-evaluating the plan.</fallback>
+      <fallback trigger="Quality Gate fails 3 times, tripping the Circuit Breaker">You MUST STOP attempting to duct-tape the code. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to wipe the corrupted workspace state. CRITICALLY: You MUST execute the rollback FIRST, and ONLY THEN update any tracker state. Reversing this order causes the rollback to wipe the tracker update.</fallback>
       <gate name="END-TO-END SMOKE TEST">You MUST verify the change works in the actual runtime context before marking the refactoring complete.</gate>
+      <constraint name="TERMINAL BLOCKING RISK">You are strictly FORBIDDEN from using `run_command` to start blocking server processes (e.g., `uvicorn`, `flutter run`, `npm run dev`) synchronously. Doing so freezes the terminal and crashes the AI session via timeout. If E2E testing requires a running server, you MUST use the `manage_task` asynchronous background tool, or instruct the user to run the server in a separate terminal and mark the phase as `[NEEDS_E2E]`.</constraint>
     </step>
     
     <step id="6" name="DOCUMENTATION &amp; KI AUDIT">
