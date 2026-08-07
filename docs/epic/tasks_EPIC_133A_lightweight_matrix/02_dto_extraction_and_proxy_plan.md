@@ -34,6 +34,7 @@
   <step id="1" name="DTO EXTRACTION">
     <action>Create a new file `c:\src\quorum\backend_v2\models\dtos\atom_evaluation.py`.</action>
     <action>Migrate the following classes from `@[c:\src\quorum\backend_v2\models\dtos\lightweight_matrix.py]` into the new file in dependency order: `ReasoningStepDTO`, `LightweightExtractionAtom`, `MatrixEvaluationItemDTO`, `AtomEvaluationItemDTO`, `ReducedAtomDTO`, `LightweightMatrixDTO`.</action>
+    <action>CRITICAL DEPENDENCY MIGRATION: You MUST also copy all required imports (e.g., `AliasEngine`, `AnchorValidationService`, `LLMExtractedQuote`, `LaxVisualIntent`, `get_lexical_fuzz_threshold`) AND the 4 global configuration variables (`_settings`, `_schema_max_quotes_target`, `_schema_max_quotes`, `_schema_max_quote_length`) to the new `atom_evaluation.py` file to prevent `NameError` crashes.</action>
   </step>
 
   <step id="2" name="STRANGLER FIG RE-EXPORT">

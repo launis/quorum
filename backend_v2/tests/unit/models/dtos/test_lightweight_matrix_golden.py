@@ -9,6 +9,7 @@ from backend_v2.models.dtos.lightweight_matrix import (
     LightweightMatrixOutput,
     MatrixEvaluationItemDTO,
 )
+from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
 
 def test_lightweight_matrix_output_map_llm_extensions() -> None:
@@ -145,14 +146,21 @@ def test_atom_evaluation_item_dto_enforce_null_hypothesis() -> None:
     raw = _make_atom_raw()
     raw["semantic_reasoning"] = "Check doc1"
     raw["internal_logic_en"]["step_1_identify_premise"] = "doc1"
-    raw["exact_quotes"] = [{"text": "matching quote", "original_language_text": "matching quote", "source_id": "1"}]
+    raw["exact_quotes"] = [{"text": "matching quote", "original_language_text": "matching quote", "source_id": "doc1"}]
 
     validated = AtomEvaluationItemDTO.model_validate(raw, context=context)
+    validated = AnchorValidationService.process_atom_evaluation(
+        validated,
+        alias_map=context["alias_map"],
+        mcp_source_texts=context["mcp_source_texts"],
+        locale=context["locale"],
+        strictness_level=context["strictness_level"],
+    )
     assert "real_doc" in validated.semantic_reasoning
 
     # test truncation
     raw_truncate = raw.copy()
-    raw_truncate["exact_quotes"] = [{"text": "q", "original_language_text": "q", "source_id": "1"}] * 15
+    raw_truncate["exact_quotes"] = [{"text": "q", "original_language_text": "q", "source_id": "doc1"}] * 15
     validated_truncate = AtomEvaluationItemDTO.model_validate(raw_truncate, context=context)
     assert len(validated_truncate.exact_quotes) < 15
 

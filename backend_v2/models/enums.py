@@ -635,6 +635,28 @@ class SpecialAliasChoices(StrEnum):
 # Declared as a constant set for O(1) declarative logic lookups
 DEFAULT_ALIAS_LITERALS: frozenset[str] = frozenset(item.value for item in SpecialAliasChoices)
 
+DEFAULT_NULL_HYPOTHESIS_BLACKLIST: frozenset[str] = frozenset(
+    [
+        "null",
+        "none",
+        "n/a",
+        "false",
+        "",
+        "ei löydy",
+        "not found",
+        "-",
+        "ei mainittu",
+        "none detected",
+        "[]",
+        "{}",
+        "ei sovelleta",
+        "ei lainausta",
+        "no quote",
+        "ei ole",
+        "[contextual_override_applied]",
+    ]
+)
+
 
 @dataclass
 class PipelineConfig:

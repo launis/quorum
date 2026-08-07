@@ -165,8 +165,14 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     
     <rule_block id="epic_synchronization_mandate">
       <banned_pattern>Generating a plan that allows Tier 0 analysis to mutate the plan without updating the parent Epic.</banned_pattern>
-      <mandatory_pattern>In every generated sub-plan, you MUST explicitly include a directive for the `/tier0-research-plan` agent: "EPIC SYNC MANDATE: If this plan is mutated or corrected during Tier 0 analysis, you MUST simultaneously open the parent Epic document (@[epic_file.md]) and synchronize the architectural corrections back into the Epic to maintain it as the true SSOT."</mandatory_pattern>
+      <mandatory_pattern>In every generated sub-plan, you MUST explicitly include a directive for the `/tier0-research-plan` agent: "EPIC SYNC MANDATE: If this plan is mutated or corrected during Tier 0 analysis, you MUST simultaneously open the parent Epic document (@[epic_file.md]) and the Tracker document if available, and synchronize the architectural corrections back into them to maintain them as the true SSOT."</mandatory_pattern>
       <catastrophic_reason>If Tier 0 fixes a flaw in Phase 1's plan but the Epic is not updated, Phase 2 will be generated from an outdated, flawed Epic, causing architectural divergence and recurring errors.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="tracker_inclusion_mandate">
+      <banned_pattern>Generating handover commands, documentation, or workflows that execute `/tier0-research-plan` without explicitly including the Tracker file.</banned_pattern>
+      <mandatory_pattern>You MUST ensure that any instructions or commands involving `/tier0-research-plan` explicitly require passing BOTH the target plan file AND the Epic's Tracker file (e.g. `@[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md]`) as arguments. The Tracker is mandatory context for all Tier 0 and Tier 2 workflows.</mandatory_pattern>
+      <catastrophic_reason>Without the tracker file, the research and executing agents lose the macro-context of the Epic phases and cannot correctly update the traceability matrix.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="knowledge_item_preflight">

@@ -1,13 +1,12 @@
+import re
 from typing import Annotated, Any, Literal
 
-from pydantic import Field, ValidationInfo, field_validator, model_validator
+from pydantic import Field, PrivateAttr, ValidationInfo, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import LaxVisualIntent
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
-from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
-from backend_v2.utils.alias_engine import AliasEngine
+from backend_v2.models.enums import DEFAULT_NULL_HYPOTHESIS_BLACKLIST, LaxVisualIntent
+from backend_v2.settings import get_settings
 
 _settings = get_settings()
 _schema_max_quotes_target = _settings.schema_max_quotes_target
@@ -93,6 +92,14 @@ class LightweightExtractionAtom(V2CoreBase):
             raise ValueError("confidence must be between 0.0 and 1.0")
         return v
 
+    _null_hypothesis_blacklist: frozenset[str] = PrivateAttr(default_factory=frozenset)
+
+    @model_validator(mode="after")
+    def _inject_context(self, info: ValidationInfo) -> LightweightExtractionAtom:
+        context = info.context or {}
+        self._null_hypothesis_blacklist = context.get("null_hypothesis_blacklist", DEFAULT_NULL_HYPOTHESIS_BLACKLIST)
+        return self
+
     @property
     def evidence_found(self) -> bool:
         """Prevent Phantom Booleans: Sanitize hallucinated nulls produced by LLMs.
@@ -100,19 +107,12 @@ class LightweightExtractionAtom(V2CoreBase):
         Returns:
             True if meaningful, non-hallucinated evidence text is found, else False.
         """
-        blacklist = {"null", "none", "n/a", "false", "", "ei löydy", "not found", "-", "[]", "{}"}
         if self.exact_quotes:
             for quote in self.exact_quotes:
-                # Support both strings and LLMExtractedQuote for backwards compatibility or parsing transitions
-                text_val = (
-                    quote.text
-                    if hasattr(quote, "text")
-                    else (quote.get("text") if isinstance(quote, dict) else str(quote))
-                )
-                if text_val and text_val.strip().lower() not in blacklist:
+                if quote.text and quote.text.strip().lower() not in self._null_hypothesis_blacklist:
                     return True
         for val in self.extracted_facts.values():
-            if val is not None and val.strip().lower() not in blacklist:
+            if val is not None and val.strip().lower() not in self._null_hypothesis_blacklist:
                 return True
         return False
 
@@ -165,8 +165,6 @@ class MatrixEvaluationItemDTO(V2CoreBase):
     @classmethod
     def _clean_validation_decision(cls, v: Any) -> Any:
         if isinstance(v, str):
-            import re
-
             return re.sub(r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]", "", v).strip()
         return v
 
@@ -281,14 +279,6 @@ class AtomEvaluationItemDTO(V2CoreBase):
         ),
     ]
 
-    @field_validator("chart_display_label", mode="before")
-    @classmethod
-    def truncate_chart_label(cls, v: Any) -> Any:
-        if isinstance(v, str) and len(v) > 25:
-            # Do not attempt to truncate at a period, as this is only a short title.
-            return v[:22] + "..."
-        return v
-
     dlq_status: bool | None = None
     is_mcp_verified: bool = False
     mcp_source_reference: str | None = None
@@ -306,8 +296,6 @@ class AtomEvaluationItemDTO(V2CoreBase):
     @classmethod
     def _clean_validation_decision(cls, v: Any) -> Any:
         if isinstance(v, str):
-            import re
-
             return re.sub(r"\\n\\n\[5\.\s*VALIDATION DECISION:\s*\w+\]", "", v).strip()
         return v
 
@@ -332,6 +320,14 @@ class AtomEvaluationItemDTO(V2CoreBase):
                 res += "..."
         return res
 
+    _null_hypothesis_blacklist: frozenset[str] = PrivateAttr(default_factory=frozenset)
+
+    @model_validator(mode="after")
+    def _inject_context(self, info: ValidationInfo) -> AtomEvaluationItemDTO:
+        context = info.context or {}
+        self._null_hypothesis_blacklist = context.get("null_hypothesis_blacklist", DEFAULT_NULL_HYPOTHESIS_BLACKLIST)
+        return self
+
     @property
     def evidence_found(self) -> bool:
         """Prevent Phantom Booleans: Sanitize hallucinated nulls produced by LLMs.
@@ -339,36 +335,12 @@ class AtomEvaluationItemDTO(V2CoreBase):
         Returns:
             True if robust quote or extracted data exists, False otherwise.
         """
-        blacklist = {
-            "null",
-            "none",
-            "n/a",
-            "false",
-            "",
-            "ei löydy",
-            "not found",
-            "-",
-            "ei mainittu",
-            "none detected",
-            "[]",
-            "{}",
-            "ei sovelleta",
-            "ei lainausta",
-            "no quote",
-            "ei ole",
-            "[contextual_override_applied]",
-        }
         if self.exact_quotes:
             for quote in self.exact_quotes:
-                text_val = (
-                    quote.text
-                    if hasattr(quote, "text")
-                    else (quote.get("text") if isinstance(quote, dict) else str(quote))
-                )
-                if text_val and text_val.strip().lower() not in blacklist:
+                if quote.text and quote.text.strip().lower() not in self._null_hypothesis_blacklist:
                     return True
         for val in self.extracted_facts.values():
-            if val is not None and val.strip().lower() not in blacklist:
+            if val is not None and val.strip().lower() not in self._null_hypothesis_blacklist:
                 return True
         return False
 
@@ -404,102 +376,9 @@ class AtomEvaluationItemDTO(V2CoreBase):
     @classmethod
     def _enforce_null_hypothesis_before(cls, data: Any, info: ValidationInfo) -> Any:
         if isinstance(data, dict):
-            context = info.context if info else None
-            alias_map = context.get("alias_map", {}) if context else {}
-            if alias_map:
-                engine = AliasEngine(alias_map=alias_map)
-
-                if "semantic_reasoning" in data and isinstance(data["semantic_reasoning"], str):
-                    data["semantic_reasoning"] = engine.hydrate_reasoning_text(data["semantic_reasoning"])
-
-                if "internal_logic_en" in data and isinstance(data["internal_logic_en"], dict):
-                    logic = data["internal_logic_en"]
-                    for k in [
-                        "step_1_identify_premise",
-                        "step_2_scan_source",
-                        "step_3_evaluate_anti_patterns",
-                        "step_4_final_conclusion",
-                    ]:
-                        if k in logic and isinstance(logic[k], str):
-                            logic[k] = engine.hydrate_reasoning_text(logic[k])
-
             if data.get("contextual_override"):
                 data["exact_quotes"] = []
                 data["used_evidence_ids"] = []
-                return data
-
-            quotes = data.get("exact_quotes")
-            if isinstance(quotes, list) and quotes:
-                context = info.context if info else None
-                source_documents = context.get("source_documents") if context else None
-                mcp_source_texts = context.get("mcp_source_texts") if context else None
-                alias_map = context.get("alias_map", {}) if context else {}
-                locale = context.get("locale") if context else None
-                strictness_level = context.get("strictness_level", 50) if context else 50
-
-                alias_engine = AliasEngine(alias_map=alias_map)
-
-                def _is_match(doc_text: str, q_text: str) -> bool:
-                    norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(doc_text)
-                    norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(q_text)
-                    if not norm_quote:
-                        return False
-                    if norm_quote in norm_pdf:
-                        return True
-                    if len(q_text) < 10:
-                        return False
-                    base_threshold = get_lexical_fuzz_threshold(locale)
-
-                    if strictness_level >= 100:
-                        modifier = 15.0
-                    elif strictness_level >= 85:
-                        modifier = 10.0
-                    elif strictness_level >= 50:
-                        modifier = -5.0
-                    elif strictness_level >= 30:
-                        modifier = -20.0
-                    else:
-                        modifier = -35.0
-                    tier_threshold = min(100.0, base_threshold + modifier)
-                    if tier_threshold >= 100.0:
-                        return False
-                    score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_pdf)
-                    return score >= tier_threshold
-
-                resolved_ids = set()
-                for q in quotes:
-                    if isinstance(q, dict):
-                        q_text = q.get("text", "")
-                        if q_text and isinstance(q_text, str):
-                            # 1. Match against static source documents
-                            matched = False
-                            if source_documents:
-                                for doc in source_documents:
-                                    doc_text = getattr(doc, "text_content", None) or (
-                                        doc.get("text_content") if isinstance(doc, dict) else None
-                                    )
-                                    doc_id = getattr(doc, "opaque_id", None) or (
-                                        doc.get("opaque_id") if isinstance(doc, dict) else None
-                                    )
-                                    if doc_text and doc_id and _is_match(doc_text, q_text):
-                                        q["source_id"] = doc_id
-                                        resolved_ids.add(doc_id)
-                                        matched = True
-                                        break
-                            # 2. Match against dynamic MCP source texts
-                            if not matched and mcp_source_texts:
-                                for alias, mcp_text in mcp_source_texts.items():
-                                    if _is_match(mcp_text, q_text):
-                                        real_id = alias_engine.resolve_alias(alias)
-                                        if real_id:
-                                            q["source_id"] = real_id
-                                            resolved_ids.add(real_id)
-                                            break
-
-                if resolved_ids:
-                    data["used_evidence_ids"] = list(resolved_ids)
-                else:
-                    data["used_evidence_ids"] = []
         return data
 
     @model_validator(mode="after")
@@ -529,40 +408,15 @@ class AtomEvaluationItemDTO(V2CoreBase):
         else:
             # Milestone 3: Check quote integrity
             if self.exact_quotes:
-                context = info.context if info else None
-                source_text = context.get("source_text") if context else None
-                has_mcp_tools = context.get("has_mcp_tools", False) if context else False
-                if source_text and not has_mcp_tools:
-                    # Normalize both source and quote using the same exact logic as the orchestrator
-                    norm_source, _ = AnchorValidationService.normalize_text_with_mapping(source_text)
-                    locale = context.get("system_locale") if context else None
-
-                    threshold = get_lexical_fuzz_threshold(locale)
-                    max_len = _schema_max_quote_length
-
-                    for quote in self.exact_quotes:
-                        text_val = (
-                            quote.text
-                            if hasattr(quote, "text")
-                            else (quote.get("text") if isinstance(quote, dict) else str(quote))
+                max_len = _schema_max_quote_length
+                for quote in self.exact_quotes:
+                    if not quote.text:
+                        continue
+                    if len(quote.text) > max_len:
+                        raise ValueError(
+                            f"Quote too long ({len(quote.text)} chars > {max_len}). "
+                            "Split into separate shorter quotes from different source locations."
                         )
-                        if not text_val:
-                            continue
-                        if len(text_val) > max_len:
-                            raise ValueError(
-                                f"Quote too long ({len(text_val)} chars > {max_len}). "
-                                "Split into separate shorter quotes from different source locations."
-                            )
-                        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(text_val)
-                        if not norm_quote:
-                            continue
-                        if norm_quote not in norm_source:
-                            score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_source)
-                            if score < threshold:
-                                raise ValueError(
-                                    f"exact_quote '{text_val[:20]}...' not found in source text with high enough similarity "
-                                    f"(got {score:.1f}%, required >= {threshold:.1f}%)."
-                                )
         return self
 
 
