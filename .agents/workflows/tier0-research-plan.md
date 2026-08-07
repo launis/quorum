@@ -13,13 +13,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
   <context_rules>
     <rule_block id="core_rules_routing">
       <banned_pattern>Outputting any thinking process or generating code before reading the core architectural rules, or failing to load domain-specific rules based on the plan's scope.</banned_pattern>
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on plan scope:
-        - ALWAYS read: `04_directory_reference.md`
-        - IF touching Python/Backend: read `01-python-backend.md`
-        - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
-        - IF touching Database/Seed Data: read `03_seed_vault.md`
-        - IF touching LLM/Prompts: read `05_llm_architecture.md`
-      </mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md` AND the target plan/tracker file provided in the command. On your SECOND turn, BEFORE outputting any code or proceeding to execution, you MUST parse the `<required_context_rules>` block from the plan/tracker and immediately use `view_file` to load all `@-referenced` rules and Knowledge Items listed there.</mandatory_pattern>
       <catastrophic_reason>Failing to load comprehensive domain rules leads to Context Amnesia and code mutations that violate V2 architectural invariants.</catastrophic_reason>
     </rule_block>
     
@@ -129,6 +123,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
 
     <step id="6" name="PLAN MUTATION &amp; ANALYSIS SEPARATION (WRITE SAFETY)">
       <action>Update the actual `[implementation_plan]` document based on your validated findings so that the plan document itself remains clean and contains only straightforward execution instructions.</action>
+      <action name="EPIC SSOT SYNC">If your analysis uncovered a significant architectural flaw, a missing dependency, or a change in strategy that affects the broader scope of the project, you MUST ALSO update the main parent Epic document (`docs/epic/EPIC_XXX.md`) and the Tracker file to document this new learning. The Epic must remain the accurate Single Source of Truth for future phases.</action>
       <constraint>You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation of the granular execution steps. Full file overwrites (`write_to_file`) are strictly forbidden.</constraint>
       <action>PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a short and concise justification for the architectural choices and changes you made.</action>
       <constraint name="CONTEXT AMNESIA PREVENTION">Because this deep analysis heavily saturates the context window, you MUST conclude your response by instructing the user to start a brand NEW chat session and execute `/tier2-execute` from there. Do not allow execution to continue in this saturated context.</constraint>

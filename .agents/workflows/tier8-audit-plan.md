@@ -18,13 +18,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
   <architectural_invariants>
     <rule_block id="core_rules_routing">
       <banned_pattern>Auditing a plan without loading core architectural rules or guessing rule contents.</banned_pattern>
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on the plan's scope:
-        - IF touching file structures/routing: read `04_directory_reference.md`
-        - IF touching Python/Backend: read `01-python-backend.md`
-        - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
-        - IF touching Database/Seed Data: read `03_seed_vault.md`
-        - IF touching LLM/Prompts: read `05_llm_architecture.md`
-      </mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md` AND the target plan/tracker file provided in the command. On your SECOND turn, BEFORE outputting any code or proceeding to execution, you MUST parse the `<required_context_rules>` block from the plan/tracker and immediately use `view_file` to load all `@-referenced` rules and Knowledge Items listed there.</mandatory_pattern>
       <catastrophic_reason>Failing to load comprehensive domain rules prevents you from accurately auditing the codebase against strict Quorum 2026 invariants.</catastrophic_reason>
     </rule_block>
     

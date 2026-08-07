@@ -64,6 +64,8 @@
         4. If working on **Data/Seed/JSON**, you MUST read: `.agents/rules/03_seed_vault.md`
         5. If working on **LLM or Prompts**, you MUST read: `.agents/rules/05_llm_architecture.md`
         6. If navigating or creating new files, you MUST read: `.agents/rules/04_directory_reference.md`
+        
+        **SELF-HYDRATING PLANS**: If the user provides a target tracker or plan file, you MUST load it concurrently on your first turn. On your second turn, extract its `<required_context_rules>` block and load those files before proceeding.
         </mandatory_pattern>
         <catastrophic_reason>The Single Source of Truth architecture requires language-specific constraints to be loaded on-demand. Without this absolute stateless reset, the LLM falls into "Context Bypass" mode and hallucinates old rules, causing system destruction.</catastrophic_reason>
     </rule_block>

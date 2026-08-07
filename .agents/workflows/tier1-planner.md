@@ -66,7 +66,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Writing plan targets as raw strings instead of bounded `@-reference` blocks, or discarding explicit line bounds provided by the Epic.</banned_pattern>
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. EPIC BOUNDARY PRESERVATION: If the source Epic document provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plans. This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation.</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. EPIC BOUNDARY PRESERVATION: If the source Epic document provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plans. This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation. DYNAMIC RULES INJECTION: You MUST explicitly list the global core rule (`@[c:\src\quorum\.agents\rules\00-antigravity-core.md]`), ANY Epic-specific Knowledge Items (KIs) relevant to the architecture, PLUS the domain-specific rule file for the phase inside the `<required_context_rules>` block of EVERY generated plan.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` or dropping Epic-defined bounds forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia, loss of architectural targeting, and immediate truncation failure.</catastrophic_reason>
     </rule_block>
     
@@ -324,6 +324,10 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
   <dod_checklist>
     <!-- Planner MUST inject parsed Epic Definition of Done items here -->
   </dod_checklist>
+
+  <required_context_rules>
+    <!-- Planner MUST list all @-referenced rules and Epic KIs required for this phase here -->
+  </required_context_rules>
 
   <anti_targets>
     <!-- Planner MUST list strictly forbidden files/methods here -->
