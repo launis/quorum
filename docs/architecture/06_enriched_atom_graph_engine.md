@@ -23,7 +23,7 @@ Connects extracted atoms into a causal graph using an output-aware sliding windo
 ### 5. Chat Parser
 Transforms raw conversational interactions into structured analytical events. By parsing unstructured dialogue, it feeds contextual triggers directly into the graph engine, ensuring that human-in-the-loop interactions can dynamically alter evaluation paths without bypassing strict structural validation.
 
-### 6. Source Verification Service
+### 6. Anchor Validation Service
 Acts as the authoritative validator for data provenance within the graph. It ensures that any extracted atom or causal link is strictly backed by traceable evidence, preventing hallucinations from contaminating the DAG state and providing a verified audit trail for all evaluations.
 
 ### 7. Context-Enriched Pipeline (Dual-Path TDA)

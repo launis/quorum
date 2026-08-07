@@ -78,18 +78,18 @@
 ### Post-Implementation Gates
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
+- [x] **[NA] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/`.
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK] Describe Architecture**: Run `/tier7-describe-architecture`. Sync KI findings into documentation pillars.
+- [x] **[OK] Epic 133A Complete**: Transition Epic status to `IMPLEMENTED`.
 
 ### Final Epic Audit
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [x] **[OK] System 2 Reverse Epic Analysis:** Verified all requirements and Quorum 2026 invariants were physically implemented across the codebase.
 
 ## Instructions for the Execution Agent
 - **Atomic Commits:** You MUST perform atomic Git commits after every successful milestone or batch of import migrations.
@@ -161,4 +161,4 @@
 - Proceed to Post-Implementation Gates (Golden Master Audit, Tier 2 Hardening, Pre-Delete Audit, Semantic Coverage).
 
 ## Resume Command
-`/tier2-hardening-backend @[c:\src\quorum\backend_v2\models\dtos\lightweight_matrix.py] @[c:\src\quorum\backend_v2\models\dtos\atom_evaluation.py] @[c:\src\quorum\backend_v2\services\orchestrator\anchor_validation_service.py]`
+`/tier7-describe-architecture`

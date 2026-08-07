@@ -55,7 +55,7 @@
           - Pillar 3 (Orchestration): execution.py, web_fetcher.py, mcp/, orchestrator/ (engines/, strategies/, prompt_compiler.py)
           - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, sdui/adapters/
           - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py
-          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, source_verification_service.py, orchestrator/ (two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py)
+          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, anchor_validation_service.py, orchestrator/ (two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py)
           - Orphan (Missing Capability): auth.py
         </key_domains>
     </module>
