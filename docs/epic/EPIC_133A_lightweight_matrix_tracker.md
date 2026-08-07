@@ -80,8 +80,8 @@
 - [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
@@ -161,4 +161,4 @@
 - Proceed to Post-Implementation Gates (Golden Master Audit, Tier 2 Hardening, Pre-Delete Audit, Semantic Coverage).
 
 ## Resume Command
-`/tier5-resume --workflow="/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`
+`/tier2-hardening-backend @[c:\src\quorum\backend_v2\models\dtos\lightweight_matrix.py] @[c:\src\quorum\backend_v2\models\dtos\atom_evaluation.py] @[c:\src\quorum\backend_v2\services\orchestrator\anchor_validation_service.py]`
