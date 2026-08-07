@@ -14,7 +14,7 @@
 
     <rule_block id="strict_model_location">
         <banned_pattern>Defining Pydantic classes or local Enums organically inside service files or routers, or dumping new models into the monolithic `v2_core.py`.</banned_pattern>
-        <mandatory_pattern>ALL Single Source of Truth (SSOT) data structures, requests, and domain models MUST be placed inside `backend_v2/models/` using strict Interface Segregation. You MUST separate pure SSOT database shapes into `domain/`, API payloads into `dtos/`, and static LLM instructions into `prompts/`. No models can live outside this boundary.</mandatory_pattern>
+        <mandatory_pattern>ALL Single Source of Truth (SSOT) data structures, requests, and domain models MUST be placed inside `backend_v2/models/` using strict Interface Segregation. You MUST separate pure business/domain models into `domain/` (NEVER ORM or direct DB shapes; DB returns raw dicts for Service-layer hydration), API payloads into `dtos/`, and static LLM instructions into `prompts/`. No models can live outside this boundary.</mandatory_pattern>
         <catastrophic_reason>Scattered models cause circular import crashes. Dumping API requests and SSOT domains into the same "God File" (like `v2_core.py`) destroys boundary isolation and causes router-to-service import deadlocks.</catastrophic_reason>
     </rule_block>
 
@@ -31,12 +31,12 @@
     </rule_block>
 
     <rule_block id="test_directory_isolation">
-        <banned_pattern>Placing test files alongside production code (e.g., `services/test_auth.py`).</banned_pattern>
-        <mandatory_pattern>Test files MUST strictly mirror the production directory structure but reside in their respective isolated test roots:
-        - Python Backend: `backend_v2/tests/...`
-        - Flutter Frontend: `client_app_v2/test/...`
+        <banned_pattern>Placing test files alongside production code (e.g., `services/test_auth.py`), or placing tests directly into the `tests/` root without a test pyramid category (e.g., `tests/services/test_auth.py`).</banned_pattern>
+        <mandatory_pattern>Test files MUST strictly mirror the production directory structure, BUT they MUST first be categorized into a test pyramid root (`unit/`, `integration/`, or `e2e/`):
+        - Python Backend: `backend_v2/tests/unit/...`, `backend_v2/tests/integration/...`, `backend_v2/tests/e2e/...`
+        - Flutter Frontend: `client_app_v2/test/unit/...`, `client_app_v2/test/integration/...`, `client_app_v2/test/e2e/...`
         </mandatory_pattern>
-        <catastrophic_reason>Mixing test files with production code creates bloat, triggers false-positives in security scanners, and risks deploying mock data logic into production environments.</catastrophic_reason>
+        <catastrophic_reason>Without `unit/`, `integration/`, or `e2e/` categorization, CI/CD pipelines cannot run test tiers separately. Mixing test files with production code creates bloat and risks deploying mock data logic into production.</catastrophic_reason>
     </rule_block>
 </catastrophic_system_bans>
 
@@ -62,12 +62,12 @@
     
     <module path="backend_v2/worker.py">
         <responsibility>BACKGROUND EXECUTION (PILLAR 3)</responsibility>
-        <key_domains>Celery async task processing and DAG initiation</key_domains>
+        <key_domains>Arq 2026 async task processing and DAG initiation (workers MUST be isolated in their own files)</key_domains>
     </module>
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
-        <key_domains>domain/ (SSOT DB shapes), dtos/ (API boundaries), view/ (SDUI Polymorphic Blocks), prompts/ (LLM templates), v2_core.py, state.py, enums.py</key_domains>
+        <key_domains>domain/ (Pure Business/Domain Models, NO ORM shapes), dtos/ (API boundaries), view/ (SDUI Polymorphic Blocks), prompts/ (LLM templates), v2_core.py, state.py, enums.py</key_domains>
     </module>
 
     <module path="backend_v2/core/">
@@ -133,6 +133,11 @@
     <module path=".agents/workflows/">
         <responsibility>AGENTIC EXECUTION PLAYBOOKS & QUARANTINE PROTOCOLS</responsibility>
         <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) slash commands and Hybrid XML Sandwich schemas.</key_domains>
+    </module>
+
+    <module path="<appDataDir>\knowledge\">
+        <responsibility>AI AGENT KNOWLEDGE BASE & LONG-TERM MEMORY</responsibility>
+        <key_domains>Knowledge Items (KIs), architectural snapshots, and patterns. Agents MUST use this directory instead of creating random docs/ or root folders.</key_domains>
     </module>
 
     <module path="scratch/">

@@ -22,7 +22,7 @@
 
     <rule_block id="silent_json_fallbacks">
         <banned_pattern>Using fallback defaults for missing server data (e.g., `text ?? "Unknown"` or `text = ""`).</banned_pattern>
-        <mandatory_pattern>Ensure 100% strict JSON conformity (`disallow_unrecognized_keys: true`). Missing data MUST crash the Freezed parser immediately.</mandatory_pattern>
+        <mandatory_pattern>Ensure 100% strict JSON conformity (`disallowUnrecognizedKeys: true`). Missing data MUST crash the Freezed parser immediately.</mandatory_pattern>
         <catastrophic_reason>The Fail-Fast Client Firewall requires proactive UI crashes on bad server DTOs to protect memory integrity from data pollution.</catastrophic_reason>
     </rule_block>
 
@@ -96,6 +96,12 @@
         <mandatory_pattern>If a stateless service or client (e.g. `SseClient`) is instantiated via a Provider and needs to be imperatively accessed via `ref.read` in a controller method, its Provider MUST be explicitly marked with `@Riverpod(keepAlive: true)`. Otherwise, you must pass the injected dependency explicitly or use `ref.watch` inside the Provider's build method.</mandatory_pattern>
         <catastrophic_reason>In Riverpod 3.3, reading an `autoDispose` provider that has no active listeners creates the instance and immediately destroys it on the same millisecond, causing catastrophic state loss and silent connection failures.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="async_build_context_mounted_ban">
+        <banned_pattern>Using `BuildContext` (e.g., `ScaffoldMessenger.of(context)`, `GoRouter.of(context)`, `Theme.of(context)`) after an asynchronous gap (`await`) without verifying if the widget is still mounted.</banned_pattern>
+        <mandatory_pattern>You MUST ALWAYS check `if (!context.mounted) return;` immediately after ANY `await` call before interacting with the `BuildContext`. This applies strictly to mutations, network requests, and isolate execution.</mandatory_pattern>
+        <catastrophic_reason>If a user navigates away or closes a dialog during a pending asynchronous operation, the `BuildContext` becomes deactivated. Accessing it triggers a fatal runtime crash ("Looking up a deactivated widget's ancestor is unsafe").</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -133,15 +139,15 @@
     </rule_block>
 
     <rule_block id="main_thread_jank_isolate">
-        <banned_pattern>Deserializing or parsing JSON DTO structures directly in the Riverpod Future async loop without Thread isolation.</banned_pattern>
-        <mandatory_pattern>ALWAYS dynamically wrap payload processing inside `await Isolate.run(() => jsonDecode(chunk))` if the JSON array exceeds 100 elements or the payload string exceeds 100KB.</mandatory_pattern>
-        <catastrophic_reason>Parsing JSON blocks the UI Dart Isolate continuously, causing the 60fps/120fps render loop to freeze ("Jank"), making the Desktop app feel completely unresponsive.</catastrophic_reason>
+        <banned_pattern>Deserializing massive JSON DTOs on the main thread, OR spamming `Isolate.run()` inside high-frequency streams (like SSE/WebSockets).</banned_pattern>
+        <mandatory_pattern>For one-off REST API calls, wrap payload processing inside `await Isolate.run(() => jsonDecode(chunk))` if the JSON array exceeds 100 elements or 100KB. However, for high-frequency streams (SSE/WebSockets), you MUST NEVER call `Isolate.run()` per event. Instead, you MUST either batch the stream events before parsing, or spawn a single persistent Background Worker Isolate to handle the continuous parsing.</mandatory_pattern>
+        <catastrophic_reason>Parsing heavy JSON on the main thread causes UI Jank. Conversely, spawning new isolates (`Isolate.run()`) dozens of times a second for stream events causes massive Spawn Overhead Jank, locking the main thread completely and destroying the UI framerate.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="mutation_optimistic_ui">
-        <banned_pattern>Employing full-screen modal loading spinners or holding manual state flags like `bool _isLoading = true;`. Implementing optimistic updates without a failure rollback handling.</banned_pattern>
-        <mandatory_pattern>Use Riverpod 3.0 `Mutation<T>` paradigms paired with Optimistic Updates to instantly render UI changes locally. You MUST ALWAYS implement a state-reversion (rollback) mechanism in the catch/onError block to safely restore the previous state (`ref.invalidate()`) and notify the user (e.g., Toast/Snackbar) if the backend mutation fails.</mandatory_pattern>
-        <catastrophic_reason>Without rollback handling on optimistic mutations, a silent network failure leaves the user staring at a false positive state, leading to critical workflow corruption.</catastrophic_reason>
+        <banned_pattern>Employing full-screen modal loading spinners or holding manual state flags like `bool _isLoading = true;`. Implementing optimistic updates without a failure rollback handling, or using destructive rollbacks like `ref.invalidate()`.</banned_pattern>
+        <mandatory_pattern>Use Riverpod 3.0 `Mutation<T>` paradigms paired with Optimistic Updates to instantly render UI changes locally. You MUST ALWAYS implement a non-destructive state-reversion (rollback) mechanism in the catch/onError block. You MUST cache the prior `AsyncData` state before the mutation and re-assign it explicitly on error. You MUST NEVER use `ref.invalidate()` for rollback, as it destroys the current state and triggers a network re-fetch that will instantly fail in offline scenarios, wiping valid data from the UI.</mandatory_pattern>
+        <catastrophic_reason>Without rollback handling, a network failure leaves a false positive state. However, using `ref.invalidate()` during a network failure destroys the existing valid state and crashes the UI when the subsequent re-fetch fails, violating graceful degradation.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="transient_input_state">
@@ -157,12 +163,12 @@
     </rule_block>
 
     <rule_block id="strict_translation_fallback_mandate">
-        <banned_pattern>Using generic fallbacks like IDs or empty strings if a translation is missing, or hardcoding `fi` as a fallback when `en` is missing.</banned_pattern>
+        <banned_pattern>Using generic fallbacks like IDs or empty strings if a translation is missing, hardcoding `fi` as a fallback when `en` is missing, or passing `BuildContext` into Riverpod Notifiers/Repositories to resolve the language.</banned_pattern>
         <mandatory_pattern>All dynamic translations (e.g. `m.label.translations`) MUST follow the strict Fail-Fast resolution chain:
-        1. Attempt `Localizations.localeOf(context).languageCode`.
+        1. Attempt to resolve the active language code. In Widgets, use `Localizations.localeOf(context).languageCode`. In Riverpod Notifiers/Repositories, you MUST read the language code from a state provider (e.g., `ref.read(localeProvider).languageCode`) to maintain strict `BuildContext` isolation.
         2. Attempt `en` (Lingua Franca fallback).
         3. If BOTH are empty/null, `throw AppException.validation('Fail-Fast: Missing required translation.');`. NEVER fallback to `fi` or model IDs.</mandatory_pattern>
-        <catastrophic_reason>Masking translation failures with generic IDs or forcing Finnish fallbacks violates internationalization integrity and prevents the Fail-Fast mechanism from catching data corruption at the UI Boundary.</catastrophic_reason>
+        <catastrophic_reason>Masking translation failures with generic IDs violates internationalization integrity. However, injecting `BuildContext` into Riverpod Notifiers to resolve translations causes severe memory leaks and violates domain isolation.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="centralized_frontend_enums">

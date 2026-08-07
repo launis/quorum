@@ -164,8 +164,9 @@
     </rule_block>
 
     <rule_block id="frozen_state_mutability">
-        <banned_pattern>Mutating domain objects in place (e.g., `event.status = 'done'`).</banned_pattern>
-        <mandatory_pattern>All Event Sourcing models, DTOs, and DAG nodes MUST be immutable using `ConfigDict(frozen=True)`. Transition states strictly via `event.model_copy(update={'status': 'done'})`.</mandatory_pattern>
+        <banned_pattern>Mutating domain objects in place (e.g., `event.status = 'done'`), OR using `event.model_copy(update={...})` which performs a shallow copy and silently bypasses Pydantic validation.</banned_pattern>
+        <mandatory_pattern>All Event Sourcing models, DTOs, and DAG nodes MUST be immutable using `ConfigDict(frozen=True)`. Transition states MUST be executed by re-validating the state via `EventModel.model_validate(event.model_dump() | {'status': 'done'})` to guarantee Fail-Fast type safety and deep-copy isolation for nested objects.</mandatory_pattern>
+        <catastrophic_reason>In-place mutation destroys the append-only state log. Using `model_copy(update=...)` silently bypasses validation, allowing invalid types to corrupt the system and shared nested lists to mutate original frozen instances, breaking the universal_fail_fast rule.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="polymorphic_routing_o1">
@@ -221,12 +222,19 @@
 
     <rule_block id="strict_dependency_injection">
         <banned_pattern>Instantiating services or databases directly inside FastAPI routers.</banned_pattern>
-        <mandatory_pattern>Dependencies MUST be injected exclusively via FastAPI's `Depends()` + PEP 593 `Annotated`.</mandatory_pattern>
+        <mandatory_pattern>Dependencies MUST be injected exclusively via FastAPI's `Depends()` + PEP 593 `Annotated`. EXCEPTION FOR BACKGROUND WORKERS: Because Arq workers, CLI scripts, and cron tasks run outside the FastAPI request lifecycle, `Depends()` will crash. For these non-HTTP entrypoints, you MUST manually instantiate the required services (e.g. `service = UserService(db_session)`) at the absolute top-level entrypoint of the worker/script, passing them explicitly. NEVER refuse to write a background worker due to this rule.</mandatory_pattern>
         <code_example>
-            <anti_pattern>service = UserService()</anti_pattern>
+            <anti_pattern>service = UserService() # inside a router</anti_pattern>
             <pro_pattern>
+                # In FastAPI Router:
                 DatabaseSession = Annotated[Session, Depends(get_database)]
                 async def route(db: DatabaseSession): ...
+                
+                # In Arq Worker Entrypoint (Exception):
+                async def my_worker_task(ctx, user_id: str):
+                    async with get_db_session() as db:
+                        service = UserService(db)
+                        await service.process(user_id)
             </pro_pattern>
         </code_example>
     </rule_block>
@@ -319,8 +327,8 @@
     </rule_block>
     <rule_block id="duck_typing_token_shield_exception">
         <banned_pattern>The `extra="ignore"` configuration in Pydantic.</banned_pattern>
-        <mandatory_pattern>STRICTLY PROHIBITED at all times, with the absolute exception of `SynthesisStepDataDTO`, Token Shield classes, and internal Data Projection Models.</mandatory_pattern>
-        <catastrophic_reason>Ignoring extra payload data masks Prompt Injection attempts and suppresses critical validation warnings on outdated schemas.</catastrophic_reason>
+        <mandatory_pattern>STRICTLY PROHIBITED at all times, with the absolute exception of `SynthesisStepDataDTO`. You MUST NOT invent or classify arbitrary models as "Token Shields" or "Data Projections" to bypass strict validation. Any new model needing `extra="ignore"` MUST be explicitly pre-approved by the USER and documented.</mandatory_pattern>
+        <catastrophic_reason>Ignoring extra payload data masks Prompt Injection attempts and suppresses critical validation warnings on outdated schemas. Permitting vague "Token Shield" exceptions allows lazy agents to arbitrarily downgrade system strictness when they encounter data parsing errors instead of fixing the root cause.</catastrophic_reason>
     </rule_block>
     <rule_block id="python_314_root_model_ban">
         <banned_pattern>Using `RootModel` to enforce dynamic TypeAdapter patterns.</banned_pattern>
@@ -524,9 +532,9 @@
     </rule_block>
 
     <rule_block id="pydantic_validation_bypass_ban">
-        <banned_pattern>Using `dict(model)`, list comprehensions casting to raw dicts, manually reconstructing an existing model field-by-field (e.g. `Model(field=[dict(x) for x in old.field])`), or mutating objects via full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints.</banned_pattern>
-        <mandatory_pattern>ALWAYS use `model.model_copy(update={...})` or `model.model_copy(deep=True)` for shallow or deep instant updates when altering existing models.</mandatory_pattern>
-        <catastrophic_reason>Manual reconstruction is verbose, prone to omissions, and bypassing validation causes runtime AttributeErrors, while full serialization forces recursive O(N) validation cycles.</catastrophic_reason>
+        <banned_pattern>Using `dict(model)`, list comprehensions casting to raw dicts, manually reconstructing an existing model field-by-field (e.g. `Model(field=[dict(x) for x in old.field])`), or mutating objects via full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints. Furthermore, NEVER use `model.model_copy(update={...})` for validation-dependent state mutations.</banned_pattern>
+        <mandatory_pattern>ALWAYS use `Model.model_validate(model.model_dump() | update_dict)` to mutate models with guaranteed validation and deep copying.</mandatory_pattern>
+        <catastrophic_reason>Manual reconstruction is verbose and prone to omissions. Using `model_copy(update=...)` performs a shallow copy and bypasses validation entirely, leading to corrupted state.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="data_and_file_preservation_mandate">
@@ -536,6 +544,9 @@
     </rule_block>
 
     <rule_block id="backend_quality_gate_delegation">
-        <mandatory_pattern>Run the quality gate as defined in `AGENTS.md`.</mandatory_pattern>
+        <banned_pattern>Running generic pytest without the global audit script, or relying on memory of AGENTS.md for quality gate definitions.</banned_pattern>
+        <mandatory_pattern>If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test` after every single code mutation. NEVER assume a change is too small to test.</mandatory_pattern>
+        <catastrophic_reason>The audit loop enforces Ruff formatting and MyPy strict typing simultaneously with Pytest. Bypassing it degrades static quality and breaks the CI/CD pipeline.</catastrophic_reason>
     </rule_block>
+</architectural_invariants>
 </agentic_safety_guardrails>

@@ -1,4 +1,8 @@
-# 🚀 ANTIGRAVITY COMMAND CENTER
+---
+trigger: always_on
+---
+
+# ANTIGRAVITY COMMAND CENTER
 
 <domain_boundary>
     <role>GLOBAL SYSTEM & META-COGNITION</role>
@@ -64,12 +68,12 @@
     </rule_block>
     <rule_block id="atomic_checkpoint_mandate">
         <banned_pattern>Modifying multiple architectural domains (e.g., UI and Backend) concurrently without a save state, proposing `git add .`, or writing git commit messages in a language other than English.</banned_pattern>
-        <mandatory_pattern>After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST explicitly instruct the user to perform an atomic `git commit` BEFORE proceeding to the next file or logic block. Exception: If a structural refactor mathematically requires modifying a coupled set of files (e.g., extracting shared interfaces to break circular imports) before the system can compile, you are authorized to modify that specific batch of files concurrently BEFORE running the quality gate and instructing the atomic commit. You MUST ALWAYS specify exact relative file paths (e.g., `git add client_app_v2/[tiedosto]`). Git commit messages MUST ALWAYS be written in English.</mandatory_pattern>
+        <mandatory_pattern>After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST explicitly instruct the user to perform an atomic `git commit` BEFORE proceeding to the next file or logic block. Exception: If a structural refactor mathematically requires modifying a coupled set of files (e.g., extracting shared interfaces to break circular imports) before the system can compile, you are authorized to modify that specific batch of files concurrently BEFORE running the quality gate and instructing the atomic commit. You MUST ALWAYS specify exact relative file paths (specifically: `git add client_app_v2/path/to/file.dart`). Git commit messages MUST ALWAYS be written in English.</mandatory_pattern>
         <catastrophic_reason>Failure to enforce atomic commits per-file/per-domain results in massive, un-rollbackable Git histories and makes identifying regression bugs mathematically impossible.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">
         <banned_pattern>Silently persisting in the same chat session after executing multiple massive file reads (e.g., 3+ directories in Tier 2 Hardening) or complex refactors.</banned_pattern>
-        <mandatory_pattern>You MUST proactively suggest that the user executes the `/tier5-session-handover` workflow to start a new context window if the conversation exceeds 10 task iterations, or you have modified more than 5 complex files. This prevents 'Context Amnesia' and protects strict architectural rule adherence.</mandatory_pattern>
+        <mandatory_pattern>You MUST proactively suggest that the user executes the `/tier5-session-handover` workflow to start a new context window if you have processed more than 8 User Prompts in the current session, completed 3 atomic `git commit` operations, or modified more than 5 distinct complex files. This prevents 'Context Amnesia' and protects strict architectural rule adherence.</mandatory_pattern>
     </rule_block>
     <rule_block id="read_before_think_lock">
         <banned_pattern>Outputting a `<thinking_process>`, making assumptions, or generating code before reading the context-specific architecture rules.</banned_pattern>
@@ -90,12 +94,12 @@
         <catastrophic_reason>Using a hardcoded `tmp\` directory conflicts with the native IDE artifact system, causing lost execution traces and polluting the workspace state.</catastrophic_reason>
     </rule_block>
     <rule_block id="logfire_delegation_mandate">
-        <banned_pattern>Attempting to debug LLM token anomalies, performance latency bottlenecks, or "hallucination" issues purely by guessing or asking the user to manually dump text logs.</banned_pattern>
-        <mandatory_pattern>If the user reports an anomaly related to performance (slow routing), LLM token explosion, or AI hallucination, you MUST proactively investigate it using the local execution traces. Because Logfire's SDK is write-only, you MUST use `grep_search` on `backend_debug.log` using the specific Execution ID to fetch the JSON log traces into your context. IF the issue is an LLM hallucination or PromptBlock assembly error, you MUST proactively ask for the Execution ID and use `view_file` to read the local `data/files/executions/<execution_id>/llm_debug_prompts.md` file. Instruct the user to check the visual Logfire Cloud dashboard ONLY if the local trace files are insufficient.</mandatory_pattern>
+        <banned_pattern>Attempting to debug LLM token anomalies, performance latency bottlenecks, or "hallucination" issues purely by guessing, or reading massive trace files without line limits.</banned_pattern>
+        <mandatory_pattern>If the user reports an anomaly (hallucination, slow routing, token explosion), investigate using local execution traces. Because Logfire's SDK is write-only, you MUST use `grep_search` on `backend_debug.log` using the specific Execution ID. IF reading `llm_debug_prompts.md` or `frozen_context.json`, you MUST NEVER read the whole file blindly. You MUST first use `grep_search` to find the exact line numbers of the anomaly, and then use `view_file` with STRICT `StartLine` and `EndLine` parameters to prevent context window overflow. Instruct the user to check the visual Logfire Cloud dashboard ONLY if the local trace files are insufficient.</mandatory_pattern>
     </rule_block>
     <rule_block id="forensic_execution_artifacts">
-        <banned_pattern>Ignoring execution artifacts when debugging a complex run or trying to read the massive `execution_trace.json` blindly top-to-bottom.</banned_pattern>
-        <mandatory_pattern>When the user provides an execution folder (e.g., `data/files/executions/exe_...`), you MUST utilize its artifacts strategically: 1) Use `view_file` on `llm_debug_prompts.md` to inspect the exact prompts and raw LLM responses that caused hallucinations or schema errors. 2) Use `view_file` on `frozen_context.json` to see the exact snapshot of data provided to the engine. 3) Because `execution_trace.json` is usually multiple megabytes, DO NOT try to read the whole file at once. Instead, use `grep_search` with specific keywords or write a Python script in the `scratch/` directory to parse and analyze it programmatically. 4) If a `report.pdf` or `inputs/` exist, they represent the final generated output and user inputs.</mandatory_pattern>
+        <banned_pattern>Ignoring execution artifacts when debugging a complex run, or trying to read massive trace files or database seeds (`execution_trace.json`, `llm_debug_prompts.md`, `frozen_context.json`, `seed_data.json`) top-to-bottom without line constraints.</banned_pattern>
+        <mandatory_pattern>When analyzing an execution folder or querying massive database files like `seed_data.json`, utilize artifacts strategically: 1) You MUST use `grep_search` first to locate relevant sections in `llm_debug_prompts.md`, `frozen_context.json`, or `seed_data.json`, and ONLY THEN use `view_file` with strict `StartLine` and `EndLine` arguments to extract the specific payload. 2) Because `execution_trace.json` is usually multiple megabytes, DO NOT try to read it directly. Use `grep_search` with specific keywords or write a Python script in the `scratch/` directory to parse it programmatically. 3) Output files like `report.pdf` or `inputs/` represent the finalized state.</mandatory_pattern>
     </rule_block>
     <rule_block id="dual_axis_documentation_mandate">
         <banned_pattern>Manually editing the 6 architecture pillar documents (`docs/architecture/01_` through `06_`) during standard coding workflows.</banned_pattern>
@@ -188,8 +192,10 @@
 </architectural_invariants>
 
 <universal_quality_gate>
-    <rule_block id="quality_gate_delegation">
-        <mandatory_pattern>Run the quality gate as defined in `AGENTS.md`.</mandatory_pattern>
+    <rule_block id="quality_gate_execution">
+        <banned_pattern>Running generic pytest or flutter test without the global audit scripts, or assuming a change is "too small" to run tests.</banned_pattern>
+        <mandatory_pattern>You MUST enforce automated audit testing after completing a cohesive logical step (e.g., finishing a complete function, file update, or task step). You are authorized to batch multiple related edits together before running the audit, but you MUST NEVER bypass the audit loop entirely once the logical step is done. If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test`. If you modify `.dart` files, you MUST run: `uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build` (append --build when Freezed models need generation).</mandatory_pattern>
+        <catastrophic_reason>Generic tests miss MyPy strict typing, Ruff formatting, and Freezed model generation. Skipping these breaks the CI/CD pipeline and corrupts the workspace.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="zero_deprecation_mandate">
@@ -224,7 +230,7 @@
 
     <rule_block id="circuit_breaker_protocol">
         <banned_pattern>Attempting to autonomously fix the exact same Pytest or Flutter error more than 3 times iteratively, or leaving the workspace in a broken state after failing.</banned_pattern>
-        <mandatory_pattern>Implement the "Rule of Three". If failing 3 times, you MUST STOP. Output `<circuit_breaker_tripped>`, explicitly instruct the user to run `git restore .` to wipe the corrupted workspace state, explain the paradox, and WAIT for human guidance or handover.</mandatory_pattern>
+        <mandatory_pattern>Implement the "Rule of Three". If failing 3 times, you MUST STOP. Output `<circuit_breaker_tripped>`, explicitly instruct the user to run `git restore . ; git clean -fd` to wipe both tracked modifications and untracked orphaned files from the corrupted workspace state, explain the paradox, and WAIT for human guidance or handover.</mandatory_pattern>
     </rule_block>
     <rule_block id="deterministic_testing_delegation">
         <banned_pattern>Writing manual JSON dictionary mock data or claiming "Tests are complete" without passing Coverage.</banned_pattern>

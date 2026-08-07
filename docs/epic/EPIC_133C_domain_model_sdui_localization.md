@@ -6,7 +6,7 @@ Following EPIC 133B, this Epic eradicates the final layer of hardcoding: Enum Li
 ## 2. Architectural Impact & Compliance Matrix
 
 ### Deprecations & Sunset List (What We Will REMOVE)
-- **INTENTIONALLY DROPPED**: `Literal["PASS", "FAIL", "CONTESTED", "DLQ"]` from `backend_v2/models/dtos/atom_evaluation.py`.
+- **INTENTIONALLY DROPPED**: `Literal["PASS", "FAIL", "CONTESTED", "DLQ"]` from `backend_v2/models/dtos/lightweight_matrix.py`.
 - **INTENTIONALLY DROPPED**: Hardcoded fallback strings (specifically `"N/A (Lightweight extraction)"` and `"N/A"`) from backend properties.
 
 ### Retained SSOT Invariants (What We Will RETAIN)
@@ -19,7 +19,7 @@ Following EPIC 133B, this Epic eradicates the final layer of hardcoding: Enum Li
 
 ### Producer-Consumer Integration Check
 - **Producer**: Backend Python DTOs.
-- **Consumer**: Flutter UI (`@[client_app_v2/lib/core/models/]`).
+- **Consumer**: Flutter UI (`@[client_app_v2/lib/core/models/enums.dart]` and affected models).
 
 ## 3. Phased Execution Plan (Implementation Strategy)
 
@@ -27,12 +27,12 @@ Following EPIC 133B, this Epic eradicates the final layer of hardcoding: Enum Li
 - **Step 1.1**: Run global test coverage.
 
 ### Phase 2: Enum Migration
-- **Step 2.1**: Define `AtomEvaluationStatus(str, Enum)` in `@[backend_v2/models/enums.py]`.
-- **Step 2.2**: Update all DTOs in `backend_v2/models/dtos/atom_evaluation.py` to use the new Enum.
+- **Step 2.1**: Define `AtomEvaluationStatus(StrEnum)` in `@[backend_v2/models/enums.py]`.
+- **Step 2.2**: Update all DTOs in `@[backend_v2/models/dtos/lightweight_matrix.py]` to use the new Enum.
 
 ### Phase 3: SDUI Localization ("N/A" Eradication)
 - **Step 3.1**: Remove `"N/A (Lightweight extraction)"` default texts. Return `None` if data is missing.
-- **Step 3.2**: Update `backend_v2/services/sdui/localization_compiler.py` to handle `None` values and provide localized fallbacks.
+- **Step 3.2**: Update `@[backend_v2/services/orchestrator/localization_compiler.py]` to handle `None` values and provide localized fallbacks.
 
 ### Phase 4: Frontend Synchronization
 - **Step 4.1**: Update Flutter models in `@[client_app_v2/lib/core/models/enums.dart]` to reflect the new Enums.
@@ -43,7 +43,7 @@ Following EPIC 133B, this Epic eradicates the final layer of hardcoding: Enum Li
 - **Step 5.2**: Run `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`.
 
 ## 4. Definition of Done (DoD) & Verification Plan
-- No `Literal` string states in `backend_v2/models/dtos/atom_evaluation.py`.
+- No `Literal` string states in `backend_v2/models/dtos/lightweight_matrix.py`.
 - No `"N/A"` hardcoded strings in backend DTOs.
 - `flutter_audit_loop.py` compiles successfully with the new Enums.
 - E2E Tests pass.

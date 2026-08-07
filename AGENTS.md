@@ -72,7 +72,7 @@
 <universal_quality_gates>
     <rule_block id="zero_tolerance_audit_loop">
         <banned_pattern>Skipping automated testing because a code change was "minor", "just a typo", or not "significant".</banned_pattern>
-        <mandatory_pattern>You MUST strictly enforce automated audit testing via `run_command` after EVERY SINGLE code mutation, no matter how small. Do NOT bypass these loops.</mandatory_pattern>
+        <mandatory_pattern>You MUST strictly enforce automated audit testing via `run_command` after completing a cohesive logical step (e.g., finishing a complete function, file update, or task step). You are authorized to batch multiple related edits together before running the audit, but you MUST NEVER bypass the audit loop entirely once the logical step is done.</mandatory_pattern>
         <catastrophic_reason>Assuming a change is "too small to test" is the leading cause of massive cascading system outages. Fail-Fast requires mathematical proof, not assumptions.</catastrophic_reason>
     </rule_block>
     
@@ -84,13 +84,13 @@
     
     <rule_block id="flutter_audit_execution">
         <banned_pattern>Running basic flutter test without the audit script.</banned_pattern>
-        <mandatory_pattern>If you modify `.dart` files, you MUST run: `uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> [--build]`</mandatory_pattern>
+        <mandatory_pattern>If you modify `.dart` files, you MUST run: `uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build` (append --build when Freezed models need generation).</mandatory_pattern>
         <catastrophic_reason>The flutter audit script handles the build runner for Freezed models automatically if `--build` is appended.</catastrophic_reason>
     </rule_block>
 </universal_quality_gates>
 
 <workflow_routing>
-    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `.agents/workflows/`. When a user inputs a slash command (e.g. `/tier0-create-plan`), this triggers a HARD CONTEXT RESET. Your absolute first two tool calls MUST be: 1. `view_file` on `.agents/rules/00-antigravity-core.md`, and 2. `view_file` on the requested `.agents/workflows/` file. You are STRICTLY FORBIDDEN from calling any destructive tools (e.g., `replace_file_content`, `run_command`) in the same turn before these files are physically read and evaluated. Do not guess the workflow logic.</instruction>
+    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `.agents/workflows/`. When a user inputs a slash command (e.g. `/tier0-create-plan`), this triggers a HARD CONTEXT RESET. Your absolute first tool calls MUST use `view_file` to physically load `.agents/rules/00-antigravity-core.md`, the requested `.agents/workflows/` file, AND any relevant domain-specific rule files (e.g., `.agents/rules/01-python-backend.md`). You are STRICTLY FORBIDDEN from calling any destructive tools (e.g., `replace_file_content`, `run_command`) in the same turn before these files are physically read and evaluated. Do not guess the workflow logic.</instruction>
     <execution_tiers>
         <tier id="0_create_epic" path="/tier0-create-epic">Generates a standardized multi-phase Epic document (docs/epic/EPIC_XXX.md).</tier>
         <tier id="0_plan" path="/tier0-create-plan">Generates architectural implementation plan.</tier>
