@@ -3,12 +3,12 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.lightweight_matrix import (
+from backend_v2.models.dtos.atom_evaluation import (
     AtomEvaluationItemDTO,
     LightweightExtractionAtom,
-    LightweightMatrixOutput,
     MatrixEvaluationItemDTO,
 )
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
 

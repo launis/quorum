@@ -499,7 +499,7 @@ async def test_enqueue_pdf_generation_success() -> None:
 async def test_override_atom_success() -> None:
     from unittest.mock import patch
 
-    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
     from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import (
         ExecutionStepState,
@@ -611,7 +611,7 @@ async def test_get_execution_export_bytes_success() -> None:
     mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace_storage_path = None
     mock_record.execution_trace = []
-    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
     from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import ExecutionStepState, ScorecardAtomDTO
 
@@ -700,7 +700,7 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
             },
         )
     ]
-    from backend_v2.models.dtos.lightweight_matrix import ReasoningStepDTO
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
     from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
     from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import ExecutionStepState, ScorecardAtomDTO

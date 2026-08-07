@@ -1,4 +1,4 @@
-from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO
+from backend_v2.models.dtos.atom_evaluation import AtomEvaluationItemDTO
 
 
 def test_atom_evaluation_item_schema_instructs_llm_about_spatial_markers() -> None:

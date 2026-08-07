@@ -1,11 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.lightweight_matrix import (
+from backend_v2.models.dtos.atom_evaluation import (
     AtomEvaluationItemDTO,
+    ReasoningStepDTO,
+)
+from backend_v2.models.dtos.lightweight_matrix import (
     LightweightMatrixOutput,
     OutputProfileConfig,
-    ReasoningStepDTO,
 )
 from backend_v2.models.enums import XaiExtensionType
 
