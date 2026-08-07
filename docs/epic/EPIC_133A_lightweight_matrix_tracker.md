@@ -145,8 +145,7 @@
 - **Phase 4 Ambiguity Discovery:** We discovered that `04_import_migration_plan.md` is an incomplete stub lacking mandatory XML blocks. Crucially, the directive to "migrate 23+ files" blindly is dangerous because only 6 models were moved to `atom_evaluation.py`, while others (like `LevelStatsDTO`, `OutputProfileConfig`) remain in `lightweight_matrix.py`.
 
 ## Remaining
-- Rewrite `04_import_migration_plan.md` completely in Tier 0 Research to specify exact consumer file targets and separate the models that moved from those that stayed.
-- Execute Phase 4 (Batched Strangler Fig Sunset) in strictly bounded batches of 5 files.
+- Execute Phase 4 (Batched Strangler Fig Sunset) in strictly bounded batches of 5 files to prevent context amnesia, paying careful attention to multi-line import preservation.
 
 ## Resume Command
-`/tier5-resume --workflow="/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`
+`/tier5-resume --workflow="/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\04_import_migration_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`

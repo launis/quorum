@@ -21,6 +21,8 @@ After each batch, you MUST run `uv run python scripts/backend_audit_loop.py back
 </dod_checklist>
 
 ## Implementation Details
+> [!IMPORTANT]
+> **Execution Strategy for Multi-Line Imports:** Some of these imports (especially in `matrix_domain_parser.py` and `test_lightweight_matrix.py`) span multiple lines. You MUST use `view_file` to capture the exact character-for-character formatting of the import blocks before attempting `multi_replace_file_content`.
 
 ### Batch 1: Test Dependencies
 Modify the following files to import the 6 extracted models from `backend_v2.models.dtos.atom_evaluation` instead of `backend_v2.models.dtos.lightweight_matrix`. If they import models that stayed (like `LightweightMatrixOutput`), keep that import separate.
@@ -42,5 +44,5 @@ Modify the following files to import the 6 extracted models from `backend_v2.mod
 - `@[c:\src\quorum\backend_v2\hooks\scoring.py]`
 
 ### Sunset Proxy
-- `@[c:\src\quorum\backend_v2\models\dtos\lightweight_matrix.py]`
-  - Delete the 6 re-exports.
+- `@[c:\src\quorum\backend_v2\models\dtos\lightweight_matrix.py#L6-L11]`
+  - Delete the 6 explicit `as` re-exports for the extracted models.
