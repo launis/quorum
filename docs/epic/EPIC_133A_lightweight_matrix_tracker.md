@@ -135,6 +135,7 @@
 - Passed backend Pytest loop for the modified domains (100% success for Lightweight Matrix tests).
 - Completed Tier 8 Audit for Phase 3 to verify compliance and generated `red_team_audit_03_service_logic.md`.
 - Initiated Tier 0 Research for Phase 4 (`04_import_migration_plan.md`).
+- Completed Tier 0 Research for Phase 4: Validated exhaustive consumer list, mutated the migration plan to enforce multi-line import safety, and established strict line bounds for the Strangler Fig sunset.
 
 ## Learned
 - **Baseline State Snapshot**: The original Epic `EPIC_133A_lightweight_matrix.md` describes a massive "God Code" file `backend_v2/models/dtos/lightweight_matrix.py` (728 lines) violating architectural constraints.
@@ -143,6 +144,8 @@
 - Pydantic's `frozen=True` constraint requires us to hydrate dynamic fields in the orchestrator before calling `model_validate`, or use `model_copy(update=...)` when returning models from the Service Layer.
 - **Plan Contradiction Resolution:** The Epic plan had a contradiction between retaining spatial logic in the Pydantic DTO (Step 3.1.3) vs moving it to the Service layer (Step 3.5.2). We correctly prioritized Pydantic validation (Step 3.1.3), as spatial constraints require no external state and thus MUST remain as Fail-Fast `@model_validator` logic to satisfy Quorum invariants.
 - **Phase 4 Ambiguity Discovery:** We discovered that `04_import_migration_plan.md` is an incomplete stub lacking mandatory XML blocks. Crucially, the directive to "migrate 23+ files" blindly is dangerous because only 6 models were moved to `atom_evaluation.py`, while others (like `LevelStatsDTO`, `OutputProfileConfig`) remain in `lightweight_matrix.py`.
+- **Phase 4 Multi-line Import Danger:** We discovered that blind `multi_replace_file_content` will corrupt python code formatting for multi-line parenthesis imports (e.g., in `matrix_domain_parser.py`). We must use `view_file` to capture exact blocks before replacing them during the execution phase.
+- **Phase 4 Scope Finalization:** Global `grep_search` proved that only exactly 10 files import the 6 extracted models. The migration batches are mathematically exhaustive.
 
 ## Remaining
 - Execute Phase 4 (Batched Strangler Fig Sunset) in strictly bounded batches of 5 files to prevent context amnesia, paying careful attention to multi-line import preservation.
