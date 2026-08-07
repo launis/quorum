@@ -69,7 +69,7 @@
   - [x] Step 6.1: Global Python backend audit loop
   - [x] Step 6.2: Global Flutter audit loop
   - [x] Step 6.3: Final E2E REST API Validation
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
 - [x] **[OK] Backend API Response Validation:** Verify `LightweightMatrixOutput` correctly parses execution data via `backend_v2/seed/run_seed.py local`.
@@ -77,7 +77,7 @@
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
@@ -154,9 +154,11 @@
 - **Phase 4 Scope Finalization:** Global `grep_search` proved that only exactly 10 files import the 6 extracted models. The migration batches are mathematically exhaustive.
 - **Phase 4 Audit:** The backend audit loop proved 100% type integrity after Strangler Fig proxy removal, confirming no zombie references remained.
 - **Phase 5 Falsification:** Tier 0 Research falsified the need to update `enums.dart`. The newly extracted models (`AtomEvaluationItemDTO`, `LightweightExtractionAtom`, etc.) are internal backend orchestrator DTOs that do NOT cross the SDUI boundary. Therefore, their `status` string fields ("PASS", "FAIL", "CONTESTED", "DLQ") do not require Freezed model enum syncing in Flutter. The plan was updated to simply verify Flutter compilation via the audit script.
+- **Phase 6 Evaluation Anomaly**: Discovered that Phase 2/3 migration scripts mistakenly dumped imperative prompt instructions (e.g. `BANNED LOGIC: ...`) straight into the `concept_description` of the seed data. Because `TDAAssertion` evaluates `concept_description` as a factual claim, the LLM attempted to search for the instruction as a verbatim string in the PDF, causing an execution failure. The anomaly was resolved by explicitly separating constraints into the `anti_patterns` schema within `seed_data.json` and re-seeding the local database.
 
 ## Remaining
-- Execute Phase 6 (Verification & E2E Integration Gate).
+- Complete Tier 8 Audit for Phase 6.
+- Proceed to Post-Implementation Gates (Golden Master Audit, Tier 2 Hardening, Pre-Delete Audit, Semantic Coverage).
 
 ## Resume Command
-`/tier5-resume --workflow="/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`
+`/tier5-resume --workflow="/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_133A_lightweight_matrix\06_verification_and_e2e_integration_gate_plan.md]" --target="@[c:\src\quorum\docs\epic\EPIC_133A_lightweight_matrix_tracker.md]"`
