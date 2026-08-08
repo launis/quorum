@@ -162,6 +162,39 @@ class LLMProvider(ABC):
         pass
 
 
+class LogfireShieldedClient:
+    """Proxy class to hide httpx.AsyncClient from Logfire's deep serialization hook.
+
+    Prevents 'RuntimeError: dictionary changed size during iteration' when Logfire
+    iterates over kwargs containing a shared mutating httpx client.
+    """
+
+    __slots__ = ("_client",)
+
+    def __init__(self, client: Any):
+        """Initializes proxy."""
+        self._client = client
+
+    def __getattr__(self, name: str) -> Any:
+        """Forwards attributes to actual client."""
+        return getattr(self._client, name)
+
+    async def __aenter__(self) -> Any:
+        """Forwards context manager enter to actual client."""
+        if hasattr(self._client, "__aenter__"):
+            return await self._client.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
+        """Forwards context manager exit to actual client."""
+        if hasattr(self._client, "__aexit__"):
+            return await self._client.__aexit__(exc_type, exc_val, exc_tb)
+
+    def __repr__(self) -> str:
+        """Returns safe representation string for Logfire."""
+        return "<LogfireShieldedClient protecting httpx.AsyncClient>"
+
+
 class LiteLLMProvider(LLMProvider):
     """Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, etc.).
 
@@ -488,7 +521,7 @@ class LiteLLMProvider(LLMProvider):
 
                 resolved_client = self.__class__._httpx_clients[_client_key]
                 if resolved_client:
-                    call_kwargs["client"] = resolved_client
+                    call_kwargs["client"] = LogfireShieldedClient(resolved_client)
 
             max_rate_limit_retries = get_settings().llm_max_retries
             response = None
