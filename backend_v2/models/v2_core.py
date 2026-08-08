@@ -245,10 +245,6 @@ class TDAAssertion(V2CoreBase):
         default=None,
         description="Whitelisted Boolean logical expression using extracted facts.",
     )
-    allow_contextual_override: bool = Field(
-        default=False,
-        description="If True, allows overriding this assertion with a contextual excuse.",
-    )
     high_entropy: bool = Field(
         default=False,
         description="If True, enables multi-agent ensemble majority voting for this assertion.",
@@ -426,6 +422,10 @@ class PromptBlock(V2CoreBase):
     is_lightweight_protocol: bool = Field(
         default=False,
         description="If True, enables Best-of-Three ensemble evaluation routing.",
+    )
+    allow_contextual_override: bool = Field(
+        default=False,
+        description="If True, enables contextual override for ALL assertions in this matrix.",
     )
     scale_min: int | None = Field(
         default=None, description="Minimum score for the scales matrix. Required if scales are present."
@@ -661,8 +661,6 @@ class SystemConfigPerformativeLexicons(V2CoreBase):
         default="performative_lexicons", description="Config type discriminator."
     )
     slug: str | None = Field(default=None, description="System Config identifier slug")
-    lexicons: dict[str, Any] | None = Field(default=None, description="Legacy payload mapping")
-    lexicon: dict[str, Any] | None = Field(default=None, description="Legacy payload mapping")
     lexicon_configs: dict[str, LexiconConfigPayload] = Field(
         default_factory=dict, description="Map of language code to lexicon configuration."
     )

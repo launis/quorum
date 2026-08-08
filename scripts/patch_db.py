@@ -1,5 +1,5 @@
-import shutil
 import json
+import shutil
 
 db_path = r'c:\src\quorum\data\db_v2.json'
 backup_path = r'C:\src\quorum\backend_v2\seed\backups\db_v2.json.20260731_161717.bak'
@@ -9,9 +9,9 @@ seed_path = r'c:\src\quorum\backend_v2\seed\seed_data.json'
 shutil.copy2(backup_path, db_path)
 
 # Load DB and Seed Data
-with open(db_path, 'r', encoding='utf-8') as f:
+with open(db_path, encoding='utf-8') as f:
     db_data = json.load(f)
-with open(seed_path, 'r', encoding='utf-8') as f:
+with open(seed_path, encoding='utf-8') as f:
     seed_data = json.load(f)
 
 # Find new profile

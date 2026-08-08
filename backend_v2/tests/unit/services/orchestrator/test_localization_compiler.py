@@ -25,6 +25,7 @@ def test_compile_xml_rubrics_basic() -> None:
             "id": "blk_3234567890abcdef",
             "slug": "test",
             "category_id": "matrix",
+            "allow_contextual_override": True,
             "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
             "type": "float",
             "scale_min": 1,
@@ -47,7 +48,6 @@ def test_compile_xml_rubrics_basic() -> None:
                                     "concept_description": "Directive 1",
                                     "inverse_evidence": False,
                                     "aggregation_mode": "ALL_MUST_COMPLY",
-                                    "allow_contextual_override": True,
                                     "anchor_target": "Source",
                                     "bounding_box_scope": "document",
                                     "extraction_rule": "Rule",
@@ -111,9 +111,10 @@ def test_compile_xml_rubrics_atom_alias_map_filtering() -> None:
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
-            "id": "blk_3234567890abcdef",
-            "slug": "test",
+            "id": "blk_4234567890abcdef",
+            "slug": "test_filtered",
             "category_id": "matrix",
+            "allow_contextual_override": True,
             "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
             "type": "float",
             "scale_min": 1,
@@ -136,7 +137,6 @@ def test_compile_xml_rubrics_atom_alias_map_filtering() -> None:
                                     "concept_description": "Directive 1",
                                     "inverse_evidence": False,
                                     "aggregation_mode": "ALL_MUST_COMPLY",
-                                    "allow_contextual_override": True,
                                     "anchor_target": "Source",
                                     "bounding_box_scope": "document",
                                     "extraction_rule": "Rule",

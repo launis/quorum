@@ -697,7 +697,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 tda.concept_description,
                                 str(tda.aggregation_mode),
                                 tda.inverse_evidence,
-                                tda.allow_contextual_override,
+                                pb_model.allow_contextual_override,
                             )
 
             # Fail-fast: Ei fallbackeja. Korjattu normaalin virhehallinnan tyyliin.
@@ -868,7 +868,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         ev_atom_id = ev_dto.tda_id if is_dag_mode else ev_dto.atom_id
 
                                         if ev_atom_id == aid:
-                                            allow_override = tda.allow_contextual_override
+                                            allow_override = atom_mapping[aid][5]
                                             effective_override = enable_contextual_overrides and allow_override
 
                                             if is_dag_mode:

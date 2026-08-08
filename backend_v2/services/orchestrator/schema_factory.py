@@ -52,6 +52,7 @@ class SchemaFactory:
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
         expected_sdui_type: str = "grid",
+        dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -99,6 +100,7 @@ class SchemaFactory:
             allowed_atom_ids=allowed_atom_ids,
             allowed_dynamic_keys=allowed_dynamic_keys,
             max_evaluations=max_evaluations,
+            dag_results=dag_results,
         )
 
         self._schema_cache[cache_key] = model_class

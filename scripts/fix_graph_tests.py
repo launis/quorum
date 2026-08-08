@@ -1,13 +1,12 @@
-import re
 
 def revert_and_fix_graph_tests():
-    with open("backend_v2/tests/unit/services/sdui/adapters/test_matrix_graphs_adapter.py", "r", encoding="utf-8") as f:
+    with open("backend_v2/tests/unit/services/sdui/adapters/test_matrix_graphs_adapter.py", encoding="utf-8") as f:
         content = f.read()
 
     # Revert empty layouts
     old_test_empty = """    blocks = MatrixGraphsAdapter.build(context)
     assert len(blocks) == 2"""
-    
+
     new_test_empty = """    blocks = MatrixGraphsAdapter.build(context)
     assert len(blocks) == 0"""
     content = content.replace(old_test_empty, new_test_empty, 1)
@@ -17,7 +16,7 @@ def revert_and_fix_graph_tests():
     assert len(blocks) == 2
     assert isinstance(blocks[0], SduiRadarChartBlock)
     assert len(blocks[0].axes) == 3"""
-    
+
     new_test_success = """    blocks = MatrixGraphsAdapter.build(context)
     assert len(blocks) == 2
     assert isinstance(blocks[0], MarkdownBlock)
@@ -33,7 +32,7 @@ def revert_and_fix_graph_tests():
     # 1d_metrics just unpacks inner_sdui_blocks, which are empty here.
     blocks = MatrixGraphsAdapter.build(context)
     assert len(blocks) == 2"""
-    
+
     new_test_graceful = """    # Degrades from 3d_matrix (needs 3) to 1d_metrics (needs 1)
     blocks = MatrixGraphsAdapter.build(context)
     assert len(blocks) == 2

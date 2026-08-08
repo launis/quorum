@@ -162,6 +162,7 @@ class SchemaBuilderStrategy(ABC):
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
+        dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
         """Build and return the Pydantic model for this SDUI type."""
         pass
@@ -266,6 +267,7 @@ class MarkdownSchemaStrategy(SchemaBuilderStrategy):
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
+        dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
         return MarkdownBlock
 
@@ -286,6 +288,7 @@ class HeroInsightSchemaStrategy(SchemaBuilderStrategy):
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
+        dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
         return HeroInsightBlock
 
@@ -306,6 +309,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
+        dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
 
         step_strict_class: type[BaseModel] = StepDTOStrict
@@ -412,6 +416,26 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                 matrix_id = matrix.id
                 if not matrix_id:
                     continue
+
+                if dag_results is not None and matrix.scales:
+                    has_evidence = False
+                    for scale in matrix.scales:
+                        if has_evidence:
+                            break
+                        for claim in scale.claims:
+                            if has_evidence:
+                                break
+                            for tda in claim.tda_assertions:
+                                atom_id = str(tda.tda_id)
+                                status = dag_results.get(atom_id, {}).get("status", "")
+                                if hasattr(status, "name"):
+                                    status = status.name
+                                if str(status) in ("PASSED", "CONTESTED"):
+                                    has_evidence = True
+                                    break
+                    if not has_evidence:
+                        logger.warning("Zero evidence found for Matrix %s, omitting from LLM schema", matrix_id)
+                        continue
 
                 label_str = self._resolve_i18n(matrix.label, target_locale) if matrix.label else ""
                 desc_val = f"Global matrix evaluation for '{matrix_id}' ({label_str})."
@@ -529,13 +553,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
             if crit.category_id == "matrix":
                 base_class = StrippedBaseMatrixXAI
             else:
-                rule_allows_override = False
-                if crit.scales:
-                    for scale in crit.scales:
-                        for claim in scale.claims:
-                            for tda in claim.tda_assertions:
-                                if tda.allow_contextual_override:
-                                    rule_allows_override = True
+                rule_allows_override = bool(crit.allow_contextual_override)
 
                 if strictness_level >= 100 or not rule_allows_override:
                     base_class = step_strict_class

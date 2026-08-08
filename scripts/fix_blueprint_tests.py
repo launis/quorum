@@ -1,13 +1,12 @@
-import re
 
 def fix_blueprint_tests():
-    with open("backend_v2/tests/unit/services/test_blueprint.py", "r", encoding="utf-8") as f:
+    with open("backend_v2/tests/unit/services/test_blueprint.py", encoding="utf-8") as f:
         content = f.read()
 
     # Add import
     import_stmt = "from backend_v2.services.matrix_domain_parser import MatrixDomainParser\n"
     if "MatrixDomainParser" not in content:
-        content = content.replace("from backend_v2.services.blueprint import BlueprintTransformer", 
+        content = content.replace("from backend_v2.services.blueprint import BlueprintTransformer",
                                   import_stmt + "        from backend_v2.services.blueprint import BlueprintTransformer")
 
     # Replace transformer._parse_matrix_trace_results with MatrixDomainParser.parse_matrices

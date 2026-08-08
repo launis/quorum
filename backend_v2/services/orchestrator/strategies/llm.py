@@ -611,6 +611,14 @@ class LLMNodeStrategy(NodeStrategy):
                 blackboard = hook_state.global_context_vars.get("__GLOBAL_ATOM_BLACKBOARD__", {})
                 doc_aliases = list(blackboard.get("atoms_by_input", {}).keys()) or ["N/A"]
 
+                dag_results = {}
+                for step_res in hook_state.inputs.values():
+                    if isinstance(step_res, dict) and "evaluations" in step_res:
+                        for ev in step_res["evaluations"]:
+                            a_id = ev.get("tda_id") or ev.get("atom_id")
+                            if a_id:
+                                dag_results[a_id] = ev
+
                 dynamic_schema = self.compiler.build_dynamic_schema(
                     schema_name=f"Step_{step.id}_Response",
                     criteria=criteria_blocks,
@@ -619,6 +627,7 @@ class LLMNodeStrategy(NodeStrategy):
                     strictness_level=context.strictness_level,
                     source_document_ids=doc_aliases,
                     expected_sdui_type=getattr(step, "expected_sdui_type", "grid"),
+                    dag_results=dag_results,
                 )
 
                 static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)

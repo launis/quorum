@@ -1,7 +1,10 @@
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
+
 from backend_v2.exceptions import AppException
 from backend_v2.services.blueprint import BlueprintTransformer
+
 
 @pytest.mark.asyncio
 async def test_blueprint_variance_validation_crash():
@@ -22,7 +25,7 @@ async def test_blueprint_variance_validation_crash():
         "strictness_level": 100,
         "performativity_detector_step_id": None  # The root cause of the crash
     }
-    
+
     output_profile_repo = AsyncMock()
     output_profile_repo.get_all_output_profiles.return_value = [profile_dict]
 
@@ -34,7 +37,7 @@ async def test_blueprint_variance_validation_crash():
     execution.created_by = "usr_123"
     execution.organization_id = "org_123"
     execution.context_variables = {}
-    
+
     from backend_v2.models.state import TraceEvent
     # Trace with 0 performative phrases
     event_mock = TraceEvent(
@@ -44,7 +47,7 @@ async def test_blueprint_variance_validation_crash():
     )
     execution.execution_trace = [event_mock]
     execution.step_states = {}
-    
+
     exec_repo.get_execution.return_value = execution
     exec_repo.get_execution_results.return_value = []
 

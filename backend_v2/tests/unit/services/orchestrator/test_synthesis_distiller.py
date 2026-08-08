@@ -126,6 +126,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
 
     mock_pb = MagicMock(spec=PromptBlock)
     mock_pb.category_id = "matrix"
+    mock_pb.scales = None
     blocks_by_id = {"blk_matrix1": mock_pb}
 
     result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
@@ -154,6 +155,7 @@ def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
 
     mock_pb = MagicMock(spec=PromptBlock)
     mock_pb.category_id = "matrix"
+    mock_pb.scales = None
     blocks_by_id = {"blk_matrix1": mock_pb}
 
     result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
@@ -177,6 +179,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
 
     mock_pb = MagicMock(spec=PromptBlock)
     mock_pb.category_id = "matrix"
+    mock_pb.scales = None
     blocks_by_id = {"blk_matrix1": mock_pb}
 
     result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
@@ -213,6 +216,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
 
     mock_pb = MagicMock(spec=PromptBlock)
     mock_pb.category_id = "matrix"
+    mock_pb.scales = None
     blocks_by_id = {"blk_m1": mock_pb}
 
     result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)  # type: ignore

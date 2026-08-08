@@ -1,7 +1,6 @@
-import re
 
 def update_graphs():
-    with open("backend_v2/services/sdui/adapters/matrix_graphs_adapter.py", "r", encoding="utf-8") as f:
+    with open("backend_v2/services/sdui/adapters/matrix_graphs_adapter.py", encoding="utf-8") as f:
         content = f.read()
 
     # Add MarkdownBlock import if missing
@@ -17,7 +16,7 @@ def update_graphs():
     #                     blocks.extend(section_blocks)
 
     # Let's replace the inner part of the loop.
-    
+
     old_code = """                if layout_def.description:
                     blocks.append(
                         ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
@@ -36,7 +35,7 @@ def update_graphs():
                     elif preset_view == "text_only":
                         for axis in axes:
                             blocks.extend(axis.inner_sdui_blocks)"""
-                            
+
     new_code = """                # 1. Layout Title Block
                 if layout_def.title:
                     blocks.append(MarkdownBlock(text=f"### {layout_def.title}"))
@@ -66,7 +65,7 @@ def update_graphs():
 """
     # Wait, the plan specifically says:
     # "build the ParagraphBlock and MarkdownBlock directly inside the adapter's build method using the data from MatrixScorecardRowDTO.name and MatrixScorecardRowDTO.row_explanation"
-    # So axis.name and axis.row_explanation ARE used! 
+    # So axis.name and axis.row_explanation ARE used!
     # Let me adjust `new_code` for text_only.
 
     new_code_2 = """                if section_blocks:
@@ -103,7 +102,7 @@ def update_graphs():
         f.write(content)
 
 def update_summary_table():
-    with open("backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py", "r", encoding="utf-8") as f:
+    with open("backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py", encoding="utf-8") as f:
         content = f.read()
 
     if "MarkdownBlock" not in content:
@@ -126,7 +125,7 @@ def update_summary_table():
                         extension_labels=context.profile.extension_labels,
                     )
                 )"""
-                
+
     new_code = """                if layout_def.title:
                     blocks.append(MarkdownBlock(text=f"### {layout_def.title}"))
                     
@@ -149,7 +148,7 @@ def update_summary_table():
                 )"""
 
     content = content.replace(old_code, new_code)
-    
+
     with open("backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py", "w", encoding="utf-8") as f:
         f.write(content)
 

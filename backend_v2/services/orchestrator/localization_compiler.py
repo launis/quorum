@@ -181,7 +181,7 @@ class LocalizationCompiler:
                             # System 2 Variance: Removed inverse_evidence 'Vice' logic
                             # to eliminate the double-inversion trap. The LLM acts purely as an objective sensor.
 
-                            if assertion.allow_contextual_override:
+                            if crit.allow_contextual_override:
                                 mandate_text += (
                                     " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "
                                     "semantically or contextually across the text but no single exact verbatim "

@@ -1,6 +1,5 @@
-from pydantic import ValidationError
 
-from backend_v2.models.v2_core import EmbeddedOutputProfile, I18nText
+from backend_v2.models.v2_core import EmbeddedOutputProfile
 
 
 def test_embedded_output_profile_accepts_user_role_label():
@@ -12,6 +11,6 @@ def test_embedded_output_profile_accepts_user_role_label():
         "display_scale": "original",
         "layouts": [],
     }
-    
+
     profile = EmbeddedOutputProfile.model_validate(data)
     assert profile.user_role_label.default_locale == "en"

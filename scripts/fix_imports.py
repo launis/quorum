@@ -1,7 +1,6 @@
-import re
 
 def fix_imports():
-    with open("backend_v2/tests/unit/services/sdui/adapters/test_matrix_graphs_adapter.py", "r", encoding="utf-8") as f:
+    with open("backend_v2/tests/unit/services/sdui/adapters/test_matrix_graphs_adapter.py", encoding="utf-8") as f:
         content = f.read()
 
     # Add MarkdownBlock import

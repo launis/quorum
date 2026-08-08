@@ -3,9 +3,9 @@ import json
 seed_path = r'c:\src\quorum\backend_v2\seed\seed_data.json'
 db_path = r'c:\src\quorum\data\db_v2.json'
 
-with open(seed_path, 'r', encoding='utf-8') as f:
+with open(seed_path, encoding='utf-8') as f:
     seed_data = json.load(f)
-    
+
 matrices = [b['id'] for b in seed_data['prompt_blocks'] if b.get('category_id') == 'matrix']
 
 profile = next(p for p in seed_data['output_profiles'] if p['id'] == 'prf_5d6e7f8091a2b3c4')
@@ -20,10 +20,10 @@ for i, l in enumerate(profile['layouts']):
 if summary_layout:
     # Update target_blocks
     summary_layout['target_blocks'] = matrices
-    
+
     # Ensure columns
     summary_layout['matrix_visible_columns'] = ["label", "distribution", "row_explanation", "score"]
-    
+
     # Insert at index 1
     profile['layouts'].insert(1, summary_layout)
 
@@ -31,7 +31,7 @@ with open(seed_path, 'w', encoding='utf-8') as f:
     json.dump(seed_data, f, indent=4, ensure_ascii=False)
 
 # Now update the DB directly
-with open(db_path, 'r', encoding='utf-8') as f:
+with open(db_path, encoding='utf-8') as f:
     db_data = json.load(f)
 
 if 'output_profiles' in db_data:

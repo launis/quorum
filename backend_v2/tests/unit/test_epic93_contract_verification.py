@@ -285,8 +285,10 @@ class TestPhase2PipelineUnification:
 
         mock_m1 = MagicMock(spec=PromptBlock)
         mock_m1.category_id = "matrix"
+        mock_m1.scales = None
         mock_m2 = MagicMock(spec=PromptBlock)
         mock_m2.category_id = "matrix"
+        mock_m2.scales = None
 
         blocks = {
             "blk_m1": mock_m1,
