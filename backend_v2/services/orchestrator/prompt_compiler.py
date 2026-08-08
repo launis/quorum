@@ -125,6 +125,7 @@ class PromptCompiler:
         allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
         expected_sdui_type: str = "grid",
+        dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -139,6 +140,7 @@ class PromptCompiler:
             allowed_dynamic_keys: Dynamic keys loaded from step input mappings.
             allowed_mcp_prefixes: List of dynamic tool prefixes (e.g. tavily_, jira_).
             max_evaluations: Dynamic upper limit for evaluations array.
+            dag_results: Dictionary of previous topological execution results.
 
         Returns:
             A dynamically generated Pydantic model class.
@@ -154,6 +156,7 @@ class PromptCompiler:
             allowed_dynamic_keys=allowed_dynamic_keys,
             max_evaluations=max_evaluations,
             expected_sdui_type=expected_sdui_type,
+            dag_results=dag_results,
         )
 
     def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:
