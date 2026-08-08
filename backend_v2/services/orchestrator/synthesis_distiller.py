@@ -49,6 +49,7 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
     def _strip_heavy_keys(obj: Any) -> None:
         if isinstance(obj, dict):
             obj.pop("shuffled_atoms", None)
+            obj.pop("atom_quotes", None)
 
             # EPIC 70 Lite: Preserve evidence from evaluations for synthesis grounding
             # ARCHITECTURE LOCK (Rule 82/83): This evaluations filtering algorithm is a
