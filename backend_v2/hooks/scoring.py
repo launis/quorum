@@ -842,13 +842,16 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                     heavy_payload, context=val_context
                                                 )
                                             except ValidationError:
+                                                import traceback
+
+                                                traceback.print_exc()
+                                                # Fallback to lightweight protocol by stripping ALL heavy cognitive fields
+                                                light_payload = {
+                                                    k: v
+                                                    for k, v in ev_dict.items()
+                                                    if k in LightweightExtractionAtom.model_fields
+                                                }
                                                 try:
-                                                    # Fallback to lightweight protocol by stripping ALL heavy cognitive fields
-                                                    light_payload = {
-                                                        k: v
-                                                        for k, v in ev_dict.items()
-                                                        if k in LightweightExtractionAtom.model_fields
-                                                    }
                                                     ev_dto = LightweightExtractionAtom.model_validate(
                                                         light_payload, context=val_context
                                                     )
@@ -868,6 +871,10 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         ev_atom_id = ev_dto.tda_id if is_dag_mode else ev_dto.atom_id
 
                                         if ev_atom_id == aid:
+                                            if is_dag_mode:
+                                                if ev_dto.matrix_id is not None and ev_dto.matrix_id != pb_id:
+                                                    continue  # Enforce strict namespace boundary
+
                                             allow_override = atom_mapping[aid][5]
                                             effective_override = enable_contextual_overrides and allow_override
 

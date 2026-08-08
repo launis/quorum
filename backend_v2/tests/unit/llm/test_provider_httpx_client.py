@@ -5,7 +5,7 @@ import httpx
 import pytest
 from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler
 
-from backend_v2.llm.provider import LiteLLMProvider
+from backend_v2.llm.provider import LiteLLMProvider, LogfireShieldedClient
 
 
 @pytest.fixture
@@ -78,16 +78,20 @@ async def test_litellm_provider_injects_wrapped_httpx_client(mock_settings: Magi
             assert "client" in call_kwargs, "Client must be explicitly passed"
             passed_client = call_kwargs["client"]
 
-            # The bug: provider passes raw httpx.AsyncClient which litellm drops.
-            # The fix: provider MUST pass AsyncHTTPHandler wrapping the httpx client.
-            assert isinstance(passed_client, AsyncHTTPHandler), (
-                f"Expected AsyncHTTPHandler but got {type(passed_client)}. "
+            # The fix: provider MUST pass AsyncHTTPHandler or LogfireShieldedClient wrapping the httpx client.
+            assert isinstance(passed_client, (AsyncHTTPHandler, LogfireShieldedClient)), (
+                f"Expected LogfireShieldedClient or AsyncHTTPHandler but got {type(passed_client)}. "
                 f"LiteLLM will discard raw httpx clients for Vertex AI."
             )
 
             # Ensure HTTP/2 is disabled
-            assert hasattr(passed_client, "client")
-            assert isinstance(passed_client.client, httpx.AsyncClient)
+            if isinstance(passed_client, LogfireShieldedClient):
+                assert isinstance(passed_client._client, AsyncHTTPHandler)
+                assert hasattr(passed_client._client, "client")
+                assert isinstance(passed_client._client.client, httpx.AsyncClient)
+            else:
+                assert hasattr(passed_client, "client")
+                assert isinstance(passed_client.client, httpx.AsyncClient)
     finally:
         if original_pytest:
             os.environ["PYTEST_CURRENT_TEST"] = original_pytest

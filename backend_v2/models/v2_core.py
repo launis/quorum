@@ -1076,6 +1076,9 @@ class AtomResultDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
     tda_id: Annotated[str, Field(description="Opaque ID pointing to the hydrated_references dictionary key")]
+    matrix_id: Annotated[
+        str | None, Field(default=None, description="Opaque ID of the matrix block that requested this evaluation")
+    ]
     status: ExecutionStatus
     extracted_data: Annotated[
         ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result")

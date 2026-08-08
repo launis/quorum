@@ -45,6 +45,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
       json,
       allowedKeys: const [
         'tda_id',
+        'matrix_id',
         'status',
         'extracted_data',
         'source_quote',
@@ -58,6 +59,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
     );
     final val = _AtomResultDTO(
       tdaId: $checkedConvert('tda_id', (v) => v as String),
+      matrixId: $checkedConvert('matrix_id', (v) => v as String?),
       status: $checkedConvert(
         'status',
         (v) => $enumDecode(_$ExecutionStatusEnumMap, v),
@@ -106,6 +108,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
   },
   fieldKeyMap: const {
     'tdaId': 'tda_id',
+    'matrixId': 'matrix_id',
     'extractedData': 'extracted_data',
     'sourceQuote': 'source_quote',
     'contextualOverride': 'contextual_override',
@@ -119,6 +122,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
 Map<String, dynamic> _$AtomResultDTOToJson(_AtomResultDTO instance) =>
     <String, dynamic>{
       'tda_id': instance.tdaId,
+      'matrix_id': instance.matrixId,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
       'extracted_data': instance.extractedData?.toJson(),
       'source_quote': instance.sourceQuote,

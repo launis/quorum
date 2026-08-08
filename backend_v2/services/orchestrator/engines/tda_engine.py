@@ -172,7 +172,7 @@ class TDAEngine(ExecutionEngine):
                     semaphore=request.semaphore,
                 )
 
-            results_dto, hydrated_refs = ResultProjector.project(nodes, states)
+            results_dto, hydrated_refs = ResultProjector.project(nodes, states, request.matrix_block_id)
 
             return EngineExecutionResult(
                 results=results_dto,

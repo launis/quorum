@@ -23,7 +23,7 @@ class ResultProjector:
 
     @staticmethod
     def project(
-        nodes: list[LinkedAtomGraph], states: dict[str, AtomExecutionState]
+        nodes: list[LinkedAtomGraph], states: dict[str, AtomExecutionState], matrix_id: str | None = None
     ) -> tuple[list[AtomResultDTO], dict[str, HydratedAtomDTO]]:
         """Project execution state to frontend DTOs.
 
@@ -109,6 +109,7 @@ class ResultProjector:
 
             res = AtomResultDTO(
                 tda_id=tda_id,
+                matrix_id=matrix_id,
                 status=status,
                 extracted_data=None,
                 source_quote=node.atom.source_quote,

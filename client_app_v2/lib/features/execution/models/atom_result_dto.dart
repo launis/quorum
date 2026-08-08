@@ -32,6 +32,7 @@ abstract class AtomResultDTO with _$AtomResultDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory AtomResultDTO({
     @JsonKey(name: 'tda_id') required String tdaId,
+    @JsonKey(name: 'matrix_id') String? matrixId,
     required ExecutionStatus status,
     @JsonKey(name: 'extracted_data') ExtractedValueDTO? extractedData,
     @JsonKey(name: 'source_quote') String? sourceQuote,

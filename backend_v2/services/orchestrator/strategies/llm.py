@@ -603,6 +603,8 @@ class LLMNodeStrategy(NodeStrategy):
 
             from backend_v2.models.dtos.engine import EngineExecutionRequest
 
+            matrix_block_id = next((b.id for b in criteria_blocks if getattr(b, "category_id", None) == "matrix"), None)
+
             is_synthesis_step = context.model_strategy == "synthesis"
 
             if is_synthesis_step:
@@ -648,6 +650,7 @@ class LLMNodeStrategy(NodeStrategy):
                     trace_callback=None,
                     prompt_compiler=self.compiler,
                     shuffled_atoms=hydrated_shuffled_atoms,
+                    matrix_block_id=matrix_block_id,
                 )
             else:
                 engine_request = EngineExecutionRequest(
@@ -665,6 +668,7 @@ class LLMNodeStrategy(NodeStrategy):
                     trace_callback=None,
                     prompt_compiler=self.compiler,
                     shuffled_atoms=hydrated_shuffled_atoms,
+                    matrix_block_id=matrix_block_id,
                 )
 
             engine_result = await self._engine.execute(engine_request)

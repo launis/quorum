@@ -58,6 +58,7 @@ class EngineExecutionRequest(BaseModel):
         trace_callback: Live telemetry flush callback.
         prompt_compiler: The prompt compiler instance.
         shuffled_atoms: The explicit matrix assertions for matrix evaluations.
+        matrix_block_id: Optional ID of the matrix block for namespace isolation.
     """
 
     bound_client: LLMClient
@@ -74,6 +75,7 @@ class EngineExecutionRequest(BaseModel):
     trace_callback: Callable[[TraceEvent], Awaitable[None]] | None
     prompt_compiler: Any
     shuffled_atoms: list[FlattenedAtom] | None = None
+    matrix_block_id: str | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)
 

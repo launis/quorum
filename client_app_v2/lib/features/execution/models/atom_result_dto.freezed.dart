@@ -547,7 +547,7 @@ as String,
 /// @nodoc
 mixin _$AtomResultDTO {
 
-@JsonKey(name: 'tda_id') String get tdaId; ExecutionStatus get status;@JsonKey(name: 'extracted_data') ExtractedValueDTO? get extractedData;@JsonKey(name: 'source_quote') String? get sourceQuote;@JsonKey(name: 'contextual_override') bool get contextualOverride;@JsonKey(name: 'evaluation_reasoning') String? get evaluationReasoning;@JsonKey(name: 'error_details') ErrorDetailsDTO? get errorDetails;@JsonKey(name: 'extensions') Map<String, String> get extensions;@JsonKey(name: 'depends_on_tda_ids') List<String> get dependsOnTdaIds;@JsonKey(name: 'short_circuit_reason_tda_ids') List<String> get shortCircuitReasonTdaIds;
+@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'matrix_id') String? get matrixId; ExecutionStatus get status;@JsonKey(name: 'extracted_data') ExtractedValueDTO? get extractedData;@JsonKey(name: 'source_quote') String? get sourceQuote;@JsonKey(name: 'contextual_override') bool get contextualOverride;@JsonKey(name: 'evaluation_reasoning') String? get evaluationReasoning;@JsonKey(name: 'error_details') ErrorDetailsDTO? get errorDetails;@JsonKey(name: 'extensions') Map<String, String> get extensions;@JsonKey(name: 'depends_on_tda_ids') List<String> get dependsOnTdaIds;@JsonKey(name: 'short_circuit_reason_tda_ids') List<String> get shortCircuitReasonTdaIds;
 /// Create a copy of AtomResultDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -562,7 +562,7 @@ $AtomResultDTOCopyWith<AtomResultDTO> get copyWith => _$AtomResultDTOCopyWithImp
 
 @override
 String toString() {
-  return 'AtomResultDTO(tdaId: $tdaId, status: $status, extractedData: $extractedData, sourceQuote: $sourceQuote, contextualOverride: $contextualOverride, evaluationReasoning: $evaluationReasoning, errorDetails: $errorDetails, extensions: $extensions, dependsOnTdaIds: $dependsOnTdaIds, shortCircuitReasonTdaIds: $shortCircuitReasonTdaIds)';
+  return 'AtomResultDTO(tdaId: $tdaId, matrixId: $matrixId, status: $status, extractedData: $extractedData, sourceQuote: $sourceQuote, contextualOverride: $contextualOverride, evaluationReasoning: $evaluationReasoning, errorDetails: $errorDetails, extensions: $extensions, dependsOnTdaIds: $dependsOnTdaIds, shortCircuitReasonTdaIds: $shortCircuitReasonTdaIds)';
 }
 
 
@@ -573,7 +573,7 @@ abstract mixin class $AtomResultDTOCopyWith<$Res>  {
   factory $AtomResultDTOCopyWith(AtomResultDTO value, $Res Function(AtomResultDTO) _then) = _$AtomResultDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId, ExecutionStatus status,@JsonKey(name: 'extracted_data') ExtractedValueDTO? extractedData,@JsonKey(name: 'source_quote') String? sourceQuote,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'evaluation_reasoning') String? evaluationReasoning,@JsonKey(name: 'error_details') ErrorDetailsDTO? errorDetails,@JsonKey(name: 'extensions') Map<String, String> extensions,@JsonKey(name: 'depends_on_tda_ids') List<String> dependsOnTdaIds,@JsonKey(name: 'short_circuit_reason_tda_ids') List<String> shortCircuitReasonTdaIds
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'matrix_id') String? matrixId, ExecutionStatus status,@JsonKey(name: 'extracted_data') ExtractedValueDTO? extractedData,@JsonKey(name: 'source_quote') String? sourceQuote,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'evaluation_reasoning') String? evaluationReasoning,@JsonKey(name: 'error_details') ErrorDetailsDTO? errorDetails,@JsonKey(name: 'extensions') Map<String, String> extensions,@JsonKey(name: 'depends_on_tda_ids') List<String> dependsOnTdaIds,@JsonKey(name: 'short_circuit_reason_tda_ids') List<String> shortCircuitReasonTdaIds
 });
 
 
@@ -590,10 +590,11 @@ class _$AtomResultDTOCopyWithImpl<$Res>
 
 /// Create a copy of AtomResultDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? status = null,Object? extractedData = freezed,Object? sourceQuote = freezed,Object? contextualOverride = null,Object? evaluationReasoning = freezed,Object? errorDetails = freezed,Object? extensions = null,Object? dependsOnTdaIds = null,Object? shortCircuitReasonTdaIds = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? matrixId = freezed,Object? status = null,Object? extractedData = freezed,Object? sourceQuote = freezed,Object? contextualOverride = null,Object? evaluationReasoning = freezed,Object? errorDetails = freezed,Object? extensions = null,Object? dependsOnTdaIds = null,Object? shortCircuitReasonTdaIds = null,}) {
   return _then(_self.copyWith(
 tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,matrixId: freezed == matrixId ? _self.matrixId : matrixId // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ExecutionStatus,extractedData: freezed == extractedData ? _self.extractedData : extractedData // ignore: cast_nullable_to_non_nullable
 as ExtractedValueDTO?,sourceQuote: freezed == sourceQuote ? _self.sourceQuote : sourceQuote // ignore: cast_nullable_to_non_nullable
 as String?,contextualOverride: null == contextualOverride ? _self.contextualOverride : contextualOverride // ignore: cast_nullable_to_non_nullable
@@ -711,10 +712,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId,  ExecutionStatus status, @JsonKey(name: 'extracted_data')  ExtractedValueDTO? extractedData, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'evaluation_reasoning')  String? evaluationReasoning, @JsonKey(name: 'error_details')  ErrorDetailsDTO? errorDetails, @JsonKey(name: 'extensions')  Map<String, String> extensions, @JsonKey(name: 'depends_on_tda_ids')  List<String> dependsOnTdaIds, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'matrix_id')  String? matrixId,  ExecutionStatus status, @JsonKey(name: 'extracted_data')  ExtractedValueDTO? extractedData, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'evaluation_reasoning')  String? evaluationReasoning, @JsonKey(name: 'error_details')  ErrorDetailsDTO? errorDetails, @JsonKey(name: 'extensions')  Map<String, String> extensions, @JsonKey(name: 'depends_on_tda_ids')  List<String> dependsOnTdaIds, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AtomResultDTO() when $default != null:
-return $default(_that.tdaId,_that.status,_that.extractedData,_that.sourceQuote,_that.contextualOverride,_that.evaluationReasoning,_that.errorDetails,_that.extensions,_that.dependsOnTdaIds,_that.shortCircuitReasonTdaIds);case _:
+return $default(_that.tdaId,_that.matrixId,_that.status,_that.extractedData,_that.sourceQuote,_that.contextualOverride,_that.evaluationReasoning,_that.errorDetails,_that.extensions,_that.dependsOnTdaIds,_that.shortCircuitReasonTdaIds);case _:
   return orElse();
 
 }
@@ -732,10 +733,10 @@ return $default(_that.tdaId,_that.status,_that.extractedData,_that.sourceQuote,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId,  ExecutionStatus status, @JsonKey(name: 'extracted_data')  ExtractedValueDTO? extractedData, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'evaluation_reasoning')  String? evaluationReasoning, @JsonKey(name: 'error_details')  ErrorDetailsDTO? errorDetails, @JsonKey(name: 'extensions')  Map<String, String> extensions, @JsonKey(name: 'depends_on_tda_ids')  List<String> dependsOnTdaIds, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'matrix_id')  String? matrixId,  ExecutionStatus status, @JsonKey(name: 'extracted_data')  ExtractedValueDTO? extractedData, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'evaluation_reasoning')  String? evaluationReasoning, @JsonKey(name: 'error_details')  ErrorDetailsDTO? errorDetails, @JsonKey(name: 'extensions')  Map<String, String> extensions, @JsonKey(name: 'depends_on_tda_ids')  List<String> dependsOnTdaIds, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds)  $default,) {final _that = this;
 switch (_that) {
 case _AtomResultDTO():
-return $default(_that.tdaId,_that.status,_that.extractedData,_that.sourceQuote,_that.contextualOverride,_that.evaluationReasoning,_that.errorDetails,_that.extensions,_that.dependsOnTdaIds,_that.shortCircuitReasonTdaIds);case _:
+return $default(_that.tdaId,_that.matrixId,_that.status,_that.extractedData,_that.sourceQuote,_that.contextualOverride,_that.evaluationReasoning,_that.errorDetails,_that.extensions,_that.dependsOnTdaIds,_that.shortCircuitReasonTdaIds);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -752,10 +753,10 @@ return $default(_that.tdaId,_that.status,_that.extractedData,_that.sourceQuote,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId,  ExecutionStatus status, @JsonKey(name: 'extracted_data')  ExtractedValueDTO? extractedData, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'evaluation_reasoning')  String? evaluationReasoning, @JsonKey(name: 'error_details')  ErrorDetailsDTO? errorDetails, @JsonKey(name: 'extensions')  Map<String, String> extensions, @JsonKey(name: 'depends_on_tda_ids')  List<String> dependsOnTdaIds, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'matrix_id')  String? matrixId,  ExecutionStatus status, @JsonKey(name: 'extracted_data')  ExtractedValueDTO? extractedData, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'contextual_override')  bool contextualOverride, @JsonKey(name: 'evaluation_reasoning')  String? evaluationReasoning, @JsonKey(name: 'error_details')  ErrorDetailsDTO? errorDetails, @JsonKey(name: 'extensions')  Map<String, String> extensions, @JsonKey(name: 'depends_on_tda_ids')  List<String> dependsOnTdaIds, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds)?  $default,) {final _that = this;
 switch (_that) {
 case _AtomResultDTO() when $default != null:
-return $default(_that.tdaId,_that.status,_that.extractedData,_that.sourceQuote,_that.contextualOverride,_that.evaluationReasoning,_that.errorDetails,_that.extensions,_that.dependsOnTdaIds,_that.shortCircuitReasonTdaIds);case _:
+return $default(_that.tdaId,_that.matrixId,_that.status,_that.extractedData,_that.sourceQuote,_that.contextualOverride,_that.evaluationReasoning,_that.errorDetails,_that.extensions,_that.dependsOnTdaIds,_that.shortCircuitReasonTdaIds);case _:
   return null;
 
 }
@@ -767,10 +768,11 @@ return $default(_that.tdaId,_that.status,_that.extractedData,_that.sourceQuote,_
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _AtomResultDTO implements AtomResultDTO {
-  const _AtomResultDTO({@JsonKey(name: 'tda_id') required this.tdaId, required this.status, @JsonKey(name: 'extracted_data') this.extractedData, @JsonKey(name: 'source_quote') this.sourceQuote, @JsonKey(name: 'contextual_override') this.contextualOverride = false, @JsonKey(name: 'evaluation_reasoning') this.evaluationReasoning, @JsonKey(name: 'error_details') this.errorDetails, @JsonKey(name: 'extensions') final  Map<String, String> extensions = const {}, @JsonKey(name: 'depends_on_tda_ids') final  List<String> dependsOnTdaIds = const [], @JsonKey(name: 'short_circuit_reason_tda_ids') final  List<String> shortCircuitReasonTdaIds = const []}): _extensions = extensions,_dependsOnTdaIds = dependsOnTdaIds,_shortCircuitReasonTdaIds = shortCircuitReasonTdaIds;
+  const _AtomResultDTO({@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'matrix_id') this.matrixId, required this.status, @JsonKey(name: 'extracted_data') this.extractedData, @JsonKey(name: 'source_quote') this.sourceQuote, @JsonKey(name: 'contextual_override') this.contextualOverride = false, @JsonKey(name: 'evaluation_reasoning') this.evaluationReasoning, @JsonKey(name: 'error_details') this.errorDetails, @JsonKey(name: 'extensions') final  Map<String, String> extensions = const {}, @JsonKey(name: 'depends_on_tda_ids') final  List<String> dependsOnTdaIds = const [], @JsonKey(name: 'short_circuit_reason_tda_ids') final  List<String> shortCircuitReasonTdaIds = const []}): _extensions = extensions,_dependsOnTdaIds = dependsOnTdaIds,_shortCircuitReasonTdaIds = shortCircuitReasonTdaIds;
   factory _AtomResultDTO.fromJson(Map<String, dynamic> json) => _$AtomResultDTOFromJson(json);
 
 @override@JsonKey(name: 'tda_id') final  String tdaId;
+@override@JsonKey(name: 'matrix_id') final  String? matrixId;
 @override final  ExecutionStatus status;
 @override@JsonKey(name: 'extracted_data') final  ExtractedValueDTO? extractedData;
 @override@JsonKey(name: 'source_quote') final  String? sourceQuote;
@@ -814,7 +816,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'AtomResultDTO(tdaId: $tdaId, status: $status, extractedData: $extractedData, sourceQuote: $sourceQuote, contextualOverride: $contextualOverride, evaluationReasoning: $evaluationReasoning, errorDetails: $errorDetails, extensions: $extensions, dependsOnTdaIds: $dependsOnTdaIds, shortCircuitReasonTdaIds: $shortCircuitReasonTdaIds)';
+  return 'AtomResultDTO(tdaId: $tdaId, matrixId: $matrixId, status: $status, extractedData: $extractedData, sourceQuote: $sourceQuote, contextualOverride: $contextualOverride, evaluationReasoning: $evaluationReasoning, errorDetails: $errorDetails, extensions: $extensions, dependsOnTdaIds: $dependsOnTdaIds, shortCircuitReasonTdaIds: $shortCircuitReasonTdaIds)';
 }
 
 
@@ -825,7 +827,7 @@ abstract mixin class _$AtomResultDTOCopyWith<$Res> implements $AtomResultDTOCopy
   factory _$AtomResultDTOCopyWith(_AtomResultDTO value, $Res Function(_AtomResultDTO) _then) = __$AtomResultDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId, ExecutionStatus status,@JsonKey(name: 'extracted_data') ExtractedValueDTO? extractedData,@JsonKey(name: 'source_quote') String? sourceQuote,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'evaluation_reasoning') String? evaluationReasoning,@JsonKey(name: 'error_details') ErrorDetailsDTO? errorDetails,@JsonKey(name: 'extensions') Map<String, String> extensions,@JsonKey(name: 'depends_on_tda_ids') List<String> dependsOnTdaIds,@JsonKey(name: 'short_circuit_reason_tda_ids') List<String> shortCircuitReasonTdaIds
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'matrix_id') String? matrixId, ExecutionStatus status,@JsonKey(name: 'extracted_data') ExtractedValueDTO? extractedData,@JsonKey(name: 'source_quote') String? sourceQuote,@JsonKey(name: 'contextual_override') bool contextualOverride,@JsonKey(name: 'evaluation_reasoning') String? evaluationReasoning,@JsonKey(name: 'error_details') ErrorDetailsDTO? errorDetails,@JsonKey(name: 'extensions') Map<String, String> extensions,@JsonKey(name: 'depends_on_tda_ids') List<String> dependsOnTdaIds,@JsonKey(name: 'short_circuit_reason_tda_ids') List<String> shortCircuitReasonTdaIds
 });
 
 
@@ -842,10 +844,11 @@ class __$AtomResultDTOCopyWithImpl<$Res>
 
 /// Create a copy of AtomResultDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? status = null,Object? extractedData = freezed,Object? sourceQuote = freezed,Object? contextualOverride = null,Object? evaluationReasoning = freezed,Object? errorDetails = freezed,Object? extensions = null,Object? dependsOnTdaIds = null,Object? shortCircuitReasonTdaIds = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? matrixId = freezed,Object? status = null,Object? extractedData = freezed,Object? sourceQuote = freezed,Object? contextualOverride = null,Object? evaluationReasoning = freezed,Object? errorDetails = freezed,Object? extensions = null,Object? dependsOnTdaIds = null,Object? shortCircuitReasonTdaIds = null,}) {
   return _then(_AtomResultDTO(
 tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,matrixId: freezed == matrixId ? _self.matrixId : matrixId // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ExecutionStatus,extractedData: freezed == extractedData ? _self.extractedData : extractedData // ignore: cast_nullable_to_non_nullable
 as ExtractedValueDTO?,sourceQuote: freezed == sourceQuote ? _self.sourceQuote : sourceQuote // ignore: cast_nullable_to_non_nullable
 as String?,contextualOverride: null == contextualOverride ? _self.contextualOverride : contextualOverride // ignore: cast_nullable_to_non_nullable
