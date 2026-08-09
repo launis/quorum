@@ -51,6 +51,10 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
         * Terminal commands (cat/tail) for log reading → Native MCP tools</mandatory_pattern>
       <catastrophic_reason>Validating outdated architectural patterns as official architecture guarantees rapid technical decay.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="7">

@@ -51,6 +51,10 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
       <mandatory_pattern>Whenever you generate a handover command, tracker file, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="8_test_expansion">
