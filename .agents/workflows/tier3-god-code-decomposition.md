@@ -78,6 +78,10 @@ This workflow is designed for the systematic planning and decomposition of heavy
       <mandatory_pattern>Every generated extraction plan MUST include a `<test_contracts>` XML block containing concrete, named test specifications. Each test contract MUST define: 1) test name following `test_{method}_{scenario}_{expected}` convention, 2) input fixture, 3) expected output or exception, 4) category (positive/negative/boundary/error_path). For every positive test, at least 2 negative/boundary tests MUST be specified. Since God Code decomposition requires zero behavioral change, test contracts MUST include `regression` category tests that lock the EXACT current output of each extracted method.</mandatory_pattern>
       <catastrophic_reason>God Code decomposition without explicit test contracts makes it impossible to verify zero behavioral change. The executing agent writes superficial tests that pass but fail to detect subtle logic drift introduced during extraction.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   
 
   </context_rules>

@@ -30,6 +30,10 @@ description: Tier 3 (Database Reset) - Workflow for executing local environment 
       <mandatory_pattern>After the background task completes, verify that the terminal exit code was 0 and that the logs show successful seeding. Afterwards, run the backend audit loop as a secondary validation before reporting success.</mandatory_pattern>
       <catastrophic_reason>Silent failures during seeding result in a corrupted database state.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <phases>
