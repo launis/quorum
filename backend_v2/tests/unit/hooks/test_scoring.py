@@ -1243,3 +1243,65 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check():
     assert atom_hash in matrix_output.get("evaluated_atoms", {})
     assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) is True
     # Score may still be 1.0 due to waterfall cascade failure on other levels, but the atom was evaluated!
+
+
+@pytest.mark.asyncio
+async def test_failed_atom_with_override_does_not_inflate_score() -> None:
+    """Test that a FAILED atom with contextual_override=True does NOT inflate the matrix score."""
+    from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+    from backend_v2.hooks.scoring import matrix_scoring_hook
+    from backend_v2.models.enums import ExecutionStatus
+
+    mandate = "FAIL_FAST_NO_EVIDENCE"
+    atom_hash = generate_atom_hash("atom_3", mandate)
+
+    ev_dict = {
+        "tda_id": atom_hash,
+        "matrix_id": "pb_1234567890123456",
+        "status": ExecutionStatus.FAILED,
+        "evaluation_reasoning": "Failed reason",
+        "source_quote": None,
+        "contextual_override": True,
+    }
+
+    state = HookState(
+        execution_id="ex_1111111111111111",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata={"is_dag_mode": True},
+        inputs={"results": [ev_dict], "extracted_facts": {}},
+        global_context_vars={},
+    )
+
+    class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
+        async def get_output_profile_by_id(self, _id: str) -> dict[str, Any]:
+            return {
+                "id": "prof_1111111111111111",
+                "slug": "test_slug",
+                "workflow_id": "wf_123",
+                "name": {"default_locale": "en", "translations": {"en": "Test Profile", "fi": "Test Profile"}},
+                "strictness_level": 100,
+                "scoring_strategy": "WATERFALL",
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
+                "layouts": [],
+            }
+
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        prompt_block_repo=cast(Any, MockRepoWaterfall()),
+        output_profile_repo=cast(Any, MockOutputProfileRepoWaterfallPropagates()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    assert result.success is True
+    matrix_output = result.state_delta.get("pb_1234567890123456")
+    assert matrix_output is not None
+    # Defense-in-depth ensures is_satisfied = False despite contextual_override
+    assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) is False
