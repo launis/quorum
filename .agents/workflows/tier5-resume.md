@@ -44,6 +44,10 @@ description: Tier 5 (Resume & Universal Bootstrapper) - The universal receiver t
       <banned_pattern>Iteratively guessing file paths or falling into an infinite search loop if the handover payload contains invalid `--target` or `--workflow` references.</banned_pattern>
       <mandatory_pattern>If directory inspection, git baseline verification, or reading the specified payload files fails 3 times sequentially (e.g., `FileNotFoundError`), you MUST STOP. Output `<circuit_breaker_tripped>`, explicitly state which path or step failed, and WAIT for human guidance. Do NOT attempt a 4th fix.</mandatory_pattern>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="5">

@@ -45,6 +45,10 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing and 
       <mandatory_pattern>You MUST actively audit FinOps metrics and DAG structural redundancy using the deterministic `finops_trace_analyzer.py` utility. Do not attempt to manually calculate total costs or hash payloads in memory; rely exclusively on the utility.</mandatory_pattern>
       <catastrophic_reason>Manual token and FinOps math by the LLM is highly inaccurate and prone to hallucinations, breaking the strict audit trail.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="6">

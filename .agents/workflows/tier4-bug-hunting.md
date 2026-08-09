@@ -84,8 +84,10 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
       <mandatory_pattern>You MUST strictly format the execution instructions inside `bug_fix_plan.md` using the "XML Sandwich" structure. The human-readable context (Root Cause, 5 Whys, Blast Radius) must be written in standard Markdown at the top of the file. However, the actual step-by-step implementation instructions MUST be enclosed within an `&lt;execution_protocol&gt;` XML block at the bottom of the file. Inside this block, use `&lt;step id="..." name="..."&gt;`, `&lt;action&gt;`, and `&lt;constraint&gt;` tags. Tier 2 agents will ONLY parse instructions that exist inside these strict XML tags.</mandatory_pattern>
       <catastrophic_reason>Tier 2 uses strict XML parsing (the Completeness Mandate). If the bug fix instructions are left in plain Markdown, Tier 2 will completely ignore them and the automated execution pipeline will fail.</catastrophic_reason>
     </rule_block>
-  
-
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="4">
