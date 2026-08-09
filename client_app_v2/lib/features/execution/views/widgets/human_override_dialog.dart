@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/core/api/execution_client.dart';
+import 'package:client_app/core/models/enums.dart';
 
 class HumanOverrideDialog extends ConsumerStatefulWidget {
   final ScorecardAtomDto atom;
@@ -19,7 +20,7 @@ class HumanOverrideDialog extends ConsumerStatefulWidget {
 }
 
 class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
-  late String _selectedStatus;
+  late ExecutionStatus _selectedStatus;
   final _reasonController = TextEditingController();
   final List<QuoteEvidenceDto> _quotes = [];
   bool _isLoading = false;
@@ -29,16 +30,12 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
     super.initState();
     _selectedStatus =
         widget.atom.humanOverride?.newStatus ??
-        widget.atom.status?.name.toUpperCase() ??
-        'PASS';
-    // Validate that it's one of PASS, FAIL, CONTESTED
-    final upperStatus = _selectedStatus.toUpperCase();
-    if (upperStatus != 'PASS' &&
-        upperStatus != 'FAIL' &&
-        upperStatus != 'CONTESTED') {
-      _selectedStatus = 'PASS';
-    } else {
-      _selectedStatus = upperStatus;
+        widget.atom.status ??
+        ExecutionStatus.passed;
+
+    if (_selectedStatus != ExecutionStatus.passed &&
+        _selectedStatus != ExecutionStatus.failed) {
+      _selectedStatus = ExecutionStatus.passed;
     }
 
     _reasonController.text = widget.atom.humanOverride?.reason ?? '';
@@ -61,7 +58,9 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
       final client = ref.read(executionClientProvider);
 
       final payload = {
-        'new_status': _selectedStatus,
+        'new_status': _selectedStatus == ExecutionStatus.passed
+            ? 'PASSED'
+            : 'FAILED',
         'reason': reason,
         'evidence_quotes': _quotes
             .map(
@@ -111,14 +110,16 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField<ExecutionStatus>(
                 initialValue: _selectedStatus,
                 items: const [
-                  DropdownMenuItem(value: 'PASS', child: Text('PASS')),
-                  DropdownMenuItem(value: 'FAIL', child: Text('FAIL')),
                   DropdownMenuItem(
-                    value: 'CONTESTED',
-                    child: Text('CONTESTED'),
+                    value: ExecutionStatus.passed,
+                    child: Text('PASS'),
+                  ),
+                  DropdownMenuItem(
+                    value: ExecutionStatus.failed,
+                    child: Text('FAIL'),
                   ),
                 ],
                 onChanged: (val) {
