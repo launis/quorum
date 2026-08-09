@@ -6,7 +6,7 @@ from typing import Any, Literal
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.enums import AtomEvaluationStatus
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import ExecutionRecord, TDAAssertion
 
 logger = logging.getLogger(__name__)
@@ -108,7 +108,7 @@ class MatrixReducer:
                 # Token-compression cascade: Drop boolean PASSED atoms
                 # to save context window, unless they have extracted quantitative data
                 has_extracted_data = bool(atom.extracted_facts)
-                if atom.status == AtomEvaluationStatus.PASS and not has_extracted_data:
+                if atom.status == ExecutionStatus.PASSED and not has_extracted_data:
                     continue
 
                 # Extract first quote text if available

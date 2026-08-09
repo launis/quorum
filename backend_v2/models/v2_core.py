@@ -22,12 +22,10 @@ from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngres
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEvidenceDTO
 from backend_v2.models.enums import (
-    AtomEvaluationStatus,
     BlockDataType,
     ComponentType,
     ExecutionStatus,
     HistoricalContextMode,
-    LaxAtomEvaluationStatus,
     LaxBlockDataType,
     LaxComponentType,
     LaxExecutionStatus,
@@ -882,7 +880,7 @@ class ExpectedInput(V2CoreBase):
 class HumanOverrideRequest(V2CoreBase):
     """Payload for human override requests."""
 
-    new_status: LaxAtomEvaluationStatus = Field(description="The overridden status (e.g., TRUE, FALSE, DLQ).")
+    new_status: LaxExecutionStatus = Field(description="The overridden status (PASSED, FAILED, SYSTEM_ERROR).")
     reason: str = Field(description="The reason for the override.")
     evidence_quotes: list[QuoteEvidenceDTO] = Field(
         default_factory=list, description="Selected quotes to support the override."
@@ -892,7 +890,7 @@ class HumanOverrideRequest(V2CoreBase):
 class HumanOverrideDTO(V2CoreBase):
     """Schema for human-initiated state override."""
 
-    new_status: AtomEvaluationStatus = Field(description="The overridden status (e.g., TRUE, FALSE, DLQ).")
+    new_status: ExecutionStatus = Field(description="The overridden status (PASSED, FAILED, SYSTEM_ERROR).")
     reason: str = Field(description="The reason for the override.")
     evidence_quotes: list[QuoteEvidenceDTO] = Field(description="Selected quotes to support the override.")
     overridden_by: str = Field(description="User ID who performed the override.")
@@ -911,13 +909,24 @@ class ScorecardAtomDTO(V2CoreBase):
     extracted_facts: dict[str, str | None]
     exact_quotes: list[QuoteEvidenceDTO]
     internal_logic_en: ReasoningStepDTO
-    status: LaxAtomEvaluationStatus | None
+    status: LaxExecutionStatus | None
     semantic_reasoning: str
     contextual_override: bool
     structural_location: str | None
     chart_display_label: str
     visual_intent: VisualIntent
     human_override: HumanOverrideDTO | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_contested_to_warning(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            status = data.get("status")
+            # Handle both string and Enum variants for status
+            is_passed = status == "PASSED" or (isinstance(status, ExecutionStatus) and status == ExecutionStatus.PASSED)
+            if is_passed and data.get("contextual_override"):
+                data["visual_intent"] = VisualIntent.WARNING
+        return data
 
 
 class TDAPending(V2CoreBase):

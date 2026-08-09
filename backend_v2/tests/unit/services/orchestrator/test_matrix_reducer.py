@@ -52,19 +52,19 @@ def test_reduce_matrix() -> None:
     """
     # Build mock atoms
     atom_passed = MagicMock()
-    atom_passed.status = "PASS"
+    atom_passed.status = "PASSED"
     atom_passed.extracted_facts = {}
     atom_passed.exact_quotes = []
     atom_passed.semantic_reasoning = "Passed without data"
 
     atom_failed = MagicMock()
-    atom_failed.status = "FAIL"
+    atom_failed.status = "FAILED"
     atom_failed.extracted_facts = {}
     atom_failed.exact_quotes = []
     atom_failed.semantic_reasoning = "Failed completely"
 
     atom_pass_with_data = MagicMock()
-    atom_pass_with_data.status = "PASS"
+    atom_pass_with_data.status = "PASSED"
     atom_pass_with_data.extracted_facts = {"revenue": "1M EUR"}
     atom_pass_with_data.exact_quotes = []
     atom_pass_with_data.semantic_reasoning = "Passed with extracted data"

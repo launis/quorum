@@ -4,7 +4,6 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.enums import AtomEvaluationStatus
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, FrozenContext, WorkflowInputs
 from backend_v2.services.execution import ExecutionService, create_execution_record
 
@@ -546,7 +545,7 @@ async def test_override_atom_success() -> None:
             step_3_evaluate_anti_patterns="",
             step_4_final_conclusion="",
         ),
-        status=AtomEvaluationStatus.FAIL,
+        status=ExecutionStatus.FAILED,
         semantic_reasoning="",
         contextual_override=False,
         structural_location=None,
@@ -569,7 +568,7 @@ async def test_override_atom_success() -> None:
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(
-        new_status=AtomEvaluationStatus.PASS,
+        new_status=ExecutionStatus.PASSED,
         reason="Override reason",
         evidence_quotes=[],
     )
@@ -635,7 +634,7 @@ async def test_get_execution_export_bytes_success() -> None:
                         step_3_evaluate_anti_patterns="",
                         step_4_final_conclusion="",
                     ),
-                    status=AtomEvaluationStatus.PASS,
+                    status=ExecutionStatus.PASSED,
                     semantic_reasoning="",
                     contextual_override=False,
                     structural_location=None,
@@ -731,7 +730,7 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
                         step_3_evaluate_anti_patterns="",
                         step_4_final_conclusion="",
                     ),
-                    status=AtomEvaluationStatus.PASS,
+                    status=ExecutionStatus.PASSED,
                     semantic_reasoning="",
                     contextual_override=False,
                     structural_location=None,

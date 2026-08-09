@@ -8,6 +8,7 @@ from backend_v2.models.enums import (
     DEFAULT_NULL_HYPOTHESIS_BLACKLIST,
     AtomEvaluationStatus,
     LaxAtomEvaluationStatus,
+    LaxExecutionStatus,
     LaxVisualIntent,
 )
 from backend_v2.settings import get_settings
@@ -415,7 +416,7 @@ class ReducedAtomDTO(V2CoreBase):
     """Reduced atom data for synthesis, containing only what is strictly necessary."""
 
     tda_id: str
-    status: LaxAtomEvaluationStatus
+    status: LaxExecutionStatus
     reasoning: str | None = None
     source_quote: str | None = None
     extracted_data: dict[str, Any] | None = None

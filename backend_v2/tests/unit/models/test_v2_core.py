@@ -17,7 +17,7 @@ def test_report_data_dto_strictness_level_validation() -> None:
 
 
 def test_scorecard_atom_dto_firewall() -> None:
-    from backend_v2.models.enums import AtomEvaluationStatus, VisualIntent
+    from backend_v2.models.enums import ExecutionStatus, VisualIntent
     from backend_v2.models.v2_core import ScorecardAtomDTO
 
     larger_payload = {
@@ -33,7 +33,7 @@ def test_scorecard_atom_dto_firewall() -> None:
             "step_3_evaluate_anti_patterns": "3",
             "step_4_final_conclusion": "4",
         },
-        "status": AtomEvaluationStatus.PASS,
+        "status": ExecutionStatus.PASSED,
         "semantic_reasoning": "Reason",
         "contextual_override": False,
         "structural_location": None,
@@ -105,3 +105,32 @@ def test_report_data_dto_rejects_legacy_fields() -> None:
             {"workflow_id": "wf_1", "execution_id": "exe_1", "profile_id": "prof_1", "penalties_applied": []}
         )
     assert "penalties_applied" in str(exc_info3.value)
+
+
+def test_scorecard_atom_contested_warning_mapping() -> None:
+    from backend_v2.models.enums import ExecutionStatus, VisualIntent
+    from backend_v2.models.v2_core import ScorecardAtomDTO
+
+    payload = {
+        "atom_id": "atom_1",
+        "level": 1,
+        "level_name": "Level 1",
+        "claim_label": "Claim 1",
+        "extracted_facts": {},
+        "exact_quotes": [],
+        "internal_logic_en": {
+            "step_1_identify_premise": "1",
+            "step_2_scan_source": "2",
+            "step_3_evaluate_anti_patterns": "3",
+            "step_4_final_conclusion": "4",
+        },
+        "status": ExecutionStatus.PASSED,
+        "semantic_reasoning": "Reason",
+        "contextual_override": True,
+        "structural_location": None,
+        "chart_display_label": "N/A",
+        "visual_intent": VisualIntent.NEUTRAL,
+    }
+
+    dto = ScorecardAtomDTO.model_validate(payload)
+    assert dto.visual_intent == VisualIntent.WARNING

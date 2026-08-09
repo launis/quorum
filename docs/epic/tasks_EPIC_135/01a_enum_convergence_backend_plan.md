@@ -21,12 +21,12 @@
   </step>
 
   <dod_checklist>
-    - [ ] `AtomEvaluationStatus` and `LaxAtomEvaluationStatus` usages are migrated to `ExecutionStatus` and `LaxExecutionStatus` in target files.
-    - [ ] `ScorecardAtomDTO.status` is updated.
-    - [ ] `ScorecardAtomDTO` correctly maps `contextual_override=True` to `visual_intent=VisualIntent.WARNING` for frontend parity.
-    - [ ] `HumanOverrideRequest` and `HumanOverrideDTO` `new_status` updated with proper Pydantic descriptions.
-    - [ ] `matrix_domain_parser.py` and `matrix_reducer.py` updated to use `ExecutionStatus` to preserve `ScorecardAtomDTO` build integrity.
-    - [ ] Test files `test_v2_core.py`, `test_execution.py`, and `test_matrix_reducer.py` updated atomically.
+    - [x] `AtomEvaluationStatus` and `LaxAtomEvaluationStatus` usages are migrated to `ExecutionStatus` and `LaxExecutionStatus` in target files.
+    - [x] `ScorecardAtomDTO.status` is updated.
+    - [x] `ScorecardAtomDTO` correctly maps `contextual_override=True` to `visual_intent=VisualIntent.WARNING` for frontend parity.
+    - [x] `HumanOverrideRequest` and `HumanOverrideDTO` `new_status` updated with proper Pydantic descriptions.
+    - [x] `matrix_domain_parser.py` and `matrix_reducer.py` updated to use `ExecutionStatus` to preserve `ScorecardAtomDTO` build integrity.
+    - [x] Test files `test_v2_core.py`, `test_execution.py`, and `test_matrix_reducer.py` updated atomically.
   </dod_checklist>
 
   <required_context_rules>

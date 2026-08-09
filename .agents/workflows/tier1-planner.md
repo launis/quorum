@@ -170,8 +170,8 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     </rule_block>
 
     <rule_block id="tracker_inclusion_mandate">
-      <banned_pattern>Generating handover commands, documentation, or workflows that execute `/tier0-research-plan` without explicitly including the Tracker file.</banned_pattern>
-      <mandatory_pattern>You MUST ensure that any instructions or commands involving `/tier0-research-plan` explicitly require passing BOTH the target plan file AND the Epic's Tracker file (e.g. `@[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md]`) as arguments. The Tracker is mandatory context for all Tier 0 and Tier 2 workflows.</mandatory_pattern>
+      <banned_pattern>Generating handover commands, documentation, or workflows that execute `/tier0-research-plan`, `/tier2-execute`, or `/tier8-audit-plan` without explicitly including the Tracker file.</banned_pattern>
+      <mandatory_pattern>You MUST ensure that any instructions or commands involving `/tier0-research-plan`, `/tier2-execute`, or `/tier8-audit-plan` explicitly require passing BOTH the target plan file AND the Epic's Tracker file (e.g. `@[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md]`) as arguments. The Tracker is mandatory context for all Tier 0, Tier 2, and Tier 8 workflows.</mandatory_pattern>
       <catastrophic_reason>Without the tracker file, the research and executing agents lose the macro-context of the Epic phases and cannot correctly update the traceability matrix.</catastrophic_reason>
     </rule_block>
     
