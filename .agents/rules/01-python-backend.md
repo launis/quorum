@@ -148,6 +148,17 @@
         <catastrophic_reason>Passing naked dicts delays validation failures to the presentation layer, breaking traceability and defeating the 2026 Fail-Fast mandate.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="schema_convergence_mandate">
+        <banned_pattern>Creating a new DTO/schema class that represents the same logical domain concept as an existing class (e.g., a second "atom evaluation result" model), adding "compatibility properties" to bridge old and new schemas, OR maintaining parallel if/else branches in service/hook layers that dispatch to different model classes based on a mode flag.</banned_pattern>
+        <mandatory_pattern>One Concept = One Schema. When evolving a domain model (e.g., migrating from waterfall to DAG execution):
+        1. EXTRACT a shared Protocol/ABC defining the mandatory interface (e.g., `calculate_rule_satisfied`, `status`, `contextual_override`).
+        2. Make BOTH old and new models implement this Protocol.
+        3. Consumers (e.g., scoring.py) MUST accept ONLY the Protocol type, never concrete model classes.
+        4. Set an explicit SUNSET DEADLINE in the implementation plan for removing the old model. The old model MUST be deleted within the same Epic or the immediately following Epic.
+        5. Fallback chains between schema variants are ABSOLUTELY FORBIDDEN. If validation fails, Fail-Fast immediately.</mandatory_pattern>
+        <catastrophic_reason>Parallel schemas for the same concept create "Shadow Pipelines" where bugs are fixed in one path but silently persist in the other. Compatibility properties bypass type safety, and fallback chains mask data corruption. This is the root cause of the Override Inflation Bug (FAILED + contextual_override: true) scoring 100% in legacy paths while being correctly blocked in DAG paths.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="structured_state_envelopes_mandate">
         <banned_pattern>Using naked dictionaries (`dict`) to represent the intermediate execution trace (e.g. `fold_trace` returning dicts) or parsing execution traces using string manipulation (`endswith()`, `split()`).</banned_pattern>
         <mandatory_pattern>All execution traces and state projections MUST use structured envelopes (`List[StepOutputDTO]`). Downstream consumers must strictly filter by `step_id` and `block_id` natively.</mandatory_pattern>

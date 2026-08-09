@@ -661,6 +661,40 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         ),
 
                         const SizedBox(height: 16),
+                        // Contextual Override Configuration
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          child: SwitchListTile(
+                            title: Text(
+                              l10n.allowContextualOverrideLabel,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(l10n.allowContextualOverrideDescription),
+                            ),
+                            value: payload.allowContextualOverride,
+                            onChanged: (val) {
+                              ref
+                                  .read(
+                                    promptBlockFormProvider(blockId).notifier,
+                                  )
+                                  .forceRebuild(
+                                    payload.copyWith(
+                                      allowContextualOverride: val,
+                                    ),
+                                  );
+                            },
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
                         // Ensemble Configuration
                         Container(
                           padding: const EdgeInsets.all(12),

@@ -111,9 +111,6 @@ abstract class TDAAssertion with _$TDAAssertion {
     EvaluationTrack evaluationTrack,
     @JsonKey(name: 'facts_to_find') @Default([]) List<String> factsToFind,
     @JsonKey(name: 'logical_expression') String? logicalExpression,
-    @JsonKey(name: 'allow_contextual_override')
-    @Default(false)
-    bool allowContextualOverride,
     @JsonKey(name: 'high_entropy') @Default(false) bool highEntropy,
     @JsonKey(name: 'anchor_target') String? anchorTarget,
     @JsonKey(name: 'bounding_box_scope')
@@ -133,7 +130,6 @@ abstract class TDAAssertion with _$TDAAssertion {
     EvaluationTrack evaluationTrack = EvaluationTrack.cognitiveJudgement,
     List<String> factsToFind = const [],
     String? logicalExpression,
-    bool allowContextualOverride = false,
   }) {
     final uuidHex = const Uuid().v4().replaceAll('-', '');
     return TDAAssertion(
@@ -144,7 +140,6 @@ abstract class TDAAssertion with _$TDAAssertion {
       evaluationTrack: evaluationTrack,
       factsToFind: factsToFind,
       logicalExpression: logicalExpression,
-      allowContextualOverride: allowContextualOverride,
       anchorTarget: null,
       boundingBoxScope: 'paragraph',
       extractionRule: null,
@@ -219,6 +214,9 @@ abstract class PromptBlock with _$PromptBlock {
     @Default(false) bool allowDecimals,
     @Default([]) List<String> outputExtensions,
     TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'allow_contextual_override')
+    @Default(false)
+    bool allowContextualOverride,
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,

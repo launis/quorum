@@ -771,7 +771,7 @@ as bool,
 /// @nodoc
 mixin _$TDAAssertion {
 
-@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'concept_description') String get conceptDescription;@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> get acceptanceCriteria;@JsonKey(name: 'anti_patterns') List<AntiPattern> get antiPatterns;@JsonKey(name: 'contrastive_example') String? get contrastiveExample;@JsonKey(name: 'syntactic_anchors') List<String> get syntacticAnchors;@JsonKey(name: 'enforce_pre_flight') bool get enforcePreFlight;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;@JsonKey(name: 'evaluation_track') EvaluationTrack get evaluationTrack;@JsonKey(name: 'facts_to_find') List<String> get factsToFind;@JsonKey(name: 'logical_expression') String? get logicalExpression;@JsonKey(name: 'allow_contextual_override') bool get allowContextualOverride;@JsonKey(name: 'high_entropy') bool get highEntropy;@JsonKey(name: 'anchor_target') String? get anchorTarget;@JsonKey(name: 'bounding_box_scope') String get boundingBoxScope;@JsonKey(name: 'extraction_rule') String? get extractionRule;
+@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'concept_description') String get conceptDescription;@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> get acceptanceCriteria;@JsonKey(name: 'anti_patterns') List<AntiPattern> get antiPatterns;@JsonKey(name: 'contrastive_example') String? get contrastiveExample;@JsonKey(name: 'syntactic_anchors') List<String> get syntacticAnchors;@JsonKey(name: 'enforce_pre_flight') bool get enforcePreFlight;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;@JsonKey(name: 'evaluation_track') EvaluationTrack get evaluationTrack;@JsonKey(name: 'facts_to_find') List<String> get factsToFind;@JsonKey(name: 'logical_expression') String? get logicalExpression;@JsonKey(name: 'high_entropy') bool get highEntropy;@JsonKey(name: 'anchor_target') String? get anchorTarget;@JsonKey(name: 'bounding_box_scope') String get boundingBoxScope;@JsonKey(name: 'extraction_rule') String? get extractionRule;
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -786,7 +786,7 @@ $TDAAssertionCopyWith<TDAAssertion> get copyWith => _$TDAAssertionCopyWithImpl<T
 
 @override
 String toString() {
-  return 'TDAAssertion(tdaId: $tdaId, conceptDescription: $conceptDescription, acceptanceCriteria: $acceptanceCriteria, antiPatterns: $antiPatterns, contrastiveExample: $contrastiveExample, syntacticAnchors: $syntacticAnchors, enforcePreFlight: $enforcePreFlight, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, allowContextualOverride: $allowContextualOverride, highEntropy: $highEntropy, anchorTarget: $anchorTarget, boundingBoxScope: $boundingBoxScope, extractionRule: $extractionRule)';
+  return 'TDAAssertion(tdaId: $tdaId, conceptDescription: $conceptDescription, acceptanceCriteria: $acceptanceCriteria, antiPatterns: $antiPatterns, contrastiveExample: $contrastiveExample, syntacticAnchors: $syntacticAnchors, enforcePreFlight: $enforcePreFlight, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, highEntropy: $highEntropy, anchorTarget: $anchorTarget, boundingBoxScope: $boundingBoxScope, extractionRule: $extractionRule)';
 }
 
 
@@ -797,7 +797,7 @@ abstract mixin class $TDAAssertionCopyWith<$Res>  {
   factory $TDAAssertionCopyWith(TDAAssertion value, $Res Function(TDAAssertion) _then) = _$TDAAssertionCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
 });
 
 
@@ -814,7 +814,7 @@ class _$TDAAssertionCopyWithImpl<$Res>
 
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? conceptDescription = null,Object? acceptanceCriteria = null,Object? antiPatterns = null,Object? contrastiveExample = freezed,Object? syntacticAnchors = null,Object? enforcePreFlight = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? allowContextualOverride = null,Object? highEntropy = null,Object? anchorTarget = freezed,Object? boundingBoxScope = null,Object? extractionRule = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? conceptDescription = null,Object? acceptanceCriteria = null,Object? antiPatterns = null,Object? contrastiveExample = freezed,Object? syntacticAnchors = null,Object? enforcePreFlight = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? highEntropy = null,Object? anchorTarget = freezed,Object? boundingBoxScope = null,Object? extractionRule = freezed,}) {
   return _then(_self.copyWith(
 tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
 as String,conceptDescription: null == conceptDescription ? _self.conceptDescription : conceptDescription // ignore: cast_nullable_to_non_nullable
@@ -828,8 +828,7 @@ as bool,aggregationMode: null == aggregationMode ? _self.aggregationMode : aggre
 as AggregationMode,evaluationTrack: null == evaluationTrack ? _self.evaluationTrack : evaluationTrack // ignore: cast_nullable_to_non_nullable
 as EvaluationTrack,factsToFind: null == factsToFind ? _self.factsToFind : factsToFind // ignore: cast_nullable_to_non_nullable
 as List<String>,logicalExpression: freezed == logicalExpression ? _self.logicalExpression : logicalExpression // ignore: cast_nullable_to_non_nullable
-as String?,allowContextualOverride: null == allowContextualOverride ? _self.allowContextualOverride : allowContextualOverride // ignore: cast_nullable_to_non_nullable
-as bool,highEntropy: null == highEntropy ? _self.highEntropy : highEntropy // ignore: cast_nullable_to_non_nullable
+as String?,highEntropy: null == highEntropy ? _self.highEntropy : highEntropy // ignore: cast_nullable_to_non_nullable
 as bool,anchorTarget: freezed == anchorTarget ? _self.anchorTarget : anchorTarget // ignore: cast_nullable_to_non_nullable
 as String?,boundingBoxScope: null == boundingBoxScope ? _self.boundingBoxScope : boundingBoxScope // ignore: cast_nullable_to_non_nullable
 as String,extractionRule: freezed == extractionRule ? _self.extractionRule : extractionRule // ignore: cast_nullable_to_non_nullable
@@ -918,10 +917,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TDAAssertion() when $default != null:
-return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
+return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
   return orElse();
 
 }
@@ -939,10 +938,10 @@ return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)  $default,) {final _that = this;
 switch (_that) {
 case _TDAAssertion():
-return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
+return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -959,10 +958,10 @@ return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,) {final _that = this;
 switch (_that) {
 case _TDAAssertion() when $default != null:
-return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
+return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
   return null;
 
 }
@@ -974,7 +973,7 @@ return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_t
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _TDAAssertion extends TDAAssertion {
-  const _TDAAssertion({@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'concept_description') required this.conceptDescription, @JsonKey(name: 'acceptance_criteria') final  List<AcceptanceCriterion> acceptanceCriteria = const [], @JsonKey(name: 'anti_patterns') final  List<AntiPattern> antiPatterns = const [], @JsonKey(name: 'contrastive_example') this.contrastiveExample, @JsonKey(name: 'syntactic_anchors') final  List<String> syntacticAnchors = const [], @JsonKey(name: 'enforce_pre_flight') this.enforcePreFlight = false, @JsonKey(name: 'inverse_evidence') required this.inverseEvidence, @JsonKey(name: 'aggregation_mode') required this.aggregationMode, @JsonKey(name: 'evaluation_track') this.evaluationTrack = EvaluationTrack.cognitiveJudgement, @JsonKey(name: 'facts_to_find') final  List<String> factsToFind = const [], @JsonKey(name: 'logical_expression') this.logicalExpression, @JsonKey(name: 'allow_contextual_override') this.allowContextualOverride = false, @JsonKey(name: 'high_entropy') this.highEntropy = false, @JsonKey(name: 'anchor_target') this.anchorTarget, @JsonKey(name: 'bounding_box_scope') this.boundingBoxScope = 'paragraph', @JsonKey(name: 'extraction_rule') this.extractionRule}): _acceptanceCriteria = acceptanceCriteria,_antiPatterns = antiPatterns,_syntacticAnchors = syntacticAnchors,_factsToFind = factsToFind,super._();
+  const _TDAAssertion({@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'concept_description') required this.conceptDescription, @JsonKey(name: 'acceptance_criteria') final  List<AcceptanceCriterion> acceptanceCriteria = const [], @JsonKey(name: 'anti_patterns') final  List<AntiPattern> antiPatterns = const [], @JsonKey(name: 'contrastive_example') this.contrastiveExample, @JsonKey(name: 'syntactic_anchors') final  List<String> syntacticAnchors = const [], @JsonKey(name: 'enforce_pre_flight') this.enforcePreFlight = false, @JsonKey(name: 'inverse_evidence') required this.inverseEvidence, @JsonKey(name: 'aggregation_mode') required this.aggregationMode, @JsonKey(name: 'evaluation_track') this.evaluationTrack = EvaluationTrack.cognitiveJudgement, @JsonKey(name: 'facts_to_find') final  List<String> factsToFind = const [], @JsonKey(name: 'logical_expression') this.logicalExpression, @JsonKey(name: 'high_entropy') this.highEntropy = false, @JsonKey(name: 'anchor_target') this.anchorTarget, @JsonKey(name: 'bounding_box_scope') this.boundingBoxScope = 'paragraph', @JsonKey(name: 'extraction_rule') this.extractionRule}): _acceptanceCriteria = acceptanceCriteria,_antiPatterns = antiPatterns,_syntacticAnchors = syntacticAnchors,_factsToFind = factsToFind,super._();
   factory _TDAAssertion.fromJson(Map<String, dynamic> json) => _$TDAAssertionFromJson(json);
 
 @override@JsonKey(name: 'tda_id') final  String tdaId;
@@ -1013,7 +1012,6 @@ class _TDAAssertion extends TDAAssertion {
 }
 
 @override@JsonKey(name: 'logical_expression') final  String? logicalExpression;
-@override@JsonKey(name: 'allow_contextual_override') final  bool allowContextualOverride;
 @override@JsonKey(name: 'high_entropy') final  bool highEntropy;
 @override@JsonKey(name: 'anchor_target') final  String? anchorTarget;
 @override@JsonKey(name: 'bounding_box_scope') final  String boundingBoxScope;
@@ -1034,7 +1032,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'TDAAssertion(tdaId: $tdaId, conceptDescription: $conceptDescription, acceptanceCriteria: $acceptanceCriteria, antiPatterns: $antiPatterns, contrastiveExample: $contrastiveExample, syntacticAnchors: $syntacticAnchors, enforcePreFlight: $enforcePreFlight, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, allowContextualOverride: $allowContextualOverride, highEntropy: $highEntropy, anchorTarget: $anchorTarget, boundingBoxScope: $boundingBoxScope, extractionRule: $extractionRule)';
+  return 'TDAAssertion(tdaId: $tdaId, conceptDescription: $conceptDescription, acceptanceCriteria: $acceptanceCriteria, antiPatterns: $antiPatterns, contrastiveExample: $contrastiveExample, syntacticAnchors: $syntacticAnchors, enforcePreFlight: $enforcePreFlight, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, highEntropy: $highEntropy, anchorTarget: $anchorTarget, boundingBoxScope: $boundingBoxScope, extractionRule: $extractionRule)';
 }
 
 
@@ -1045,7 +1043,7 @@ abstract mixin class _$TDAAssertionCopyWith<$Res> implements $TDAAssertionCopyWi
   factory _$TDAAssertionCopyWith(_TDAAssertion value, $Res Function(_TDAAssertion) _then) = __$TDAAssertionCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
 });
 
 
@@ -1062,7 +1060,7 @@ class __$TDAAssertionCopyWithImpl<$Res>
 
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? conceptDescription = null,Object? acceptanceCriteria = null,Object? antiPatterns = null,Object? contrastiveExample = freezed,Object? syntacticAnchors = null,Object? enforcePreFlight = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? allowContextualOverride = null,Object? highEntropy = null,Object? anchorTarget = freezed,Object? boundingBoxScope = null,Object? extractionRule = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? conceptDescription = null,Object? acceptanceCriteria = null,Object? antiPatterns = null,Object? contrastiveExample = freezed,Object? syntacticAnchors = null,Object? enforcePreFlight = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? highEntropy = null,Object? anchorTarget = freezed,Object? boundingBoxScope = null,Object? extractionRule = freezed,}) {
   return _then(_TDAAssertion(
 tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
 as String,conceptDescription: null == conceptDescription ? _self.conceptDescription : conceptDescription // ignore: cast_nullable_to_non_nullable
@@ -1076,8 +1074,7 @@ as bool,aggregationMode: null == aggregationMode ? _self.aggregationMode : aggre
 as AggregationMode,evaluationTrack: null == evaluationTrack ? _self.evaluationTrack : evaluationTrack // ignore: cast_nullable_to_non_nullable
 as EvaluationTrack,factsToFind: null == factsToFind ? _self._factsToFind : factsToFind // ignore: cast_nullable_to_non_nullable
 as List<String>,logicalExpression: freezed == logicalExpression ? _self.logicalExpression : logicalExpression // ignore: cast_nullable_to_non_nullable
-as String?,allowContextualOverride: null == allowContextualOverride ? _self.allowContextualOverride : allowContextualOverride // ignore: cast_nullable_to_non_nullable
-as bool,highEntropy: null == highEntropy ? _self.highEntropy : highEntropy // ignore: cast_nullable_to_non_nullable
+as String?,highEntropy: null == highEntropy ? _self.highEntropy : highEntropy // ignore: cast_nullable_to_non_nullable
 as bool,anchorTarget: freezed == anchorTarget ? _self.anchorTarget : anchorTarget // ignore: cast_nullable_to_non_nullable
 as String?,boundingBoxScope: null == boundingBoxScope ? _self.boundingBoxScope : boundingBoxScope // ignore: cast_nullable_to_non_nullable
 as String,extractionRule: freezed == extractionRule ? _self.extractionRule : extractionRule // ignore: cast_nullable_to_non_nullable
@@ -1929,7 +1926,7 @@ $I18nTextCopyWith<$Res>? get name {
 /// @nodoc
 mixin _$PromptBlock {
 
-@StrictOpaqueIdConverter() String get id; String get slug; String? get organizationId; I18nText get label; I18nText get description; String? get aiDescription; String get categoryId; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; TheoryGrounding? get theoryGrounding;@JsonKey(name: 'is_lightweight_protocol') bool get isLightweightProtocol; int? get scaleMin; int? get scaleMax;@JsonKey(includeToJson: false) int? get computedMin;@JsonKey(includeToJson: false) int? get computedMax; List<MatrixScale>? get scales; List<MatrixRow>? get rows; List<I18nText>? get columns;
+@StrictOpaqueIdConverter() String get id; String get slug; String? get organizationId; I18nText get label; I18nText get description; String? get aiDescription; String get categoryId; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; TheoryGrounding? get theoryGrounding;@JsonKey(name: 'allow_contextual_override') bool get allowContextualOverride;@JsonKey(name: 'is_lightweight_protocol') bool get isLightweightProtocol; int? get scaleMin; int? get scaleMax;@JsonKey(includeToJson: false) int? get computedMin;@JsonKey(includeToJson: false) int? get computedMax; List<MatrixScale>? get scales; List<MatrixRow>? get rows; List<I18nText>? get columns;
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1944,7 +1941,7 @@ $PromptBlockCopyWith<PromptBlock> get copyWith => _$PromptBlockCopyWithImpl<Prom
 
 @override
 String toString() {
-  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
+  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, allowContextualOverride: $allowContextualOverride, isLightweightProtocol: $isLightweightProtocol, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
 }
 
 
@@ -1955,7 +1952,7 @@ abstract mixin class $PromptBlockCopyWith<$Res>  {
   factory $PromptBlockCopyWith(PromptBlock value, $Res Function(PromptBlock) _then) = _$PromptBlockCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, int? scaleMin, int? scaleMax,@JsonKey(includeToJson: false) int? computedMin,@JsonKey(includeToJson: false) int? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, int? scaleMin, int? scaleMax,@JsonKey(includeToJson: false) int? computedMin,@JsonKey(includeToJson: false) int? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
 });
 
 
@@ -1972,7 +1969,7 @@ class _$PromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? allowContextualOverride = null,Object? isLightweightProtocol = null,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1986,7 +1983,8 @@ as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_n
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self.outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
 as List<String>,theoryGrounding: freezed == theoryGrounding ? _self.theoryGrounding : theoryGrounding // ignore: cast_nullable_to_non_nullable
-as TheoryGrounding?,isLightweightProtocol: null == isLightweightProtocol ? _self.isLightweightProtocol : isLightweightProtocol // ignore: cast_nullable_to_non_nullable
+as TheoryGrounding?,allowContextualOverride: null == allowContextualOverride ? _self.allowContextualOverride : allowContextualOverride // ignore: cast_nullable_to_non_nullable
+as bool,isLightweightProtocol: null == isLightweightProtocol ? _self.isLightweightProtocol : isLightweightProtocol // ignore: cast_nullable_to_non_nullable
 as bool,scaleMin: freezed == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
 as int?,scaleMax: freezed == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
 as int?,computedMin: freezed == computedMin ? _self.computedMin : computedMin // ignore: cast_nullable_to_non_nullable
@@ -2109,10 +2107,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PromptBlock() when $default != null:
-return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   return orElse();
 
 }
@@ -2130,10 +2128,10 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)  $default,) {final _that = this;
 switch (_that) {
 case _PromptBlock():
-return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2150,10 +2148,10 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,) {final _that = this;
 switch (_that) {
 case _PromptBlock() when $default != null:
-return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   return null;
 
 }
@@ -2165,7 +2163,7 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _PromptBlock extends PromptBlock {
-  const _PromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.categoryId = 'system', this.isEvaluative = true, this.type = BlockDataType.stringType, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.scaleMin, this.scaleMax, @JsonKey(includeToJson: false) this.computedMin, @JsonKey(includeToJson: false) this.computedMax, final  List<MatrixScale>? scales, final  List<MatrixRow>? rows, final  List<I18nText>? columns}): _outputExtensions = outputExtensions,_scales = scales,_rows = rows,_columns = columns,super._();
+  const _PromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.categoryId = 'system', this.isEvaluative = true, this.type = BlockDataType.stringType, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'allow_contextual_override') this.allowContextualOverride = false, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.scaleMin, this.scaleMax, @JsonKey(includeToJson: false) this.computedMin, @JsonKey(includeToJson: false) this.computedMax, final  List<MatrixScale>? scales, final  List<MatrixRow>? rows, final  List<I18nText>? columns}): _outputExtensions = outputExtensions,_scales = scales,_rows = rows,_columns = columns,super._();
   factory _PromptBlock.fromJson(Map<String, dynamic> json) => _$PromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -2186,6 +2184,7 @@ class _PromptBlock extends PromptBlock {
 }
 
 @override final  TheoryGrounding? theoryGrounding;
+@override@JsonKey(name: 'allow_contextual_override') final  bool allowContextualOverride;
 @override@JsonKey(name: 'is_lightweight_protocol') final  bool isLightweightProtocol;
 @override final  int? scaleMin;
 @override final  int? scaleMax;
@@ -2234,7 +2233,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
+  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, allowContextualOverride: $allowContextualOverride, isLightweightProtocol: $isLightweightProtocol, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
 }
 
 
@@ -2245,7 +2244,7 @@ abstract mixin class _$PromptBlockCopyWith<$Res> implements $PromptBlockCopyWith
   factory _$PromptBlockCopyWith(_PromptBlock value, $Res Function(_PromptBlock) _then) = __$PromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, int? scaleMin, int? scaleMax,@JsonKey(includeToJson: false) int? computedMin,@JsonKey(includeToJson: false) int? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, int? scaleMin, int? scaleMax,@JsonKey(includeToJson: false) int? computedMin,@JsonKey(includeToJson: false) int? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
 });
 
 
@@ -2262,7 +2261,7 @@ class __$PromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? allowContextualOverride = null,Object? isLightweightProtocol = null,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
   return _then(_PromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -2276,7 +2275,8 @@ as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_n
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
 as List<String>,theoryGrounding: freezed == theoryGrounding ? _self.theoryGrounding : theoryGrounding // ignore: cast_nullable_to_non_nullable
-as TheoryGrounding?,isLightweightProtocol: null == isLightweightProtocol ? _self.isLightweightProtocol : isLightweightProtocol // ignore: cast_nullable_to_non_nullable
+as TheoryGrounding?,allowContextualOverride: null == allowContextualOverride ? _self.allowContextualOverride : allowContextualOverride // ignore: cast_nullable_to_non_nullable
+as bool,isLightweightProtocol: null == isLightweightProtocol ? _self.isLightweightProtocol : isLightweightProtocol // ignore: cast_nullable_to_non_nullable
 as bool,scaleMin: freezed == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
 as int?,scaleMax: freezed == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
 as int?,computedMin: freezed == computedMin ? _self.computedMin : computedMin // ignore: cast_nullable_to_non_nullable
