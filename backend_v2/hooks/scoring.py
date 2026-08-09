@@ -903,6 +903,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                         (not is_satisfied)
                                                         and effective_override
                                                         and ev_dto.contextual_override
+                                                        and status_str
+                                                        != "FAILED"  # Defense-in-depth: FAILED cannot be overridden
                                                     ):
                                                         is_satisfied = True
 
