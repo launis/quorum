@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import AtomResultDTO
 
+
 def test_failed_atom_strips_override_and_quote() -> None:
     dto = AtomResultDTO(
         tda_id="test_id",

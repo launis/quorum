@@ -40,7 +40,7 @@ def main() -> None:
 
     epic_bounds = set(bound_pattern.findall(epic_content))
 
-    print(f"🔍 AUDIT: Found {len(epic_bounds)} specific line bounds in Epic:")
+    print(f"AUDIT: Found {len(epic_bounds)} specific line bounds in Epic:")
     for b in epic_bounds:
         print(f"   - {b}")
 
@@ -64,31 +64,31 @@ def main() -> None:
 
     # 1. TEST LINE BOUNDARY PRESERVATION
     if missing_bounds:
-        print("❌ FAILED: The Planner abstracted away the following line bounds:")
+        print("FAILED: The Planner abstracted away the following line bounds:")
         for b in missing_bounds:
             print(f"  - {b}")
         failed = True
     else:
         if epic_bounds:
-            print("✅ SUCCESS: All line bounds from the Epic were preserved verbatim in the plans!")
+            print("SUCCESS: All line bounds from the Epic were preserved verbatim in the plans!")
         else:
-            print("⚠️ SKIP: No line bounds found in Epic to verify.")
+            print("SKIP: No line bounds found in Epic to verify.")
 
     # 2. TEST MANDATORY XML BLOCKS
     required_tags = ["<anti_targets>", "<dod_checklist>", "<validation_gate>"]
     for tag in required_tags:
         if tag not in combined_plan_content:
-            print(f"❌ FAILED: Mandatory XML block {tag} is missing from the generated plans!")
+            print(f"FAILED: Mandatory XML block {tag} is missing from the generated plans!")
             failed = True
         else:
-            print(f"✅ SUCCESS: Mandatory XML block {tag} found.")
+            print(f"SUCCESS: Mandatory XML block {tag} found.")
 
     print("-" * 50)
     if failed:
-        print("🚨 AUDIT FAILED: The Planner dropped critical details. Tune tier1-planner.md rules further.")
+        print("AUDIT FAILED: The Planner dropped critical details. Tune tier1-planner.md rules further.")
         sys.exit(1)
     else:
-        print("🎉 AUDIT PASSED: The Planner obeyed the strict boundary and layout rules perfectly!")
+        print("AUDIT PASSED: The Planner obeyed the strict boundary and layout rules perfectly!")
         sys.exit(0)
 
 
