@@ -83,8 +83,7 @@ The following models reference the deprecated `AtomEvaluationStatus` or `LaxAtom
 ### Phase 2: Producer Refactoring & Type strictness
 **Objective**: Update the producers to use the new enums and types, while preserving the presentation flow layer.
 
-- Update `backend_v2/services/orchestrator/anchor_validation_service.py` method `process_atom_evaluation` to remove ALL `Any` type hints (replace `atom: Any` with `atom: AtomResultDTO`, type `source_documents`, and set return type to `AtomResultDTO`).
-- Eradicate ALL usage of `AtomEvaluationStatus` enum in `matrix_domain_parser.py` (lines 369, 406) and `matrix_reducer.py` (line 111), replacing with `ExecutionStatus`. **CRITICAL**: Do NOT replace `ScorecardAtomDTO` with `AtomResultDTO` in `matrix_domain_parser.py`. `ScorecardAtomDTO` is a presentation schema and must remain intact.
+- Update `backend_v2/services/orchestrator/anchor_validation_service.py` method `process_atom_evaluation` to remove ALL `Any` type hints (replace `atom: Any` with `atom: AtomResultDTO`, type `source_documents` as `list[SourceDocumentContext] | list[dict[str, Any]] | None`, and set return type to `AtomResultDTO`).
 - **ATOMIC TEST BINDING**: Update `backend_v2/tests/integration/test_lazy_llm_simulation.py` to construct `AtomResultDTO` instead of `AtomEvaluationItemDTO`.
 
 ### Phase 3: Consumer Convergence (Scoring Hook Unification)
@@ -127,7 +126,6 @@ The following models reference the deprecated `AtomEvaluationStatus` or `LaxAtom
 - Run: `uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/atom_evaluation.py --test`
 - Run: `uv run python scripts/backend_audit_loop.py backend_v2/models/v2_core.py --test`
 - Run: `uv run python scripts/backend_audit_loop.py backend_v2/models/enums.py --test`
-- Run: `uv run python scripts/backend_audit_loop.py backend_v2/services/matrix_domain_parser.py --test`
 - Run: `uv run pytest backend_v2/tests/unit/hooks/test_scoring.py`
 - Run: `uv run pytest backend_v2/tests/unit/models/test_v2_core.py`
 

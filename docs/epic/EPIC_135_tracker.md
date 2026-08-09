@@ -39,12 +39,10 @@
 
 ### Phase 2: Producer Refactoring
 **Plan:** `@[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
   - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
-  - [ ] Step 1: UPDATE ANCHOR VALIDATION SERVICE
-  - [ ] Step 2: UPDATE MATRIX PRODUCERS
-  - [ ] Step 3: UPDATE LAZY LLM TEST
+  - [ ] Step 1: REWRITE PROCESS_ATOM_EVALUATION METHOD
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
 
@@ -141,9 +139,16 @@
 - **Pydantic Frozen Integrity**: Encountered and solved an immutability constraint where `ScorecardAtomDTO` is `frozen=True`. The `visual_intent` override for `CONTESTED` was solved using a `mode="before"` `@model_validator` to safely map values via dictionary preprocessing.
 - **Flutter Enum Semantic Parity**: Enum names need consistent handling (e.g., `ExecutionStatus.systemError.name` instead of raw strings like `'dlq'`) in filtering logic in `atom_matrix_table_widget.dart` to maintain semantic equality with the backend.
 
-## Remaining
-- Red-Teaming and Execution of Phase 2 (Producers).
-
-
-## Resume Command
-`/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+  - Completed `/tier0-research-plan` for Phase 2 (Producers). The Tier 0 analysis identified 3 critical flaws and 3 moderate issues. The plan has been fully rewritten: Step 1 expanded from type-hint swap to full method rewrite (eradicating duck-typing, adapting to `source_quote` string, `evaluation_reasoning`, dropping `internal_logic_en`). Step 2 (test update) removed and deferred to Phase 3. Target files pruned of already-migrated `matrix_domain_parser.py` and `matrix_reducer.py`. DoD and test_contracts expanded with negative test cases.
+  
+  ## Remaining
+  - Execution of Phase 2 (Producers): Full rewrite of `process_atom_evaluation` method.
+  
+  ## Course Correction (Phase 2) — RESOLVED
+  - Both directives from the prior session have been addressed in the mutated plan:
+    1. ✅ Step 1 now mandates a COMPLETE method rewrite with exact field mappings (`source_quote` instead of `exact_quotes`, `evaluation_reasoning` instead of `semantic_reasoning`, dropped `internal_logic_en` hydration).
+    2. ✅ `test_lazy_llm_simulation.py` removed from Phase 2 scope entirely. Deferred to Phase 3.
+  
+  
+  ## Resume Command
+  `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
