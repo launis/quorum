@@ -12,7 +12,7 @@ description: Tier 2 (Knowledge Hardening) - Systematic Red-Teaming and XML Refac
   
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. First, read `.agents/rules/00-antigravity-core.md`, `.agents/rules/01-python-backend.md`, `.agents/rules/02_flutter_desktop.md`, `.agents/rules/05_llm_architecture.md`, and `.agents/rules/04_directory_reference.md` to ground your architectural understanding across all domains.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. First, read `.agents/rules/00-antigravity-core.md`, `.agents/rules/01-python-backend.md`, `.agents/rules/02_flutter_desktop.md`, `.agents/rules/03_seed_vault.md`, `.agents/rules/05_llm_architecture.md`, and `.agents/rules/04_directory_reference.md` to ground your architectural understanding across all domains.</mandatory_pattern>
       <catastrophic_reason>Without grounding in the core architectural rules, the red-team audit will fail to identify anti-patterns, resulting in KI files that enforce legacy paradigms.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">

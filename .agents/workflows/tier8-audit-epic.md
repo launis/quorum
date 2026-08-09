@@ -18,11 +18,11 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
   <architectural_invariants>
     <rule_block id="core_rules_routing">
       <banned_pattern>Starting the audit without reading the global architecture rules and specific domain rules.</banned_pattern>
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on Epic scope:
-        - IF touching file structures/routing: read `04_directory_reference.md`
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load the relevant domain-specific rules based on the task scope:
         - IF touching Python/Backend: read `01-python-backend.md`
         - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
         - IF touching Database/Seed Data: read `03_seed_vault.md`
+        - IF touching file structures/routing: read `04_directory_reference.md`
         - IF touching LLM/Prompts: read `05_llm_architecture.md`
       </mandatory_pattern>
       <catastrophic_reason>Failing to load comprehensive domain rules prevents you from accurately auditing the codebase against strict Quorum 2026 invariants.</catastrophic_reason>

@@ -18,12 +18,12 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
   <architectural_invariants>
     <rule_block id="core_rules_routing">
       <banned_pattern>Auditing a rule without knowing the supreme core architectural laws or grounding yourself in the research methodology.</banned_pattern>
-      <mandatory_pattern>Your VERY FIRST tool call MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`, `.agents/workflows/tier0-research-plan.md`, AND the specific target file(s) requested by the user. You MUST NOT output any `<thinking_process>` or generate code until you have physically read these files. ADDITIONALLY, you MUST load the domain-specific rule file that governs the TARGET's domain:
-        - IF the target relates to Python/Backend: ADDITIONALLY read `01-python-backend.md`
-        - IF the target relates to Flutter/Frontend: ADDITIONALLY read `02_flutter_desktop.md`
-        - IF the target relates to Data/Seed/JSON: ADDITIONALLY read `03_seed_vault.md`
-        - IF the target relates to LLM/Prompts: ADDITIONALLY read `05_llm_architecture.md`
-        - IF the target relates to file structures: ADDITIONALLY read `04_directory_reference.md`
+      <mandatory_pattern>Your VERY FIRST tool call MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`, `.agents/workflows/tier0-research-plan.md`, AND the specific target file(s) requested by the user. You MUST NOT output any `<thinking_process>` or generate code until you have physically read these files. ADDITIONALLY, load the relevant domain-specific rules based on the task scope:
+        - IF touching Python/Backend: read `01-python-backend.md`
+        - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
+        - IF touching Database/Seed Data: read `03_seed_vault.md`
+        - IF touching file structures/routing: read `04_directory_reference.md`
+        - IF touching LLM/Prompts: read `05_llm_architecture.md`
       </mandatory_pattern>
       <catastrophic_reason>Auditing a rule without knowing the supreme core architectural laws or grounding yourself in the research methodology leads to false-positive recommendations that violate Phase 9 system integration.</catastrophic_reason>
     </rule_block>

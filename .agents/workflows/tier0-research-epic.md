@@ -12,13 +12,12 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
   
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. BEFORE analyzing the Epic, you MUST dynamically read the relevant architecture laws:
-        1. ALWAYS read: `.agents/rules/00-antigravity-core.md`
-        2. IF working on Backend/Python, read: `.agents/rules/01-python-backend.md`
-        3. IF working on Frontend/Flutter, read: `.agents/rules/02_flutter_desktop.md`
-        4. IF working on Data/Seed/JSON, read: `.agents/rules/03_seed_vault.md`
-        5. IF working on file structures, read: `.agents/rules/04_directory_reference.md`
-        6. IF working on AI/LLM orchestration, read: `.agents/rules/05_llm_architecture.md`
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. BEFORE analyzing the Epic, you MUST dynamically read the relevant architecture laws. ALWAYS read: `.agents/rules/00-antigravity-core.md`. ADDITIONALLY, load the relevant domain-specific rules based on the task scope:
+        - IF touching Python/Backend: read `01-python-backend.md`
+        - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
+        - IF touching Database/Seed Data: read `03_seed_vault.md`
+        - IF touching file structures/routing: read `04_directory_reference.md`
+        - IF touching LLM/Prompts: read `05_llm_architecture.md`
       </mandatory_pattern>
       <catastrophic_reason>Failing to load the correct rule files leads to Context Amnesia and allows the Epic to violate V2 architectural invariants before code is even written.</catastrophic_reason>
     </rule_block>

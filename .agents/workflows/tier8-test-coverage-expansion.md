@@ -22,6 +22,8 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
         - ALWAYS read: `04_directory_reference.md`
         - IF targeting Python/Backend: read `01-python-backend.md`
         - IF targeting Flutter/Frontend: read `02_flutter_desktop.md`
+        - IF touching Database/Seed Data: read `03_seed_vault.md`
+        - IF touching LLM/Prompts: read `05_llm_architecture.md`
       </mandatory_pattern>
       <catastrophic_reason>Writing tests without understanding the architectural invariants leads to tests that validate wrong behavior or use banned anti-patterns (e.g., raw dicts instead of Pydantic models, asyncio.gather instead of TaskGroup).</catastrophic_reason>
     </rule_block>

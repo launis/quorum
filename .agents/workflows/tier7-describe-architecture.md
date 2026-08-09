@@ -18,7 +18,7 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
   <architectural_invariants>
     <rule_block id="core_rules_routing">
       <banned_pattern>Starting the architectural scan without reading the global architecture rules and capabilities.</banned_pattern>
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md` and the 6 pillar documents in `docs\architecture\`. You MUST understand the Capability-Driven architecture before scanning the physical codebase.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load the appropriate rule file. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ALWAYS read `.agents\rules\00-antigravity-core.md` and the 6 pillar documents in `docs\architecture\`. ADDITIONALLY, load the relevant domain-specific rules based on the task scope: IF touching Python/Backend, read `01-python-backend.md`. IF touching Flutter/Frontend, read `02_flutter_desktop.md`. IF touching Database/Seed Data, read `03_seed_vault.md`. IF touching file structures/routing, read `04_directory_reference.md`. IF touching LLM/Prompts, read `05_llm_architecture.md`. You MUST understand the Capability-Driven architecture before scanning the physical codebase.</mandatory_pattern>
       <catastrophic_reason>Scanning code without understanding the 6 core capabilities causes the AI to misinterpret files or falsely flag critical infrastructure as rogue code.</catastrophic_reason>
     </rule_block>
 

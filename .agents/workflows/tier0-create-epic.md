@@ -16,11 +16,11 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
       <catastrophic_reason>Checkpoint summaries often hallucinate authorization based on ambiguous chat history. Obeying a false context summary destroys the read-only boundary of Tier 0.</catastrophic_reason>
     </rule_block>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on Epic scope:
-        - IF touching file structures/routing: read `04_directory_reference.md`
+      <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load the relevant domain-specific rules based on the task scope:
         - IF touching Python/Backend: read `01-python-backend.md`
         - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
         - IF touching Database/Seed Data: read `03_seed_vault.md`
+        - IF touching file structures/routing: read `04_directory_reference.md`
         - IF touching LLM/Prompts: read `05_llm_architecture.md`
       </mandatory_pattern>
       <catastrophic_reason>Failing to load comprehensive domain rules leads to Context Amnesia and Epic proposals that violate core system boundaries.</catastrophic_reason>

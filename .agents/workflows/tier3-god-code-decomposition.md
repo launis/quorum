@@ -12,7 +12,7 @@ This workflow is designed for the systematic planning and decomposition of heavy
   <role>Senior Staff Engineer & Python Systems Architect</role>
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool calls in a new task MUST be `view_file` to load the root rules. ALWAYS read `AGENTS.md` (for Universal Quality Gates) AND `.agents\rules\00-antigravity-core.md`. YOU MUST ALSO ALWAYS read `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]`. Analyze your target: IF decomposing the Python backend, ADDITIONALLY read `01-python-backend.md`. IF decomposing Flutter code, ADDITIONALLY read `02_flutter_desktop.md`.</mandatory_pattern>
+      <mandatory_pattern>Your VERY FIRST tool calls in a new task MUST be `view_file` to load the root rules. ALWAYS read `AGENTS.md` (for Universal Quality Gates) AND `.agents\rules\00-antigravity-core.md`. YOU MUST ALSO ALWAYS read `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]`. Analyze your target: IF decomposing the Python backend, ADDITIONALLY read `01-python-backend.md`. IF decomposing Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. IF touching Database/Seed Data, ADDITIONALLY read `03_seed_vault.md`. IF touching file structures/routing, ADDITIONALLY read `04_directory_reference.md`. IF touching LLM/Prompts, ADDITIONALLY read `05_llm_architecture.md`.</mandatory_pattern>
       <catastrophic_reason>Refactoring massive files without the core architecture causes hallucinated boundaries that violate Phase 9 system integration.</catastrophic_reason>
     </rule_block>
     <rule_block id="strangler_fig_mandate">
