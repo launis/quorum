@@ -323,8 +323,6 @@ enum ExecutionStatus {
   queued,
 }
 
-
-
 /// SDUI Component types mapped from backend.
 @JsonEnum()
 enum SDUIComponentType {

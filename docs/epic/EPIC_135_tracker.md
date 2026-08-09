@@ -17,45 +17,50 @@
 ### Phase 1A: Enum Convergence (Backend)
 **Plan:** `@[c:\src\quorum\docs\epic\tasks_EPIC_135\01a_enum_convergence_backend_plan.md]`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01a_enum_convergence_backend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01a_enum_convergence_backend_plan.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01a_enum_convergence_backend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
   - [x] Step 0: STRATEGIC ALIGNMENT CHECK
   - [x] Step 1: MAP ENUMS AND SCORECARD ATOM
   - [x] Step 2: UPDATE REDUCED ATOM DTO
   - [x] Step 3: PRODUCER ATOMIC INTEGRITY
   - [x] Step 4: UPDATE TESTS
-- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01a_enum_convergence_backend_plan.md]`
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01a_enum_convergence_backend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
 
 ### Phase 1B: Enum Convergence (Frontend)
 **Plan:** `@[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md]`
-  - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
-  - [ ] Step 1: UPDATE DART ENUMS AND MODELS
-  - [ ] Step 1.5: UPDATE UI WIDGET LOGIC
-  - [ ] Step 2: UPDATE FRONTEND TESTS
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+  - [x] Step 0: STRATEGIC ALIGNMENT CHECK
+  - [x] Step 1: UPDATE DART ENUMS AND MODELS
+  - [x] Step 1.5: UPDATE UI WIDGET LOGIC
+  - [x] Step 2: UPDATE FRONTEND TESTS
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
 
 ### Phase 2: Producer Refactoring
 **Plan:** `@[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md]`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
   - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
   - [ ] Step 1: UPDATE ANCHOR VALIDATION SERVICE
   - [ ] Step 2: UPDATE MATRIX PRODUCERS
   - [ ] Step 3: UPDATE LAZY LLM TEST
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md]`
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
 
 ### Phase 3: Consumer Convergence (Scoring Hook Unification)
 **Plan:** `@[c:\src\quorum\docs\epic\tasks_EPIC_135\03_consumer_convergence_plan.md]` (Placeholder - Generate via /tier1-planner later)
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\03_consumer_convergence_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\03_consumer_convergence_plan.md]`
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\03_consumer_convergence_plan.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\03_consumer_convergence_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\03_consumer_convergence_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
 
 ### Phase 4: Deletion & Sunset
 **Plan:** `@[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md]` (Placeholder - Generate via /tier1-planner later)
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md]`
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
 
 ---
 
@@ -128,15 +133,17 @@
 - Generated the centralized Tracker for Tier 2 execution orchestration.
 - Successfully executed Phase 1A Enum Convergence (Backend), strictly mapping `AtomEvaluationStatus` to `ExecutionStatus` while passing the `backend_audit_loop.py` quality gate with 30% coverage and MyPy strict checks.
 - Completed `/tier8-audit-plan` for Phase 1A Enum Convergence (Backend). Epic boundaries were preserved perfectly and 82.82% codebase coverage was achieved on the quality gate.
+- Successfully executed Phase 1B Enum Convergence (Frontend), strictly mapping `AtomEvaluationStatus` to `ExecutionStatus` in UI logic and tests, passing the `flutter_audit_loop.py` quality gate with pixel-perfect matching in golden snapshots.
+- Completed `/tier8-audit-plan` for Phase 1B Frontend Convergence. Epic boundaries were preserved perfectly and all frontend tests passed natively.
 
 ## Learned
 - **Baseline State Snapshot**: `AtomEvaluationStatus` and `LaxAtomEvaluationStatus` exist in both `enums.py` and `enums.dart` and are deeply coupled in the presentation layer (`ScorecardAtomDTO`). `matrix_domain_parser.py` and `matrix_reducer.py` explicitly rely on `AtomEvaluationStatus.PASS`/`FAIL`. The dual pipeline is active in `scoring.py` relying on `is_dag_mode` and `getattr` duck-typing. The system is structurally sound but burdened with this technical debt, causing the "Override Inflation" bug.
 - **Pydantic Frozen Integrity**: Encountered and solved an immutability constraint where `ScorecardAtomDTO` is `frozen=True`. The `visual_intent` override for `CONTESTED` was solved using a `mode="before"` `@model_validator` to safely map values via dictionary preprocessing.
+- **Flutter Enum Semantic Parity**: Enum names need consistent handling (e.g., `ExecutionStatus.systemError.name` instead of raw strings like `'dlq'`) in filtering logic in `atom_matrix_table_widget.dart` to maintain semantic equality with the backend.
 
 ## Remaining
-- Execution and Audit of Phase 1B (Frontend Enum Convergence).
-- Execution and Audit of Phase 2 (Producers).
+- Red-Teaming and Execution of Phase 2 (Producers).
 
 
 ## Resume Command
-`/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+`/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\02_producer_refactoring_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`

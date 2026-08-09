@@ -676,7 +676,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             ),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(l10n.allowContextualOverrideDescription),
+                              child: Text(
+                                l10n.allowContextualOverrideDescription,
+                              ),
                             ),
                             value: payload.allowContextualOverride,
                             onChanged: (val) {

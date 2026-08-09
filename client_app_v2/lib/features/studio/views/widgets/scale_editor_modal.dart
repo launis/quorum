@@ -837,7 +837,6 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                     ],
                                   ),
 
-
                                   if (tda.evaluationTrack ==
                                       EvaluationTrack.extractiveSensor) ...[
                                     const SizedBox(height: 8),

@@ -7,15 +7,21 @@ void main() {
       final json = {
         'id': 'pb_1234567890abcdef',
         'slug': 'test-slug',
-        'label': {'default_locale': 'en', 'translations': {'en': 'Test Label', 'fi': 'Testi'}},
-        'description': {'default_locale': 'en', 'translations': {'en': 'Test Desc', 'fi': 'Testi'}},
+        'label': {
+          'default_locale': 'en',
+          'translations': {'en': 'Test Label', 'fi': 'Testi'},
+        },
+        'description': {
+          'default_locale': 'en',
+          'translations': {'en': 'Test Desc', 'fi': 'Testi'},
+        },
         'category_id': 'system',
         'allow_contextual_override': false,
       };
 
       // We expect it to parse successfully because allow_contextual_override is now in PromptBlock
       final block = PromptBlock.fromJson(json);
-      
+
       expect(block.id, 'pb_1234567890abcdef');
     });
   });

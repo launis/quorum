@@ -35,69 +35,78 @@ void main() {
       expect(dto.exactQuotes.length, 2);
     });
 
-    test('test_matrix_scorecard_dto_deserialization: parses valid atom with ExecutionStatus.PASSED and visualIntent warning', () {
-      final json = {
-        'atom_id': 'atm_456',
-        'level': 1,
-        'level_name': 'T1',
-        'claim_label': 'Test Claim',
-        'extracted_facts': {},
-        'exact_quotes': [],
-        'internal_logic_en': {
-          'step_1_identify_premise': 'p',
-          'step_2_scan_source': 's',
-          'step_3_evaluate_anti_patterns': 'e',
-          'step_4_final_conclusion': 'c',
-        },
-        'status': 'PASSED',
-        'semantic_reasoning': 'because',
-        'contextual_override': true,
-        'structural_location': null,
-        'chart_display_label': 'OK',
-        'visual_intent': 'warning',
-      };
+    test(
+      'test_matrix_scorecard_dto_deserialization: parses valid atom with ExecutionStatus.PASSED and visualIntent warning',
+      () {
+        final json = {
+          'atom_id': 'atm_456',
+          'level': 1,
+          'level_name': 'T1',
+          'claim_label': 'Test Claim',
+          'extracted_facts': {},
+          'exact_quotes': [],
+          'internal_logic_en': {
+            'step_1_identify_premise': 'p',
+            'step_2_scan_source': 's',
+            'step_3_evaluate_anti_patterns': 'e',
+            'step_4_final_conclusion': 'c',
+          },
+          'status': 'PASSED',
+          'semantic_reasoning': 'because',
+          'contextual_override': true,
+          'structural_location': null,
+          'chart_display_label': 'OK',
+          'visual_intent': 'warning',
+        };
 
-      final dto = ScorecardAtomDto.fromJson(json);
-      expect(dto.status, ExecutionStatus.passed);
-      expect(dto.visualIntent, VisualIntent.warning);
-    });
+        final dto = ScorecardAtomDto.fromJson(json);
+        expect(dto.status, ExecutionStatus.passed);
+        expect(dto.visualIntent, VisualIntent.warning);
+      },
+    );
 
-    test('test_matrix_scorecard_dto_invalid_enum_throws: invalid status throws', () {
-      final json = {
-        'atom_id': 'atm_789',
-        'level': 1,
-        'level_name': 'T1',
-        'claim_label': 'Test Claim',
-        'extracted_facts': {},
-        'exact_quotes': [],
-        'internal_logic_en': {
-          'step_1_identify_premise': 'p',
-          'step_2_scan_source': 's',
-          'step_3_evaluate_anti_patterns': 'e',
-          'step_4_final_conclusion': 'c',
-        },
-        'status': 'INVALID_STATUS',
-        'semantic_reasoning': 'because',
-        'contextual_override': false,
-        'structural_location': null,
-        'chart_display_label': 'OK',
-        'visual_intent': 'success',
-      };
+    test(
+      'test_matrix_scorecard_dto_invalid_enum_throws: invalid status throws',
+      () {
+        final json = {
+          'atom_id': 'atm_789',
+          'level': 1,
+          'level_name': 'T1',
+          'claim_label': 'Test Claim',
+          'extracted_facts': {},
+          'exact_quotes': [],
+          'internal_logic_en': {
+            'step_1_identify_premise': 'p',
+            'step_2_scan_source': 's',
+            'step_3_evaluate_anti_patterns': 'e',
+            'step_4_final_conclusion': 'c',
+          },
+          'status': 'INVALID_STATUS',
+          'semantic_reasoning': 'because',
+          'contextual_override': false,
+          'structural_location': null,
+          'chart_display_label': 'OK',
+          'visual_intent': 'success',
+        };
 
-      expect(() => ScorecardAtomDto.fromJson(json), throwsA(anything));
-    });
+        expect(() => ScorecardAtomDto.fromJson(json), throwsA(anything));
+      },
+    );
 
-    test('test_human_override_dto_invalid_enum_throws: invalid new_status throws', () {
-      final json = {
-        'new_status': 'SUPER_PASS',
-        'reason': 'Because',
-        'evidence_quotes': [],
-        'overridden_by': 'Test User',
-        'overridden_at': '2023-01-01T00:00:00Z',
-      };
+    test(
+      'test_human_override_dto_invalid_enum_throws: invalid new_status throws',
+      () {
+        final json = {
+          'new_status': 'SUPER_PASS',
+          'reason': 'Because',
+          'evidence_quotes': [],
+          'overridden_by': 'Test User',
+          'overridden_at': '2023-01-01T00:00:00Z',
+        };
 
-      expect(() => HumanOverrideDto.fromJson(json), throwsA(anything));
-    });
+        expect(() => HumanOverrideDto.fromJson(json), throwsA(anything));
+      },
+    );
   });
 
   group('MatrixScorecardRowDto', () {

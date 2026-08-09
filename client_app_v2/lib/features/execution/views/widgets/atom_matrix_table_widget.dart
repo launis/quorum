@@ -464,7 +464,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
 
                     bool hasOverride = atom.humanOverride != null;
                     final isPass = hasOverride
-                        ? (atom.humanOverride!.newStatus == ExecutionStatus.passed)
+                        ? (atom.humanOverride!.newStatus ==
+                              ExecutionStatus.passed)
                         : (atom.status == ExecutionStatus.passed);
 
                     // 1. AI Evidence rendering
