@@ -27,6 +27,10 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
       <mandatory_pattern>You MUST print a row in the table for EVERY `<rule_block>` in the `01-python-backend.md` (and core) file, even if it is "Pass" or "NA".</mandatory_pattern>
       <catastrophic_reason>If any rule is missing from the table, it violates the traceability mandate. Every Phase 9 rule must be gone through explicitly to force the attention mechanism to check the code.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <phases>

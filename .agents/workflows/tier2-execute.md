@@ -56,6 +56,10 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       </mandatory_pattern>
       <catastrophic_reason>Trust-based checklists are the leading cause of "Silent Duplication Regression" in multi-agent execution. A previous agent may have implemented the code but crashed before updating task.md, or a human developer may have manually committed the change. Re-implementing already-existing code creates conflicts, overwrites correct implementations, and wastes context budget.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="2">
     <step id="1" name="ISOLATION & PRE-FLIGHT VERIFICATION">

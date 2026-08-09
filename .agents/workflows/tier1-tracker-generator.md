@@ -21,6 +21,10 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
       <mandatory_pattern>You are at Tier 1 (Planning). The phase immediately following this is Tier 0 (Research & Analysis) for Phase 1. You MUST NEVER write handover instructions, notes, or summaries in the Tracker that claim the next agent should begin execution, implementation, or updating codebase files. Your generated `# Session Handover Context` MUST strictly state that the next agent must run `/tier0-research-plan` to analyze the plan first.</mandatory_pattern>
       <catastrophic_reason>Writing "Start implementation" in the initial tracker poisons the handover context. The next agent reads the tracker's context, assumes the user authorized execution, and bypasses the mandatory Tier 0 analysis gate, violating strict execution pipelines.</catastrophic_reason>
     </rule_block>
+    <rule_block id="knowledge_base_mandate">
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
+      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_tracker_generator">
