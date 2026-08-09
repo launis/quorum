@@ -133,4 +133,4 @@
 - Immediate kickoff of Tier 2 execution for Phase 1A Enum Convergence (Backend) now that Red-Teaming has corrected the architectural sequence fault.
 
 ## Resume Command
-`/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01a_enum_convergence_backend_plan.md]`
+`/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01a_enum_convergence_backend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
