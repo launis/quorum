@@ -100,6 +100,54 @@ def main() -> None:
     else:
         print("SKIP: No KI artifact references found in Epic (consider adding <required_knowledge_items>).")
 
+    # 4. TEST RULE COVERAGE (Plan → required_context_rules completeness)
+    core_rule_pattern = re.compile(r"00-antigravity-core\.md")
+    domain_rule_pattern = re.compile(r"0[1-5][-_][a-z_-]+\.md")
+
+    plans_with_rules_block = 0
+    plans_missing_core = []
+    plans_missing_domain = []
+
+    for pf in plan_files:
+        with open(pf, encoding="utf-8") as f:
+            plan_text = f.read()
+
+        if "<required_context_rules>" not in plan_text:
+            continue
+
+        plans_with_rules_block += 1
+
+        if not core_rule_pattern.search(plan_text):
+            plans_missing_core.append(pf.name)
+
+        if not domain_rule_pattern.search(plan_text):
+            plans_missing_domain.append(pf.name)
+
+    if plans_with_rules_block == 0:
+        print("SKIP: No plans contain a <required_context_rules> block (non-self-hydrating plans).")
+    else:
+        if plans_missing_core:
+            print("FAILED: Plans missing core rule (00-antigravity-core.md) in <required_context_rules>:")
+            for name in plans_missing_core:
+                print(f"  - {name}")
+            failed = True
+        else:
+            print(
+                f"SUCCESS: All {plans_with_rules_block} plans with "
+                "<required_context_rules> reference 00-antigravity-core.md."
+            )
+
+        if plans_missing_domain:
+            print("FAILED: Plans with zero domain-specific rules in <required_context_rules>:")
+            for name in plans_missing_domain:
+                print(f"  - {name}")
+            failed = True
+        else:
+            print(
+                f"SUCCESS: All {plans_with_rules_block} plans with "
+                "<required_context_rules> reference at least one domain rule."
+            )
+
     print("-" * 50)
     if failed:
         print("AUDIT FAILED: The Planner dropped critical details. Tune tier1-planner.md rules further.")
