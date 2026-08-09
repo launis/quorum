@@ -1110,8 +1110,18 @@ class AtomResultDTO(BaseModel):
             if status_val in ("PASSED", "FAILED", ExecutionStatus.PASSED, ExecutionStatus.FAILED):
                 if not data.get("evaluation_reasoning"):
                     raise ValueError(f"Reasoning is mandatory for cognitive status {status_val}")
-                if not data.get("contextual_override") and not data.get("source_quote"):
-                    raise ValueError("source_quote is mandatory unless contextual_override is True")
+
+                # Enforce null hypothesis: FAILED atoms cannot have an override or a quote
+                if status_val in ("FAILED", ExecutionStatus.FAILED):
+                    if data.get("contextual_override") is True:
+                        data["contextual_override"] = False
+                    if data.get("source_quote") is not None:
+                        data["source_quote"] = None
+
+                # PASSED atoms MUST have either a quote or a contextual_override
+                elif status_val in ("PASSED", ExecutionStatus.PASSED):
+                    if not data.get("contextual_override") and not data.get("source_quote"):
+                        raise ValueError("source_quote is mandatory unless contextual_override is True")
 
             if status_val in ("SYSTEM_ERROR", ExecutionStatus.SYSTEM_ERROR) and not data.get("error_details"):
                 raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")
