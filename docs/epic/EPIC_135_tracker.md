@@ -31,6 +31,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md]`
   - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
   - [ ] Step 1: UPDATE DART ENUMS AND MODELS
+  - [ ] Step 1.5: UPDATE UI WIDGET LOGIC
   - [ ] Step 2: UPDATE FRONTEND TESTS
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md]`
 
@@ -138,4 +139,4 @@
 
 
 ## Resume Command
-`/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+`/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\01b_enum_convergence_frontend_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`

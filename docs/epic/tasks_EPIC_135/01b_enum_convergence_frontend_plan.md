@@ -4,6 +4,7 @@
 **Target Files:**
 - `@[c:\src\quorum\client_app_v2\lib\core\models\enums.dart]`
 - `@[c:\src\quorum\client_app_v2\lib\features\execution\models\matrix_scorecard_dto.dart]`
+- `@[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\atom_matrix_table_widget.dart]`
 - `@[c:\src\quorum\client_app_v2\test\features\execution\views\widgets\atom_matrix_table_widget_test.dart]`
 - `@[c:\src\quorum\client_app_v2\test\features\execution\models\matrix_scorecard_dto_test.dart]`
 - `@[c:\src\quorum\client_app_v2\test\features\execution\matrix_blocks_snapshot_test.dart]`
@@ -37,9 +38,15 @@
 
   <step id="1" name="UPDATE DART ENUMS AND MODELS">
     <action>In `@[c:\src\quorum\client_app_v2\lib\core\models\enums.dart]`, ensure `ExecutionStatus` matches the Python equivalent, and remove `AtomEvaluationStatus` if it exists independently.</action>
-    <action>In `@[c:\src\quorum\client_app_v2\lib\features\execution\models\matrix_scorecard_dto.dart]`, update usages of `AtomEvaluationStatus` to `ExecutionStatus`.</action>
+    <action>In `@[c:\src\quorum\client_app_v2\lib\features\execution\models\matrix_scorecard_dto.dart]`, update `ScorecardAtomDto.status` from `AtomEvaluationStatus` to `ExecutionStatus`.</action>
+    <action>In `@[c:\src\quorum\client_app_v2\lib\features\execution\models\matrix_scorecard_dto.dart]`, update `HumanOverrideDto.newStatus` from `String` to `ExecutionStatus`.</action>
     <action>Run the flutter build runner to regenerate `.freezed.dart` and `.g.dart` files.</action>
     <constraint invariant="cross_language_enum_parity">Frontend enums must strictly match backend Pydantic Literals.</constraint>
+  </step>
+
+  <step id="1.5" name="UPDATE UI WIDGET LOGIC">
+    <action>In `@[c:\src\quorum\client_app_v2\lib\features\execution\views\widgets\atom_matrix_table_widget.dart]`, update the `isPass` boolean logic. Replace string comparisons (specifically 'PASS' and 'CONTESTED') and enum comparisons (`AtomEvaluationStatus.pass`/`contested`) with strict typed enum checks against `ExecutionStatus.passed`.</action>
+    <demolish>REMOVE: `atom.humanOverride!.newStatus.toUpperCase() == 'PASS'` and `AtomEvaluationStatus.contested`. REPLACE WITH: `atom.humanOverride!.newStatus == ExecutionStatus.passed` and `atom.status == ExecutionStatus.passed`.</demolish>
   </step>
 
   <step id="2" name="UPDATE FRONTEND TESTS">
@@ -49,8 +56,16 @@
 
   <test_contracts>
     <test name="test_matrix_scorecard_dto_deserialization" category="positive">
-      <input>JSON payload with ExecutionStatus.PASSED and visualIntent Warning</input>
+      <input>JSON payload with ExecutionStatus.PASSED and visualIntent warning</input>
       <expected>returns parsed ScorecardAtomDTO</expected>
+    </test>
+    <test name="test_matrix_scorecard_dto_invalid_enum_throws" category="negative">
+      <input>JSON payload with invalid status "INVALID_STATUS"</input>
+      <expected>throws FormatException / TypeError during fromJson</expected>
+    </test>
+    <test name="test_human_override_dto_invalid_enum_throws" category="negative">
+      <input>JSON payload for HumanOverrideDto with invalid new_status "SUPER_PASS"</input>
+      <expected>throws FormatException / TypeError during fromJson (testing strict enum parsing)</expected>
     </test>
   </test_contracts>
 

@@ -16,6 +16,11 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
     <rule_block id="anti_shortcut_mandate">
       <mandatory_pattern>You MUST generate the FULL tracker with EVERY single section. Do NOT output a simplified tracker. You MUST extract every technical detail from the Epic into a granular Requirements Traceability Matrix.</mandatory_pattern>
     </rule_block>
+    <rule_block id="anti_premature_execution_hallucination">
+      <banned_pattern>Writing instructions in the tracker that tell the next agent to immediately start coding, or stating that the project is in the "IMPLEMENTATION" phase when it has only just been planned.</banned_pattern>
+      <mandatory_pattern>You are at Tier 1 (Planning). The phase immediately following this is Tier 0 (Research & Analysis) for Phase 1. You MUST NEVER write handover instructions, notes, or summaries in the Tracker that claim the next agent should begin execution, implementation, or updating codebase files. Your generated `# Session Handover Context` MUST strictly state that the next agent must run `/tier0-research-plan` to analyze the plan first.</mandatory_pattern>
+      <catastrophic_reason>Writing "Start implementation" in the initial tracker poisons the handover context. The next agent reads the tracker's context, assumes the user authorized execution, and bypasses the mandatory Tier 0 analysis gate, violating strict execution pipelines.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_tracker_generator">
