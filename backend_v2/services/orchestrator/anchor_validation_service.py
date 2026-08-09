@@ -4,12 +4,13 @@ import difflib
 import logging
 import re
 import unicodedata
-from typing import Any
 
 from rapidfuzz import fuzz
 
 from backend_v2.exceptions import SemanticEvidenceError
+from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import ValidationThresholdRatio
+from backend_v2.models.v2_core import AtomResultDTO
 from backend_v2.settings import get_lexical_fuzz_threshold
 
 logger = logging.getLogger(__name__)
@@ -318,17 +319,17 @@ class AnchorValidationService:
 
     @staticmethod
     def process_atom_evaluation(
-        atom: Any,
+        atom: AtomResultDTO,
         alias_map: dict[str, str],
-        source_documents: list[Any] | None = None,
+        source_documents: list[SourceDocumentContext] | None = None,
         mcp_source_texts: dict[str, str] | None = None,
         locale: str | None = None,
         strictness_level: int = 50,
-    ) -> Any:
+    ) -> AtomResultDTO:
         """Process an atom evaluation item, resolving aliases and matching quotes.
 
         Args:
-            atom: The AtomEvaluationItemDTO instance to process.
+            atom: The AtomResultDTO instance to process.
             alias_map: Mapping of short aliases to real document IDs.
             source_documents: List of static source documents.
             mcp_source_texts: Dictionary of MCP provided source texts.
@@ -336,43 +337,20 @@ class AnchorValidationService:
             strictness_level: Strictness tier (0-100).
 
         Returns:
-            A new mutated AtomEvaluationItemDTO instance with hydrated exact_quotes and used_evidence_ids.
+            A new mutated AtomResultDTO instance with hydrated source_quote and evaluation_reasoning.
         """
         from backend_v2.utils.alias_engine import AliasEngine
 
         engine = AliasEngine(alias_map=alias_map)
 
-        new_reasoning = (
-            engine.hydrate_reasoning_text(atom.semantic_reasoning)
-            if getattr(atom, "semantic_reasoning", None)
-            else getattr(atom, "semantic_reasoning", None)
-        )
+        hydrated_reasoning = None
+        if atom.evaluation_reasoning:
+            hydrated_reasoning = engine.hydrate_reasoning_text(atom.evaluation_reasoning)
 
-        new_logic = None
-        if getattr(atom, "internal_logic_en", None):
-            new_logic_dict = atom.internal_logic_en.model_dump()
-            for k in [
-                "step_1_identify_premise",
-                "step_2_scan_source",
-                "step_3_evaluate_anti_patterns",
-                "step_4_final_conclusion",
-            ]:
-                if k in new_logic_dict and isinstance(new_logic_dict[k], str):
-                    new_logic_dict[k] = engine.hydrate_reasoning_text(new_logic_dict[k])
-            new_logic = atom.internal_logic_en.__class__(**new_logic_dict)
-
-        if getattr(atom, "contextual_override", False):
-            return atom.model_copy(
-                update={
-                    "exact_quotes": [],
-                    "used_evidence_ids": [],
-                    "semantic_reasoning": new_reasoning,
-                    "internal_logic_en": new_logic or getattr(atom, "internal_logic_en", None),
-                }
+        if atom.contextual_override:
+            return AtomResultDTO.model_validate(
+                atom.model_dump() | {"source_quote": None, "evaluation_reasoning": hydrated_reasoning}
             )
-
-        new_quotes = []
-        resolved_ids = set()
 
         def _is_match(doc_text: str, q_text: str) -> bool:
             norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(doc_text)
@@ -401,58 +379,23 @@ class AnchorValidationService:
             score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_pdf)
             return score >= tier_threshold
 
-        quotes = getattr(atom, "exact_quotes", []) or []
-        for quote in quotes:
-            q_text = (
-                quote.text if hasattr(quote, "text") else (quote.get("text") if isinstance(quote, dict) else str(quote))
-            )
-            if not q_text:
-                new_quotes.append(quote)
-                continue
-
+        validated_quote = atom.source_quote
+        if atom.source_quote is not None:
             matched = False
             # 1. Match against static source documents
             if source_documents:
                 for doc in source_documents:
-                    doc_text = getattr(doc, "text_content", None) or (
-                        doc.get("text_content") if isinstance(doc, dict) else None
-                    )
-                    doc_id = getattr(doc, "opaque_id", None) or (
-                        doc.get("opaque_id") if isinstance(doc, dict) else None
-                    )
-                    if doc_text and doc_id and _is_match(doc_text, q_text):
-                        if hasattr(quote, "model_copy"):
-                            new_quote = quote.model_copy(update={"source_id": doc_id})
-                        else:
-                            new_quote = {**quote, "source_id": doc_id} if isinstance(quote, dict) else quote
-                        new_quotes.append(new_quote)
-                        resolved_ids.add(doc_id)
+                    if doc.text_content and doc.opaque_id and _is_match(doc.text_content, atom.source_quote):
                         matched = True
                         break
 
             # 2. Match against dynamic MCP source texts
             if not matched and mcp_source_texts:
-                for alias, mcp_text in mcp_source_texts.items():
-                    if _is_match(mcp_text, q_text):
-                        real_id = engine.resolve_alias(alias)
-                        if real_id:
-                            if hasattr(quote, "model_copy"):
-                                new_quote = quote.model_copy(update={"source_id": real_id})
-                            else:
-                                new_quote = {**quote, "source_id": real_id} if isinstance(quote, dict) else quote
-                            new_quotes.append(new_quote)
-                            resolved_ids.add(real_id)
-                            matched = True
-                            break
+                for mcp_text in mcp_source_texts.values():
+                    if _is_match(mcp_text, atom.source_quote):
+                        matched = True
+                        break
 
-            if not matched:
-                new_quotes.append(quote)
-
-        return atom.model_copy(
-            update={
-                "exact_quotes": new_quotes,
-                "used_evidence_ids": list(resolved_ids),
-                "semantic_reasoning": new_reasoning,
-                "internal_logic_en": new_logic or getattr(atom, "internal_logic_en", None),
-            }
+        return AtomResultDTO.model_validate(
+            atom.model_dump() | {"source_quote": validated_quote, "evaluation_reasoning": hydrated_reasoning}
         )
