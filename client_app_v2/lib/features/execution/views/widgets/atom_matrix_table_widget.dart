@@ -456,7 +456,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                     final statusName = atom.status?.name.toLowerCase() ?? '';
                     // Filter non-renderable atoms from Display Tier
                     final isSkipped =
-                        statusName == 'dlq' ||
+                        statusName == 'systemerror' ||
                         atom.semanticReasoning.startsWith(
                           'Chunk Processing Failed',
                         );
@@ -464,12 +464,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
 
                     bool hasOverride = atom.humanOverride != null;
                     final isPass = hasOverride
-                        ? (atom.humanOverride!.newStatus.toUpperCase() ==
-                                  'PASS' ||
-                              atom.humanOverride!.newStatus.toUpperCase() ==
-                                  'CONTESTED')
-                        : (atom.status == AtomEvaluationStatus.pass ||
-                              atom.status == AtomEvaluationStatus.contested);
+                        ? (atom.humanOverride!.newStatus == ExecutionStatus.passed)
+                        : (atom.status == ExecutionStatus.passed);
 
                     // 1. AI Evidence rendering
                     final aiQuotes = _buildQuoteWidgets(

@@ -47,7 +47,7 @@ abstract class QuoteEvidenceDto with _$QuoteEvidenceDto {
 abstract class HumanOverrideDto with _$HumanOverrideDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory HumanOverrideDto({
-    @JsonKey(name: 'new_status') required String newStatus,
+    @JsonKey(name: 'new_status') required ExecutionStatus newStatus,
     required String reason,
     @JsonKey(name: 'evidence_quotes')
     required List<QuoteEvidenceDto> evidenceQuotes,
@@ -72,7 +72,7 @@ abstract class ScorecardAtomDto with _$ScorecardAtomDto {
     @JsonKey(name: 'exact_quotes') required List<QuoteEvidenceDto> exactQuotes,
     @JsonKey(name: 'internal_logic_en')
     required ReasoningStepDto internalLogicEn,
-    AtomEvaluationStatus? status,
+    ExecutionStatus? status,
     @JsonKey(name: 'semantic_reasoning') required String semanticReasoning,
     @JsonKey(name: 'contextual_override') required bool contextualOverride,
     @JsonKey(name: 'structural_location') String? structuralLocation,

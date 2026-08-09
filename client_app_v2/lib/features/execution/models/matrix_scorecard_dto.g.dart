@@ -118,7 +118,10 @@ _HumanOverrideDto _$HumanOverrideDtoFromJson(Map<String, dynamic> json) =>
           ],
         );
         final val = _HumanOverrideDto(
-          newStatus: $checkedConvert('new_status', (v) => v as String),
+          newStatus: $checkedConvert(
+            'new_status',
+            (v) => $enumDecode(_$ExecutionStatusEnumMap, v),
+          ),
           reason: $checkedConvert('reason', (v) => v as String),
           evidenceQuotes: $checkedConvert(
             'evidence_quotes',
@@ -147,11 +150,22 @@ _HumanOverrideDto _$HumanOverrideDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$HumanOverrideDtoToJson(
   _HumanOverrideDto instance,
 ) => <String, dynamic>{
-  'new_status': instance.newStatus,
+  'new_status': _$ExecutionStatusEnumMap[instance.newStatus]!,
   'reason': instance.reason,
   'evidence_quotes': instance.evidenceQuotes.map((e) => e.toJson()).toList(),
   'overridden_by': instance.overriddenBy,
   'overridden_at': instance.overriddenAt.toIso8601String(),
+};
+
+const _$ExecutionStatusEnumMap = {
+  ExecutionStatus.passed: 'PASSED',
+  ExecutionStatus.failed: 'FAILED',
+  ExecutionStatus.nA: 'N_A',
+  ExecutionStatus.systemError: 'SYSTEM_ERROR',
+  ExecutionStatus.blocked: 'BLOCKED',
+  ExecutionStatus.pending: 'PENDING',
+  ExecutionStatus.running: 'RUNNING',
+  ExecutionStatus.queued: 'QUEUED',
 };
 
 _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
@@ -201,7 +215,7 @@ _ScorecardAtomDto _$ScorecardAtomDtoFromJson(Map<String, dynamic> json) =>
           ),
           status: $checkedConvert(
             'status',
-            (v) => $enumDecodeNullable(_$AtomEvaluationStatusEnumMap, v),
+            (v) => $enumDecodeNullable(_$ExecutionStatusEnumMap, v),
           ),
           semanticReasoning: $checkedConvert(
             'semantic_reasoning',
@@ -257,7 +271,7 @@ Map<String, dynamic> _$ScorecardAtomDtoToJson(_ScorecardAtomDto instance) =>
       'extracted_facts': instance.extractedFacts,
       'exact_quotes': instance.exactQuotes.map((e) => e.toJson()).toList(),
       'internal_logic_en': instance.internalLogicEn.toJson(),
-      'status': _$AtomEvaluationStatusEnumMap[instance.status],
+      'status': _$ExecutionStatusEnumMap[instance.status],
       'semantic_reasoning': instance.semanticReasoning,
       'contextual_override': instance.contextualOverride,
       'structural_location': instance.structuralLocation,
@@ -265,13 +279,6 @@ Map<String, dynamic> _$ScorecardAtomDtoToJson(_ScorecardAtomDto instance) =>
       'chart_display_label': instance.chartDisplayLabel,
       'visual_intent': _$VisualIntentEnumMap[instance.visualIntent]!,
     };
-
-const _$AtomEvaluationStatusEnumMap = {
-  AtomEvaluationStatus.pass: 'PASS',
-  AtomEvaluationStatus.fail: 'FAIL',
-  AtomEvaluationStatus.contested: 'CONTESTED',
-  AtomEvaluationStatus.dlq: 'DLQ',
-};
 
 const _$VisualIntentEnumMap = {
   VisualIntent.success: 'success',

@@ -323,18 +323,7 @@ enum ExecutionStatus {
   queued,
 }
 
-/// Status of individual atom evaluations.
-@JsonEnum()
-enum AtomEvaluationStatus {
-  @JsonValue('PASS')
-  pass,
-  @JsonValue('FAIL')
-  fail,
-  @JsonValue('CONTESTED')
-  contested,
-  @JsonValue('DLQ')
-  dlq,
-}
+
 
 /// SDUI Component types mapped from backend.
 @JsonEnum()
