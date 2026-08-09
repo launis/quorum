@@ -83,6 +83,23 @@ def main() -> None:
         else:
             print(f"SUCCESS: Mandatory XML block {tag} found.")
 
+    # 3. TEST KI COVERAGE (Epic → Plan inheritance)
+    ki_pattern = re.compile(r"knowledge[/\\][^/\\]+[/\\]artifacts[/\\]\S+\.md")
+    epic_kis = set(ki_pattern.findall(epic_content))
+    plan_kis = set(ki_pattern.findall(combined_plan_content))
+
+    if epic_kis:
+        missing_kis = epic_kis - plan_kis
+        if missing_kis:
+            print("FAILED: Plans are missing the following KIs from the Epic's <required_knowledge_items>:")
+            for ki in sorted(missing_kis):
+                print(f"  - {ki}")
+            failed = True
+        else:
+            print(f"SUCCESS: All {len(epic_kis)} KI references from the Epic are present in the plans.")
+    else:
+        print("SKIP: No KI artifact references found in Epic (consider adding <required_knowledge_items>).")
+
     print("-" * 50)
     if failed:
         print("AUDIT FAILED: The Planner dropped critical details. Tune tier1-planner.md rules further.")

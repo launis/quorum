@@ -100,12 +100,24 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
           - **Automated Unit Tests**: (`backend_audit_loop.py`, `flutter_audit_loop.py`).
           - **Manual Verification Steps**: DB re-seed, PDF inspection, UI audit.
           - **MANDATORY Final E2E REST API Verification Gate**: Set environment variable `RUN_LIVE_E2E=true` and run `uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
+        - `## 5. Required Knowledge Items (KI Registry)`:
+          - A `<required_knowledge_items>` XML block listing ALL Knowledge Items relevant to this Epic's domain.
+          - The agent MUST review the KI summaries injected at the start of the conversation, identify KIs whose domain overlaps with the Epic's scope, and list them as `@-reference` paths.
+          - This block is the SSOT for all downstream plans and trackers. `/tier1-planner` MUST inherit all listed KIs into every plan's `<required_context_rules>`.
+          - Example format:
+          ```xml
+          <required_knowledge_items>
+            - `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]` <!-- anti_god_file_dumping -->
+            - `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\dag_engine_dto_projection_rules\artifacts\ki_dag_engine_dto_projection_rules.md]` <!-- forensic_naming_law -->
+          </required_knowledge_items>
+          ```
       </constraint>
     </step>
 
     <step id="4" name="ARCHITECTURAL SAFEGUARDS &amp; KNOWLEDGE ITEM MANDATE">
       <action>Verify data origin (Producer) and consumer.</action>
       <action>Mandate Creation of Knowledge Items (KIs) in `&lt;appDataDir&gt;\knowledge\` if introducing a new Single Source of Truth (SSOT) or novel architectural pattern.</action>
+      <action name="KI REGISTRY POPULATION">You MUST review ALL Knowledge Item (KI) summaries injected at the start of this conversation. For each KI whose domain overlaps with this Epic's scope (based on title and summary matching), you MUST add its artifact path as an `@-reference` to the Epic's `## 5. Required Knowledge Items (KI Registry)` section inside a `&lt;required_knowledge_items&gt;` XML block. This block becomes the SSOT that `/tier1-planner` reads to deterministically inject KIs into every generated plan's `&lt;required_context_rules&gt;`.</action>
     </step>
 
     <step id="5" name="EPIC DOCUMENT PERSISTENCE">
