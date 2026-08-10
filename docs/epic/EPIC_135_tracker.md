@@ -77,7 +77,7 @@
 
 ### Documentation & Knowledge Item Update
 - [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/` (N/A - Enum convergence only, no new SSOTs created).
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
 - [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_135_Schema_Convergence_Architecture.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.

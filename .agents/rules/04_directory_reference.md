@@ -55,7 +55,7 @@
           - Pillar 3 (Orchestration): execution.py, web_fetcher.py, mcp/, orchestrator/ (engines/, strategies/, prompt_compiler.py)
           - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, sdui/adapters/
           - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py
-          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, anchor_validation_service.py, orchestrator/ (two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py)
+          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, anchor_validation_service.py, source_verification_service.py, orchestrator/ (two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py)
           - Orphan (Missing Capability): auth.py
         </key_domains>
     </module>
@@ -86,8 +86,8 @@
     </module>
 
     <module path="backend_v2/hooks/">
-        <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1)</responsibility>
-        <key_domains>interaction_hook.py</key_domains>
+        <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1/3)</responsibility>
+        <key_domains>scoring.py, interaction_hook.py, validation.py, and all pre/post processing hooks.</key_domains>
     </module>
 
     <module path="backend_v2/llm/">
@@ -97,7 +97,7 @@
 
     <module path="backend_v2/utils/">
         <responsibility>MATHEMATICAL ENGINES & SYSTEM INVARIANTS (PILLAR 1)</responsibility>
-        <key_domains>alias_engine.py, math_utils.py, scoring/</key_domains>
+        <key_domains>alias_engine.py, math_utils.py, scoring/ (mathematical engines)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
