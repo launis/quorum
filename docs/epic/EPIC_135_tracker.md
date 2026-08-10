@@ -169,4 +169,4 @@
   2. ✅ `test_lazy_llm_simulation.py` removed from Phase 2 scope entirely. Deferred to Phase 3.
 
 ## Resume Command
-/tier5-resume /tier7-describe-architecture @[c:\src\quorum\docs\epic\EPIC_135_tracker.md] @[c:\src\quorum\docs\epic\EPIC_135_Schema_Convergence_Architecture.md]
+/tier5-resume /tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_135_Schema_Convergence_Architecture.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]
