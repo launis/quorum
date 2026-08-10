@@ -26,7 +26,7 @@ class PreFlightResult(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     decided: bool
-    result: str | None = None
+    result: ExecutionStatus | None = None
     exact_quotes: list[LLMExtractedQuote] | None = None
 
 
@@ -87,7 +87,7 @@ class ExtractiveSensorService:
 
             return PreFlightResult(
                 decided=True,
-                result="FAIL",
+                result=ExecutionStatus.FAILED,
                 exact_quotes=None,
             )
 
@@ -106,7 +106,7 @@ class ExtractiveSensorService:
         # Early exit logic:
         # If we need AT LEAST ONE anchor (EXISTS) but found ZERO -> Definitive FAIL
         if tda.aggregation_mode == "EXISTS" and len(found) == 0:
-            res = "PASS" if tda.inverse_evidence else "FAIL"
+            res = ExecutionStatus.PASSED if tda.inverse_evidence else ExecutionStatus.FAILED
             logger.info(
                 "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (aggregation=EXISTS, found=0)",
                 tda.tda_id,
@@ -120,7 +120,7 @@ class ExtractiveSensorService:
 
         # If we need ALL anchors (ALL_MUST_COMPLY) but are MISSING ANY -> Definitive FAIL
         if tda.aggregation_mode == "ALL_MUST_COMPLY" and len(found) < len(tda.syntactic_anchors):
-            res = "PASS" if tda.inverse_evidence else "FAIL"
+            res = ExecutionStatus.PASSED if tda.inverse_evidence else ExecutionStatus.FAILED
             logger.info(
                 "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (aggregation=ALL_MUST_COMPLY, missing anchors)",
                 tda.tda_id,
@@ -156,7 +156,7 @@ class ExtractiveSensorService:
         for node in nodes:
             pre_result = ExtractiveSensorService.pre_evaluate(node.atom, source_text, locale)
             if pre_result.decided:
-                if pre_result.result == "PASS":
+                if pre_result.result == ExecutionStatus.PASSED:
                     decided_results[node.atom.tda_id] = (
                         ExecutionStatus.PASSED,
                         "PRE_FLIGHT_DETERMINISTIC_PASS",

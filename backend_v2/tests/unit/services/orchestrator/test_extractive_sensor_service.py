@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.orchestrator.extractive_sensor_service import (
     ExtractiveSensorService,
@@ -58,7 +59,7 @@ def test_extractive_sensor_service_aggregation_exists_fail() -> None:
     # Yhtäkään ankkuria ei löydy -> Voidaan hylätä suoraan ilman LLM:ää
     result = ExtractiveSensorService.pre_evaluate(tda, "Completely different text.")
     assert result.decided
-    assert result.result == "FAIL"
+    assert result.result == ExecutionStatus.FAILED
     assert result.exact_quotes is None
 
 
@@ -77,7 +78,7 @@ def test_extractive_sensor_service_aggregation_all_must_comply_fail() -> None:
 
     result = ExtractiveSensorService.pre_evaluate(tda, "Text with only anchor1 present.")
     assert result.decided
-    assert result.result == "FAIL"
+    assert result.result == ExecutionStatus.FAILED
 
 
 def test_extractive_sensor_service_inverse_evidence_early_exit() -> None:
@@ -96,7 +97,7 @@ def test_extractive_sensor_service_inverse_evidence_early_exit() -> None:
     # Poison ei löydy -> Voidaan päättää heti. Koska se on inverse, puuttuminen on PASS.
     result = ExtractiveSensorService.pre_evaluate(tda, "Clean text here.")
     assert result.decided
-    assert result.result == "PASS"
+    assert result.result == ExecutionStatus.PASSED
 
     # Poison löytyy -> Ei voida päättää (saattaa olla ettei ehto silti täyty esim contextin takia)
     result2 = ExtractiveSensorService.pre_evaluate(tda, "Text with poison inside.")
@@ -123,7 +124,7 @@ def test_extractive_sensor_service_fuzzy_match() -> None:
     # 2. Pitäisi failata early exitillä, jos typoja on liikaa (esim. "must_fxxnd_this")
     result_fail = ExtractiveSensorService.pre_evaluate(tda, "Some text where must_fxxnd_this is located.", locale="en")
     assert result_fail.decided
-    assert result_fail.result == "FAIL"
+    assert result_fail.result == ExecutionStatus.FAILED
 
 
 def test_extractive_sensor_service_extracted_atom_pre_evaluate_empty_quote() -> None:
@@ -154,13 +155,12 @@ def test_extractive_sensor_service_extracted_atom_pre_evaluate_fail() -> None:
     )
     result = ExtractiveSensorService.pre_evaluate(atom, "Completely different text")
     assert result.decided
-    assert result.result == "FAIL"
+    assert result.result == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
     from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
-    from backend_v2.models.enums import ExecutionStatus
 
     # 1. Undecided
     atom_undecided = ExtractedAtom(
@@ -197,7 +197,6 @@ async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
 
 def test_extractive_sensor_service_resolve_majority_vote() -> None:
     from backend_v2.exceptions import AgentExecutionError
-    from backend_v2.models.enums import ExecutionStatus
 
     # Success case (2 PASS)
     results = [
@@ -236,7 +235,6 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
 
     from backend_v2.llm.client import LLMClient
     from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
-    from backend_v2.models.enums import ExecutionStatus
     from backend_v2.services.llm_task_executor import LLMTaskExecutor
 
     atom = ExtractedAtom(

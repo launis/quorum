@@ -110,11 +110,7 @@ async def test_sdui_semantic_parity() -> None:
 
         from backend_v2.models.view.sdui import MarkdownBlock
 
-        new_layouts = [
-            MarkdownBlock(
-                text="# English test"
-            )
-        ]
+        new_layouts = [MarkdownBlock(text="# English test")]
         for layout in dto.inner_sdui_blocks:
             axes = list(getattr(layout, "axes", []))
             if getattr(layout, "preset_view", "") in ("radar_3d", "3d_matrix") or getattr(layout, "block_type", "") in (

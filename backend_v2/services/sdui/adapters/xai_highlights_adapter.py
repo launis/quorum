@@ -80,11 +80,13 @@ class XaiHighlightsAdapter:
             try:
                 aesthetics = XAI_AESTHETICS_RULES[ext_type_str]
             except KeyError as e:
-                logger.error("[XaiHighlightsAdapter] Missing rule mapping for extension key: %s", ext_type_str, exc_info=True)
+                logger.error(
+                    "[XaiHighlightsAdapter] Missing rule mapping for extension key: %s", ext_type_str, exc_info=True
+                )
                 raise AppException(
                     message=f"Missing rule mapping for extension key: {ext_type_str}",
                     status_code=500,
-                    details={"error_code": "CONFIGURATION_ERROR"}
+                    details={"error_code": "CONFIGURATION_ERROR"},
                 ) from e
 
             label_obj = profile.extension_labels.get(ext_enum) if profile.extension_labels else None
