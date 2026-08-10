@@ -35,6 +35,10 @@ class AdapterContext(BaseModel):
     user_name: str | None
     org_name: str | None
     parsed_matrices: dict[str, MatrixScorecardRowDTO] = Field(default_factory=dict)
+    local_time_str: str | None = None
+    scoring_engine: str | None = None
+    cost: float | None = None
+    tokens: int | None = None
 
 
 class SduiAdapterProtocol(Protocol):

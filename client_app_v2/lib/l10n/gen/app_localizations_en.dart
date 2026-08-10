@@ -49,6 +49,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sduiMetadataCosts => 'Meta Costs';
+
+  @override
+  String get sduiMetadataTokens => 'Meta Tokens';
+
+  @override
   String errorDataMapping(String field, String detail) {
     return 'Mapping Error in field \'$field\': $detail';
   }

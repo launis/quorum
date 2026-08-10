@@ -352,6 +352,30 @@ class BlueprintTransformer:
                 execution.id, {"step_states": {k: v.model_dump(mode="json") for k, v in new_step_states.items()}}
             )
 
+        total_exec_cost = 0.0
+        total_exec_tokens = 0
+        if isinstance(execution.metadata, dict):
+            total_exec_cost = float(execution.metadata.get("dag_cost_usd", 0.0))
+            agg_usage = execution.metadata.get("aggregated_usage", {})
+            total_exec_tokens = int(
+                agg_usage.get("prompt_tokens", 0)
+                + agg_usage.get("completion_tokens", 0)
+                + agg_usage.get("reasoning_tokens", 0)
+            )
+
+        combined_cost = total_exec_cost + getattr(execution, "cumulative_synthesis_cost", 0.0)
+        combined_tokens = total_exec_tokens + getattr(execution, "cumulative_synthesis_tokens", 0)
+
+        scoring_engine_val = (
+            getattr(profile.scoring_strategy, "value", str(profile.scoring_strategy))
+            if getattr(profile, "scoring_strategy", None)
+            else (
+                getattr(workflow_obj.default_scoring_strategy, "value", str(workflow_obj.default_scoring_strategy))
+                if getattr(workflow_obj, "default_scoring_strategy", None)
+                else "AVERAGE"
+            )
+        )
+
         try:
             adapter_ctx = AdapterContext(
                 execution=execution,
@@ -364,6 +388,10 @@ class BlueprintTransformer:
                 user_name=None,
                 org_name=None,
                 parsed_matrices=all_parsed_matrices,
+                local_time_str=local_time_str,
+                scoring_engine=scoring_engine_val,
+                cost=combined_cost,
+                tokens=combined_tokens,
             )
 
             # Phase 1: Build temp visualization blocks for slop scanner
@@ -648,6 +676,10 @@ class BlueprintTransformer:
                 user_name=user_name,
                 org_name=org_name,
                 parsed_matrices=all_parsed_matrices,
+                local_time_str=local_time_str,
+                scoring_engine=scoring_engine_val,
+                cost=combined_cost,
+                tokens=combined_tokens,
             )
 
             dispatch_order = profile.target_block_order

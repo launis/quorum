@@ -1,5 +1,7 @@
 {
-  "appTitle": "Cognitive Quorum -asiakas",
+  "appTitle": "Kognitiivinen Kvorumi Asiakas",
+  "sduiMetadataCosts": "Kustannukset",
+  "sduiMetadataTokens": "Tokenit",
   "delete": "Poista",
   "loginBtn": "Kirjaudu sisään",
   "adminPanel": "Hallintapaneeli",

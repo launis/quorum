@@ -18,6 +18,8 @@
       }
     }
   },
+  "sduiMetadataCosts": "Meta Costs",
+  "sduiMetadataTokens": "Meta Tokens",
   "errorDataMapping": "Mapping Error in field '{field}': {detail}",
   "@errorDataMapping": {
     "placeholders": {

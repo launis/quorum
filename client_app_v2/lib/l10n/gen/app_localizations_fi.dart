@@ -9,7 +9,7 @@ class AppLocalizationsFi extends AppLocalizations {
   AppLocalizationsFi([String locale = 'fi']) : super(locale);
 
   @override
-  String get appTitle => 'Cognitive Quorum -asiakas';
+  String get appTitle => 'Kognitiivinen Kvorumi Asiakas';
 
   @override
   String get delete => 'Poista';
@@ -47,6 +47,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String errorValidationMissing(String fields) {
     return 'Pakollisia kenttiä puuttuu: $fields';
   }
+
+  @override
+  String get sduiMetadataCosts => 'Kustannukset';
+
+  @override
+  String get sduiMetadataTokens => 'Tokenit';
 
   @override
   String errorDataMapping(String field, String detail) {

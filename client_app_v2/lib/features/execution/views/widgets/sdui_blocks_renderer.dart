@@ -14,6 +14,7 @@ import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dar
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 
 class SduiBlocksRenderer extends StatelessWidget {
   final List<SduiBlockDTO> blocks;
@@ -153,6 +154,7 @@ class SduiBlocksRenderer extends StatelessWidget {
 
   Widget _buildMetadata(BuildContext context, SduiMetadataBlock block) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
@@ -223,12 +225,13 @@ class SduiBlocksRenderer extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Meta Costs',
+                            l10n.sduiMetadataCosts,
                             style: theme.textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(block.costs!, style: theme.textTheme.labelSmall),
+
                         ],
                       ),
                     ),
@@ -238,7 +241,7 @@ class SduiBlocksRenderer extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Meta Tokens',
+                            l10n.sduiMetadataTokens,
                             style: theme.textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),

@@ -15,6 +15,9 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = []
 
     mock_workflow_repo = AsyncMock()
+    mock_wf = AsyncMock()
+    mock_wf.default_scoring_strategy = "AVERAGE"
+    mock_workflow_repo.get_workflow.return_value = mock_wf
     mock_workflow_repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567812345678",
         "slug": "test",
@@ -63,6 +66,7 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
     }
 
     mock_profile_repo.get_all_output_profiles.return_value = [mock_profile_dict]
+    mock_profile_repo.get_output_profile.return_value = mock_profile_dict
     mock_profile_repo.get_profile_synthesis_cache.return_value = RenderedSynthesisCache(
         extension_metrics=ExtensionMetricsDTO(authenticity_score=75.0)
     )

@@ -1598,6 +1598,10 @@ class ExecutionRecord(ExecutionCoreFields):
     is_resumable: bool = Field(
         default=False, description="Dynamic flag indicating if a failed/pending execution can be safely resumed."
     )
+    cumulative_synthesis_tokens: int = Field(default=0, description="Cumulative tokens used across all synthesis runs.")
+    cumulative_synthesis_cost: float = Field(
+        default=0.0, description="Cumulative cost in USD across all synthesis runs."
+    )
 
     duration_ms: int = Field(default=0, description="Total execution duration in milliseconds")
     cost_estimate: float = Field(default=0.0, description="Estimated total cost of the execution in USD")

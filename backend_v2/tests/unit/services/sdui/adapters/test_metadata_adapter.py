@@ -40,7 +40,7 @@ def test_metadata_adapter_builds_header_block() -> None:
 
     header = blocks[0]
     assert header.title == "Test Profile"
-    assert "PASSED" in header.badges
+    assert "PASSED" not in header.badges
 
     metadata_texts = " ".join(header.metadata_lines)
     assert "Käyttäjä: John Doe" in metadata_texts

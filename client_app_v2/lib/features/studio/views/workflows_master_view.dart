@@ -106,8 +106,46 @@ class WorkflowsMasterView extends ConsumerWidget {
                           displayName,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text(
-                          '$workflowId\n${l10n.studioViewsSlugSubtitle(slug)}\n${l10n.studioViewsWorkflowSubtitle('', steps, status)}',
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Wrap(
+                            spacing: 12.0,
+                            runSpacing: 4.0,
+                            children: [
+                              Text(
+                                workflowId,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                      fontFamily: 'monospace',
+                                    ),
+                              ),
+                              Text(
+                                l10n.studioViewsSlugSubtitle(slug),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                              Text(
+                                l10n.studioViewsWorkflowSubtitle(
+                                  '',
+                                  steps,
+                                  status,
+                                ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,

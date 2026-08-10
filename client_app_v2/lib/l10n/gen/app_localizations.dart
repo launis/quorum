@@ -170,6 +170,18 @@ abstract class AppLocalizations {
   /// **'Missing required fields: {fields}'**
   String errorValidationMissing(String fields);
 
+  /// No description provided for @sduiMetadataCosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta Costs'**
+  String get sduiMetadataCosts;
+
+  /// No description provided for @sduiMetadataTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Meta Tokens'**
+  String get sduiMetadataTokens;
+
   /// No description provided for @errorDataMapping.
   ///
   /// In en, this message translates to:

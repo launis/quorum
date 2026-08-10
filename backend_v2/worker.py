@@ -1088,18 +1088,30 @@ async def generate_profile_synthesis_and_pdf_task(
                             )
                         )
 
+        synth_cost = 0.0
+        synth_tokens = 0
+
         if t_synth and t_synth.result():
-            synth_dto, _ = t_synth.result()
+            synth_dto, usage = t_synth.result()
             synthesis_res = synth_dto
+            if usage:
+                synth_cost += usage.cost_usd
+                synth_tokens += usage.total_tokens
 
         if t_row and t_row.result():
-            row_dto, _ = t_row.result()
+            row_dto, usage = t_row.result()
             row_expl_res = row_dto
+            if usage:
+                synth_cost += usage.cost_usd
+                synth_tokens += usage.total_tokens
 
         variance_expl = None
         if t_variance and t_variance.result():
-            var_dto, _ = t_variance.result()
+            var_dto, usage = t_variance.result()
             variance_expl = var_dto.row_explanation
+            if usage:
+                synth_cost += usage.cost_usd
+                synth_tokens += usage.total_tokens
 
         sec_dict: dict[str, list[AnySduiBlock]] = {}
         if synthesis_res and synthesis_res.section_syntheses:
@@ -1145,7 +1157,15 @@ async def generate_profile_synthesis_and_pdf_task(
         pid: str = profile_id if profile_id is not None else "default"
         current_syntheses[pid] = cache
         dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
-        update_payload: dict[str, Any] = {"profile_syntheses": dict_syntheses}
+
+        new_cum_tokens = (getattr(execution, "cumulative_synthesis_tokens", 0) or 0) + synth_tokens
+        new_cum_cost = (getattr(execution, "cumulative_synthesis_cost", 0.0) or 0.0) + synth_cost
+
+        update_payload: dict[str, Any] = {
+            "profile_syntheses": dict_syntheses,
+            "cumulative_synthesis_tokens": new_cum_tokens,
+            "cumulative_synthesis_cost": new_cum_cost,
+        }
 
         await repo.update_execution(execution_id, update_payload)
 
