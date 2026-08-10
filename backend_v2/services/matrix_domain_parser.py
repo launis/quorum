@@ -6,12 +6,12 @@ from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.atom_evaluation import (
-    MatrixEvaluationItemDTO,
     ReasoningStepDTO,
 )
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import (
+    AtomResultDTO,
     I18nText,
     MatrixScorecardRowDTO,
     MCPAuditTrace,
@@ -333,8 +333,8 @@ class MatrixDomainParser:
                 for r_dto in results:
                     if r_dto.step_id == step_id and r_dto.block_id == "evaluations" and isinstance(r_dto.payload, list):
                         for ev in r_dto.payload:
-                            if isinstance(ev, dict) and "atom_id" in ev:
-                                step_evals_map[ev["atom_id"]] = ev
+                            if isinstance(ev, dict) and "tda_id" in ev:
+                                step_evals_map[ev["tda_id"]] = ev
                         break
 
                 if pb_meta.scales:
@@ -349,7 +349,7 @@ class MatrixDomainParser:
 
                                 if ev_data:
                                     try:
-                                        val_data = MatrixEvaluationItemDTO.model_validate(ev_data)
+                                        val_data = AtomResultDTO.model_validate(ev_data)
 
                                         r_step = ReasoningStepDTO(
                                             step_1_identify_premise="",
@@ -367,7 +367,7 @@ class MatrixDomainParser:
                                             exact_quotes=[],
                                             internal_logic_en=r_step,
                                             status=ExecutionStatus.FAILED,
-                                            semantic_reasoning=val_data.semantic_reasoning,
+                                            semantic_reasoning=val_data.evaluation_reasoning or "",
                                             contextual_override=False,
                                             structural_location=None,
                                             chart_display_label="N/A",

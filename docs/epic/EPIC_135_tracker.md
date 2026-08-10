@@ -55,9 +55,9 @@
 
 ### Phase 4: Deletion & Sunset
 **Plan:** `@[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md]` (Placeholder - Generate via /tier1-planner later)
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]`
 
 ---
@@ -150,7 +150,12 @@
 - Completed `/tier8-audit-plan` for Phase 3 Consumer Convergence. Epic boundaries were preserved perfectly, `is_dag_mode` and duck-typing completely eradicated.
 
 ## Remaining
-- Phase 4 Deletion & Sunset generation and execution.
+- Phase 4 Deletion & Sunset Audit.
+- Post-Implementation Gates (Hardening, E2E, Architecture Sync).
+
+## Achieved (Phase 4)
+- Completed `/tier0-research-plan` for Phase 4 Deletion & Sunset. The Tier 0 analysis identified two missing dependencies (`matrix_domain_parser.py` and `test_lazy_llm_simulation.py`) that still used deprecated DTOs and legacy `"atom_id"` extraction. The Phase 4 plan was updated to mandate refactoring these consumers before safely deleting the dead models, preventing a catastrophic Fail-Fast runtime crash.
+- Successfully executed Phase 4 Deletion & Sunset. Replaced `MatrixEvaluationItemDTO` with `AtomResultDTO` in `matrix_domain_parser.py` and `test_lazy_llm_simulation.py`. Deleted legacy test files. Removed deprecated models (`MatrixEvaluationItemDTO`, `AtomEvaluationItemDTO`, `LightweightExtractionAtom`) from `atom_evaluation.py` and `AtomEvaluationStatus` from `enums.py`. Passed the backend quality gate with 82.72% coverage.
 
 ## Course Correction (Phase 2) — RESOLVED
 - Both directives from the prior session have been addressed in the mutated plan:
@@ -159,4 +164,4 @@
 
 
 ## Resume Command
-/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]
+/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_135\04_deletion_and_sunset_plan.md] @[c:\src\quorum\docs\epic\EPIC_135_tracker.md]
