@@ -38,8 +38,8 @@ async def test_execute_workflow_job_not_found() -> None:
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine}
 
-    with pytest.raises(WorkflowNotFoundError):
-        await execute_workflow_job(ctx, "nonexistent", {})
+    res = await execute_workflow_job(ctx, "nonexistent", {})
+    assert res == {"_dlq_status": "FAILED/DLQ"}
 
 
 @pytest.mark.asyncio

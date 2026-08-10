@@ -348,7 +348,7 @@ async def execute_workflow_job(
                         exc_info=True,
                         extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     )
-            raise e
+            return {"_dlq_status": "FAILED/DLQ"}
         except asyncio.CancelledError:
             logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {exec_id}")  # noqa: E501
             if exec_id:
@@ -369,12 +369,12 @@ async def execute_workflow_job(
                         exc_info=True,
                         extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     )
-            raise
+            return {"_dlq_status": "FAILED/DLQ"}
 
 
 async def generate_pdf_job(
     ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str | None = None
-) -> str:
+) -> str | dict[str, str]:
     """Invoked by Arq Worker to ensure background PDF compilation resilience.
 
     Args:
@@ -384,13 +384,17 @@ async def generate_pdf_job(
         profile_id: Target output profile identifier.
 
     Returns:
-        Status message string upon completion.
-
-    Raises:
-        AppException: If PDF generation fails.
+        Status message string upon completion, or DLQ dict on failure.
     """
-    await generate_pdf_task(execution_id, accept_language, profile_id)
-    return f"PDF Generated for {execution_id}"
+    try:
+        await generate_pdf_task(execution_id, accept_language, profile_id)
+        return f"PDF Generated for {execution_id}"
+    except asyncio.CancelledError:
+        logger.warning(f"[Worker] generate_pdf_job cancelled for {execution_id}")
+        return {"_dlq_status": "FAILED/DLQ"}
+    except Exception as e:
+        logger.error(f"[Worker] generate_pdf_job failed for {execution_id}: {e}", exc_info=True)
+        return {"_dlq_status": "FAILED/DLQ"}
 
 
 async def generate_pdf_task(
@@ -538,7 +542,7 @@ async def generate_pdf_task(
 
 async def render_profile_job(
     ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str | None = None
-) -> str:
+) -> str | dict[str, str]:
     """Invoked by Arq Worker to ensure background synthesis & PDF compilation resilience.
 
     Args:
@@ -548,13 +552,17 @@ async def render_profile_job(
         profile_id: Target output profile identifier.
 
     Returns:
-        Status message string upon completion.
-
-    Raises:
-        AppException: If profile synthesis fails.
+        Status message string upon completion, or DLQ dict on failure.
     """
-    await generate_profile_synthesis_and_pdf_task(execution_id, accept_language, profile_id, ctx.get("redis"))  # noqa: E501
-    return f"Render Job Completed for {execution_id}"
+    try:
+        await generate_profile_synthesis_and_pdf_task(execution_id, accept_language, profile_id, ctx.get("redis"))  # noqa: E501
+        return f"Render Job Completed for {execution_id}"
+    except asyncio.CancelledError:
+        logger.warning(f"[Worker] render_profile_job cancelled for {execution_id}")
+        return {"_dlq_status": "FAILED/DLQ"}
+    except Exception as e:
+        logger.error(f"[Worker] render_profile_job failed for {execution_id}: {e}", exc_info=True)
+        return {"_dlq_status": "FAILED/DLQ"}
 
 
 async def generate_profile_synthesis_and_pdf_task(
