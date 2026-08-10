@@ -139,10 +139,6 @@ class LLMHandler:
                         if clean_id.startswith(prefix):
                             clean_id = clean_id[len(prefix) :]
 
-                    # Proactive censorship of dysfunctional gemini-3.5-pro
-                    if clean_id == "gemini-3.5-pro":
-                        return None
-
                     # Luokitellaan julkaisija nimen perusteella
                     clean_lower = clean_id.lower()
                     if "claude" in clean_lower:
@@ -155,14 +151,11 @@ class LLMHandler:
                         publisher = "google"
 
                     if publisher == "google":
-                        # Gemini 3.x models use 'global' location by default,
-                        # whereas traditional models check target_location (Hamina europe-north1)
-                        model_location = "global" if "gemini-3." in clean_id else target_location
                         try:
                             from google import genai
 
                             # Initialize modern GenAI client with V2 SDK
-                            modern_client = genai.Client(vertexai=True, project=project, location=model_location)
+                            modern_client = genai.Client(vertexai=True, project=project, location=target_location)
                             # Get model metadata to verify availability
                             _ = modern_client.models.get(model=clean_id)
                             return f"vertex_ai/{clean_id}"

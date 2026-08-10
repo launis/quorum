@@ -226,11 +226,6 @@ class PromptFactory:
 
         if role_block and role_block.ai_description:
             base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_block.ai_description}\n</ROLE_DIRECTIVE>"
-            if is_grounded_step:
-                base_system_prompt += f"\n\n{anchors_xml}"
-        else:
-            if is_grounded_step:
-                base_system_prompt += f"\n\n{anchors_xml}"
 
         if protocol_block and protocol_block.ai_description:
             base_system_prompt += f"\n\n<EXTRACTION_PROTOCOL>\n{protocol_block.ai_description}\n</EXTRACTION_PROTOCOL>"
@@ -247,6 +242,8 @@ class PromptFactory:
         exec_params += f"{GLOBAL_MANDATES_XML}\n"
         if execution_time:
             exec_params += f"<document_date>{execution_time}</document_date>\n"
+        if anchors_xml:
+            exec_params += f"{anchors_xml}\n"
         exec_params += "</execution_context>\n"
 
         xml_ctx = compiler.build_xml_context(
