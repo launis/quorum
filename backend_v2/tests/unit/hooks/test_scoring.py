@@ -773,9 +773,6 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
     assert "Strict Fail-Fast" in str(exc_info.value)
 
 
-
-
-
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_dynamic_penalty() -> None:
     """Test that matrix_level score correctly applies the dynamic penalty without affecting the global scale improperly."""

@@ -1,4 +1,3 @@
-import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.models.dtos.atom_evaluation import (
