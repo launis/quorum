@@ -24,7 +24,7 @@
     - [ ] Docstring updated to reference `AtomResultDTO` (not `AtomEvaluationItemDTO`).
     - [ ] `from typing import Any` import removed from the file if no other usage remains.
     - [ ] MyPy strict passes with zero errors.
-    - [ ] Old test at `@[c:\src\quorum\backend_v2\tests\unit\models\dtos\test_lightweight_matrix.py#L118-L124]` will break because it passes `AtomEvaluationItemDTO` to the retyped signature. This is expected; the test is scheduled for DELETION in Phase 4. New tests in the test_contracts below supersede it.
+    - [ ] Old test `test_atom_evaluation_item_dto_enforce_null_hypothesis` at `@[c:\src\quorum\backend_v2\tests\unit\models\dtos\test_lightweight_matrix.py#L100-L132]` will break because it passes `AtomEvaluationItemDTO` to the retyped signature. You MUST surgically delete this specific test function in THIS Phase (Phase 2) to maintain global CI/CD test suite parity, complying with `fragmented_quality_gates_prevention`. New tests in the test_contracts below supersede it.
   </dod_checklist>
 
   <required_context_rules>
@@ -63,6 +63,7 @@
     <action>HYDRATE REASONING: Use `engine.hydrate_reasoning_text(atom.evaluation_reasoning)` directly (no `getattr` guard — `evaluation_reasoning` is `str | None` on `AtomResultDTO`, check for `None` directly with `if atom.evaluation_reasoning:`).</action>
     <action>REMOVE `from typing import Any` import if no other usage remains in the file. `source_documents` parameter MUST use `list[SourceDocumentContext] | None`, not `list[Any]`.</action>
     <action>RETAIN `_is_match` inner function and its closure over `locale` and `strictness_level`. The matching logic (normalize → exact substring → fuzzy threshold) is unchanged; only the outer loop is simplified from list iteration to single-string matching.</action>
+    <action>TEST SUITE PARITY: Surgically delete the broken legacy test `test_atom_evaluation_item_dto_enforce_null_hypothesis` from `@[c:\src\quorum\backend_v2\tests\unit\models\dtos\test_lightweight_matrix.py]` to prevent Fake Green CI/CD failures.</action>
   </step>
 
   <test_contracts>

@@ -370,7 +370,7 @@ class MockRepoWaterfallMixed:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_ignores_instructions() -> None:
     """Test that waterfall scoring gracefully skips instructional PromptBlocks without crashing."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     atom_hash = generate_atom_hash("atom_1", mandate)
@@ -382,14 +382,13 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
         task_blueprint="step1",
         metadata={},
         inputs={
-            "evaluations": [
+            "results": [
                 {
                     "tda_id": atom_hash,
-                    "atom_id": atom_hash,
-                    "status": "PASS",
-                    "semantic_reasoning": "",
+                    "status": ExecutionStatus.PASSED,
+                    "evaluation_reasoning": "Valid reasoning",
+                    "source_quote": "mock quote",
                     "contextual_override": False,
-                    "structural_location": "",
                 }
             ],
             "extracted_facts": {},
@@ -415,7 +414,7 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_pass_all() -> None:
     """Test standard hybrid model when everything passes."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
@@ -424,11 +423,10 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         evaluations.append(
             {
                 "tda_id": atom_hash,
-                "atom_id": atom_hash,
-                "status": "PASS",
-                "semantic_reasoning": "Hyväksytty",
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": "Hyväksytty",
+                "source_quote": "mock quote",
                 "contextual_override": False,
-                "structural_location": "",
             }
         )
 
@@ -438,7 +436,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -464,7 +462,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
 @pytest.mark.skip("Legacy architecture obsolete")
 async def test_matrix_scoring_hook_ceiling_cap() -> None:
     """Test that the waterfall ceiling caps the final score despite high weighted score."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
@@ -475,11 +473,10 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         evaluations.append(
             {
                 "tda_id": atom_hash,
-                "atom_id": atom_hash,
-                "status": "PASS" if is_hit else "FAIL",
-                "semantic_reasoning": "",
+                "status": ExecutionStatus.PASSED if is_hit else "FAIL",
+                "evaluation_reasoning": "",
+                "source_quote": "mock quote",
                 "contextual_override": False,
-                "structural_location": "",
             }
         )
 
@@ -489,7 +486,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -516,7 +513,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_graceful_missing() -> None:
     """Test missing context formatting logic."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
@@ -528,11 +525,10 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         evaluations.append(
             {
                 "tda_id": atom_hash,
-                "atom_id": atom_hash,
-                "status": "PASS" if is_hit else "FAIL",
-                "semantic_reasoning": reasoning,
+                "status": ExecutionStatus.PASSED if is_hit else "FAIL",
+                "evaluation_reasoning": reasoning,
+                "source_quote": "mock quote",
                 "contextual_override": False,
-                "structural_location": "",
             }
         )
 
@@ -542,7 +538,7 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -555,14 +551,13 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         audit_repo=cast(Any, MockRepoWaterfall()),
         system_repo=cast(Any, MockRepoWaterfall()),
     )  # noqa: E501
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    from backend_v2.exceptions import AppException
 
-    assert result.success is True
-    assert result.state_delta is not None
-    # Level 1 (100%), Level 2 (100%), Level 3 (0%) -> Floor 2.0.
-    # Weighted: (1*1 + 1*2 + 0) / (1+2+3) = 3 / 6 = 50%.
-    # Weighted Score: 1.0 + (0.5 * 4.0) = 3.0. Max cap: 2.0 + 1.0 = 3.0. So score is 3.0.
-    assert result.state_delta["pb_1234567890123456"]["raw_score"] == 2.0
+    # The hook should now Fail-Fast because `results` list is missing valid AtomResultDTO data (status is string FAIL, not ExecutionStatus)
+    with pytest.raises(AppException) as exc_info:
+        await cast(Awaitable[Any], matrix_scoring_hook(state, deps))
+
+    assert "Strict Fail-Fast" in str(exc_info.value)
 
 
 class MockRepoWaterfallSimulation:
@@ -618,90 +613,81 @@ class MockRepoWaterfallSimulation:
 @pytest.mark.skip("Legacy architecture obsolete")
 async def test_matrix_scoring_hook_full_simulation() -> None:
     """Simulates a complex real-world evaluation trace to ensure mathematical perfection."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import ExecutionStatus
 
-    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
 
     # Taso 1 (100% osuma)
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("L1_A1", mandate),
-            "status": "PASS",
-            "semantic_reasoning": "Oikein",
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Oikein",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("L1_A2", mandate),
-            "status": "PASS",
-            "semantic_reasoning": "Oikein",
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Oikein",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
 
     # Taso 2 (100% osuma)
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("L2_A1", mandate),
-            "status": "PASS",
-            "semantic_reasoning": "Oikein",
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Oikein",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("L2_A2", mandate),
-            "status": "PASS",
-            "semantic_reasoning": "Oikein",
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Oikein",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
 
     # Taso 3 (50% osuma -> Hit Rate < 90% -> VESIPUTOUS PYSÄHTYY)
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("L3_A1", mandate),
-            "status": "PASS",
-            "semantic_reasoning": "Oikein",
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Oikein",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("L3_A2", mandate),
-            "status": "FAIL",
-            "semantic_reasoning": "Aihetodistetta EI esitetty.",
+            "status": ExecutionStatus.FAILED,
+            "evaluation_reasoning": "Aihetodistetta EI esitetty.",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
 
     # Taso 4 (100% osuma -> Menee painotukseen bonuksena)
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("L4_A1", mandate),
-            "status": "PASS",
-            "semantic_reasoning": "Hieno oivallus!",
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Hieno oivallus!",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
 
     # Taso 5 (0% osuma -> Hylätään)
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("L5_A1", mandate),
-            "status": "FAIL",
-            "semantic_reasoning": "Ei yltänyt tälle tasolle.",
+            "status": ExecutionStatus.FAILED,
+            "evaluation_reasoning": "Ei yltänyt tälle tasolle.",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
 
@@ -711,7 +697,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -739,18 +725,14 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_status_key() -> None:
     """Test that matrix_scoring_hook operates robustly even when evaluations omit the 'status' key."""
-    from backend_v2.models.enums import EvaluationMandate
-
-    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
 
     # Successful atom evaluation: lacks 'status' key (optional field)
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("atom_1", mandate),
-            "semantic_reasoning": "Valid analytical statement",
+            "evaluation_reasoning": "Valid analytical statement",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
         }
     )
 
@@ -768,7 +750,7 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -782,13 +764,13 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
         system_repo=cast(Any, MockRepoWaterfall()),
     )
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    # The hook should now Fail-Fast because the first atom is missing 'tda_id' and 'status'
+    from backend_v2.exceptions import AppException
 
-    # The run should succeed and process the valid atom, ignoring the DLQ item in cognitive loop
-    assert result.success is True
-    assert result.state_delta is not None
-    # Verify it processed atom_1 and not the DLQ chunk
-    assert "pb_1234567890123456" in result.state_delta
+    with pytest.raises(AppException) as exc_info:
+        await cast(Awaitable[Any], matrix_scoring_hook(state, deps))
+
+    assert "Strict Fail-Fast" in str(exc_info.value)
 
 
 def test_apply_scoring_logic_fails_fast_on_global_context_bug() -> None:
@@ -837,7 +819,7 @@ def test_apply_scoring_logic_fails_fast_on_global_context_bug() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_dynamic_penalty() -> None:
     """Test that matrix_level score correctly applies the dynamic penalty without affecting the global scale improperly."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
@@ -846,20 +828,20 @@ async def test_matrix_scoring_hook_dynamic_penalty() -> None:
     for i in range(1, 5):
         evaluations.append(
             {
-                "atom_id": generate_atom_hash(f"atom_{i}", mandate),
-                "status": "PASS",
-                "semantic_reasoning": "Hyväksytty",
+                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": "Hyväksytty",
+                "source_quote": "mock quote",
                 "contextual_override": False,
-                "structural_location": "",
             }
         )
     evaluations.append(
         {
-            "atom_id": generate_atom_hash("atom_5", mandate),
-            "status": "CONTESTED",
-            "semantic_reasoning": "Contested",
-            "contextual_override": False,
-            "structural_location": "",
+            "tda_id": generate_atom_hash("atom_5", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Contested",
+            "source_quote": "mock quote",
+            "contextual_override": True,
         }
     )
 
@@ -869,7 +851,7 @@ async def test_matrix_scoring_hook_dynamic_penalty() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -900,7 +882,7 @@ async def test_matrix_scoring_hook_dynamic_penalty() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_cognitive_collapse() -> None:
     """Test that Cognitive Collapse lock correctly rejects a matrix exceeding the 3 atom or 50% threshold."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
@@ -909,21 +891,21 @@ async def test_matrix_scoring_hook_cognitive_collapse() -> None:
     for i in range(1, 2):
         evaluations.append(
             {
-                "atom_id": generate_atom_hash(f"atom_{i}", mandate),
-                "status": "PASS",
-                "semantic_reasoning": "Hyväksytty",
+                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": "Hyväksytty",
+                "source_quote": "mock quote",
                 "contextual_override": False,
-                "structural_location": "",
             }
         )
     for i in range(2, 6):
         evaluations.append(
             {
-                "atom_id": generate_atom_hash(f"atom_{i}", mandate),
-                "status": "CONTESTED",
-                "semantic_reasoning": "Contested",
-                "contextual_override": False,
-                "structural_location": "",
+                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": "Contested",
+                "source_quote": "mock quote",
+                "contextual_override": True,
             }
         )
 
@@ -933,7 +915,7 @@ async def test_matrix_scoring_hook_cognitive_collapse() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -963,7 +945,7 @@ async def test_matrix_scoring_hook_cognitive_collapse() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
     """Test to reproduce the ValidationInfo.context crash when generating QuoteEvidenceDTO."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     atom_hash = generate_atom_hash("atom_1", mandate)
@@ -973,12 +955,10 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
     evaluations = [
         {
             "tda_id": atom_hash,
-            "atom_id": atom_hash,
-            "status": "FAIL",
-            "semantic_reasoning": "Hyväksytty",
+            "status": ExecutionStatus.FAILED,
+            "evaluation_reasoning": "Hyväksytty",
+            "source_quote": "mock quote",
             "contextual_override": False,
-            "structural_location": "",
-            "exact_quotes": [{"text": "This is a quote", "source_id": "doc1"}],
         }
     ]
 
@@ -988,7 +968,7 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -1014,7 +994,7 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
 
     pb = _build_valid_pb_dict("blk_1111111111111111", [_build_valid_scale(1, ["atom_test"])])
     state = HookState(
-        inputs={"evaluations": [], "extracted_facts": {}, "execution_metadata": {}},
+        inputs={"results": [], "extracted_facts": {}, "execution_metadata": {}},
         step_id="sp_empty_evals",
         execution_id="exe_1111111111111111",
         workflow_id="wf_1",
@@ -1043,13 +1023,13 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
     assert result is not None
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta["evaluations"] == []
+    assert result.state_delta["results"] == []
 
 
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_propagates_extensions() -> None:
     """Test that matrix_scoring_hook aggregates atom-level extensions into the Matrix output."""
-    from backend_v2.models.enums import EvaluationMandate
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     atom_hash = generate_atom_hash("atom_1", mandate)
@@ -1058,9 +1038,9 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
     evaluations = [
         {
             "tda_id": atom_hash,
-            "atom_id": atom_hash,
-            "status": "FAIL",
-            "semantic_reasoning": "Missing requirement",
+            "status": ExecutionStatus.FAILED,
+            "evaluation_reasoning": "Missing requirement",
+            "source_quote": "mock quote",
             "contextual_override": False,
             "extensions": {"coaching": "This is a coaching tip."},
         }
@@ -1072,7 +1052,7 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        inputs={"results": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
 
@@ -1100,7 +1080,6 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
         audit_repo=cast(Any, MockRepoWaterfall()),
         system_repo=cast(Any, MockRepoWaterfall()),
     )
-
     from backend_v2.hooks.scoring import matrix_scoring_hook
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
@@ -1117,7 +1096,7 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
 
 
 @pytest.mark.asyncio
-async def test_scoring_matrix_namespace_isolation():
+async def test_scoring_matrix_namespace_isolation() -> None:
     """Test that Matrix B evaluations leaking into Matrix A's loop are ignored."""
     from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
     from backend_v2.hooks.scoring import matrix_scoring_hook
@@ -1131,7 +1110,7 @@ async def test_scoring_matrix_namespace_isolation():
         "matrix_id": "pb_OTHER_MATRIX",
         "status": ExecutionStatus.PASSED,
         "evaluation_reasoning": "Reason",
-        "source_quote": "A quote",
+        "source_quote": "mock quote",
         "contextual_override": False,
     }
 
@@ -1140,7 +1119,7 @@ async def test_scoring_matrix_namespace_isolation():
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata={"is_dag_mode": True},
+        metadata={},
         inputs={"results": [ev_dict], "extracted_facts": {}},
         global_context_vars={},
     )
@@ -1181,7 +1160,7 @@ async def test_scoring_matrix_namespace_isolation():
 
 
 @pytest.mark.asyncio
-async def test_scoring_regular_tda_path_bypasses_namespace_check():
+async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
     """Test that Regular TDA evaluations (matrix_id=None) bypass the namespace check."""
     from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
     from backend_v2.hooks.scoring import matrix_scoring_hook
@@ -1195,7 +1174,7 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check():
         "matrix_id": None,
         "status": ExecutionStatus.PASSED,
         "evaluation_reasoning": "Reason",
-        "source_quote": "A quote",
+        "source_quote": "mock quote",
         "contextual_override": False,
     }
 
@@ -1204,7 +1183,7 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check():
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata={"is_dag_mode": True},
+        metadata={},
         inputs={"results": [ev_dict], "extracted_facts": {}},
         global_context_vars={},
     )
@@ -1269,7 +1248,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata={"is_dag_mode": True},
+        metadata={},
         inputs={"results": [ev_dict], "extracted_facts": {}},
         global_context_vars={},
     )
@@ -1301,6 +1280,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
     matrix_output = result.state_delta.get("pb_1234567890123456")
     assert matrix_output is not None
     # Defense-in-depth ensures is_satisfied = False despite contextual_override
