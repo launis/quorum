@@ -31,13 +31,19 @@ def test_lazy_llm_unauthorized_override_failed() -> None:
     with pytest.raises(ValidationError) as exc:
         AtomResultDTO(
             tda_id="test_atom_unauthorized",
+            matrix_id="test_matrix",
             status=ExecutionStatus.PASSED,
             contextual_override=False,
-            source_quote=None,
             evaluation_reasoning=(
                 "This is a long semantic explanation referencing page 3 to satisfy "
                 "the strict spatial referencing and length constraints."
             ),
+            source_quote=None,
+            extracted_data=None,
+            error_details=None,
+            extensions={},
+            depends_on_tda_ids=[],
+            short_circuit_reason_tda_ids=[],
         )
     assert "source_quote is mandatory unless contextual_override is True" in str(exc.value)
 
@@ -50,10 +56,16 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
     with pytest.raises(ValidationError) as exc:
         AtomResultDTO(
             tda_id="atom_no_reasoning",
+            matrix_id="test_matrix",
             status=ExecutionStatus.PASSED,
             contextual_override=True,
-            source_quote=None,
             evaluation_reasoning=None,
+            source_quote=None,
+            extracted_data=None,
+            error_details=None,
+            extensions={},
+            depends_on_tda_ids=[],
+            short_circuit_reason_tda_ids=[],
         )
     assert "Reasoning is mandatory for cognitive status" in str(exc.value)
 
@@ -106,10 +118,16 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
 
     evaluation = AtomResultDTO(
         tda_id=assertion.tda_id,
+        matrix_id="test_matrix",
         status=ExecutionStatus.FAILED,
         contextual_override=False,
         evaluation_reasoning="No evidence found for failure before phase 2 in the sliced context.",
         source_quote=None,
+        extracted_data=None,
+        error_details=None,
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
     )
     assert evaluation.status == ExecutionStatus.FAILED
 
@@ -131,9 +149,16 @@ def test_zero_variance_shannon_entropy_and_kappa_benchmark() -> None:
 
         item = AtomResultDTO(
             tda_id="stress_test_atom",
+            matrix_id="test_matrix",
             status=ExecutionStatus.PASSED,
             contextual_override=True,
             evaluation_reasoning=reasoning_text,
+            source_quote=None,
+            extracted_data=None,
+            error_details=None,
+            extensions={},
+            depends_on_tda_ids=[],
+            short_circuit_reason_tda_ids=[],
         )
 
         outcomes.append(item.status == ExecutionStatus.PASSED)
