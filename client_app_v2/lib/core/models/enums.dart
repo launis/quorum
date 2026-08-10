@@ -244,10 +244,15 @@ enum SduiBlockType {
   grid,
   @JsonValue('accordion')
   accordion,
-  @JsonValue('header')
-  header,
+
   @JsonValue('3d_matrix')
   matrix3d,
+  @JsonValue('audit_trail')
+  auditTrail,
+  @JsonValue('metadata')
+  metadata,
+  @JsonValue('score_card')
+  scoreCard,
   @JsonValue('2d_compare')
   compare2d,
   @JsonValue('matrix_summary')

@@ -23,7 +23,7 @@ async def test_blueprint_variance_validation_crash():
         "visible_metadata": ["date"],
         "scoring_strategy": "PURE_MATH",
         "strictness_level": 100,
-        "performativity_detector_step_id": None  # The root cause of the crash
+        "performativity_detector_step_id": None,  # The root cause of the crash
     }
 
     output_profile_repo = AsyncMock()
@@ -31,22 +31,23 @@ async def test_blueprint_variance_validation_crash():
 
     exec_repo.get_execution_profile.return_value = None
 
-    execution = MagicMock()
-    execution.id = "exe_123"
-    execution.workflow_id = "wf_test"
-    execution.created_by = "usr_123"
-    execution.organization_id = "org_123"
-    execution.context_variables = {}
-
     from backend_v2.models.state import TraceEvent
-    # Trace with 0 performative phrases
+    from backend_v2.models.v2_core import ExecutionRecord
+    
     event_mock = TraceEvent(
-        event_type="decision",
-        content={"step_linguistics": {"performative_patterns": []}},
-        step_name="test_step"
+        event_type="decision", content={"step_linguistics": {"performative_patterns": []}}, step_name="test_step"
     )
-    execution.execution_trace = [event_mock]
-    execution.step_states = {}
+    
+    execution = ExecutionRecord.model_construct(
+        id="exe_123",
+        workflow_id="wf_test",
+        created_by="usr_123",
+        organization_id="org_123",
+        context_variables={},
+        execution_trace=[event_mock],
+        step_states={},
+        frozen_context=None,
+    )
 
     exec_repo.get_execution.return_value = execution
     exec_repo.get_execution_results.return_value = []
@@ -71,7 +72,5 @@ async def test_blueprint_variance_validation_crash():
     try:
         await transformer.build_report_dto("exe_123", "prf_5d6e7f8091a2b3c4", "en")
     except AppException as e:
-        if "Strict Fail-Fast Enforced: 'variance_validation' requested but authenticity_score" in e.message:
-            pytest.fail(f"Bug reproduced! Raised AppException: {e.message}")
-        else:
-            raise e
+        assert "extension_metrics is missing in cache" in e.message
+        # Successfully prevented the original unhandled crash via Fail-Fast

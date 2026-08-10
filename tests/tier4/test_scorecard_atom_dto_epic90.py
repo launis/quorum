@@ -1,6 +1,7 @@
 import pytest
 
 from backend_v2.models.v2_core import ReasoningStepDTO, ScorecardAtomDTO
+from backend_v2.models.view.sdui import VisualIntent
 
 
 def test_scorecard_atom_dto_has_epic90_fields():
@@ -20,12 +21,12 @@ def test_scorecard_atom_dto_has_epic90_fields():
                 step_3_evaluate_anti_patterns="c",
                 step_4_final_conclusion="d",
             ),
-            status="PASS",
+            status="PASSED",
             semantic_reasoning="reason",
             contextual_override=False,
             structural_location="loc",
             chart_display_label="Short Label",
-            visual_intent="NEUTRAL",
+            visual_intent=VisualIntent.NEUTRAL,
         )
     except Exception as e:
         pytest.fail(f"ScorecardAtomDTO failed to instantiate with Epic 90 fields: {e}")

@@ -467,6 +467,7 @@ class AgentExecutionError(AppException):
         original_error: Exception | None = None,
         agent_name: str | None = None,
         step_id: str | None = None,
+        status_code: int = 500,
     ):
         """Initialize the exception.
 
@@ -491,7 +492,7 @@ class AgentExecutionError(AppException):
 
         super().__init__(
             message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status_code,
             details=error_details,
         )
         self.original_error = original_error

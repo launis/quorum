@@ -34,6 +34,7 @@ def create_mock_node(tda_id: str, depends_on: list[CausalEdge] | None = None) ->
                 "resolved_claim": f"claim for {tda_id}",
                 "source_quote": "mock quote",
                 "source_id": "chunk_0",
+                "source_sequence_index": 0,
             },
             "depends_on": depends_on or [],
         }

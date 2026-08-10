@@ -1,19 +1,19 @@
 import json
 
-path = r'c:\src\quorum\backend_v2\seed\seed_data.json'
-with open(path, encoding='utf-8') as f:
+path = r"c:\src\quorum\backend_v2\seed\seed_data.json"
+with open(path, encoding="utf-8") as f:
     data = json.load(f)
 
 # Find profile
-profile = next(p for p in data['output_profiles'] if p['id'] == 'prf_5d6e7f8091a2b3c4')
+profile = next(p for p in data["output_profiles"] if p["id"] == "prf_5d6e7f8091a2b3c4")
 
 # 1. Update custom_preface
-profile['custom_preface'] = {
+profile["custom_preface"] = {
     "default_locale": "fi",
     "translations": {
         "en": "**Report on your AI skills**\n\nThis report analyzes your way of utilizing AI and helps you develop into a strategic guide...",
-        "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi tapaasi hyödyntää tekoälyä ja auttaa sinua kehittymään sen strategiseksi ohjaajaksi. Arvioinnissa keskitytään kolmeen osa-alueeseen:\n\n- **Oivalluskyky**: Pureudutko syvälle aiheeseen vai jäätkö pintatasolle?\n- **Logiikka ja päättely**: Miten perustelet väitteesi ja haastat tekoälyn vastauksia?\n- **Luotettavuus**: Miten hallitset prosessia ja sen läpinäkyvyyttä?\n\nAnalyysi perustuu tieteellisiin malleihin (mm. Kahneman, Toulmin ja Popper). Lopussa olevan pisteytyksen avulla voit tunnistaa vahvuutesi ja rakentaa itsellesi tavoitteellisen kehityspolun."
-    }
+        "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi tapaasi hyödyntää tekoälyä ja auttaa sinua kehittymään sen strategiseksi ohjaajaksi. Arvioinnissa keskitytään kolmeen osa-alueeseen:\n\n- **Oivalluskyky**: Pureudutko syvälle aiheeseen vai jäätkö pintatasolle?\n- **Logiikka ja päättely**: Miten perustelet väitteesi ja haastat tekoälyn vastauksia?\n- **Luotettavuus**: Miten hallitset prosessia ja sen läpinäkyvyyttä?\n\nAnalyysi perustuu tieteellisiin malleihin (mm. Kahneman, Toulmin ja Popper). Lopussa olevan pisteytyksen avulla voit tunnistaa vahvuutesi ja rakentaa itsellesi tavoitteellisen kehityspolun.",
+    },
 }
 
 # 2. Build layouts list correctly
@@ -33,13 +33,13 @@ layouts = [
             "enable_pii_masking": False,
             "allowed_exports": ["pdf", "raw_json", "sdui"],
             "omit_empty_sections": True,
-            "allowed_mcp_tools": []
+            "allowed_mcp_tools": [],
         },
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "2d_compare",
@@ -56,13 +56,13 @@ layouts = [
             "enable_pii_masking": False,
             "allowed_exports": ["pdf", "raw_json", "sdui"],
             "omit_empty_sections": True,
-            "allowed_mcp_tools": []
+            "allowed_mcp_tools": [],
         },
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "2d_compare",
@@ -79,13 +79,13 @@ layouts = [
             "enable_pii_masking": False,
             "allowed_exports": ["pdf", "raw_json", "sdui"],
             "omit_empty_sections": True,
-            "allowed_mcp_tools": []
+            "allowed_mcp_tools": [],
         },
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "2d_compare",
@@ -102,13 +102,13 @@ layouts = [
             "enable_pii_masking": False,
             "allowed_exports": ["pdf", "raw_json", "sdui"],
             "omit_empty_sections": True,
-            "allowed_mcp_tools": []
+            "allowed_mcp_tools": [],
         },
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "text_only",
@@ -116,14 +116,14 @@ layouts = [
         "description": None,
         "is_synthesis_enabled": True,
         "steps": [],
-        "target_blocks": ["blk_fb15f8dcf23f4865"], # matrix_archivist
+        "target_blocks": ["blk_fb15f8dcf23f4865"],  # matrix_archivist
         "text_delivery_mode": "full",
         "synthesis": None,
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "text_only",
@@ -131,14 +131,14 @@ layouts = [
         "description": None,
         "is_synthesis_enabled": True,
         "steps": [],
-        "target_blocks": ["blk_ff72c2d79edb4ebf"], # matrix_judge
+        "target_blocks": ["blk_ff72c2d79edb4ebf"],  # matrix_judge
         "text_delivery_mode": "full",
         "synthesis": None,
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "text_only",
@@ -146,29 +146,31 @@ layouts = [
         "description": None,
         "is_synthesis_enabled": True,
         "steps": [],
-        "target_blocks": ["blk_80732a33fe1947ee"], # matrix_taskguard
+        "target_blocks": ["blk_80732a33fe1947ee"],  # matrix_taskguard
         "text_delivery_mode": "full",
         "synthesis": None,
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "text_only",
-        "title": {"translations": {"fi": "Kausaalinen ja Abduktiivinen Integriteetti", "en": "Causal and Abductive Integrity"}},
+        "title": {
+            "translations": {"fi": "Kausaalinen ja Abduktiivinen Integriteetti", "en": "Causal and Abductive Integrity"}
+        },
         "description": None,
         "is_synthesis_enabled": True,
         "steps": [],
-        "target_blocks": ["blk_c3bc5f3eb8e74110"], # matrix_causal_abductive
+        "target_blocks": ["blk_c3bc5f3eb8e74110"],  # matrix_causal_abductive
         "text_delivery_mode": "full",
         "synthesis": None,
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "text_only",
@@ -176,14 +178,14 @@ layouts = [
         "description": None,
         "is_synthesis_enabled": True,
         "steps": [],
-        "target_blocks": ["blk_22e3598e06414409"], # matrix_epistemic_humility
+        "target_blocks": ["blk_22e3598e06414409"],  # matrix_epistemic_humility
         "text_delivery_mode": "full",
         "synthesis": None,
         "synthesis_blocks": None,
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "matrix_summary",
@@ -198,7 +200,7 @@ layouts = [
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": ["label", "distribution", "row_explanation", "score"]
+        "matrix_visible_columns": ["label", "distribution", "row_explanation", "score"],
     },
     {
         "preset_view": "text_only",
@@ -213,7 +215,7 @@ layouts = [
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "1d_metrics",
@@ -228,7 +230,7 @@ layouts = [
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
+        "matrix_visible_columns": [],
     },
     {
         "preset_view": "text_only",
@@ -243,11 +245,11 @@ layouts = [
         "strictness_level": None,
         "scoring_strategy": None,
         "matrix_column_labels": {},
-        "matrix_visible_columns": []
-    }
+        "matrix_visible_columns": [],
+    },
 ]
 
-profile['layouts'] = layouts
+profile["layouts"] = layouts
 
-with open(path, 'w', encoding='utf-8') as f:
+with open(path, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)

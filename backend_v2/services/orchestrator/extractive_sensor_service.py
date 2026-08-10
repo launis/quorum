@@ -213,7 +213,8 @@ class ExtractiveSensorService:
         if len(valid_results) < min_consensus:
             # Transient API failure split (< 2 valid results total)
             raise AgentExecutionError(
-                detail=f"Insufficient valid Bo3 results ({len(valid_results)} < {min_consensus}) due to transient API failures."
+                detail=f"Insufficient valid Bo3 results ({len(valid_results)} < {min_consensus}) due to transient API failures.",
+                status_code=503,
             )
 
         final_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}

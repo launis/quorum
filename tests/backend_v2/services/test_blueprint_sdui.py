@@ -19,7 +19,7 @@ async def test_blueprint_sdui_missing_synthesis_md():
         "workflow_id": "wf_test",
         "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
         "synthesis": {"synthesis_block_id": "blk_123", "system_prompt": "Prompt", "length_constraint": 100},
-        "content_blocks": [{"id": "blk_123", "block_type": "markdown", "text": ""}],
+        "content_blocks": [{"id": "blk_123", "block_type": "markdown", "text": "a"}],
         "layouts": [],
         "visible_metadata": ["date"],
         "scoring_strategy": "PURE_MATH",
@@ -32,18 +32,21 @@ async def test_blueprint_sdui_missing_synthesis_md():
     exec_repo.get_execution_profile.return_value = None  # No cache
 
     # Mock Execution without any synthesis_md in execution_trace
-    execution = MagicMock()
-    execution.id = "exe_123"
-    execution.workflow_id = "wf_test"
-    execution.created_by = "usr_123"
-    execution.organization_id = "org_123"
+    from backend_v2.models.v2_core import ExecutionRecord
     import datetime
 
-    execution.created_at = datetime.datetime.now(datetime.timezone.utc)
-    execution.execution_trace = []  # NO synthesis completion event!
-    execution.step_states = {}
-    execution.profile_syntheses = {}
-    execution.metadata = {}
+    execution = ExecutionRecord.model_construct(
+        id="exe_123",
+        workflow_id="wf_test",
+        created_by="usr_123",
+        organization_id="org_123",
+        created_at=datetime.datetime.now(datetime.timezone.utc),
+        execution_trace=[],
+        step_states={},
+        profile_syntheses={},
+        metadata={},
+        frozen_context=None,
+    )
 
     exec_repo.get_execution.return_value = execution
     exec_repo.get_execution_results.return_value = []
@@ -74,7 +77,7 @@ async def test_blueprint_sdui_missing_synthesis_md():
         dto = await transformer.build_report_dto("exe_123", "prf_1234567890abcdef", "en")
 
         # Verify the block was kept
-        assert any(b.get("id") == "blk_123" for b in dto.content_blocks), "Content block was dropped!"
+        assert any(getattr(b, "id", None) == "blk_123" for b in dto.inner_sdui_blocks), "Content block was dropped!"
     except AppException as e:
         if "Synthesis mapping failed" in e.message:
             pytest.fail(f"Bug reproduced! Raised AppException: {e.message}")

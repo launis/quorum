@@ -19,6 +19,7 @@ def dummy_atoms():
             source_quote="Q1",
             tda_id="tda_1111111111111111",
             source_id="chunk_0",
+            source_sequence_index=0,
         ),
         ExtractedAtom(
             reasoning="R2",
@@ -26,6 +27,7 @@ def dummy_atoms():
             source_quote="Q2",
             tda_id="tda_2222222222222222",
             source_id="chunk_1",
+            source_sequence_index=1,
         ),
         ExtractedAtom(
             reasoning="R3",
@@ -33,6 +35,7 @@ def dummy_atoms():
             source_quote="Q3",
             tda_id="tda_3333333333333333",
             source_id="chunk_2",
+            source_sequence_index=2,
         ),
     ]
 

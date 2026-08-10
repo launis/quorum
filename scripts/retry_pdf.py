@@ -12,5 +12,6 @@ async def main() -> None:
     await generate_pdf_task("exe_99086245d3af448f872c408f9dd7445a", "fi", "prf_5d6e7f8091a2b3c4")
     print("Done generating PDF.")
 
+
 if __name__ == "__main__":
     asyncio.run(main())

@@ -5,17 +5,14 @@ with open("backend_v2/services/blueprint.py", encoding="utf-8") as f:
 
 # Replace the methods
 content = re.sub(
-    r'    @staticmethod\n    def _clean_hallucinated_numbers\(text: str\) -> str:.*?(?=    def _apply_pii_masking)',
-    '',
+    r"    @staticmethod\n    def _clean_hallucinated_numbers\(text: str\) -> str:.*?(?=    def _apply_pii_masking)",
+    "",
     content,
-    flags=re.DOTALL
+    flags=re.DOTALL,
 )
 
 content = re.sub(
-    r'    def _parse_matrix_trace_results\(.*?(?=    def _hydrate_global_score_block)',
-    '',
-    content,
-    flags=re.DOTALL
+    r"    def _parse_matrix_trace_results\(.*?(?=    def _hydrate_global_score_block)", "", content, flags=re.DOTALL
 )
 
 # Replace the call site
@@ -66,8 +63,7 @@ content = content.replace(call_site_old, call_site_new)
 # Add import
 import_statement = "from backend_v2.services.matrix_domain_parser import MatrixDomainParser"
 content = content.replace(
-    "from backend_v2.settings import get_settings",
-    "from backend_v2.settings import get_settings\n" + import_statement
+    "from backend_v2.settings import get_settings", "from backend_v2.settings import get_settings\n" + import_statement
 )
 
 with open("backend_v2/services/blueprint.py", "w", encoding="utf-8") as f:

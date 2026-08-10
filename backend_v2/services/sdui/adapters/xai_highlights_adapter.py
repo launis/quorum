@@ -8,7 +8,7 @@ XAI_AESTHETICS_RULES dictionary to enforce separation of presentation from logic
 import logging
 from typing import Any, Literal, cast
 
-from backend_v2.exceptions import ConfigurationError
+from backend_v2.exceptions import AppException, ConfigurationError
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock, AnySduiBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -79,9 +79,13 @@ class XaiHighlightsAdapter:
 
             try:
                 aesthetics = XAI_AESTHETICS_RULES[ext_type_str]
-            except KeyError:
-                logger.warning("[XaiHighlightsAdapter] Missing rule mapping for extension key: %s", ext_type_str)
-                continue
+            except KeyError as e:
+                logger.error("[XaiHighlightsAdapter] Missing rule mapping for extension key: %s", ext_type_str, exc_info=True)
+                raise AppException(
+                    message=f"Missing rule mapping for extension key: {ext_type_str}",
+                    status_code=500,
+                    details={"error_code": "CONFIGURATION_ERROR"}
+                ) from e
 
             label_obj = profile.extension_labels.get(ext_enum) if profile.extension_labels else None
             if not label_obj:

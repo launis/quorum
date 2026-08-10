@@ -108,11 +108,11 @@ async def test_sdui_semantic_parity() -> None:
             }
         )  # Clear random dicts and explicitly mock profile_name to prevent Jinja crashes and ensure parity
 
-        from backend_v2.models.view.sdui import HeaderBlock
+        from backend_v2.models.view.sdui import MarkdownBlock
 
         new_layouts = [
-            HeaderBlock(
-                title="English test", badges=[], metadata_lines=[], costs=None, tokens=None, custom_preface_md=None
+            MarkdownBlock(
+                text="# English test"
             )
         ]
         for layout in dto.inner_sdui_blocks:

@@ -266,7 +266,7 @@
                     {% endfor %}
                 </div>
                 {% endif %}
-            {% elif block.block_type is defined and block.block_type in ['3d_matrix', '2d_compare'] %}
+            {% elif block.block_type is defined and (block.block_type == '3d_matrix' or block.block_type == '2d_compare') %}
                 {% if level == 0 and charts and loop.index0 in charts %}
                 <div style="text-align: center; margin: 20px 0;">
                     <img src="data:image/png;base64,{{ charts[loop.index0] }}" style="max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 8px;" />
