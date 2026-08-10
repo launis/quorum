@@ -26,6 +26,7 @@ from backend_v2.exceptions import (
     SecurityViolationError,
     ServiceUnavailableError,
 )
+from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
 from backend_v2.llm.mock import MockLLMService
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.llm import LLMProviderConfig, LLMResponse
@@ -203,6 +204,7 @@ class LiteLLMProvider(LLMProvider):
 
     # Class-level cache to prevent litellm callbacks memory leak during bulk executions
     _router_cache: dict[str, Any] = {}
+    _semaphores: dict[str, asyncio.Semaphore] = {}
     _httpx_clients: dict[str, Any] = {}
 
     def __init__(
@@ -279,12 +281,12 @@ class LiteLLMProvider(LLMProvider):
         else:
             # 2. Build deployment config
             model_config = {
-                "model_name": model_name,  # The alias we use
+                "model_name": model_name,
                 "litellm_params": {
-                    "model": model_name,  # The actual provider model name
-                    "api_key": api_key,
+                    "model": model_name,
                     "tpm": tpm,
                     "rpm": rpm,
+                    "api_key": self.api_key,
                 },
             }
 
@@ -296,7 +298,7 @@ class LiteLLMProvider(LLMProvider):
                 model_list=[model_config],
                 set_verbose=False,
                 num_retries=0,
-                enable_pre_call_checks=False,
+                timeout=float(settings.llm_default_timeout),
                 routing_strategy="simple-shuffle",
                 allowed_fails=0,
                 cooldown_time=0,
@@ -311,6 +313,23 @@ class LiteLLMProvider(LLMProvider):
 
             # Save to class cache
             self.__class__._router_cache[cache_key] = self.router
+
+        # Initialize and store Semaphore dynamically to throttle HTTP-level requests
+        if cache_key not in self.__class__._semaphores:
+            if rpm <= get_settings().semaphore_low_rpm_threshold:
+                concurrency_limit = get_settings().semaphore_low_rpm_limit
+            else:
+                concurrency_limit = min(
+                    get_settings().semaphore_max_concurrency,
+                    max(1, rpm // get_settings().semaphore_rpm_divisor),
+                )
+
+            logger.info(
+                "[LiteLLMProvider] Initializing HTTP concurrency semaphore for cache_key '%s' with limit %d",
+                cache_key,
+                concurrency_limit,
+            )
+            self.__class__._semaphores[cache_key] = asyncio.Semaphore(concurrency_limit)
 
     async def generate(
         self,
@@ -547,9 +566,28 @@ class LiteLLMProvider(LLMProvider):
             ):
                 with attempt:
                     _timeout = call_kwargs["timeout"]
-                    start_time = time.perf_counter()
 
-                    response = await asyncio.wait_for(self.router.acompletion(**call_kwargs), timeout=float(_timeout))
+                    # Grab the stored dynamic Semaphore to throttle HTTP-level requests under low RPM
+                    semaphore = self.__class__._semaphores[self.cache_key]
+
+                    async with semaphore:
+                        start_time = time.perf_counter()
+
+                        # Phase 8: Apply Provider-Scoped Pacing Lock to prevent 429 exhaustion
+                        provider_key = (
+                            self._config.provider
+                            if self._config
+                            else (self.model_name.split("/")[0] if "/" in self.model_name else self.model_name)
+                        )
+                        await apply_provider_pacing(
+                            provider_name=provider_key,
+                            strategy_id=self._config.id if self._config else None,
+                            rpm_limit=self._config.rpm_limit if self._config else None,
+                        )
+
+                        response = await asyncio.wait_for(
+                            self.router.acompletion(**call_kwargs), timeout=float(_timeout)
+                        )
 
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")

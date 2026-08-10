@@ -472,6 +472,28 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
 
+    # ARCHITECTURAL MANDATE: Filter available_dtos based on Output Profile target_blocks
+    # This strictly limits Token Context Window explosions during LLM Synthesis
+    target_block_ids = set()
+    for layout in p_dict.get("layouts", []):
+        tbs = layout.get("target_blocks", [])
+        if tbs:
+            for tb in tbs:
+                if isinstance(tb, str):
+                    target_block_ids.add(tb)
+                elif hasattr(tb, "value"):
+                    target_block_ids.add(tb.value)
+                elif isinstance(tb, dict) and "value" in tb:
+                    target_block_ids.add(tb["value"])
+
+    filtered_dtos = []
+    for dto in available_dtos:
+        if "*" in target_block_ids or dto.block_id in target_block_ids:
+            filtered_dtos.append(dto)
+        else:
+            logger.debug(f"[SynthesisDistiller] Skipping {dto.block_id} - not in target_blocks.")
+    available_dtos = filtered_dtos
+
     if not state.metadata or "target_locale" not in state.metadata:
         msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution metadata."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

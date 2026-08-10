@@ -126,6 +126,10 @@ class Settings(BaseSettings):
     llm_min_payload_length: Annotated[int, Field(description="Minimum chars for LLM payload before fail-fast")] = 10
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
+    semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
+    semaphore_low_rpm_limit: Annotated[int, Field(description="Concurrency limit for low RPM environments")] = 2
+    semaphore_max_concurrency: Annotated[int, Field(description="Max simultaneous active LLM connections")] = 10
+    semaphore_rpm_divisor: Annotated[int, Field(description="Divisor applied to requested RPM constraint")] = 10
     max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
     schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
     context_cache_lock_ttl_seconds: Annotated[int, Field(description="Time-to-live for Vertex caching lock")] = 300
@@ -489,43 +493,6 @@ class Settings(BaseSettings):
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
-
-    @model_validator(mode="after")
-    def _enforce_fast_mode_limits(self) -> Self:
-        """Aggressively clamp heavy configurations during 'fast' development mode."""
-        if self.environment.lower() == "development" and self.dev_execution_mode == "fast":
-            logger.info("⚡ Fast execution mode active: Clamping LLM bounds and limits to save API tokens.")
-
-            self.max_tool_calls_per_step = 1
-            self.max_development_chunks = 1
-            self.matrix_sampling_limit = 2
-            self.schema_max_localized_anchors = 2
-            self.schema_max_quotes_target = 1
-            self.schema_max_quote_length = 50
-            self.schema_max_evaluations = 1
-            self.tavily_max_results = 1
-            self.max_precedent_scan_depth = 0
-            self.max_precedent_return_count = 0
-            self.tda_linker_window_size = 2
-            self.tda_linker_overlap = 0
-
-            # Ensembles and Retries Overrides
-            self.llm_max_retries = 0
-            self.ensemble_parallelism = 1
-            self.ensemble_min_consensus = 1
-
-            # Strategy Aliasing
-            self.strategy_aliases = {
-                "strict_strategy": "fast",
-                "evaluation_strategy": "fast",
-                "test_strategy": "fast",
-                "strict": "fast",
-                "deep": "fast",
-                "synthesis": "fast",
-                "reasoning": "fast",
-            }
-
-        return self
 
     @computed_field  # type: ignore[prop-decorator]
     @property
