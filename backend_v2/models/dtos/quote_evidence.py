@@ -75,6 +75,7 @@ class QuoteEvidenceDTO(V2CoreBase):
         unverified_aliases: Aliases that could not be verified.
         is_verified: True if there are verified aliases and no unverified aliases.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     quote: str = Field(..., description="The exact text of the quote.")

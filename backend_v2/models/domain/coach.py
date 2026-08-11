@@ -27,6 +27,7 @@ class CoachInput(V2CoreBase):
         step_logician: Logician Toulmin analysis data.
         step_causal_analyst: Causal Analyst post-hoc and counterfactual data.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog.")]
@@ -62,6 +63,7 @@ class BibliographyItem(V2CoreBase):
         url: URL of the reference source if available.
         snippet: Extracted relevant text segment.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     source_id: Annotated[
@@ -82,6 +84,7 @@ class BibliographyResult(V2CoreBase):
     Attributes:
         references: List of reference objects.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     references: Annotated[
@@ -98,6 +101,7 @@ class CoachingPlanDTO(ReasoningTraceDTO):
         bibliography: Curated resources mapped to the findings.
         focus_areas: Critical areas highlighted for growth.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     actionable_steps: Annotated[
@@ -136,6 +140,7 @@ class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
         bibliography: Inherited from CoachingPlanDTO.
         focus_areas: Inherited from CoachingPlanDTO.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     pass

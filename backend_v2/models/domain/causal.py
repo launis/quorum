@@ -29,6 +29,7 @@ class CausalInput(V2CoreBase):
         step_analyst: Analyst or Logician outputs.
         last_reasoning_trace: Previous reasoning trace.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog to analyze.")]
@@ -45,6 +46,7 @@ class CausalAnalysisData(V2CoreBase):
         timeline_valid: Is the timeline valid?
         observation: General observations.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     timeline_valid: Annotated[
@@ -66,6 +68,7 @@ class CounterfactualTest(V2CoreBase):
         actual_scenario: Actual outcome.
         simulation_result: Simulation outcome.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     plausibility_score: Annotated[
@@ -122,6 +125,7 @@ class CausalAnalysis(V2CoreBase):
         observation: Observation.
         hypothesis: Hypothesis.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     abductive_conclusion: Annotated[
@@ -177,6 +181,7 @@ class CausalDTO(ReasoningTraceDTO):
     Attributes:
         causal_analysis: Causal audit result.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     causal_analysis: Annotated[
@@ -191,6 +196,7 @@ class CausalOutput(CausalDTO, ReasoningTrace):
     Attributes:
         causal_analysis: Causal audit result inherited from CausalDTO.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     pass

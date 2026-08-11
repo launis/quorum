@@ -27,6 +27,7 @@ class AuditLogEntry(V2CoreBase):
         message: Log message.
         context: Additional context.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     timestamp: Annotated[datetime, Field(description="Timestamp of the log entry.")]
@@ -57,6 +58,7 @@ class Metadata(V2CoreBase):
         system_fingerprint: System fingerprint identifying exact model weights used.
         provider_metadata: Raw provider specific metadata (e.g. rate limits, safety ratings, citations).
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     luontiaika: Annotated[
@@ -137,6 +139,7 @@ class ReasoningTraceDTO(V2CoreBase):
         confidence_score: Self-assessed confidence score (0.0 - 1.0).
         reasoning_token: Encrypted Reasoning Blob / Thought signature from the LLM.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     thought_process: Annotated[
@@ -224,6 +227,7 @@ class ReasoningTrace(ReasoningTraceDTO):
         metadata: System metadata (Injected by Backend).
         semanttinen_tarkistussumma: Semantic checksum (Calculated by Backend).
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     metadata: Annotated[
@@ -256,6 +260,7 @@ class UsageRecord(V2CoreBase):
         estimated_savings_usd: Estimated savings in USD.
         timestamp: Timestamp of usage.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[

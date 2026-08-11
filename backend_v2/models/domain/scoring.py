@@ -23,6 +23,7 @@ class StepFalsifierDTO(ReasoningTrace):
     Attributes:
         falsifier_data: Structure containing counter-arguments.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     falsifier_data: Annotated[FalsifierData | None, Field(description="Structure containing counter-arguments.")] = None
@@ -38,6 +39,7 @@ class StepPanelDTO(V2CoreBase):
         performativity_analysis: Analysis tracking execution fidelity.
         causal_analysis: Analysis mapping causality relationships.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     falsifier_data: Annotated[FalsifierData | None, Field(description="Structure containing counter-arguments.")] = None

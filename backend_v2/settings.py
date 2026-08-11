@@ -5,9 +5,9 @@ import os
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Literal
 
-from pydantic import AliasChoices, BeforeValidator, Field, computed_field, model_validator
+from pydantic import AliasChoices, BeforeValidator, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes

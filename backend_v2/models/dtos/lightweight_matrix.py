@@ -13,6 +13,7 @@ class OutputProfileConfig(V2CoreBase):
         visible_block_extensions: List of extensions enabled at the block level.
         visible_workflow_extensions: List of extensions enabled globally across the workflow.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     visible_block_extensions: list[LaxXaiExtensionType]
@@ -26,6 +27,7 @@ class XAILogDto(V2CoreBase):
         pedagogical_key: The designated mapping key for UI-facing explanations.
         engine_debug_trace: System dictionary containing mathematical/diagnostic reasoning.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     pedagogical_key: str
@@ -45,6 +47,7 @@ class LightweightMatrixOutput(V2CoreBase):
         extensions: Arbitrarily mapped XAI extensions dict for UI components.
         allowed_extensions: Explicit list restricting dynamic schema mappings.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     raw_score: float | None = None
@@ -72,6 +75,7 @@ class LevelStatsDTO(V2CoreBase):
         total: Total number of criteria at this level.
         dlqs: Number of items that hit the dead letter queue (defaults to None).
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     hits: int | float

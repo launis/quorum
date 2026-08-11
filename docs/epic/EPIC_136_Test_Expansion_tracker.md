@@ -58,10 +58,11 @@
 
 ### Documentation & Knowledge Item Update
 - [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/. (`ki_ast_guardrail_testing.md` created)
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_136_Test_Expansion.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [x] **[OK]** System 2 Reverse Epic Analysis (Phase 1): Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_136_Test_Expansion.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [ ] **[NOK]** System 2 Reverse Epic Analysis (Phase 2): Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_136_Test_Expansion.md]` to verify Phase 2 requirements.
 
 ## Instructions for the Execution Agent
 - Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule.
@@ -117,6 +118,7 @@
 - Successfully executed Phase 2 Concurrency Fuzzer & Context Boundary Tests via `/tier2-execute`.
 - Passed Phase 2 Audit (`red_team_audit_phase_2.md`).
 - Fixed MyPy type hints (`dict` -> `dict[str, Any]`) during final audit verification.
+- Completed Tier 7 Architectural Sync (`/tier7-describe-architecture`). Checked pillar documents, mapped orphaned files in `04_directory_reference.md`, and generated `orphan_report.md` for unmapped Identity/Settings capabilities.
 
 ## Learned
 - **Baseline State Snapshot**: 
@@ -135,11 +137,13 @@
 - **Post-Implementation E2E Learnings**:
   - The E2E REST API gate failed with `INVALID_OUTPUT_SCHEMA` because `MetadataHookPayloadDTO` enforced `extra="forbid"`, which caused a crash when it received the full `global_context_vars` (which includes API ingress data like `language`, `simulation_mode`).
   - To respect both the `extra="forbid"` mandate from Epic 136 and the "Duct Tape Ban" (no `.get()` fallbacks), `MetadataHookPayloadDTO` was refactored to inherit from `WorkflowInputsIngress`. This allowed it to strictly validate known API inputs while continuing to safely forbid unknown fields.
+- **Tier 7 Architectural Sync Learnings**:
+  - `auth` and IAM components, along with `settings`, do not fit into the 6 established pillars and have been flagged for a potential Pillar 7 (Identity & Tenant Sovereignty) Knowledge Item.
+  - Core orchestration and data ingestion files (`llm_task_executor.py`, `file_driver.py`) successfully mapped to Pillar 3 but were missing from directory reference documentation, which is now resolved.
 
 ## Remaining
-- Epic 136 code implementation is fully completed.
-- As-Built Architectural Sync (`/tier7-describe-architecture`).
-- Final Epic Audit (`/tier8-audit-epic`).
+- Final Epic Audit Phase 2 (`/tier8-audit-epic`).
+- Debug Environment Block: `test_lite_llm_provider_adaptive_retry_depleted` is hanging infinitely during the global audit.
 
 ## Resume Command
-`/tier7-describe-architecture`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_136_audit_report.md]" --workflow=/tier8-audit-epic`

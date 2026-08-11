@@ -48,6 +48,7 @@ class XAIReporterInput(V2CoreBase):
         step_linguistics: Mechanical linguistic patterns.
         dynamic_inputs: Dynamically passed variables.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(description="Conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})]
@@ -86,6 +87,7 @@ class XAIScoreItem(V2CoreBase):
         reasoning: Textual reasoning explaining the score.
         weight: Importance multiplier weight of this item.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     label: Annotated[str, Field(min_length=1, description="Label for the score item.")]
@@ -218,6 +220,7 @@ class ComparisonDataDTO(V2CoreBase):
         delta: Difference factor between current run and baseline.
         trend: Evaluated qualitative vector indicator.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     baseline_score: Annotated[float | None, Field(description="Baseline rating reference context.")] = None
@@ -260,6 +263,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
         confidence_score: Confidence factor (0.0-1.0).
         xai_report_formatted: Markdown formatted report.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     output_extensions: Annotated[list[XAIExtension], Field(description="XAI extensions.")] = Field(default_factory=list)
@@ -346,6 +350,7 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
         score_cards: Aggregated scorecard items from all judges.
         flat_report: Flattened machine-readable dict report summary.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     score_cards: Annotated[
@@ -368,6 +373,7 @@ class ReportResult(V2CoreBase):
         format: Report format.
         data: Structured data used to generate the report.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     report_content: Annotated[

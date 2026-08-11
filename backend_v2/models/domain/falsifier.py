@@ -29,6 +29,7 @@ class FalsifierInput(V2CoreBase):
         step_analyst: Analyst or Logician outputs.
         last_reasoning_trace: Previous reasoning trace.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog to analyze.")]
@@ -46,6 +47,7 @@ class WaltonStressTest(V2CoreBase):
         evidence_held: Did the evidence hold up?
         observation: Observation notes.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     question: Annotated[
@@ -85,6 +87,7 @@ class ReasoningFidelity(V2CoreBase):
         quote: Direct quote from sources.
         post_hoc_rationalization: True if reasoning was constructed after the fact.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     fidelity_score: Annotated[
@@ -165,6 +168,7 @@ class FalsifierData(V2CoreBase):
         stress_test_findings: Stress test results using Walton critical questions.
         fidelity_audit: Comprehensive reasoning fidelity results.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     stress_test_findings: Annotated[
@@ -190,6 +194,7 @@ class FalsifierDTO(ReasoningTraceDTO):
     Attributes:
         falsifier_data: Falsification audit result containing stress tests and fidelity.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     falsifier_data: Annotated[
@@ -207,6 +212,7 @@ class FalsifierOutput(FalsifierDTO, ReasoningTrace):
     Attributes:
         falsifier_data: Falsification audit result containing stress tests and fidelity.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     pass

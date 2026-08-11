@@ -44,6 +44,7 @@ class JudgeInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     # Context / inputs
@@ -87,6 +88,7 @@ class DimensionResultItem(V2CoreBase):
         score: Numerical score.
         reasoning: Justification for the score.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     dimension_id: Annotated[
@@ -154,6 +156,7 @@ class JudgeScoreCard(V2CoreBase):
         scale_min: Minimum possible score.
         scale_max: Maximum possible score.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     agent_name: Annotated[
@@ -241,6 +244,7 @@ class JudgeDTO(ReasoningTraceDTO):
         scale_max: Maximum possible score.
         critical_findings: Critical issues identified.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     matrix_id: Annotated[
@@ -295,6 +299,7 @@ class ScoringResult(V2CoreBase):
         score_summary: Summary text.
         penalties_applied: List of penalties applied.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     total_score: Annotated[

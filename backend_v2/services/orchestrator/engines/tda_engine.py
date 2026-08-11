@@ -186,7 +186,7 @@ class TDAEngine(ExecutionEngine):
             for exc in eg.exceptions:
                 if isinstance(exc, AppException):
                     raise exc from eg
-            
+
             logger.error(
                 "TDA Engine failed catastrophically during execution.",
                 exc_info=True,

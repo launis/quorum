@@ -20,6 +20,7 @@ class OpenAIFunctionCallDTO(V2CoreBase):
         name: Function name.
         arguments: Function arguments as a string or dict.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     name: str
@@ -51,6 +52,7 @@ class OpenAIProbeResponseDTO(V2CoreBase):
         tool_calls: Optional list of tool calls requested by the LLM.
         content: Optional conversational response from the LLM.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     tool_calls: list[OpenAIToolCallDTO] | None = None
@@ -63,6 +65,7 @@ class TavilyToolArgsDTO(V2CoreBase):
     Attributes:
         query: The search query.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     query: str
@@ -76,6 +79,7 @@ class MCPToolLoopResult(V2CoreBase):
         audit_traces: Audit log of all tool invocations.
         usage: Cumulative token usage.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     result_data: Annotated[dict[str, Any], Field(description="Final structured output dict.")]
@@ -98,6 +102,7 @@ class MCPSynthesisInstructionsDTO(V2CoreBase):
         synthesis_preamble: Optional text prepended to synthesis.
         synthesis_length_limit: Optional length limit for synthesis.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     synthesis_preamble: str | None = None
@@ -156,6 +161,7 @@ class TavilySearchResult(V2CoreBase):
         raw_content: Concatenated source texts (truncated).
         duration_ms: Round-trip latency in milliseconds.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     query: Annotated[str, Field(description="Echo of the original search query.")]

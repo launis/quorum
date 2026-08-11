@@ -46,6 +46,7 @@ class ReferenceItem(V2CoreBase):
         snippet: Extracted content, relevance, or reasoning.
         url: Link to the source if available.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[StrictStr, Field(..., description="Citation ID, e.g., H-1, F-1")]
@@ -65,6 +66,7 @@ class EvidenceItem(V2CoreBase):
         score: Extracted validation score.
         type: Type mapping string.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: StrictStr
@@ -80,6 +82,7 @@ class MarkdownBlockDisplay(V2CoreBase):
     Attributes:
         content: Markdown formatted raw content.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     content: StrictStr
@@ -93,6 +96,7 @@ class HighlightBoxDisplay(V2CoreBase):
         color_theme: Color presentation semantic intent.
         icon_name: Semantic display icon helper.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     content: StrictStr
@@ -110,6 +114,7 @@ class EvidenceList(V2CoreBase):
         items: Collection of compiled EvidenceItems.
         total_count: Total amount of scanned pieces of evidence.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     items: list[EvidenceItem]
@@ -124,6 +129,7 @@ class SystemNotification(V2CoreBase):
         message: Underlying textual telemetry or notification message.
         level: Severe level indicators.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     title: StrictStr
@@ -158,6 +164,7 @@ class ReportView(V2CoreBase):
         system_notification: Global alerts if applicable.
         references: Structured citations matrix.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     view_id: Annotated[StrictStr, Field(..., description="The Execution ID")]
@@ -190,6 +197,7 @@ class StepProgressItem(V2CoreBase):
         label: Translated title reference.
         status: Execution lifecycle state mapping.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[StrictStr, Field(..., description="Step ID (e.g. step_guard)")]
@@ -209,6 +217,7 @@ class AssessmentView(V2CoreBase):
         steps: Pipeline steps list for stepper visualizations.
         finalScore: Overall computed math scoring.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     sessionId: Annotated[StrictStr, Field(..., description="Execution ID")]
@@ -236,6 +245,7 @@ class ToulminDisplay(V2CoreBase):
         rebuttal: Recognized exceptions or constraints.
         qualifier: Force of certainty metrics.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     claim: StrictStr

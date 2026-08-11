@@ -31,6 +31,7 @@ class EvaluationCriterion(V2CoreBase):
         anchors: Scoring anchors mapping.
         weight: Importance weight.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[str, Field(min_length=1)]
@@ -70,6 +71,7 @@ class EvaluationMatrixConfig(V2CoreBase):
         description: Optional description.
         criteria: List of evaluation criteria.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[str, Field(min_length=1)]
@@ -182,6 +184,7 @@ class ValidationResult(V2CoreBase):
         is_valid: Is the structure valid?
         errors: Validation errors.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     is_valid: Annotated[

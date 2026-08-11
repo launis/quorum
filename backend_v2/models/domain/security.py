@@ -65,6 +65,7 @@ class SanitizationResultDTO(V2CoreBase):
         security_status: Overall status of the security check.
         threat_detected: Flag indicating if a threat was detected.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     sanitized_inputs: Annotated[dict[str, str], Field(description="The inputs after sanitization")]
@@ -84,6 +85,7 @@ class SecurityCheck(V2CoreBase):
         anonymized: Was anonymization performed?
         pii_findings: List of PII findings.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     threat_detected: Annotated[

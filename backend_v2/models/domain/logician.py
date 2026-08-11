@@ -29,6 +29,7 @@ class LogicianInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[
@@ -58,6 +59,7 @@ class ToulminComponent(V2CoreBase):
         rebuttal: Counter-arguments.
         qualifier: Degree of certainty.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[
@@ -114,6 +116,7 @@ class CognitiveLevel(V2CoreBase):
         description_key: Localization key for help text.
         description: Localized description.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     bloom_level: Annotated[
@@ -206,6 +209,7 @@ class WaltonScheme(V2CoreBase):
         identified_scheme: Identified Argumentation Scheme.
         critical_questions: Critical Questions posed.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     identified_scheme: Annotated[
@@ -237,6 +241,7 @@ class LogicianData(V2CoreBase):
         description_key: Localization key for help text.
         description: Localized description.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     toulmin_analysis: Annotated[
@@ -306,6 +311,7 @@ class LogicianOutputDTO(ReasoningTraceDTO):
     Attributes:
         logician_data: Logic analysis results.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     logician_data: Annotated[

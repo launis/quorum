@@ -32,6 +32,7 @@ class BaseResponseDTO(V2CoreBase):
     Attributes:
         organization_id: Organization reference identifier excluded from client serialization.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[str | None, Field(exclude=True)] = None

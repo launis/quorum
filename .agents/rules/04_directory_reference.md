@@ -52,10 +52,10 @@
         <responsibility>DECOUPLED PILLAR CAPABILITIES</responsibility>
         <key_domains>
           - Pillar 2 (Ontology): studio/, translation_service.py
-          - Pillar 3 (Orchestration): execution.py, web_fetcher.py, mcp/, orchestrator/ (engines/, strategies/, prompt_compiler.py)
-          - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, sdui/adapters/
+          - Pillar 3 (Orchestration): execution.py, web_fetcher.py, llm_task_executor.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompt_compiler.py)
+          - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/
           - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py
-          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, anchor_validation_service.py, source_verification_service.py, orchestrator/ (two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py)
+          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, anchor_validation_service.py, source_verification_service.py, matrix_domain_parser.py, orchestrator/ (two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py)
           - Orphan (Missing Capability): auth.py
         </key_domains>
     </module>
@@ -102,7 +102,7 @@
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Pillar 2), execution/ (Pillar 4 SDUI Dashboards & DTOs), auth/ (Orphan)</key_domains>
+        <key_domains>studio/ (Pillar 2), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Global Presentation), auth/ (Orphan), settings/ (Orphan)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">

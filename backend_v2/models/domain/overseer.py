@@ -31,6 +31,7 @@ class OverseerInput(V2CoreBase):
         step_analyst: Analyst or Logician outputs.
         last_reasoning_trace: Previous reasoning trace.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[
@@ -55,6 +56,7 @@ class FactCheckRFI(V2CoreBase):
         verification_result: Result.
         source_or_reasoning: Source or reasoning.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     claim: Annotated[
@@ -114,6 +116,7 @@ class EthicalObservation(V2CoreBase):
         severity: Severity level.
         description: Description.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     issue_type: Annotated[
@@ -172,6 +175,7 @@ class OverseerData(V2CoreBase):
         fact_checks: Fact check report.
         ethical_issues: Ethical audit report.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     fact_checks: Annotated[
@@ -216,6 +220,7 @@ class OverseerDTO(ReasoningTraceDTO):
     Attributes:
         overseer_data: Ethics audit result.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     overseer_data: Annotated[
@@ -233,4 +238,5 @@ class OverseerOutput(OverseerDTO, ReasoningTrace):
     Attributes:
         No additional attributes.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")

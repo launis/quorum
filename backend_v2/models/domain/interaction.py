@@ -29,6 +29,7 @@ class InteractionInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[
@@ -63,6 +64,7 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
         imperative_command_count: Number of direct commands given by user.
         strategy: Identified prompting strategy.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     role_classification: Annotated[

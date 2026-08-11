@@ -19,6 +19,7 @@ class BaseExtractionDTO(V2CoreBase):
 
     Enforces common validation behaviors for all step extraction schemas.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     used_source_aliases: Annotated[
@@ -127,6 +128,7 @@ class StepDTOStrict(BaseExtractionDTO):
         decision: Final strict binary compliance decision.
         semantic_reasoning: Short summary statement of decision logic.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     rule_internalization: Annotated[
@@ -183,6 +185,7 @@ class ParsingLogStepsStrict(BaseExtractionDTO):
     Attributes:
         steps: Sequential list of strict evaluation steps.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     steps: Annotated[list[StepDTOStrict], Field(description="The sequence of evaluation steps.")]
@@ -196,6 +199,7 @@ class ParsingLogStepsSemantic(BaseExtractionDTO):
     Attributes:
         steps: Sequential list of semantic evaluation steps.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     steps: Annotated[list[StepDTOSemantic], Field(description="The sequence of evaluation steps.")]

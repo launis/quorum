@@ -21,6 +21,7 @@ class Base64Attachment(V2CoreBase):
         content_base64: The base64 encoded binary content.
         content_type: Optional MIME type.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     filename: Annotated[str, Field(description="The name of the uploaded file")]
@@ -40,6 +41,7 @@ class WorkflowInputsIngress(V2CoreBase):
         language: Target language code.
         dynamic_inputs: Structured dictionary for dynamic workflow inputs.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[str | None, Field(min_length=1, description="Tenant ID for multi-tenancy.")] = None

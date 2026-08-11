@@ -67,6 +67,7 @@ class ValidationWarningDTO(V2CoreBase):
         entropy: Shannon entropy telemetry score.
         telemetry_code: Telemetry status or routing code.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     type: Annotated[str, Field(min_length=1, description="URI reference identifying the error type.")]
@@ -85,6 +86,7 @@ class ValidationResultDTO(V2CoreBase):
         is_valid: Whether the state passed structural validation.
         errors: Issues accumulated during validation.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     is_valid: Annotated[bool, Field(description="Whether the state passed structural validation.")]
@@ -102,6 +104,7 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
         strictness_override: Override adjusting execution strictness.
         reason: Explanation of logic or math triggering the retry.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     retry_allowed: Annotated[bool, Field(description="Whether a hardening retry is permitted.")]

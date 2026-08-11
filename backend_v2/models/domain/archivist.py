@@ -25,6 +25,7 @@ class ArchiveCase(V2CoreBase):
         verdict: Verdict of the past case.
         summary: Summary of the past case.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     case_id: Annotated[str, Field(min_length=1, description="ID of the past case.")]
@@ -44,6 +45,7 @@ class ArchivistInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(description="Mandatory chatlog to analyze.")]
@@ -65,6 +67,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
         description_key: Localization key.
         description: Localized description.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     relevant_cases: Annotated[

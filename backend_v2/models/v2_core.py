@@ -98,6 +98,7 @@ class I18nText(V2CoreBase):
         default_locale: The default locale used if a translation is missing.
         translations: Dictionary mapping locale code to translated string.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     default_locale: str = Field(description="The default locale used if a translation is missing.")
@@ -190,6 +191,7 @@ class TheoryGrounding(V2CoreBase):
         source_url: URL or reference to the source material.
         citation_reference: Specific section or phrase to cite from the source.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     source_url: str = Field(description="URL or reference to the source material.")
@@ -225,6 +227,7 @@ class TDAAssertion(V2CoreBase):
         allow_contextual_override: If True, allows overriding this assertion with a contextual excuse.
         high_entropy: If True, enables multi-agent ensemble majority voting for this assertion.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     tda_id: str = Field(
@@ -317,6 +320,7 @@ class MatrixClaim(V2CoreBase):
         ai_description: Specific AI enforcement rule for this claim.
         tda_assertions: Test-Driven Assertion rules explicitly set by experts.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     label: I18nText = Field(description="User-facing empirical claim.")
@@ -335,6 +339,7 @@ class MatrixRow(V2CoreBase):
         label: User-facing row name.
         ai_description: Dedicated AI evaluation instruction for this sub-dimension.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     label: I18nText = Field(description="User-facing row name.")
@@ -350,6 +355,7 @@ class MatrixScale(V2CoreBase):
         ai_label: Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE.
         claims: List of behavioral claims/criteria for this score.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     score: int = Field(description="Numerical value of the scale point.")
@@ -388,6 +394,7 @@ class PromptBlock(V2CoreBase):
         computed_min: Dynamically computed absolute minimum score.
         computed_max: Dynamically computed absolute maximum score.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(
@@ -545,6 +552,7 @@ class ChatMessageDTO(V2CoreBase):
         role: The role of the speaker (e.g. 'user' or 'ai').
         content: The message text.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     role: str = Field(description="The role of the speaker (e.g. 'user' or 'ai').")
@@ -557,6 +565,7 @@ class ChatHistoryDTO(V2CoreBase):
     Attributes:
         conversation: List of messages in chronological order.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     conversation: list[ChatMessageDTO] = Field(description="List of messages in chronological order.")
@@ -696,6 +705,7 @@ class Step(V2CoreBase):
     """Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).
     Formerly known as TaskBlueprint.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique UUID for storage optionally")
@@ -820,6 +830,7 @@ class StepRule(V2CoreBase):
 
 class Role(V2CoreBase):
     """Role definition that locks physical models and pre_hooks."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Role ID")

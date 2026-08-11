@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from backend_v2.exceptions import WorkflowNotFoundError
 from backend_v2.worker import execute_workflow_job, health_check, startup
 
 

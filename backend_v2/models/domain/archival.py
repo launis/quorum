@@ -21,6 +21,7 @@ class ArchivalPrecedentDTO(V2CoreBase):
         scores: Formatted string of judge scores.
         verdict: Truncated verdict from the execution.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[str, Field(min_length=1, description="Opaque Stripe ID of the past execution.")]

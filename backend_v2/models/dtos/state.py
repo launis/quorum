@@ -7,6 +7,7 @@ localization payload parameters within the state pipeline.
 from __future__ import annotations
 
 from typing import Any
+
 from pydantic import ConfigDict
 
 from backend_v2.models.core_base import V2CoreBase
@@ -19,6 +20,7 @@ class HookStateMetadata(V2CoreBase):
         target_locale: The designated target localization code (e.g., 'fi', 'en').
         fields_to_translate: Collection of specific dictionary keys or attributes targeted for translation.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     target_locale: str
@@ -31,6 +33,7 @@ class I18nStatePayload(V2CoreBase):
     Attributes:
         language: The targeted language identification code representing state localization targets.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     language: str
@@ -42,6 +45,7 @@ class TranslationResponseDTO(V2CoreBase):
     Attributes:
         translated_data: Fully translated dictionary representing localized dynamic key-value pairs.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     translated_data: dict[str, Any]

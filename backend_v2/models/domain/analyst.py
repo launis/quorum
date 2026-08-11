@@ -26,6 +26,7 @@ class AnalystInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(description="Mandatory chatlog to analyze.")]
@@ -44,6 +45,7 @@ class Hypothesis(V2CoreBase):
         search_query: Search query used.
         quotes: Direct quotes found.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[str, Field(pattern=r"^hyp_[a-zA-Z0-9]+$", min_length=1, description="Hypothesis ID.")]
@@ -92,6 +94,7 @@ class AnalystDTO(ReasoningTraceDTO):
         critical_violation: Critical violation of Knowledge Base?
         integrity_audit: Integrity audit results for citations.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     hypotheses: Annotated[
@@ -129,6 +132,7 @@ class SearchResultItem(V2CoreBase):
         link: Link to the result.
         snippet: Snippet of the result.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     title: Annotated[
@@ -151,6 +155,7 @@ class SearchResult(V2CoreBase):
     Attributes:
         results: Search results.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     results: Annotated[

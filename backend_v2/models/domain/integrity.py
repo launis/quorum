@@ -24,6 +24,7 @@ class KnowledgeItem(V2CoreBase):
         term: The specific vocabulary term.
         definition: The corresponding validation reference explanation.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     term: Annotated[str, Field(description="The specific vocabulary term.")]
@@ -37,6 +38,7 @@ class StepContext(V2CoreBase):
         precedents: Textual reference representation of predecessor steps.
         knowledge_items: Collection of related domain-specific knowledge assertions.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     precedents: Annotated[str | None, Field(description="Textual reference representation of predecessor steps.")] = (
@@ -56,6 +58,7 @@ class CitationAudit(V2CoreBase):
         invalid_citations: List of identified hallucinated citations.
         integrity_score: Ratio of verified to total citations (0.0 to 1.0).
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     valid_citations: Annotated[int, Field(description="Count of valid, verified citations.")] = 0
@@ -94,6 +97,7 @@ class IntegrityGlobalInputsDTO(V2CoreBase):
     Attributes:
         raw_inputs: Unstructured input envelope at database boundaries.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     raw_inputs: Annotated[

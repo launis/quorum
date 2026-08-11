@@ -20,6 +20,7 @@ class WorkflowResponseDTO(BaseResponseDTO, Workflow):
     Attributes:
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[
@@ -39,6 +40,7 @@ class StepResponseDTO(BaseResponseDTO, Step):
     Attributes:
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[
@@ -52,6 +54,7 @@ class PromptBlockResponseDTO(BaseResponseDTO, PromptBlock):
     Attributes:
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[
@@ -66,6 +69,7 @@ class MCPGatewayDeleteResponse(BaseResponseDTO):
         status: Action outcome status message.
         deleted_id: Opaque ID of the deleted gateway.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
@@ -79,6 +83,7 @@ class ModelRegistryDeleteResponse(BaseResponseDTO):
         status: Action outcome status message.
         deleted_id: Opaque ID of the deleted model registry.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
@@ -94,6 +99,7 @@ class PromptBlockSimulationResponse(BaseResponseDTO):
         rendered_prompt: Raw text output containing the rendered prompt block template.
         trace: Metadata containing state execution variables.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     valid: Annotated[bool, Field(default=True, description="Indicates if the prompt block simulation is successful.")]
@@ -112,6 +118,7 @@ class PromptBlockDeleteResponse(BaseResponseDTO):
         status: Status code or textual message.
         deleted_id: Opaque ID of the deleted prompt block.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
@@ -125,6 +132,7 @@ class PromptBlockSimulationRequest(BaseDTO):
         block: The source PromptBlock domain object.
         mock_inputs: Arbitrary mock parameters mimicking actual workflow variables.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     block: PromptBlock
@@ -140,6 +148,7 @@ class StepSimulationResponse(BaseResponseDTO):
         rendered_prompt: Concrete text string sent to the target LLM task.
         trace: Associated performance profiling variables.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     valid: Annotated[bool, Field(default=True, description="Indicates if the step simulation is successful.")]
@@ -158,6 +167,7 @@ class StepDeleteResponse(BaseResponseDTO):
         status: Lifecycle state mapping indicating deletion complete.
         deleted_id: Relational tracking code representing deleted target.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
@@ -171,6 +181,7 @@ class StepSimulationRequest(BaseDTO):
         step: Domain step blueprint context containing prompt configurations.
         mock_inputs: Static evaluation anchors containing environment variables.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     step: Step
@@ -187,6 +198,7 @@ class WorkflowSimulationResponse(BaseResponseDTO):
         execution_order: Order of step executions dynamically computed from the DAG.
         trace: Aggregated telemetry profiling outputs.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     valid: Annotated[bool, Field(default=True, description="Indicates if the workflow DAG simulation is successful.")]
@@ -205,6 +217,7 @@ class WorkflowDeleteResponse(BaseResponseDTO):
         status: Action status string.
         deleted_id: Opaque ID representing the deleted workflow resource.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
@@ -217,6 +230,7 @@ class WorkflowAvailableExtensionsResponse(BaseResponseDTO):
     Attributes:
         available_extensions: Union of all output_extensions defined across all Target Matrices.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     available_extensions: Annotated[list[str], Field(default_factory=list)]
@@ -228,6 +242,7 @@ class OutputProfileListResponse(BaseResponseDTO):
     Attributes:
         items: List of OutputProfile domain objects.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     items: list[OutputProfileResponseDTO]

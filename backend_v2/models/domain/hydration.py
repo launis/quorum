@@ -21,6 +21,7 @@ class HydrationInputSourceDTO(V2CoreBase):
     Attributes:
         inputs: Nested structured inputs mapped by key.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     inputs: Annotated[dict[str, str], Field(description="Nested structured inputs.")]

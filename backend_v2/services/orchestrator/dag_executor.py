@@ -732,7 +732,7 @@ class DAGExecutor:
                     err_code = e.details.get("error_code", err_code)
                     if hasattr(err_code, "name"):
                         err_code = err_code.name
-                
+
                 async with _update_lock:
                     new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.FAILED})
                     new_states = {**exec_record.step_states, step_id: new_state}

@@ -163,7 +163,7 @@ def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> Non
         "word_count": 150,
         "say_do_gap": 0.5,
         "automation_bias": 0.2,
-        "performative_phrases": ["test phrase"]
+        "performative_phrases": ["test phrase"],
     }
 
     payload = PromptFactory.build(

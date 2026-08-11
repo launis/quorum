@@ -21,6 +21,7 @@ class TokenUsage(V2CoreBase):
         cost_usd: Estimated monetary cost of the execution in USD.
         estimated_savings_usd: Estimated savings in USD derived from cached responses.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     prompt_tokens: Annotated[int, Field(ge=0, description="Tokens used in the prompt.")]
@@ -86,6 +87,7 @@ class UsageAggregate(V2CoreBase):
         usage: Cumulative token and cost statistics.
         total_executions: Total number of recorded execution traces in the period.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     scope: Annotated[str, Field(min_length=1, description="Scope of the aggregate (system, organization, user).")]
@@ -109,6 +111,7 @@ class UsageReport(V2CoreBase):
         quota_limit_usd: Optional quota limit constraint defined in USD.
         percentage_used: Optional percentage indicating quota consumption.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     scope: Annotated[str, Field(min_length=1, description="Scope of the report (system, organization, user).")]

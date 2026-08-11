@@ -40,6 +40,7 @@ class OutputProfileCreateDTO(V2CoreBase):
         scoring_strategy: Profile-level strategy calculation override.
         layouts: Sequence of layout rendering blocks.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[
@@ -166,6 +167,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
         scoring_strategy: Optional strategy engine overriding defaults.
         layouts: Optional mapped layout instructions.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     slug: Annotated[str | None, Field(default=None, description="Human-readable routing identifier.")]
@@ -266,6 +268,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         scoring_strategy: Mapped logic algorithm enum mapping engine implementation.
         layouts: Ordered array of discrete layout definitions governing presentation.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str

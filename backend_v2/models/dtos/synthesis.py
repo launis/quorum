@@ -31,6 +31,7 @@ class SynthesisSectionDTO(V2CoreBase):
         layout_id: The EXACT layout ID provided in the section instructions.
         content_blocks: Structured SDUI content blocks for this section.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     layout_id: Annotated[str, Field(description="The EXACT layout ID provided in the section instructions")]
@@ -46,6 +47,7 @@ class XaiHighlightItem(V2CoreBase):
         extension_type: Category of the insight matching explicit system XaiExtensionType options.
         content: The synthesized, deduplicated insight or tip. Max 2 sentences.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     extension_type: Annotated[
@@ -66,6 +68,7 @@ class SynthesisRowExplanationDTO(V2CoreBase):
         row_explanation: The ultra-short synthesized explanation.
         curated_quotes: Curated verbatim quotes by the LLM.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     matrix_id: Annotated[str, Field(description="The ID of the matrix")]
@@ -85,6 +88,7 @@ class MatrixExplanationsResult(V2CoreBase):
     Attributes:
         explanations: List containing EXACTLY ONE explanation for EACH matrix_id provided.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     explanations: Annotated[
@@ -110,6 +114,7 @@ class SynthesisOutputDTO(V2CoreBase):
         executive_summary: High-level synthesized summary.
         urgency_level: Estimated urgency level.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     user_role: Annotated[

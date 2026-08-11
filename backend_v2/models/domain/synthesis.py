@@ -32,6 +32,7 @@ class SynthesisMetadataDTO(V2CoreBase):
         completion_tokens: Cumulative tokens returned by upstream APIs.
         cost_estimate: Estimate representing financial metrics.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     target_locale: Annotated[str, Field(min_length=1)]

@@ -20,6 +20,7 @@ class QuestionAnswerPair(V2CoreBase):
         question: The text of the question.
         answer: The text of the answer.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     question: str
@@ -37,6 +38,7 @@ class GuidedReflectionInputDTO(V2CoreBase):
         pairs: List of Question-Answer pairs containing the core input.
         metadata: Flat dictionary storing supplemental execution metadata.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     pairs: Annotated[list[QuestionAnswerPair], Field(min_length=1)]

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, Literal  # noqa: F401
 
 from fastapi import status
-from pydantic import ConfigDict, BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase

@@ -32,6 +32,7 @@ class ExecutionCoreFields(V2CoreBase):
         context_variables: Dynamic blackboard for cross-step data sharing.
         context_variables_storage_path: Cloud Storage offload path for large context.
     """
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     status: Annotated[

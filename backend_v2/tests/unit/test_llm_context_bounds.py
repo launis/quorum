@@ -25,6 +25,7 @@ def clear_litellm_provider_caches() -> Generator[None]:
     LiteLLMProvider._semaphores.clear()
     LiteLLMProvider._httpx_clients.clear()
 
+
 @pytest.fixture(autouse=True)
 def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
@@ -85,9 +86,9 @@ def mock_repo() -> AsyncMock:
                 "tpm_limit": 100000,
                 "rpm_limit": 1000,
                 "max_tokens": 4096,
-                "temperature": 0.0
+                "temperature": 0.0,
             }
-        }
+        },
     }
     return repo
 
@@ -95,8 +96,10 @@ def mock_repo() -> AsyncMock:
 @pytest.fixture
 def mock_compiler() -> MagicMock:
     from pydantic import BaseModel
+
     class DummySchema(BaseModel):
         pass
+
     compiler = MagicMock()
     compiler.build_dynamic_schema.return_value = DummySchema
     return compiler
