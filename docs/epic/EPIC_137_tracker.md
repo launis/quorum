@@ -113,8 +113,8 @@
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Create or update aKnowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/`.
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** Create or update aKnowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
 - [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_137_Qualitative_Depth_Restoration.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
@@ -160,7 +160,9 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 - **Epic Execution Completion**: All 6 implementation phases of EPIC 137 are now fully executed, audited, and mathematically verified. The active context shifts to the Post-Implementation Gates. The next orchestrator MUST begin with the Backend Hardening phase.
 - **Post-Implementation Gates (Integration & Hygiene)**: Successfully executed the Backend Integration Verification via integration tests (`test_caching_integration.py`, `test_topological_evaluator.py`, etc.). Conducted the Golden Master & Test Restoration Audit, mathematically verifying zero `@pytest.mark.skip` regressions in the modified `orchestrator` and `dtos` domains. Confirmed Proxy Sunset was N/A for Epic 137. The frontend rendering validation is pending manual review. The active context shifts strictly to the Tier 2 Hardening (Backend) gate.
 - **Post-Implementation Gates (Backend Hardening)**: Successfully executed the Tier 2 Backend Hardening loop. Removed all forbidden inline imports from `extractive_sensor_service.py`, `enriched_dag_executor.py`, and `test_extractive_sensor_service.py`. Relocated inline Pydantic schemas (`BatchEvaluationResponse`, `BooleanEvaluationResult`) to the global module scope to resolve Pydantic namespace collision violations. Fixed the Double-CDATA Wrapping defect in `matrix_sensor_prompt_builder.py` by using strict string concatenation (`f-strings`) for assembling internal structural tags containing pre-wrapped CDATA components. The backend orchestrator domain was verified via the Universal Quality Gate (`backend_audit_loop.py`), passing with 100% adherence to Phase 9 architectural standards, zero typing violations, and passing unit tests.
-
+- **Post-Implementation Gates (Documentation & Knowledge Sync)**: Successfully executed the Tier 7 Describe Architecture workflow. Created a new Knowledge Item `ki_matrix_sensor_prompt_builder.md` to document the Static-First caching boundary and XML CDATA encapsulation specific to matrix assertions. Applied timeless cleanup to the 6 core architectural pillars, specifically updating `03_cognitive_orchestration_engine.md` to formally integrate the new "Sensor Caching Parity" rules. Updated `04_directory_reference.md` to synchronize physical path references. The architecture documentation is now perfectly synchronized with the executed reality.
+- **Final Epic Audit (Boundary Validation Failure)**: Initiated the Tier 8 Final Epic Audit. The `audit_markdown_boundaries.py` script immediately failed, citing AST bound mismatches for `v2_core.py#L187-L198` and a missing file `test_prompt_compiler.py`. Execution was halted as per the Tier 8 invariant prohibiting auditing of invalid Epic documents.
+- **Tier 4 Root Cause Analysis**: Executed `/tier4-bug-hunting` to diagnose the boundary failures. Identified that the `TheoryGrounding` class boundaries had shifted to `#L187-L201` and that `test_prompt_compiler.py` was correctly deleted in Phase 2, but incorrectly tagged as `[MODIFY]` in the Epic plan instead of `[DELETE]`. Generated `bug_fix_plan.md` and `task.md` to orchestrate the remediation.
 ## Learned
 - **Baseline State Snapshot**: `seed_data.json` currently uses raw `"RULES:"` prefixes inside `ai_description` and non-APA localized citations. `ExtractiveSensorService.evaluate_atom_boolean_batch()` uses an overly generic prompt that lacks `<theory_grounding>`. The `prompt_compiler.py` and `localization_compiler.py` files contain dead code methods (`compile_xml_rubrics`) that have zero production callers. `llm.py` contains a `getattr(b, "category_id", None)` which violates the strict fail-fast property access rule.
 - **Tier 0 Determinism Mandate**: The Phase 1 plan originally delegated web searching and dynamic python scripting to the Tier 2 execution agent, violating the `<anti_ambiguity_mandate>`. This was corrected by pre-computing exact matrix block IDs (`blk_...`) and strict English APA strings, directly injecting them into the plan for strict bounded replacement.
@@ -195,12 +197,11 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 ## Learned
 - **Frontend Hardening N/A**: It's important to verify if an EPIC actually touched the Frontend domain before running the Tier 2 Frontend Hardening loop to save execution time.
 - **E2E Integration Stability (Caching Validation)**: The real-world E2E integration test against Live Vertex LLMs proved that the new `MatrixSensorPromptBuilder` correctly maintains payload boundaries for the Context Caching mechanisms. The `backend_debug.log` verified that the Token Proxy Score calculation successfully evaluated the payload length (e.g., 285 and 410 tokens) and gracefully bypassed physical Vertex AI caching because the payloads were below the minimum 2048 token threshold. This validates that the decoupled builder not only prevents XML injection but accurately supports the dynamic LLM adapter fallback logic.
+- **Epic Boundary Rigidity**: The `audit_markdown_boundaries.py` script is ruthlessly strict. If a file is slated for deletion and has already been deleted in a previous phase, tagging it as `[MODIFY]` in the Epic will cause a failure because the script expects modified files to physically exist for line-boundary checking.
 
 ## Remaining
-- Knowledge Item Creation/Update
-- As-Built Architectural Sync
-- Final Epic Audit
+- Execute remediation plan to fix Epic boundaries (`bug_fix_plan.md`).
+- Re-run Final Epic Audit.
 
 ## Resume Command
-`/tier7-describe-architecture`
-*(Then execute `/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_137_Qualitative_Depth_Restoration.md]`)*
+`/tier5-resume --workflow=/tier2-execute --target="@[c:\Users\risto\.gemini\antigravity-ide\brain\7f674d0e-b191-4e91-94b0-2b96829ed168\task.md], @[c:\Users\risto\.gemini\antigravity-ide\brain\7f674d0e-b191-4e91-94b0-2b96829ed168\bug_fix_plan.md]"`
