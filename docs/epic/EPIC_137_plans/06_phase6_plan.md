@@ -18,8 +18,10 @@
 <system_prompt>
 <objective>Phase 6: Negative Testing & Mocks & Final Audit</objective>
 <action>Start session via `/tier5-resume`.</action>
-<action>Update ALL existing `AsyncMock` implementations for `ExtractiveSensorService` across the test suite to support the new signature.</action>
-<action>Write explicit negative tests in `@[c:\src\quorum\backend_v2\tests\unit\services\orchestrator\test_extractive_sensor_service.py]`: 1) Evaluate handling when `theory_grounding` is missing/null. 2) Evaluate strict bypass when `allow_contextual_override` is strictly set to `False`.</action>
+<action>Refactor `ExtractiveSensorService.pre_evaluate`, `_batch_fuzzy_match`, and `batch_pre_evaluate` in `@[c:\src\quorum\backend_v2\services\orchestrator\extractive_sensor_service.py]` to accept `allow_contextual_override: bool = False`. If True, `pre_evaluate` MUST return `PreFlightResult(decided=False)` instead of failing early for missing anchors, delegating the decision to the LLM.</action>
+<action>Update `EnrichedDagExecutor.execute_graph` in `@[c:\src\quorum\backend_v2\services\orchestrator\enriched_dag_executor.py]` to pass `matrix_context.allow_contextual_override if matrix_context else False` down to `batch_pre_evaluate`.</action>
+<action>Update `BooleanEvaluationResult` inside `ExtractiveSensorService.evaluate_atom_boolean_batch` to include `contextual_override: Annotated[bool | None, Field(default=None, description="True if bypass was used.")] = None`.</action>
+<action>Write explicit negative tests in `@[c:\src\quorum\backend_v2\tests\unit\services\orchestrator\test_extractive_sensor_service.py]`: 1) Evaluate graceful handling when `theory_grounding` is missing/null. 2) Evaluate pre-flight bypass when `allow_contextual_override` is strictly set to `False` vs `True`.</action>
 <action>Run `uv run python scripts/backend_audit_loop.py backend_v2 --test` to mathematically prove all Python schemas, imports, and tests pass.</action>
 <action>If successful, commit seed data: `uv run python backend_v2/seed/run_seed.py local`</action>
 <validation_gate>Ensure backend_audit_loop.py passes flawlessly and ExtractiveSensorService tests pass with missing theory_grounding.</validation_gate>

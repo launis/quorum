@@ -70,8 +70,9 @@ class EnrichedDagExecutor:
         ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
             nonlocal completed_atoms
             try:
+                allow_override = matrix_context.allow_contextual_override if matrix_context else False
                 pre_flight_results, undecided_nodes = await ExtractiveSensorService.batch_pre_evaluate(
-                    chunk, source_text, locale
+                    chunk, source_text, locale, allow_contextual_override=allow_override
                 )
 
                 if not undecided_nodes:

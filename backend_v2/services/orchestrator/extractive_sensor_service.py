@@ -59,7 +59,12 @@ class ExtractiveSensorService:
         return fuzz.partial_ratio(anchor.lower(), source_text.lower()) >= threshold
 
     @staticmethod
-    def pre_evaluate(tda: TDAAssertion | ExtractedAtom, source_text: str, locale: str | None = None) -> PreFlightResult:
+    def pre_evaluate(
+        tda: TDAAssertion | ExtractedAtom,
+        source_text: str,
+        locale: str | None = None,
+        allow_contextual_override: bool = False,
+    ) -> PreFlightResult:
         """Evaluates TDA against source text without LLM if pre-flight is enabled.
 
         Acts as an EARLY EXIT:
@@ -107,6 +112,11 @@ class ExtractiveSensorService:
         # Early exit logic:
         # If we need AT LEAST ONE anchor (EXISTS) but found ZERO -> Definitive FAIL
         if tda.aggregation_mode == "EXISTS" and len(found) == 0:
+            if allow_contextual_override:
+                logger.info(
+                    "[ExtractiveSensor] TDA %s bypassed early exit due to allow_contextual_override=True", tda.tda_id
+                )
+                return PreFlightResult(decided=False)
             res = ExecutionStatus.PASSED if tda.inverse_evidence else ExecutionStatus.FAILED
             logger.info(
                 "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (aggregation=EXISTS, found=0)",
@@ -121,6 +131,11 @@ class ExtractiveSensorService:
 
         # If we need ALL anchors (ALL_MUST_COMPLY) but are MISSING ANY -> Definitive FAIL
         if tda.aggregation_mode == "ALL_MUST_COMPLY" and len(found) < len(tda.syntactic_anchors):
+            if allow_contextual_override:
+                logger.info(
+                    "[ExtractiveSensor] TDA %s bypassed early exit due to allow_contextual_override=True", tda.tda_id
+                )
+                return PreFlightResult(decided=False)
             res = ExecutionStatus.PASSED if tda.inverse_evidence else ExecutionStatus.FAILED
             logger.info(
                 "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (aggregation=ALL_MUST_COMPLY, missing anchors)",
@@ -139,7 +154,10 @@ class ExtractiveSensorService:
 
     @staticmethod
     def _batch_fuzzy_match(
-        nodes: list[LinkedAtomGraph], source_text: str, locale: str | None = None
+        nodes: list[LinkedAtomGraph],
+        source_text: str,
+        locale: str | None = None,
+        allow_contextual_override: bool = False,
     ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], list[LinkedAtomGraph]]:
         """Synchronous batch fuzzy matching to determine pre-flight status.
 
@@ -155,7 +173,9 @@ class ExtractiveSensorService:
         undecided_nodes: list[LinkedAtomGraph] = []
 
         for node in nodes:
-            pre_result = ExtractiveSensorService.pre_evaluate(node.atom, source_text, locale)
+            pre_result = ExtractiveSensorService.pre_evaluate(
+                node.atom, source_text, locale, allow_contextual_override=allow_contextual_override
+            )
             if pre_result.decided:
                 if pre_result.result == ExecutionStatus.PASSED:
                     decided_results[node.atom.tda_id] = (
@@ -176,7 +196,10 @@ class ExtractiveSensorService:
 
     @staticmethod
     async def batch_pre_evaluate(
-        nodes: list[LinkedAtomGraph], source_text: str, locale: str | None = None
+        nodes: list[LinkedAtomGraph],
+        source_text: str,
+        locale: str | None = None,
+        allow_contextual_override: bool = False,
     ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], list[LinkedAtomGraph]]:
         """Asynchronous wrapper that offloads CPU-bound batch fuzzy matching to a thread.
 
@@ -188,7 +211,9 @@ class ExtractiveSensorService:
         Returns:
             Tuple containing decided results and undecided nodes.
         """
-        return await asyncio.to_thread(ExtractiveSensorService._batch_fuzzy_match, nodes, source_text, locale)
+        return await asyncio.to_thread(
+            ExtractiveSensorService._batch_fuzzy_match, nodes, source_text, locale, allow_contextual_override
+        )
 
     @staticmethod
     def resolve_majority_vote(
@@ -278,6 +303,9 @@ class ExtractiveSensorService:
             alias: Annotated[str, Field(description="The alias assigned to the claim (e.g., 'a0', 'a1').")]
             reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
             is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
+            contextual_override: Annotated[bool | None, Field(default=None, description="True if bypass was used.")] = (
+                None
+            )
             coaching: Annotated[
                 str | None, Field(description="Provide a coaching tip if the claim failed.", default=None)
             ] = None
@@ -338,6 +366,8 @@ class ExtractiveSensorService:
                         extensions: dict[str, str] = {}
                         if eval_result.coaching:
                             extensions["coaching"] = eval_result.coaching
+                        if eval_result.contextual_override is not None:
+                            extensions["contextual_override"] = str(eval_result.contextual_override)
                         if eval_result.falsification:
                             extensions["falsification"] = eval_result.falsification
                         if eval_result.remediation_steps:

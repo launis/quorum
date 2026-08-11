@@ -257,6 +257,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         alias: str
         reasoning: str
         is_true: bool
+        contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
         remediation_steps: list[str] | None = None
@@ -265,7 +266,9 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         results: list[MockResult]
 
     executor.execute_structured_task.return_value = (
-        MockResponse(results=[MockResult(alias="a1", reasoning="ok", is_true=True, coaching="tip")]),
+        MockResponse(
+            results=[MockResult(alias="a1", reasoning="ok", is_true=True, contextual_override=True, coaching="tip")]
+        ),
         {"total_tokens": 10},
     )
 
@@ -281,3 +284,93 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         assert "tda_11111111111111111111111111111111" in results
         assert results["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
         assert results["tda_11111111111111111111111111111111"][2]["coaching"] == "tip"
+        assert results["tda_11111111111111111111111111111111"][2]["contextual_override"] == "True"
+
+
+def test_extractive_sensor_service_allow_contextual_override() -> None:
+    """Varmistaa että pre-flight ohitetaan jos allow_contextual_override on True."""
+    tda = TDAAssertion(
+        enforce_pre_flight=True,
+        syntactic_anchors=["anchor_missing"],
+        aggregation_mode="EXISTS",
+        evaluation_track="EXTRACTIVE_SENSOR",
+        facts_to_find=["Fakta"],
+        logical_expression="Fakta",
+        concept_description="desc",
+        inverse_evidence=False,
+    )
+
+    # 1. strictly set to False -> early fail
+    result_fail = ExtractiveSensorService.pre_evaluate(
+        tda, "Completely different text.", allow_contextual_override=False
+    )
+    assert result_fail.decided
+    assert result_fail.result == ExecutionStatus.FAILED
+
+    # 2. strictly set to True -> delegated
+    result_delegate = ExtractiveSensorService.pre_evaluate(
+        tda, "Completely different text.", allow_contextual_override=True
+    )
+    assert not result_delegate.decided
+
+
+@pytest.mark.asyncio
+async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory_grounding() -> None:
+    """Varmistaa että LLM pystyy käsittelemään atomit turvallisesti vaikka theory_grounding puuttuu matriisikontekstista."""
+    from unittest.mock import AsyncMock
+
+    from pydantic import BaseModel
+
+    from backend_v2.llm.client import LLMClient
+    from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+    from backend_v2.models.dtos.engine import MatrixEvaluationContext
+    from backend_v2.services.llm_task_executor import LLMTaskExecutor
+
+    atom = ExtractedAtom(
+        tda_id="tda_11111111111111111111111111111111",
+        reasoning="reason",
+        resolved_claim="claim",
+        source_quote="quote",
+        source_id="src",
+        source_sequence_index=0,
+    )
+    node = LinkedAtomGraph(atom=atom, depends_on=[])
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+
+    class MockResult(BaseModel):
+        alias: str
+        reasoning: str
+        is_true: bool
+        contextual_override: bool | None = None
+        coaching: str | None = None
+        falsification: str | None = None
+        remediation_steps: list[str] | None = None
+
+    class MockResponse(BaseModel):
+        results: list[MockResult]
+
+    executor.execute_structured_task.return_value = (
+        MockResponse(results=[MockResult(alias="a1", reasoning="ok", is_true=True)]),
+        {"total_tokens": 10},
+    )
+
+    # Context without theory_grounding
+    matrix_context = MatrixEvaluationContext(
+        allow_contextual_override=True,
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.register", return_value="a1"),
+        patch(
+            "backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.resolve_alias",
+            return_value="tda_11111111111111111111111111111111",
+        ),
+    ):
+        results = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+            [node], executor, client, "context", matrix_context=matrix_context
+        )
+
+        assert "tda_11111111111111111111111111111111" in results
+        assert results["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED

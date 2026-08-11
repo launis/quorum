@@ -60,7 +60,7 @@ class MatrixSensorPromptBuilder:
                 blocks.append(
                     MatrixSensorPromptBuilder._create_ephemeral_block(
                         block_id="blk_2222222222222222",
-                        category_id=PromptBlockCategory.MATRIX,
+                        category_id=PromptBlockCategory.SYSTEM_RULE,
                         ai_desc=matrix_context.matrix_objective,
                     )
                 )
