@@ -78,6 +78,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
         9. RFC-7807 Dual-Reporting: Structured `logger.error` preceding `AppException` crashes.
         10. Strategy + Registry Pattern: Dynamic routing via static registries with Eager Loading.
         11. Exact String Matching: `str.find()` for forensic quote evidence.
+        12. AST Guardrail Mandate: Structural testing of new architectural constraints.
       </constraint>
     </step>
 
@@ -98,6 +99,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
         - `## 4. Definition of Done (DoD) &amp; Verification Plan`: 
           - **Definition of Done (DoD)**: Explicit quality requirements.
           - **Automated Unit Tests**: (`backend_audit_loop.py`, `flutter_audit_loop.py`).
+          - **AST Guardrails &amp; Structural Tests**: Define what static AST tests must be built to mathematically enforce the new rules.
           - **Manual Verification Steps**: DB re-seed, PDF inspection, UI audit.
           - **MANDATORY Final E2E REST API Verification Gate**: Set environment variable `RUN_LIVE_E2E=true` and run `uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
         - `## 5. Required Knowledge Items (KI Registry)`:

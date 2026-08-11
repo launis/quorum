@@ -73,6 +73,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         9. RFC-7807 Dual-Reporting: Structured `logger.error` preceding `AppException` crashes.
         10. Strategy + Registry Pattern: Dynamic routing via static registries with Eager Loading (no `if/else` cascades or duck typing).
         11. Exact String Matching: `str.find()` for forensic quote evidence (no regex or fuzzy matching).
+        12. AST Guardrail Mandate: Structural testing of new architectural constraints must precede execution.
       </constraint>
     </step>
 
@@ -92,6 +93,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <action>Include unit test commands (`backend_audit_loop.py`, `flutter_audit_loop.py`).</action>
       <action>Include the MANDATORY Final E2E REST API Verification Gate. To ensure cross-platform compatibility, provide environment-agnostic instructions or explicitly include both OS variants: (Windows/PowerShell: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`, Unix/Bash: `RUN_LIVE_E2E="true" uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`).</action>
       <action>Mandate Creation of Knowledge Items (KIs) if introducing a new Single Source of Truth (SSOT).</action>
+      <action name="AST GUARDRAIL INJECTION">If the plan introduces new architectural constraints or deprecates legacy patterns, you MUST explicitly include a step to build AST Guardrails to enforce them structurally.</action>
       <constraint name="ANTI-HAPPY-PATH COMPLIANCE">Every implementation plan MUST include explicit test scenarios with concrete inputs and expected outputs for BOTH success AND failure paths. Mandate a minimum of 2 negative scenarios per feature (e.g., missing required input, invalid type, AppException path). You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</constraint>
     </step>
 

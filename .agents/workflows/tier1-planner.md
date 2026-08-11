@@ -305,6 +305,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     <step id="10" name="TESTING STRATEGY &amp; VERIFICATION">
       <action>You MUST include a "Testing &amp; Quality Gate Plan" at the end of each plan.</action>
       <constraint>1) Specify strict unit tests. 2) Specify integration tests. 3) For every positive test scenario, mandate at least 2 corresponding negative test scenarios (missing inputs, incorrect types, boundary violations, AppException paths).</constraint>
+      <action name="AST GUARDRAIL MANDATE">If the Epic introduces new architectural constraints or bans specific functions, you MUST create a distinct 'Phase 1: AST Guardrails' sub-plan (or inject it as the first step of the relevant sub-plan) to ensure structural `ast` tests are built before standard unit tests.</action>
       <action name="TEST CONTRACT GENERATION">For every sub-plan, you MUST generate a `<test_contracts>` XML block containing named, concrete test specifications. Each contract MUST include: test name (following `test_{method}_{scenario}_{expected}` convention), input fixture, expected output/exception, and category (positive/negative/boundary/error_path). These contracts serve as the executing agent's Definition of Done for testing — the agent MUST NOT mark the phase as complete until ALL specified test contracts have been implemented and pass. Example:
 ```xml
 <test_contracts>

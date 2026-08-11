@@ -254,4 +254,10 @@ trigger: always_on
         <mandatory_pattern>You MUST enforce Zero-Compromise Fail-Fast validation. If a mandatory variable, header, or state object is missing, you MUST NOT default to a lazy fallback (like "en" or an empty dictionary) unless explicitly defined in the Pydantic schema as a safe default. Instead, you MUST log the error and raise an explicit `AppException` (e.g., `ErrorCodes.VALIDATION_FAILED`) instantly. Never patch over architectural missing state with duct tape.</mandatory_pattern>
         <catastrophic_reason>Lazy fallbacks obscure the root cause of systemic failures (e.g., a missing header silently causing the entire UI to render in the wrong language) and corrupt the audit trail by making broken processes appear successful.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="ast_guardrail_mandate">
+        <banned_pattern>Introducing new architectural constraints, deprecating legacy patterns, or banning specific functions (e.g., `hasattr`, `ResultProjector`) without writing a structural test to enforce it.</banned_pattern>
+        <mandatory_pattern>When defining new architectural rules or deprecating code patterns, you MUST proactively build AST Guardrail tests (using the Python `ast` module) to mathematically enforce the new rules statically BEFORE executing standard unit tests. This ensures Zero-Tolerance enforcement against "Agentic Drift" or lazy refactoring.</mandatory_pattern>
+        <catastrophic_reason>Without structural AST tests, AI agents or developers will eventually bypass the rules (e.g., removing Semaphores or using duck typing) to make a failing unit test pass, leading to silent architectural collapse.</catastrophic_reason>
+    </rule_block>
 </universal_quality_gate>
