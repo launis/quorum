@@ -76,8 +76,7 @@ class MatrixSensorPromptBuilder:
         compiler = PromptCompilerAdapter()
         system_content = compiler.compile_static_instructions(blocks, target_locale="en")
 
-        context_cdata = TemplateProcessor.encapsulate_payload(context_text)
-        context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_cdata)
+        context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_text)
 
         return CompiledPrompt(
             static_messages=[
@@ -122,31 +121,24 @@ class MatrixSensorPromptBuilder:
 
             if assertion:
                 q_cdata = TemplateProcessor.encapsulate_payload(assertion.question)
-                content = TemplateProcessor.safe_interpolate("<question>\n{q}\n</question>\n", q=q_cdata)
+                content = f"<question>\n{q_cdata}\n</question>\n"
 
                 if assertion.extraction_rule:
                     r_cdata = TemplateProcessor.encapsulate_payload(assertion.extraction_rule)
-                    content += TemplateProcessor.safe_interpolate(
-                        "<extraction_rule>\n{r}\n</extraction_rule>\n", r=r_cdata
-                    )
+                    content += f"<extraction_rule>\n{r_cdata}\n</extraction_rule>\n"
 
                 if assertion.anchor_target:
                     a_cdata = TemplateProcessor.encapsulate_payload(assertion.anchor_target)
-                    content += TemplateProcessor.safe_interpolate("<anchor_target>\n{a}\n</anchor_target>\n", a=a_cdata)
+                    content += f"<anchor_target>\n{a_cdata}\n</anchor_target>\n"
 
                 if assertion.is_inverse:
                     i_cdata = TemplateProcessor.encapsulate_payload(str(assertion.is_inverse))
-                    content += TemplateProcessor.safe_interpolate("<is_inverse>\n{i}\n</is_inverse>\n", i=i_cdata)
+                    content += f"<is_inverse>\n{i_cdata}\n</is_inverse>\n"
             else:
                 claim_cdata = TemplateProcessor.encapsulate_payload(node.atom.resolved_claim)
                 content = f"{claim_cdata}\n"
 
-            alias_cdata = TemplateProcessor.encapsulate_payload(alias)
-            claims_xml.append(
-                TemplateProcessor.safe_interpolate(
-                    '<claim alias="{a}">\n{c}\n</claim>', a=alias_cdata, c=content.strip()
-                )
-            )
+            claims_xml.append(f'<claim alias="{alias}">\n{content.strip()}\n</claim>')
 
         claims_str = "\n".join(claims_xml)
         user_content = TemplateProcessor.safe_interpolate(
@@ -154,8 +146,7 @@ class MatrixSensorPromptBuilder:
         )
 
         # 3. Assemble CompiledPrompt properly (Context text in static user message!)
-        context_cdata = TemplateProcessor.encapsulate_payload(context_text)
-        context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_cdata)
+        context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_text)
 
         return CompiledPrompt(
             static_messages=[

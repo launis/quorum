@@ -1,9 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic import BaseModel
 
+from backend_v2.exceptions import AgentExecutionError
+from backend_v2.llm.client import LLMClient
+from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import (
     ExtractiveSensorService,
 )
@@ -128,7 +134,6 @@ def test_extractive_sensor_service_fuzzy_match() -> None:
 
 
 def test_extractive_sensor_service_extracted_atom_pre_evaluate_empty_quote() -> None:
-    from backend_v2.models.dtos.dag_models import ExtractedAtom
 
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
@@ -143,7 +148,6 @@ def test_extractive_sensor_service_extracted_atom_pre_evaluate_empty_quote() -> 
 
 
 def test_extractive_sensor_service_extracted_atom_pre_evaluate_fail() -> None:
-    from backend_v2.models.dtos.dag_models import ExtractedAtom
 
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
@@ -160,7 +164,6 @@ def test_extractive_sensor_service_extracted_atom_pre_evaluate_fail() -> None:
 
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
-    from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
 
     # 1. Undecided
     atom_undecided = ExtractedAtom(
@@ -196,7 +199,6 @@ async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
 
 
 def test_extractive_sensor_service_resolve_majority_vote() -> None:
-    from backend_v2.exceptions import AgentExecutionError
 
     # Success case (2 PASS)
     results = [
@@ -229,13 +231,6 @@ def test_extractive_sensor_service_resolve_majority_vote() -> None:
 
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
-    from unittest.mock import AsyncMock
-
-    from pydantic import BaseModel
-
-    from backend_v2.llm.client import LLMClient
-    from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
-    from backend_v2.services.llm_task_executor import LLMTaskExecutor
 
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
@@ -317,14 +312,6 @@ def test_extractive_sensor_service_allow_contextual_override() -> None:
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory_grounding() -> None:
     """Varmistaa että LLM pystyy käsittelemään atomit turvallisesti vaikka theory_grounding puuttuu matriisikontekstista."""
-    from unittest.mock import AsyncMock
-
-    from pydantic import BaseModel
-
-    from backend_v2.llm.client import LLMClient
-    from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
-    from backend_v2.models.dtos.engine import MatrixEvaluationContext
-    from backend_v2.services.llm_task_executor import LLMTaskExecutor
 
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",

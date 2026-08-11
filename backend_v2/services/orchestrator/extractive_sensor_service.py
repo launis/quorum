@@ -17,6 +17,7 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
@@ -29,6 +30,32 @@ class PreFlightResult(BaseModel):
     decided: bool
     result: ExecutionStatus | None = None
     exact_quotes: list[LLMExtractedQuote] | None = None
+
+
+class BooleanEvaluationResult(BaseModel):
+    """Schema for a single boolean evaluation result from LLM."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    alias: Annotated[str, Field(description="The alias assigned to the claim (e.g., 'a0', 'a1').")]
+    reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
+    is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
+    contextual_override: Annotated[bool | None, Field(default=None, description="True if bypass was used.")] = None
+    coaching: Annotated[str | None, Field(description="Provide a coaching tip if the claim failed.", default=None)] = (
+        None
+    )
+    falsification: Annotated[
+        str | None, Field(description="Provide a falsification argument if the claim failed.", default=None)
+    ] = None
+    remediation_steps: Annotated[
+        list[str] | None, Field(description="Step-by-step remediation if the claim failed.", default=None)
+    ] = None
+
+
+class BatchEvaluationResponse(BaseModel):
+    """Schema for the batch boolean evaluation result."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    results: list[BooleanEvaluationResult]
 
 
 class ExtractiveSensorService:
@@ -298,28 +325,6 @@ class ExtractiveSensorService:
 
         logger.info("Evaluating atom batch with parallelism: %d", parallelism)
 
-        class BooleanEvaluationResult(BaseModel):
-            model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-            alias: Annotated[str, Field(description="The alias assigned to the claim (e.g., 'a0', 'a1').")]
-            reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
-            is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
-            contextual_override: Annotated[bool | None, Field(default=None, description="True if bypass was used.")] = (
-                None
-            )
-            coaching: Annotated[
-                str | None, Field(description="Provide a coaching tip if the claim failed.", default=None)
-            ] = None
-            falsification: Annotated[
-                str | None, Field(description="Provide a falsification argument if the claim failed.", default=None)
-            ] = None
-            remediation_steps: Annotated[
-                list[str] | None, Field(description="Step-by-step remediation if the claim failed.", default=None)
-            ] = None
-
-        class BatchEvaluationResponse(BaseModel):
-            model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-            results: list[BooleanEvaluationResult]
-
         alias_engine = AliasEngine()
         requested_aliases: set[str] = set()
         alias_to_tda_id: dict[str, str] = {}
@@ -331,8 +336,6 @@ class ExtractiveSensorService:
             requested_aliases.add(alias)
             alias_to_tda_id[alias] = tda_id
             tda_id_to_alias[tda_id] = alias
-
-        from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 
         compiled_prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
             context_text=context_text,

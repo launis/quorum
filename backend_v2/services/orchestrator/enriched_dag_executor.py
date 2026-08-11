@@ -16,6 +16,7 @@ from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
+from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
 from backend_v2.settings import get_settings
 
@@ -137,8 +138,6 @@ class EnrichedDagExecutor:
             chunks = [wave_nodes[i : i + batch_size] for i in range(0, len(wave_nodes), batch_size)]
 
             merged_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
-
-            from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 
             compiled_prompt = MatrixSensorPromptBuilder.build_caching_prefix(source_text, matrix_context)
 
