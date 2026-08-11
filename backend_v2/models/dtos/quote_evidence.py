@@ -16,10 +16,11 @@ class SourceDocumentContext(BaseModel):
     opaque_id: Annotated[str, Field(description="Opaque Stripe ID or static input key of the source document.")]
     text_content: Annotated[str, Field(description="The extracted raw text content of the document.")]
     display_name: Annotated[str, Field(description="User-facing display name or label of the document.")]
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
 
 class BaseSourceId(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Base class to force source_id to appear first in the JSON schema."""
 
     source_id: Annotated[str | None, Field(default=None, description="Auto-resolved document ID (e.g. doc0, a1)")]
@@ -29,7 +30,7 @@ class LLMExtractedQuote(BaseSourceId):
     """Schema for quotes extracted by the LLM, tracking their resolved document ID."""
 
     text: Annotated[str, Field(description="Tarkka lainaus tekstistä")]
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     @model_validator(mode="before")
     @classmethod
@@ -74,6 +75,7 @@ class QuoteEvidenceDTO(V2CoreBase):
         unverified_aliases: Aliases that could not be verified.
         is_verified: True if there are verified aliases and no unverified aliases.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     quote: str = Field(..., description="The exact text of the quote.")
     verified_source_ids: list[str] = Field(default=[], description="Resolved Opaque IDs.")

@@ -37,7 +37,7 @@ class RetrievalInput(V2CoreBase):
         str | None, Field(description="Reference text/documents to retrieve from.", min_length=1)
     ] = None
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class RetrievedFact(V2CoreBase):
@@ -49,6 +49,7 @@ class RetrievedFact(V2CoreBase):
         source_quote: Exact quote from the source material validating the fact.
         relevance_score: Integer from 1-5 assessing relevance to the objective.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[str, Field(description="Fact ID.", min_length=1)]
     fact_statement: Annotated[
@@ -99,6 +100,7 @@ class RetrievalDTO(ReasoningTraceDTO):
         retrieved_facts: List of facts retrieved and validated by the agent.
         key_takeaways: High-level summary string capturing the retrieved information.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     retrieved_facts: Annotated[
         list[RetrievedFact],
@@ -119,4 +121,5 @@ class RetrievalDTO(ReasoningTraceDTO):
 
 
 class RetrievalOutput(RetrievalDTO, ReasoningTrace):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Output schema for the Retrieval Agent."""

@@ -7,7 +7,7 @@ and their verification statuses via external search services.
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import BeforeValidator, Field
+from pydantic import ConfigDict, BeforeValidator, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -28,6 +28,7 @@ class SourceClaimDTO(V2CoreBase):
         institution_name: The name of the institution, if mentioned.
         publication_year: The year of publication, if mentioned.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     claim_text: Annotated[str, Field(description="The explicitly claimed source text in the document.")]
     institution_name: Annotated[str | None, Field(description="The name of the institution, if mentioned.")] = None
@@ -43,6 +44,7 @@ class VerifiedSourceDTO(V2CoreBase):
         source_urls: Relevant URLs where the claim was found or analyzed.
         tavily_answer: The textual answer/summary returned by the search API.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     claim_text: Annotated[str, Field(description="The original claim text.")]
     status: Annotated[
@@ -64,6 +66,7 @@ class SourceVerificationResultDTO(V2CoreBase):
         verified_count: Count of claims marked as VERIFIED.
         hallucination_count: Count of claims marked as HALLUCINATION.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     claims: Annotated[list[VerifiedSourceDTO], Field(description="Verified claims.")] = Field(default_factory=list)
     verification_timestamp: Annotated[str, Field(description="Timestamp when verification ran.")]

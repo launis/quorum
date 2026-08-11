@@ -12,7 +12,7 @@ from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 class TraceEventMetadataEnvelope(BaseDTO):
     """Strict hydration schema for extracting metadata from a trace event."""
 
-    model_config = ConfigDict(strict=False, extra="ignore")
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     step_metadata: Annotated[StepMetadataDTO | None, Field(alias="_step_metadata", default=None)]
 

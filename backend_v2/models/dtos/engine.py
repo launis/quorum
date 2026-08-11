@@ -35,7 +35,7 @@ class FlattenedAtom(BaseModel):
     anchor_target: Annotated[str, Field(default="", description="Semantic bounding box target.")]
     is_inverse: Annotated[bool, Field(default=False, description="True if this is an inverse assertion.")]
 
-    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
 
 class EngineExecutionRequest(BaseModel):

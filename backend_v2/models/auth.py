@@ -74,6 +74,7 @@ class Organization(V2CoreBase):
         subscription_status (SubscriptionStatus): Current billing status.
         quota_limit (int): Monthly API call quota.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[
         str,
@@ -175,6 +176,7 @@ class UserBase(V2CoreBase):
         organization_id (Optional[str]): ID of the organization this user belongs to.
         is_active (bool): Is the account active?
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     email: Annotated[EmailStr, Field(description="User email address")]
     name: Annotated[str | None, Field(description="User display name")] = None
@@ -388,6 +390,7 @@ class TokenData(V2CoreBase):
         organization_id (Optional[str]): Organization ID.
         email (Optional[str]): User email.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str
     role: LaxUserRole

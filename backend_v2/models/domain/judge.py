@@ -7,7 +7,7 @@ including scorecards and dimension results.
 import logging
 from typing import Annotated, Any
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -44,6 +44,7 @@ class JudgeInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     # Context / inputs
     chat_log: Annotated[
@@ -86,6 +87,7 @@ class DimensionResultItem(V2CoreBase):
         score: Numerical score.
         reasoning: Justification for the score.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     dimension_id: Annotated[
         str,
@@ -152,6 +154,7 @@ class JudgeScoreCard(V2CoreBase):
         scale_min: Minimum possible score.
         scale_max: Maximum possible score.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     agent_name: Annotated[
         str,
@@ -238,6 +241,7 @@ class JudgeDTO(ReasoningTraceDTO):
         scale_max: Maximum possible score.
         critical_findings: Critical issues identified.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     matrix_id: Annotated[
         str,
@@ -278,6 +282,7 @@ class JudgeDTO(ReasoningTraceDTO):
 
 
 class JudgeOutput(JudgeDTO, ReasoningTrace):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Output schema for the Judge Agent."""
 
 
@@ -290,6 +295,7 @@ class ScoringResult(V2CoreBase):
         score_summary: Summary text.
         penalties_applied: List of penalties applied.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     total_score: Annotated[
         float, Field(description="Total aggregated score.", json_schema_extra={"x-ui-label": "Total Score"})

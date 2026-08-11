@@ -18,7 +18,7 @@ class MetadataHookPayloadDTO(V2CoreBase):
         sys_initiator_id: System initiator ID.
     """
 
-    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     sys_initiator_id: Annotated[str, Field(min_length=1, alias="_sys_initiator_id")] = "system"
 

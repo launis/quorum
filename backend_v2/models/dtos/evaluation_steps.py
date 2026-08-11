@@ -7,7 +7,7 @@ used during matrix execution.
 from types import UnionType
 from typing import Annotated, Any, Union, get_args, get_origin
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
@@ -19,6 +19,7 @@ class BaseExtractionDTO(V2CoreBase):
 
     Enforces common validation behaviors for all step extraction schemas.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     used_source_aliases: Annotated[
         list[str],
@@ -126,6 +127,7 @@ class StepDTOStrict(BaseExtractionDTO):
         decision: Final strict binary compliance decision.
         semantic_reasoning: Short summary statement of decision logic.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     rule_internalization: Annotated[
         str,
@@ -181,6 +183,7 @@ class ParsingLogStepsStrict(BaseExtractionDTO):
     Attributes:
         steps: Sequential list of strict evaluation steps.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     steps: Annotated[list[StepDTOStrict], Field(description="The sequence of evaluation steps.")]
 
@@ -193,5 +196,6 @@ class ParsingLogStepsSemantic(BaseExtractionDTO):
     Attributes:
         steps: Sequential list of semantic evaluation steps.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     steps: Annotated[list[StepDTOSemantic], Field(description="The sequence of evaluation steps.")]

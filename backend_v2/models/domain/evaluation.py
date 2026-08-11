@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import Annotated, Any, Self
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -31,6 +31,7 @@ class EvaluationCriterion(V2CoreBase):
         anchors: Scoring anchors mapping.
         weight: Importance weight.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[str, Field(min_length=1)]
     label: Annotated[str, Field(min_length=1)]
@@ -69,6 +70,7 @@ class EvaluationMatrixConfig(V2CoreBase):
         description: Optional description.
         criteria: List of evaluation criteria.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[str, Field(min_length=1)]
     name: Annotated[str, Field(min_length=1)]
@@ -180,6 +182,7 @@ class ValidationResult(V2CoreBase):
         is_valid: Is the structure valid?
         errors: Validation errors.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     is_valid: Annotated[
         bool, Field(description="Is the structure valid?", json_schema_extra={"x-ui-label": "Is Valid"})

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -29,6 +29,7 @@ class CausalInput(V2CoreBase):
         step_analyst: Analyst or Logician outputs.
         last_reasoning_trace: Previous reasoning trace.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog to analyze.")]
     step_analyst: Annotated[
@@ -44,6 +45,7 @@ class CausalAnalysisData(V2CoreBase):
         timeline_valid: Is the timeline valid?
         observation: General observations.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     timeline_valid: Annotated[
         bool,
@@ -64,6 +66,7 @@ class CounterfactualTest(V2CoreBase):
         actual_scenario: Actual outcome.
         simulation_result: Simulation outcome.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     plausibility_score: Annotated[
         LaxPlausibilityLevel,
@@ -119,6 +122,7 @@ class CausalAnalysis(V2CoreBase):
         observation: Observation.
         hypothesis: Hypothesis.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     abductive_conclusion: Annotated[
         LaxAbductiveConclusion,
@@ -173,6 +177,7 @@ class CausalDTO(ReasoningTraceDTO):
     Attributes:
         causal_analysis: Causal audit result.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     causal_analysis: Annotated[
         CausalAnalysis,
@@ -186,5 +191,6 @@ class CausalOutput(CausalDTO, ReasoningTrace):
     Attributes:
         causal_analysis: Causal audit result inherited from CausalDTO.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     pass

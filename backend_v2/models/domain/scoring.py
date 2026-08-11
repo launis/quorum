@@ -6,7 +6,7 @@ parsing in the scoring and passivity penalty hooks.
 
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace
@@ -23,6 +23,7 @@ class StepFalsifierDTO(ReasoningTrace):
     Attributes:
         falsifier_data: Structure containing counter-arguments.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     falsifier_data: Annotated[FalsifierData | None, Field(description="Structure containing counter-arguments.")] = None
 
@@ -37,6 +38,7 @@ class StepPanelDTO(V2CoreBase):
         performativity_analysis: Analysis tracking execution fidelity.
         causal_analysis: Analysis mapping causality relationships.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     falsifier_data: Annotated[FalsifierData | None, Field(description="Structure containing counter-arguments.")] = None
     overseer_data: Annotated[OverseerData | None, Field(description="Execution governance details.")] = None

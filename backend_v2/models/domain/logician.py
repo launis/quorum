@@ -7,7 +7,7 @@ including Toulmin argumentation analysis and Walton schemes.
 import logging
 from typing import Annotated, Any
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -29,6 +29,7 @@ class LogicianInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[
         str,
@@ -57,6 +58,7 @@ class ToulminComponent(V2CoreBase):
         rebuttal: Counter-arguments.
         qualifier: Degree of certainty.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[
         str,
@@ -112,6 +114,7 @@ class CognitiveLevel(V2CoreBase):
         description_key: Localization key for help text.
         description: Localized description.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     bloom_level: Annotated[
         LaxBloomLevel,
@@ -203,6 +206,7 @@ class WaltonScheme(V2CoreBase):
         identified_scheme: Identified Argumentation Scheme.
         critical_questions: Critical Questions posed.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     identified_scheme: Annotated[
         str,
@@ -233,6 +237,7 @@ class LogicianData(V2CoreBase):
         description_key: Localization key for help text.
         description: Localized description.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     toulmin_analysis: Annotated[
         list[ToulminComponent],
@@ -301,6 +306,7 @@ class LogicianOutputDTO(ReasoningTraceDTO):
     Attributes:
         logician_data: Logic analysis results.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     logician_data: Annotated[
         LogicianData,
@@ -312,4 +318,5 @@ class LogicianOutputDTO(ReasoningTraceDTO):
 
 
 class LogicianOutput(LogicianOutputDTO, ReasoningTrace):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Output schema for the Logician Agent (Domain Authority)."""

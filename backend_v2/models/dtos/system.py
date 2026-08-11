@@ -18,7 +18,7 @@ class HookListResponse(BaseResponseDTO):
         hooks: A list of registered system hooks or callback identifiers.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     hooks: Annotated[list[str], Field(description="A list of registered system hooks or callback identifiers")]
 
@@ -37,7 +37,7 @@ class ClientErrorPayload(BaseDTO):
         context_data: Additional context or state dump.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     session_id: Annotated[str | None, Field(description="Client session or user ID if available")] = None
     app_version: Annotated[str | None, Field(description="Client application version")] = None
@@ -57,7 +57,7 @@ class StrictnessConfigDTO(BaseDTO):
         localization_key: The UI key for translation.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     level: Annotated[int, Field(description="The integer level of strictness")]
     localization_key: Annotated[str, Field(description="The UI key for translation")]
@@ -70,6 +70,6 @@ class StrictnessConfigListResponse(BaseResponseDTO):
         configs: The list of configs.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     configs: Annotated[list[StrictnessConfigDTO], Field(description="The list of configs")]

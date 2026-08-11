@@ -5,7 +5,7 @@ These models handle the ingestion and output formats for the Output Profile REST
 
 from typing import Annotated, Literal
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.base import BaseResponseDTO
@@ -40,6 +40,7 @@ class OutputProfileCreateDTO(V2CoreBase):
         scoring_strategy: Profile-level strategy calculation override.
         layouts: Sequence of layout rendering blocks.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[
         str,
@@ -165,6 +166,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
         scoring_strategy: Optional strategy engine overriding defaults.
         layouts: Optional mapped layout instructions.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     slug: Annotated[str | None, Field(default=None, description="Human-readable routing identifier.")]
     workflow_id: Annotated[str | None, Field(default=None, description="Optional workflow reassignment.")]
@@ -264,6 +266,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         scoring_strategy: Mapped logic algorithm enum mapping engine implementation.
         layouts: Ordered array of discrete layout definitions governing presentation.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str
     slug: str

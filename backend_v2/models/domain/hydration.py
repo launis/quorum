@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -21,6 +21,7 @@ class HydrationInputSourceDTO(V2CoreBase):
     Attributes:
         inputs: Nested structured inputs mapped by key.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     inputs: Annotated[dict[str, str], Field(description="Nested structured inputs.")]
 

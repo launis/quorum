@@ -20,7 +20,7 @@ class BaseDTO(V2CoreBase):
     with varied serialization contexts.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, strict=True, extra="forbid")
 
 
 class BaseResponseDTO(V2CoreBase):
@@ -32,5 +32,6 @@ class BaseResponseDTO(V2CoreBase):
     Attributes:
         organization_id: Organization reference identifier excluded from client serialization.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[str | None, Field(exclude=True)] = None

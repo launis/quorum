@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -29,6 +29,7 @@ class TextMetrics(V2CoreBase):
         capitalization_ratio: Uppercase characters / total characters.
         control_ratio: User/AI token ratio.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     word_count: Annotated[int, Field(description="Total word count.", json_schema_extra={"x-ui-label": "Word Count"})]
     sentence_count: Annotated[
@@ -89,6 +90,7 @@ class BehavioralMetrics(V2CoreBase):
         illusion_of_competence: False sense of mastery.
         imperative_command_count: Number of imperative commands.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     say_do_gap: Annotated[
         float,
@@ -152,6 +154,7 @@ class ProfilerInput(V2CoreBase):
         profiler_metrics: Injected text metrics.
         last_reasoning_trace: Previous reasoning trace.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[
         str,
@@ -174,6 +177,7 @@ class ProfilerDTO(ReasoningTraceDTO):
         emotional_tone: Emotional tone analysis.
         metrics: Quantitative and behavioral text metrics.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     author_intent: Annotated[
         str,
@@ -214,3 +218,4 @@ class ProfilerOutput(ProfilerDTO, ReasoningTrace):
     Attributes:
         No additional attributes.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")

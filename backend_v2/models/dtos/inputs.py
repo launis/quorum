@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -20,6 +20,7 @@ class QuestionAnswerPair(V2CoreBase):
         question: The text of the question.
         answer: The text of the answer.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     question: str
     answer: str
@@ -36,6 +37,7 @@ class GuidedReflectionInputDTO(V2CoreBase):
         pairs: List of Question-Answer pairs containing the core input.
         metadata: Flat dictionary storing supplemental execution metadata.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     pairs: Annotated[list[QuestionAnswerPair], Field(min_length=1)]
     metadata: Annotated[dict[str, str], Field(default_factory=dict)]

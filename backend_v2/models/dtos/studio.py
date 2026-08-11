@@ -6,7 +6,7 @@ Verified Phase 1 Decoupled TDA schema propagation.
 
 from typing import Annotated, Any
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
@@ -20,6 +20,7 @@ class WorkflowResponseDTO(BaseResponseDTO, Workflow):
     Attributes:
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[
         str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
@@ -38,6 +39,7 @@ class StepResponseDTO(BaseResponseDTO, Step):
     Attributes:
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[
         str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
@@ -50,6 +52,7 @@ class PromptBlockResponseDTO(BaseResponseDTO, PromptBlock):
     Attributes:
         organization_id: Explicitly exposed for Admin Studio UI routing.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[
         str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
@@ -63,6 +66,7 @@ class MCPGatewayDeleteResponse(BaseResponseDTO):
         status: Action outcome status message.
         deleted_id: Opaque ID of the deleted gateway.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
     deleted_id: str
@@ -75,6 +79,7 @@ class ModelRegistryDeleteResponse(BaseResponseDTO):
         status: Action outcome status message.
         deleted_id: Opaque ID of the deleted model registry.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
     deleted_id: str
@@ -89,6 +94,7 @@ class PromptBlockSimulationResponse(BaseResponseDTO):
         rendered_prompt: Raw text output containing the rendered prompt block template.
         trace: Metadata containing state execution variables.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     valid: Annotated[bool, Field(default=True, description="Indicates if the prompt block simulation is successful.")]
     errors: Annotated[list[str], Field(default_factory=list, description="Validation errors found during simulation.")]
@@ -106,6 +112,7 @@ class PromptBlockDeleteResponse(BaseResponseDTO):
         status: Status code or textual message.
         deleted_id: Opaque ID of the deleted prompt block.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
     deleted_id: str
@@ -118,6 +125,7 @@ class PromptBlockSimulationRequest(BaseDTO):
         block: The source PromptBlock domain object.
         mock_inputs: Arbitrary mock parameters mimicking actual workflow variables.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     block: PromptBlock
     mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
@@ -132,6 +140,7 @@ class StepSimulationResponse(BaseResponseDTO):
         rendered_prompt: Concrete text string sent to the target LLM task.
         trace: Associated performance profiling variables.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     valid: Annotated[bool, Field(default=True, description="Indicates if the step simulation is successful.")]
     errors: Annotated[list[str], Field(default_factory=list, description="Validation errors found during simulation.")]
@@ -149,6 +158,7 @@ class StepDeleteResponse(BaseResponseDTO):
         status: Lifecycle state mapping indicating deletion complete.
         deleted_id: Relational tracking code representing deleted target.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
     deleted_id: str
@@ -161,6 +171,7 @@ class StepSimulationRequest(BaseDTO):
         step: Domain step blueprint context containing prompt configurations.
         mock_inputs: Static evaluation anchors containing environment variables.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     step: Step
     mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
@@ -176,6 +187,7 @@ class WorkflowSimulationResponse(BaseResponseDTO):
         execution_order: Order of step executions dynamically computed from the DAG.
         trace: Aggregated telemetry profiling outputs.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     valid: Annotated[bool, Field(default=True, description="Indicates if the workflow DAG simulation is successful.")]
     errors: Annotated[list[str], Field(default_factory=list, description="Structure and wiring errors.")]
@@ -193,6 +205,7 @@ class WorkflowDeleteResponse(BaseResponseDTO):
         status: Action status string.
         deleted_id: Opaque ID representing the deleted workflow resource.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
     deleted_id: str
@@ -204,6 +217,7 @@ class WorkflowAvailableExtensionsResponse(BaseResponseDTO):
     Attributes:
         available_extensions: Union of all output_extensions defined across all Target Matrices.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     available_extensions: Annotated[list[str], Field(default_factory=list)]
 
@@ -214,5 +228,6 @@ class OutputProfileListResponse(BaseResponseDTO):
     Attributes:
         items: List of OutputProfile domain objects.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     items: list[OutputProfileResponseDTO]

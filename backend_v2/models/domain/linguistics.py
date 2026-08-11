@@ -55,7 +55,7 @@ class LinguisticsPayloadDTO(BaseModel):
     language: Annotated[str | None, Field(description="Optional explicit language code")] = None
     dynamic_inputs: Annotated[dict[str, Any], Field(default_factory=dict, description="Dictionary of texts to scan")]
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     def extract_language(self, global_vars: dict[str, Any]) -> str:
         """Determines language safely without dict.get() fallbacks.

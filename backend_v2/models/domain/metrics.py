@@ -28,6 +28,8 @@ class MetricsPayloadDTO:
         root: The root dictionary payload.
     """
 
+    model_config = ConfigDict(strict=True, extra="forbid")
+
     def __init__(self, root: dict[str, Any]) -> None:
         """Initialize the payload wrapper.
 

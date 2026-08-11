@@ -20,6 +20,8 @@ class ReferencesInputsDTO:
         root: The underlying dictionary containing the raw reference payload data.
     """
 
+    model_config = ConfigDict(strict=True, extra="forbid")
+
     def __init__(self, root: dict[str, Any]) -> None:
         """Initialize the DTO with the underlying dictionary.
 
@@ -55,7 +57,7 @@ class ReferenceDTO(V2CoreBase):
         url: Optional URL pointing to the external source location.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     source_id: Annotated[str, Field(min_length=1)]
     title: Annotated[str, Field(min_length=1)]
@@ -71,7 +73,7 @@ class ReferencesContextDTO(V2CoreBase):
         knowledge_base: Optional generic dictionary configuration for KB interactions.
     """
 
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     step_coach: dict[str, Any] | None = None
     knowledge_base: dict[str, Any] | None = None
@@ -84,6 +86,6 @@ class BibliographyResultDTO(V2CoreBase):
         references: List of explicit ReferenceDTO objects forming the bibliography.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     references: list[ReferenceDTO]

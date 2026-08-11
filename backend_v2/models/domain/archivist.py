@@ -7,7 +7,7 @@ including precedent analysis and compliance checks.
 import logging
 from typing import Annotated, Any, Literal
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -25,6 +25,7 @@ class ArchiveCase(V2CoreBase):
         verdict: Verdict of the past case.
         summary: Summary of the past case.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     case_id: Annotated[str, Field(min_length=1, description="ID of the past case.")]
     similarity_score: Annotated[float, Field(description="Similarity to current case.")]
@@ -43,6 +44,7 @@ class ArchivistInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(description="Mandatory chatlog to analyze.")]
     archivist_precedents: Annotated[list[ArchiveCase] | None, Field(description="Retrieved precedents.")] = None
@@ -63,6 +65,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
         description_key: Localization key.
         description: Localized description.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     relevant_cases: Annotated[
         list[ArchiveCase],
@@ -139,6 +142,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
 
 
 class ArchivistOutput(ArchivistOutputDTO, ReasoningTrace):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Domain model for Archivist Agent (Content + Metadata)."""
 
     pass

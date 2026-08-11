@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, Literal  # noqa: F401
 
 from fastapi import status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import ConfigDict, BaseModel, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class StepExecutionEnvelope(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Base envelope for execution traces to prevent repetition and enforce DRY architecture."""
 
     execution_id: str | None = Field(default=None)
@@ -49,6 +50,7 @@ class StepExecutionEnvelope(V2CoreBase):
 
 
 class ReasoningTrace(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Stores hidden Chain-of-Thought (preserves "Thinking Tokens")."""
 
     thought_process: str = Field(
@@ -95,6 +97,7 @@ class ReasoningTrace(V2CoreBase):
 
 
 class EvidenceOverrideDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Payload for evidence override events."""
 
     evq_id: str = Field(description="The opaque evidence quote ID.")
@@ -105,6 +108,7 @@ class EvidenceOverrideDTO(V2CoreBase):
 
 
 class TraceEvent(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Immutable event log item representing a distinct step or state change."""
 
     event_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique event identifier.")
@@ -129,6 +133,7 @@ class TraceEvent(V2CoreBase):
 
 
 class ErrorTraceEvent(TraceEvent):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Specific event representing a fail-fast error katkos."""
 
     event_type: Literal["error"] = "error"
@@ -137,6 +142,7 @@ class ErrorTraceEvent(TraceEvent):
 
 
 class TombstoneEvent(TraceEvent):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Specific event representing GDPR-redacted or deleted data."""
 
     event_type: Literal["tombstone"] = "tombstone"
@@ -144,6 +150,7 @@ class TombstoneEvent(TraceEvent):
 
 
 class StepOutputDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Strict execution trace payload format."""
 
     step_id: str = Field(description="The opaque DAG Step ID.")
@@ -162,6 +169,7 @@ ExecutionCoreFields.model_rebuild()
 
 
 class WorkflowState(ExecutionCoreFields):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Aggregate root containing the execution trace and current state."""
 
     execution_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
@@ -410,6 +418,7 @@ class StateProjector:
 
 
 class ExecutionState(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Headless, strongly-typed Pydantic model representing the overall execution state."""
 
     executive_summary: str = Field(description="Concise overview of findings from execution run.")

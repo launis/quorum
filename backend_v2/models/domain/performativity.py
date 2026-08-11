@@ -10,7 +10,7 @@ import logging
 from typing import Annotated
 
 from fastapi import status
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -32,6 +32,7 @@ class PerformativityInput(V2CoreBase):
         step_analyst: Analyst or Logician outputs.
         last_reasoning_trace: Previous reasoning trace.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[
         str,
@@ -55,6 +56,7 @@ class PerformativityHeuristic(V2CoreBase):
         flag_raised: Flag raised.
         description: Description.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     heuristic_name: Annotated[
         str,
@@ -88,6 +90,7 @@ class PreMortemAnalysis(V2CoreBase):
         performed: Was Pre-Mortem performed?
         weak_signals: Detected weak signals.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     performed: Annotated[
         bool,
@@ -119,6 +122,7 @@ class PerformativityAnalysis(V2CoreBase):
         description_key: Localization key.
         description: Localized description.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     performativity_heuristics: Annotated[
         list[PerformativityHeuristic],
@@ -201,6 +205,7 @@ class PerformativityDTO(ReasoningTraceDTO):
     Attributes:
         performativity_analysis: Performativity audit result.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     performativity_analysis: Annotated[
         PerformativityAnalysis,
@@ -217,6 +222,7 @@ class PerformativityOutput(PerformativityDTO, ReasoningTrace):
     Attributes:
         No additional attributes.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class PerformativePattern(V2CoreBase):
@@ -227,6 +233,7 @@ class PerformativePattern(V2CoreBase):
         detected_phrase: The exact phrase detected.
         category: Category of the pattern.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     pattern_id: Annotated[
         str, Field(min_length=1, description="ID of the pattern.", json_schema_extra={"x-ui-label": "Pattern ID"})
@@ -248,6 +255,7 @@ class LinguisticsResult(V2CoreBase):
     Attributes:
         performative_patterns: Detected patterns.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     performative_patterns: Annotated[
         list[PerformativePattern],

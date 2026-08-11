@@ -73,7 +73,7 @@ class LLMResponse(BaseDTO):
         str | None, Field(description="System fingerprint identifying exact model weights used.")
     ] = None
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("content", mode="after")
     @classmethod
@@ -264,7 +264,7 @@ class LLMProviderConfig(BaseDTO):
         default_factory=dict
     )
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("temperature", mode="after")
     @classmethod
@@ -362,7 +362,7 @@ class AdHocTestRequest(BaseDTO):
     frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty override.")]
     presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty override.")]
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class AdHocTestResponse(BaseResponseDTO):
@@ -378,4 +378,4 @@ class AdHocTestResponse(BaseResponseDTO):
     latency_ms: Annotated[float, Field(..., ge=0.0, description="Execution latency in milliseconds.")]
     status: Annotated[Literal["success", "error"], Field(..., description="Status string (e.g. 'success', 'error').")]
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

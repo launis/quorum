@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -29,6 +29,7 @@ class FalsifierInput(V2CoreBase):
         step_analyst: Analyst or Logician outputs.
         last_reasoning_trace: Previous reasoning trace.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog to analyze.")]
     step_analyst: Annotated[
@@ -45,6 +46,7 @@ class WaltonStressTest(V2CoreBase):
         evidence_held: Did the evidence hold up?
         observation: Observation notes.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     question: Annotated[
         str,
@@ -83,6 +85,7 @@ class ReasoningFidelity(V2CoreBase):
         quote: Direct quote from sources.
         post_hoc_rationalization: True if reasoning was constructed after the fact.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     fidelity_score: Annotated[
         LaxFidelityLevel,
@@ -162,6 +165,7 @@ class FalsifierData(V2CoreBase):
         stress_test_findings: Stress test results using Walton critical questions.
         fidelity_audit: Comprehensive reasoning fidelity results.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     stress_test_findings: Annotated[
         list[WaltonStressTest],
@@ -186,6 +190,7 @@ class FalsifierDTO(ReasoningTraceDTO):
     Attributes:
         falsifier_data: Falsification audit result containing stress tests and fidelity.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     falsifier_data: Annotated[
         FalsifierData,
@@ -202,5 +207,6 @@ class FalsifierOutput(FalsifierDTO, ReasoningTrace):
     Attributes:
         falsifier_data: Falsification audit result containing stress tests and fidelity.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     pass

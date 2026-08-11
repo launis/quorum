@@ -48,6 +48,7 @@ class XAIReporterInput(V2CoreBase):
         step_linguistics: Mechanical linguistic patterns.
         dynamic_inputs: Dynamically passed variables.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(description="Conversation history.", json_schema_extra={"x-ui-label": "Chatlog"})]
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
@@ -85,6 +86,7 @@ class XAIScoreItem(V2CoreBase):
         reasoning: Textual reasoning explaining the score.
         weight: Importance multiplier weight of this item.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     label: Annotated[str, Field(min_length=1, description="Label for the score item.")]
     score: Annotated[float, Field(description="Score value.")]
@@ -95,7 +97,7 @@ class XAIScoreItem(V2CoreBase):
 class CitationExtension(V2CoreBase):
     """Citation extension block metadata."""
 
-    model_config = ConfigDict(title="citation")
+    model_config = ConfigDict(title="citation", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.CITATION] = XaiExtensionType.CITATION
     source_id: Annotated[str, Field(description="Unique reference document source ID.")]
     snippet: Annotated[str, Field(description="The captured exact contextual snippet text.")]
@@ -105,7 +107,7 @@ class CitationExtension(V2CoreBase):
 class JustificationExtension(V2CoreBase):
     """Reasoning justification extension metadata."""
 
-    model_config = ConfigDict(title="justification")
+    model_config = ConfigDict(title="justification", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.JUSTIFICATION] = XaiExtensionType.JUSTIFICATION
     reasoning: Annotated[str, Field(description="The explanatory text justification.")]
 
@@ -113,7 +115,7 @@ class JustificationExtension(V2CoreBase):
 class FalsificationExtension(V2CoreBase):
     """Falsification extension metadata."""
 
-    model_config = ConfigDict(title="falsification")
+    model_config = ConfigDict(title="falsification", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
     counter_argument: Annotated[str, Field(description="The key falsification counter argument.")]
     vulnerabilities: Annotated[list[str], Field(description="Specific logical vulnerabilities detected.")] = Field(
@@ -124,7 +126,7 @@ class FalsificationExtension(V2CoreBase):
 class TheoryLinkExtension(V2CoreBase):
     """Theory link extension metadata."""
 
-    model_config = ConfigDict(title="theory_link")
+    model_config = ConfigDict(title="theory_link", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.THEORY_LINK] = XaiExtensionType.THEORY_LINK
     theory_name: Annotated[str, Field(description="Name of referenced academic/logical framework.")]
     relevance: Annotated[str, Field(description="Direct relevance alignment explanation.")]
@@ -133,7 +135,7 @@ class TheoryLinkExtension(V2CoreBase):
 class RiskFlagExtension(V2CoreBase):
     """Risk flag extension metadata."""
 
-    model_config = ConfigDict(title="risk_flag")
+    model_config = ConfigDict(title="risk_flag", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.RISK_FLAG] = XaiExtensionType.RISK_FLAG
     risk_level: Annotated[str, Field(description="Assessed hazard status.")]
     description: Annotated[str, Field(description="Explaining context behind hazard determination.")]
@@ -142,7 +144,7 @@ class RiskFlagExtension(V2CoreBase):
 class CoachingExtension(V2CoreBase):
     """Coaching guidance extensions metadata."""
 
-    model_config = ConfigDict(title="coaching")
+    model_config = ConfigDict(title="coaching", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
     actionable_steps: Annotated[list[str], Field(description="Structured actions for improvement.")] = Field(
         default_factory=list
@@ -152,7 +154,7 @@ class CoachingExtension(V2CoreBase):
 class MissingContextExtension(V2CoreBase):
     """Missing context indicator metadata."""
 
-    model_config = ConfigDict(title="missing_context")
+    model_config = ConfigDict(title="missing_context", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.MISSING_CONTEXT] = XaiExtensionType.MISSING_CONTEXT
     context_needed: Annotated[str, Field(description="Explicit context points missing from execution pipeline.")]
 
@@ -160,7 +162,7 @@ class MissingContextExtension(V2CoreBase):
 class RemediationStepsExtension(V2CoreBase):
     """Remediation steps suggestions metadata."""
 
-    model_config = ConfigDict(title="remediation_steps")
+    model_config = ConfigDict(title="remediation_steps", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
     steps: Annotated[list[str], Field(description="Sequence of operations to apply to mitigate errors.")] = Field(
         default_factory=list
@@ -170,7 +172,7 @@ class RemediationStepsExtension(V2CoreBase):
 class EmotionalSentimentExtension(V2CoreBase):
     """Linguistic emotion assessment extension metadata."""
 
-    model_config = ConfigDict(title="emotional_sentiment")
+    model_config = ConfigDict(title="emotional_sentiment", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.EMOTIONAL_SENTIMENT] = XaiExtensionType.EMOTIONAL_SENTIMENT
     sentiment: Annotated[str, Field(description="Detected subjective linguistic tone.")]
     intensity: Annotated[float, Field(description="Numeric magnitude of evaluated emotional tone.")]
@@ -179,7 +181,7 @@ class EmotionalSentimentExtension(V2CoreBase):
 class ConfidenceExtension(V2CoreBase):
     """Mathematical confidence assessment extension metadata."""
 
-    model_config = ConfigDict(title="confidence")
+    model_config = ConfigDict(title="confidence", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.CONFIDENCE] = XaiExtensionType.CONFIDENCE
     confidence_score: Annotated[
         float, Field(description="Numeric value between 0.0 and 1.0 indicating security factor.")
@@ -190,7 +192,7 @@ class ConfidenceExtension(V2CoreBase):
 class SourceIDExtension(V2CoreBase):
     """Source referencing extension metadata."""
 
-    model_config = ConfigDict(title="source_id")
+    model_config = ConfigDict(title="source_id", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.SOURCE_ID] = XaiExtensionType.SOURCE_ID
     source_id: Annotated[str, Field(description="The exact reference target key index identifier.")]
 
@@ -198,7 +200,7 @@ class SourceIDExtension(V2CoreBase):
 class VarianceValidationExtension(V2CoreBase):
     """Variance validation extension metadata."""
 
-    model_config = ConfigDict(title="variance_validation")
+    model_config = ConfigDict(title="variance_validation", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.VARIANCE_VALIDATION] = XaiExtensionType.VARIANCE_VALIDATION
     mechanical_metric_ref: Annotated[str, Field(description="Reference to the mechanical metric key used.")]
     cognitive_metric_ref: Annotated[str, Field(description="Reference to the cognitive agent score key used.")]
@@ -216,6 +218,7 @@ class ComparisonDataDTO(V2CoreBase):
         delta: Difference factor between current run and baseline.
         trend: Evaluated qualitative vector indicator.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     baseline_score: Annotated[float | None, Field(description="Baseline rating reference context.")] = None
     delta: Annotated[float | None, Field(description="Difference factor between current run and baseline.")] = None
@@ -257,6 +260,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
         confidence_score: Confidence factor (0.0-1.0).
         xai_report_formatted: Markdown formatted report.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     output_extensions: Annotated[list[XAIExtension], Field(description="XAI extensions.")] = Field(default_factory=list)
     comparison_data: Annotated[
@@ -342,6 +346,7 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
         score_cards: Aggregated scorecard items from all judges.
         flat_report: Flattened machine-readable dict report summary.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     score_cards: Annotated[
         list[JudgeScoreCard],
@@ -363,6 +368,7 @@ class ReportResult(V2CoreBase):
         format: Report format.
         data: Structured data used to generate the report.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     report_content: Annotated[
         str,

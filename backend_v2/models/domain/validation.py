@@ -28,6 +28,8 @@ class ValidationHookPayloadDTO:
         root: Raw state inputs.
     """
 
+    model_config = ConfigDict(strict=True, extra="forbid")
+
     def __init__(self, root: dict[str, Any]) -> None:
         """Initialize the DTO with the underlying dictionary.
 
@@ -65,6 +67,7 @@ class ValidationWarningDTO(V2CoreBase):
         entropy: Shannon entropy telemetry score.
         telemetry_code: Telemetry status or routing code.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     type: Annotated[str, Field(min_length=1, description="URI reference identifying the error type.")]
     title: Annotated[str, Field(min_length=1, description="Short human-readable summary.")]
@@ -82,6 +85,7 @@ class ValidationResultDTO(V2CoreBase):
         is_valid: Whether the state passed structural validation.
         errors: Issues accumulated during validation.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     is_valid: Annotated[bool, Field(description="Whether the state passed structural validation.")]
     errors: Annotated[list[ValidationWarningDTO], Field(description="Issues accumulated during validation.")]
@@ -98,6 +102,7 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
         strictness_override: Override adjusting execution strictness.
         reason: Explanation of logic or math triggering the retry.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     retry_allowed: Annotated[bool, Field(description="Whether a hardening retry is permitted.")]
     max_retries: Annotated[int, Field(description="Maximum number of retries.")] = 3
@@ -148,4 +153,4 @@ class SystemWarningsStateDTO(V2CoreBase):
         Field(alias="_system_warnings", description="Validation warnings captured from the execution state."),
     ] = Field(default_factory=list)
 
-    model_config = ConfigDict(frozen=True, extra="ignore", populate_by_name=True, strict=True)
+    model_config = ConfigDict(frozen=True, populate_by_name=True, strict=True, extra="forbid")

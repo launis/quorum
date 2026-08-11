@@ -98,6 +98,7 @@ class I18nText(V2CoreBase):
         default_locale: The default locale used if a translation is missing.
         translations: Dictionary mapping locale code to translated string.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     default_locale: str = Field(description="The default locale used if a translation is missing.")
     translations: dict[str, str] = Field(
@@ -189,12 +190,14 @@ class TheoryGrounding(V2CoreBase):
         source_url: URL or reference to the source material.
         citation_reference: Specific section or phrase to cite from the source.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     source_url: str = Field(description="URL or reference to the source material.")
     citation_reference: str = Field(description="Specific section or phrase to cite from the source.")
 
 
 class AcceptanceCriterion(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Structured acceptance criterion with bilingual instruction."""
 
     instruction: str = Field(description="Structured monolingual instruction.")
@@ -202,6 +205,7 @@ class AcceptanceCriterion(V2CoreBase):
 
 
 class AntiPattern(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Known anti-pattern with bilingual description."""
 
     pattern: str = Field(description="Known anti-pattern with monolingual description.")
@@ -221,6 +225,7 @@ class TDAAssertion(V2CoreBase):
         allow_contextual_override: If True, allows overriding this assertion with a contextual excuse.
         high_entropy: If True, enables multi-agent ensemble majority voting for this assertion.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     tda_id: str = Field(
         default_factory=lambda: f"tda_{uuid.uuid4().hex}",
@@ -312,6 +317,7 @@ class MatrixClaim(V2CoreBase):
         ai_description: Specific AI enforcement rule for this claim.
         tda_assertions: Test-Driven Assertion rules explicitly set by experts.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     label: I18nText = Field(description="User-facing empirical claim.")
     ai_description: str = Field(description="Specific AI enforcement rule for this claim.")
@@ -329,6 +335,7 @@ class MatrixRow(V2CoreBase):
         label: User-facing row name.
         ai_description: Dedicated AI evaluation instruction for this sub-dimension.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     label: I18nText = Field(description="User-facing row name.")
     ai_description: str = Field(description="Dedicated AI evaluation instruction for this sub-dimension.")
@@ -343,6 +350,7 @@ class MatrixScale(V2CoreBase):
         ai_label: Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE.
         claims: List of behavioral claims/criteria for this score.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     score: int = Field(description="Numerical value of the scale point.")
     name: I18nText | None = Field(default=None, description="Optional name for the scale point (e.g., 'Excellent').")
@@ -380,6 +388,7 @@ class PromptBlock(V2CoreBase):
         computed_min: Dynamically computed absolute minimum score.
         computed_max: Dynamically computed absolute maximum score.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(
         pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
@@ -536,6 +545,7 @@ class ChatMessageDTO(V2CoreBase):
         role: The role of the speaker (e.g. 'user' or 'ai').
         content: The message text.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     role: str = Field(description="The role of the speaker (e.g. 'user' or 'ai').")
     content: str = Field(description="The message text.")
@@ -547,11 +557,13 @@ class ChatHistoryDTO(V2CoreBase):
     Attributes:
         conversation: List of messages in chronological order.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     conversation: list[ChatMessageDTO] = Field(description="List of messages in chronological order.")
 
 
 class DataDictionaryField(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """UI Hints mapping for dynamic form generation (SDUI)."""
 
     field_id: str
@@ -561,6 +573,7 @@ class DataDictionaryField(V2CoreBase):
 
 
 class ModelProfile(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """A flattened physical AI model representation."""
 
     provider: str = Field(description="E.g., 'google', 'openai'")
@@ -588,6 +601,7 @@ class ModelProfile(V2CoreBase):
 
 
 class SystemConfigModelRegistry(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """V2 Flattened Model Registry System Config."""
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
@@ -599,6 +613,7 @@ class SystemConfigModelRegistry(V2CoreBase):
 
 
 class AllowedMCPTool(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Declares a single MCP tool available for LLM function calling."""
 
     tool_id: str = Field(description="Unique slug (e.g. 'mcp_tavily_search').")
@@ -610,6 +625,7 @@ class AllowedMCPTool(V2CoreBase):
 
 
 class MCPAuditTrace(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Immutable audit log entry for a single MCP tool invocation."""
 
     id: str | None = Field(default=None, description="Unique identifier for the trace injected by the driver.")
@@ -632,6 +648,7 @@ class MCPAuditTrace(V2CoreBase):
 
 
 class SystemConfigMCPGateways(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """System-level registry of available MCP tool gateways."""
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
@@ -643,6 +660,7 @@ class SystemConfigMCPGateways(V2CoreBase):
 
 
 class LexiconConfigPayload(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Configuration for a single language lexicon."""
 
     language_code: str = Field(description="ISO language code (e.g., 'en', 'fi').")
@@ -652,6 +670,7 @@ class LexiconConfigPayload(V2CoreBase):
 
 
 class SystemConfigPerformativeLexicons(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """System configuration for multi-language performative lexicons."""
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
@@ -665,6 +684,7 @@ class SystemConfigPerformativeLexicons(V2CoreBase):
 
 
 class LexiconSuggestionListDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Structured DTO for LLM returned performative phrases."""
 
     suggested_phrases: list[str] = Field(
@@ -676,6 +696,7 @@ class Step(V2CoreBase):
     """Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).
     Formerly known as TaskBlueprint.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique UUID for storage optionally")
     slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
@@ -799,6 +820,7 @@ class StepRule(V2CoreBase):
 
 class Role(V2CoreBase):
     """Role definition that locks physical models and pre_hooks."""
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Role ID")
     name: I18nText
@@ -808,6 +830,7 @@ class Role(V2CoreBase):
 
 
 class QuestionnaireItem(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """A single question definition within a dynamic questionnaire."""
 
     question_id: str = Field(description="Unique identifier for the question (e.g., 'q1').")
@@ -816,9 +839,10 @@ class QuestionnaireItem(V2CoreBase):
 
 
 class ExpectedInput(V2CoreBase):
-    """Dynamic input definition for a workflow (0-N inputs)."""
+    model_config = ConfigDict(strict=True, extra="forbid")
+    """Definition of an input required by a workflow."""
 
-    input_key: str = Field(description="The internal key for routing this input (e.g., 'history_text').")
+    input_key: str = Field(pattern=r"^[A-Za-z0-9_]{1,32}$", description="System identifier for the input.")
     label: I18nText = Field(description="Localized label for the UI.")
     required: bool = Field(description="Whether this input is universally required.")
     is_chat_history: bool = Field(
@@ -878,6 +902,7 @@ class ExpectedInput(V2CoreBase):
 
 
 class HumanOverrideRequest(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Payload for human override requests."""
 
     new_status: LaxExecutionStatus = Field(description="The overridden status (PASSED, FAILED, SYSTEM_ERROR).")
@@ -888,6 +913,7 @@ class HumanOverrideRequest(V2CoreBase):
 
 
 class HumanOverrideDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Schema for human-initiated state override."""
 
     new_status: ExecutionStatus = Field(description="The overridden status (PASSED, FAILED, SYSTEM_ERROR).")
@@ -900,7 +926,7 @@ class HumanOverrideDTO(V2CoreBase):
 class ScorecardAtomDTO(V2CoreBase):
     """Explicit DTO firewall for presentation logic of individual atom evaluations."""
 
-    model_config = ConfigDict(extra="ignore", strict=True)
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     atom_id: str
     level: int
@@ -930,10 +956,12 @@ class ScorecardAtomDTO(V2CoreBase):
 
 
 class TDAPending(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     runtimeType: Literal["pending"] = Field(default="pending")
 
 
 class TDAEvaluated(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     runtimeType: Literal["evaluated"] = Field(default="evaluated")
     passed: bool
     display_quote: str
@@ -941,6 +969,7 @@ class TDAEvaluated(V2CoreBase):
 
 
 class TDADlq(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     runtimeType: Literal["dlq"] = Field(default="dlq")
     user_reason: str
     backend_trace: str
@@ -950,6 +979,7 @@ TDAStateUnion = Annotated[TDAPending | TDAEvaluated | TDADlq, Field(discriminato
 
 
 class MatrixScorecardRowDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Represents a single evaluated matrix row in the scorecard and plot axes."""
 
     block_id: str = Field(..., description="The opaque Stripe ID of the prompt block.")
@@ -1019,6 +1049,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
 
 
 class SynthesisConfigDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Configuration for LLM output synthesis length, masking, and formatting."""
 
     system_prompt: str | None = Field(default=None, description="Optional system prompt overriding default synthesis.")
@@ -1146,6 +1177,7 @@ class ExecutionMetricsDTO(BaseModel):
 
 
 class ReportDataDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     workflow_id: str
     execution_id: str = Field(description="The execution's opaque Stripe ID.")
     scoring_strategy: str | None = Field(
@@ -1223,6 +1255,7 @@ class ReportDataDTO(V2CoreBase):
 
 
 class OutputLayoutBlock(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """A single sequential rendering block for a report profile."""
 
     preset_view: Literal["1d_metrics", "2d_compare", "3d_matrix", "default", "text_only", "matrix_summary"] = Field(
@@ -1262,6 +1295,7 @@ class OutputLayoutBlock(V2CoreBase):
 
 
 class OutputProfile(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """A distinct report variant containing a sequence of layout blocks."""
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Profile ID")
@@ -1349,6 +1383,7 @@ class OutputProfile(V2CoreBase):
 
 
 class Workflow(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Dynamic Directed Acyclic Graph orchestrator model."""
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Workflow ID")
@@ -1478,6 +1513,7 @@ class Workflow(V2CoreBase):
 
 
 class FrozenContext(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Deep copy of context state at execution time for auditability."""
 
     compiled_prompts: dict[str, str] = Field(default_factory=dict, description="Prompts sent to LLM.")
@@ -1492,6 +1528,7 @@ class FrozenContext(V2CoreBase):
 
 
 class ExecutionCreate(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Schema for initiating a new workflow execution."""
 
     workflow_id: str = Field(description="ID of the workflow to execute")
@@ -1516,6 +1553,7 @@ class ExecutionCreate(V2CoreBase):
 
 
 class ExecutionStepState(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Real-time status tracking for a single DAG node."""
 
     id: str = Field(pattern=r"^([a-z0-9_]{2,15})_[a-zA-Z0-9_-]+$", description="Step ID")
@@ -1531,6 +1569,7 @@ class ExecutionStepState(V2CoreBase):
 
 
 class ExtensionMetricsDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Pre-calculated numeric or boolean metrics for UI adapters."""
 
     authenticity_score: float | None = None
@@ -1540,6 +1579,7 @@ class ExtensionMetricsDTO(V2CoreBase):
 
 
 class RenderedSynthesisCache(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Cached synthesis results tied to a specific OutputProfile ID."""
 
     section_syntheses: dict[str, list[AnySduiBlock]] = Field(
@@ -1560,6 +1600,7 @@ class RenderedSynthesisCache(V2CoreBase):
 
 
 class ExecutionRecord(ExecutionCoreFields):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Record of a workflow execution, including the frozen context and results."""
 
     if TYPE_CHECKING:
@@ -1620,6 +1661,7 @@ class ExecutionRecord(ExecutionCoreFields):
 
 
 class JobAcceptedDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Omni-channel render endpoint accepted response."""
 
     status: str
@@ -1628,6 +1670,7 @@ class JobAcceptedDTO(V2CoreBase):
 
 
 class EvidenceRejectionRequest(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Request DTO for rejecting a specific evidence quote."""
 
     rejection_reason: str = Field(description="Reason for rejecting the evidence quote.")

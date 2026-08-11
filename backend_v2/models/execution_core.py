@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus
@@ -32,6 +32,7 @@ class ExecutionCoreFields(V2CoreBase):
         context_variables: Dynamic blackboard for cross-step data sharing.
         context_variables_storage_path: Cloud Storage offload path for large context.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     status: Annotated[
         LaxExecutionStatus,

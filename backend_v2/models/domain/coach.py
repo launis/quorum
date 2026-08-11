@@ -6,7 +6,7 @@ including coaching plans and bibliography.
 
 from typing import Annotated, Any
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -27,6 +27,7 @@ class CoachInput(V2CoreBase):
         step_logician: Logician Toulmin analysis data.
         step_causal_analyst: Causal Analyst post-hoc and counterfactual data.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog.")]
     step_judge: Annotated[
@@ -61,6 +62,7 @@ class BibliographyItem(V2CoreBase):
         url: URL of the reference source if available.
         snippet: Extracted relevant text segment.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     source_id: Annotated[
         str, Field(min_length=1, description="Unique source ID.", json_schema_extra={"x-ui-label": "Source ID"})
@@ -80,6 +82,7 @@ class BibliographyResult(V2CoreBase):
     Attributes:
         references: List of reference objects.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     references: Annotated[
         list[BibliographyItem],
@@ -95,6 +98,7 @@ class CoachingPlanDTO(ReasoningTraceDTO):
         bibliography: Curated resources mapped to the findings.
         focus_areas: Critical areas highlighted for growth.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     actionable_steps: Annotated[
         list[str],
@@ -132,5 +136,6 @@ class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
         bibliography: Inherited from CoachingPlanDTO.
         focus_areas: Inherited from CoachingPlanDTO.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     pass

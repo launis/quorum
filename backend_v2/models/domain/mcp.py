@@ -20,6 +20,7 @@ class OpenAIFunctionCallDTO(V2CoreBase):
         name: Function name.
         arguments: Function arguments as a string or dict.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     name: str
     arguments: str | dict[str, Any]
@@ -35,7 +36,7 @@ class OpenAIToolCallDTO(V2CoreBase):
         function: The function call payload.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     index: int | None = None
     id: str
@@ -50,6 +51,7 @@ class OpenAIProbeResponseDTO(V2CoreBase):
         tool_calls: Optional list of tool calls requested by the LLM.
         content: Optional conversational response from the LLM.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     tool_calls: list[OpenAIToolCallDTO] | None = None
     content: str | None = None
@@ -61,6 +63,7 @@ class TavilyToolArgsDTO(V2CoreBase):
     Attributes:
         query: The search query.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     query: str
 
@@ -73,6 +76,7 @@ class MCPToolLoopResult(V2CoreBase):
         audit_traces: Audit log of all tool invocations.
         usage: Cumulative token usage.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     result_data: Annotated[dict[str, Any], Field(description="Final structured output dict.")]
     audit_traces: Annotated[
@@ -94,6 +98,7 @@ class MCPSynthesisInstructionsDTO(V2CoreBase):
         synthesis_preamble: Optional text prepended to synthesis.
         synthesis_length_limit: Optional length limit for synthesis.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     synthesis_preamble: str | None = None
     synthesis_length_limit: int | None = None
@@ -111,7 +116,7 @@ class TavilyApiResultItemDTO(V2CoreBase):
         published_date: Published date, if available.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     title: str = ""
     url: str = ""
@@ -132,7 +137,7 @@ class TavilyApiResponseDTO(V2CoreBase):
         results: Search results list from Tavily.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     query: str = ""
     answer: str | None = ""
@@ -151,6 +156,7 @@ class TavilySearchResult(V2CoreBase):
         raw_content: Concatenated source texts (truncated).
         duration_ms: Round-trip latency in milliseconds.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     query: Annotated[str, Field(description="Echo of the original search query.")]
     answer: Annotated[str, Field(description="AI-generated summary from Tavily.")] = ""

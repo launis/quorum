@@ -46,6 +46,7 @@ class ReferenceItem(V2CoreBase):
         snippet: Extracted content, relevance, or reasoning.
         url: Link to the source if available.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[StrictStr, Field(..., description="Citation ID, e.g., H-1, F-1")]
     intent: Annotated[ReferenceIntent, Field(..., description="Type of the reference source")]
@@ -64,6 +65,7 @@ class EvidenceItem(V2CoreBase):
         score: Extracted validation score.
         type: Type mapping string.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: StrictStr
     source: StrictStr
@@ -78,6 +80,7 @@ class MarkdownBlockDisplay(V2CoreBase):
     Attributes:
         content: Markdown formatted raw content.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     content: StrictStr
 
@@ -90,6 +93,7 @@ class HighlightBoxDisplay(V2CoreBase):
         color_theme: Color presentation semantic intent.
         icon_name: Semantic display icon helper.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     content: StrictStr
     color_theme: Annotated[
@@ -106,6 +110,7 @@ class EvidenceList(V2CoreBase):
         items: Collection of compiled EvidenceItems.
         total_count: Total amount of scanned pieces of evidence.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     items: list[EvidenceItem]
     total_count: int
@@ -119,6 +124,7 @@ class SystemNotification(V2CoreBase):
         message: Underlying textual telemetry or notification message.
         level: Severe level indicators.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     title: StrictStr
     message: StrictStr
@@ -133,6 +139,7 @@ class SectionType(StrEnum):
 
 
 class UiSection(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     id: str
     type: SectionType
     title: str
@@ -151,6 +158,7 @@ class ReportView(V2CoreBase):
         system_notification: Global alerts if applicable.
         references: Structured citations matrix.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     view_id: Annotated[StrictStr, Field(..., description="The Execution ID")]
     title: Annotated[StrictStr, Field(default="Auditintiraportti", description="Page title")] = "Auditintiraportti"
@@ -182,6 +190,7 @@ class StepProgressItem(V2CoreBase):
         label: Translated title reference.
         status: Execution lifecycle state mapping.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: Annotated[StrictStr, Field(..., description="Step ID (e.g. step_guard)")]
     label: Annotated[StrictStr, Field(..., description="Human-readable label")]
@@ -200,6 +209,7 @@ class AssessmentView(V2CoreBase):
         steps: Pipeline steps list for stepper visualizations.
         finalScore: Overall computed math scoring.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     sessionId: Annotated[StrictStr, Field(..., description="Execution ID")]
     statusLabel: Annotated[StrictStr, Field(..., description="Human-readable status")]
@@ -226,6 +236,7 @@ class ToulminDisplay(V2CoreBase):
         rebuttal: Recognized exceptions or constraints.
         qualifier: Force of certainty metrics.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     claim: StrictStr
     data: StrictStr
@@ -236,6 +247,7 @@ class ToulminDisplay(V2CoreBase):
 
 
 class LogicAnalysisDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI Data for Logic Analysis Section."""
 
     bloom_score: float | None = None
@@ -260,6 +272,7 @@ class LogicAnalysisDisplay(V2CoreBase):
 
 
 class HeuristicDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Strict View Model for a single Heuristic validation check."""
 
     name: StrictStr
@@ -268,6 +281,7 @@ class HeuristicDisplay(V2CoreBase):
 
 
 class PerformativityDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI Data for Performativity Check."""
 
     authenticity_score: float | None = None
@@ -278,6 +292,7 @@ class PerformativityDisplay(V2CoreBase):
 
 
 class CausalDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI Data for Causal Analysis and counterfactual simulation."""
 
     abductive_score: float | None = None
@@ -300,6 +315,7 @@ class CausalDisplay(V2CoreBase):
 
 
 class VerifiedFactDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Strict View Model for a Verified Fact."""
 
     claim: str | None = None
@@ -312,6 +328,7 @@ class VerifiedFactDisplay(V2CoreBase):
 
 
 class EthicalIssueDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Strict View Model for an Ethical Issue detected in context."""
 
     issue_type: str | None = None
@@ -324,6 +341,7 @@ class EthicalIssueDisplay(V2CoreBase):
 
 
 class FactCheckDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI Data for Fact & Ethics Check."""
 
     fact_checks: list[VerifiedFactDisplay]
@@ -331,6 +349,7 @@ class FactCheckDisplay(V2CoreBase):
 
 
 class SecurityDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI Data for Security Guard Checks."""
 
     threat_detected: bool
@@ -346,6 +365,7 @@ class SecurityDisplay(V2CoreBase):
 
 
 class StressFindingDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Single finding for Walton Falsification Stress Test."""
 
     question: StrictStr
@@ -357,6 +377,7 @@ class StressFindingDisplay(V2CoreBase):
 
 
 class FidelityAudit(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Strict View Model for Fidelity Audit."""
 
     fidelity_score_display: str
@@ -367,6 +388,7 @@ class FidelityAudit(V2CoreBase):
 
 
 class StressTestDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI Data for Stress Test / Falsifier."""
 
     fidelity_audit: FidelityAudit | None = None
@@ -385,6 +407,7 @@ class StressTestDisplay(V2CoreBase):
 
 
 class ProfilerDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI for Profiler Analysis."""
 
     control_ratio_percent: float | None = None
@@ -408,6 +431,7 @@ class ProfilerDisplay(V2CoreBase):
 
 
 class ArchivistDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI for Archivist Check."""
 
     compliance_score: float | None = None
@@ -418,6 +442,7 @@ class ArchivistDisplay(V2CoreBase):
 
 
 class DimensionDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Strict View Model for a single Scoring Dimension."""
 
     dimension_id: str
@@ -429,6 +454,7 @@ class DimensionDisplay(V2CoreBase):
 
 
 class ScoreCardDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI Data for Judge Score Card."""
 
     agent_name: str
@@ -440,6 +466,7 @@ class ScoreCardDisplay(V2CoreBase):
 
 
 class DriverProfileDisplay(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Server-Driven UI for Driver Profile."""
 
     role_classification: str
@@ -450,6 +477,7 @@ class DriverProfileDisplay(V2CoreBase):
 
 
 class SduiBlockBase(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Base schema for SDUI Polymorphic Blocks."""
 
     id: Annotated[str | None, Field(default=None, description="Optional block identifier")] = None
@@ -459,7 +487,7 @@ class SduiBlockBase(V2CoreBase):
 class HeroInsightBlock(SduiBlockBase):
     """Specific block for Hero Insights."""
 
-    model_config = ConfigDict(title="hero_insight")
+    model_config = ConfigDict(title="hero_insight", strict=True, extra="forbid")
     block_type: Literal["hero_insight"] = "hero_insight"
     text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"), default="")]
     exact_quotes: Annotated[list[str], Field(default_factory=list)]
@@ -469,7 +497,7 @@ class HeroInsightBlock(SduiBlockBase):
 class ParagraphBlock(SduiBlockBase):
     """A standard text paragraph with optional citations."""
 
-    model_config = ConfigDict(title="paragraph")
+    model_config = ConfigDict(title="paragraph", strict=True, extra="forbid")
     block_type: Literal["paragraph"] = "paragraph"
     text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
     exact_quotes: Annotated[list[str], Field(default_factory=list)]
@@ -477,6 +505,7 @@ class ParagraphBlock(SduiBlockBase):
 
 
 class BulletListItem(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Helper model for a single item within a bullet list."""
 
     text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
@@ -487,7 +516,7 @@ class BulletListItem(V2CoreBase):
 class BulletListBlock(SduiBlockBase):
     """A bullet list containing multiple items."""
 
-    model_config = ConfigDict(title="bullet_list")
+    model_config = ConfigDict(title="bullet_list", strict=True, extra="forbid")
     block_type: Literal["bullet_list"] = "bullet_list"
     items: list[BulletListItem]
 
@@ -495,7 +524,7 @@ class BulletListBlock(SduiBlockBase):
 class AlertBlock(SduiBlockBase):
     """An alert box for highlighting important information."""
 
-    model_config = ConfigDict(title="alert_box")
+    model_config = ConfigDict(title="alert_box", strict=True, extra="forbid")
     block_type: Literal["alert_box"] = "alert_box"
     severity: Annotated[LaxVisualIntent, Field(default=VisualIntent.INFO)]
     text: Annotated[str, Field(validation_alias=AliasChoices("text", "content"))]
@@ -506,7 +535,7 @@ class AlertBlock(SduiBlockBase):
 class AccordionBlock(SduiBlockBase):
     """An accordion block for grouping nested SDUI blocks under a collapsible header."""
 
-    model_config = ConfigDict(title="accordion")
+    model_config = ConfigDict(title="accordion", strict=True, extra="forbid")
     block_type: Literal["accordion"] = "accordion"
     title: Annotated[str, Field(..., description="The title displayed on the accordion header.")]
     severity: Annotated[
@@ -526,7 +555,7 @@ class MarkdownBlock(SduiBlockBase):
     NOT for dynamic LLM content generation to preserve the UI structural mandate.
     """
 
-    model_config = ConfigDict(title="markdown")
+    model_config = ConfigDict(title="markdown", strict=True, extra="forbid")
     block_type: Literal["markdown"] = "markdown"
     text: Annotated[
         StrictStr,
@@ -541,7 +570,7 @@ class MarkdownBlock(SduiBlockBase):
 class SduiQuoteCard(SduiBlockBase):
     """SDUI component representing a valid quote evidence."""
 
-    model_config = ConfigDict(title="quote_card")
+    model_config = ConfigDict(title="quote_card", strict=True, extra="forbid")
     block_type: Literal["quote_card"] = "quote_card"
     quote: Annotated[
         str,
@@ -558,7 +587,7 @@ class SduiQuoteCard(SduiBlockBase):
 class SduiWarningCard(SduiBlockBase):
     """SDUI component representing a warning message (e.g. hallucinated alias)."""
 
-    model_config = ConfigDict(title="warning_card")
+    model_config = ConfigDict(title="warning_card", strict=True, extra="forbid")
     block_type: Literal["warning_card"] = "warning_card"
     message: Annotated[str, Field(..., description="Warning message for the user.")]
     quote_text: Annotated[
@@ -569,7 +598,7 @@ class SduiWarningCard(SduiBlockBase):
 class SduiNACard(SduiBlockBase):
     """SDUI component representing a Short-Circuit N/A outcome."""
 
-    model_config = ConfigDict(title="n_a_card")
+    model_config = ConfigDict(title="n_a_card", strict=True, extra="forbid")
     block_type: Literal["n_a_card"] = "n_a_card"
     short_circuit_reason_tda_ids: Annotated[
         list[str], Field(default_factory=list, description="IDs of the TDAs that triggered N/A.")
@@ -580,7 +609,7 @@ class SduiNACard(SduiBlockBase):
 class SduiGridBlock(SduiBlockBase):
     """SDUI component representing a data grid."""
 
-    model_config = ConfigDict(title="grid")
+    model_config = ConfigDict(title="grid", strict=True, extra="forbid")
     block_type: Literal["grid"] = "grid"
     items: Annotated[list[AnySduiBlock], Field(default_factory=list, description="Items in the grid.")]
 
@@ -597,7 +626,7 @@ class SduiMetadataBlock(SduiBlockBase):
         custom_preface_md: Optional preface markdown text.
     """
 
-    model_config = ConfigDict(title="metadata")
+    model_config = ConfigDict(title="metadata", strict=True, extra="forbid")
     block_type: Literal["metadata"] = "metadata"
     title: str = Field(..., description="Main title of the report")
     badges: list[str] = Field(default_factory=list, description="Highlighted badges")
@@ -610,7 +639,7 @@ class SduiMetadataBlock(SduiBlockBase):
 class SduiScoreCardBlock(SduiBlockBase):
     """SDUI component representing the global score card."""
 
-    model_config = ConfigDict(title="score_card")
+    model_config = ConfigDict(title="score_card", strict=True, extra="forbid")
     block_type: Literal["score_card"] = "score_card"
     global_score: float | None = Field(default=None, description="The mathematical average extracted.")
 
@@ -618,7 +647,7 @@ class SduiScoreCardBlock(SduiBlockBase):
 class SduiAuditTrailBlock(SduiBlockBase):
     """SDUI component representing the execution audit trail."""
 
-    model_config = ConfigDict(title="audit_trail")
+    model_config = ConfigDict(title="audit_trail", strict=True, extra="forbid")
     block_type: Literal["audit_trail"] = "audit_trail"
     # Keeping any structure needed for rendering the audit trail
     # For now, it might be empty or hold hydrated references if passed
@@ -628,7 +657,7 @@ class SduiAuditTrailBlock(SduiBlockBase):
 class SduiRadarChartBlock(SduiBlockBase):
     """Specific block for 3D Matrix / Radar Chart visualization."""
 
-    model_config = ConfigDict(title="3d_matrix")
+    model_config = ConfigDict(title="3d_matrix", strict=True, extra="forbid")
     block_type: Literal["3d_matrix"] = "3d_matrix"
     title: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
@@ -637,7 +666,7 @@ class SduiRadarChartBlock(SduiBlockBase):
 class SduiScatterPlotBlock(SduiBlockBase):
     """Specific block for 2D Compare / Scatter Plot visualization."""
 
-    model_config = ConfigDict(title="2d_compare")
+    model_config = ConfigDict(title="2d_compare", strict=True, extra="forbid")
     block_type: Literal["2d_compare"] = "2d_compare"
     title: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
@@ -646,7 +675,7 @@ class SduiScatterPlotBlock(SduiBlockBase):
 class SduiMatrixTableBlock(SduiBlockBase):
     """Specific block for Matrix Summary Table visualization."""
 
-    model_config = ConfigDict(title="matrix_summary")
+    model_config = ConfigDict(title="matrix_summary", strict=True, extra="forbid")
     block_type: Literal["matrix_summary"] = "matrix_summary"
     title: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
@@ -658,7 +687,7 @@ class SduiMatrixTableBlock(SduiBlockBase):
 class SduiMetrics1DBlock(SduiBlockBase):
     """Specific block for 1D Metrics visualization."""
 
-    model_config = ConfigDict(title="1d_metrics")
+    model_config = ConfigDict(title="1d_metrics", strict=True, extra="forbid")
     block_type: Literal["1d_metrics"] = "1d_metrics"
     title: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)

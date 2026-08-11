@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from pydantic import Field, computed_field, field_validator
+from pydantic import ConfigDict, Field, computed_field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -31,6 +31,7 @@ class OverseerInput(V2CoreBase):
         step_analyst: Analyst or Logician outputs.
         last_reasoning_trace: Previous reasoning trace.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[
         str,
@@ -54,6 +55,7 @@ class FactCheckRFI(V2CoreBase):
         verification_result: Result.
         source_or_reasoning: Source or reasoning.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     claim: Annotated[
         str,
@@ -112,6 +114,7 @@ class EthicalObservation(V2CoreBase):
         severity: Severity level.
         description: Description.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     issue_type: Annotated[
         str,
@@ -169,6 +172,7 @@ class OverseerData(V2CoreBase):
         fact_checks: Fact check report.
         ethical_issues: Ethical audit report.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     fact_checks: Annotated[
         list[FactCheckRFI],
@@ -212,6 +216,7 @@ class OverseerDTO(ReasoningTraceDTO):
     Attributes:
         overseer_data: Ethics audit result.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     overseer_data: Annotated[
         OverseerData,
@@ -228,3 +233,4 @@ class OverseerOutput(OverseerDTO, ReasoningTrace):
     Attributes:
         No additional attributes.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")

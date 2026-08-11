@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -29,6 +29,7 @@ class InteractionInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     chat_log: Annotated[
         str,
@@ -62,6 +63,7 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
         imperative_command_count: Number of direct commands given by user.
         strategy: Identified prompting strategy.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     role_classification: Annotated[
         LaxRoleClassification,
@@ -115,6 +117,7 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
 
 
 class InteractionAnalysis(InteractionAnalysisDTO, ReasoningTrace):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Output schema for the Interaction Agent (Domain Model with Metadata)."""
 
     pass

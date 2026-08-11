@@ -32,6 +32,7 @@ class SynthesisMetadataDTO(V2CoreBase):
         completion_tokens: Cumulative tokens returned by upstream APIs.
         cost_estimate: Estimate representing financial metrics.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     target_locale: Annotated[str, Field(min_length=1)]
     token_usage: Annotated[TokenUsage, Field()] = Field(
@@ -68,7 +69,7 @@ class SynthesisStepDataDTO(StepExecutionEnvelope):
         token_usage: Usage statistics for this execution iteration.
     """
 
-    model_config = ConfigDict(extra="ignore", frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     reasoning_trace: Annotated[ReasoningTrace | None, Field()] = None
     token_usage: Annotated[TokenUsage, Field()] = Field(

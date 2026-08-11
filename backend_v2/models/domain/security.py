@@ -30,6 +30,8 @@ class SecurityPayloadDTO:
         root: Raw state inputs.
     """
 
+    model_config = ConfigDict(strict=True, extra="forbid")
+
     def __init__(self, root: dict[str, Any]) -> None:
         """Initialize the DTO with the underlying dictionary.
 
@@ -63,6 +65,7 @@ class SanitizationResultDTO(V2CoreBase):
         security_status: Overall status of the security check.
         threat_detected: Flag indicating if a threat was detected.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     sanitized_inputs: Annotated[dict[str, str], Field(description="The inputs after sanitization")]
     security_status: Annotated[str, Field(min_length=1, description="Status of the security check")]
@@ -81,6 +84,7 @@ class SecurityCheck(V2CoreBase):
         anonymized: Was anonymization performed?
         pii_findings: List of PII findings.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     threat_detected: Annotated[
         bool,

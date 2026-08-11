@@ -1,12 +1,13 @@
 from typing import Annotated, Any
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxExecutionStatus
 
 
 class ReasoningStepDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Structured micro-CoT reasoning step schema to prevent JSON escaping issues."""
 
     step_1_identify_premise: Annotated[str, Field(description="Extract the exact claim from the prompt.")]
@@ -20,6 +21,7 @@ class ReasoningStepDTO(V2CoreBase):
 
 
 class ReducedAtomDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Reduced atom data for synthesis, containing only what is strictly necessary."""
 
     tda_id: str
@@ -30,6 +32,7 @@ class ReducedAtomDTO(V2CoreBase):
 
 
 class LightweightMatrixDTO(V2CoreBase):
+    model_config = ConfigDict(strict=True, extra="forbid")
     """Token-compressed matrix payload for Synthesis Generation."""
 
     execution_id: str

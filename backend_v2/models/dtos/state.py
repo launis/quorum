@@ -1,5 +1,6 @@
 """State Data Transfer Objects (DTOs) for Phase 9 Cognitive Quorum V2.
 
+from pydantic import ConfigDict
 This module encapsulates the structures required for handling hook states and
 localization payload parameters within the state pipeline.
 """
@@ -18,6 +19,7 @@ class HookStateMetadata(V2CoreBase):
         target_locale: The designated target localization code (e.g., 'fi', 'en').
         fields_to_translate: Collection of specific dictionary keys or attributes targeted for translation.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     target_locale: str
     fields_to_translate: list[str] = []
@@ -29,6 +31,7 @@ class I18nStatePayload(V2CoreBase):
     Attributes:
         language: The targeted language identification code representing state localization targets.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     language: str
 
@@ -39,5 +42,6 @@ class TranslationResponseDTO(V2CoreBase):
     Attributes:
         translated_data: Fully translated dictionary representing localized dynamic key-value pairs.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     translated_data: dict[str, Any]

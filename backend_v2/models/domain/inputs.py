@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -21,6 +21,7 @@ class Base64Attachment(V2CoreBase):
         content_base64: The base64 encoded binary content.
         content_type: Optional MIME type.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     filename: Annotated[str, Field(description="The name of the uploaded file")]
     content_base64: Annotated[str, Field(description="The base64 encoded binary content")]
@@ -39,6 +40,7 @@ class WorkflowInputsIngress(V2CoreBase):
         language: Target language code.
         dynamic_inputs: Structured dictionary for dynamic workflow inputs.
     """
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[str | None, Field(min_length=1, description="Tenant ID for multi-tenancy.")] = None
     user_id: Annotated[str | None, Field(min_length=1, description="User ID for audit trails.")] = None
