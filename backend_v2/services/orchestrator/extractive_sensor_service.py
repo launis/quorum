@@ -11,6 +11,7 @@ from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
@@ -250,6 +251,7 @@ class ExtractiveSensorService:
         executor: LLMTaskExecutor,
         client: LLMClient,
         context_text: str,
+        matrix_context: MatrixEvaluationContext | None = None,
     ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         """Evaluates a batch of atom claims against the source text using an LLM.
 

@@ -602,9 +602,18 @@ class LLMNodeStrategy(NodeStrategy):
                 retry_count + 1,
             )
 
-            from backend_v2.models.dtos.engine import EngineExecutionRequest
+            from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 
-            matrix_block_id = next((b.id for b in criteria_blocks if getattr(b, "category_id", None) == "matrix"), None)
+            matrix_block = next((b for b in criteria_blocks if b.category_id == "matrix"), None)
+            matrix_block_id = matrix_block.id if matrix_block else None
+
+            matrix_context = None
+            if matrix_block:
+                matrix_context = MatrixEvaluationContext(
+                    theory_grounding=matrix_block.theory_grounding,
+                    matrix_objective=matrix_block.ai_description,
+                    allow_contextual_override=matrix_block.allow_contextual_override,
+                )
 
             is_synthesis_step = context.model_strategy == "synthesis"
 
@@ -652,6 +661,7 @@ class LLMNodeStrategy(NodeStrategy):
                     prompt_compiler=self.compiler,
                     shuffled_atoms=hydrated_shuffled_atoms,
                     matrix_block_id=matrix_block_id,
+                    matrix_context=matrix_context,
                 )
             else:
                 engine_request = EngineExecutionRequest(
@@ -670,6 +680,7 @@ class LLMNodeStrategy(NodeStrategy):
                     prompt_compiler=self.compiler,
                     shuffled_atoms=hydrated_shuffled_atoms,
                     matrix_block_id=matrix_block_id,
+                    matrix_context=matrix_context,
                 )
 
             engine_result = await self._engine.execute(engine_request)

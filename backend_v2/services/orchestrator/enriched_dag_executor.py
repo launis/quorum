@@ -12,6 +12,7 @@ from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
+from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -48,6 +49,7 @@ class EnrichedDagExecutor:
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         execution_id: str = "default_run",
         semaphore: asyncio.Semaphore | None = None,
+        matrix_context: MatrixEvaluationContext | None = None,
     ) -> dict[str, AtomExecutionState]:
         """Executes the complete DAG of atoms.
 
@@ -86,6 +88,7 @@ class EnrichedDagExecutor:
                         executor=self._llm_executor,
                         client=self._llm_client,
                         context_text=source_text,
+                        matrix_context=matrix_context,
                     )
                 res = {**pre_flight_results, **llm_results}
                 if progress_callback:

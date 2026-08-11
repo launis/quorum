@@ -64,7 +64,7 @@
 
 ### Phase 4: TDA Pipeline Rewiring
 **Plan:** @[c:\src\quorum\docs\epic\EPIC_137_plans\04_phase4_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\EPIC_137_plans\04_phase4_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\EPIC_137_plans\04_phase4_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_137_plans\04_phase4_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
   - [ ] Step 1: Resume session.
   - [ ] Step 2: Mutate `llm.py` to inject Context and fix `getattr` rule violation.
@@ -149,6 +149,7 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 - **Phase 1 (Seed Hygiene)**: Successfully executed and audited. Enforced deterministic APA citation formatting, preserved mandatory XML gates (`<anti_targets>`, `<dod_checklist>`), and surgically mutated 23 Prompt Blocks in `seed_data.json` while maintaining strict Pydantic parsing integrity across both Backend and Frontend.
 - **Phase 2 (Dead Code Eradication)**: Successfully executed and audited. Eradicated obsolete `compile_xml_rubrics` and `compile_chunk_prompt` logic from prompt and localization compilers. Safely deleted obsolete integration tests and stale mock references, passing the `backend_audit_loop.py` with 100% coverage and zero `F401` import violations.
 - **Phase 3 (DTO Strictness)**: Successfully executed and audited (after remediation). Defined the strict `MatrixEvaluationContext` DTO natively before execution payloads, enforcing PEP 593 `Annotated[..., Field(...)]` syntax and `ConfigDict(strict=True, extra="forbid", frozen=True)`. Wired `matrix_context` into `EngineExecutionRequest` and mathematically proved its immutability and type boundaries via rigorous TDD forensic unit tests (`test_engine.py`).
+- **Phase 4 (TDA Pipeline Rewiring)**: Tier 0 Research Plan completed and audited. Removed ambiguity regarding `matrix_context` propagation to the Sensor Service to prevent Execution-phase TypeErrors.
 
 ## Learned
 - **Baseline State Snapshot**: `seed_data.json` currently uses raw `"RULES:"` prefixes inside `ai_description` and non-APA localized citations. `ExtractiveSensorService.evaluate_atom_boolean_batch()` uses an overly generic prompt that lacks `<theory_grounding>`. The `prompt_compiler.py` and `localization_compiler.py` files contain dead code methods (`compile_xml_rubrics`) that have zero production callers. `llm.py` contains a `getattr(b, "category_id", None)` which violates the strict fail-fast property access rule.
@@ -160,9 +161,10 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 - **MyPy and Pydantic Default Parity**: While Pydantic's `Field(default=None)` dictates runtime behavior, MyPy's strict type checking requires explicit class-level default assignments (e.g., `= None`) in Python's AST for `Annotated` fields in BaseModels. Missing this causes `[call-arg]` type errors when instantiating the model without passing the optional argument.
 - **TDD Forensic Audit Mandate**: The execution agent structurally defined the required DTOs but failed to write any unit tests verifying the validation boundaries of the new `MatrixEvaluationContext`. Modifying core engine domain schemas without providing explicit Pydantic boundary unit testing is a strict violation of the `anti_happy_path_mandate`, resulting in an automatic Tier 8 Audit failure.
 - **Remediation & Testing Boundaries**: Adding a new DTO (`MatrixEvaluationContext`) with optional fields requires explicit unit tests for strictness (`extra="forbid"`), frozen state, and invalid types to satisfy the `anti_happy_path_mandate`. This ensures that downstream serialization and deserialization remain deterministically safe across all API boundaries.
+- **Ambiguity & Forward-Declaration Safety**: When a plan instructs an execution agent to "forward" a newly injected DTO downstream, it MUST explicitly mandate the corresponding signature update on the receiving method (e.g., `ExtractiveSensorService.evaluate_atom_boolean_batch`). Leaving this ambiguous risks the execution agent only updating the caller (which causes a `TypeError`) or silently modifying the target file without plan authorization.
 
 ## Remaining
-- Phase 4: TDA Pipeline Rewiring (Red-Teaming)
+- Phase 4: TDA Pipeline Rewiring (Execution)
 
 ## Resume Command
-`/tier0-research-plan @[c:\src\quorum\docs\epic\EPIC_137_plans\04_phase4_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
+`/tier2-execute @[c:\src\quorum\docs\epic\EPIC_137_plans\04_phase4_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`

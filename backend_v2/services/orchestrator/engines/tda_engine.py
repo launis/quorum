@@ -122,6 +122,7 @@ class TDAEngine(ExecutionEngine):
                     request.target_locale,
                     progress_callback=dag_progress_matrix,
                     semaphore=request.semaphore,
+                    matrix_context=request.matrix_context,
                 )
             else:
 
@@ -170,6 +171,7 @@ class TDAEngine(ExecutionEngine):
                     request.target_locale,
                     progress_callback=dag_progress,
                     semaphore=request.semaphore,
+                    matrix_context=request.matrix_context,
                 )
 
             results_dto, hydrated_refs = ResultProjector.project(nodes, states, request.matrix_block_id)

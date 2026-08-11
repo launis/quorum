@@ -21,7 +21,7 @@
 <demolish>REMOVE: `getattr(b, "category_id", None)` in `llm.py` and REPLACE WITH: `b.category_id`.</demolish>
 <action>Modify `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]` to inject the `MatrixEvaluationContext` into the `EngineExecutionRequest` before triggering the `TDAEngine`. Also fix the `getattr(b, "category_id", None)` to use direct attribute access `b.category_id` (violates `the_zero_compromise_pledge` ban on `getattr(obj, key, default)`).</action>
 <action>Modify `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]` to pass the `request.matrix_context` to `dag_executor.execute_graph`.</action>
-<action>Safely update `execute_graph()` in `@[c:\src\quorum\backend_v2\services\orchestrator\enriched_dag_executor.py]` to accept `matrix_context: MatrixEvaluationContext | None = None` (Python 3.14 modern syntax) and forward it.</action>
+<action>Safely update `execute_graph()` in `@[c:\src\quorum\backend_v2\services\orchestrator\enriched_dag_executor.py]` to accept `matrix_context: MatrixEvaluationContext | None = None` (Python 3.14 modern syntax) and forward it to `ExtractiveSensorService.evaluate_atom_boolean_batch`. You MUST also safely update the signature of `evaluate_atom_boolean_batch` in `@[c:\src\quorum\backend_v2\services\orchestrator\extractive_sensor_service.py]` (and any necessary imports) to accept `matrix_context: "MatrixEvaluationContext | None" = None` to avoid TypeErrors during Phase 4 execution.</action>
 <action>Execute `/tier5-session-handover` to flush context window and prepare for Phase 5.</action>
 <validation_gate>Ensure backend_audit_loop.py passes flawlessly.</validation_gate>
 </system_prompt>
