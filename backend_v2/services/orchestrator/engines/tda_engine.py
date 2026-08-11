@@ -181,6 +181,22 @@ class TDAEngine(ExecutionEngine):
         except AppException:
             # Re-raise AppException directly to avoid double-wrapping
             raise
+        except ExceptionGroup as eg:
+            # Unwrap ExceptionGroup if it contains AppException
+            for exc in eg.exceptions:
+                if isinstance(exc, AppException):
+                    raise exc from eg
+            
+            logger.error(
+                "TDA Engine failed catastrophically during execution.",
+                exc_info=True,
+                extra={"error_code": "TDA_ENGINE_ERROR"},
+            )
+            raise AppException(
+                message=str(eg),
+                status_code=500,
+                details={"error_code": "TDA_ENGINE_ERROR"},
+            ) from eg
         except Exception as e:
             logger.error(
                 "TDA Engine failed catastrophically during execution.",

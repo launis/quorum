@@ -220,6 +220,7 @@ class LLMNodeStrategy(NodeStrategy):
         # Single Source of Truth for all source aliasing (alias_engine_llm_isolation_mandate).
 
         all_prompt_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
+        print(f"DEBUG: all_prompt_blocks_raw = {all_prompt_blocks_raw}")
         all_prompt_blocks: list[PromptBlock] = []
         for raw in all_prompt_blocks_raw:
             try:
@@ -525,7 +526,7 @@ class LLMNodeStrategy(NodeStrategy):
                 if isinstance(inputs_dict, dict):
                     for k, text_content in inputs_dict.items():
                         if isinstance(text_content, str):
-                            display_name = manifest.get(k, k)
+                            display_name = str(manifest.get(k, k))
                             doc_ctx = SourceDocumentContext(
                                 opaque_id=k, text_content=text_content, display_name=display_name
                             )

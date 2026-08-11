@@ -727,9 +727,22 @@ class DAGExecutor:
                 await _safe_commit()
 
             except Exception as e:
+                err_code = "UNKNOWN_ERROR"
+                if isinstance(e, AppException) and hasattr(e, "details") and e.details:
+                    err_code = e.details.get("error_code", err_code)
+                    if hasattr(err_code, "name"):
+                        err_code = err_code.name
+                
                 async with _update_lock:
                     new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.FAILED})
                     new_states = {**exec_record.step_states, step_id: new_state}
+                    error_evt = TraceEvent(
+                        step_name=step_id,
+                        event_type="error",
+                        content={"error_code": err_code, "message": str(e)},
+                    )
+                    exec_record.execution_trace.append(error_evt)
+                    projector.apply_delta(error_evt)
                     exec_record = exec_record.model_copy(update={"step_states": new_states})
                 await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
                 logger.error("[DAGExecutor] Step %s failed with error: %s", step_id, str(e), exc_info=True)

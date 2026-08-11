@@ -1,6 +1,5 @@
 """State Data Transfer Objects (DTOs) for Phase 9 Cognitive Quorum V2.
 
-from pydantic import ConfigDict
 This module encapsulates the structures required for handling hook states and
 localization payload parameters within the state pipeline.
 """
@@ -8,6 +7,7 @@ localization payload parameters within the state pipeline.
 from __future__ import annotations
 
 from typing import Any
+from pydantic import ConfigDict
 
 from backend_v2.models.core_base import V2CoreBase
 
