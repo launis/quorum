@@ -4,10 +4,7 @@ import re
 from typing import Any
 
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
-from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-from backend_v2.settings import get_settings
 
 
 class PromptCompilerAdapter:
@@ -27,104 +24,6 @@ class PromptCompilerAdapter:
             The delegated attribute from the underlying PromptCompiler.
         """
         return getattr(self._compiler, name)
-
-    def compile_chunk_prompt(
-        self,
-        base_system_prompt: str,
-        chunk_criteria: list[PromptBlock],
-        base_payload: str,
-        strictness_level: int,
-        target_locale: str,
-        chunk_atoms_xml: str | None = None,
-        task_instruction: str = (
-            "Analyze the provided <source_data> and execute the extraction strictly according to instructions."
-        ),
-        previous_errors: list[str] | None = None,
-        allowed_atom_ids: set[str] | None = None,
-        atom_alias_map: dict[str, str] | None = None,
-    ) -> CompiledPrompt:
-        """Compile static and dynamic message tiers with V3 cache-safe separation.
-
-        Static tier contains globally identical content (system prompt + base document).
-        Dynamic tier contains per-chunk/per-retry content (rubrics, atoms, params, errors).
-
-        When CONTENT_CACHE_ENABLED is active, the system prompt moves to user role
-        to allow Vertex AI to cache only the PDF. This trades evaluation quality
-        (~29% degradation) for token cost savings.
-
-        Args:
-            base_system_prompt: The base system instructions.
-            chunk_criteria: PromptBlocks to evaluate in this chunk.
-            base_payload: The source document text.
-            strictness_level: Strictness level (0-100).
-            target_locale: Requested language code.
-            chunk_atoms_xml: Serialized atom graphs.
-            task_instruction: The execution task instruction.
-            previous_errors: List of previous validation errors for self-healing.
-            allowed_atom_ids: Filter list for allowed atoms.
-            atom_alias_map: Mapping of atom IDs to aliases.
-
-        Returns:
-            A CompiledPrompt containing static and dynamic message tiers.
-        """
-        content_cache_enabled = bool(get_settings().content_cache_enabled)
-        if content_cache_enabled:
-            # Mode: Static tier = ONLY the source document (for max cache hit rate).
-            # System prompt is demoted to user role in the dynamic tier.
-            static_messages = [
-                {"role": "user", "content": base_payload.strip()},
-            ]
-        else:
-            # V3 Default: Static tier = system prompt (system role) + source document.
-            # Preserves native system role authority for maximum LLM compliance.
-            static_messages = [
-                {"role": "system", "content": base_system_prompt.strip()},
-                {"role": "user", "content": base_payload.strip()},
-            ]
-
-        # Dynamic Tier: Everything that varies per chunk, retry, or matrix
-        dynamic_parts = []
-
-        # Move system instructions to dynamic tier as user content
-        if content_cache_enabled:
-            dynamic_parts.append(f"<system_instructions>\n{base_system_prompt.strip()}\n</system_instructions>")
-
-        # 1. Chunk-specific rubrics (vary per chunk when atom subsets differ)
-        # We bypass the PromptCompiler adapter layer to pass allowed_atom_ids to LocalizationCompiler
-        local_xml_rubrics = self._compiler._localization_compiler.compile_xml_rubrics(
-            chunk_criteria, target_locale, allowed_atom_ids=allowed_atom_ids, atom_alias_map=atom_alias_map
-        )
-        if local_xml_rubrics:
-            dynamic_parts.append(f"<evaluation_criteria>\n{local_xml_rubrics}\n</evaluation_criteria>")
-
-        # 2. Chunk-specific atoms (NOT cacheable)
-        if chunk_atoms_xml:
-            dynamic_parts.append(chunk_atoms_xml)
-
-        # 3. Task instruction
-        dynamic_parts.append(f"<task>{task_instruction}</task>")
-
-        strictness_instruction = self.calibrate_strictness(strictness_level)
-        dynamic_parts.append(
-            f"<execution_parameters>\n"
-            f"{GLOBAL_MANDATES_XML}\n"
-            f"<STRICTNESS_CALIBRATION>\n{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n"
-            f"</execution_parameters>"
-        )
-
-        # 5. Healing errors (if retrying)
-        if previous_errors:
-            for err in previous_errors:
-                dynamic_parts.append(f"<PREVIOUS_SCHEMA_ERROR>\n{err}\n</PREVIOUS_SCHEMA_ERROR>")
-
-        dynamic_messages = [
-            {"role": "user", "content": "\n\n".join(dynamic_parts).strip()},
-        ]
-
-        return CompiledPrompt(
-            static_messages=static_messages,
-            dynamic_messages=dynamic_messages,
-        )
 
     def compile_prompt(self, messages: list[dict[str, Any]]) -> CompiledPrompt:
         """Splits an existing flat list of messages into static_messages and dynamic_messages.

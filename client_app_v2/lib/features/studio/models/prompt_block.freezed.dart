@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TheoryGrounding {
 
- String get sourceUrl; String get citationReference;
+ String get sourceUrl; String? get citationReference;
 /// Create a copy of TheoryGrounding
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $TheoryGroundingCopyWith<$Res>  {
   factory $TheoryGroundingCopyWith(TheoryGrounding value, $Res Function(TheoryGrounding) _then) = _$TheoryGroundingCopyWithImpl;
 @useResult
 $Res call({
- String sourceUrl, String citationReference
+ String sourceUrl, String? citationReference
 });
 
 
@@ -58,11 +58,11 @@ class _$TheoryGroundingCopyWithImpl<$Res>
 
 /// Create a copy of TheoryGrounding
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? sourceUrl = null,Object? citationReference = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? sourceUrl = null,Object? citationReference = freezed,}) {
   return _then(_self.copyWith(
 sourceUrl: null == sourceUrl ? _self.sourceUrl : sourceUrl // ignore: cast_nullable_to_non_nullable
-as String,citationReference: null == citationReference ? _self.citationReference : citationReference // ignore: cast_nullable_to_non_nullable
-as String,
+as String,citationReference: freezed == citationReference ? _self.citationReference : citationReference // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -147,7 +147,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String sourceUrl,  String citationReference)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String sourceUrl,  String? citationReference)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TheoryGrounding() when $default != null:
 return $default(_that.sourceUrl,_that.citationReference);case _:
@@ -168,7 +168,7 @@ return $default(_that.sourceUrl,_that.citationReference);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String sourceUrl,  String citationReference)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String sourceUrl,  String? citationReference)  $default,) {final _that = this;
 switch (_that) {
 case _TheoryGrounding():
 return $default(_that.sourceUrl,_that.citationReference);case _:
@@ -188,7 +188,7 @@ return $default(_that.sourceUrl,_that.citationReference);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String sourceUrl,  String citationReference)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String sourceUrl,  String? citationReference)?  $default,) {final _that = this;
 switch (_that) {
 case _TheoryGrounding() when $default != null:
 return $default(_that.sourceUrl,_that.citationReference);case _:
@@ -203,11 +203,11 @@ return $default(_that.sourceUrl,_that.citationReference);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _TheoryGrounding extends TheoryGrounding {
-  const _TheoryGrounding({required this.sourceUrl, required this.citationReference}): super._();
+  const _TheoryGrounding({required this.sourceUrl, this.citationReference}): super._();
   factory _TheoryGrounding.fromJson(Map<String, dynamic> json) => _$TheoryGroundingFromJson(json);
 
 @override final  String sourceUrl;
-@override final  String citationReference;
+@override final  String? citationReference;
 
 /// Create a copy of TheoryGrounding
 /// with the given fields replaced by the non-null parameter values.
@@ -235,7 +235,7 @@ abstract mixin class _$TheoryGroundingCopyWith<$Res> implements $TheoryGrounding
   factory _$TheoryGroundingCopyWith(_TheoryGrounding value, $Res Function(_TheoryGrounding) _then) = __$TheoryGroundingCopyWithImpl;
 @override @useResult
 $Res call({
- String sourceUrl, String citationReference
+ String sourceUrl, String? citationReference
 });
 
 
@@ -252,11 +252,11 @@ class __$TheoryGroundingCopyWithImpl<$Res>
 
 /// Create a copy of TheoryGrounding
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? sourceUrl = null,Object? citationReference = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? sourceUrl = null,Object? citationReference = freezed,}) {
   return _then(_TheoryGrounding(
 sourceUrl: null == sourceUrl ? _self.sourceUrl : sourceUrl // ignore: cast_nullable_to_non_nullable
-as String,citationReference: null == citationReference ? _self.citationReference : citationReference // ignore: cast_nullable_to_non_nullable
-as String,
+as String,citationReference: freezed == citationReference ? _self.citationReference : citationReference // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

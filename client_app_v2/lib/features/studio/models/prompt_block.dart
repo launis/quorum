@@ -48,7 +48,7 @@ abstract class TheoryGrounding with _$TheoryGrounding {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory TheoryGrounding({
     required String sourceUrl,
-    required String citationReference,
+    String? citationReference,
   }) = _TheoryGrounding;
 
   factory TheoryGrounding.fromJson(Map<String, dynamic> json) =>

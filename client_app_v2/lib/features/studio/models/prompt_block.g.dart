@@ -19,7 +19,7 @@ _TheoryGrounding _$TheoryGroundingFromJson(Map<String, dynamic> json) =>
           sourceUrl: $checkedConvert('source_url', (v) => v as String),
           citationReference: $checkedConvert(
             'citation_reference',
-            (v) => v as String,
+            (v) => v as String?,
           ),
         );
         return val;

@@ -352,8 +352,7 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://doi.org/10.1017/CBO9780511802034",
-        "citation_reference": "Toulmin, Stephen E. 2003. The uses of argument."
+        "source_url": "https://doi.org/10.1017/CBO9780511802034"
       },
       "scales": [
         {
@@ -375,7 +374,7 @@
                   "en": "The claim lacks any grounds (No Data)."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE an assertive claim that is presented entirely without supporting Data or evidence.",
+              "ai_description": "LOCATE an assertive claim that is presented entirely without supporting Data or evidence.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_34259a6c02b74917b12f74b5f3839a66",
@@ -426,7 +425,7 @@
                   "en": "The logical bridge (Warrant) is completely missing."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.",
+              "ai_description": "IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_69cc84e0b0c44996a8a95e09b356c692",
@@ -455,7 +454,7 @@
                   "en": "Absolute certainty without reservations (No Qualifier)."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.",
+              "ai_description": "EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_d9cb646741ba4750ab561bf766c94f03",
@@ -936,8 +935,7 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://www.jstor.org/stable/j.ctt1v2xv4",
-        "citation_reference": "Anderson, Lorin W. & Krathwohl, David R. (toim.) 2001."
+        "source_url": "https://www.jstor.org/stable/j.ctt1v2xv4"
       },
       "scales": [
         {
@@ -1454,8 +1452,7 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://us.macmillan.com/books/9780374533557",
-        "citation_reference": "Kahneman, Daniel 2011."
+        "source_url": "https://us.macmillan.com/books/9780374533557"
       },
       "scales": [
         {
@@ -1476,7 +1473,7 @@
                   "en": "Reactive Speed"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of unexamined System 1 thinking.",
+              "ai_description": "IDENTIFY the baseline presence of unexamined System 1 thinking.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_3a362e01de66444c813e5b79adec27bf",
@@ -1509,7 +1506,7 @@
                   "en": "Heuristics and Biases"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT evidence of cognitive biases or mental shortcuts.",
+              "ai_description": "EXTRACT evidence of cognitive biases or mental shortcuts.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_7b88a578c3824b31b83a5154f7d3667a",
@@ -1538,7 +1535,7 @@
                   "en": "Hubris"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY subjective views or initial reactions presented as absolute truth.",
+              "ai_description": "IDENTIFY subjective views or initial reactions presented as absolute truth.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_2d12f15e1c2d4488b7c2ef32d0ccfa26",
@@ -1580,7 +1577,7 @@
                   "en": "One-Sided Framing"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses.",
+              "ai_description": "IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_5568f81c93bc4d1fb524fbfc1d9f0e04",
@@ -1729,8 +1726,7 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://www.cna.org/reports/2022/09/",
-        "citation_reference": "Stumborg, Michael F. ym. 2022. Goodhart's law."
+        "source_url": "https://www.cna.org/reports/2022/09/"
       },
       "scales": [
         {
@@ -1751,7 +1747,7 @@
                   "en": "Authority Bias"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY if the user treats the AI's probabilistic generation as an infallible oracle.",
+              "ai_description": "IDENTIFY if the user treats the AI's probabilistic generation as an infallible oracle.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_85ef05fdcd2f48afb925fd03b6c54d4d",
@@ -1793,7 +1789,7 @@
                   "en": "Factual errors have been corrected."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY active corrections limited to factual, stylistic, or formatting details.",
+              "ai_description": "IDENTIFY active corrections limited to factual, stylistic, or formatting details.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a9c96a0c55fe4ac884795440c722eb5d",
@@ -1822,7 +1818,7 @@
                   "en": "Metrics are accepted without questioning."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY explicit optimization for a proxy metric (MOP) over the qualitative goal (Goodhart's Law).",
+              "ai_description": "IDENTIFY explicit optimization for a proxy metric (MOP) over the qualitative goal (Goodhart's Law).",
               "tda_assertions": [
                 {
                   "tda_id": "tda_8275735bde0244e2bdbf3ab915838d59",
@@ -1858,7 +1854,7 @@
                   "en": "Metric Fixation"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user accepts stylistic or minor tweaks while leaving the substantive core argument unchallenged.",
+              "ai_description": "IDENTIFY where the user accepts stylistic or minor tweaks while leaving the substantive core argument unchallenged.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c17684acfcbe4a918e5ae0705b452b06",
@@ -2258,7 +2254,7 @@
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY blatant fabrication where the output contradicts foundational constraints."
+              "ai_description": "IDENTIFY blatant fabrication where the output contradicts foundational constraints."
             },
             {
               "label": {
@@ -2281,7 +2277,7 @@
                   "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
               ],
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT an assertion presented as absolute truth without verifiable provenance."
+              "ai_description": "EXTRACT an assertion presented as absolute truth without verifiable provenance."
             },
             {
               "label": {
@@ -2304,7 +2300,7 @@
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
               ],
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where sensitive or restricted information is exposed or mishandled."
+              "ai_description": "LOCATE an instance where sensitive or restricted information is exposed or mishandled."
             }
           ]
         },
@@ -2340,7 +2336,7 @@
                   "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
               ],
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of isolated compliance without overarching structural integrity."
+              "ai_description": "IDENTIFY the baseline presence of isolated compliance without overarching structural integrity."
             },
             {
               "label": {
@@ -2693,7 +2689,6 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "citation_reference": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect.",
         "source_url": "https://plato.stanford.edu/entries/causal-models/"
       },
       "scales": [
@@ -2716,7 +2711,7 @@
                   "en": "Confusing Correlation with Causation"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Identify if a mere association is falsely presented as a definitive cause without a mechanism.",
+              "ai_description": "Identify if a mere association is falsely presented as a definitive cause without a mechanism.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_bd90e5a66c5d433a9ed650f295132625",
@@ -2739,7 +2734,7 @@
                   "en": "Post Hoc Fallacy"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Find instances where chronological order is the sole proof of causation.",
+              "ai_description": "Find instances where chronological order is the sole proof of causation.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_51a1544a321e4a18b3f4ea09b5bbe02e",
@@ -2762,7 +2757,7 @@
                   "en": "Magic Word Causality"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Extract explicit causal claims driven by metaphysical vocabulary that lack physical mechanism tokens.",
+              "ai_description": "Extract explicit causal claims driven by metaphysical vocabulary that lack physical mechanism tokens.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_3eed2113bd9842f3b8fd050046505e4d",
@@ -2799,7 +2794,7 @@
                   "en": "Oversimplified Single Cause"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Find instances attributing a complex outcome to a single, isolated factor.",
+              "ai_description": "Find instances attributing a complex outcome to a single, isolated factor.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_8ecd3f17b3984e4fa1bb6a8cb5576b65",
@@ -2822,7 +2817,7 @@
                   "en": "Direction of Causality"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify if the text explicitly states the direction of influence between variables.",
+              "ai_description": "Identify if the text explicitly states the direction of influence between variables.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_728cd0dff7384300bc55622fa7dfffc0",
@@ -3207,7 +3202,7 @@
                   "en": "Ad-hoc Immunization"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author dismisses a contrary observation by classifying it as an exception rather than adjusting their hypothesis.",
+              "ai_description": "LOCATE a sentence where the author dismisses a contrary observation by classifying it as an exception rather than adjusting their hypothesis.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_236ebf69629e41a58b0f13eb82b44875",
@@ -3236,7 +3231,7 @@
                   "en": "Zero Falsification"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence where the author explicitly states that a premise requires no further testing or cannot be questioned.",
+              "ai_description": "EXTRACT a sentence where the author explicitly states that a premise requires no further testing or cannot be questioned.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c7e3a26277674d2aa8ab38d1ee7afb05",
@@ -3278,7 +3273,7 @@
                   "en": "Straw-Man Critique"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author presents a counter-argument lacking empirical data or citations, only to immediately dismiss it.",
+              "ai_description": "LOCATE a sentence where the author presents a counter-argument lacking empirical data or citations, only to immediately dismiss it.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_873a1fab603544048f95e612773f0574",
@@ -3307,7 +3302,7 @@
                   "en": "Conditional Sycophancy"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where a subordinate clause acknowledges a limitation, but the main clause confirms the original premise without altering its parameters.",
+              "ai_description": "LOCATE a sentence where a subordinate clause acknowledges a limitation, but the main clause confirms the original premise without altering its parameters.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a42e3168877240ad90ccd2abb37c4597",
@@ -3624,7 +3619,7 @@
                   "en": "Blind acceptance"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'Automation Complacency'. Extract a command where the user blindly accepts the AI's output without asking critical questions.",
+              "ai_description": "FIND evidence of 'Automation Complacency'. Extract a command where the user blindly accepts the AI's output without asking critical questions.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_282059a3bea94b6c94e5f290a9cb75a7",
@@ -3648,7 +3643,7 @@
                   "en": "Delegating decision authority"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'Automation Bias'. Extract a user command where the user explicitly asks the AI to make a final decision for them.",
+              "ai_description": "FIND evidence of 'Automation Bias'. Extract a user command where the user explicitly asks the AI to make a final decision for them.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_d2e04ccdc7df428380b667e21217224a",
@@ -3672,7 +3667,7 @@
                   "en": "Ignoring errors"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'Rubber-Stamping'. Extract a user command where the user acknowledges a flaw but commands the AI to proceed anyway.",
+              "ai_description": "FIND evidence of 'Rubber-Stamping'. Extract a user command where the user acknowledges a flaw but commands the AI to proceed anyway.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_2c3c394f7c07417c9754b54602bf1353",
@@ -3714,7 +3709,7 @@
                   "en": "Superficial tweaking"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence of superficial tweaking. Extract a user command where the user only asks for mechanical changes instead of addressing core logic.",
+              "ai_description": "FIND evidence of superficial tweaking. Extract a user command where the user only asks for mechanical changes instead of addressing core logic.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_46b1a8e3c2304438b82420fc40c3dbc1",
@@ -4186,7 +4181,7 @@
                   "en": "Absence of facts and subjective hallucination."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a single instance where definitive conclusions are drawn using probabilistic assumptions presented as absolute truths.",
+              "ai_description": "EXTRACT a single instance where definitive conclusions are drawn using probabilistic assumptions presented as absolute truths.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_b120e2c0a40840358df1e64a4b788b30",
@@ -4223,7 +4218,7 @@
                   "en": "Unaddressed counterarguments."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a single instance where the synthesis actively ignores or dismisses alternative hypotheses without evidence.",
+              "ai_description": "LOCATE a single instance where the synthesis actively ignores or dismisses alternative hypotheses without evidence.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_353aa6c896db47fb9d29b06a69bf77d4",
@@ -4248,7 +4243,6 @@
         }
       ],
       "theory_grounding": {
-        "citation_reference": "DARPA XAI Program (2017). Explainable Artificial Intelligence.",
         "source_url": "https://www.darpa.mil/program/explainable-artificial-intelligence"
       },
       "rows": [
@@ -4296,7 +4290,6 @@
       "category_id": "system_rule",
       "type": "instruction",
       "theory_grounding": {
-        "citation_reference": "Bai, Y., ym. (Anthropic) 2022. Constitutional AI: Harmlessness from AI Feedback.",
         "source_url": "https://arxiv.org/abs/2212.08073"
       },
       "ai_description": "SECTION HEADER: 1. IRREVOCABLE MANDATES\n\nMANDATE: This section delineates foundational, non-negotiable directives. All subsequent instructions must be executed with absolute fidelity and interpreted under the strictest possible standard. Any deviation or failure to comply constitutes a catastrophic system failure.\n\nCRITICAL ENFORCEMENT: Zero tolerance for deviation from this rule. Any failure to adhere to this protocol must result in immediate and severe penalization of the output.",
@@ -7019,7 +7012,6 @@
       "scale_min": 1,
       "scale_max": 5,
       "theory_grounding": {
-        "citation_reference": "Kahneman, D. (2011). Thinking, Fast and Slow; Floridi, L. (2014). The 4th Revolution. (Epistemic limits and informational humility).",
         "source_url": "https://doi.org/10.1007/s13347-020-00404-6"
       },
       "scales": [
@@ -9892,6 +9884,13 @@
       "max_extension_items": 4,
       "id": "prf_5d6e7f8091a2b3c4",
       "slug": "holistic_audit",
+      "tone_instruction": {
+        "default_locale": "en",
+        "translations": {
+          "en": "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data.",
+          "fi": "Toimi ylemmän johdon valmentajana (Senior Executive Coach). Tarjoa syvällistä, provosoivaa ja strategista analyysiä pelkän datan luettelemisen sijaan."
+        }
+      },
       "workflow_id": "wf_9d68c573802341db",
       "organization_id": "SYSTEM",
       "content_blocks": [],

@@ -1,0 +1,275 @@
+[
+  {
+    "AllowMultiple": false,
+    "StartLine": 9893,
+    "EndLine": 9895,
+    "TargetContent": "      \"id\": \"prf_5d6e7f8091a2b3c4\",\n      \"slug\": \"holistic_audit\",\n      \"workflow_id\": \"wf_9d68c573802341db\",\n",
+    "ReplacementContent": "      \"id\": \"prf_5d6e7f8091a2b3c4\",\n      \"slug\": \"holistic_audit\",\n      \"tone_instruction\": {\n        \"default_locale\": \"en\",\n        \"translations\": {\n          \"en\": \"Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data.\",\n          \"fi\": \"Toimi ylemm\u00e4n johdon valmentajana (Senior Executive Coach). Tarjoa syv\u00e4llist\u00e4, provosoivaa ja strategista analyysi\u00e4 pelk\u00e4n datan luettelemisen sijaan.\"\n        }\n      },\n      \"workflow_id\": \"wf_9d68c573802341db\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 355,
+    "EndLine": 356,
+    "TargetContent": "        \"source_url\": \"https://doi.org/10.1017/CBO9780511802034\",\n        \"citation_reference\": \"Toulmin, Stephen E. 2003. The uses of argument.\"\n",
+    "ReplacementContent": "        \"source_url\": \"https://doi.org/10.1017/CBO9780511802034\"\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 378,
+    "EndLine": 378,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: LOCATE an assertive claim that is presented entirely without supporting Data or evidence.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"LOCATE an assertive claim that is presented entirely without supporting Data or evidence.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 429,
+    "EndLine": 429,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 458,
+    "EndLine": 458,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 939,
+    "EndLine": 940,
+    "TargetContent": "        \"source_url\": \"https://www.jstor.org/stable/j.ctt1v2xv4\",\n        \"citation_reference\": \"Anderson, Lorin W. & Krathwohl, David R. (toim.) 2001.\"\n",
+    "ReplacementContent": "        \"source_url\": \"https://www.jstor.org/stable/j.ctt1v2xv4\"\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1457,
+    "EndLine": 1458,
+    "TargetContent": "        \"source_url\": \"https://us.macmillan.com/books/9780374533557\",\n        \"citation_reference\": \"Kahneman, Daniel 2011.\"\n",
+    "ReplacementContent": "        \"source_url\": \"https://us.macmillan.com/books/9780374533557\"\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1479,
+    "EndLine": 1479,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY the baseline presence of unexamined System 1 thinking.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY the baseline presence of unexamined System 1 thinking.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1512,
+    "EndLine": 1512,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: EXTRACT evidence of cognitive biases or mental shortcuts.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"EXTRACT evidence of cognitive biases or mental shortcuts.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1541,
+    "EndLine": 1541,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY subjective views or initial reactions presented as absolute truth.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY subjective views or initial reactions presented as absolute truth.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1583,
+    "EndLine": 1583,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1732,
+    "EndLine": 1733,
+    "TargetContent": "        \"source_url\": \"https://www.cna.org/reports/2022/09/\",\n        \"citation_reference\": \"Stumborg, Michael F. ym. 2022. Goodhart's law.\"\n",
+    "ReplacementContent": "        \"source_url\": \"https://www.cna.org/reports/2022/09/\"\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1754,
+    "EndLine": 1754,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY if the user treats the AI's probabilistic generation as an infallible oracle.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY if the user treats the AI's probabilistic generation as an infallible oracle.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1796,
+    "EndLine": 1796,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY active corrections limited to factual, stylistic, or formatting details.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY active corrections limited to factual, stylistic, or formatting details.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1825,
+    "EndLine": 1825,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY explicit optimization for a proxy metric (MOP) over the qualitative goal (Goodhart's Law).\",\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY explicit optimization for a proxy metric (MOP) over the qualitative goal (Goodhart's Law).\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 1861,
+    "EndLine": 1861,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY where the user accepts stylistic or minor tweaks while leaving the substantive core argument unchallenged.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY where the user accepts stylistic or minor tweaks while leaving the substantive core argument unchallenged.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2261,
+    "EndLine": 2261,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY blatant fabrication where the output contradicts foundational constraints.\"\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY blatant fabrication where the output contradicts foundational constraints.\"\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2284,
+    "EndLine": 2284,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: EXTRACT an assertion presented as absolute truth without verifiable provenance.\"\n",
+    "ReplacementContent": "              \"ai_description\": \"EXTRACT an assertion presented as absolute truth without verifiable provenance.\"\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2307,
+    "EndLine": 2307,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: LOCATE an instance where sensitive or restricted information is exposed or mishandled.\"\n",
+    "ReplacementContent": "              \"ai_description\": \"LOCATE an instance where sensitive or restricted information is exposed or mishandled.\"\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2343,
+    "EndLine": 2343,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: IDENTIFY the baseline presence of isolated compliance without overarching structural integrity.\"\n",
+    "ReplacementContent": "              \"ai_description\": \"IDENTIFY the baseline presence of isolated compliance without overarching structural integrity.\"\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2696,
+    "EndLine": 2696,
+    "TargetContent": "        \"citation_reference\": \"Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect.\",\n",
+    "ReplacementContent": ""
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2719,
+    "EndLine": 2719,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): Identify if a mere association is falsely presented as a definitive cause without a mechanism.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"Identify if a mere association is falsely presented as a definitive cause without a mechanism.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2742,
+    "EndLine": 2742,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): Find instances where chronological order is the sole proof of causation.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"Find instances where chronological order is the sole proof of causation.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2765,
+    "EndLine": 2765,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): Extract explicit causal claims driven by metaphysical vocabulary that lack physical mechanism tokens.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"Extract explicit causal claims driven by metaphysical vocabulary that lack physical mechanism tokens.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2802,
+    "EndLine": 2802,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): Find instances attributing a complex outcome to a single, isolated factor.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"Find instances attributing a complex outcome to a single, isolated factor.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 2825,
+    "EndLine": 2825,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: Identify if the text explicitly states the direction of influence between variables.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"Identify if the text explicitly states the direction of influence between variables.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 3210,
+    "EndLine": 3210,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author dismisses a contrary observation by classifying it as an exception rather than adjusting their hypothesis.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"LOCATE a sentence where the author dismisses a contrary observation by classifying it as an exception rather than adjusting their hypothesis.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 3239,
+    "EndLine": 3239,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence where the author explicitly states that a premise requires no further testing or cannot be questioned.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"EXTRACT a sentence where the author explicitly states that a premise requires no further testing or cannot be questioned.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 3281,
+    "EndLine": 3281,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author presents a counter-argument lacking empirical data or citations, only to immediately dismiss it.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"LOCATE a sentence where the author presents a counter-argument lacking empirical data or citations, only to immediately dismiss it.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 3310,
+    "EndLine": 3310,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where a subordinate clause acknowledges a limitation, but the main clause confirms the original premise without altering its parameters.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"LOCATE a sentence where a subordinate clause acknowledges a limitation, but the main clause confirms the original premise without altering its parameters.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 3627,
+    "EndLine": 3627,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: FIND evidence of 'Automation Complacency'. Extract a command where the user blindly accepts the AI's output without asking critical questions.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"FIND evidence of 'Automation Complacency'. Extract a command where the user blindly accepts the AI's output without asking critical questions.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 3651,
+    "EndLine": 3651,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: FIND evidence of 'Automation Bias'. Extract a user command where the user explicitly asks the AI to make a final decision for them.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"FIND evidence of 'Automation Bias'. Extract a user command where the user explicitly asks the AI to make a final decision for them.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 3675,
+    "EndLine": 3675,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: FIND evidence of 'Rubber-Stamping'. Extract a user command where the user acknowledges a flaw but commands the AI to proceed anyway.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"FIND evidence of 'Rubber-Stamping'. Extract a user command where the user acknowledges a flaw but commands the AI to proceed anyway.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 3717,
+    "EndLine": 3717,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE: FIND evidence of superficial tweaking. Extract a user command where the user only asks for mechanical changes instead of addressing core logic.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"FIND evidence of superficial tweaking. Extract a user command where the user only asks for mechanical changes instead of addressing core logic.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 4189,
+    "EndLine": 4189,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a single instance where definitive conclusions are drawn using probabilistic assumptions presented as absolute truths.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"EXTRACT a single instance where definitive conclusions are drawn using probabilistic assumptions presented as absolute truths.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 4226,
+    "EndLine": 4226,
+    "TargetContent": "              \"ai_description\": \"CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a single instance where the synthesis actively ignores or dismisses alternative hypotheses without evidence.\",\n",
+    "ReplacementContent": "              \"ai_description\": \"LOCATE a single instance where the synthesis actively ignores or dismisses alternative hypotheses without evidence.\",\n"
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 4251,
+    "EndLine": 4251,
+    "TargetContent": "        \"citation_reference\": \"DARPA XAI Program (2017). Explainable Artificial Intelligence.\",\n",
+    "ReplacementContent": ""
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 4299,
+    "EndLine": 4299,
+    "TargetContent": "        \"citation_reference\": \"Bai, Y., ym. (Anthropic) 2022. Constitutional AI: Harmlessness from AI Feedback.\",\n",
+    "ReplacementContent": ""
+  },
+  {
+    "AllowMultiple": false,
+    "StartLine": 7022,
+    "EndLine": 7022,
+    "TargetContent": "        \"citation_reference\": \"Kahneman, D. (2011). Thinking, Fast and Slow; Floridi, L. (2014). The 4th Revolution. (Epistemic limits and informational humility).\",\n",
+    "ReplacementContent": ""
+  }
+]

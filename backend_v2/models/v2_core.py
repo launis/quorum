@@ -195,7 +195,9 @@ class TheoryGrounding(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     source_url: str = Field(description="URL or reference to the source material.")
-    citation_reference: str = Field(description="Specific section or phrase to cite from the source.")
+    citation_reference: str | None = Field(
+        default=None, description="Specific section or phrase to cite from the source."
+    )
 
 
 class AcceptanceCriterion(V2CoreBase):

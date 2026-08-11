@@ -99,9 +99,7 @@ def mock_compiler() -> Any:
 
     schema_mock.model_validate.return_value = mock_validated
     compiler.build_dynamic_schema.return_value = schema_mock
-    compiler.compile_chunk_prompt.return_value.metadata = {}
-    compiler.compile_chunk_prompt.return_value.static_messages = []
-    compiler.compile_chunk_prompt.return_value.dynamic_messages = []
+
     return compiler
 
 

@@ -54,6 +54,4 @@ def test_prompt_compiler_no_confusing_id_examples() -> None:
 
     assert "sr_" not in atom_id_prop["description"], "Schema description must not contain confusing sr_ example"
 
-    # Assert anti_id_mandate does not contain sr_
-    xml = compiler.compile_xml_rubrics(criteria=[], target_locale="fi")
-    assert "sr_" not in xml, "Anti-ID mandate must not contain confusing sr_ example"
+    # Removed anti_id_mandate check since compile_xml_rubrics is dead code

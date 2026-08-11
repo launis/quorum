@@ -64,21 +64,6 @@ class PromptCompiler:
         """
         return self._localization_compiler.resolve_i18n(text_obj, target_locale)
 
-    def compile_xml_rubrics(
-        self, criteria: list[PromptBlock], target_locale: str, execution_persona_block: PromptBlock | None = None
-    ) -> str:
-        """Epic 12/55: Generates Thick XML/Markdown rubrics for the System Prompt with Persona SSOT.
-
-        Args:
-            criteria: List of PromptBlock definitions to compile into rubrics.
-            target_locale: The requested language code for label resolution.
-            execution_persona_block: Optional PromptBlock defining the execution persona.
-
-        Returns:
-            A formatted string of XML rubrics for the system prompt.
-        """
-        return self._localization_compiler.compile_xml_rubrics(criteria, target_locale, execution_persona_block)
-
     def compile_static_instructions(self, blocks: list[PromptBlock], target_locale: str) -> str:
         """Compile static instruction-type V2 PromptBlocks for the Cached System Prompt.
 
