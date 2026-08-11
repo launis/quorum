@@ -48,16 +48,16 @@
 - [ ] Backend and Frontend full-stack integration test gates (N/A - backend unit test epic)
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
-- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains. (Aspirational test skipped explicitly per plan).
+- [x] **[N/A] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories. (Passed local and global audit).
+- [x] **[N/A] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
+- [x] **[N/A] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- [x] **[N/A] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+- [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
+- [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/. (`ki_ast_guardrail_testing.md` created)
 - [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
@@ -135,7 +135,9 @@
   - AST guardrail tests inherently check logic structure by returning boolean dicts instead of raising business logic exceptions. Thus, `pytest.raises(AppException)` is not applicable there, but the architectural intent of the `anti_happy_path_mandate` is satisfied through structural false positive/negative validation logic.
 
 ## Remaining
-- Epic 136 is fully completed. No further implementation or testing is required for this Epic.
+- Epic 136 code implementation is fully completed.
+- As-Built Architectural Sync (`/tier7-describe-architecture`).
+- Final Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`Epic 136 Completed. Await new instructions or initiate a new Epic.`
+`/tier7-describe-architecture`
