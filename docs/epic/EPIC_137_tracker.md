@@ -60,6 +60,7 @@
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [x] **[FAILED] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\EPIC_137_plans\03_phase3_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
 - [x] **[OK] Remediation Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_137_plans\03_phase3_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
+- [ ] **[NOK] Audit (Retry):** `/tier8-audit-plan @[c:\src\quorum\docs\epic\EPIC_137_plans\03_phase3_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
 
 ### Phase 4: TDA Pipeline Rewiring
 **Plan:** @[c:\src\quorum\docs\epic\EPIC_137_plans\04_phase4_plan.md]
@@ -187,6 +188,7 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 - **DTO Construction Strictness**: Creating new DTO schemas must stringently follow the `pydantic_annotated_fields_mandate`. Without explicitly demanding `Annotated` wrapping in the implementation plan, execution agents risk falling back to legacy bare type assignments, which violate the rigid Pydantic configurations of Quorum.
 - **MyPy and Pydantic Default Parity**: While Pydantic's `Field(default=None)` dictates runtime behavior, MyPy's strict type checking requires explicit class-level default assignments (e.g., `= None`) in Python's AST for `Annotated` fields in BaseModels. Missing this causes `[call-arg]` type errors when instantiating the model without passing the optional argument.
 - **TDD Forensic Audit Mandate**: The execution agent structurally defined the required DTOs but failed to write any unit tests verifying the validation boundaries of the new `MatrixEvaluationContext`. Modifying core engine domain schemas without providing explicit Pydantic boundary unit testing is a strict violation of the `anti_happy_path_mandate`, resulting in an automatic Tier 8 Audit failure.
+- **Remediation & Testing Boundaries**: Adding a new DTO (`MatrixEvaluationContext`) with optional fields requires explicit unit tests for strictness (`extra="forbid"`), frozen state, and invalid types to satisfy the `anti_happy_path_mandate`. This ensures that downstream serialization and deserialization remain deterministically safe across all API boundaries.
 
 ## Remaining
 - Tier 8 Audit for Phase 3 (Retry).
