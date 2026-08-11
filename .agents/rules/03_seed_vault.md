@@ -43,9 +43,9 @@
     </rule_block>
 
     <rule_block id="ai_context_amnesia_guard">
-         <banned_pattern>Reading the entire `seed_data.json` file using `view_file` without explicit line bounds.</banned_pattern>
-         <mandatory_pattern>The `seed_data.json` is a massive file. You MUST use bounded reads (`StartLine`/`EndLine`) or run python search scripts (like `uv run python check_seed_data.py` or `uv run python backend_v2/seed/run_seed.py local --dry-run`) to interrogate the file without blowing out the context window.</mandatory_pattern>
-         <catastrophic_reason>Reading a massive JSON file in a single operation overflows the LLM context window, causing immediate "Context Amnesia" and preventing coherent code generation in this session.</catastrophic_reason>
+         <banned_pattern>Using `grep_search` to find data in `seed_data.json`, or reading the entire `seed_data.json` file using `view_file` without explicit line bounds.</banned_pattern>
+         <mandatory_pattern>The `seed_data.json` is a massive file with Windows CRLF encoding that silently breaks `grep_search`. You MUST NEVER use `grep_search` on it. To search, verify, or interrogate the file, you MUST write and execute deterministic Python audit scripts via `run_command` (e.g., `uv run python audit_seed.py` reading via `json.load`). If reading lines, use bounded reads (`StartLine`/`EndLine`) ONLY after verifying exact line numbers via Python.</mandatory_pattern>
+         <catastrophic_reason>Reading a massive JSON file in a single operation overflows the context window. Using `grep_search` on CRLF JSON files causes silent failures, leading the LLM to falsely conclude that data (like matrix names or IDs) does not exist, causing massive hallucination cascades and data destruction.</catastrophic_reason>
     </rule_block>
 </catastrophic_system_bans>
 
