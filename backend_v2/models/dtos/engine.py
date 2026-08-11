@@ -49,11 +49,11 @@ class MatrixEvaluationContext(BaseModel):
 
     theory_grounding: Annotated[
         TheoryGrounding | None, Field(default=None, description="The theory grounding applied to the matrix.")
-    ]
-    matrix_objective: Annotated[str | None, Field(default=None, description="The objective of the matrix.")]
+    ] = None
+    matrix_objective: Annotated[str | None, Field(default=None, description="The objective of the matrix.")] = None
     allow_contextual_override: Annotated[
         bool, Field(default=False, description="Whether contextual override is allowed.")
-    ]
+    ] = False
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 

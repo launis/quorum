@@ -3,7 +3,12 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult, FlattenedAtom
+from backend_v2.models.dtos.engine import (
+    EngineExecutionRequest,
+    EngineExecutionResult,
+    FlattenedAtom,
+    MatrixEvaluationContext,
+)
 
 
 def test_engine_execution_result_strictness() -> None:
@@ -53,3 +58,22 @@ def test_flattened_atom_invalid_types() -> None:
     """Test that invalid types trigger ValidationError."""
     with pytest.raises(ValidationError):
         FlattenedAtom.model_validate({"atom_id": "tda_123", "question": "Q", "is_inverse": "not-a-bool"})
+
+
+def test_matrix_evaluation_context_strictness() -> None:
+    """Test that MatrixEvaluationContext forbids extra fields."""
+    with pytest.raises(ValidationError):
+        MatrixEvaluationContext.model_validate({"allow_contextual_override": True, "extra_field": "disallowed"})
+
+
+def test_matrix_evaluation_context_is_frozen() -> None:
+    """Test that MatrixEvaluationContext is immutable."""
+    context = MatrixEvaluationContext()
+    with pytest.raises(ValidationError):
+        context.allow_contextual_override = True  # type: ignore
+
+
+def test_matrix_evaluation_context_invalid_types() -> None:
+    """Test that invalid types trigger ValidationError."""
+    with pytest.raises(ValidationError):
+        MatrixEvaluationContext.model_validate({"allow_contextual_override": "not-a-bool"})
