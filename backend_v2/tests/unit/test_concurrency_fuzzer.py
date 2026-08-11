@@ -2,7 +2,6 @@ import asyncio
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any
 
 import pytest
 
@@ -27,6 +26,7 @@ def clear_litellm_provider_caches() -> Generator[None]:
     LiteLLMProvider._semaphores.clear()
     LiteLLMProvider._httpx_clients.clear()
 
+
 @pytest.fixture(autouse=True)
 def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
@@ -35,7 +35,8 @@ def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def mock_repo() -> AsyncMock:
     repo = AsyncMock()
-    def _mock_step_data() -> dict:
+
+    def _mock_step_data() -> dict[str, Any]:
         return {
             "id": "stp_1234567890abcdef",
             "type": "llm",
@@ -46,6 +47,7 @@ def mock_repo() -> AsyncMock:
             "name": {"default_locale": "en", "translations": {"en": "mock"}},
             "description": {"default_locale": "en", "translations": {"en": "mock"}},
         }
+
     repo.get_step_by_id.return_value = _mock_step_data()
     repo.get_step.return_value = repo.get_step_by_id.return_value
     repo.get_execution.return_value = {
@@ -89,9 +91,9 @@ def mock_repo() -> AsyncMock:
                 "tpm_limit": 100000,
                 "rpm_limit": 1000,
                 "max_tokens": 4096,
-                "temperature": 0.0
+                "temperature": 0.0,
             }
-        }
+        },
     }
     return repo
 
@@ -99,8 +101,10 @@ def mock_repo() -> AsyncMock:
 @pytest.fixture
 def mock_compiler() -> MagicMock:
     from pydantic import BaseModel
+
     class DummySchema(BaseModel):
         pass
+
     compiler = MagicMock()
     compiler.build_dynamic_schema.return_value = DummySchema
     return compiler
