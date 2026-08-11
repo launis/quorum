@@ -352,7 +352,8 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://doi.org/10.1017/CBO9780511802034"
+        "source_url": "https://doi.org/10.1017/CBO9780511802034",
+        "citation_reference": "Toulmin, S. E. (1958). The Uses of Argument. Cambridge University Press."
       },
       "scales": [
         {
@@ -900,7 +901,7 @@
       ],
       "scale_min": 1,
       "scale_max": 5,
-      "ai_description": "OBJECTIVE:\nEvaluate the argument's robustness using Stephen Toulmin's Model of Argumentation.\nEPISTEMIC ANCHOR:\nToulmin, S. E. (2003). The Uses of Argument. Analyzes arguments through 6 components: Claim (conclusion), Data/Grounds (evidence), Warrant (logical bridge), Backing (support for warrant), Qualifier (degree of certainty), and Rebuttal (conditions of exception). Lexical indicators for Warrants include 'since' or 'given that'; Rebuttals use 'unless' or 'despite'.\nRULES:\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.\n- Bounty Hunter Paradigm: In FATAL FLAW directives, you are not proving consistency. You only need to find ONE sentence that commits the described error to trigger extraction.\n- Forensic Extraction: Do not act as a judge. Your sole objective is to extract verbatim quotes matching the conditions. Return JSON null otherwise.",
+      "ai_description": "OBJECTIVE:\nEvaluate the argument's robustness using Stephen Toulmin's Model of Argumentation.\nEPISTEMIC ANCHOR:\nToulmin, S. E. (2003). The Uses of Argument. Analyzes arguments through 6 components: Claim (conclusion), Data/Grounds (evidence), Warrant (logical bridge), Backing (support for warrant), Qualifier (degree of certainty), and Rebuttal (conditions of exception). Lexical indicators for Warrants include 'since' or 'given that'; Rebuttals use 'unless' or 'despite'.",
       "slug": "matrix_toulmin",
       "output_extensions": [
         "falsification",
@@ -935,7 +936,8 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://www.jstor.org/stable/j.ctt1v2xv4"
+        "source_url": "https://www.jstor.org/stable/j.ctt1v2xv4",
+        "citation_reference": "Bloom, B. S. (Ed.). (1956). Taxonomy of Educational Objectives: The Classification of Educational Goals. Handbook I: Cognitive Domain. David McKay Company."
       },
       "scales": [
         {
@@ -1417,7 +1419,7 @@
       ],
       "scale_min": 1,
       "scale_max": 6,
-      "ai_description": "OBJECTIVE:\nEvaluate the cognitive depth and intellectual complexity using the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001).\nEPISTEMIC ANCHOR:\nAnderson, L. W., & Krathwohl, D. R. (2001). A Taxonomy for Learning, Teaching, and Assessing. The 2001 revision places 'Create' (formerly Synthesis) as the highest cognitive peak above 'Evaluate'. The model measures progression from passive regurgitation (Remembering) through functional application to highest-order synthesis (Creating). True cognitive depth requires explicit demonstration of the required cognitive operation, not assumed competence. Lexical markers of 'Evaluate' include judge, critique, justify; markers of 'Create' include design, formulate, assemble.\nRULES:\n- Bounty Hunter Paradigm: In FATAL FLAW directives, do not prove consistency. Find ONE occurrence of the described anti-pattern.\n- Forensic Extraction: Do not act as a judge. Your sole objective is to extract verbatim quotes matching the conditions. Return JSON null otherwise.\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.",
+      "ai_description": "OBJECTIVE:\nEvaluate the cognitive depth and intellectual complexity using the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001).\nEPISTEMIC ANCHOR:\nAnderson, L. W., & Krathwohl, D. R. (2001). A Taxonomy for Learning, Teaching, and Assessing. The 2001 revision places 'Create' (formerly Synthesis) as the highest cognitive peak above 'Evaluate'. The model measures progression from passive regurgitation (Remembering) through functional application to highest-order synthesis (Creating). True cognitive depth requires explicit demonstration of the required cognitive operation, not assumed competence. Lexical markers of 'Evaluate' include judge, critique, justify; markers of 'Create' include design, formulate, assemble.",
       "slug": "matrix_bloom",
       "output_extensions": [
         "falsification",
@@ -1452,7 +1454,8 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://us.macmillan.com/books/9780374533557"
+        "source_url": "https://us.macmillan.com/books/9780374533557",
+        "citation_reference": "Kahneman, D. (2011). Thinking, Fast and Slow. Farrar, Straus and Giroux."
       },
       "scales": [
         {
@@ -1691,7 +1694,7 @@
       ],
       "scale_min": 1,
       "scale_max": 3,
-      "ai_description": "OBJECTIVE:\nEvaluate the cognitive mode of operation using Kahneman's Dual Process Theory.\nEPISTEMIC ANCHOR:\nKahneman, D. (2011). Thinking, Fast and Slow. Analyzes cognitive operations: System 1 operates automatically and quickly, with little or no effort and no sense of voluntary control (heuristics, WYSIATI, biases). System 2 allocates attention to the effortful mental activities that demand it, including complex computations, critical thinking, and conscious deliberation.\nRULES:\n- Bounty Hunter Paradigm: In FATAL FLAW directives, do not prove consistency. Find ONE occurrence of the described anti-pattern.\n- Forensic Extraction: Do not act as a judge. Your sole objective is to extract verbatim quotes matching the conditions. Return JSON null otherwise.\n- Absence Paradox Prevention: Never search for missing information. Only extract active text that explicitly commits the flaw.\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.",
+      "ai_description": "OBJECTIVE:\nEvaluate the cognitive mode of operation using Kahneman's Dual Process Theory.\nEPISTEMIC ANCHOR:\nKahneman, D. (2011). Thinking, Fast and Slow. Analyzes cognitive operations: System 1 operates automatically and quickly, with little or no effort and no sense of voluntary control (heuristics, WYSIATI, biases). System 2 allocates attention to the effortful mental activities that demand it, including complex computations, critical thinking, and conscious deliberation.",
       "slug": "matrix_kahneman",
       "output_extensions": [
         "falsification",
@@ -1726,7 +1729,8 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://www.cna.org/reports/2022/09/"
+        "source_url": "https://www.cna.org/reports/2022/09/",
+        "citation_reference": "Goodhart, C. A. E. (1975). Problems of Monetary Management: The U.K. Experience. Papers in Political Economy."
       },
       "scales": [
         {
@@ -2057,7 +2061,7 @@
       ],
       "scale_min": 1,
       "scale_max": 5,
-      "ai_description": "OBJECTIVE:\nEvaluate the user's interaction dynamic (Driver vs. Passenger) and susceptibility to Goodhart's Law and Performativity.\nEPISTEMIC ANCHOR:\nStumborg, M. F., et al. (2022) & Strathern, M. (1997). Goodhart's Law and Performativity in Audit Cultures. When a measure becomes a target, it ceases to be a good measure. Users may fall into 'Sycophancy' loops, where AI outputs performative agreement rather than truth.\nRULES:\n- Bounty Hunter Paradigm: In FATAL FLAW directives, find ONE occurrence of the described anti-pattern.\n- Forensic Extraction: Do not act as a judge. Your sole objective is to extract verbatim quotes matching the conditions. Return JSON null otherwise.\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.",
+      "ai_description": "OBJECTIVE:\nEvaluate the user's interaction dynamic (Driver vs. Passenger) and susceptibility to Goodhart's Law and Performativity.\nEPISTEMIC ANCHOR:\nStumborg, M. F., et al. (2022) & Strathern, M. (1997). Goodhart's Law and Performativity in Audit Cultures. When a measure becomes a target, it ceases to be a good measure. Users may fall into 'Sycophancy' loops, where AI outputs performative agreement rather than truth.",
       "slug": "matrix_goodhart",
       "output_extensions": [
         "falsification",
@@ -2091,7 +2095,7 @@
       "category_id": "system_rule",
       "type": "instruction",
       "theory_grounding": {
-        "citation_reference": "Eloundou, Tyna ym. 2023.",
+        "citation_reference": "Goodhart, C. A. E. (1975). Problems of Monetary Management: The U.K. Experience. Papers in Political Economy.",
         "source_url": "https://doi.org/10.48550/arXiv.2303.10130"
       },
       "ai_description": "CORE MANDATE: Data Ingestion & Sanitization. Read all provided input materials through a strictly objective lens. Focus exclusively on extracting verifiable facts, key arguments, and structural context. Discard emotional noise, unverified inferences, and implicit assumptions. Your goal is to internally prepare and organize the data context so that your subsequent analytical reasoning can proceed flawlessly based only on pure, structured semantic information.",
@@ -2649,11 +2653,11 @@
       ],
       "theory_grounding": {
         "source_url": "https://www.arma.org/page/principles",
-        "citation_reference": "ARMA International. Generally Accepted Recordkeeping Principles."
+        "citation_reference": "ARMA International. (2014). Generally Accepted Recordkeeping Principles. ARMA International."
       },
       "scale_min": 1,
       "scale_max": 5,
-      "ai_description": "OBJECTIVE:\nEvaluate strict adherence to operational guidelines, verifiable provenance, and structural integrity based on established archival frameworks.\nEPISTEMIC ANCHOR:\nARMA International. 'Generally Accepted Recordkeeping Principles (The Principles).' A framework ensuring organizational Accountability, Transparency, Integrity, Protection, Compliance, Availability, Retention, and Disposition.\nRULES:\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.\n- Bounty Hunter Paradigm: In FATAL FLAW directives, you are not proving consistency. You only need to find ONE sentence that commits the described error to trigger extraction.\n- Forensic Extraction: Do not act as a judge. Your sole objective is to extract verbatim quotes matching the conditions. Return JSON null otherwise.",
+      "ai_description": "OBJECTIVE:\nEvaluate strict adherence to operational guidelines, verifiable provenance, and structural integrity based on established archival frameworks.\nEPISTEMIC ANCHOR:\nARMA International. 'Generally Accepted Recordkeeping Principles (The Principles).' A framework ensuring organizational Accountability, Transparency, Integrity, Protection, Compliance, Availability, Retention, and Disposition.",
       "slug": "matrix_archivist",
       "output_extensions": [
         "falsification",
@@ -2689,7 +2693,8 @@
       "type": "float",
       "allow_decimals": true,
       "theory_grounding": {
-        "source_url": "https://plato.stanford.edu/entries/causal-models/"
+        "source_url": "https://plato.stanford.edu/entries/causal-models/",
+        "citation_reference": "Pearl, J. (2009). Causality: Models, Reasoning, and Inference (2nd ed.). Cambridge University Press."
       },
       "scales": [
         {
@@ -3121,7 +3126,7 @@
       ],
       "scale_min": 4,
       "scale_max": 10,
-      "ai_description": "OBJECTIVE:\nEvaluate the structural integrity of causal claims, distinguishing between Pearl's three rungs of causation: Association, Intervention, and Counterfactuals.\nEPISTEMIC ANCHOR:\nPearl, J. 'The Book of Why: The New Science of Cause and Effect'. Evaluates the transition from observation (correlation) to intervention and counterfactual reasoning. Lexical markers include 'causes', 'if we change', 'would have been'.\nRULES:\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.\n- Strict Role Attribution: Never extract evidence from 'user:' prompts.\n- Grounded Causal Anchoring: You MUST anchor all causal analysis and counterfactual timeline validations strictly against the physical metrics provided in the &lt;mechanical_anchors&gt; XML block. Ensure qualitative assessments of causality align with the mechanical truth anchors (e.g. say_do_gap).",
+      "ai_description": "OBJECTIVE:\nEvaluate the structural integrity of causal claims, distinguishing between Pearl's three rungs of causation: Association, Intervention, and Counterfactuals.\nEPISTEMIC ANCHOR:\nPearl, J. 'The Book of Why: The New Science of Cause and Effect'. Evaluates the transition from observation (correlation) to intervention and counterfactual reasoning. Lexical markers include 'causes', 'if we change', 'would have been'.",
       "slug": "matrix_causal_analyst",
       "output_extensions": [
         "falsification",
@@ -3156,7 +3161,7 @@
       "category_id": "agent_role",
       "type": "instruction",
       "theory_grounding": {
-        "citation_reference": "Flavell, John H. 1979.",
+        "citation_reference": "Pearl, J. (2009). Causality: Models, Reasoning, and Inference (2nd ed.). Cambridge University Press.",
         "source_url": "https://doi.org/10.1037/0003-066X.34.10.906"
       },
       "ai_description": "CORE MANDATE: Act as a Critical Socratic Coach exhibiting Critical Neutrality. You are an expert, objective facilitator—neither a hostile prosecutor nor a provider of easy answers. Assume all evaluated user inputs require robust validation and guided refinement. Your goal is to compel the user's cognitive development through targeted, constructive questioning. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). Never provide direct answers; instead, systematically prompt the user to document the exact causal mechanisms and logical derivations (the 'how' and 'why') behind their reasoning. Implement strict Assumption Flagging: actively identify, flag, and challenge any subjective views, unverified inferences, or probabilistic guesses that the user presents as absolute facts. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Guide the user to ensure all their claims and causal chains are demonstrably anchored to verifiable external expert sources or proven cause-and-effect relationships. Facilitate the user's discovery process while maintaining absolute, evidence-based neutrality.",
@@ -3528,7 +3533,7 @@
       ],
       "theory_grounding": {
         "source_url": "https://plato.stanford.edu/entries/popper/",
-        "citation_reference": "Popper, K. (1963). Conjectures and Refutations: The Growth of Scientific Knowledge. (Falsificationism)"
+        "citation_reference": "Popper, K. (1963). Conjectures and Refutations: The Growth of Scientific Knowledge. Routledge."
       },
       "rows": [
         {
@@ -3544,7 +3549,7 @@
       ],
       "scale_min": 1,
       "scale_max": 5,
-      "ai_description": "OBJECTIVE:\nEvaluate the author's epistemological rigor and their active attempts to falsify their own hypothesis, preventing confirmation bias.\nEPISTEMIC ANCHOR:\nKarl Popper's Theory of Falsification (1963). A scientific claim must be inherently falsifiable. This matrix evaluates whether the author acts as a 'sycophant' (seeking only confirming evidence and using ad-hoc immunizations to dismiss anomalies) or a 'scientist' (proactively searching for evidence that disproves their own claim). Lexical markers for falsification include 'would be disproven if', 'contrary to', or 'failed to reject'.\nRULES:\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.\n- Bounty Hunter Paradigm: In FATAL FLAW directives (Scores 1-2), you only need to find ONE sentence that commits the described error (e.g. dismissing counter-data) to trigger extraction.\n- Forensic Extraction: Do not act as a judge. Your sole objective is to extract verbatim quotes matching the conditions. Return JSON null otherwise.\n- Role Attribution: Ensure exact_quotes are sourced from the author's own analysis, strictly adhering to ai: prefix if applicable.",
+      "ai_description": "OBJECTIVE:\nEvaluate the author's epistemological rigor and their active attempts to falsify their own hypothesis, preventing confirmation bias.\nEPISTEMIC ANCHOR:\nKarl Popper's Theory of Falsification (1963). A scientific claim must be inherently falsifiable. This matrix evaluates whether the author acts as a 'sycophant' (seeking only confirming evidence and using ad-hoc immunizations to dismiss anomalies) or a 'scientist' (proactively searching for evidence that disproves their own claim). Lexical markers for falsification include 'would be disproven if', 'contrary to', or 'failed to reject'.",
       "slug": "matrix_falsifier",
       "output_extensions": [
         "falsification",
@@ -4049,7 +4054,7 @@
       ],
       "scale_min": 1,
       "scale_max": 5,
-      "ai_description": "OBJECTIVE:\nEvaluate the user's executive control and process ownership over the AI, distinguishing between a passive 'passenger' and a proactive 'Supreme Adjudicator' (Process Owner).\nEPISTEMIC ANCHOR:\nW. Edwards Deming (Total Quality Management) & Automation Bias / Human-in-the-Loop (HITL) theory. The human must actively override 'Automation Complacency' and 'Rubber-Stamping'. The user must act as the absolute executive authority, ensuring built-in quality control and continuous active steering (Plan-Do-Check-Act). Abdicating the 'Check' or 'Act' phases to the AI constitutes catastrophic failure. Lexical markers of success include explicit corrective commands, overriding AI choices, and demanding verifiable steps.\nRULES:\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.\n- Bounty Hunter Paradigm: In FATAL FLAW directives (Scores 1-2), you only need to find ONE sentence that commits the described error (e.g. passive acceptance) to trigger extraction.\n- Forensic Extraction: Do not act as a judge. Your sole objective is to extract verbatim quotes matching the conditions. Return JSON null otherwise.",
+      "ai_description": "OBJECTIVE:\nEvaluate the user's executive control and process ownership over the AI, distinguishing between a passive 'passenger' and a proactive 'Supreme Adjudicator' (Process Owner).\nEPISTEMIC ANCHOR:\nW. Edwards Deming (Total Quality Management) & Automation Bias / Human-in-the-Loop (HITL) theory. The human must actively override 'Automation Complacency' and 'Rubber-Stamping'. The user must act as the absolute executive authority, ensuring built-in quality control and continuous active steering (Plan-Do-Check-Act). Abdicating the 'Check' or 'Act' phases to the AI constitutes catastrophic failure. Lexical markers of success include explicit corrective commands, overriding AI choices, and demanding verifiable steps.",
       "slug": "matrix_judge",
       "output_extensions": [
         "falsification",
@@ -4243,7 +4248,8 @@
         }
       ],
       "theory_grounding": {
-        "source_url": "https://www.darpa.mil/program/explainable-artificial-intelligence"
+        "source_url": "https://www.darpa.mil/program/explainable-artificial-intelligence",
+        "citation_reference": "Lundberg, S. M., & Lee, S.-I. (2017). A Unified Approach to Interpreting Model Predictions. Advances in Neural Information Processing Systems, 30."
       },
       "rows": [
         {
@@ -4259,7 +4265,7 @@
       ],
       "scale_min": 1,
       "scale_max": 3,
-      "ai_description": "OBJECTIVE:\nEvaluate the Explainable Artificial Intelligence (XAI) transparency, traceability, and logical coherence of the final synthesized recommendation.\nEPISTEMIC ANCHOR:\nDARPA XAI Program (2017). The system must answer 'Why did you do that?' (rationale) and 'Why not something else?' (alternatives). It must be free from 'black-box' hallucinations. Every conclusion must be explicitly linked to verifiable evidence. Unresolved contradictions or subjective probabilistic leaps constitute severe XAI failures.\nRULES:\n- No Rationalization: Do not explain away evidence. If text physically fits criteria, extract it. If you have to rationalize it, return null.\n- Bounty Hunter Paradigm: In FATAL FLAW directives (inverse_evidence: true), find ONE single sentence that commits the error to trigger extraction.\n- Forensic Extraction: Do not act as a judge. Your sole objective is to extract verbatim quotes matching the conditions. Return JSON null otherwise.\n- Mechanical Grounding Verification: Verify whether cognitive agents (Causal Analyst and Performativity Detector) were properly grounded in the provided <mechanical_anchors>. If any cognitive score deviates from mechanical indicators (such as word count or performative phrase counts) without explicit empirical justification in the trace, identify it as an ungrounded cognitive leap.",
+      "ai_description": "OBJECTIVE:\nEvaluate the Explainable Artificial Intelligence (XAI) transparency, traceability, and logical coherence of the final synthesized recommendation.\nEPISTEMIC ANCHOR:\nDARPA XAI Program (2017). The system must answer 'Why did you do that?' (rationale) and 'Why not something else?' (alternatives). It must be free from 'black-box' hallucinations. Every conclusion must be explicitly linked to verifiable evidence. Unresolved contradictions or subjective probabilistic leaps constitute severe XAI failures.",
       "slug": "matrix_xai_reporter",
       "output_extensions": [
         "falsification",
@@ -5317,7 +5323,7 @@
         }
       ],
       "theory_grounding": {
-        "citation_reference": "OWASP Foundation (2025). OWASP Top 10 for Large Language Model Applications. (System Threat Modeling).",
+        "citation_reference": "OWASP Foundation. (2023). OWASP Top 10 for Large Language Model Applications. OWASP.",
         "source_url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
       },
       "scale_min": 1,
@@ -5933,7 +5939,7 @@
         }
       ],
       "theory_grounding": {
-        "citation_reference": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect. (Abductive Reasoning vs Post-Hoc).",
+        "citation_reference": "Pearl, J., & Mackenzie, D. (2018). The Book of Why: The New Science of Cause and Effect. Basic Books.",
         "source_url": "https://en.wikipedia.org/wiki/The_Book_of_Why"
       },
       "scale_min": 1,
@@ -6530,7 +6536,7 @@
         }
       ],
       "theory_grounding": {
-        "citation_reference": "Lipton, Zachary C. (2018). The Mythos of Model Interpretability. Communications of the ACM, 61(10), 36-43.",
+        "citation_reference": "Lipton, Z. C. (2018). The Mythos of Model Interpretability. Communications of the ACM, 61(10), 36-43.",
         "source_url": "https://arxiv.org/abs/1606.03490"
       },
       "scale_min": 1,
@@ -7012,7 +7018,8 @@
       "scale_min": 1,
       "scale_max": 5,
       "theory_grounding": {
-        "source_url": "https://doi.org/10.1007/s13347-020-00404-6"
+        "source_url": "https://doi.org/10.1007/s13347-020-00404-6",
+        "citation_reference": "Tetlock, P. E. (2005). Expert Political Judgment: How Good Is It? How Can We Know? Princeton University Press."
       },
       "scales": [
         {
@@ -9187,8 +9194,8 @@
       "tone_instruction": {
         "default_locale": "en",
         "translations": {
-          "fi": "Käytä asiallista, neutraalia ja analyyttistä sävyä.",
-          "en": "Use professional, neutral, and analytical tone."
+          "en": "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data.",
+          "fi": "Toimi ylemmän johdon valmentajana (Senior Executive Coach). Tarjoa syvällistä, provosoivaa ja strategista analyysiä pelkän datan luettelemisen sijaan."
         }
       },
       "description": {
@@ -9884,13 +9891,6 @@
       "max_extension_items": 4,
       "id": "prf_5d6e7f8091a2b3c4",
       "slug": "holistic_audit",
-      "tone_instruction": {
-        "default_locale": "en",
-        "translations": {
-          "en": "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data.",
-          "fi": "Toimi ylemmän johdon valmentajana (Senior Executive Coach). Tarjoa syvällistä, provosoivaa ja strategista analyysiä pelkän datan luettelemisen sijaan."
-        }
-      },
       "workflow_id": "wf_9d68c573802341db",
       "organization_id": "SYSTEM",
       "content_blocks": [],
