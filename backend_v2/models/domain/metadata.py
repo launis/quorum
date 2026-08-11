@@ -7,11 +7,12 @@ from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.inputs import WorkflowInputsIngress
 
 logger = logging.getLogger(__name__)
 
 
-class MetadataHookPayloadDTO(V2CoreBase):
+class MetadataHookPayloadDTO(WorkflowInputsIngress):
     """Payload to extract initiator safely.
 
     Attributes:
