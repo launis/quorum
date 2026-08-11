@@ -18,6 +18,13 @@ async def test_redis_timeout_logs_spam(monkeypatch: pytest.MonkeyPatch) -> None:
     async_increment_pipeline execution, which causes the Router's logging to fail.
     We ensure that the provider handles it without crashing the main generation.
     """
+    from unittest.mock import AsyncMock
+
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+    import litellm
+
+    monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.002)
+
     config = LLMProviderConfig(
         id="prv_12345678",
         provider="litellm",

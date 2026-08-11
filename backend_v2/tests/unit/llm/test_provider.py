@@ -75,6 +75,7 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
     import litellm
 
     monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.002)
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
 
     config = LLMProviderConfig(
         id="prv_test1234",

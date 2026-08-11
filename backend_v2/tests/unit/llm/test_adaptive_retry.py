@@ -20,15 +20,20 @@ async def test_lite_llm_provider_adaptive_retry_depleted(monkeypatch: pytest.Mon
     # Mock asyncio.sleep to avoid waiting during test execution
     mock_sleep = AsyncMock()
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
-    # apply_provider_pacing patch removed
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
 
-    settings = get_settings()
-    settings.llm_retry_jitter_initial_seconds = 0.001
-    settings.llm_retry_max_seconds = 0.001
+    mock_settings = get_settings().model_copy(
+        update={
+            "llm_retry_jitter_initial_seconds": 0,
+            "llm_retry_max_seconds": 0,
+        }
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+
     provider = LiteLLMProvider(
         model_name="vertex_ai/gemini-1.5-pro",
         api_key="secret",
-        settings=settings,
+        settings=mock_settings,
         limits={"tpm": 100, "rpm": 10},
     )
 
@@ -67,16 +72,21 @@ async def test_lite_llm_provider_adaptive_retry_success_on_retry(monkeypatch: py
 
     mock_sleep = AsyncMock()
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
-    # apply_provider_pacing patch removed
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
     monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.002)
 
-    settings = get_settings()
-    settings.llm_retry_jitter_initial_seconds = 0.001
-    settings.llm_retry_max_seconds = 0.001
+    mock_settings = get_settings().model_copy(
+        update={
+            "llm_retry_jitter_initial_seconds": 0,
+            "llm_retry_max_seconds": 0,
+        }
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+
     provider = LiteLLMProvider(
         model_name="vertex_ai/gemini-1.5-pro",
         api_key="secret",
-        settings=settings,
+        settings=mock_settings,
         limits={"tpm": 100, "rpm": 10},
     )
 

@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from backend_v2.models.v2_core import ReportDataDTO
 
 # Import existing tests so they are included in the coverage run for v2_core.py
@@ -26,7 +29,7 @@ def test_scorecard_atom_dto_firewall() -> None:
         "level_name": "Level 1",
         "claim_label": "Claim 1",
         "extracted_facts": {},
-        "exact_quotes": [{"quote": "Quote 1", "source_alias": "DOC-1"}],
+        "exact_quotes": [{"quote": "Quote 1", "source_id": "DOC-1"}],
         "internal_logic_en": {
             "step_1_identify_premise": "1",
             "step_2_scan_source": "2",
@@ -43,11 +46,8 @@ def test_scorecard_atom_dto_firewall() -> None:
         "internal_ai_score": 0.99,
     }
 
-    dto = ScorecardAtomDTO.model_validate(larger_payload, context={"alias_registry": {"DOC-1": "opaque_1"}})
-
-    assert dto.atom_id == "atom_1"
-    assert not hasattr(dto, "db_secret_key")
-    assert not hasattr(dto, "internal_ai_score")
+    with pytest.raises(ValidationError):
+        ScorecardAtomDTO.model_validate(larger_payload, context={"alias_registry": {"DOC-1": "opaque_1"}})
 
 
 def test_mcp_audit_trace_new_fields() -> None:
@@ -80,9 +80,6 @@ def test_citation_extraction_item_dto_new_fields() -> None:
 
 
 def test_report_data_dto_rejects_legacy_fields() -> None:
-    import pytest
-    from pydantic import ValidationError
-
     from backend_v2.models.v2_core import ReportDataDTO
 
     # Test 1: evaluative_matrices is forbidden

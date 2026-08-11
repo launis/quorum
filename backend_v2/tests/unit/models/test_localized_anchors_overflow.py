@@ -42,11 +42,13 @@ def test_localized_anchors_accepts_12_items() -> None:
         "localized_anchors_found": SITRA_ANCHORS_12,
         "semantic_reasoning": "Säännön ankkurit löydetty monikollisesti tekstistä.",
         "contextual_override": False,
-        "exact_quotes": [{"source_alias": "test_alias", "text": "Koska syyt ovat johtaneet tähän..."}],
+        "exact_quotes": [{"source_id": "test_alias", "text": "Koska syyt ovat johtaneet tähän..."}],
     }
 
     # This MUST NOT raise ValidationError
-    instance = BaseTDAExtraction.model_validate(payload, strict=True)
+    instance = BaseTDAExtraction.model_validate(
+        payload, strict=True, context={"alias_map": {"test_alias": "test_alias"}}
+    )
     assert len(instance.localized_anchors_found) == 12
 
 

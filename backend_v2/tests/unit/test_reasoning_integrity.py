@@ -30,12 +30,8 @@ def test_chunk_worker_reasoning_integrity():
     massive_reasoning = "Tämä on massiivinen ja syvällinen päättelyketju. " * 500  # Yli 25 000 merkkiä!
     assert len(massive_reasoning) > 20000
 
-    quote = LLMExtractedQuote(
-        text="Lainaus",
-        exact_quote="Lainaus",
-        page_number=1,
-        source_document_id="doc1",
-        reasoning_trace="Reasoning trace",
+    quote = LLMExtractedQuote.model_validate(
+        {"text": "Lainaus", "source_id": "doc1"}, context={"alias_registry": {"doc1": "doc1"}}
     )
 
     tda = BaseTDAExtraction(

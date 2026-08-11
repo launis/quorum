@@ -2,6 +2,7 @@ import json
 import os
 import socket
 import sys
+from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
@@ -171,3 +172,17 @@ def mock_seed_component_repo(seed_data: dict[str, Any]) -> AsyncMock:
     mock_repo.get_all_components.return_value = seed_data.get("components", [])
 
     return mock_repo
+
+
+@pytest.fixture(autouse=True)
+def clear_litellm_provider_caches() -> Generator[None]:
+    """KRIITTINEN ILMARAKO: Ensures LiteLLMProvider caches and semaphores are wiped before and after each test to prevent cross-test asyncio loop deadlocks."""
+    from backend_v2.llm.provider import LiteLLMProvider
+
+    LiteLLMProvider._router_cache.clear()
+    LiteLLMProvider._semaphores.clear()
+    LiteLLMProvider._httpx_clients.clear()
+    yield
+    LiteLLMProvider._router_cache.clear()
+    LiteLLMProvider._semaphores.clear()
+    LiteLLMProvider._httpx_clients.clear()

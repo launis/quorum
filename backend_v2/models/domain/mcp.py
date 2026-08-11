@@ -43,6 +43,7 @@ class OpenAIToolCallDTO(V2CoreBase):
     id: str
     type: str = "function"
     function: OpenAIFunctionCallDTO
+    provider_specific_fields: dict[str, Any] | None = None
 
 
 class OpenAIProbeResponseDTO(V2CoreBase):
@@ -149,6 +150,8 @@ class TavilyApiResponseDTO(V2CoreBase):
     response_time: float = 0.0
     images: Annotated[list[str], Field(default_factory=list)]
     results: Annotated[list[TavilyApiResultItemDTO], Field(description="Search results list from Tavily.")]
+    follow_up_questions: list[str] | None = None
+    request_id: str | None = None
 
 
 class TavilySearchResult(V2CoreBase):

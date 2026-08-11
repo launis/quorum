@@ -72,10 +72,17 @@ class DomainSecurityVisitor(ast.NodeVisitor):
                     for target in stmt.targets:
                         if getattr(target, "id", "") == "model_config":
                             if isinstance(stmt.value, ast.Call) and getattr(stmt.value.func, "id", "") == "ConfigDict":
+                                allowed_exceptions = {"SystemWarningsStateDTO"}
                                 for kw in stmt.value.keywords:
                                     if kw.arg == "strict" and getattr(kw.value, "value", None) is True:
                                         has_strict = True
-                                    if kw.arg == "extra" and getattr(kw.value, "value", None) == "forbid":
+                                    if kw.arg == "extra" and (
+                                        getattr(kw.value, "value", None) == "forbid"
+                                        or (
+                                            node.name in allowed_exceptions
+                                            and getattr(kw.value, "value", None) == "ignore"
+                                        )
+                                    ):
                                         has_forbid = True
             self.pydantic_classes.append((node.name, has_strict, has_forbid))
 

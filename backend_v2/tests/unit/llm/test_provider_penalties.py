@@ -11,7 +11,7 @@ from backend_v2.models.llm import LLMProviderConfig
 pytestmark = pytest.mark.asyncio
 
 
-async def test_litellm_provider_injects_penalties() -> None:
+async def test_litellm_provider_injects_penalties(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that frequency and presence penalties are injected into Litellm kwargs."""
     # 1. This will FAIL because LLMProviderConfig doesn't have these fields yet (Red phase).
     config = LLMProviderConfig(
@@ -60,6 +60,7 @@ async def test_litellm_provider_injects_penalties() -> None:
     provider.router.acompletion = AsyncMock(return_value=mock_response)
 
     # Mock apply_provider_pacing so it doesn't try to access Redis/Locks
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
     if True:
         # 2. This will FAIL because provider.generate() doesn't accept these arguments yet.
         await provider.generate(

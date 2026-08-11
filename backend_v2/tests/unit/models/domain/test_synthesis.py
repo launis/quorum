@@ -56,13 +56,11 @@ def test_synthesis_step_data_dto_accepts_orchestrator_fields() -> None:
     assert model.execution_id == "exe_123"
 
 
-def test_synthesis_step_data_dto_ignores_extra_fields() -> None:
+def test_synthesis_step_data_dto_forbids_extra_fields() -> None:
     data = {
         "reasoning_trace": {"thought_process": "thinking", "conclusion": "acting", "confidence_score": 0.9},
         "invalid_extra_field": 1337,
         "another_field": "value",
     }
-    # As a polymorphic extraction schema, it MUST ignore extra fields safely.
-    model = SynthesisStepDataDTO.model_validate(data)
-    assert model.reasoning_trace is not None
-    assert not hasattr(model, "invalid_extra_field")
+    with pytest.raises(ValidationError):
+        SynthesisStepDataDTO.model_validate(data)

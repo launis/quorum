@@ -26,20 +26,18 @@ def test_engine_execution_request_is_frozen() -> None:
     assert EngineExecutionRequest.model_config.get("strict") is True
 
 
-def test_flattened_atom_compiles_and_integrates() -> None:
-    """Test that FlattenedAtom compiles and parses valid data correctly."""
+def test_flattened_atom_forbids_extra_fields() -> None:
+    """Test that FlattenedAtom forbids extra fields per Zero-Compromise mandate."""
     data = {
         "atom_id": "tda_123",
         "question": "Is the sky blue?",
         "extraction_rule": "Must be explicit.",
         "anchor_target": "Paragraph 1",
         "is_inverse": False,
-        "extra_key": "allowed",  # extra='ignore' is configured
+        "extra_key": "allowed",
     }
-    atom = FlattenedAtom.model_validate(data)
-    assert atom.atom_id == "tda_123"
-    assert atom.question == "Is the sky blue?"
-    assert atom.is_inverse is False
+    with pytest.raises(ValidationError):
+        FlattenedAtom.model_validate(data)
 
 
 def test_flattened_atom_missing_required_fields() -> None:

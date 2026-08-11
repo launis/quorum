@@ -9,11 +9,15 @@ from backend_v2.settings import get_settings
 
 
 @pytest.mark.asyncio
-async def test_lite_llm_provider_tool_calls_content_extraction() -> None:
+async def test_lite_llm_provider_tool_calls_content_extraction(monkeypatch: pytest.MonkeyPatch) -> None:
     """Tier 4 Bug Hunting Repro:
     Ensures that if Vertex/Gemini returns structured JSON via tool_calls instead of content,
     the provider.py extracts it properly instead of returning an empty string.
     """
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+    import litellm
+
+    monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.002)
     config = LLMProviderConfig(
         id="prv_test1234",
         provider="litellm",
