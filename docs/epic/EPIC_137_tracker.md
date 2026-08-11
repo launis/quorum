@@ -119,10 +119,10 @@
 ### Final Epic Audit
 - [x] **[OK]** Phase 1 System 2 Reverse Epic Analysis: PASSED post-remediation.
 - [x] **[OK]** Phase 2 System 2 Reverse Epic Analysis: PASSED.
-- [ ] **[NOK]** Phase 3 System 2 Reverse Epic Analysis
-- [ ] **[NOK]** Phase 4 System 2 Reverse Epic Analysis
-- [ ] **[NOK]** Phase 5 System 2 Reverse Epic Analysis
-- [ ] **[NOK]** Phase 6 System 2 Reverse Epic Analysis
+- [x] **[OK]** Phase 3 System 2 Reverse Epic Analysis: PASSED.
+- [x] **[OK]** Phase 4 System 2 Reverse Epic Analysis: PASSED.
+- [x] **[OK]** Phase 5 System 2 Reverse Epic Analysis: PASSED.
+- [x] **[OK]** Phase 6 System 2 Reverse Epic Analysis: PASSED.
 
 ## Instructions for the Execution Agent
 You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bottom of this tracker before handing over the session. Additionally, whenever you finish a milestone, pause for user feedback, or complete a session, you MUST automatically output the next command in your chat response so the user can easily copy-paste it to continue. The mandatory workflow loop is: `/tier0-research-plan` (Phase N) -> `/tier2-execute` (Phase N) -> `/tier8-audit-plan` (Phase N) -> `/tier0-research-plan` (Phase N+1). You MUST ALWAYS pass BOTH the plan and the tracker file in ALL commands (specifically: `/tier0-research-plan`, `/tier2-execute`, `/tier8-audit-plan`). Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`. Note: You do not need to specify `--rules` in the resume command; context rules are self-hydrating. All seed modifications MUST be atomic `multi_replace_file_content` calls, verified by `uv run python backend_v2/seed/run_seed.py local`. Use strict `@-reference` syntax for all file targets.
@@ -177,6 +177,7 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 - **Phase 1 (Audit Remediation Execution)**: Successfully planned and executed the `implementation_plan.md` database mutation to remediate the missed Phase 1 requirements. Handled JSON array key ordering re-organization effectively via a strict python validation script that mathematically verified exact APA citations (`theory_grounding.citation_reference`) and strict `RULES:` stripping from `ai_description` blocks without introducing structural duplicate keys. The update was successfully validated by the universal quality gate (`backend_audit_loop.py`), maintaining schema integrity. Phase 1 Database Remediation is formally complete.
 - **Tier 8 Audit (Phase 1 Post-Remediation)**: Successfully executed the Final Epic Audit against Phase 1 post-remediation. Verified that all 13 matrices possess perfectly formatted English APA strings and zero matrices contain the `RULES:` prefix in their AI descriptions. The universal quality gate tests passed successfully (1295 tests, 83.10% coverage) and the seed generation validated flawlessly. Phase 1 is officially complete and verified.
 - **Tier 8 Audit (Phase 2 Epic Analysis)**: Ran the Final Epic Audit against Phase 2 of EPIC 137. Verified all dead code removal (`compile_xml_rubrics`, `compile_chunk_prompt`), unused imports (`GLOBAL_MANDATES_XML`, `EvaluationMandate`), and their corresponding tests. Tests successfully passed globally ensuring no regressions and zero `F401` violations. Phase 2 is officially complete and verified.
+- **Tier 8 Audit (Phases 3-6 Epic Analysis)**: Successfully executed the Final Epic Audit against Phases 3 through 6. Verified that `MatrixEvaluationContext` was strictly implemented and propagated down to `ExtractiveSensorService`. Confirmed `MatrixSensorPromptBuilder` enforces static/dynamic caching boundaries using `CompiledPrompt`, avoiding Raw XML injection. Validated that all required Negative Tests exist and that the codebase passes global audit tests with 100% adherence. The global audit loop confirmed that the 1295 unit tests pass and 30% coverage is exceeded (83.10%). Phases 3-6 are officially COMPLETE and VERIFIED. EPIC 137 is formally closed.
 
 ## Learned
 - **Baseline State Snapshot**: `seed_data.json` currently uses raw `"RULES:"` prefixes inside `ai_description` and non-APA localized citations. `ExtractiveSensorService.evaluate_atom_boolean_batch()` uses an overly generic prompt that lacks `<theory_grounding>`. The `prompt_compiler.py` and `localization_compiler.py` files contain dead code methods (`compile_xml_rubrics`) that have zero production callers. `llm.py` contains a `getattr(b, "category_id", None)` which violates the strict fail-fast property access rule.
@@ -208,7 +209,7 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 - **Audit Script Logic Gap**: The boundary audit script currently does not ignore `[DELETE]` tags during file existence validation, which mathematically blocks Epics from passing Tier 8 if they correctly mandate the deletion of obsolete files.
 
 ## Remaining
-- Run Final Epic Audit (`/tier8-audit-epic`) for Phase 3.
+- None. EPIC 137 is fully closed out.
 
 ## Resume Command
-`/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_137_audit_report.md]" --workflow=/tier8-audit-epic --rules=backend`
+Epic completed.
