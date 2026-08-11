@@ -85,6 +85,8 @@ if "%1"=="--no-cache" (
     echo [!] Vertex AI Context Cache globally DISABLED via flag.
 )
 
+if "%DEV_EXECUTION_MODE%"=="" set DEV_EXECUTION_MODE=fast
+
 :: Backend
 start "CQ Backend V2 (LOCAL)" cmd /k "set DEV_EXECUTION_MODE=%DEV_EXECUTION_MODE%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --timeout-keep-alive 30 --log-config backend_v2/uvicorn_logging.yaml"
 
