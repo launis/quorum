@@ -5,9 +5,9 @@ import os
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import AliasChoices, BeforeValidator, Field, computed_field
+from pydantic import AliasChoices, BeforeValidator, Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -493,6 +493,43 @@ class Settings(BaseSettings):
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
+
+    @model_validator(mode="after")
+    def _enforce_fast_mode_limits(self) -> Self:
+        """Aggressively clamp heavy configurations during 'fast' development mode."""
+        if self.environment.lower() == "development" and self.dev_execution_mode == "fast":
+            logger.info("⚡ Fast execution mode active: Clamping LLM bounds and limits to save API tokens.")
+
+            self.max_tool_calls_per_step = 1
+            self.max_development_chunks = 1
+            self.matrix_sampling_limit = 2
+            self.schema_max_localized_anchors = 2
+            self.schema_max_quotes_target = 1
+            self.schema_max_quote_length = 50
+            self.schema_max_evaluations = 1
+            self.tavily_max_results = 1
+            self.max_precedent_scan_depth = 0
+            self.max_precedent_return_count = 0
+            self.tda_linker_window_size = 2
+            self.tda_linker_overlap = 0
+
+            # Ensembles and Retries Overrides
+            self.llm_max_retries = 0
+            self.ensemble_parallelism = 1
+            self.ensemble_min_consensus = 1
+
+            # Strategy Aliasing
+            self.strategy_aliases = {
+                "strict_strategy": "fast",
+                "evaluation_strategy": "fast",
+                "test_strategy": "fast",
+                "strict": "fast",
+                "deep": "fast",
+                "synthesis": "fast",
+                "reasoning": "fast",
+            }
+
+        return self
 
     @computed_field  # type: ignore[prop-decorator]
     @property
