@@ -52,10 +52,10 @@
         <responsibility>DECOUPLED PILLAR CAPABILITIES</responsibility>
         <key_domains>
           - Pillar 2 (Ontology): studio/, translation_service.py
-          - Pillar 3 (Orchestration): execution.py, web_fetcher.py, llm_task_executor.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompt_compiler.py)
+          - Pillar 3 (Orchestration): execution.py, web_fetcher.py, llm_task_executor.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py)
           - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/
           - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py
-          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, anchor_validation_service.py, source_verification_service.py, matrix_domain_parser.py, orchestrator/ (two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py)
+          - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, anchor_validation_service.py, source_verification_service.py, matrix_domain_parser.py, orchestrator/ (two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py)
           - Orphan (Missing Capability): auth.py
         </key_domains>
     </module>

@@ -312,7 +312,6 @@ def test_extractive_sensor_service_allow_contextual_override() -> None:
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory_grounding() -> None:
     """Varmistaa että LLM pystyy käsittelemään atomit turvallisesti vaikka theory_grounding puuttuu matriisikontekstista."""
-
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
