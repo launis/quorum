@@ -36,6 +36,12 @@
         <catastrophic_reason>Database queries strictly fetch by opaque ID. Using a slug as an ID causes silent `None` returns, severing critical logic paths and causing silent application failures.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="matrix_slug_identification_ban">
+        <banned_pattern>Using a `slug` to identify, filter, or find a matrix block in `seed_data.json` during data mutation scripts or queries.</banned_pattern>
+        <mandatory_pattern>A matrix MUST ONLY be identified if it is located inside the `prompt_blocks` array AND has `"category_id": "matrix"`. Slugs MUST NEVER be used for identification.</mandatory_pattern>
+        <catastrophic_reason>Slugs are volatile metadata. Relying on them for matrix identification will silently break the extraction pipeline and mutation scripts if a slug is ever renamed.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="local_data_ephemeral_nature">
          <banned_pattern>Hesitating to wipe `db_v2.json` or running `run_seed.py` out of fear of losing customer data. Also, attempting to update `db_v2.json` manually on the fly.</banned_pattern>
          <mandatory_pattern>This is purely a local testing environment with zero real customer data. Always prioritize architectural purity and wipe/re-seed the local database via `uv run python backend_v2/seed/run_seed.py local` whenever corrupted states arise. NEVER update `db_v2.json` directly.</mandatory_pattern>

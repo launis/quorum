@@ -30,6 +30,25 @@ However, fixing this alone is insufficient ("Lipstick on a Pig"). Post-EPIC 92, 
 ### The Theory Grounding (RAG) Solution
 The matrices in `seed_data.json` already contain structured `theory_grounding` fields (specifically: `citation_reference`, `source_url`). Instead of relying on the messy `ai_description` (which violates the Step-Level Protocol Mandate by mixing Domain Knowledge with Extraction Rules), we will formally pipe the `theory_grounding` structured data into the `ExtractiveSensorService`.
 
+## 2. Architectural Impact & Compliance Matrix
+
+### 1. Deprecations & Sunset List
+- `compile_xml_rubrics()` in `localization_compiler.py` and `prompt_compiler.py`
+- `compile_chunk_prompt()` in `prompt_compiler_adapter.py`
+- `RULES:` blocks from `ai_description` for 9 matrices
+- Legacy non-APA citations in `theory_grounding`
+
+### 2. Retained SSOT Invariants
+- Domain Model Purity (`ExtractedAtom` remains a pure data carrier)
+- Context Injection Protocol (Matrix metadata injected via `MatrixEvaluationContext`)
+- LLM Prefix Caching Topography (Strict separation of static/dynamic prompt segments)
+- Single Source of Truth for database data (no string replacements, must use json mutation)
+
+### 3. Compliance Gates
+- `backend_audit_loop.py backend_v2 --test`
+- `run_seed.py local` for JSON syntax validation
+- Negative test coverage for missing `theory_grounding` and blocked overrides
+
 ## Proposed Changes
 
 ### Phase 1: Synthesis Quality Fix
@@ -42,24 +61,16 @@ The matrices in `seed_data.json` already contain structured `theory_grounding` f
 - **Output Profile Tone:** The Holistic Audit profile ID is `prf_5d6e7f8091a2b3c4`. Upgrade its `tone_instruction` to include explicit persona instructions:
   - EN: "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data."
   - FI: "Toimi ylemmän johdon valmentajana (Senior Executive Coach). Tarjoa syvällistä, provosoivaa ja strategista analyysiä pelkän datan luettelemisen sijaan."
+- **Tripartite Architecture Decision:** We explicitly use the `OutputProfile`'s `tone_instruction` instead of the Step's `execution_persona_block_id` to enforce the Phase 1 vs Phase 2 decoupling. The Execution Phase (Phase 1) MUST remain strictly objective to accurately evaluate matrix metrics without hallucinating or biasing the data. The Senior Executive Coach persona is purely a Phase 2 (Synthesis) presentation layer instruction.
 
 ### Phase 2: Dead Code, Database Hygiene & English RAG Standardization
 
 #### [MODIFY] `@[c:\src\quorum\backend_v2\seed\seed_data.json]`
-- **Matrix `ai_description` Cleanup:** Remove the `\nRULES:\n- Bounty Hunter Paradigm...` suffix from the `ai_description` of the following 9 matrices (deterministically verified via Python audit — these are the ONLY matrices with `RULES:` blocks):
-  1. `matrix_toulmin` (L336, id=`blk_440a5fef9331451b`)
-  2. `matrix_bloom` (L920, id=`blk_f921c7c0989b47e8`)
-  3. `matrix_kahneman` (L1438, id=`blk_109dab5b6b3f403a`)
-  4. `matrix_goodhart` (L1713, id=`blk_53f32679aa514fcb`)
-  5. `matrix_archivist` (L2210, id=`blk_fb15f8dcf23f4865`)
-  6. `matrix_causal_analyst` (L2677, id=`blk_c5804a9143c34cb1`)
-  7. `matrix_falsifier` (L3172, id=`blk_b476f89fb732448c`)
-  8. `matrix_judge` (L3589, id=`blk_ff72c2d79edb4ebf`)
-  9. `matrix_xai_reporter` (L4151, id=`blk_6b8c766185294f7e`)
-- The remaining 4 matrices (`matrix_taskguard`, `matrix_causal_abductive`, `matrix_taskxai_clarity`, `matrix_epistemic_humility`) do NOT have `RULES:` blocks and require NO cleanup.
+- **Matrix `ai_description` Cleanup:** Remove the `\nRULES:\n- Bounty Hunter Paradigm...` suffix from the `ai_description` of ALL matrices that contain `RULES:` blocks.
+- **Matrix Identification Mandate:** The script MUST identify matrices exclusively by filtering the `prompt_blocks` array for `"category_id": "matrix"`. The script MUST NEVER use slugs to find or filter matrices.
 - Since we are now using `theory_grounding` for the epistemic anchors, the `ai_description` can be drastically simplified or cleared of redundant rules to maintain architectural hygiene.
-- **English APA RAG Standardization:** Translate and format ALL 13 matrices' `theory_grounding.citation_reference` fields into strict English APA format (`Author(s) (Year). Title. Publisher.`). Currently, several citations are incomplete or use Finnish abbreviations (e.g., `(toim.)`, `ym.`).
-- Use Web Search (`search_web`) to verify the exact canonical author list, title, year, and publisher for ALL 13 matrices to maximize the LLM's latent space recall.
+- **English APA RAG Standardization:** Translate and format ALL 13 matrices' `theory_grounding.citation_reference` fields into strict English APA format (`Author(s) (Year). Title. Publisher.`). Currently, several citations are incomplete or use Finnish abbreviations (specifically: `(toim.)`, `ym.`).
+- **Anti-Hallucination Mandate:** The AI MUST use Web Search (`search_web`) during the implementation phase to verify the exact canonical author list, title, year, and publisher for ALL 13 matrices. These exact strings MUST be hardcoded into a deterministic dictionary mapping exact matrix opaque IDs (not slugs) to their APA strings inside the mutation script. The script itself MUST NOT rely on LLM generation at runtime.
 
 #### [MODIFY] `@[c:\src\quorum\backend_v2\services\orchestrator\localization_compiler.py]` (and related files)
 - **Delete** `compile_xml_rubrics()` and `compile_chunk_prompt()` methods and their unit tests, as they are obsolete post-EPIC 92.
@@ -68,39 +79,41 @@ The matrices in `seed_data.json` already contain structured `theory_grounding` f
 
 The TDA pipeline (post-EPIC 92) silently drops critical assertion metadata, resulting in the generic prompt problem. We will rewire these fields end-to-end.
 
-#### [MODIFY] `@[c:\src\quorum\backend_v2\models\dtos\dag_models.py]`
-- Add missing fields to `ExtractedAtom`: `extraction_rule` (str | None), `anchor_target` (str | None), `is_inverse` (bool | None). These MUST be optional to prevent backward compatibility crashes with other engines. (Note: These fields already exist in `FlattenedAtom`, only `ExtractedAtom` needs them).
-- Ensure `ConfigDict` and `model_validator` support these properly.
-- **CQRS Decision:** These fields are purely forensic AI routing metadata. They MUST NOT be mapped to `AtomResultDTO` or sent to the Flutter Frontend to preserve the "Dumb Painter" boundary.
+#### [REJECTED] Modifying `ExtractedAtom` (Domain Purity Decision)
+- **Domain-Driven Design (DDD):** We explicitly REJECT modifying `ExtractedAtom` (`dag_models.py`) to hold `extraction_rule`, `anchor_target`, and `is_inverse`. `ExtractedAtom` is a pure data carrier for extracted claims. Adding execution instructions to it violates the Single Responsibility Principle and the Liskov Substitution Principle (since generic Atomizer nodes don't have these rules).
+- Rules MUST be separated from data and injected via a strongly typed Context.
+- **BARS Matrix Flattening Elegance:** In Quorum, BARS matrices have nested scales (1-5) containing individual claims. The orchestrator flattens this complex nested structure into a single 1D array of `FlattenedAtom`s before passing them to the DAG. By tying `extraction_rule` to the globally unique `atom_id` inside MatrixClaimRuleDTO, we allow the LLM to evaluate each atom independently without knowing anything about the BARS scales. The nested math is safely deferred to the `ResultProjector` post-execution.
 
 #### [MODIFY] `@[c:\src\quorum\backend_v2\models\dtos\engine.py]`
-- **God Code Prevention - Context Injection:** Define a strictly typed Pydantic V2 `MatrixEvaluationContext` DTO (`ConfigDict(strict=True, extra="forbid", frozen=True)`) to hold `theory_grounding`, `matrix_objective` (from `ai_description`), and `allow_contextual_override`.
+- **God Code Prevention - Context Injection:** Define a strictly typed Pydantic V2 MatrixClaimRuleDTO (`ConfigDict(strict=True, extra='forbid', frozen=True)`) with `atom_id`, `extraction_rule`, `anchor_target`, and `is_inverse` to hold the matrix-specific instructions.
+- Define a strictly typed Pydantic V2 TheoryGroundingDTO (`ConfigDict(strict=True, extra='forbid', frozen=True)`) with `source_url` and `citation_reference` to prevent raw dictionary state transit.
+- Define a strictly typed Pydantic V2 `MatrixEvaluationContext` DTO (`ConfigDict(strict=True, extra="forbid", frozen=True)`) to hold `theory_grounding: TheoryGroundingDTO | None`, `matrix_objective` (from `ai_description`), `allow_contextual_override`, and `claim_rules: tuple[MatrixClaimRuleDTO, ...]`.
 - Add `matrix_context: MatrixEvaluationContext | None = None` to `EngineExecutionRequest`.
 
 #### [MODIFY] `@[c:\src\quorum\backend_v2\services\orchestrator\strategies\llm.py]`
-- **Macro-Orchestrator Responsibility:** The `PromptCompiler` is a stateless pure function orchestrator and does NOT hold database repositories. Attempting to fetch the `PromptBlock` inside `TDAEngine` via `request.prompt_compiler.prompt_block_repo` will cause a fatal `AttributeError`.
-- Instead, in `LLMNodeStrategy`, fetch the Matrix `PromptBlock` using its existing `prompt_block_repo` and the `matrix_block_id`. Construct the `MatrixEvaluationContext` DTO here and inject it safely into the `EngineExecutionRequest` before calling the engine.
+- **Macro-Orchestrator Responsibility (Anti-Hallucination):** The `PromptCompiler` is a stateless pure function orchestrator and does NOT hold database repositories. Attempting to fetch the `PromptBlock` inside `TDAEngine` via `request.prompt_compiler.prompt_block_repo` will cause a fatal `AttributeError`.
+- **Dependency Injection Path:** Do NOT hallucinate nested component registries. `LLMNodeStrategy` inherits from `NodeStrategy` (`base.py`), which natively assigns `self.prompt_block_repo = prompt_block_repo` in its constructor. You MUST use this exact, deterministically verified path: `await self.prompt_block_repo.get_by_id(step.matrix_block_id)`.
+- Construct the `MatrixEvaluationContext` DTO here and inject it safely into the `EngineExecutionRequest` before calling the engine.
 
 #### [MODIFY] `@[c:\src\quorum\backend_v2\services\orchestrator\engines\tda_engine.py]`
-- In `TDAEngine.execute()`, map the missing `FlattenedAtom` fields (`extraction_rule`, `anchor_target`, `is_inverse`) into the `ExtractedAtom` constructor at L106-L117.
-- Pass the injected `request.matrix_context` down to `dag_executor.execute_graph()`.
+- Do NOT map matrix rules into `ExtractedAtom` (per the Domain Purity Decision). Leave `ExtractedAtom` construction completely clean.
+- Pass the natively injected `request.matrix_context` down to `dag_executor.execute_graph()`.
 
 #### [MODIFY] `@[c:\src\quorum\backend_v2\services\orchestrator\enriched_dag_executor.py]`
-- Update `execute_graph()` signature to accept the new matrix context parameter as `matrix_context: MatrixEvaluationContext | None = None` (Liskov Substitution / Blast Radius prevention) and pass it to `ExtractiveSensorService.evaluate_atom_boolean_batch()`.
+- **Context Injection Passthrough:** Update `execute_graph()` signature to accept the new matrix context parameter as `matrix_context: MatrixEvaluationContext | None = None` and pass it directly to `ExtractiveSensorService.evaluate_atom_boolean_batch()`.
+- **Liskov Substitution / Blast Radius:** By making this parameter optional (`= None`), the DAG executor acts as a pure passthrough. Existing engines (specifically: `AtomizerEngine`) that do not know about matrices can continue calling `execute_graph` without modification, completely eliminating the blast radius for open extractions.
 
 #### [MODIFY] `@[c:\src\quorum\backend_v2\services\orchestrator\extractive_sensor_service.py]`
-- **God Code Prevention - Decomposition:** The file is currently 367 lines long. Adding massive XML string formatting here will push it over the 400-line God Code limit. You MUST extract the prompt construction logic into a dedicated, testable builder located precisely at `@[c:\src\quorum\backend_v2\services\orchestrator\prompts\matrix_sensor_prompt_builder.py]`.
-- Update `evaluate_atom_boolean_batch()` to accept the injected matrix context object, and delegate the prompt generation to the new builder.
-- The new builder will inject the lost structural XML:
-  - `<matrix_directive>` (from `ai_description`)
-  - `<theory_grounding>` (Citation and URL)
-  - `<FAIL_FAST_MANDATE>` (Including contextual override rules if `allow_contextual_override` is True)
-  - `<tda_validation>` per claim (injecting `extraction_rule`, `anchor_target`, `is_inverse`)
-- This completely restores the cognitive models and structural precision without violating the Step-Level Protocol Mandate.
+- **God Code Prevention - Decomposition:** The file is currently 367 lines long. Adding massive XML string formatting here will push it over the 400-line God Code limit. You MUST extract the prompt construction logic into a dedicated, testable [NEW] builder located precisely at `@[c:\src\quorum\backend_v2\services\orchestrator\prompts\matrix_sensor_prompt_builder.py]`.
+- **LLM Prefix Caching Topography:** To ensure 100% cache hits on the expensive matrix descriptions, the builder MUST expose two separate methods (or return a tuple):
+  1. `build_static_system_prompt()`: Returns the 100% static `SystemMessage` string containing `<matrix_directive>`, `<theory_grounding>`, and `<FAIL_FAST_MANDATE>`.
+  2. `build_dynamic_user_payload()`: Returns the dynamic `<tda_validation>` payload per claim (injecting `extraction_rule`, `anchor_target`, `is_inverse`), which `ExtractiveSensorService` will wrap into a `UserMessage`.
+- Update `evaluate_atom_boolean_batch()` to accept the injected matrix context object, delegate prompt generation to the new builder, and correctly construct the separated System and User messages for the `LLMClient`.
+- This completely restores the cognitive models and structural precision while maximizing FinOps efficiency through flawless Prefix Caching.
 
 ### Architectural Constraints (God Code Prevention)
 As per `ki_god_code_prevention.md`, the implementation MUST adhere to:
-1. **Domain Model Purity (`domain_model_purity_mandate`):** The new fields added to `ExtractedAtom` must not introduce any business logic or hardcoded dictionaries. The model must remain strict (`extra="forbid"`, `frozen=True`).
+1. **Domain Model Purity (`domain_model_purity_mandate`):** We must NOT add fields to `ExtractedAtom`. Instead, matrix-specific rules MUST be cleanly separated into MatrixClaimRuleDTO and injected via `MatrixEvaluationContext`.
 2. **Context Injection (`protocol_driven_worker_architecture`):** We must not bloat `dag_executor.execute_graph()` or `evaluate_atom_boolean_batch()` with loose `**kwargs` for the new matrix metadata. The matrix context must be bundled into a cohesive injected Context object to maintain clean protocol routing.
 3. **Proactive Decomposition (`anti_god_file_dumping`):** `extractive_sensor_service.py` is currently 367 lines. We will not append 100 lines of XML string formatting into it. We will proactively decompose the prompt logic into a new dedicated module, adhering to Tier 3 philosophy.
 
@@ -109,17 +122,19 @@ As per `ki_god_code_prevention.md`, the implementation MUST adhere to:
   - Do NOT modify the raw extraction prompt in ExtractiveSensorService with hardcoded XML strings.
   - Do NOT use generic kwargs to pass matrix metadata into dag_executor.
   - Do NOT map the new forensic metadata fields to the Flutter UI DTOs.
+  - Do NOT inject dynamic claim variables into the System Prompt Builder (destroys Prefix Caching).
 </anti_targets>
 
 <dod_checklist>
   - [ ] Matrix output profile tone updated.
-  - [ ] Theory grounding citations in seed_data updated to APA format.
-  - [ ] Obsolete ai_descriptions cleared of RULES blocks.
+  - [ ] Theory grounding citations in seed_data updated to exact APA format via manual search verification and hardcoded dictionary.
+  - [ ] Obsolete ai_descriptions cleared of RULES blocks via safe string splitting.
   - [ ] Dead prompt compiler methods deleted.
-  - [ ] ExtractedAtom updated with new forensic fields.
-  - [ ] MatrixEvaluationContext DTO created and added to EngineExecutionRequest.
-  - [ ] LLMNodeStrategy updated to inject MatrixEvaluationContext.
-  - [ ] MatrixSensorPromptBuilder created and integrated.
+  - [ ] MatrixClaimRuleDTO created strictly to hold forensic fields WITHOUT modifying ExtractedAtom.
+  - [ ] TheoryGroundingDTO and MatrixEvaluationContext DTO created strictly.
+  - [ ] LLMNodeStrategy updated with safe DI to inject MatrixEvaluationContext.
+  - [ ] MatrixSensorPromptBuilder created for STATIC system prompts only.
+  - [ ] ExtractiveSensorService updated to inject DYNAMIC rules into User Prompts.
   - [ ] All async mocks updated and negative tests passed.
   - [ ] Backend audit loop and seed generation script passed.
 </dod_checklist>
@@ -130,85 +145,108 @@ As per `ki_god_code_prevention.md`, the implementation MUST adhere to:
   - Ensure ExtractiveSensorService tests pass with missing theory_grounding.
 </validation_gate>
 
-<execution_protocol level="0_create_plan_validated">
+```
+
+## Task Breakdown & Context Quarantine Strategy
+To prevent Context Amnesia and token saturation, this Epic follows a strict Context Quarantine strategy. The implementation is divided into logical phases, each limited to 1-3 files. At the end of each phase, the agent will execute the `/tier5-session-handover` command to flush the context window. The next phase will then begin in a fresh session using the `/tier5-resume` command. This ensures the agent maintains absolute focus and structural fidelity during execution.
+
+```xml
+<execution_block level="0_create_plan_validated">
   
-  <!-- ========================================================= -->
-  <!-- SESSION 1: SEED HYGIENE                                   -->
-  <!-- ========================================================= -->
-  <step id="1.1" name="Database Snapshot (Platform Agnostic)">
+  <step id="1" name="Phase 1: Database Snapshot &amp; Seed Hygiene">
     <action>Execute Python script to safely backup data: `uv run python -c "import shutil, os; os.makedirs('backend_v2/seed/backups', exist_ok=True); shutil.copy('backend_v2/seed/seed_data.json', 'backend_v2/seed/backups/seed_data_pre_epic137.json')"`</action>
-    <constraint invariant="live_database_mutation">All structural data modifications MUST occur purely in the master source file `@[backend_v2/seed/seed_data.json]` first before sync.</constraint>
-  </step>
-
-  <step id="1.2" name="Synthesis Tone & RAG English Standardization (Bounded)">
-    <action>Target `@[c:\src\quorum\backend_v2\seed\seed_data.json]`. Create a single-use Python script `scripts/epic137_seed_mutator.py` to safely parse and update the JSON structure without using string replacements.</action>
+    <constraint invariant="live_database_mutation">All structural data modifications MUST occur purely in the master source file before sync.</constraint>
+    <action>Create a single-use Python script `scripts/epic137_seed_mutator.py` to safely parse and update the JSON structure without using string replacements.</action>
     <action>In the script, update the `tone_instruction` for the output profile `prf_5d6e7f8091a2b3c4` to the Senior Executive Coach persona.</action>
-    <action>In the script, standardize `theory_grounding.citation_reference` for ALL 13 matrices into strict English APA format (Author (Year). Title. Publisher.). Many are currently missing titles or years (specifically: `Kahneman, Daniel 2011.`) or using Finnish abbreviations (specifically: `matrix_bloom`, `matrix_goodhart`). Use the LLM's internal knowledge base to generate the canonical APA citations directly in the Python script to avoid web search timeouts.</action>
-    <action>In the script, clean up `ai_description` by stripping obsolete `RULES:` blocks for ALL 9 matrices with RULES: blocks (deterministically verified): `matrix_toulmin`, `matrix_bloom`, `matrix_kahneman`, `matrix_goodhart`, `matrix_archivist`, `matrix_causal_analyst`, `matrix_falsifier`, `matrix_judge`, `matrix_xai_reporter`.</action>
+    <action>In the script, standardize `theory_grounding.citation_reference` for ALL 13 matrices into strict English APA format (Author (Year). Title. Publisher.). Many are currently missing titles or years (specifically: `Kahneman, Daniel 2011.`) or using Finnish abbreviations (specifically: `ym.`, `(toim.)`). Use the `search_web` tool to find and validate the precise canonical citations. Construct a hardcoded dictionary mapping exact matrix opaque IDs (NEVER slugs) to their exact APA strings inside the script. Do NOT rely on LLM generation during script execution.</action>
+    <action>In the script, clean up `ai_description` by stripping obsolete `RULES:` blocks for ALL matrices that contain them. The script MUST identify matrices exclusively by verifying they are in the `prompt_blocks` array AND have `"category_id": "matrix"`. The script MUST NEVER use slugs for identification.</action>
     <action>Execute the script to apply mutations: `uv run python scripts/epic137_seed_mutator.py`.</action>
-  </step>
-
-  <step id="1.3" name="SESSION 1 HANDOVER">
-    <action>STOP execution. Ensure JSON syntax is valid: `uv run python backend_v2/seed/run_seed.py local --dry-run`.</action>
-    <action>Instruct the user to execute `/tier5-session-handover` to flush the context window before starting Session 2.</action>
+    <action>Ensure JSON syntax is valid: `uv run python backend_v2/seed/run_seed.py local --dry-run`.</action>
+    <action>Execute `/tier5-session-handover` to flush context window and prepare for Phase 2.</action>
     <constraint invariant="context_amnesia_prevention">Do NOT proceed to Dead Code Purge in the same session, as modifying 6 files violates the max-5 file limit.</constraint>
   </step>
 
-  <!-- ========================================================= -->
-  <!-- SESSION 2: DEAD CODE PURGE                                -->
-  <!-- ========================================================= -->
-  <step id="2.1" name="Dead Code Eradication">
-    <action>Delete `compile_xml_rubrics()` from `@[backend_v2/services/orchestrator/localization_compiler.py]` (L80) and `@[backend_v2/services/orchestrator/prompt_compiler.py]` (L67-L80). **USER PERMISSION GRANTED to modify prompt_compiler.py** (dead code verified: zero production callers outside its own definition and the dead `compile_chunk_prompt` method).</action>
-    <action>Delete `compile_chunk_prompt()` from `@[backend_v2/services/orchestrator/prompt_compiler_adapter.py]`.</action>
-    <action>Delete corresponding dead tests from `@[tests/backend_v2/services/orchestrator/test_prompt_compiler_adapter.py]` and `@[tests/backend_v2/services/orchestrator/test_localization_compiler.py]`.</action>
+  <step id="2" name="Phase 2: Dead Code Eradication (Compilers)">
+    <action>Start session via `/tier5-resume`.</action>
+    <action>Delete `compile_xml_rubrics()` from `backend_v2/services/orchestrator/localization_compiler.py` and `backend_v2/services/orchestrator/prompt_compiler.py`. **USER PERMISSION GRANTED to modify prompt_compiler.py** (dead code verified: zero production callers outside its own definition and the dead `compile_chunk_prompt` method).</action>
+    <action>Delete `compile_chunk_prompt()` from `backend_v2/services/orchestrator/prompt_compiler_adapter.py`.</action>
+    <action>Execute `/tier5-session-handover` to flush context window and prepare for Phase 3.</action>
   </step>
 
-  <step id="2.2" name="SESSION 2 HANDOVER">
-    <action>STOP execution. Instruct the user to execute `/tier5-session-handover` before starting Session 3.</action>
+  <step id="3" name="Phase 3: Dead Code Eradication (Tests)">
+    <action>Start session via `/tier5-resume`.</action>
+    <action>Delete corresponding dead tests from `tests/backend_v2/services/orchestrator/test_prompt_compiler_adapter.py` and `tests/backend_v2/services/orchestrator/test_localization_compiler.py`.</action>
+    <action>Execute `/tier5-session-handover` to flush context window and prepare for Phase 4.</action>
   </step>
 
-  <!-- ========================================================= -->
-  <!-- SESSION 3: DTO STRICTNESS & ENGINE METADATA WIRING        -->
-  <!-- ========================================================= -->
-  <step id="3.1" name="Backend DAG Models Extension">
-    <action>Target `@[c:\src\quorum\backend_v2\models\dtos\dag_models.py#L46-L91]`. Add `extraction_rule: Annotated[str | None, Field(default=None, description="The specific validation rule.")] = None`, `anchor_target: Annotated[str | None, Field(default=None, description="Semantic bounding box target.")] = None`, and `is_inverse: Annotated[bool | None, Field(default=False, description="True if this is an inverse assertion.")] = False` to `ExtractedAtom`. (Verified: these fields exist in `FlattenedAtom` at engine.py L34-L36 but are completely absent from `ExtractedAtom`).</action>
-    <action>Target `@[c:\src\quorum\backend_v2\models\dtos\engine.py]`. Define a strict `MatrixEvaluationContext` Pydantic V2 DTO with `ConfigDict(strict=True, extra='forbid', frozen=True)` to hold `theory_grounding`, `matrix_objective`, and `allow_contextual_override`. CRITICAL: This class MUST be defined structurally BEFORE `EngineExecutionRequest` to prevent Pydantic NameError/Forward Reference crashes.</action>
-    <action>Target `@[c:\src\quorum\backend_v2\models\dtos\engine.py]`. Add `matrix_context: MatrixEvaluationContext | None = None` to `EngineExecutionRequest`.</action>
-    <constraint invariant="cqrs_forensic_separation">Do NOT map these fields to `AtomResultDTO` or regenerate Frontend code. They are purely forensic backend metadata.</constraint>
+  <step id="4" name="Phase 4: DTO Strictness &amp; Engine Metadata Wiring">
+    <action>Start session via `/tier5-resume`.</action>
+    <action>Define a strict MatrixClaimRuleDTO (`ConfigDict(strict=True, extra='forbid', frozen=True)`) containing `atom_id: str`, `extraction_rule: str`, `anchor_target: str`, and `is_inverse: bool`. This prevents polluting the generic `ExtractedAtom` with matrix-specific rules.</action>
+    <action>Define a strict TheoryGroundingDTO (`ConfigDict(strict=True, extra='forbid', frozen=True)`) containing `source_url: str` and `citation_reference: str`. This enforces the `no_naked_dicts_in_state` architectural invariant.</action>
+    <action>Define a strict `MatrixEvaluationContext` Pydantic V2 DTO with `ConfigDict(strict=True, extra='forbid', frozen=True)` to hold `theory_grounding: TheoryGroundingDTO | None`, `matrix_objective: str | None`, `allow_contextual_override: bool`, and a dynamically populated `claim_rules: tuple[MatrixClaimRuleDTO, ...]`. CRITICAL: This class MUST be defined structurally BEFORE `EngineExecutionRequest`.</action>
+    <action>Add `matrix_context: MatrixEvaluationContext | None = None` to `EngineExecutionRequest`.</action>
+    <constraint invariant="domain_model_purity_mandate">Do NOT modify `ExtractedAtom` in `dag_models.py`. It must remain a pure data carrier. Rules MUST be passed strictly via Context Injection.</constraint>
+    <action>Execute `/tier5-session-handover` to flush context window and prepare for Phase 5.</action>
   </step>
 
-  <step id="3.2" name="SESSION 3 HANDOVER">
-    <action>STOP execution. Summarize actions taken. Instruct the user to execute `/tier5-session-handover` before starting the complex Engine Rewiring in Session 4.</action>
+  <step id="5" name="Phase 5: TDA Pipeline Rewiring">
+    <action>Start session via `/tier5-resume`.</action>
+    <action>Modify `backend_v2/services/orchestrator/strategies/llm.py` to inject the `MatrixEvaluationContext` into the `EngineExecutionRequest` before triggering the `TDAEngine`.</action>
+    <action>Modify `backend_v2/services/orchestrator/engines/tda_engine.py` to pass the `request.matrix_context`.</action>
+    <action>Safely update `execute_graph()` in `backend_v2/services/orchestrator/enriched_dag_executor.py` to accept `matrix_context: MatrixEvaluationContext | None = None` (Python 3.14 modern syntax) and forward it.</action>
+    <action>Execute `/tier5-session-handover` to flush context window and prepare for Phase 6.</action>
   </step>
 
-  <!-- ========================================================= -->
-  <!-- SESSION 4: TDA PIPELINE WIRING & PROMPT BLOCK ASSEMBLY    -->
-  <!-- ========================================================= -->
-  <step id="4.1" name="TDA Pipeline Metadata Rewiring">
-    <action>Modify `@[backend_v2/services/orchestrator/strategies/llm.py]` to inject the `MatrixEvaluationContext` into the `EngineExecutionRequest` before triggering the `TDAEngine`.</action>
-    <action>Modify `@[backend_v2/services/orchestrator/engines/tda_engine.py]` to pass the `request.matrix_context`.</action>
-    <action>Safely update `execute_graph()` in `@[backend_v2/services/orchestrator/enriched_dag_executor.py]` to accept `matrix_context: MatrixEvaluationContext | None = None` (Python 3.14 modern syntax) and forward it.</action>
+  <step id="6" name="Phase 6: Sensor Prompt Re-Architecture">
+    <action>Start session via `/tier5-resume`.</action>
+    <action>Create a new pure builder class in `backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py`.</action>
+    <constraint invariant="llm_kv_caching_maximization">You MUST use `PromptBlock` assembly for the prompt structure. Raw XML `f-string` concatenation is strictly forbidden. The builder MUST expose two separate methods: `build_static_system_prompt()` (for 100% cacheable instructions) and `build_dynamic_user_payload()` (for the `<tda_validation>` per-claim data). Dynamic variables inside the System Message are strictly forbidden.</constraint>
+    <action>Modify `evaluate_atom_boolean_batch` in `backend_v2/services/orchestrator/extractive_sensor_service.py` to delegate generation to this new builder, constructing separated System and User messages.</action>
+    <action>Modify `batch_evaluation_callback` in `backend_v2/services/orchestrator/enriched_dag_executor.py` to also use this new builder for cache pre-warming, ensuring prompt prefix parity and resolving the duplicate prompt anti-pattern.</action>
+    <action>Execute `/tier5-session-handover` to flush context window and prepare for Phase 7.</action>
   </step>
 
-  <step id="4.2" name="Sensor Prompt Re-Architecture (Anti-God Code)">
-    <action>Create a new pure builder class in `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`.</action>
-    <constraint invariant="llm_kv_caching_maximization">You MUST use `PromptBlock` assembly for the prompt structure. Raw XML `f-string` concatenation is strictly forbidden. Place dynamic variables (`<tda_validation>`) at the ABSOLUTE END of the prompt payload to preserve LLM Prefix Caching.</constraint>
-    <action>Modify `evaluate_atom_boolean_batch` in `@[backend_v2/services/orchestrator\extractive_sensor_service.py]` to delegate generation to this new builder.</action>
-    <action>Modify `batch_evaluation_callback` in `@[backend_v2/services/orchestrator/enriched_dag_executor.py]` to also use this new builder for cache pre-warming, ensuring prompt prefix parity and resolving the duplicate prompt anti-pattern.</action>
-  </step>
-
-  <step id="4.3" name="Negative Testing & Mocks">
+  <step id="7" name="Phase 7: Negative Testing &amp; Mocks &amp; Final Audit">
+    <action>Start session via `/tier5-resume`.</action>
     <action>Update ALL existing `AsyncMock` implementations for `ExtractiveSensorService` across the test suite to support the new signature.</action>
-    <action>Write explicit negative tests in `@[tests/backend_v2/services/orchestrator/test_extractive_sensor_service.py]`: 1) Evaluate handling when `theory_grounding` is missing/null. 2) Evaluate strict bypass when `allow_contextual_override` is strictly set to `False`.</action>
-  </step>
-
-  <step id="4.4" name="Final System Audit & Commit">
+    <action>Write explicit negative tests in `tests/backend_v2/services/orchestrator/test_extractive_sensor_service.py`: 1) Evaluate handling when `theory_grounding` is missing/null. 2) Evaluate strict bypass when `allow_contextual_override` is strictly set to `False`.</action>
     <action>Run `uv run python scripts/backend_audit_loop.py backend_v2 --test` to mathematically prove all Python schemas, imports, and tests pass.</action>
     <action>If successful, commit seed data: `uv run python backend_v2/seed/run_seed.py local`</action>
   </step>
 
-</execution_protocol>
+</execution_block>
 ```
+
+## Target Files by Phase
+
+### Phase 1: Database Snapshot & Seed Hygiene
+#### [MODIFY] @[backend_v2/seed/seed_data.json]
+#### [NEW] @[scripts/epic137_seed_mutator.py]
+
+### Phase 2: Dead Code Eradication (Compilers)
+#### [MODIFY] @[backend_v2/services/orchestrator/localization_compiler.py]
+#### [MODIFY] @[backend_v2/services/orchestrator/prompt_compiler.py]
+#### [MODIFY] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py]
+
+### Phase 3: Dead Code Eradication (Tests)
+#### [NEW] [MODIFY] @[tests/backend_v2/services/orchestrator/test_prompt_compiler_adapter.py]
+#### [NEW] [MODIFY] @[tests/backend_v2/services/orchestrator/test_localization_compiler.py]
+
+### Phase 4: DTO Strictness & Engine Metadata Wiring
+#### [MODIFY] @[backend_v2/models/dtos/engine.py]
+
+### Phase 5: TDA Pipeline Rewiring
+#### [MODIFY] @[backend_v2/services/orchestrator/strategies/llm.py]
+#### [MODIFY] @[backend_v2/services/orchestrator/engines/tda_engine.py]
+#### [MODIFY] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
+
+### Phase 6: Sensor Prompt Re-Architecture
+#### [NEW] @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]
+#### [MODIFY] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
+#### [MODIFY] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
+
+### Phase 7: Negative Testing & Mocks & Final Audit
+#### [NEW] [MODIFY] @[tests/backend_v2/services/orchestrator/test_extractive_sensor_service.py]
 
 ## Verification Plan
 
@@ -219,3 +257,18 @@ As per `ki_god_code_prevention.md`, the implementation MUST adhere to:
 ### Manual Verification
 - Check the output of `ExtractiveSensorService` in Logfire or `llm_debug_prompts.md` during a Matrix extraction to confirm the `<theory_grounding>` XML is injected.
 - Visually confirm the Synthesis LLM produces deep, strategic analysis.
+
+## 5. Required Knowledge Items (KI Registry)
+<required_knowledge_items>
+- @[c:\src\quorum\.agents\rules\00-antigravity-core.md]
+- @[c:\src\quorum\.agents\rules\01-python-backend.md]
+- @[c:\src\quorum\.agents\rules\03_seed_vault.md]
+- @[c:\src\quorum\.agents\rules\04_directory_reference.md]
+- @[c:\src\quorum\.agents\rules\05_llm_architecture.md]
+- @[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]
+- @[c:\Users\risto\.gemini\antigravity-ide\knowledge\dag_engine_dto_projection_rules\artifacts\ki_dag_engine_dto_projection_rules.md]
+- @[c:\Users\risto\.gemini\antigravity-ide\knowledge\agent_context_quarantine\artifacts\ki_agent_context_quarantine.md]
+- @[c:\Users\risto\.gemini\antigravity-ide\knowledge\llm_extraction_architecture\artifacts\ki_llm_extraction_architecture.md]
+- @[c:\Users\risto\.gemini\antigravity-ide\knowledge\execution_engine_protocol\artifacts\ki_execution_engine_protocol.md]
+- @[c:\Users\risto\.gemini\antigravity-ide\knowledge\domain_model_prompt_separation\artifacts\ki_domain_model_prompt_separation.md]
+</required_knowledge_items>
