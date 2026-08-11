@@ -17,16 +17,16 @@
 ### Phase 1: AST Guardrails (Concurrency & Domain Security)
 **Plan:** @[c:\src\quorum\docs\epic\tasks_EPIC_136\01_phase_1.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_136\01_phase_1.md] @[c:\src\quorum\docs\epic\EPIC_136_Test_Expansion_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_136\01_phase_1.md] @[c:\src\quorum\docs\epic\EPIC_136_Test_Expansion_tracker.md]`
-  - [x] Step 1: Create deterministic AST inspection guardrails ensuring critical concurrency and pacing constructs are never removed. (Assert Semaphore, TaskGroup, enqueue_job)
-  - [x] Step 1: Implement concurrency negative tests: 1. Missing Construct Detection (no `asyncio.Semaphore`). 2. False Positive Prevention (`Semaphore` as string literal).
-  - [x] Step 1: AST scanner constraint: MUST NOT use naive string matching (`str.find`). It must recursively parse `ast.ImportFrom` nodes.
-  - [x] Step 1: Create deterministic AST inspection guardrails for domain security. Assert LLMClient.from_strategy, _safe_commit, StreamingResponse, ConfigDict(strict=True, extra="forbid"), ban run_chat.
-  - [x] Step 1: Implement domain security negative tests: 1. Banned Node Detection. 2. False Positive Prevention.
-  - [x] Step 1: Constraint: The `hasattr` ban is strictly scoped to `backend_v2/api/` (Controller/Router layer) only.
-  - [x] Step 1: Execute local verification: backend_audit_loop.py on both new tests.
-  - [x] Step 1: Execute `/tier5-session-handover` to start a new session for Phase 2.
-- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] (04109e3a) **[OK] Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\tasks_EPIC_136\01_phase_1.md] @[c:\src\quorum\docs\epic\EPIC_136_Test_Expansion_tracker.md]`
+  - [x] (04109e3a) Step 1: Create deterministic AST inspection guardrails ensuring critical concurrency and pacing constructs are never removed. (Assert Semaphore, TaskGroup, enqueue_job)
+  - [x] (04109e3a) Step 1: Implement concurrency negative tests: 1. Missing Construct Detection (no `asyncio.Semaphore`). 2. False Positive Prevention (`Semaphore` as string literal).
+  - [x] (04109e3a) Step 1: AST scanner constraint: MUST NOT use naive string matching (`str.find`). It must recursively parse `ast.ImportFrom` nodes.
+  - [x] (04109e3a) Step 1: Create deterministic AST inspection guardrails for domain security. Assert LLMClient.from_strategy, _safe_commit, StreamingResponse, ConfigDict(strict=True, extra="forbid"), ban run_chat.
+  - [x] (04109e3a) Step 1: Implement domain security negative tests: 1. Banned Node Detection. 2. False Positive Prevention.
+  - [x] (04109e3a) Step 1: Constraint: The `hasattr` ban is strictly scoped to `backend_v2/api/` (Controller/Router layer) only.
+  - [x] (04109e3a) Step 1: Execute local verification: backend_audit_loop.py on both new tests.
+  - [x] (04109e3a) Step 1: Execute `/tier5-session-handover` to start a new session for Phase 2.
+- [x] (04109e3a) **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\tasks_EPIC_136\01_phase_1.md] @[c:\src\quorum\docs\epic\EPIC_136_Test_Expansion_tracker.md]`
 
 ### Phase 2: Concurrency Fuzzer & Context Boundary Tests
@@ -135,4 +135,4 @@
 - Pass final E2E gates and architectural red-teaming (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier5-session-handover`
+`/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_136\02_phase_2.md] @[c:\src\quorum\docs\epic\EPIC_136_Test_Expansion_tracker.md]" --workflow="/tier2-execute" --rules="00-antigravity-core.md, 01-python-backend.md"`
