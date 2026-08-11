@@ -54,6 +54,9 @@ class MatrixEvaluationContext(BaseModel):
     allow_contextual_override: Annotated[
         bool, Field(default=False, description="Whether contextual override is allowed.")
     ] = False
+    matrix_assertions: Annotated[
+        list[FlattenedAtom] | None, Field(default=None, description="Raw matrix constraints.")
+    ] = None
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 

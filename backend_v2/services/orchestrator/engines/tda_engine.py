@@ -116,13 +116,19 @@ class TDAEngine(ExecutionEngine):
                     )
                     nodes.append(LinkedAtomGraph(atom=extracted, depends_on=[]))
 
+                matrix_context = (
+                    request.matrix_context.model_copy(update={"matrix_assertions": request.shuffled_atoms})
+                    if request.matrix_context
+                    else None
+                )
+
                 states = await dag_executor.execute_graph(
                     nodes,
                     evaluation_context,
                     request.target_locale,
                     progress_callback=dag_progress_matrix,
                     semaphore=request.semaphore,
-                    matrix_context=request.matrix_context,
+                    matrix_context=matrix_context,
                 )
             else:
 

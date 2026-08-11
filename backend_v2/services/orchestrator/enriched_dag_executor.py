@@ -14,7 +14,6 @@ from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
@@ -138,15 +137,9 @@ class EnrichedDagExecutor:
 
             merged_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
 
-            prompt_text = (
-                "Evaluate if the following claims are true based strictly on the provided context.\n"
-                "Return the results matching each claim's alias.\n\n"
-                f"<context>\n{source_text}\n</context>"
-            )
-            compiled_prompt = CompiledPrompt(
-                static_messages=[{"role": "user", "content": prompt_text}],
-                dynamic_messages=[],
-            )
+            from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
+
+            compiled_prompt = MatrixSensorPromptBuilder.build_caching_prefix(source_text, matrix_context)
 
             provider_name = self._llm_client._config.provider if self._llm_client._config else "vertex_ai"
             model_name = str(self._llm_client._config.model_name) if self._llm_client._config else "gemini-1.5-pro"

@@ -39,6 +39,7 @@ from .hook_prompts import (
     SYNTHESIS_XAI_CURATION,
 )
 from .linguistic_directives import build_linguistic_context
+from .matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
 
 __all__ = [
     "ANTI_ID_MANDATE",
@@ -53,6 +54,7 @@ __all__ = [
     "INTERACTION_OBJECTIVE",
     "INTERACTION_RULES",
     "LANGUAGE_MANDATE",
+    "MATRIX_SENSOR_SYSTEM_PROMPT",
     "NULL_HYPOTHESIS_MANDATE",
     "SCHEMA_PURITY_MANDATE",
     "SEMANTIC_BLEED_MANDATE",

@@ -295,23 +295,22 @@ class ExtractiveSensorService:
         alias_engine = AliasEngine()
         requested_aliases: set[str] = set()
         alias_to_tda_id: dict[str, str] = {}
-        claims_xml: list[str] = []
+        tda_id_to_alias: dict[str, str] = {}
 
         for node in nodes:
             tda_id = node.atom.tda_id
             alias = alias_engine.register(tda_id, prefix="a")
             requested_aliases.add(alias)
             alias_to_tda_id[alias] = tda_id
-            claims_xml.append(f'<claim alias="{alias}">\n{node.atom.resolved_claim}\n</claim>')
+            tda_id_to_alias[tda_id] = alias
 
-        claims_str = "\n".join(claims_xml)
+        from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 
-        # Heavy context MUST be at the top for Cache Survival Strategy
-        prompt = (
-            "Evaluate if the following claims are true based strictly on the provided context.\n"
-            "Return the results matching each claim's alias.\n\n"
-            f"<context>\n{context_text}\n</context>\n\n"
-            f"<execution_parameters>\n{claims_str}\n</execution_parameters>"
+        compiled_prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+            context_text=context_text,
+            nodes=nodes,
+            tda_id_to_alias=tda_id_to_alias,
+            matrix_context=matrix_context,
         )
 
         semaphore = asyncio.Semaphore(parallelism)
@@ -321,7 +320,7 @@ class ExtractiveSensorService:
                 try:
                     result, _ = await executor.execute_structured_task(
                         client=client,
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=compiled_prompt,
                         response_model=BatchEvaluationResponse,
                     )
 
