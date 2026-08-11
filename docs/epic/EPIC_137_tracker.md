@@ -58,7 +58,8 @@
   - [x] Step 3: Append `matrix_context` field to `EngineExecutionRequest`.
   - [x] Step 4: Flush Context with Session Handover.
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\EPIC_137_plans\03_phase3_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
+- [x] **[FAILED] Audit:** `/tier8-audit-plan @[c:\src\quorum\docs\epic\EPIC_137_plans\03_phase3_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
+- [x] **[OK] Remediation Execution:** `/tier2-execute @[c:\src\quorum\docs\epic\EPIC_137_plans\03_phase3_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
 
 ### Phase 4: TDA Pipeline Rewiring
 **Plan:** @[c:\src\quorum\docs\epic\EPIC_137_plans\04_phase4_plan.md]
@@ -172,6 +173,10 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 - Reused `TheoryGrounding` model from `v2_core.py` complying with the `schema_convergence_mandate`.
 - Appended `matrix_context` field to `EngineExecutionRequest` successfully.
 - Ran `backend_audit_loop.py` to verify that there were no typing regressions. Initially MyPy failed due to a missing `default=None` assignment on the `matrix_context` field, which was immediately surgically fixed. The audit loop then passed with strict 30% coverage and MyPy adherence.
+- Executed Tier 8 Audit for Phase 3. The implementation perfectly matched the structual DTO requirements (`MatrixEvaluationContext`, `EngineExecutionRequest`), but FAILED the TDD Forensic Audit because no new tests were added for the new DTO.
+- Executed Remediation for Phase 3: Added comprehensive unit tests for `MatrixEvaluationContext` to enforce strictness, frozen state, and type boundaries per the `anti_happy_path_mandate`.
+- Fixed MyPy missing named argument errors by explicitly assigning `None` and `False` defaults in the `engine.py` schema to achieve Pydantic-MyPy default parity.
+- Reran the `backend_audit_loop.py` and successfully passed the strict 30% TDD Coverage gate, completely resolving the Tier 8 Audit failure.
 
 ## Learned
 - **Baseline State Snapshot**: `seed_data.json` currently uses raw `"RULES:"` prefixes inside `ai_description` and non-APA localized citations. `ExtractiveSensorService.evaluate_atom_boolean_batch()` uses an overly generic prompt that lacks `<theory_grounding>`. The `prompt_compiler.py` and `localization_compiler.py` files contain dead code methods (`compile_xml_rubrics`) that have zero production callers. `llm.py` contains a `getattr(b, "category_id", None)` which violates the strict fail-fast property access rule.
@@ -181,9 +186,10 @@ You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bot
 - **Dead Code Eradication Blast Radius**: Deleting functions with zero production callers (dead code) still poses a significant risk to the pipeline via the test suite and import headers. Stale test mocks that reference deleted methods, and unused imports left behind in the file headers, will instantly crash strict CI/CD linters (like Ruff `F401`) and test collections. Red-teaming plans must always verify test cleanup and import hygiene.
 - **DTO Construction Strictness**: Creating new DTO schemas must stringently follow the `pydantic_annotated_fields_mandate`. Without explicitly demanding `Annotated` wrapping in the implementation plan, execution agents risk falling back to legacy bare type assignments, which violate the rigid Pydantic configurations of Quorum.
 - **MyPy and Pydantic Default Parity**: While Pydantic's `Field(default=None)` dictates runtime behavior, MyPy's strict type checking requires explicit class-level default assignments (e.g., `= None`) in Python's AST for `Annotated` fields in BaseModels. Missing this causes `[call-arg]` type errors when instantiating the model without passing the optional argument.
+- **TDD Forensic Audit Mandate**: The execution agent structurally defined the required DTOs but failed to write any unit tests verifying the validation boundaries of the new `MatrixEvaluationContext`. Modifying core engine domain schemas without providing explicit Pydantic boundary unit testing is a strict violation of the `anti_happy_path_mandate`, resulting in an automatic Tier 8 Audit failure.
 
 ## Remaining
-- Tier 8 Audit for Phase 3: DTO Strictness & Engine Metadata Wiring.
+- Tier 8 Audit for Phase 3 (Retry).
 
 ## Resume Command
 `/tier8-audit-plan @[c:\src\quorum\docs\epic\EPIC_137_plans\03_phase3_plan.md] @[c:\src\quorum\docs\epic\EPIC_137_tracker.md]`
