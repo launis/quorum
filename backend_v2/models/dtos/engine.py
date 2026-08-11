@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule
+from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule, TheoryGrounding
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
 if TYPE_CHECKING:
@@ -36,6 +36,26 @@ class FlattenedAtom(BaseModel):
     is_inverse: Annotated[bool, Field(default=False, description="True if this is an inverse assertion.")]
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+
+class MatrixEvaluationContext(BaseModel):
+    """Context for matrix evaluation.
+
+    Attributes:
+        theory_grounding: The theory grounding applied to the matrix.
+        matrix_objective: The objective of the matrix.
+        allow_contextual_override: Whether contextual override is allowed.
+    """
+
+    theory_grounding: Annotated[
+        TheoryGrounding | None, Field(default=None, description="The theory grounding applied to the matrix.")
+    ]
+    matrix_objective: Annotated[str | None, Field(default=None, description="The objective of the matrix.")]
+    allow_contextual_override: Annotated[
+        bool, Field(default=False, description="Whether contextual override is allowed.")
+    ]
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
 
 class EngineExecutionRequest(BaseModel):
@@ -76,6 +96,9 @@ class EngineExecutionRequest(BaseModel):
     prompt_compiler: Any
     shuffled_atoms: list[FlattenedAtom] | None = None
     matrix_block_id: str | None = None
+    matrix_context: Annotated[
+        MatrixEvaluationContext | None, Field(default=None, description="Context for matrix evaluation")
+    ] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)
 
