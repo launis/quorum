@@ -121,8 +121,8 @@ class MarkdownAuditor:
 
                 full_path = self.repo_root / rel_path
 
-                # Check for [NEW] flag
-                if "[NEW]" in line:
+                # Check for [NEW] or [DELETE] flags
+                if "[NEW]" in line or "[DELETE]" in line:
                     continue
 
                 if not full_path.exists():
