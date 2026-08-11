@@ -131,8 +131,10 @@
 - **Phase 1 Execution Learnings**:
   - Global `ConfigDict` injection requires manual verification for manually implemented DTOs (like `MetricsPayloadDTO`) that use `TypeAdapter` and don't inherit from `BaseModel`.
   - Automated regex-based replacement scripts must be carefully audited to prevent indentation errors within classes.
-- **Phase 2 Audit Learnings**:
   - AST guardrail tests inherently check logic structure by returning boolean dicts instead of raising business logic exceptions. Thus, `pytest.raises(AppException)` is not applicable there, but the architectural intent of the `anti_happy_path_mandate` is satisfied through structural false positive/negative validation logic.
+- **Post-Implementation E2E Learnings**:
+  - The E2E REST API gate failed with `INVALID_OUTPUT_SCHEMA` because `MetadataHookPayloadDTO` enforced `extra="forbid"`, which caused a crash when it received the full `global_context_vars` (which includes API ingress data like `language`, `simulation_mode`).
+  - To respect both the `extra="forbid"` mandate from Epic 136 and the "Duct Tape Ban" (no `.get()` fallbacks), `MetadataHookPayloadDTO` was refactored to inherit from `WorkflowInputsIngress`. This allowed it to strictly validate known API inputs while continuing to safely forbid unknown fields.
 
 ## Remaining
 - Epic 136 code implementation is fully completed.
