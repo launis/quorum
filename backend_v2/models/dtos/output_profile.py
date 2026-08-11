@@ -140,6 +140,10 @@ class OutputProfileCreateDTO(V2CoreBase):
         list[AnySduiBlock],
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
     ]
+    target_block_order: Annotated[
+        list[str] | None,
+        Field(default=None, description="Optional block order override."),
+    ]
     performativity_detector_step_id: Annotated[
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),
@@ -241,6 +245,10 @@ class OutputProfileUpdateDTO(V2CoreBase):
         list[AnySduiBlock] | None,
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
     ]
+    target_block_order: Annotated[
+        list[str] | None,
+        Field(default=None, description="Optional block order override."),
+    ]
     performativity_detector_step_id: Annotated[
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),
@@ -294,6 +302,8 @@ class OutputProfileResponseDTO(BaseResponseDTO):
                 "grouped_extensions_block",
                 "penalties_block",
                 "matrix_summary_table_block",
+                "variance_validation_block",
+                "authenticity_evaluation_block",
                 "printable_sources_block",
                 "global_score_block",
                 "audit_trail_block",

@@ -125,6 +125,8 @@ abstract class OutputProfile with _$OutputProfile {
       'grouped_extensions_block',
       'penalties_block',
       'matrix_summary_table_block',
+      'variance_validation_block',
+      'authenticity_evaluation_block',
       'printable_sources_block',
       'global_score_block',
       'audit_trail_block',
