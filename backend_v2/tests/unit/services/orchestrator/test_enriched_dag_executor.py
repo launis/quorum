@@ -81,6 +81,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
             executor=mock_llm_executor,
             client=mock_llm_client,
             context_text="test text",
+            matrix_context=None,
         )
 
 
