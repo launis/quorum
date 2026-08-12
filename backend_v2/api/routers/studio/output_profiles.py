@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def _to_dto(profile: OutputProfile) -> OutputProfileResponseDTO:
-    p_dict = profile.model_dump(mode="json", exclude={"metric_mappings", "score_display_label"})
+    p_dict = profile.model_dump(mode="json", exclude={"metric_mappings"})
     return OutputProfileResponseDTO.model_validate(p_dict, strict=False)
 
 
@@ -43,7 +43,7 @@ async def list_output_profiles(
     profiles = await studio_service.list_output_profiles(current_user)
     dtos = []
     for p in profiles:
-        p_dict = p.model_dump(mode="json", exclude={"metric_mappings", "score_display_label"})
+        p_dict = p.model_dump(mode="json", exclude={"metric_mappings"})
         dtos.append(OutputProfileResponseDTO.model_validate(p_dict, strict=False))
     return OutputProfileListResponse(items=dtos)
 
@@ -115,7 +115,9 @@ async def save_output_profile(
         ResourceNotFoundError: If the output profile is not found.
         AppException: If updating the output profile fails.
     """
-    profile = await studio_service.save_output_profile(current_user, profile_id, data)
+    update_data = data.model_dump(exclude_unset=True)
+    update_data.pop("metric_mappings", None)
+    profile = await studio_service.save_output_profile(current_user, profile_id, update_data)
     return _to_dto(profile)
 
 

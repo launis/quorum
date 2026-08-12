@@ -98,7 +98,12 @@ class StudioOutputProfileService:
             AppException (ErrorCodes.VALIDATION_FAILED): On validation errors.
         """
         if isinstance(data, dict):
-            profile = OutputProfile.model_validate(data)
+            existing = await self.output_profile_repo.get_output_profile_by_id(id)
+            if existing:
+                merged = {**existing, **data}
+                profile = OutputProfile.model_validate(merged)
+            else:
+                profile = OutputProfile.model_validate(data)
         else:
             profile = data
 

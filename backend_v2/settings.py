@@ -137,7 +137,7 @@ class Settings(BaseSettings):
     context_cache_lock_poll_interval_ms: Annotated[int, Field(description="Polling interval for lock acquire")] = 500
     context_cache_lock_wait_limit_seconds: Annotated[int, Field(description="Max wait time for caching lock")] = 20
     context_cache_minimum_token_limit: Annotated[int, Field(description="Minimum tokens to trigger caching")] = 2048
-    pacing_delay_vertex_seconds: Annotated[int, Field(description="Forced delay between Vertex AI requests")] = 12
+    pacing_delay_vertex_seconds: Annotated[int, Field(description="Forced delay between Vertex AI requests")] = 4
     pacing_delay_openai_seconds: Annotated[int, Field(description="Forced delay between OpenAI requests")] = 1
     pacing_delay_mock_seconds: Annotated[int, Field(description="Forced delay between Mock responses")] = 0
     redis_connection_timeout_seconds: Annotated[int, Field(description="Timeout for Redis connection in seconds")] = 10

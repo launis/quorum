@@ -290,7 +290,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     language: str | None = None
     user_role_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
     extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
-    metric_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict, exclude=True)]
+    metric_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
     target_block_order: Annotated[
         list[str],
         Field(

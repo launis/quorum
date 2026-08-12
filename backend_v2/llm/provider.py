@@ -573,21 +573,21 @@ class LiteLLMProvider(LLMProvider):
                     async with semaphore:
                         start_time = time.perf_counter()
 
-                        # Phase 8: Apply Provider-Scoped Pacing Lock to prevent 429 exhaustion
-                        provider_key = (
-                            self._config.provider
-                            if self._config
-                            else (self.model_name.split("/")[0] if "/" in self.model_name else self.model_name)
-                        )
-                        await apply_provider_pacing(
-                            provider_name=provider_key,
-                            strategy_id=self._config.id if self._config else None,
-                            rpm_limit=self._config.rpm_limit if self._config else None,
-                        )
+                        async def _execute_paced_completion() -> Any:
+                            # Phase 8: Apply Provider-Scoped Pacing Lock to prevent 429 exhaustion
+                            provider_key = (
+                                self._config.provider
+                                if self._config
+                                else (self.model_name.split("/")[0] if "/" in self.model_name else self.model_name)
+                            )
+                            await apply_provider_pacing(
+                                provider_name=provider_key,
+                                strategy_id=self._config.id if self._config else None,
+                                rpm_limit=self._config.rpm_limit if self._config else None,
+                            )
+                            return await self.router.acompletion(**call_kwargs)
 
-                        response = await asyncio.wait_for(
-                            self.router.acompletion(**call_kwargs), timeout=float(_timeout)
-                        )
+                        response = await asyncio.wait_for(_execute_paced_completion(), timeout=float(_timeout))
 
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")
