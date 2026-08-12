@@ -36,6 +36,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
   // Controllers for active inline translations
   late Map<String, TextEditingController> _translationControllers;
   late Map<String, FocusNode> _translationFocusNodes;
+  late Map<String, VoidCallback> _translationFocusListeners;
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
     _translations = {};
     _translationControllers = {};
     _translationFocusNodes = {};
+    _translationFocusListeners = {};
     _defaultFocusNode = FocusNode();
 
     if (widget.initialData != null) {
@@ -66,20 +68,27 @@ class _I18nTextFieldState extends State<I18nTextField> {
     );
 
     _defaultController.addListener(_onDefaultControllerChanged);
-    _defaultFocusNode.addListener(() {
-      if (!_defaultFocusNode.hasFocus) _forceEmit();
-    });
+    _defaultFocusNode.addListener(_onDefaultFocusChange);
+  }
+
+  void _onDefaultFocusChange() {
+    if (!_defaultFocusNode.hasFocus) _forceEmit();
   }
 
   void _setupTranslationController(String langCode, String text) {
     final ctrl = TextEditingController(text: text);
     final fn = FocusNode();
     ctrl.addListener(() => _onTranslationChanged(langCode, ctrl.text));
-    fn.addListener(() {
+
+    void listener() {
       if (!fn.hasFocus) _forceEmit();
-    });
+    }
+
+    fn.addListener(listener);
+
     _translationControllers[langCode] = ctrl;
     _translationFocusNodes[langCode] = fn;
+    _translationFocusListeners[langCode] = listener;
   }
 
   void _onDefaultControllerChanged() {
@@ -160,8 +169,15 @@ class _I18nTextFieldState extends State<I18nTextField> {
       for (final k in keysToRemove) {
         _translationControllers[k]?.dispose();
         _translationControllers.remove(k);
-        _translationFocusNodes[k]?.dispose();
+        final fn = _translationFocusNodes[k];
+        final listener = _translationFocusListeners[k];
+        if (fn != null) {
+          if (listener != null) fn.removeListener(listener);
+          if (fn.hasFocus) fn.unfocus();
+          fn.dispose();
+        }
         _translationFocusNodes.remove(k);
+        _translationFocusListeners.remove(k);
         _translations.remove(k);
       }
 
@@ -178,13 +194,22 @@ class _I18nTextFieldState extends State<I18nTextField> {
   void dispose() {
     _debounceTimer?.cancel();
     _defaultController.removeListener(_onDefaultControllerChanged);
+    _defaultFocusNode.removeListener(_onDefaultFocusChange);
+
+    if (_defaultFocusNode.hasFocus) _defaultFocusNode.unfocus();
+
     _defaultController.dispose();
     _defaultFocusNode.dispose();
 
     for (final ctrl in _translationControllers.values) {
       ctrl.dispose();
     }
-    for (final fn in _translationFocusNodes.values) {
+    for (final entry in _translationFocusNodes.entries) {
+      final key = entry.key;
+      final fn = entry.value;
+      final listener = _translationFocusListeners[key];
+      if (listener != null) fn.removeListener(listener);
+      if (fn.hasFocus) fn.unfocus();
       fn.dispose();
     }
 
@@ -212,8 +237,15 @@ class _I18nTextFieldState extends State<I18nTextField> {
       _translations.remove(langCode);
       _translationControllers[langCode]?.dispose();
       _translationControllers.remove(langCode);
-      _translationFocusNodes[langCode]?.dispose();
+      final fn = _translationFocusNodes[langCode];
+      final listener = _translationFocusListeners[langCode];
+      if (fn != null) {
+        if (listener != null) fn.removeListener(listener);
+        if (fn.hasFocus) fn.unfocus();
+        fn.dispose();
+      }
       _translationFocusNodes.remove(langCode);
+      _translationFocusListeners.remove(langCode);
     });
     _forceEmit();
   }

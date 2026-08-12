@@ -66,6 +66,10 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
   void dispose() {
     _keyFocusNode.removeListener(_onKeyFocusChange);
     _aiDescFocusNode.removeListener(_onAiDescFocusChange);
+
+    if (_keyFocusNode.hasFocus) _keyFocusNode.unfocus();
+    if (_aiDescFocusNode.hasFocus) _aiDescFocusNode.unfocus();
+
     _keyFocusNode.dispose();
     _aiDescFocusNode.dispose();
     _keyController.dispose();
