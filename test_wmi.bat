@@ -1,0 +1,1 @@
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Measure-Command { Get-CimInstance -Query 'SELECT * FROM Win32_Process WHERE Name=''python.exe'' AND (CommandLine LIKE ''%%backend_v2%%'' OR CommandLine LIKE ''%%uvicorn%%'')' }"

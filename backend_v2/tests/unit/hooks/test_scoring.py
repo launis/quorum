@@ -55,6 +55,7 @@ def _build_valid_pb_dict(
         "category_id": category_id,
         "scale_min": 1,
         "scale_max": 5,
+        "allow_contextual_override": True,
     }
     if scales:
         pb["scales"] = scales
@@ -1242,3 +1243,68 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
     assert matrix_output is not None
     # Defense-in-depth ensures is_satisfied = False despite contextual_override
     assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) is False
+
+
+class MockRepoWaterfallStrict(MockRepoWaterfall):
+    async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
+        pb = await super().get_prompt_block_by_id(pb_id)
+        pb["allow_contextual_override"] = False
+        return pb
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
+    """Test that illegal contextual_override maps to FALSE when allow_contextual_override is False."""
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    evaluations = []
+
+    # Total 5 atoms, 1 illegal override, 4 PASS
+    for i in range(1, 5):
+        evaluations.append(
+            {
+                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": "Hyväksytty",
+                "source_quote": "mock quote",
+                "contextual_override": False,
+            }
+        )
+    evaluations.append(
+        {
+            "tda_id": generate_atom_hash("atom_5", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Contested",
+            "source_quote": "mock quote",
+            "contextual_override": True,
+        }
+    )
+
+    state = HookState(
+        execution_id="exec_0123456789abcdef",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata={},
+        inputs={"results": evaluations, "extracted_facts": {}},
+        global_context_vars={},
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfallStrict()),
+        workflow_repo=cast(Any, MockRepoWaterfallStrict()),
+        comp_repo=cast(Any, MockRepoWaterfallStrict()),
+        prompt_block_repo=cast(Any, MockRepoWaterfallStrict()),
+        output_profile_repo=cast(Any, MockRepoWaterfallStrict()),
+        identity_repo=cast(Any, MockRepoWaterfallStrict()),
+        audit_repo=cast(Any, MockRepoWaterfallStrict()),
+        system_repo=cast(Any, MockRepoWaterfallStrict()),
+    )
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    assert result.success is True
+    assert result.state_delta is not None
+
+    # 4 TRUE atoms out of 5 -> score is 4.0 (missing atom is penalized)
+    raw_score = result.state_delta["pb_1234567890123456"]["raw_score"]
+    assert abs(raw_score - 4.0) < 0.01

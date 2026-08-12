@@ -836,7 +836,10 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                             if status_str == "DLQ":
                                                 final_state = "DLQ"
                                             elif status_str == "PASSED" and ev_dto.contextual_override:
-                                                final_state = "CONTESTED"
+                                                if effective_override:
+                                                    final_state = "CONTESTED"
+                                                else:
+                                                    final_state = "FALSE"
                                             else:
                                                 if status_str == "PASSED":
                                                     is_satisfied = not tda.inverse_evidence
