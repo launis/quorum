@@ -2,10 +2,15 @@ import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import CausalEdge, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
+
+
+class CausalEdgeFactory(ModelFactory[CausalEdge]):
+    __model__ = CausalEdge
 
 
 class FlattenedAtomFactory(ModelFactory[FlattenedAtom]):
@@ -103,3 +108,49 @@ def test_build_compiled_prompt_negative_missing_aliases() -> None:
         )
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+def test_build_compiled_prompt_dependency_injection() -> None:
+    """PROMISE: Prove that causal dependencies are injected accurately into the prompt."""
+    parent_id = "tda_bbbbbbbbbbbbbbbb"
+    child_id = "tda_cccccccccccccccc"
+
+    parent_alias = "a0"
+    child_alias = "a1"
+
+    edge = CausalEdgeFactory.build(
+        tda_id=parent_id, expected_status=ExecutionStatus.PASSED, edge_reasoning="Because A causes B."
+    )
+
+    child_atom = ExtractedAtomFactory.build(
+        tda_id=child_id, resolved_claim="Child Claim", is_logical_deduction=True, source_quote=None
+    )
+
+    child_node = LinkedAtomGraphFactory.build(atom=child_atom, depends_on=[edge])
+
+    atom_status_map = {parent_id: ExecutionStatus.FAILED}
+
+    tda_id_to_alias = {
+        parent_id: parent_alias,
+        child_id: child_alias,
+    }
+
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+        context_text="Context",
+        nodes=[child_node],
+        tda_id_to_alias=tda_id_to_alias,
+        matrix_context=None,
+        atom_status_map=atom_status_map,
+    )
+
+    assert len(prompt.dynamic_messages) == 1
+    dyn_content = prompt.dynamic_messages[0]["content"]
+
+    assert "<causal_dependencies>" in dyn_content
+    assert f'<dependency parent_alias="{parent_alias}">' in dyn_content
+    assert "<expected_status>" in dyn_content
+    assert ExecutionStatus.PASSED.value in dyn_content
+    assert "<actual_status>" in dyn_content
+    assert ExecutionStatus.FAILED.value in dyn_content
+    assert "<reasoning>" in dyn_content
+    assert "Because A causes B." in dyn_content
