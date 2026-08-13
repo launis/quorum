@@ -96,16 +96,24 @@ class MatrixExplanationService:
                                         tda_to_claim[tda.tda_id] = claim_text
 
                 # Explicit Pydantic parsing
-                lw_matrix = LightweightMatrixOutput.model_validate(payload, strict=False)
+                payload_to_validate = dict(payload)
+                payload_to_validate.pop("results", None)
+
+                lw_matrix = LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)
                 atoms = lw_matrix.evaluated_atoms
 
                 if isinstance(atoms, dict):
                     for tda_id, hit_status in atoms.items():
-                        if hit_status == ExecutionStatus.N_A:
-                            if tda_id in global_quotes_map:
-                                quotes_list.extend(global_quotes_map[tda_id])
-                            if tda_id in tda_to_claim:
-                                evaluated_claims.append(tda_to_claim[tda_id])
+                        if (
+                            hit_status == ExecutionStatus.N_A
+                            or getattr(hit_status, "value", hit_status) == ExecutionStatus.N_A.value
+                        ):
+                            continue
+
+                        if tda_id in global_quotes_map:
+                            quotes_list.extend(global_quotes_map[tda_id])
+                        if tda_id in tda_to_claim:
+                            evaluated_claims.append(tda_to_claim[tda_id])
 
                 if block_id not in matrices_to_explain_map:
                     matrix_alias = alias_engine.register(block_id, prefix="MX-")

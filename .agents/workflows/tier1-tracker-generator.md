@@ -25,22 +25,26 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
       <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
     </rule_block>
+    <rule_block id="tracker_update_preservation">
+      <banned_pattern>Overwriting an existing tracker file entirely, which destroys the `[x]` completion statuses of previously executed phases.</banned_pattern>
+      <mandatory_pattern>If the tracker file ALREADY EXISTS (e.g., this is a mid-Epic update for newly generated deferred plans), you MUST read the existing tracker first. You must perform a SURGICAL UPDATE: inject the new granular `<step id>` checkboxes into the new phases' `Execution:` sections, append the new granular requirements to the `## Requirements Traceability Matrix`, and update the `# Session Handover Context`. You MUST perfectly preserve the `[x]` statuses of all completed phases.</mandatory_pattern>
+      <catastrophic_reason>Overwriting an existing tracker mid-Epic resets all progress to zero and destroys the double-entry bookkeeping audit log.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_tracker_generator">
-    <step id="1" name="ACQUIRE PLANS">
+    <step id="1" name="ACQUIRE PLANS &amp; EXISTING STATE">
       <action>Read the original Epic document. Read all generated implementation plans from the `docs/epic/tasks_EPIC_XXX/` directory.</action>
+      <action>Use `view_file` to check if `docs/epic/EPIC_XXX_tracker.md` already exists. If it exists, you are in UPDATE MODE.</action>
     </step>
-    <step id="2" name="GENERATE TRACKER">
-      <action>Create `docs/epic/EPIC_XXX_tracker.md` using the precise template.
-      Include `## Phase Execution Status`, `### Post-Implementation Gates` (Proxy Sunset, Tier 2 Hardening, Semantic Coverage, E2E Gate), `### Final Epic Audit`, and `## Instructions for the Execution Agent`.</action>
-      <action>Generate a granular `## Requirements Traceability Matrix` mapped to the XML `<step id>` tags from the plans.</action>
-      <action>Generate `# Session Handover Context` at the bottom with `## Achieved`, `## Learned`, `## Remaining`, and `## Resume Command`.</action>
+    <step id="2" name="GENERATE OR UPDATE TRACKER">
+      <action>If in CREATE MODE: Create `docs/epic/EPIC_XXX_tracker.md` using the precise template. Include `## Phase Execution Status`, `### Post-Implementation Gates` (Proxy Sunset, Tier 2 Hardening, Semantic Coverage, E2E Gate), `### Final Epic Audit`, and `## Instructions for the Execution Agent`. Generate a granular `## Requirements Traceability Matrix` and `# Session Handover Context`.</action>
+      <action>If in UPDATE MODE: Surgically update the existing `docs/epic/EPIC_XXX_tracker.md`. Replace the placeholder `[NOK] Create Plan` or `Invoke the Tier 1 Planner again` lines for the newly planned phases with the granular Execution `- [ ] Step X:` checkboxes from the new plans. Append the new requirements to the `## Requirements Traceability Matrix`. Update the `# Session Handover Context`. DO NOT alter the `[x]` checked status of any previously completed phase.</action>
       <constraint name="TRACKER FORMAT">
         - **Header Metadata**: Include `@-reference` links to original Epic (`@[docs\epic\EPIC_XXX.md]`) and Task Directory (`@[docs\epic\tasks_EPIC_XXX/]`). Immediately below this, you MUST inject a `<required_context_rules>` XML block listing the global core rule (`@[.agents\rules\00-antigravity-core.md]`) and ANY Epic-specific Knowledge Items (KIs) relevant to the overall Epic architecture.
         - **`## Phase Execution Status`**: For EACH Phase, you MUST follow this EXACT format:
           1. Immediately below the Phase header, write `**Plan:** @[path_to_plan.md]`.
-          2. **CRITICAL CONDITIONAL:** If an implementation plan could NOT be created for this phase during Tier 1 Planning (e.g., due to complexity, size limits, or missing context), you MUST add `- [ ] **[NOK] Create Plan:** \`/tier0-create-plan @[docs\epic\EPIC_XXX.md] @[path_to_plan.md] --phase=N\`` as the first step.
+          2. **CRITICAL CONDITIONAL:** If an implementation plan could NOT be created for this phase during Tier 1 Planning (e.g., due to complexity, size limits, or missing context), you MUST add `- [ ] **[NOK] Create Plan:** \`/tier0-create-plan @[docs\epic\EPIC_XXX.md] @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md] --phase=N\`` as the first step. The inclusion of the tracker file is MANDATORY so the planner can dynamically update the tracker's Traceability Matrix and Handover Context when the deferred plan is eventually created.
           3. Add `- [ ] **[NOK] Red-Teaming:** \`/tier0-research-plan @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
           4. Add `- [ ] **[NOK] Execution:** \`/tier2-execute @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
           5. **CRITICAL:** You MUST indent and list every single `<step id>` from your XML plan (if it exists) as individual `- [ ] Step X:` checkboxes UNDER the Execution command to allow micro-tracking of partial execution failures.
