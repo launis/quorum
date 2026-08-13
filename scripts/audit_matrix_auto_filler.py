@@ -27,7 +27,7 @@ def main() -> None:
     try:
         with open(matrix_path, encoding="utf-8") as f:
             matrix = json.load(f)
-    except Exception as e:
+    except (OSError, json.JSONDecodeError) as e:
         print(f"Error parsing JSON: {e}")
         sys.exit(1)
 
