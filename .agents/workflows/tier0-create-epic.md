@@ -109,8 +109,8 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
           - Example format:
           ```xml
           <required_knowledge_items>
-            - `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]` <!-- anti_god_file_dumping -->
-            - `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\dag_engine_dto_projection_rules\artifacts\ki_dag_engine_dto_projection_rules.md]` <!-- forensic_naming_law -->
+            - @[ki_god_code_prevention.md]
+            - @[ki_dag_engine_dto_projection_rules.md]
           </required_knowledge_items>
           ```
       </constraint>
@@ -119,7 +119,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
     <step id="4" name="ARCHITECTURAL SAFEGUARDS &amp; KNOWLEDGE ITEM MANDATE">
       <action>Verify data origin (Producer) and consumer.</action>
       <action>Mandate Creation of Knowledge Items (KIs) in `&lt;appDataDir&gt;\knowledge\` if introducing a new Single Source of Truth (SSOT) or novel architectural pattern.</action>
-      <action name="KI REGISTRY POPULATION">You MUST review ALL Knowledge Item (KI) summaries injected at the start of this conversation. For each KI whose domain overlaps with this Epic's scope (based on title and summary matching), you MUST add its artifact path as an `@-reference` to the Epic's `## 5. Required Knowledge Items (KI Registry)` section inside a `&lt;required_knowledge_items&gt;` XML block. This block becomes the SSOT that `/tier1-planner` reads to deterministically inject KIs into every generated plan's `&lt;required_context_rules&gt;`.</action>
+      <action name="KI REGISTRY POPULATION">You MUST review ALL Knowledge Item (KI) summaries injected at the start of this conversation. For each KI whose domain overlaps with this Epic's scope (based on title and summary matching), you MUST add its relative filename (e.g., `ki_filename.md`) as an `@-reference` to the Epic's `## 5. Required Knowledge Items (KI Registry)` section inside a `&lt;required_knowledge_items&gt;` XML block. This block becomes the SSOT that `/tier1-planner` reads to deterministically inject KIs into every generated plan's `&lt;required_context_rules&gt;`.</action>
     </step>
 
     <step id="5" name="EPIC DOCUMENT PERSISTENCE">
