@@ -51,23 +51,21 @@
 - [x] **[OK] Audit:** `/tier8-audit-plan @[docs\\epic\\tasks_EPIC_141\\Phase_4_Automated_Testing.md] @[docs\\epic\\EPIC_141_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] Backend and Frontend full-stack integration test gates.
+- [x] Backend and Frontend full-stack integration test gates.
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files: `@[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files: `@[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]`.
+
+### Phase 5: Final Verification Gates
+**Plan:** @[docs\epic\tasks_EPIC_141\Phase_5_Post_Implementation.md]
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_141\Phase_5_Post_Implementation.md] @[docs\epic\EPIC_141_tracker.md]`
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
-### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
-
-### Final Epic Audit
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs\epic\EPIC_141_Holistic_Executive_Synthesis.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
 
 ## Instructions for the Execution Agent
 - Atomic commits MUST be performed after every phase using `git add` and `git commit` with English messages.
@@ -98,12 +96,13 @@
 - **Universal Quality Gate Passed**: The `backend_audit_loop.py` completed successfully with 1305 passing tests and 83% strict TDD coverage, certifying Phase 4 completion.
 - **Post-Implementation Pre-Flight**: Verified no rogue `@pytest.mark.skip` left behind in modified domains and no deprecated proxies remain.
 - **Tier 2 Hardening (Backend) Completed**: Passed all static checks (MyPy, Ruff), Jinja SDUI enforcement, and unit tests using `backend_audit_loop.py`. Addressed legacy Pydantic schema hydration bugs in `SynthesisPayloadCompressor` and `MatrixExplanationService`.
+- **Tier 2 Hardening (Frontend) Completed**: Audited `distilled_evaluation.dart`. Removed silent fallbacks (`@Default([])`) and applied `equal: false` to comply with Quorum Phase 9 standards. Test coverage established and verified.
 
 ## Learned
 - **Anti-Happy Path Mandatory Enforcement**: Writing tests with "negative" in the name is insufficient. The tests MUST explicitly assert that the system crashes (`pytest.raises(AppException)`) when given malformed inputs to comply with the Zero-Compromise and Duct-Tape Ban laws. This includes updating legacy tests that previously expected silent fallbacks.
 
 ## Remaining
-- **Post-Implementation Gates**: Execute the Tier 2 Hardening (Frontend) gate.
+- **Post-Implementation Gates**: Execute Pre-Delete Audit, Semantic Coverage, and E2E API Verification Gates. Create KIs for SSOTs, run As-Built Architectural Sync (`/tier7-describe-architecture`), and finally run the Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier2-hardening-frontend @[docs\epic\EPIC_141_tracker.md] @[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]`
+`/tier2-execute @[docs\epic\tasks_EPIC_141\Phase_5_Post_Implementation.md] @[docs\epic\EPIC_141_tracker.md]`
