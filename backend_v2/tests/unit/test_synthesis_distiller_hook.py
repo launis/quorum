@@ -52,13 +52,16 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         "id": "exe_0123456789abcdef01",
         "workflow_id": "wf_0123456789abcdef01",
         "status": "PASSED",
-        "output_profile_id": "prof_1",
+        "output_profile_id": "prof_1111111111111111",
         "raw_inputs": {"dynamic_inputs": {}},
         "step_states": {},
     }
     cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = {
-        "id": "prof_1",
-        "layouts": [{"target_blocks": ["*"]}],
+        "id": "prof_1111111111111111",
+        "slug": "prof1",
+        "workflow_id": "wf_0123456789abcdef01",
+        "name": {"default_locale": "en", "translations": {"en": "Prof 1"}},
+        "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
     }
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
     cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []
@@ -117,13 +120,16 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
         "id": "exe_0123456789abcdef01",
         "workflow_id": "wf_0123456789abcdef01",
         "status": "PASSED",
-        "output_profile_id": "prof_1",
+        "output_profile_id": "prof_1111111111111111",
         "raw_inputs": {"dynamic_inputs": {}},
         "step_states": {},
     }
     cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = {
-        "id": "prof_1",
-        "layouts": [{"target_blocks": ["*"]}],
+        "id": "prof_1111111111111111",
+        "slug": "prof1",
+        "workflow_id": "wf_0123456789abcdef01",
+        "name": {"default_locale": "en", "translations": {"en": "Prof 1"}},
+        "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
     }
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
     cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []

@@ -219,7 +219,7 @@ class TestPhase2PipelineUnification:
             "evaluations": [
                 {
                     "atom_id": "a1",
-                    "exact_quotes": [{"quote": "Valid quote."}],
+                    "exact_quotes": ["Valid quote."],
                     "semantic_reasoning": "Good reasoning.",
                     "internal_debug_trace": "MUST_BE_STRIPPED",
                 },
@@ -244,7 +244,7 @@ class TestPhase2PipelineUnification:
         evals = [
             {
                 "atom_id": f"a{i}",
-                "exact_quotes": [{"quote": f"Quote {i}"}],
+                "exact_quotes": [f"Quote {i}"],
                 "semantic_reasoning": f"Reason {i}",
             }
             for i in range(50)
@@ -354,7 +354,7 @@ class TestPhase1Phase2Integration:
             "evaluations": [
                 {
                     "atom_id": "a1",
-                    "exact_quotes": [{"quote": "Key evidence."}],
+                    "exact_quotes": ["Key evidence."],
                     "semantic_reasoning": "Solid reasoning.",
                 }
             ],

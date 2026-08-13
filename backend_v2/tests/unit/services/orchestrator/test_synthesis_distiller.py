@@ -19,13 +19,13 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
         "evaluations": [
             {
                 "atom_id": "a1",
-                "exact_quotes": [{"quote": "This is a valid quote."}],
+                "exact_quotes": ["This is a valid quote."],
                 "semantic_reasoning": "Strong reasoning trace.",
                 "some_extra": "data",
             },
             {
                 "atom_id": "a2",
-                "exact_quotes": [{"quote": "None"}],
+                "exact_quotes": ["None"],
                 "semantic_reasoning": "Weak reasoning.",
             },
         ],
@@ -43,7 +43,7 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
     evals = [
         {
             "atom_id": f"a{i}",
-            "exact_quotes": [{"quote": f"Quote {i}"}],
+            "exact_quotes": [f"Quote {i}"],
             "semantic_reasoning": f"Reason {i}",
         }
         for i in range(50)
@@ -78,10 +78,10 @@ def test_compress_synthesis_payload_strips_null_quotes() -> None:
             {
                 "atom_id": "a1",
                 "exact_quotes": [
-                    {"quote": "N/A"},
-                    {"quote": "null"},
-                    {"quote": "N/A - insufficient data"},
-                    {"quote": "[INDETERMINATE]"},
+                    "N/A",
+                    "null",
+                    "N/A - insufficient data",
+                    "[INDETERMINATE]",
                 ],
                 "semantic_reasoning": "Test",
             },
@@ -123,8 +123,8 @@ def test_assemble_matrices_to_explain_basic() -> None:
                 "normalized_score": 78.5,
                 "level_breakdown": {"3": 2},
                 "results": [
-                    {"tda_id": "a1", "exact_quotes": [{"quote": "Quote A from source."}]},
-                    {"tda_id": "a2", "exact_quotes": [{"quote": "Quote B from source."}]},
+                    {"tda_id": "a1", "exact_quotes": ["Quote A from source."]},
+                    {"tda_id": "a2", "exact_quotes": ["Quote B from source."]},
                 ],
                 "evaluated_atoms": {
                     "a1": True,
@@ -214,7 +214,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
             data_type="matrix",
             payload={
                 "normalized_score": 50.0,
-                "results": [{"tda_id": "a1", "exact_quotes": [{"quote": "Quote 1"}]}],
+                "results": [{"tda_id": "a1", "exact_quotes": ["Quote 1"]}],
                 "evaluated_atoms": {"a1": True},
             },
         ),
@@ -224,7 +224,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
             data_type="matrix",
             payload={
                 "normalized_score": 90.0,
-                "results": [{"tda_id": "a1", "exact_quotes": [{"quote": "Quote 2"}]}],
+                "results": [{"tda_id": "a1", "exact_quotes": ["Quote 2"]}],
                 "evaluated_atoms": {"a1": True},
             },
         ),

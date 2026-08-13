@@ -6,6 +6,7 @@ God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
 
 import asyncio
 import logging
+import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -762,8 +763,6 @@ class DAGExecutor:
                         break
 
             if has_prehydrated and preflight_target_step:
-                import uuid
-
                 virtual_step_id = f"stp_{uuid.uuid4().hex[:16]}"
 
                 async with _update_lock:

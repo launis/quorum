@@ -104,6 +104,9 @@ class MatrixSensorPromptBuilder:
 
         Returns:
             A strictly cached CompiledPrompt.
+
+        Raises:
+            AppException: Triggered with VALIDATION_FAILED if nodes are empty or aliases are missing.
         """
         prefix_prompt = MatrixSensorPromptBuilder.build_caching_prefix(context_text, matrix_context)
         system_content = prefix_prompt.static_messages[0]["content"]

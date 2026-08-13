@@ -17,7 +17,7 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
+from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, PromptBlock, Step, Workflow
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
@@ -244,19 +244,18 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
 
+    # Enforce strict hydration of the raw repository dictionary
+    output_profile = OutputProfile.model_validate(p_dict)
+
     # ARCHITECTURAL MANDATE: Filter available_dtos based on Output Profile target_blocks
     # This strictly limits Token Context Window explosions during LLM Synthesis
     target_block_ids = set()
-    for layout in p_dict.get("layouts", []):
-        tbs = layout.get("target_blocks", [])
-        if tbs:
-            for tb in tbs:
-                if isinstance(tb, str):
-                    target_block_ids.add(tb)
-                elif hasattr(tb, "value"):
-                    target_block_ids.add(tb.value)
-                elif isinstance(tb, dict) and "value" in tb:
-                    target_block_ids.add(tb["value"])
+    for layout in output_profile.layouts:
+        for tb in layout.target_blocks:
+            if isinstance(tb, str):
+                target_block_ids.add(tb)
+            elif hasattr(tb, "value"):
+                target_block_ids.add(tb.value)
 
     filtered_dtos = []
     for dto in available_dtos:
@@ -326,6 +325,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             "output_profile_id": output_profile_id,
             "language": language,
             "alias_registry": alias_engine.alias_map,
-            "max_extensions": p_dict.get("max_extension_items", 3),
+            "max_extensions": output_profile.max_extension_items,
         },
     )

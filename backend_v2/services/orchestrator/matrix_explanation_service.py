@@ -49,6 +49,8 @@ class MatrixExplanationService:
                                     txt = eq.get("text") or eq.get("quote")
                                     if txt:
                                         quotes.append(str(txt))
+                                elif isinstance(eq, str):
+                                    quotes.append(eq)
                         elif "extensions" in atom_res and isinstance(atom_res["extensions"], dict):
                             ext_quotes = atom_res["extensions"].get("exact_quotes", [])
                             if isinstance(ext_quotes, list):

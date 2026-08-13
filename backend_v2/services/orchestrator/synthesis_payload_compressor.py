@@ -26,6 +26,9 @@ class SynthesisPayloadCompressor:
 
         Returns:
             A stringified JSON dump stripped of extraneous AI inference variables.
+
+        Raises:
+            AppException: Triggered with VALIDATION_FAILED if the payload or its inner evaluation components are invalid or exceed limits.
         """
         if not v:
             raise AppException(
@@ -72,26 +75,37 @@ class SynthesisPayloadCompressor:
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
 
-                        eq_list = ev.get("exact_quotes", [])
-                        sr = ev.get("semantic_reasoning")
+                        # Enforce strict Pydantic validation IMMEDIATELY instead of loose dict.get
+                        # We extract mandatory fields strictly (failing fast on KeyError)
+                        # to shield DistilledEvaluation's extra="forbid" from LLM bloat keys.
+                        try:
+                            lite_ev_dict = {
+                                "atom_id": ev["atom_id"],
+                                "exact_quotes": ev["exact_quotes"],
+                            }
+                            if "semantic_reasoning" in ev:
+                                lite_ev_dict["semantic_reasoning"] = ev["semantic_reasoning"]
+                            if "extensions" in ev:
+                                lite_ev_dict["extensions"] = ev["extensions"]
 
-                        if not isinstance(eq_list, list):
+                            lite_ev_obj = DistilledEvaluation.model_validate(lite_ev_dict, strict=False)
+                        except KeyError as e:
                             raise AppException(
-                                message="'exact_quotes' must be a list.",
+                                message=f"Missing mandatory field in evaluation: {str(e)}",
                                 status_code=400,
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            )
+                            ) from e
+                        except Exception as e:
+                            raise AppException(
+                                message=f"Failed to hydrate evaluation: {str(e)}",
+                                status_code=400,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            ) from e
 
+                        # Further sanitize exactly as needed for compression
                         valid_quotes = []
-                        for q in eq_list:
-                            if not q:
-                                continue
-                            q_text = (
-                                (q.get("quote") or q.get("quote_text") or q.get("text", ""))
-                                if isinstance(q, dict)
-                                else str(q)
-                            )
-                            q_str = q_text.strip()
+                        for q_str in lite_ev_obj.exact_quotes:
+                            q_str = q_str.strip()
                             if (
                                 q_str
                                 and q_str not in ("None", "null", "N/A", "N/A - insufficient data")
@@ -100,16 +114,14 @@ class SynthesisPayloadCompressor:
                                 valid_quotes.append(q_str)
 
                         if valid_quotes:
-                            lite_ev_dict = {
-                                "atom_id": ev.get("atom_id"),
-                                "exact_quotes": [q[:300] for q in valid_quotes],
-                                "semantic_reasoning": str(sr)[:300] if sr else None,
-                            }
-                            if "extensions" in ev:
-                                lite_ev_dict["extensions"] = ev["extensions"]
-
-                            # Enforce strict Pydantic validation
-                            lite_ev_obj = DistilledEvaluation.model_validate(lite_ev_dict)
+                            lite_ev_obj = lite_ev_obj.model_copy(
+                                update={
+                                    "exact_quotes": [q[:300] for q in valid_quotes],
+                                    "semantic_reasoning": str(lite_ev_obj.semantic_reasoning)[:300]
+                                    if lite_ev_obj.semantic_reasoning
+                                    else None,
+                                }
+                            )
                             lite_evals.append(lite_ev_obj.model_dump(mode="json"))
 
                     if len(lite_evals) > settings.max_synthesis_evaluations:
