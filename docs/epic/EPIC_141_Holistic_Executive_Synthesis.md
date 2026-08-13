@@ -18,7 +18,7 @@ This problem stems from three architectural "sabotage" points that completely bl
    The Anaphora Resolution pipeline resolves ambiguous pronouns into explicit claims via `resolved_claim`. However, `synthesis_distiller.py` (@[backend_v2/services/orchestrator/synthesis_distiller.py#L159-L330]) strips this critical field from the `lite_ev` dict, forwarding only the unresolved `exact_quotes` text (containing bare pronouns, specifically "It crashed"). The Synthesis LLM is forced to guess facts from dangling pronoun references.
 
 3. **Causal Graph & Execution Status Erasure (DAG Sabotage):**
-   The DAG pipeline builds a hierarchical causal graph (`depends_on` via `LinkedAtomGraph.depends_on: list[CausalEdge]` in @[backend_v2/models/dtos/dag_models.py#L94-L111]). However, `synthesis_distiller.py` cuts the `lite_ev` object so aggressively that it removes all causality data. Additionally, `matrix_sensor_prompt_builder.py` (@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L90-L174]) generates XAI extensions (specifically and exhaustively English Enums: `PRACTICAL_TIP` and `COUNTER_ARGUMENT`, per the `no_string_l10n` and `native_english_generation_mandate` rules) without injecting the atom's dependency statuses into the prompt. The LLM evaluates claims in a blind vacuum without understanding the causal event chain.
+    The DAG pipeline builds a hierarchical causal graph (`depends_on` via `LinkedAtomGraph.depends_on: list[CausalEdge]` in @[backend_v2/models/dtos/dag_models.py#L94-L111]). However, `synthesis_distiller.py` cuts the `lite_ev` object so aggressively that it removes all causality data. Additionally, `matrix_sensor_prompt_builder.py` (@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]) generates XAI extensions (specifically and exhaustively English Enums: `PRACTICAL_TIP` and `COUNTER_ARGUMENT`, per the `no_string_l10n` and `native_english_generation_mandate` rules) without injecting the atom's dependency statuses into the prompt. The LLM evaluates claims in a blind vacuum without understanding the causal event chain.
 
 ## 2. Architectural Impact & Safeguards
 
@@ -67,7 +67,7 @@ This problem stems from three architectural "sabotage" points that completely bl
 ### Phase 3: Matrix Sensor Causal Alignment (XAI)
 - **Target Files**:
   - @[backend_v2/models/dtos/dag_models.py#L94-L111]
-  - @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L90-L174]
+  - @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]
   - @[backend_v2/services/orchestrator/dag_executor.py#L559-L752]
   - [NEW] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
 - **Action:** Inside the `<claim>` XML generation loop (lines 117-141), inject `<depends_on>` tags for each node's causal dependencies using a strict structural template engine (specifically: Jinja macros, `PromptBlock` assembly, or Pydantic XML wrappers).

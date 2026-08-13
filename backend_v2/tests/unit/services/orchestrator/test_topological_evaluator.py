@@ -3,10 +3,10 @@
 import pytest
 
 from backend_v2.models.dtos.dag_models import (
+    AtomExecutionState,
     CausalEdge,
     ExtractedAtom,
     LinkedAtomGraph,
-    AtomExecutionState,
 )
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
