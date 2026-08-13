@@ -3,7 +3,7 @@ from typing import Annotated, Any
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import LaxXaiExtensionType
+from backend_v2.models.enums import LaxXaiExtensionType, LaxExecutionStatus
 
 
 class OutputProfileConfig(V2CoreBase):
@@ -55,7 +55,7 @@ class LightweightMatrixOutput(V2CoreBase):
     level_breakdown: dict[str, dict[str, int]] | None = None
     justification: str = ""
     xai_log: XAILogDto | None = None
-    evaluated_atoms: Annotated[dict[str, bool | str], Field(default_factory=dict)] = Field(default_factory=dict)
+    evaluated_atoms: Annotated[dict[str, LaxExecutionStatus], Field(default_factory=dict)] = Field(default_factory=dict)
     extensions: Annotated[dict[LaxXaiExtensionType, Any], Field(default_factory=dict)] = Field(default_factory=dict)
     allowed_extensions: list[LaxXaiExtensionType] | None = None
 
