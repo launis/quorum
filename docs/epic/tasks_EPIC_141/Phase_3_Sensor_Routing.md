@@ -26,9 +26,8 @@
   </anti_targets>
 
   <step id="1" name="Implementation">
-    <action>[NEW] @[backend_v2/services/orchestrator/extractive_sensor_service.py]: Abstract the complex Matrix assertion mapping and evaluation parsing logic out of `dag_executor.py` and `synthesis_distiller.py`. Introduce a dedicated service pattern (`ExtractiveSensorService`) for routing boolean matrix extractions.</action>
-    <action>[MODIFY] @[backend_v2/models/dtos/dag_models.py#L94-L111]: Update `AtomExecutionState` to store causal justifications (`causal_reasoning`) correctly without introducing bloat to the DAG execution envelope.</action>
-    <action>[MODIFY] @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L89-L157]: Fix CDATA encapsulation bugs (XML Structural Sovereignty). Ensure that dynamic payload fields like `<question>` and `<extraction_rule>` are perfectly sanitized via `TemplateProcessor.encapsulate_payload()` to prevent XML injection breaks.</action>
+    <action>[MODIFY] @[backend_v2/services/orchestrator/synthesis_distiller.py]: Ruthlessly delete the legacy fallback extraction logic for `MatrixScorecardRowDTO` arrays (`isinstance(atoms, list)` logic) in `_assemble_matrices_to_explain`. Enforce `the_no_legacy_mandate` by strictly requiring the lightweight dictionary model for matrix evaluations.</action>
+    <action>[NEW] @[backend_v2/services/orchestrator/matrix_explanation_service.py]: Abstract the remaining `_assemble_matrices_to_explain` logic out of `synthesis_distiller.py` into a dedicated service (`MatrixExplanationService`) to ensure the hook remains lightweight and prevents God Code.</action>
   </step>
 
   <validation_gate>

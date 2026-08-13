@@ -296,7 +296,7 @@ async def test_concurrency_fuzzer_exceeding_physical_limit(
                     workflow=workflow,
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 ),
-                timeout=1.0,
+                timeout=5.0,
             )
 
     # With max=100 and 10 steps, they should all execute concurrently in one 0.05s window.

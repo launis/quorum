@@ -100,6 +100,8 @@
 - Completed Tier 0 Research & Analysis for Phase 2. Mutated the plan to restore missing epic fidelity bounds (specifically `synthesis_engine.py` and `distilled_evaluation.dart`) and injected strict testing validation gates.
 - Completed Phase 2 Execution. Extracted payload compression logic, created the `DistilledEvaluation` Pydantic model, updated setting configurations, created the Dart `DistilledEvaluation` Freezed model, and successfully passed all backend and frontend quality gates.
 - Executed Tier 8 Audit for Phase 2. The audit FAILED due to an orphaned requirement (missed modification to `synthesis_engine.py`).
+- Investigated and resolved three failing backend tests (`test_tier4_workflow_leak_bug.py`, `test_provider_httpx_client.py`, `test_concurrency_fuzzer.py`). All 9 tests passed.
+- Completed Tier 0 Research & Analysis for Phase 3. Dropped three hallucinated tasks (modifying `extractive_sensor_service.py`, `AtomExecutionState`, and `matrix_sensor_prompt_builder.py`). Mutated the plan to explicitly enforce `the_no_legacy_mandate` by deleting legacy `MatrixScorecardRowDTO` fallback logic from `synthesis_distiller.py` and abstracting the remaining logic into `MatrixExplanationService`.
 
 ## Learned
 - **Environmental Issue**: Local tests failed with Redis ConnectionRefusedError but are unrelated to the DAG Strategy modification.
@@ -110,10 +112,11 @@
 - **Frontend Freezed Requirement**: Dart 3+ requires the `abstract` keyword on `Freezed` models to pass static analysis, and `@JsonSerializable` must be placed exactly on the class level for proper parsing generation.
 - **Phase 2 Audit Finding**: `synthesis_engine.py` was skipped during Phase 2 execution because it was ALREADY fully decoupled from dictionary access during Epic 101 (using `GlobalAtomBlackboard`). The audit requirement was a hallucinated false positive and is now marked resolved.
 - **TDD Coverage Gap**: Tests for `SynthesisPayloadCompressor` and `DistilledEvaluation` are missing. These are planned for Phase 4 but flag an `anti_happy_path_mandate` alert during Tier 8 audits.
-- **Unrelated Backend Test Failures**: Tests mentioned previously (`test_tier4_workflow_leak_bug.py`, `test_provider_httpx_client.py`, `test_concurrency_fuzzer.py`) were actually not found in the codebase. This was also a hallucinated finding from the previous planner/auditor.
+- **Unrelated Backend Test Failures Resolved**: Fixed `test_concurrency_fuzzer.py` by increasing timeout bounds for heavy mocked tasks; fixed `test_provider_httpx_client.py` by patching pacing mock around HTTPX client injection; fixed `test_tier4_workflow_leak_bug.py` by adding `exclude=True` to `metric_mappings` in `OutputProfileResponseDTO` to prevent DTO leakage.
+- **Phase 3 Analysis Finding**: `ExtractiveSensorService` already exists and manages early-exit Boolean evaluations. Matrix mapping logic resides entirely in `synthesis_distiller.py`, which still contained legacy list-based extraction fallback patterns violating Quorum invariants.
 
 ## Remaining
-- Proceed to Phase 3 (Sensor Routing & Matrix Explanation Architecture).
+- Proceed to Phase 3 Execution (Sensor Routing & Matrix Explanation Architecture).
 
 ## Resume Command
-`/tier0-research-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
+`/tier2-execute @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`

@@ -58,8 +58,25 @@ class SynthesisMetadataDTO(V2CoreBase):
     execution_summary: Annotated[dict[str, Any] | None, Field()] = None
     step_metrics: Annotated[dict[str, Any] | None, Field()] = None
 
-    # Injected by output quality scanner
     has_slop_warning: Annotated[bool | None, Field()] = None
+
+
+class DistilledEvaluation(V2CoreBase):
+    """Schema for distilled evaluation data used in synthesis.
+
+    Attributes:
+        atom_id: The ID of the atom being evaluated.
+        exact_quotes: The exact quotes extracted as evidence.
+        semantic_reasoning: The reasoning trace from the evaluation.
+        extensions: Additional extension data.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    atom_id: Annotated[str | None, Field()] = None
+    exact_quotes: Annotated[list[str], Field()] = Field(default_factory=list)
+    semantic_reasoning: Annotated[str | None, Field()] = None
+    extensions: Annotated[dict[str, Any] | None, Field()] = None
 
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):

@@ -209,8 +209,8 @@ class TestPhase2PipelineUnification:
         The synthesis_distiller._compress_synthesis_payload serves this role.
         Falsification: Feed heavy payload, verify stripping.
         """
-        from backend_v2.services.orchestrator.synthesis_distiller import (
-            _compress_synthesis_payload,
+        from backend_v2.services.orchestrator.synthesis_payload_compressor import (
+            SynthesisPayloadCompressor,
         )
 
         heavy_payload: dict[str, Any] = {
@@ -225,17 +225,17 @@ class TestPhase2PipelineUnification:
                 },
             ],
         }
-        result = _compress_synthesis_payload(heavy_payload)
+        result = SynthesisPayloadCompressor.compress_synthesis_payload(heavy_payload)
         assert "shuffled_atoms" not in result, "Token shield failed: shuffled_atoms not stripped"
         assert "Valid quote." in result, "Token shield stripped too much: valid quote missing"
 
     def test_compress_synthesis_caps_evaluations(self) -> None:
         """PROMISE: Prevent LLM token explosion by capping evaluations.
 
-        Falsification: Feed 30 evaluations, verify max 20.
+        Falsification: Feed 50 evaluations, verify max 40.
         """
-        from backend_v2.services.orchestrator.synthesis_distiller import (
-            _compress_synthesis_payload,
+        from backend_v2.services.orchestrator.synthesis_payload_compressor import (
+            SynthesisPayloadCompressor,
         )
 
         evals = [
@@ -244,12 +244,12 @@ class TestPhase2PipelineUnification:
                 "exact_quotes": [{"quote": f"Quote {i}"}],
                 "semantic_reasoning": f"Reason {i}",
             }
-            for i in range(30)
+            for i in range(50)
         ]
-        result_str = _compress_synthesis_payload({"evaluations": evals})
+        result_str = SynthesisPayloadCompressor.compress_synthesis_payload({"evaluations": evals})
         parsed = json.loads(result_str)
-        assert len(parsed["evaluations"]) == 20, (
-            f"BROKEN CONTRACT: Evaluations not capped at 20. Got {len(parsed['evaluations'])}."
+        assert len(parsed["evaluations"]) == 40, (
+            f"BROKEN CONTRACT: Evaluations not capped at 40. Got {len(parsed['evaluations'])}."
         )
 
     def test_matrices_to_explain_assembly(self) -> None:
@@ -327,8 +327,8 @@ class TestPhase1Phase2Integration:
         """INTEGRATION: Distiller output (state_delta) must be JSON-serializable
         for DAG transport between nodes.
         """
-        from backend_v2.services.orchestrator.synthesis_distiller import (
-            _compress_synthesis_payload,
+        from backend_v2.services.orchestrator.synthesis_payload_compressor import (
+            SynthesisPayloadCompressor,
         )
 
         payload: dict[str, Any] = {
@@ -341,7 +341,7 @@ class TestPhase1Phase2Integration:
                 }
             ],
         }
-        result = _compress_synthesis_payload(payload)
+        result = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
         # Must be valid JSON
         parsed = json.loads(result)
         assert isinstance(parsed, dict), "Distiller output is not a valid JSON dict"

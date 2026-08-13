@@ -8,17 +8,14 @@ LLM step.
 Epic 93 Phase 2: Pipeline Unification — Milestone 1.
 """
 
-import copy
 import json
 import logging
 from typing import Any
 
 from fastapi import status
-from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.synthesis import SynthesisStepDataDTO
 from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
@@ -27,90 +24,7 @@ from backend_v2.utils.alias_engine import AliasEngine
 logger = logging.getLogger(__name__)
 
 
-def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisStepDataDTO) -> str:
-    """Deep copy and strip heavy Pydantic metadata and AI internal logs before sending to final synthesis.
-
-    Args:
-        v: The extracted JSON payload or DTO value to compress.
-
-    Returns:
-        A stringified JSON dump stripped of extraneous AI inference variables.
-    """
-    if isinstance(v, BaseModel):
-        v = v.model_dump(mode="json")
-    elif isinstance(v, list):
-        v = [item.model_dump(mode="json") if isinstance(item, BaseModel) else item for item in v]
-
-    if not isinstance(v, (dict, list)):
-        return str(v)
-
-    clean_v = copy.deepcopy(v)
-
-    def _strip_heavy_keys(obj: Any) -> None:
-        if isinstance(obj, dict):
-            obj.pop("shuffled_atoms", None)
-            obj.pop("atom_quotes", None)
-
-            # EPIC 70 Lite: Preserve evidence from evaluations for synthesis grounding
-            # ARCHITECTURE LOCK (Rule 82/83): This evaluations filtering algorithm is a
-            # deliberate business logic change — NOT defensive programming. The .get() calls
-            # and isinstance checks are required to safely traverse polymorphic evaluation
-            # payloads from heterogeneous LLM step outputs. DO NOT refactor or simplify.
-            if "evaluations" in obj:
-                evals = obj["evaluations"]
-                if isinstance(evals, list):
-                    lite_evals = []
-                    for ev in evals:
-                        if isinstance(ev, dict):
-                            eq_list = ev.get("exact_quotes", [])
-                            sr = ev.get("semantic_reasoning")
-
-                            if not isinstance(eq_list, list):
-                                eq_list = [eq_list] if eq_list else []
-
-                            valid_quotes = []
-                            for q in eq_list:
-                                if not q:
-                                    continue
-                                q_text = (
-                                    (q.get("quote") or q.get("quote_text") or q.get("text", ""))
-                                    if isinstance(q, dict)
-                                    else str(q)
-                                )
-                                q_str = q_text.strip()
-                                if (
-                                    q_str
-                                    and q_str not in ("None", "null", "N/A", "N/A - insufficient data")
-                                    and not (q_str.startswith("[") and q_str.endswith("]"))
-                                ):
-                                    valid_quotes.append(q_str)
-
-                            if valid_quotes:
-                                lite_ev = {
-                                    "atom_id": ev.get("atom_id"),
-                                    "exact_quotes": [q[:300] for q in valid_quotes],
-                                    "semantic_reasoning": str(sr)[:300] if sr else None,
-                                }
-                                if "extensions" in ev:
-                                    lite_ev["extensions"] = ev["extensions"]
-                                lite_evals.append(lite_ev)
-                    # Cap evaluations to prevent token budget explosion (max 20)
-                    lite_evals = lite_evals[:20]
-                    obj["evaluations"] = lite_evals if lite_evals else None
-                else:
-                    # Non-list evaluations are not valid evidence — strip them
-                    obj["evaluations"] = None
-                if not obj.get("evaluations"):
-                    obj.pop("evaluations", None)
-
-            for _, val in list(obj.items()):
-                _strip_heavy_keys(val)
-        elif isinstance(obj, list):
-            for item in obj:
-                _strip_heavy_keys(item)
-
-    _strip_heavy_keys(clean_v)
-    return json.dumps(clean_v, ensure_ascii=False, indent=2)
+from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 
 
 async def _fetch_historical_context(
@@ -533,7 +447,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
         k_str = uid.lower()
         step_title = title_map[k_str] if k_str in title_map else str(uid)
-        v_str = _compress_synthesis_payload(step_dto_obj.payload)
+        v_str = SynthesisPayloadCompressor.compress_synthesis_payload(step_dto_obj.payload)
 
         # Inject the SHORT ALIAS instead of the long UID
         consolidated_distilled_parts.append(f'<source id="{short_alias}" title="{step_title}">\n{v_str}\n</source>')

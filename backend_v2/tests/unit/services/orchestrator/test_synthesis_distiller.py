@@ -6,10 +6,8 @@ Epic 93 Phase 2, Milestone 1.7: Tests for metadata stripping and matrices_to_exp
 from typing import Any
 
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.services.orchestrator.synthesis_distiller import (
-    _assemble_matrices_to_explain,
-    _compress_synthesis_payload,
-)
+from backend_v2.services.orchestrator.synthesis_distiller import _assemble_matrices_to_explain
+from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 
 
 def test_compress_synthesis_payload_strips_heavy_keys() -> None:
@@ -32,7 +30,7 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
             },
         ],
     }
-    compressed_str = _compress_synthesis_payload(payload)
+    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
 
     assert "shuffled_atoms" not in compressed_str
     assert "This is a valid quote." in compressed_str
@@ -40,29 +38,29 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
     assert '"atom_id": "a2"' not in compressed_str
 
 
-def test_compress_synthesis_payload_caps_evaluations_at_20() -> None:
-    """Test that _compress_synthesis_payload caps evaluations at 20 items."""
+def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
+    """Test that SynthesisPayloadCompressor caps evaluations at 40 items."""
     evals = [
         {
             "atom_id": f"a{i}",
             "exact_quotes": [{"quote": f"Quote {i}"}],
             "semantic_reasoning": f"Reason {i}",
         }
-        for i in range(30)
+        for i in range(50)
     ]
     payload: dict[str, Any] = {"evaluations": evals}
 
-    compressed_str = _compress_synthesis_payload(payload)
+    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
 
     import json
 
     parsed = json.loads(compressed_str)
-    assert len(parsed["evaluations"]) == 20
+    assert len(parsed["evaluations"]) == 40
 
 
 def test_compress_synthesis_payload_handles_string_input() -> None:
     """Test that _compress_synthesis_payload handles plain string values."""
-    result = _compress_synthesis_payload("plain text value")
+    result = SynthesisPayloadCompressor.compress_synthesis_payload("plain text value")
     assert result == "plain text value"
 
 
@@ -82,7 +80,7 @@ def test_compress_synthesis_payload_strips_null_quotes() -> None:
             },
         ],
     }
-    compressed_str = _compress_synthesis_payload(payload)
+    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     # All quotes are filtered as invalid, so evaluation entry is dropped
     assert "evaluations" not in compressed_str
 
@@ -97,7 +95,7 @@ def test_compress_synthesis_payload_compresses_anchors() -> None:
             "value": 42,
         },
     }
-    compressed_str = _compress_synthesis_payload(payload)
+    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert "shuffled_atoms" not in compressed_str
     assert "value" in compressed_str
     assert "localized_anchors_found" in compressed_str

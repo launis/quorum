@@ -1,6 +1,6 @@
 import json
 
-from backend_v2.services.orchestrator.synthesis_distiller import _compress_synthesis_payload
+from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 
 
 def test_compress_synthesis_payload_strips_atom_quotes() -> None:
@@ -16,7 +16,7 @@ def test_compress_synthesis_payload_strips_atom_quotes() -> None:
     }
 
     # Act: Compress the payload
-    compressed_str = _compress_synthesis_payload(payload)
+    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     compressed_dict = json.loads(compressed_str)
 
     # Assert: Evaluations should be aggressively pruned (capped to 300 chars)
@@ -35,8 +35,8 @@ def test_compress_synthesis_payload_strips_atom_quotes() -> None:
 def test_compress_synthesis_payload_negative_empty_input() -> None:
     """PROMISE: Prove that _compress_synthesis_payload handles empty/missing inputs safely."""
     # Act: Compress empty structures
-    compressed_empty_dict = _compress_synthesis_payload({})
-    compressed_empty_list = _compress_synthesis_payload([])
+    compressed_empty_dict = SynthesisPayloadCompressor.compress_synthesis_payload({})
+    compressed_empty_list = SynthesisPayloadCompressor.compress_synthesis_payload([])
 
     # Assert: Should return safe serialized strings without crashing
     assert compressed_empty_dict == "{}"
@@ -55,7 +55,7 @@ def test_compress_synthesis_payload_negative_invalid_types() -> None:
 
     # Act: Compress the payload
     # If the function is safely implemented, it will either pop the keys or ignore them, but will NOT crash with AttributeError or TypeError.
-    compressed_str = _compress_synthesis_payload(payload)
+    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     compressed_dict = json.loads(compressed_str)
 
     # Assert: The payload is successfully processed and heavy keys are stripped or nullified safely

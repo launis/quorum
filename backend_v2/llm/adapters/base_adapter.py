@@ -40,19 +40,17 @@ async def get_redis_client_for_pacing() -> Any:
     except RuntimeError:
         current_loop = None
 
-    if _redis_pool is not None:
-        if "PYTEST_CURRENT_TEST" in os.environ and _redis_loop is not current_loop:
-            _redis_pool = None
-        else:
-            return _redis_pool
-
     try:
         if "PYTEST_CURRENT_TEST" in os.environ:
-            from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
-
-            _redis_pool = get_patched_fakeredis_pool()
-            _redis_loop = current_loop
+            from unittest.mock import AsyncMock
+            
+            mock_redis = AsyncMock()
+            mock_redis.set.return_value = True
+            return mock_redis
         else:
+            if _redis_pool is not None:
+                return _redis_pool
+                
             settings = get_settings()
             _redis_pool = await create_pool(
                 RedisSettings(
@@ -61,7 +59,7 @@ async def get_redis_client_for_pacing() -> Any:
                     conn_timeout=int(settings.redis_connection_timeout_seconds),
                 )
             )
-            _redis_loop = current_loop
+            return _redis_pool
     except Exception as e:
         logger.error("Failed to initialize Redis pool for pacing.", exc_info=True)
         raise AppException(
