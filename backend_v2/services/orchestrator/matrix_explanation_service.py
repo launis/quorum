@@ -4,8 +4,9 @@ Abstracts the matrix quote assembly and justification logic out of the
 synthesis distiller to prevent God Code and maintain Single Responsibility.
 """
 
-from typing import Any
-
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.utils.alias_engine import AliasEngine
@@ -17,7 +18,7 @@ class MatrixExplanationService:
     @staticmethod
     def assemble_matrices_to_explain(
         available_dtos: list[StepOutputDTO], title_map: dict[str, str], blocks_by_id: dict[str, PromptBlock]
-    ) -> list[dict[str, Any]]:
+    ) -> list[MatrixExplanationContextDTO]:
         """Assemble the matrices_to_explain list by extracting quotes from evaluated_atoms.
 
         Epic 94 Enriched Atom Graph migration: Extracts directly from MatrixScorecardRowDTO structures.
@@ -31,7 +32,7 @@ class MatrixExplanationService:
         Returns:
             List of dicts with keys: matrix_id, score, justification.
         """
-        matrices_to_explain_map: dict[str, dict[str, Any]] = {}
+        matrices_to_explain_map: dict[str, MatrixExplanationContextDTO] = {}
         alias_engine = AliasEngine()
 
         # Epic 133A/133B Migration: Build global map of tda_id -> list of quotes
@@ -94,12 +95,13 @@ class MatrixExplanationService:
                                     for tda in claim.tda_assertions:
                                         tda_to_claim[tda.tda_id] = claim_text
 
-                # Epic 133A: Lightweight Matrix evaluates atoms as a dict
-                atoms = payload.get("evaluated_atoms", {})
+                # Explicit Pydantic parsing
+                lw_matrix = LightweightMatrixOutput.model_validate(payload, strict=False)
+                atoms = lw_matrix.evaluated_atoms
 
                 if isinstance(atoms, dict):
                     for tda_id, hit_status in atoms.items():
-                        if hit_status is True or str(hit_status).upper() == "PASS":
+                        if hit_status == ExecutionStatus.N_A:
                             if tda_id in global_quotes_map:
                                 quotes_list.extend(global_quotes_map[tda_id])
                             if tda_id in tda_to_claim:
@@ -136,12 +138,12 @@ class MatrixExplanationService:
                             level_breakdown_str + "No direct evidence quotes extracted for this matrix."
                         )
 
-                    matrices_to_explain_map[block_id] = {
-                        "real_matrix_id": block_id,
-                        "matrix_id": matrix_alias,
-                        "matrix_label": title_map.get(block_id.lower(), block_id),
-                        "score": payload.get("normalized_score"),
-                        "justification": justification_text,
-                    }
+                    matrices_to_explain_map[block_id] = MatrixExplanationContextDTO(
+                        real_matrix_id=block_id,
+                        matrix_id=matrix_alias,
+                        matrix_label=title_map.get(block_id.lower(), block_id),
+                        score=payload.get("normalized_score"),
+                        justification=justification_text,
+                    )
 
         return list(matrices_to_explain_map.values())

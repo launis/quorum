@@ -919,7 +919,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 matrix_context = ""
                 if matrices_to_explain:
-                    matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2)}"
+                    matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{json.dumps([m.model_dump(exclude_none=True) for m in matrices_to_explain], indent=2)}"
 
                 synth_messages: list[dict[str, Any]] = [
                     {"role": "system", "content": sys_prompt},
@@ -961,7 +961,7 @@ async def generate_profile_synthesis_and_pdf_task(
                             "role": "user",
                             "content": (
                                 f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>"
-                                f"\n\nMATRICES TO EXPLAIN:\n{json.dumps(matrices_to_explain, indent=2)}"
+                                f"\n\nMATRICES TO EXPLAIN:\n{json.dumps([m.model_dump(exclude_none=True) for m in matrices_to_explain], indent=2)}"
                             ),
                         },
                     ]

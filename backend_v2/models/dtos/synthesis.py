@@ -60,6 +60,26 @@ class XaiHighlightItem(V2CoreBase):
     ]
 
 
+class MatrixExplanationContextDTO(V2CoreBase):
+    """DTO representing the evaluated state of a matrix for synthesis explanation.
+
+    Attributes:
+        real_matrix_id: The original PromptBlock ID.
+        matrix_id: The alias for the LLM.
+        matrix_label: The localized matrix title.
+        score: The normalized score.
+        justification: The structured justification text including quotes.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    real_matrix_id: Annotated[str, Field(description="The original PromptBlock ID")]
+    matrix_id: Annotated[str, Field(description="The alias for the LLM")]
+    matrix_label: Annotated[str, Field(description="The localized matrix title")]
+    score: Annotated[float | None, Field(description="The normalized score", default=None)]
+    justification: Annotated[str, Field(description="The structured justification text including quotes")]
+
+
 class SynthesisRowExplanationDTO(V2CoreBase):
     """DTO providing a short context explanation for a specific matrix mapping row.
 

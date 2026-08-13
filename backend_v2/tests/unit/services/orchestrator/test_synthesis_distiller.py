@@ -145,11 +145,11 @@ def test_assemble_matrices_to_explain_basic() -> None:
     result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
 
     assert len(result) == 1
-    assert result[0]["matrix_id"] == "MX-0"
-    assert result[0]["real_matrix_id"] == "blk_matrix1"
-    assert result[0]["score"] == 78.5
-    assert "Quote A from source." in result[0]["justification"]
-    assert "Quote B from source." in result[0]["justification"]
+    assert result[0].matrix_id == "MX-0"
+    assert result[0].real_matrix_id == "blk_matrix1"
+    assert result[0].score == 78.5
+    assert "Quote A from source." in result[0].justification
+    assert "Quote B from source." in result[0].justification
 
 
 def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
@@ -173,7 +173,7 @@ def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
 
     result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
     assert len(result) == 1
-    assert result[0]["justification"] == "No direct evidence quotes extracted for this matrix."
+    assert result[0].justification == "No direct evidence quotes extracted for this matrix."
 
 
 def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
@@ -201,8 +201,8 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
 
     result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
     assert len(result) == 1
-    assert result[0]["real_matrix_id"] == "blk_matrix1"
-    assert result[0]["justification"] == "No direct evidence quotes extracted for this matrix."
+    assert result[0].real_matrix_id == "blk_matrix1"
+    assert result[0].justification == "No direct evidence quotes extracted for this matrix."
 
 
 def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
@@ -240,4 +240,45 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
 
     result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)  # type: ignore
     assert len(result) == 1
-    assert result[0]["score"] == 50.0  # First entry wins
+    assert result[0].score == 50.0  # First entry wins
+
+
+def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
+    """PROMISE: Matrix explanation must include FAILED claims and skip N_A claims."""
+    from backend_v2.models.enums import ExecutionStatus
+
+    dtos = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id="blk_matrix1",
+            data_type="matrix",
+            payload={
+                "normalized_score": 78.5,
+                "results": [
+                    {"tda_id": "a1", "exact_quotes": ["Quote A for pass."]},
+                    {"tda_id": "a2", "exact_quotes": ["Quote B for fail."]},
+                    {"tda_id": "a3", "exact_quotes": ["Quote C for NA."]},
+                ],
+                "evaluated_atoms": {
+                    "a1": ExecutionStatus.PASSED.value,
+                    "a2": ExecutionStatus.FAILED.value,
+                    "a3": ExecutionStatus.N_A.value,
+                },
+            },
+        ),
+    ]
+    from unittest.mock import MagicMock
+
+    from backend_v2.models.v2_core import PromptBlock
+
+    mock_pb = MagicMock(spec=PromptBlock)
+    mock_pb.category_id = "matrix"
+    mock_pb.scales = None
+    blocks_by_id = {"blk_matrix1": mock_pb}
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
+
+    assert len(result) == 1
+    assert "Quote A for pass." in result[0].justification
+    assert "Quote B for fail." in result[0].justification
+    assert "Quote C for NA." not in result[0].justification

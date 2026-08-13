@@ -144,11 +144,18 @@ class MatrixDomainParser:
             norm_score = matrix_payload.normalized_score
 
             if matrix_payload.evaluated_atoms:
-                true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
-                total_atoms = len(matrix_payload.evaluated_atoms)
+                true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v == ExecutionStatus.PASSED)
+                total_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v != ExecutionStatus.N_A)
+
                 if total_atoms > 0 and raw_score is None:
                     raw_score = true_atoms / total_atoms
                     norm_score = raw_score * 100.0
+                elif total_atoms == 0:
+                    logger.info(
+                        "[MatrixDomainParser] Matrix '%s' evaluated to N_A (total_atoms=0). Bypassing scoring.", b_id
+                    )
+                    raw_score = None
+                    norm_score = None
 
             axis_name = pb_meta.label.resolve(locale) if pb_meta.label else b_id
             if not axis_name:

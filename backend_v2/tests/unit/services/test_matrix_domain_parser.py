@@ -165,3 +165,70 @@ def test_parse_matrices_success():
     assert "step1_blk_1234567890abcdef1234567890abcdef" in all_parsed
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.row_explanation == "Good!"
+
+
+def test_parse_matrices_na_bypass():
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    from backend_v2.models.enums import ExecutionStatus
+
+    payload = {
+        "raw_score": None,
+        "normalized_score": None,
+        "evaluated_atoms": {
+            "atom_1": ExecutionStatus.N_A,
+            "atom_2": ExecutionStatus.N_A,
+        },
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "N/A!"},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert matrix.score is None
+    assert matrix.normalized_score is None
+    assert matrix.true_atoms == 0
+    assert matrix.total_atoms == 0
+
+
+def test_parse_matrices_failed_does_not_increment():
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    from backend_v2.models.enums import ExecutionStatus
+
+    payload = {
+        "raw_score": None,
+        "normalized_score": None,
+        "evaluated_atoms": {
+            "atom_1": ExecutionStatus.PASSED,
+            "atom_2": ExecutionStatus.FAILED,
+            "atom_3": ExecutionStatus.SYSTEM_ERROR,
+            "atom_4": ExecutionStatus.N_A,
+        },
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Mixed!"},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert matrix.true_atoms == 1
+    assert matrix.total_atoms == 3
+    assert matrix.score == 0.3

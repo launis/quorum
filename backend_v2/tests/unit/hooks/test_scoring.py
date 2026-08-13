@@ -412,7 +412,6 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
     assert result.success is True
 
 
-@pytest.mark.xfail(reason="Phase 2 pending: MatrixDomainParser evaluates Enum as truthy")
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_pass_all() -> None:
     """Test standard hybrid model when everything passes."""
@@ -775,7 +774,6 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
     assert "Strict Fail-Fast" in str(exc_info.value)
 
 
-@pytest.mark.xfail(reason="Phase 2 pending: MatrixDomainParser evaluates Enum as truthy")
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_dynamic_penalty() -> None:
     """Test that matrix_level score correctly applies the dynamic penalty without affecting the global scale improperly."""
@@ -839,7 +837,6 @@ async def test_matrix_scoring_hook_dynamic_penalty() -> None:
     )
 
 
-@pytest.mark.xfail(reason="Phase 2 pending: MatrixDomainParser evaluates Enum as truthy")
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_cognitive_collapse() -> None:
     """Test that Cognitive Collapse lock correctly rejects a matrix exceeding the 3 atom or 50% threshold."""

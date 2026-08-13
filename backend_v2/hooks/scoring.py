@@ -918,7 +918,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 block_scale_stats[pb_id][s_val]["dlqs"] += 1
                                 missing_atoms_by_block[pb_id].append(f"- {text} (DLQ - Unscorable)")
                             elif final_state == "CONTESTED":
-                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.PASSED
+                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.CONTESTED
                                 block_scale_stats[pb_id][s_val]["total"] += 1
                                 block_scale_stats[pb_id][s_val]["hits"] += 1
                                 contested_atoms_by_block[pb_id] += 1
@@ -1314,6 +1314,9 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
 
             if effective_status == ExecutionStatus.SYSTEM_ERROR:
                 raw_stats[s_val]["dlqs"] += 1
+            elif effective_status == ExecutionStatus.CONTESTED:
+                raw_stats[s_val]["hits"] += 1
+                n_contested += 1
             elif effective_status == ExecutionStatus.PASSED:
                 raw_stats[s_val]["hits"] += 1
 
