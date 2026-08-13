@@ -76,8 +76,8 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       </constraint>
       <constraint name="QUORUM MODERNITY GATE">
         Ruthlessly audit the plan against Quorum anti-patterns. If ANY are detected, mutate the plan to enforce the mandated replacement:
-        * The "e.g." ban: Using "e.g." introduces fatal ambiguity. You MUST rewrite any "e.g." into explicit and exhaustive lists, or use phrases like "specifically mapped to" or "such as".
-        * Ambiguous examples ("such as SduiBlock") → Explicit locked types (specifically `SduiMarkdownBlock`)
+        * The "e.g." ban: Using "e.g." introduces fatal ambiguity. You MUST rewrite any "e.g." into explicit and exhaustive lists, or use programmatic references.
+        * Ambiguous examples ("such as SduiBlock") → Explicit locked types
         * Hidden Scope file paths ("such as test.json") → Exact relative paths for ALL affected files
         * Visual string transformations (`"A" -> "B"`) → Programmatic data manipulation directives
         * Implicit rendering instructions ("add a check") → Exact UI tree positioning ("BEFORE macro X")

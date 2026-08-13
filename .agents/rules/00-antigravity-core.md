@@ -23,11 +23,11 @@ trigger: always_on
         <mandatory_pattern>When a user inputs a slash command (e.g. `/tier2-execute`), your IMMEDIATE action must be to use the `view_file` tool on the corresponding workflow file in `.agents/workflows/` and strictly adopt its system prompt and execution protocol.</mandatory_pattern>
     </rule_block>
     <rule_block id="anti_ambiguity_mandate">
-        <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, or generic file paths.</banned_pattern>
+        <banned_pattern>Using "e.g.", "such as", "like", "etc." or other ambiguous shorthands, visual string examples, generic file paths, or attempting to bypass the ban by using "specifically:" for open-ended example lists.</banned_pattern>
         <mandatory_pattern>Implementation plans, epics, research analysis, and bug hunting artifacts MUST be strictly programmatic and deterministic.
-        1) You MUST NEVER use "e.g.", "such as", "like", or "etc." To remove ambiguity, you MUST apply one of two strategies:
+        1) You MUST NEVER use "e.g.", "such as", "like", "etc.", or "specifically:" (when used for open-ended examples). To remove ambiguity, you MUST apply one of two strategies:
            (A) For a closed/small set, use an explicit list: "specifically and exhaustively: A, B, C".
-           (B) For a dynamic set (like domain models, UI blocks, or DB routes), DO NOT hardcode a static list in design Epics. Use a PROGRAMMATIC reference to the Single Source of Truth (e.g., "specifically ALL models inheriting from AnySduiBlock in models/view/sdui.py").
+           (B) For a dynamic set (like domain models, UI blocks, or DB routes), DO NOT hardcode a static list. Use a PROGRAMMATIC reference to the Single Source of Truth (specifically ALL models inheriting from AnySduiBlock in models/view/sdui.py).
         2) THE DYNAMIC RESOLUTION MANDATE: Whenever you are executing or planning based on a programmatic reference (from strategy B), your absolute FIRST action MUST be to use `grep_search` to physically query the codebase, find ALL matching concrete entities, and explicitly list them in your `<thinking_process>` or `implementation_plan.md`. You are FORBIDDEN from leaving the scope abstract during the actual implementation phase.
         3) NEVER use generic definitions when specifying data models; lock the exact type.
         4) NEVER use generic paths; list EXACT relative paths.
@@ -73,7 +73,7 @@ trigger: always_on
     </rule_block>
     <rule_block id="atomic_checkpoint_mandate">
         <banned_pattern>Modifying multiple architectural domains (e.g., UI and Backend) concurrently without a save state, proposing `git add .`, or writing git commit messages in a language other than English.</banned_pattern>
-        <mandatory_pattern>After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST explicitly instruct the user to perform an atomic `git commit` BEFORE proceeding to the next file or logic block. Exception: If a structural refactor mathematically requires modifying a coupled set of files (e.g., extracting shared interfaces to break circular imports) before the system can compile, you are authorized to modify that specific batch of files concurrently BEFORE running the quality gate and instructing the atomic commit. You MUST ALWAYS specify exact relative file paths (specifically: `git add client_app_v2/path/to/file.dart`). Git commit messages MUST ALWAYS be written in English.</mandatory_pattern>
+        <mandatory_pattern>After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST explicitly instruct the user to perform an atomic `git commit` BEFORE proceeding to the next file or logic block. Exception: If a structural refactor mathematically requires modifying a coupled set of files (e.g., extracting shared interfaces to break circular imports) before the system can compile, you are authorized to modify that specific batch of files concurrently BEFORE running the quality gate and instructing the atomic commit. You MUST ALWAYS specify exact relative file paths (specifically ALL modified file paths in the active directory). Git commit messages MUST ALWAYS be written in English.</mandatory_pattern>
         <catastrophic_reason>Failure to enforce atomic commits per-file/per-domain results in massive, un-rollbackable Git histories and makes identifying regression bugs mathematically impossible.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_amnesia_prevention">

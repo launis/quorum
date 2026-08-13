@@ -30,13 +30,13 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
     
     <rule_block id="neuro_symbolic_grounding_mandate">
       <banned_pattern>Relying solely on your own semantic memory (System 1) or visual skimming to verify that the physical codebase matches the Epic.</banned_pattern>
-      <mandatory_pattern>You MUST embrace Neuro-Symbolic Agentic Architecture. Recognize that Large Language Models act as lossy compression algorithms. You are FORBIDDEN from visually skimming to audit implementation status. You MUST actively use `grep_search` and `run_command` (specifically: running tests) to deterministically prove that the code exists and functions exactly as promised in the Epic.</mandatory_pattern>
+      <mandatory_pattern>You MUST embrace Neuro-Symbolic Agentic Architecture. Recognize that Large Language Models act as lossy compression algorithms. You are FORBIDDEN from visually skimming to audit implementation status. You MUST actively use `grep_search` and `run_command` to deterministically prove that the code exists and functions exactly as promised in the Epic.</mandatory_pattern>
       <catastrophic_reason>Assuming LLMs can perfectly audit thousands of lines of code by just reading text leads to silent context drift and false-positive audit passes.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Outputting file paths in handover commands, trackers, or audit reports without bounding them in `@-reference` syntax, or referencing massive files without specific `#Lnn-mm` line bounds.</banned_pattern>
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, or audit report, you MUST explicitly wrap all target file paths in `@-reference` syntax (specifically: `@[backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (specifically: `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax.</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, or audit report, you MUST explicitly wrap all target file paths in `@-reference` syntax. CRITICAL LARGE FILE BOUNDING: If the target is a massive file, you MUST append specific line bounds using `#Lnn-mm` syntax.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
     
@@ -48,7 +48,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
     
     <rule_block id="knowledge_base_mandate">
       <banned_pattern>Ignoring Knowledge Items when auditing systems governed by them.</banned_pattern>
-      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the Epic touches systems governed by a KI (specifically: Caching, AliasEngine, SDUI), you MUST read the KI artifact to establish the correct audit baseline.</mandatory_pattern>
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the Epic touches systems governed by a KI, you MUST read the KI artifact to establish the correct audit baseline.</mandatory_pattern>
       <catastrophic_reason>Auditing without reading the domain's Knowledge Items leads to false-positive failures and destroys established architectural contracts.</catastrophic_reason>
     </rule_block>
   
@@ -79,7 +79,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
       - You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.
       - SUPPLY CHAIN AUDIT: Use `grep_search` on `pyproject.toml` and `pubspec.yaml` to verify that no unauthorized third-party dependencies were introduced. Specifically search for packages banned by `dependency_hallucination_firewall` and `ai_bloatware_ban` (specifically and exhaustively: `langchain`, `llamaindex`, `crewai`, `autogen`, `semantic-kernel`). If any banned package is found, flag it as a CRITICAL finding.
       - MATHEMATICAL PROOF MANDATE: You MUST physically execute the universal quality gate scripts. You MUST enforce the Two-Stage Testing Pipeline from `fragmented_quality_gates_prevention`: First run localized tests on the modified directories for rapid feedback. Then, BEFORE declaring the Phase audit PASSED, you MUST run the GLOBAL completion gate (`uv run python scripts/backend_audit_loop.py backend_v2/ --test` for backend, `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build` for frontend). A localized-only audit is NEVER sufficient for final sign-off.
-      - TRANSIENT ERROR MITIGATION: If the quality gate fails due to a transient environment error (specifically: database file lock, network timeout, missing dependency) rather than a genuine architectural or test assertion failure, you MUST NOT immediately fail the Epic audit. You MUST attempt to resolve the environment issue or flag it as an 'Environment Block' and request user intervention before marking the audit as failed.
+      - TRANSIENT ERROR MITIGATION: If the quality gate fails due to a transient environment error rather than a genuine architectural or test assertion failure, you MUST NOT immediately fail the Epic audit. You MUST attempt to resolve the environment issue or flag it as an 'Environment Block' and request user intervention before marking the audit as failed.
     </step>
 
     <step id="5">COMPLETION GAP ANALYSIS: 
@@ -88,7 +88,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
 
     <step id="6">RETROSPECTIVE REPORT GENERATION & HANDOVER: 
       - Produce or incrementally update a final `EPIC_XXX_audit_report.md` artifact in the `docs/epic/` directory containing a strict Pass/Fail traceability matrix.
-      - If there are remaining Phases to audit, you MUST mandate a `/tier5-session-handover` to continue the audit in a fresh context window. Provide the exact resume command (specifically: `/tier5-resume --target="@[docs\epic\EPIC_XXX_audit_report.md]" --workflow=/tier8-audit-epic --rules=backend|frontend ...`).
+      - If there are remaining Phases to audit, you MUST mandate a `/tier5-session-handover` to continue the audit in a fresh context window. Provide the exact resume command.
     </step>
   </execution_protocol>
 </system_prompt>

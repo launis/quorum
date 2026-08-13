@@ -33,7 +33,7 @@ description: Tier 2 (Knowledge Hardening) - Systematic Red-Teaming and XML Refac
   <phases>
     <phase id="1" name="Mapping">
 Your first task is to use tools (e.g. `list_dir`) to understand the depth of the target directory structure.
-* Map all `.md` files (specifically `ki_*.md` files) within the target directory and its subdirectories (e.g., `knowledge/`).
+* Map all `.md` files within the target directory and its subdirectories.
 * **RULE:** Build a virtual Markdown checklist (`task_knowledge.md`) to be printed in the chat. Every single `.md` file is its own separate item on the list.
 * **STATE PERSISTENCE & CONTEXT RENEWAL:** If the user's command contains `--resume` or the file `tmp\hardening_ki_state.json` exists, read it. Omit from the list any files that are marked as "DONE" there. Bring the list of only undone files. At the same time, set a local goal: "I will process a maximum of 3 KI files in this session to prevent context degradation."
 * **AUTONOMOUS BATCH MODE:** Once the list is ready, DO NOT wait for a PROCEED command. Immediately transition to Phase 2 (Auditing & XML Refactoring) in the same continuous loop.

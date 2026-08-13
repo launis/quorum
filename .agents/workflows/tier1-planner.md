@@ -3,7 +3,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
 ---
 
 ### 🟢 TIER 1: EPIC PLANNER (Planning a large change / Epic)
-*Usage: At this tier, the goal is to break down a large entity or an Epic (provided as an .md file) into several smaller, detailed implementation plan files (specifically: `01_feature_plan.md`). These plans are saved into a single specific subdirectory to allow execution across multiple context windows (AI sessions).*
+*Usage: At this tier, the goal is to break down a large entity or an Epic (provided as an .md file) into several smaller, detailed implementation plan files. These plans are saved into a single specific subdirectory to allow execution across multiple context windows (AI sessions).*
 
 ```xml
 <system_prompt>
@@ -59,11 +59,11 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     </rule_block>
     
     <rule_block id="anti_abstraction_mandate">
-      <banned_pattern>Abstracting, summarizing, or generalizing explicit details from the Epic using lazy placeholders (specifically: "implement the logic as described in the Epic", "use the error code from the Epic", "see the payload in the Epic").</banned_pattern>
+      <banned_pattern>Abstracting, summarizing, or generalizing explicit details from the Epic using lazy placeholders.</banned_pattern>
       <mandatory_pattern>You MUST NOT act as a lossy compression algorithm. You MUST extract and VERBATIM preserve the following explicit details into the generated XML plan steps if they exist in the Epic:
         1) **Payloads &amp; Snippets:** Exact JSON examples, data payloads, and code snippets.
-        2) **Error Codes &amp; Exceptions:** Exact `AppException` types and `ErrorCodes` (specifically: `ErrorCodes.INVALID_STATE`).
-        3) **Constants &amp; Nomenclature:** Specific variable names, hardcoded strings, feature flags, or magic numbers (specifically: `TTL = 3600`).
+        2) **Error Codes &amp; Exceptions:** Exact `AppException` types and `ErrorCodes`.
+        3) **Constants &amp; Nomenclature:** Specific variable names, hardcoded strings, feature flags, or magic numbers.
         4) **Anti-Targets:** Explicitly listed "Do not touch" rules or exclusion zones MUST be copied verbatim into the `<anti_targets>` XML block.
         5) **Algorithmic Steps:** If the Epic provides a numbered 1-2-3 sequence for internal method logic, copy that exact sequence verbatim into the plan's `<action>` tags.
         6) **Line Bounds:** If the Epic specifies `#Lnn-mm` line bounds for a target, you MUST copy the EXACT `#Lnn-mm` notation into the plan.
@@ -79,7 +79,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Writing plan targets as raw strings instead of bounded `@-reference` blocks, or discarding explicit line bounds provided by the Epic.</banned_pattern>
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (specifically: `@[backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (specifically: `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. EPIC BOUNDARY PRESERVATION: If the source Epic document provides specific line bounds for a target (specifically: `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plans. This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation. DYNAMIC RULES INJECTION: You MUST explicitly list the global core rule (`@[.agents\rules\00-antigravity-core.md]`), the domain-specific rule file for the phase (e.g., `@[.agents\rules\01-python-backend.md]` for Python/Backend or `@[.agents\rules\02_flutter_desktop.md]` for Flutter/Frontend), PLUS all Knowledge Items from the parent Epic's `&lt;required_knowledge_items&gt;` block inside the `&lt;required_context_rules&gt;` block of EVERY generated plan. DETERMINISTIC KI INHERITANCE MANDATE: You MUST read the parent Epic document and locate its `&lt;required_knowledge_items&gt;` XML block. ALL KI `@-references` listed there MUST be copied verbatim into every generated plan's `&lt;required_context_rules&gt;` block. This is DETERMINISTIC inheritance from the SSOT — you are FORBIDDEN from relying on heuristic relevance filtering for KIs that the Epic has already registered. You MAY add additional phase-specific KIs beyond what the Epic lists.</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax. CRITICAL LARGE FILE BOUNDING: If the target is a massive file, you MUST append specific line bounds using `#Lnn-mm` syntax. EPIC BOUNDARY PRESERVATION: If the source Epic document provides specific line bounds for a target, you MUST preserve these EXACT same bounds verbatim in your generated implementation plans. This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation. DYNAMIC RULES INJECTION: You MUST explicitly list the global core rule (`@[.agents\rules\00-antigravity-core.md]`), the domain-specific rule file for the phase (e.g., `@[.agents\rules\01-python-backend.md]` for Python/Backend or `@[.agents\rules\02_flutter_desktop.md]` for Flutter/Frontend), PLUS all Knowledge Items from the parent Epic's `&lt;required_knowledge_items&gt;` block inside the `&lt;required_context_rules&gt;` block of EVERY generated plan. DETERMINISTIC KI INHERITANCE MANDATE: You MUST read the parent Epic document and locate its `&lt;required_knowledge_items&gt;` XML block. ALL KI `@-references` listed there MUST be copied verbatim into every generated plan's `&lt;required_context_rules&gt;` block. This is DETERMINISTIC inheritance from the SSOT — you are FORBIDDEN from relying on heuristic relevance filtering for KIs that the Epic has already registered. You MAY add additional phase-specific KIs beyond what the Epic lists.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` or dropping Epic-defined bounds forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia, loss of architectural targeting, and immediate truncation failure.</catastrophic_reason>
     </rule_block>
     
@@ -97,7 +97,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     
     <rule_block id="knowledge_base_mandate">
       <banned_pattern>Planning implementations related to complex domains without first reading the corresponding Knowledge Item (KI) artifact.</banned_pattern>
-      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the plan touches systems governed by a KI (specifically: Caching, AliasEngine, SDUI), you MUST read the KI artifact to establish the correct architectural baseline BEFORE generating the plan.</mandatory_pattern>
+      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the plan touches systems governed by a KI, you MUST read the KI artifact to establish the correct architectural baseline BEFORE generating the plan.</mandatory_pattern>
       <catastrophic_reason>Failing to consult canonical knowledge items causes implementation drift, violating the Single Source of Truth architecture and introducing pattern-breaking code into specialized domains.</catastrophic_reason>
     </rule_block>
     
@@ -206,7 +206,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
 
     <rule_block id="the_strangler_fig_mandate">
       <banned_pattern>Proposing "Big Bang" rewrites of entire systems in a single plan, OR deleting legacy code before the new implementation is fully proven and audited.</banned_pattern>
-      <mandatory_pattern>You MUST enforce the Strangler Fig pattern. 1) Build the new feature/SSOT in isolation. 2) Route traffic via proxies or temporary adapters. 3) ONLY AFTER the new system passes Tier 8 audit, can a SUBSEQUENT plan propose the deletion of the legacy code. You must explicitly tag the final phase as a "Destructive Clean-up" phase. CRITICAL PHASE AWARENESS: Deprecations spanning both Backend and Frontend MUST be split into separate, sequenced deletion tasks (specifically: delete Backend proxy in Phase N, delete Frontend proxy in Phase N+1) to prevent cascading build failures.</mandatory_pattern>
+      <mandatory_pattern>You MUST enforce the Strangler Fig pattern. 1) Build the new feature/SSOT in isolation. 2) Route traffic via proxies or temporary adapters. 3) ONLY AFTER the new system passes Tier 8 audit, can a SUBSEQUENT plan propose the deletion of the legacy code. You must explicitly tag the final phase as a "Destructive Clean-up" phase. CRITICAL PHASE AWARENESS: Deprecations spanning both Backend and Frontend MUST be split into separate, sequenced deletion tasks to prevent cascading build failures.</mandatory_pattern>
       <catastrophic_reason>Deleting legacy code in the same phase it is being replaced destroys the system if the new implementation fails to compile or pass quality gates.</catastrophic_reason>
     </rule_block>
     
@@ -239,9 +239,9 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     </step>
     
     <step id="3.1" name="MICRO-CHUNK DIRECTORIES &amp; LAZY PLAN GENERATION">
-      <action>Create a single new subdirectory for this specific Epic strictly under `docs\epic\tasks_[epic_name]\` (specifically: `docs\epic\tasks_EPIC_109\`).</action>
+      <action>Create a single new subdirectory for this specific Epic strictly under `docs\epic\tasks_[epic_name]\`.</action>
       <constraint>Do NOT create subdirectories for phases inside it.</constraint>
-      <action>Extract and route the phases of the Epic into micro-chunked implementation plan markdown files placed directly in this single directory. You MUST use 1:1 verbatim text transfer (copy-paste) from the Epic to populate the `<action>` tags in your generated XML protocol. Do not synthesize or summarize the phase. Each plan's filename MUST be descriptive and contain a sequence number at the beginning (specifically: `00_coverage_bootstrap_plan.md`, `01_backend_migration_plan.md`, `02_frontend_ui_plan.md`).</action>
+      <action>Extract and route the phases of the Epic into micro-chunked implementation plan markdown files placed directly in this single directory. You MUST use 1:1 verbatim text transfer (copy-paste) from the Epic to populate the `<action>` tags in your generated XML protocol. Do not synthesize or summarize the phase. Each plan's filename MUST be descriptive and contain a sequence number at the beginning.</action>
       <constraint name="MICRO-CHUNKING RULES">
         1) Maximum 3-4 target files modified per plan. 
         2) NEVER mix Backend (Python) and Frontend (Flutter) changes in the same plan. 

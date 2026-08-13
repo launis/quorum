@@ -392,7 +392,7 @@
     </rule_block>
     <rule_block id="role_segregation_and_fencing">
         <banned_pattern>Injecting raw user text directly into the system prompt.</banned_pattern>
-        <mandatory_pattern>Always fence untrusted user payloads with clear XML tags (specifically `<user_payload>...</user_payload>`) as a firewall against prompt injection attacks.</mandatory_pattern>
+        <mandatory_pattern>Always fence untrusted user payloads with clear XML tags (specifically using the `<user_payload>...</user_payload>` structure) as a firewall against prompt injection attacks.</mandatory_pattern>
         <catastrophic_reason>Unfenced data allows malicious payloads to hijack the role execution, bypassing the entire security layer.</catastrophic_reason>
     </rule_block>
     <rule_block id="infinite_retry_loops">
