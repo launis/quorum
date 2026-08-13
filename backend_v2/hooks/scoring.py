@@ -1,7 +1,7 @@
 """Scoring Hook for evaluating agent performance and applying penalties."""
 
 import logging
-from typing import Any, Literal, cast
+from typing import Annotated, Any, Literal, cast
 
 from pydantic import ConfigDict, Field, ValidationError
 
@@ -43,7 +43,7 @@ class ScoringPayloadWrapper(V2CoreBase):
     step_input_processing: InputProcessingOutputDTO | None = None
     step_falsifier: StepFalsifierDTO | None = None
     step_panel: StepPanelDTO | None = None
-    evaluative_matrices: dict[str, float] | None = Field(default=None, alias="_evaluative_matrices")
+    evaluative_matrices: Annotated[dict[str, float] | None, Field(alias="_evaluative_matrices")] = None
 
 
 class StateInputWrapper(V2CoreBase):
