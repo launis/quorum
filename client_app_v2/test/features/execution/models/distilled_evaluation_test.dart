@@ -12,10 +12,7 @@ void main() {
           'semantic_reasoning': 'Because reasons',
         };
 
-        expect(
-          () => DistilledEvaluation.fromJson(json),
-          throwsA(anything),
-        );
+        expect(() => DistilledEvaluation.fromJson(json), throwsA(anything));
       },
     );
 

@@ -73,7 +73,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
         ),
     ):
         mock_sensor.return_value = {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})}
-        status_dict = await captured_callback([mock_node])
+        status_dict = await captured_callback([mock_node], {})
 
         assert status_dict["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
         mock_sensor.assert_called_once_with(
@@ -82,6 +82,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
             client=mock_llm_client,
             context_text="test text",
             matrix_context=None,
+            current_states={},
         )
 
 
@@ -149,7 +150,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
     async def fake_evaluate_graph_exec(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
     ) -> dict[str, Any]:
-        return await batch_evaluation_callback(nodes)
+        return await batch_evaluation_callback(nodes, {})
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph_exec):
         with (
@@ -187,7 +188,7 @@ async def test_execute_graph_callback_persistent_error(
     async def fake_evaluate_graph_exec(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
     ) -> dict[str, Any]:
-        return await batch_evaluation_callback(nodes)
+        return await batch_evaluation_callback(nodes, {})
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom
 
@@ -240,7 +241,7 @@ async def test_execute_graph_callback_transient_error(mock_llm_executor: AsyncMo
     async def fake_evaluate_graph_exec(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
     ) -> dict[str, Any]:
-        return await batch_evaluation_callback(nodes)
+        return await batch_evaluation_callback(nodes, {})
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom
 

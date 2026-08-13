@@ -8,7 +8,7 @@ from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
 from backend_v2.models.v2_core import I18nText, PromptBlock
@@ -93,6 +93,7 @@ class MatrixSensorPromptBuilder:
         nodes: list[LinkedAtomGraph],
         tda_id_to_alias: dict[str, str],
         matrix_context: MatrixEvaluationContext | None = None,
+        atom_status_map: dict[str, ExecutionStatus] | None = None,
     ) -> CompiledPrompt:
         """Builds the strictly segregated CompiledPrompt for Matrix Sensor.
 
@@ -154,6 +155,35 @@ class MatrixSensorPromptBuilder:
             else:
                 claim_cdata = TemplateProcessor.encapsulate_payload(node.atom.resolved_claim)
                 content = f"{claim_cdata}\n"
+
+            dependencies_xml = []
+            if node.depends_on:
+                for dep in node.depends_on:
+                    actual_status = ExecutionStatus.PENDING
+                    if atom_status_map and dep.tda_id in atom_status_map:
+                        actual_status = atom_status_map[dep.tda_id]
+
+                    dep_alias = tda_id_to_alias.get(dep.tda_id, dep.tda_id)
+
+                    status_cdata = TemplateProcessor.encapsulate_payload(actual_status.value)
+                    expected_cdata = TemplateProcessor.encapsulate_payload(dep.expected_status.value)
+                    reasoning_cdata = TemplateProcessor.encapsulate_payload(dep.edge_reasoning)
+
+                    dep_content = (
+                        f"<expected_status>\n{expected_cdata}\n</expected_status>\n"
+                        f"<actual_status>\n{status_cdata}\n</actual_status>\n"
+                        f"<reasoning>\n{reasoning_cdata}\n</reasoning>\n"
+                    )
+                    dependencies_xml.append(
+                        f'<dependency parent_alias="{dep_alias}">\n{dep_content.strip()}\n</dependency>'
+                    )
+
+            if dependencies_xml:
+                deps_str = "\n".join(dependencies_xml)
+                deps_content = TemplateProcessor.safe_interpolate(
+                    "<causal_dependencies>\n{c}\n</causal_dependencies>", c=deps_str
+                )
+                content += f"\n{deps_content}"
 
             claims_xml.append(f'<claim alias="{alias}">\n{content.strip()}\n</claim>')
 

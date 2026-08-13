@@ -6,6 +6,7 @@ from backend_v2.models.dtos.dag_models import (
     CausalEdge,
     ExtractedAtom,
     LinkedAtomGraph,
+    AtomExecutionState,
 )
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
@@ -45,6 +46,7 @@ async def test_successful_evaluation() -> None:
 
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
     ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
@@ -75,6 +77,7 @@ async def test_phantom_edge_isolation() -> None:
 
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
     ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
@@ -117,6 +120,7 @@ async def test_cyclic_dependency_detected() -> None:
 
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
     ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
@@ -163,6 +167,7 @@ async def test_blocked_cascade() -> None:
 
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
     ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
 
@@ -205,6 +210,7 @@ async def test_na_short_circuit_cascade() -> None:
 
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
     ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         results = {}
         for node in batch_nodes:

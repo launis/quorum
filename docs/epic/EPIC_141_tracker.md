@@ -31,13 +31,14 @@
 - [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_141\Phase_2_Distiller_Extraction.md] @[docs\epic\EPIC_141_tracker.md]` (Note: The previous failure regarding `synthesis_engine.py` was a hallucinated requirement. The engine was already strictly typed and decoupled via `GlobalAtomBlackboard` in Epic 101. No modifications were needed).
 ### Phase 3: Sensor Routing & Matrix Explanation Architecture
 **Plan:** @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md]
-- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
+- [x] **[OK] Red-Teaming (Remediation):** `/tier0-research-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
+- [x] **[OK] Execution (Remediation):** `/tier2-execute @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
   - [x] (VERIFIED_EXISTING) Step 1: Delete legacy fallback extraction logic in `synthesis_distiller.py`.
   - [x] (VERIFIED_EXISTING) Step 2: Abstract `MatrixExplanationService`.
-  - [x] Step 3: Fix CDATA encapsulation bugs in `matrix_sensor_prompt_builder.py`.
-- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
+  - [x] (VERIFIED_EXISTING) Step 3: Fix CDATA encapsulation bugs in `matrix_sensor_prompt_builder.py`.
+  - [x] (REMEDIATION) Step 4: Plumb Causal Alignment and `<dependency>` injection.
+- [x] **[OK] Test Coverage Assertions**
+- [ ] **[PENDING] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
 
 ### Phase 4: Automated Testing Strategy
 **Plan:** @[docs\epic\tasks_EPIC_141\Phase_4_Automated_Testing.md]
@@ -81,28 +82,26 @@
 - [x] **R5**: Refactor `synthesis_distiller.py` to use `max_synthesis_evaluations` instead of hardcoded `[:20]` cutoff (Phase 2, Step 4).
 - [x] **R6**: Create `extractive_sensor_service.py` to isolate Matrix assertion mappings (Phase 3, Step 1).
 - [x] **R7**: Add `causal_reasoning` string to `AtomExecutionState` in `dag_models.py` (Phase 3, Step 2).
-- [x] **R8**: Sanitize dynamic CDATA fields (`<question>`, `<extraction_rule>`) using `TemplateProcessor` in `matrix_sensor_prompt_builder.py` (Phase 3, Step 3).
+- [x] **R8**: Sanitize dynamic CDATA fields and inject `<dependency>` tags with actual statuses into `matrix_sensor_prompt_builder.py` (Phase 3, Step 3) - REMEDIATED.
 - [x] **R9**: Create unit test file `test_synthesis_payload_compression.py` (Phase 4, Step 1).
-- [x] **R10**: Create unit test file `test_matrix_sensor_prompt_builder.py` (Phase 4, Step 2).
+- [x] **R10**: Create unit test file `test_matrix_sensor_prompt_builder.py` (Phase 4, Step 2) - REMEDIATED.
 - [x] **R11**: Update `test_dag_taskgroup.py` and `test_bug_synthesis_hook.py` (Phase 4, Step 3).
 - [x] **R12**: Enhance structural assertions in `test_epic93_contract_verification.py` (Phase 4, Step 4).
 
 # Session Handover Context
 ## Achieved
-- **Phase 1 Executed & Audited**: Extracted DAG Engine Strategy logic into dynamic inference, removing hardcoded checks.
-- **Phase 2 Executed & Audited**: Implemented `SynthesisPayloadCompressor` and `DistilledEvaluation` to handle heavy metadata stripping.
-- **Phase 3 Executed & Audited**: Abstracted `MatrixExplanationService`, removed old fallbacks, and fixed CDATA encapsulation bugs.
-- **Phase 4 Executed & Audited (Red-Teamed & Fixed)**: Created unit tests for the compressor, sensor builder, and hooks. Initially failed audit due to Anti-Happy Path violations, but subsequently refactored `SynthesisPayloadCompressor`, `MatrixSensorPromptBuilder`, and their tests to enforce strict Fail-Fast validation.
-- **Universal Quality Gate Passed**: The `backend_audit_loop.py` completed successfully with 1305 passing tests and 83% strict TDD coverage, certifying Phase 4 completion.
-- **Post-Implementation Pre-Flight**: Verified no rogue `@pytest.mark.skip` left behind in modified domains and no deprecated proxies remain.
-- **Tier 2 Hardening (Backend) Completed**: Passed all static checks (MyPy, Ruff), Jinja SDUI enforcement, and unit tests using `backend_audit_loop.py`. Addressed legacy Pydantic schema hydration bugs in `SynthesisPayloadCompressor` and `MatrixExplanationService`.
-- **Tier 2 Hardening (Frontend) Completed**: Audited `distilled_evaluation.dart`. Removed silent fallbacks (`@Default([])`) and applied `equal: false` to comply with Quorum Phase 9 standards. Test coverage established and verified.
-- **Phase 5 Executed & Audited**: Executed Pre-Delete Audit, mathematically verified Semantic Coverage (>90% threshold met for surviving logic), passed final E2E REST API Verification Gate with real LLM integration, and created new Knowledge Items for Synthesis Payload Compression.
+- **Global Quality Gates Passed**: Both Backend and Frontend Universal Quality Gates successfully passed during the Final Epic Audit, and after the recent Phase 3 Remediation.
+- **Phase 3 Tier 0 Remediation**: Completed Red-Teaming for the missing Matrix Sensor Causal Alignment. Rewrote `Phase_3_Sensor_Routing.md` to properly plumb `current_states` down to `MatrixSensorPromptBuilder` for XML `<dependency>` tag injection without raw f-strings.
+- **Phase 3 Execution (Remediation)**: Successfully executed the remediation plan. `TopologicalEvaluator` and `EnrichedDagExecutor` now accurately plumb runtime statuses down into `ExtractiveSensorService`. `MatrixSensorPromptBuilder` correctly injects XML `<dependency>` elements based on resolved `AtomExecutionState` mappings.
+- **Test Restoration**: Successfully fixed callback signature anomalies in unit tests (`test_enriched_dag_executor.py` and `test_topological_evaluator.py`). Universal Quality Gates and strict MyPy typing achieved 100% pass rate.
+
 ## Learned
-- **Anti-Happy Path Mandatory Enforcement**: Writing tests with "negative" in the name is insufficient. The tests MUST explicitly assert that the system crashes (`pytest.raises(AppException)`) when given malformed inputs to comply with the Zero-Compromise and Duct-Tape Ban laws. This includes updating legacy tests that previously expected silent fallbacks.
+- **Plan Dropped Boundaries**: The previous planner abstracted away the critical Phase 3 Causal Alignment steps entirely, which is why the execution agent omitted them.
+- **Fail-Fast Enforcement**: Because the physical implementation did not mathematically match the Epic's stated architectural requirement, the Tier 8 Audit explicitly FAILED and issued an `EPIC_141_audit_report.md`.
+- **Typing Integrity**: When modifying callbacks dynamically, `AsyncMock` assertions must be highly precise to avoid silent test-suite decay. Always use the proper `ExecutionStatus` SSOT values (e.g. `PENDING`) rather than hallucinated enumerations.
 
 ## Remaining
-- **Automated Documentation Syncs**: Epic execution is functionally complete. The system requires As-Built Architectural Sync (`/tier7-describe-architecture`), followed by the final holistic Epic Audit (`/tier8-audit-epic`).
+- **Restart Final Epic Audit**: With the Phase 3 remediation execution completed, strictly typed, and thoroughly validated by tests, the final epic audit MUST be re-run to verify completeness and formally close Epic 141.
 
 ## Resume Command
-`/tier7-describe-architecture`
+`/tier8-audit-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`

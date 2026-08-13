@@ -10,7 +10,7 @@ from rapidfuzz import fuzz
 from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
-from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import AtomExecutionState, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
@@ -304,6 +304,7 @@ class ExtractiveSensorService:
         client: LLMClient,
         context_text: str,
         matrix_context: MatrixEvaluationContext | None = None,
+        current_states: dict[str, AtomExecutionState] | None = None,
     ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
         """Evaluates a batch of atom claims against the source text using an LLM.
 
@@ -337,11 +338,16 @@ class ExtractiveSensorService:
             alias_to_tda_id[alias] = tda_id
             tda_id_to_alias[tda_id] = alias
 
+        atom_status_map: dict[str, ExecutionStatus] = {}
+        if current_states:
+            atom_status_map = {tda_id: state.status for tda_id, state in current_states.items()}
+
         compiled_prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
             context_text=context_text,
             nodes=nodes,
             tda_id_to_alias=tda_id_to_alias,
             matrix_context=matrix_context,
+            atom_status_map=atom_status_map,
         )
 
         semaphore = asyncio.Semaphore(parallelism)

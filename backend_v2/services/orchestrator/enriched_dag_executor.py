@@ -68,6 +68,7 @@ class EnrichedDagExecutor:
 
         async def process_chunk(
             chunk: list[LinkedAtomGraph],
+            current_states: dict[str, AtomExecutionState],
         ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
             nonlocal completed_atoms
             try:
@@ -90,6 +91,7 @@ class EnrichedDagExecutor:
                         client=self._llm_client,
                         context_text=source_text,
                         matrix_context=matrix_context,
+                        current_states=current_states,
                     )
                 res = {**pre_flight_results, **llm_results}
                 if progress_callback:
@@ -121,6 +123,7 @@ class EnrichedDagExecutor:
 
         async def batch_evaluation_callback(
             wave_nodes: list[LinkedAtomGraph],
+            current_states: dict[str, AtomExecutionState],
         ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
             """Callback injected into TopologicalEvaluator for wave-based evaluation.
 
@@ -152,7 +155,7 @@ class EnrichedDagExecutor:
 
             try:
                 async with asyncio.TaskGroup() as tg:
-                    tasks = [tg.create_task(process_chunk(chunk)) for chunk in chunks]
+                    tasks = [tg.create_task(process_chunk(chunk, current_states)) for chunk in chunks]
 
                 for task in tasks:
                     merged_results.update(task.result())

@@ -12,13 +12,13 @@ Currently, the Quorum architecture produces robotic, disjointed text during the 
 This problem stems from three architectural "sabotage" points that completely blind the LLM nodes:
 
 1. **The 20-Atom Cutoff (Distiller Sabotage):**
-   In `synthesis_distiller.py` (@[backend_v2/services/orchestrator/synthesis_distiller.py#L30-L113]), a brutal token-saving cap exists: `lite_evals = lite_evals[:20]`. The Synthesis LLM sees only 20 random mathematical truths from the execution, discarding up to 80% of facts.
+   In `synthesis_distiller.py` (@[backend_v2/services/orchestrator/synthesis_distiller.py#L159-L330]), a brutal token-saving cap exists: `lite_evals = lite_evals[:20]`. The Synthesis LLM sees only 20 random mathematical truths from the execution, discarding up to 80% of facts.
 
 2. **Loss of Claim Context (`resolved_claim`) & Anaphora Sabotage:**
-   The Anaphora Resolution pipeline resolves ambiguous pronouns into explicit claims via `resolved_claim`. However, `synthesis_distiller.py` (@[backend_v2/services/orchestrator/synthesis_distiller.py#L30-L113]) strips this critical field from the `lite_ev` dict, forwarding only the unresolved `exact_quotes` text (containing bare pronouns, specifically "It crashed"). The Synthesis LLM is forced to guess facts from dangling pronoun references.
+   The Anaphora Resolution pipeline resolves ambiguous pronouns into explicit claims via `resolved_claim`. However, `synthesis_distiller.py` (@[backend_v2/services/orchestrator/synthesis_distiller.py#L159-L330]) strips this critical field from the `lite_ev` dict, forwarding only the unresolved `exact_quotes` text (containing bare pronouns, specifically "It crashed"). The Synthesis LLM is forced to guess facts from dangling pronoun references.
 
 3. **Causal Graph & Execution Status Erasure (DAG Sabotage):**
-   The DAG pipeline builds a hierarchical causal graph (`depends_on` via `LinkedAtomGraph.depends_on: list[CausalEdge]` in @[backend_v2/models/dtos/dag_models.py#L94-L111]). However, `synthesis_distiller.py` cuts the `lite_ev` object so aggressively that it removes all causality data. Additionally, `matrix_sensor_prompt_builder.py` (@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L89-L157]) generates XAI extensions (specifically and exhaustively English Enums: `PRACTICAL_TIP` and `COUNTER_ARGUMENT`, per the `no_string_l10n` and `native_english_generation_mandate` rules) without injecting the atom's dependency statuses into the prompt. The LLM evaluates claims in a blind vacuum without understanding the causal event chain.
+   The DAG pipeline builds a hierarchical causal graph (`depends_on` via `LinkedAtomGraph.depends_on: list[CausalEdge]` in @[backend_v2/models/dtos/dag_models.py#L94-L111]). However, `synthesis_distiller.py` cuts the `lite_ev` object so aggressively that it removes all causality data. Additionally, `matrix_sensor_prompt_builder.py` (@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L90-L174]) generates XAI extensions (specifically and exhaustively English Enums: `PRACTICAL_TIP` and `COUNTER_ARGUMENT`, per the `no_string_l10n` and `native_english_generation_mandate` rules) without injecting the atom's dependency statuses into the prompt. The LLM evaluates claims in a blind vacuum without understanding the causal event chain.
 
 ## 2. Architectural Impact & Safeguards
 
@@ -30,7 +30,7 @@ This problem stems from three architectural "sabotage" points that completely bl
 
 ### Phase 1: Restore UI/DB Sovereignty (Remove Hardcoded Blueprint Bypass)
 - **Target Files**:
-  - @[backend_v2/services/orchestrator/dag_executor.py#L558-L750]
+  - @[backend_v2/services/orchestrator/dag_executor.py#L559-L752]
 - **Action:** Remove the hardcoded check `if step_obj.task_blueprint == "sp_7a8b9c0d1e2f3a4b":` at line 584.
 - **Implementation:** The engine is currently hardcoded to run `MatrixReducer` ONLY if the step's `task_blueprint` ID is exactly that specific string. This completely breaks database-driven orchestration: if a new workflow is created in the UI and the Synthesis step receives a new ID, the execution will silently skip the MatrixReducer.
 - **Fix:** Replace the hardcoded ID check with dynamic strategy inference using the existing `Step.model_strategy` field (@[backend_v2/models/v2_core.py#L706-L795]).
@@ -39,9 +39,9 @@ This problem stems from three architectural "sabotage" points that completely bl
 
 ### Phase 2: Synthesis Distiller Bottleneck Removal & God Code Prevention
 - **Target Files**:
-  - [MODIFY] @[backend_v2/services/orchestrator/synthesis_distiller.py#L30-L113]
+  - [MODIFY] @[backend_v2/services/orchestrator/synthesis_distiller.py#L159-L330]
   - [NEW] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
-  - [MODIFY] @[backend_v2/settings.py#L42-L598]
+  - [MODIFY] @[backend_v2/settings.py#L42-L599]
   - [MODIFY] @[backend_v2/models/domain/synthesis.py]
 - **God Code Prevention Mandate:** Because `synthesis_distiller.py` is over 500 lines (a God File), you MUST NOT append new private helpers or bloat existing methods per the `private_helper_bloat_ban` and `anti_god_file_dumping` rules. You MUST extract the `_compress_synthesis_payload` logic and the new context cross-referencing logic into a dedicated new module (specifically: [NEW] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]).
 - **Action (Extraction):** Move the compression logic out of `synthesis_distiller.py` into the [NEW] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] module. Update `synthesis_distiller_hook` to import and call this new module.
@@ -67,8 +67,8 @@ This problem stems from three architectural "sabotage" points that completely bl
 ### Phase 3: Matrix Sensor Causal Alignment (XAI)
 - **Target Files**:
   - @[backend_v2/models/dtos/dag_models.py#L94-L111]
-  - @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L89-L157]
-  - @[backend_v2/services/orchestrator/dag_executor.py#L558-L750]
+  - @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L90-L174]
+  - @[backend_v2/services/orchestrator/dag_executor.py#L559-L752]
   - [NEW] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
 - **Action:** Inside the `<claim>` XML generation loop (lines 117-141), inject `<depends_on>` tags for each node's causal dependencies using a strict structural template engine (specifically: Jinja macros, `PromptBlock` assembly, or Pydantic XML wrappers).
 - **Data Source:** The `LinkedAtomGraph.depends_on` field contains a `list[CausalEdge]` where each `CausalEdge` has `parent_tda_id` and `expected_status`. This data is already available on the `nodes` parameter.

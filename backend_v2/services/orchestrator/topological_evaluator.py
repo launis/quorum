@@ -26,7 +26,8 @@ class TopologicalEvaluator:
         self,
         nodes: list[LinkedAtomGraph],
         batch_evaluation_callback: Callable[
-            [list[LinkedAtomGraph]], Awaitable[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]]
+            [list[LinkedAtomGraph], dict[str, AtomExecutionState]],
+            Awaitable[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]],
         ],
     ) -> dict[str, AtomExecutionState]:
         """Evaluates a graph of atoms deterministically using Kahn's Algorithm.
@@ -102,7 +103,7 @@ class TopologicalEvaluator:
 
             if pending_nodes:
                 try:
-                    results = await batch_evaluation_callback(pending_nodes)
+                    results = await batch_evaluation_callback(pending_nodes, states)
                     for node in pending_nodes:
                         res = results.get(node.atom.tda_id)
                         if res:

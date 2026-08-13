@@ -35,6 +35,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Context Caching topology must remain intact and O(1) highly efficient even when evaluating disparate structures (Regular TDA vs. Matrix Assertion TDA).
 - **Enforcement:** The `MatrixSensorPromptBuilder` enforces structural caching parity by compiling all global logic, Matrix Context, and the massive source document text into the static `build_caching_prefix()`. Highly dynamic, batch-specific data (e.g., matrix assertions wrapped in CDATA encapsulation) are strictly isolated into the dynamic execution parameters. This guarantees that parallel evaluations across the same document reliably hit the Context Cache, avoiding token waste and latency.
 
+### 2.8. Synthesis Payload Compression
+- **Law:** The orchestrator must never send raw, unfiltered DAG evaluation context directly into text synthesis generation.
+- **Enforcement:** Before data is passed to the Synthesis Phase, the `SynthesisPayloadCompressor` must strip heavy raw keys (like `shuffled_atoms` and `atom_quotes`), truncate `exact_quotes` and `semantic_reasoning`, and enforce a hard cutoff limit on total evaluations (`settings.max_synthesis_evaluations`). If the payload evaluates to empty, the system must Fail-Fast to prevent LLM hallucination. This protects against context window saturation and token explosions during Phase 2 generation.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

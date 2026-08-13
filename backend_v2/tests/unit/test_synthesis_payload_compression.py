@@ -65,11 +65,11 @@ def test_compress_synthesis_payload_negative_invalid_types() -> None:
 def test_compress_synthesis_payload_basemodel_input() -> None:
     """PROMISE: Prove that passing a BaseModel or a list of BaseModels handles model_dump correctly."""
     eval_mock = DistilledEvaluationFactory.build()
-    
+
     # Passing single BaseModel
     res1 = SynthesisPayloadCompressor.compress_synthesis_payload(eval_mock)
     assert json.loads(res1)
-    
+
     # Passing list of BaseModels and dicts
     res2 = SynthesisPayloadCompressor.compress_synthesis_payload([eval_mock, eval_mock.model_dump()])
     assert json.loads(res2)
@@ -86,7 +86,7 @@ def test_compress_synthesis_payload_negative_non_dict_evaluation() -> None:
 
 def test_compress_synthesis_payload_negative_missing_mandatory_field() -> None:
     """PROMISE: Prove that a missing mandatory field raises a KeyError wrapped in an AppException."""
-    payload = {"evaluations": [{"exact_quotes": []}]} # missing atom_id
+    payload = {"evaluations": [{"exact_quotes": []}]}  # missing atom_id
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
@@ -101,4 +101,3 @@ def test_compress_synthesis_payload_negative_validation_error() -> None:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert "Failed to hydrate evaluation" in str(exc_info.value.message)
-
