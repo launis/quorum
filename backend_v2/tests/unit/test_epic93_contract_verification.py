@@ -284,6 +284,7 @@ class TestPhase2PipelineUnification:
                 },
             ),
         ]
+        from typing import cast
         from unittest.mock import MagicMock
 
         from backend_v2.models.v2_core import PromptBlock
@@ -295,11 +296,11 @@ class TestPhase2PipelineUnification:
         mock_m2.category_id = "matrix"
         mock_m2.scales = None
 
-        blocks = {
-            "blk_m1": mock_m1,
-            "blk_m2": mock_m2,
+        blocks_by_id: dict[str, PromptBlock] = {
+            "blk_m1": cast(PromptBlock, mock_m1),
+            "blk_m2": cast(PromptBlock, mock_m2),
         }
-        result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks)
+        result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
         # blk_m1 has quotes, blk_m2 has empty quotes
         assert len(result) == 2
         assert result[0]["matrix_id"] == "MX-0"
@@ -326,6 +327,16 @@ class TestPhase1Phase2Integration:
         annotation_str = str(field.annotation)
         assert "QuoteEvidenceDTO" in annotation_str, (
             f"INTEGRATION FAILURE: ExecutionState.evidence_quotes type is {annotation_str}."
+        )
+
+    def test_execution_state_evidence_quotes_no_legacy_dict(self) -> None:
+        """INTEGRATION: Guarantee no legacy Dict usage in evidence_quotes schema."""
+        from backend_v2.models.state import ExecutionState
+
+        field = ExecutionState.model_fields["evidence_quotes"]
+        annotation_str = str(field.annotation).lower()
+        assert "dict" not in annotation_str, (
+            f"INTEGRATION FAILURE: Legacy dict fallback found in evidence_quotes schema: {annotation_str}"
         )
 
     def test_synthesis_distiller_output_is_serializable(self) -> None:

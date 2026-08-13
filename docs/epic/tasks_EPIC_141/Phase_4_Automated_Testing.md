@@ -26,11 +26,11 @@
   </anti_targets>
 
   <step id="1" name="Implementation">
-    <action>[NEW] @[backend_v2/tests/unit/test_synthesis_payload_compression.py]: Test cases for `SynthesisPayloadCompressor`: Validating deep copy integrity, ensuring heavy metadata keys are stripped, validating application of `settings.max_synthesis_evaluations`.</action>
-    <action>[NEW] @[backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py]: Test cases for `MatrixSensorPromptBuilder`: Validating CDATA encapsulation around user-provided strings, verifying separation of static vs dynamic messages for caching.</action>
-    <action>[MODIFY] @[backend_v2/tests/unit/test_dag_taskgroup.py]: Update references to remove `sp_7a8b9c0d1e2f3a4b` and validate dynamic `model_strategy == "synthesis"` routing.</action>
-    <action>[MODIFY] @[backend_v2/tests/unit/test_bug_synthesis_hook.py]: Verify that `synthesis_distiller.py` functions correctly with the newly abstracted `SynthesisPayloadCompressor`.</action>
-    <action>[MODIFY] @[backend_v2/tests/unit/test_epic93_contract_verification.py]: Add structural assertions to ensure the new `extractive_sensor_service.py` adheres to the architectural contract.</action>
+    <action>[NEW] @[backend_v2/tests/unit/test_synthesis_payload_compression.py]: Test cases for `SynthesisPayloadCompressor`. MUST include positive tests for deep copy integrity and metadata stripping, AND at least two negative tests (e.g. handling missing keys, malformed dictionaries) to satisfy `anti_happy_path_mandate`. MUST use `polyfactory` for mock data.</action>
+    <action>[NEW] @[backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py]: Test cases for `MatrixSensorPromptBuilder`. MUST include positive tests for CDATA encapsulation and message segregation, AND at least two negative tests (e.g. empty strings, null inputs) to satisfy `anti_happy_path_mandate`. MUST use `polyfactory` for mock data.</action>
+    <action>[MODIFY] @[backend_v2/tests/unit/test_dag_taskgroup.py]: Add a specific new test case to validate the dynamic `model_strategy == "synthesis"` routing logic injected into `dag_executor.py` during Phase 1. Do NOT attempt to remove non-existent `sp_7a8b9c0d1e2f3a4b` references.</action>
+    <action>[NEW] @[backend_v2/tests/unit/test_synthesis_distiller_hook.py]: Create a dedicated unit test file to verify that the core logic of `synthesis_distiller.py` functions correctly with the newly abstracted `SynthesisPayloadCompressor`. (Do NOT overload `test_bug_synthesis_hook.py` as it strictly tests startup hook registration).</action>
+    <action>[MODIFY] @[backend_v2/tests/unit/test_epic93_contract_verification.py]: Add structural assertions (e.g. using `ast` or reflection) to ensure both the new `extractive_sensor_service.py` and `MatrixExplanationService` strictly adhere to their architectural contracts and don't violate single responsibility.</action>
   </step>
 
   <validation_gate>
