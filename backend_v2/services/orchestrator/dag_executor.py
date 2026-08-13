@@ -581,7 +581,8 @@ class DAGExecutor:
                         return
 
                 # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
-                if step_obj.task_blueprint == "sp_7a8b9c0d1e2f3a4b":
+                step_def = step_definitions.get(step_obj.task_blueprint) if step_obj.task_blueprint else None
+                if step_def and step_def.model_strategy == "synthesis":
                     try:
                         lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
 
