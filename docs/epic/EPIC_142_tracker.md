@@ -49,12 +49,12 @@
 ### Phase 3: Synthesis Context Preservation
 **Plan:** @[docs/epic/EPIC_142/phase_3_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/EPIC_142/phase_3_plan.md] @[docs/epic/EPIC_142_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/EPIC_142/phase_3_plan.md] @[docs/epic/EPIC_142_tracker.md]`
-  - [ ] Step 1: DTO Boundary (MatrixExplanationContextDTO)
-  - [ ] Step 2: Service Refactoring (MatrixExplanationService)
-  - [ ] Step 3: Background Worker Migration
-  - [ ] Step 4: Verification
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/EPIC_142/phase_3_plan.md] @[docs/epic/EPIC_142_tracker.md]`
+  - [x] Step 1: DTO Boundary (MatrixExplanationContextDTO)
+  - [x] Step 2: Service Refactoring (MatrixExplanationService)
+  - [x] Step 3: Background Worker Migration
+  - [x] Step 4: Verification
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/EPIC_142/phase_3_plan.md] @[docs/epic/EPIC_142_tracker.md]`
 
 ### Phase 4: Atomic Test Alignment (Test Expansion)
@@ -120,22 +120,24 @@
 | REQ-142-09 | Refactor `MatrixDomainParser` to use pure domain logic comparing `v == ExecutionStatus.PASSED`. | Phase 2, Step 1 |
 | REQ-142-10 | Exclude `ExecutionStatus.N_A` from the `total_atoms` denominator in `MatrixDomainParser`. | Phase 2, Step 1 |
 | REQ-142-11 | Explicitly handle `total_atoms == 0` without crashing in `MatrixDomainParser` (logging an intentional bypass). | Phase 2, Step 1 |
+| REQ-142-12 | Establish `MatrixExplanationContextDTO` to replace raw dictionaries in synthesis payload. | Phase 3, Step 1 |
+| REQ-142-13 | Refactor `MatrixExplanationService` to include `ExecutionStatus.FAILED` claims in the synthesis explanation by filtering `ExecutionStatus.N_A`. | Phase 3, Step 2 |
+| REQ-142-14 | Migrate `worker.py` to serialize `matrices_to_explain` DTOs via `.model_dump(exclude_none=True)`. | Phase 3, Step 3 |
 
 # Session Handover Context
 ## Achieved
-- Completed Tier 0 Research and Planning for Phase 3 (Synthesis Context Preservation).
-- Wrote the explicit implementation plan to `docs/epic/EPIC_142/phase_3_plan.md` defining strict DTO boundaries (`MatrixExplanationContextDTO`).
-- Designed the refactoring path for `MatrixExplanationService` to remove duck-typing and forward failed claims safely.
-- Specified updates for `worker.py` serialization.
-- Included explicit System 2 Analysis and Red-Teaming falsification checks to prevent JSON double-serialization and handle missing/legacy dictionaries safely.
+- **[Phase 3 Execution Completed]**: The DTO Boundary for Synthesis Context Preservation was fully implemented and mathematically verified.
+- **DTO Boundary (REQ-142-12)**: Defined the strict `MatrixExplanationContextDTO` in `backend_v2/models/dtos/synthesis.py` to stop duck-typing dictionaries in the downstream synthesis payload.
+- **Service Refactoring (REQ-142-13)**: Rewrote `MatrixExplanationService.assemble_matrices_to_explain` to parse the `LightweightMatrixOutput` payload natively and explicitly skip `ExecutionStatus.N_A` evaluations. This guarantees that BOTH `PASSED` and `FAILED` assertions (quotes) are preserved and passed to the LLM for synthesis.
+- **Worker Migration (REQ-142-14)**: Updated the `json.dumps()` serialization in `worker.py` to use a list comprehension mapping the DTOs into dictionary structures via `.model_dump(exclude_none=True)`.
+- **Unit Testing**: Passed the Universal Quality Gate loop and added `test_assemble_matrices_to_explain_includes_failed_claims` which strictly falsifies the old bug where negative quotes were amputated.
 
 ## Learned
-- **Red-Teaming (Double-Serialization Crash)**: If `worker.py` isn't updated to explicitly use `.model_dump()` on the new `MatrixExplanationContextDTO` objects, `json.dumps()` will crash instantly due to Python's inability to natively serialize Pydantic V2 models.
-- **Red-Teaming (Duck-Typing)**: Blindly removing `isinstance(atoms, dict)` in `MatrixExplanationService` without enforcing explicit `LightweightMatrixOutput.model_validate(payload, strict=False)` would crash on legacy untyped `Any` payloads.
-- **Root Cause & Justification**: Bypassing `ExecutionStatus.N_A` explicitly (rather than `hit_status is True`) mathematically captures both `PASSED` and `FAILED` claims for downstream LLM synthesis explanation, curing the historic issue of missing negative evidence in reports. This fulfills the Tripartite Pipeline Architecture.
+- **Root Cause Resolution**: The historic bug where negative matrix quotes were missing from the LLM synthesis report is mathematically cured. By evaluating against `ExecutionStatus.N_A` instead of a positive `True`/`PASS` check, the system now natively preserves the `FAILED` quotes for the downstream report generator.
+- **Serialization Red-Team Alert**: Pydantic V2 models cannot be naturally serialized by `json.dumps()` in the worker layer; explicit `model_dump()` arrays had to be built before template injection.
 
 ## Remaining
-- Execute Phase 3 via Tier 2 Workflow.
+- Perform Tier 8 Red-Teaming Audit for Phase 3 to ensure full architectural compliance before moving to Phase 4.
 
 ## Resume Command
-`/tier2-execute @[docs/epic/EPIC_142/phase_3_plan.md] @[docs/epic/EPIC_142_tracker.md]`
+`/tier8-audit-plan @[docs/epic/EPIC_142/phase_3_plan.md] @[docs/epic/EPIC_142_tracker.md]`
