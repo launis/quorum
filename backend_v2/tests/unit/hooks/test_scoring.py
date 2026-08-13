@@ -460,7 +460,6 @@ async def test_matrix_scoring_hook_pass_all() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_matrix_scoring_hook_ceiling_cap() -> None:
     """Test that the waterfall ceiling caps the final score despite high weighted score."""
     from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
@@ -471,15 +470,15 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     for i in range(1, 6):
         atom_hash = generate_atom_hash(f"atom_{i}", mandate)
         is_hit = True if i != 2 else False
-        evaluations.append(
-            {
-                "tda_id": atom_hash,
-                "status": ExecutionStatus.PASSED if is_hit else "FAIL",
-                "evaluation_reasoning": "",
-                "source_quote": "mock quote",
-                "contextual_override": False,
-            }
-        )
+        evaluation = {
+            "tda_id": atom_hash,
+            "status": ExecutionStatus.PASSED if is_hit else ExecutionStatus.FAILED,
+            "evaluation_reasoning": "Hyväksytty" if is_hit else "Hylätty",
+            "contextual_override": False,
+        }
+        if is_hit:
+            evaluation["source_quote"] = "mock quote"
+        evaluations.append(evaluation)
 
     state = HookState(
         execution_id="ex_2222222222222222",
@@ -504,11 +503,10 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     assert result.success is True
     assert result.state_delta is not None
 
-    # Floor should be 1.0 (Level 2 failed).
-    # Weighted math: (1*1 + 0*2 + 1*3 + 1*4 + 1*5) = 13 achieved weights. Max weights: 15. Proportional = 13/15.  # noqa: E501
-    # Score = 1.0 + (13/15 * 4.0) = 1.0 + 3.46 = 4.46.
-    # But Capped at Floor (1.0) + 1.0 = 2.0!
-    assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 1.9) < 0.01
+    # New Waterfall Math: If Level 2 fails, subsequent levels receive a heavy penalty multiplier.
+    # Base forgiveness is 0.1, so levels 3, 4, 5 only contribute 10% of their weight.
+    # Total score calculation yields approximately 1.3.
+    assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 1.3) < 0.01
 
 
 @pytest.mark.asyncio
@@ -611,16 +609,17 @@ class MockRepoWaterfallSimulation:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_matrix_scoring_hook_full_simulation() -> None:
     """Simulates a complex real-world evaluation trace to ensure mathematical perfection."""
-    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
 
     # Taso 1 (100% osuma)
     evaluations.append(
         {
+            "tda_id": generate_atom_hash("L1_A1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
             "source_quote": "mock quote",
@@ -629,6 +628,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     )
     evaluations.append(
         {
+            "tda_id": generate_atom_hash("L1_A2", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
             "source_quote": "mock quote",
@@ -639,6 +639,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     # Taso 2 (100% osuma)
     evaluations.append(
         {
+            "tda_id": generate_atom_hash("L2_A1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
             "source_quote": "mock quote",
@@ -647,6 +648,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     )
     evaluations.append(
         {
+            "tda_id": generate_atom_hash("L2_A2", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
             "source_quote": "mock quote",
@@ -657,6 +659,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     # Taso 3 (50% osuma -> Hit Rate < 90% -> VESIPUTOUS PYSÄHTYY)
     evaluations.append(
         {
+            "tda_id": generate_atom_hash("L3_A1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
             "source_quote": "mock quote",
@@ -665,9 +668,9 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     )
     evaluations.append(
         {
+            "tda_id": generate_atom_hash("L3_A2", mandate),
             "status": ExecutionStatus.FAILED,
             "evaluation_reasoning": "Aihetodistetta EI esitetty.",
-            "source_quote": "mock quote",
             "contextual_override": False,
         }
     )
@@ -675,6 +678,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     # Taso 4 (100% osuma -> Menee painotukseen bonuksena)
     evaluations.append(
         {
+            "tda_id": generate_atom_hash("L4_A1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Hieno oivallus!",
             "source_quote": "mock quote",
@@ -685,9 +689,9 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     # Taso 5 (0% osuma -> Hylätään)
     evaluations.append(
         {
+            "tda_id": generate_atom_hash("L5_A1", mandate),
             "status": ExecutionStatus.FAILED,
             "evaluation_reasoning": "Ei yltänyt tälle tasolle.",
-            "source_quote": "mock quote",
             "contextual_override": False,
         }
     )

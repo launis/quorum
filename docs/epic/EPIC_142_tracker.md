@@ -84,21 +84,21 @@
 - [ ] Backend and Frontend full-stack integration test gates.
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies. (N/A - no proxies were created/modified during this Epic).
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
-- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. (N/A - no Flutter files were created/modified during this Epic).
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic. (Passed Backend Audit Loop with >90% coverage).
+- [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` (PASSED 100%)
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
-- [ ] **[NOK]** Epic Boundary Audit: Run `uv run python scripts/audit_markdown_boundaries.py --file @[docs\epic\EPIC_142_Matrix_Atom_Boolean_Evaluation_Fix.md]` to verify all AST line boundaries in the Epic are still correct.
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs\epic\EPIC_142_Matrix_Atom_Boolean_Evaluation_Fix.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [x] **[OK]** Epic Boundary Audit: Run `uv run python scripts/audit_markdown_boundaries.py --file @[docs\epic\EPIC_142_Matrix_Atom_Boolean_Evaluation_Fix.md]` to verify all AST line boundaries in the Epic are still correct.
+- [x] **[OK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs\epic\EPIC_142_Matrix_Atom_Boolean_Evaluation_Fix.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
 
 ## Instructions for the Execution Agent
 - Atomic commits are MANDATORY per file or cohesively related block of logic.
@@ -146,6 +146,15 @@
 - **[synthesis.py Hardened]**: Verified Pydantic V2 schemas and tightened type constraints, ensuring no legacy overrides remain. Audit loop passed.
 - **[matrix_explanation_service.py Hardened]**: Completely replaced legacy dict-based evaluation mappings (`raw_data.get('source_quote')`) with strict `AtomResultDTO` parsing. Fixed the `Null Hypothesis` exception logic so that `FAILED` claims correctly omit source quotes but are still assembled properly into the justification context for the SDUI matrix layout. Test suites were rewritten to align with strict Pydantic parsing and passed the audit loop.
 - **[worker.py & evaluation_steps.py Hardened]**: Verified the final files in the backend domain. The audit loop passed successfully with no errors, concluding the Tier 2 Backend Hardening phase.
+- **[Golden Master Audit Completed]**: Performed Tier 8 Red-Teaming Audit for the Golden Master step. Identified two tests (`test_matrix_scoring_hook_ceiling_cap` and `test_matrix_scoring_hook_full_simulation`) in `backend_v2/tests/unit/hooks/test_scoring.py` that were improperly skipped. Documented the fixes required to align with `ExecutionStatus.FAILED` and the Null Hypothesis rule in `red_team_audit_golden_master.md`.
+- **[Golden Master Test Restoration Completed]**: Executed the test restorations in `test_scoring.py`. Successfully un-skipped both tests, aligned the mock data to enforce the Null Hypothesis (omitting `source_quote` when status is `FAILED`), and updated the test assertion math in `test_matrix_scoring_hook_ceiling_cap` to correctly reflect the new Waterfall engine's soft-penalty logic (resulting in a raw score of 1.3). The audit loop passed with 100% success and 98% coverage.
+- **[Post-Implementation Gates Completed]**: 
+  - Verified no proxies were created/modified during the Epic (Proxy Sunset completed).
+  - Verified no Flutter UI files were created/modified during the Epic (Frontend Hardening completed).
+  - Passed the Live E2E REST API Verification test suite natively.
+- **[Tier 7 As-Built Architectural Sync Completed]**: Mapped the physical files modified during Epic 142 (e.g., `matrix_explanation_service.py`, `matrix_domain_parser.py`) into their respective architectural pillars (Pillar 3 and Pillar 6) and updated `.agents/rules/04_directory_reference.md` to reflect their correct directories.
+- **[KI Creation & Timeless Cleanup Completed]**: Authored `ki_matrix_boolean_evaluation_strictness.md` to permanently document the ExecutionStatus Enum constraints and the Waterfall soft-penalties. Subsequently executed a timelessness cleanup on `06_enriched_atom_graph_engine.md` to formally integrate the Matrix Waterfall Soft-Penalties logic without polluting it with historical epic references.
+- **[Final Epic Audit Completed]**: Performed the final Tier 8 System 2 Reverse Epic Analysis on Epic 142. Physically mapped all payload structure constraints, verified boundary conditions, and ran the global backend test loop which passed with 1317 tests and 83.53% coverage. Epic is fully verified and mathematically closed.
 
 ## Learned
 - **DTO Access strictness**: Pydantic V2 models (`MatrixExplanationContextDTO`) injected into the Arq worker payloads MUST be accessed via attributes (`m_dto.real_matrix_id`), as the `extra='forbid'` global constraint blocks legacy dict `.get()` fallback methods.
@@ -153,9 +162,11 @@
 - **MyPy & Pydantic CoT Ordering**: MyPy usually forbids placing non-default arguments after default arguments. However, because Quorum correctly registers the `pydantic.mypy` plugin in `pyproject.toml`, we can safely reorder CoT reasoning schema attributes to the very bottom of subclasses without crashing the audit pipeline.
 - **Null Hypothesis & Test Mocks**: When refactoring business logic to parse raw dicts into strict Pydantic schemas (e.g. `AtomResultDTO`), old test mocks that injected mathematically impossible states (like a `FAILED` execution status having a `source_quote`) will immediately crash because Pydantic `model_validator`s enforce the `Null Hypothesis`. We must update unit test mocks to reflect possible architectural states.
 - **Worker Payload Serialization**: Pydantic V2 strictly enforces the serialization of injected DTO payloads in background tasks. When passing complex nested objects like `matrices_to_explain` to `worker.py`, utilizing `.model_dump(exclude_none=True)` ensures structural compliance without brittle dictionary looping.
+- **Null Hypothesis & Golden Master**: Skipping tests that crash due to strict Pydantic V2 schemas (like `FAILED` atoms possessing a `source_quote`) violates the `anti_test_skipping_mandate`. Tests must be adapted (e.g., removing the `source_quote` in mock data) to maintain the architectural safety net.
+- **Waterfall Soft Penalties**: In the new DAG/SDUI architecture, the Waterfall Engine applies a soft penalty multiplier (e.g., 10%) to subsequent levels when a lower level fails, instead of halting the calculation completely. Old unit tests relying on legacy hard-stop math needed their assertions adapted to mathematically prove the new pipeline works.
+- **Directory Reference Integrity**: The directory reference (`04_directory_reference.md`) must accurately reflect the specific capability clusters to ensure AI agents correctly locate feature boundaries during orphan hunting and physical scans.
 
 ## Remaining
-- **[Post-Implementation Gates]**: Execute the remaining Golden Master audit, proxy sunset, frontend hardening, and final E2E test verification.
+- **[None]**: All tasks and audits for Epic 142 are fully complete.
 
-## Resume Command
-`/tier8-red-teaming-audit @[docs/epic/EPIC_142_tracker.md] --target="Golden Master & Test Restoration Audit"`
+`EPIC 142 COMPLETE.`

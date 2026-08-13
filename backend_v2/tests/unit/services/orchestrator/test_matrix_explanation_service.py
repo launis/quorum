@@ -223,24 +223,25 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
 
     from typing import cast
     from unittest.mock import MagicMock
+
     from backend_v2.models.v2_core import I18nText
 
     mock_pb_magic = MagicMock(spec=PromptBlock)
     mock_pb_magic.category_id = "matrix"
-    
+
     # Mock scales with claims
     mock_claim1 = MagicMock()
     mock_claim1.label = I18nText(default_locale="en", translations={"en": "Claim 1"})
     mock_claim1.tda_assertions = [MagicMock(tda_id="a1")]
-    
+
     mock_claim3 = MagicMock()
     mock_claim3.label = I18nText(default_locale="en", translations={"en": "Claim 3"})
     mock_claim3.tda_assertions = [MagicMock(tda_id="a3")]
-    
+
     mock_scale = MagicMock()
     mock_scale.claims = [mock_claim1, mock_claim3]
     mock_pb_magic.scales = [mock_scale]
-    
+
     mock_pb = cast(PromptBlock, mock_pb_magic)
     blocks_by_id = {"blk_matrix1": mock_pb}
 

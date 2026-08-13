@@ -12,7 +12,8 @@ The absolute SSOT for Directed Acyclic Graph (DAG) state evaluation. It uses a n
 - Each node creates its own `asyncio.Event()` that guarantees deterministic signaling.
 - Parent nodes are awaited sequentially per-node (never via `asyncio.gather`), resolving the "Straggler" issue.
 - **Fail-Fast Enforcement:** Infinite recursion and cyclic dependencies are deterministically rejected via a pre-flight depth-first search (DFS).
-- **Short-Circuit Cascade:** If a parent resolves as `FAILED` (or does not meet the expected status), its children immediately short-circuit to `N_A`. Errors propagate via the `BLOCKED` status.
+- **Standard Short-Circuit Cascade:** In regular evaluations, if a parent resolves as `FAILED` (or does not meet the expected status), its children immediately short-circuit to `N_A`. Errors propagate via the `BLOCKED` status.
+- **Matrix Waterfall Soft-Penalties:** In structured matrix evaluations, the DAG engine applies soft penalty multipliers (deducting percentage scores) rather than hard-stopping when lower-level atoms fail, propagating conditional penalties downstream without halting the entire cascade.
 
 ### 3. Result Projector
 Implements the `ResultProjector` abstraction. `EnrichedResultProjector` uses Python's `graphlib.TopologicalSorter` to enforce a stable topological iteration order over the evaluated nodes. 
