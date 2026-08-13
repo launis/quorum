@@ -259,6 +259,7 @@ class TestPhase2PipelineUnification:
 
         Falsification: Build scenario with matching and non-matching data.
         """
+        from backend_v2.models.enums import ExecutionStatus
         from backend_v2.models.state import StepOutputDTO
         from backend_v2.services.orchestrator.matrix_explanation_service import (
             MatrixExplanationService,
@@ -272,7 +273,7 @@ class TestPhase2PipelineUnification:
                 payload={
                     "normalized_score": 80.0,
                     "results": [{"tda_id": "a1", "exact_quotes": [{"quote": "Q1"}]}],
-                    "evaluated_atoms": {"a1": True},
+                    "evaluated_atoms": {"a1": ExecutionStatus.PASSED},
                 },
             ),
             StepOutputDTO(
@@ -282,7 +283,7 @@ class TestPhase2PipelineUnification:
                 payload={
                     "normalized_score": 60.0,
                     "results": [{"tda_id": "a2", "exact_quotes": []}],
-                    "evaluated_atoms": {"a2": True},
+                    "evaluated_atoms": {"a2": ExecutionStatus.PASSED},
                 },
             ),
         ]
@@ -305,11 +306,11 @@ class TestPhase2PipelineUnification:
         result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
         # blk_m1 has quotes, blk_m2 has empty quotes
         assert len(result) == 2
-        assert result[0]["matrix_id"] == "MX-0"
-        assert result[0]["real_matrix_id"] == "blk_m1"
-        assert result[1]["matrix_id"] == "MX-1"
-        assert result[1]["real_matrix_id"] == "blk_m2"
-        assert result[1]["justification"] == "No direct evidence quotes extracted for this matrix."
+        assert result[0].matrix_id == "MX-0"
+        assert result[0].real_matrix_id == "blk_m1"
+        assert result[1].matrix_id == "MX-1"
+        assert result[1].real_matrix_id == "blk_m2"
+        assert result[1].justification == "No direct evidence quotes extracted for this matrix."
 
 
 # ============================================================================

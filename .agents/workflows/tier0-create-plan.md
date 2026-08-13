@@ -86,6 +86,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         3. Architectural invariants MUST be injected as `<constraint invariant="rule_id">` tags within the relevant `<step>`.
       </constraint>
       <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` system **Artifact** (e.g., in your system artifact directory, do NOT write it to the project root or codebase directories) containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
+      <action name="TRACKER SYNCHRONIZATION">If a Tracker file was provided in the context (e.g. `@[docs\epic\EPIC_XXX_tracker.md]`), you MUST surgically update it: Check off the `[NOK] Create Plan` step, inject every single `<step id>` from your generated XML plan as individual `- [ ] Step X: [Step Name]` checkboxes UNDER the `Execution:` command for this phase, and update the `# Session Handover Context`.</action>
       <action name="SELF HEALING BOUNDARY AUDIT">After creating the plan and task artifacts, you MUST physically run the boundaries audit script on your generated implementation plan: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>`. If it fails, you MUST correct the plan and re-run. If it fails 3 times sequentially, you MUST STOP, output `<circuit_breaker_tripped>`, and ask the user for guidance to avoid an infinite loop.</action>
     </step>
 

@@ -1134,9 +1134,9 @@ async def generate_profile_synthesis_and_pdf_task(
 
         cache_row_explanations = {}
         if matrices_to_explain:
-            for m_dict in matrices_to_explain:
-                real_id = m_dict.get("real_matrix_id")
-                alias_id = m_dict.get("matrix_id")
+            for m_dto in matrices_to_explain:
+                real_id = m_dto.real_matrix_id
+                alias_id = m_dto.matrix_id
                 if not real_id:
                     continue
 

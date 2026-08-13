@@ -1114,7 +1114,7 @@ async def test_scoring_matrix_namespace_isolation() -> None:
     matrix_output = result.state_delta.get("pb_1234567890123456")
     assert matrix_output is not None
     # Because it's isolated, the atom should NOT be evaluated in this matrix
-    assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) is False
+    assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) == ExecutionStatus.FAILED
     assert matrix_output.get("raw_score") == 1.0
 
 
@@ -1180,7 +1180,7 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
     assert matrix_output is not None
     # Because matrix_id=None bypasses isolation, it should be evaluated in this matrix
     assert atom_hash in matrix_output.get("evaluated_atoms", {})
-    assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) is True
+    assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) == ExecutionStatus.PASSED
     # Score may still be 1.0 due to waterfall cascade failure on other levels, but the atom was evaluated!
 
 
@@ -1245,7 +1245,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
     matrix_output = result.state_delta.get("pb_1234567890123456")
     assert matrix_output is not None
     # Defense-in-depth ensures is_satisfied = False despite contextual_override
-    assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) is False
+    assert matrix_output.get("evaluated_atoms", {}).get(atom_hash) == ExecutionStatus.FAILED
 
 
 class MockRepoWaterfallStrict(MockRepoWaterfall):

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend_v2.exceptions import AppException, TokenLimitExceededError
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.settings import get_settings
@@ -97,7 +98,7 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
                     "normalized_score": 0.8,
                     "level_breakdown": None,
                     "justification": "Good",
-                    "evaluated_atoms": {"atom1": True, "atom2": False},
+                    "evaluated_atoms": {"atom1": ExecutionStatus.PASSED, "atom2": ExecutionStatus.FAILED},
                     "extensions": {},
                 },
             )
@@ -175,7 +176,7 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
                     "normalized_score": 0.8,
                     "level_breakdown": None,
                     "justification": "Good",
-                    "evaluated_atoms": {"atom1": True, "atom2": False},
+                    "evaluated_atoms": {"atom1": ExecutionStatus.PASSED, "atom2": ExecutionStatus.FAILED},
                     "extensions": {},
                 },
             )
