@@ -347,7 +347,7 @@ class MatrixDomainParser:
                 if pb_meta.scales:
                     for scale in pb_meta.scales:
                         l_val = int(scale.score)
-                        l_name = level_names.get(str(l_val), f"Taso {l_val}")
+                        l_name = level_names[str(l_val)]
                         for claim in scale.claims:
                             claim_label = claim.label.resolve(locale) if isinstance(claim.label, I18nText) else "Väite"
                             for tda in claim.tda_assertions:
