@@ -151,13 +151,13 @@ class StepDTOStrict(BaseExtractionDTO):
         str | None,
         Field(description="Why this evidence might NOT satisfy the strict causal requirement of the rule."),
     ] = None
-    decision: Annotated[bool, Field(description="True if the condition is physically met, False otherwise.")]
     semantic_reasoning: Annotated[
         str,
         Field(
             description="Final summary of the decision. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis."
         ),
     ]
+    decision: Annotated[bool, Field(description="True if the condition is physically met, False otherwise.")]
 
 
 class StepDTOSemantic(StepDTOStrict):
@@ -170,11 +170,11 @@ class StepDTOSemantic(StepDTOStrict):
         override_reason: Justification details for the contextual override.
     """
 
+    override_reason: Annotated[str | None, Field(description="Explanation for the contextual override.")] = None
     contextual_override: Annotated[
         bool,
         Field(description=DESC_CONTEXTUAL_OVERRIDE),
     ] = False
-    override_reason: Annotated[str | None, Field(description="Explanation for the contextual override.")] = None
 
 
 class ParsingLogStepsStrict(BaseExtractionDTO):
