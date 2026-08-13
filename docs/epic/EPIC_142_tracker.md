@@ -86,7 +86,7 @@
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
@@ -145,17 +145,17 @@
 - **[matrix_domain_parser.py Hardened]**: Refactored logic to eliminate dict-based level naming for strict 2D array indexing, respecting SDUI polymorphism. The file is fully compliant with Python 3.14 V2 strictness and passed the audit loop with 100% test passing.
 - **[synthesis.py Hardened]**: Verified Pydantic V2 schemas and tightened type constraints, ensuring no legacy overrides remain. Audit loop passed.
 - **[matrix_explanation_service.py Hardened]**: Completely replaced legacy dict-based evaluation mappings (`raw_data.get('source_quote')`) with strict `AtomResultDTO` parsing. Fixed the `Null Hypothesis` exception logic so that `FAILED` claims correctly omit source quotes but are still assembled properly into the justification context for the SDUI matrix layout. Test suites were rewritten to align with strict Pydantic parsing and passed the audit loop.
+- **[worker.py & evaluation_steps.py Hardened]**: Verified the final files in the backend domain. The audit loop passed successfully with no errors, concluding the Tier 2 Backend Hardening phase.
 
 ## Learned
 - **DTO Access strictness**: Pydantic V2 models (`MatrixExplanationContextDTO`) injected into the Arq worker payloads MUST be accessed via attributes (`m_dto.real_matrix_id`), as the `extra='forbid'` global constraint blocks legacy dict `.get()` fallback methods.
 - **Frontend SDUI Validation**: The flutter client uses `score` and `normalized_score` rather than a `raw_score` in the matrix UI JSON blocks, which minimized the refactoring surface area for Phase 4.
 - **MyPy & Pydantic CoT Ordering**: MyPy usually forbids placing non-default arguments after default arguments. However, because Quorum correctly registers the `pydantic.mypy` plugin in `pyproject.toml`, we can safely reorder CoT reasoning schema attributes to the very bottom of subclasses without crashing the audit pipeline.
 - **Null Hypothesis & Test Mocks**: When refactoring business logic to parse raw dicts into strict Pydantic schemas (e.g. `AtomResultDTO`), old test mocks that injected mathematically impossible states (like a `FAILED` execution status having a `source_quote`) will immediately crash because Pydantic `model_validator`s enforce the `Null Hypothesis`. We must update unit test mocks to reflect possible architectural states.
+- **Worker Payload Serialization**: Pydantic V2 strictly enforces the serialization of injected DTO payloads in background tasks. When passing complex nested objects like `matrices_to_explain` to `worker.py`, utilizing `.model_dump(exclude_none=True)` ensures structural compliance without brittle dictionary looping.
 
 ## Remaining
-- **[backend_v2/worker.py]**: Next up for Tier 2 Hardening.
-- **[backend_v2/models/dtos/evaluation_steps.py]**: Final file for Tier 2 Backend Hardening.
-- **[Post-Implementation Gates]**: Execute the remaining global architecture syncs, frontend hardening, and final E2E test verification.
+- **[Post-Implementation Gates]**: Execute the remaining Golden Master audit, proxy sunset, frontend hardening, and final E2E test verification.
 
 ## Resume Command
-`/tier2-hardening-backend @[backend_v2/worker.py] @[backend_v2/models/dtos/evaluation_steps.py] @[docs/epic/EPIC_142_tracker.md]`
+`/tier8-red-teaming-audit @[docs/epic/EPIC_142_tracker.md] --target="Golden Master & Test Restoration Audit"`
