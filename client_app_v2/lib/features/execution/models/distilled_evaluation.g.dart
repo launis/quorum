@@ -24,9 +24,7 @@ _DistilledEvaluation _$DistilledEvaluationFromJson(Map<String, dynamic> json) =>
           atomId: $checkedConvert('atom_id', (v) => v as String?),
           exactQuotes: $checkedConvert(
             'exact_quotes',
-            (v) =>
-                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-                const [],
+            (v) => (v as List<dynamic>).map((e) => e as String).toList(),
           ),
           semanticReasoning: $checkedConvert(
             'semantic_reasoning',

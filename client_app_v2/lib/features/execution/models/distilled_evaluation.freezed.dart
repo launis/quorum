@@ -26,14 +26,7 @@ $DistilledEvaluationCopyWith<DistilledEvaluation> get copyWith => _$DistilledEva
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DistilledEvaluation&&(identical(other.atomId, atomId) || other.atomId == atomId)&&const DeepCollectionEquality().equals(other.exactQuotes, exactQuotes)&&(identical(other.semanticReasoning, semanticReasoning) || other.semanticReasoning == semanticReasoning)&&const DeepCollectionEquality().equals(other.extensions, extensions));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,atomId,const DeepCollectionEquality().hash(exactQuotes),semanticReasoning,const DeepCollectionEquality().hash(extensions));
 
 @override
 String toString() {
@@ -212,12 +205,12 @@ return $default(_that.atomId,_that.exactQuotes,_that.semanticReasoning,_that.ext
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true, fieldRename: FieldRename.snake)
 class _DistilledEvaluation implements DistilledEvaluation {
-  const _DistilledEvaluation({this.atomId, final  List<String> exactQuotes = const [], this.semanticReasoning, final  Map<String, dynamic>? extensions}): _exactQuotes = exactQuotes,_extensions = extensions;
+  const _DistilledEvaluation({this.atomId, required final  List<String> exactQuotes, this.semanticReasoning, final  Map<String, dynamic>? extensions}): _exactQuotes = exactQuotes,_extensions = extensions;
   factory _DistilledEvaluation.fromJson(Map<String, dynamic> json) => _$DistilledEvaluationFromJson(json);
 
 @override final  String? atomId;
  final  List<String> _exactQuotes;
-@override@JsonKey() List<String> get exactQuotes {
+@override List<String> get exactQuotes {
   if (_exactQuotes is EqualUnmodifiableListView) return _exactQuotes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_exactQuotes);
@@ -245,14 +238,7 @@ Map<String, dynamic> toJson() {
   return _$DistilledEvaluationToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DistilledEvaluation&&(identical(other.atomId, atomId) || other.atomId == atomId)&&const DeepCollectionEquality().equals(other._exactQuotes, _exactQuotes)&&(identical(other.semanticReasoning, semanticReasoning) || other.semanticReasoning == semanticReasoning)&&const DeepCollectionEquality().equals(other._extensions, _extensions));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,atomId,const DeepCollectionEquality().hash(_exactQuotes),semanticReasoning,const DeepCollectionEquality().hash(_extensions));
 
 @override
 String toString() {
