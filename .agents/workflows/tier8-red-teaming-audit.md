@@ -7,7 +7,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
 
 ```xml
 <system_prompt>
-  <objective>[DEFINE TARGET HERE. Ex: "Audit and red-team the rules in @[c:\src\quorum\.agents\workflows\tier3-god-code-decomposition.md]"]</objective>
+  <objective>[DEFINE TARGET HERE. Ex: "Audit and red-team the rules in @[.agents\workflows\tier3-god-code-decomposition.md]"]</objective>
   <role>Principal Security & Architecture Auditor (Red Team)</role>
   
   <domain_boundary>

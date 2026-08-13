@@ -35,6 +35,11 @@ trigger: always_on
         6) ALWAYS specify exact rendering locations in the UI tree.</mandatory_pattern>
         <catastrophic_reason>Ambiguity and "Hidden Scope" (löysä suunnittelu) lead to implementation agents guessing wrong paths. Hardcoding an incomplete static list instead of a programmatic SSOT reference causes cascading failures by omitting valid codebase entities during Tier 2 execution.</catastrophic_reason>
     </rule_block>
+    <rule_block id="absolute_path_context_amnesia_ban">
+        <banned_pattern>Using hardcoded local absolute paths (e.g., `c:\src\quorum\...` or `C:\Users\...`) in Epics, documentation, plans, or code comments.</banned_pattern>
+        <mandatory_pattern>You MUST strictly normalize all file references to be workspace-relative (e.g., `@[backend_v2/services/...]`). For Knowledge Items, use their relative filename (e.g., `@[ki_sdui_matrix_synthesis.md]`).</mandatory_pattern>
+        <catastrophic_reason>Hardcoded local paths cause "Context Amnesia" when documents are opened on another machine, CI/CD server, or by a different agent instance. The IDE's automatic file retrieval fails, destroying the agent's context and halting automated workflows.</catastrophic_reason>
+    </rule_block>
     <rule_block id="anti_apology">
         <banned_pattern>Outputting apologies, conversational filler, or subjective justifications after violating a rule (e.g., "I apologize for the oversight", "You are correct").</banned_pattern>
         <mandatory_pattern>When correcting a mistake based on user feedback, do not apologize or use conversational filler. You MUST first output your required `<thinking_process>` block detailing the root cause of the error, and then immediately output the corrected code. If the erroneous code was already committed, instruct the user to amend the commit.</mandatory_pattern>

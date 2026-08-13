@@ -199,7 +199,7 @@ class MarkdownAuditor:
         """Validate references to backend settings.py."""
         # Mentioning settings.FOO
         pattern = re.compile(r"\bsettings\.([a-zA-Z0-9_]+)\b")
-        mentioned = set(pattern.findall(self.content))
+        mentioned = {m for m in pattern.findall(self.content) if m != "py"}
         if not mentioned:
             return
 

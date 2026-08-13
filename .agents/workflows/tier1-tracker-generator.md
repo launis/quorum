@@ -37,14 +37,14 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
       <action>Generate a granular `## Requirements Traceability Matrix` mapped to the XML `<step id>` tags from the plans.</action>
       <action>Generate `# Session Handover Context` at the bottom with `## Achieved`, `## Learned`, `## Remaining`, and `## Resume Command`.</action>
       <constraint name="TRACKER FORMAT">
-        - **Header Metadata**: Include `@-reference` links to original Epic (`@[c:\src\quorum\docs\epic\EPIC_XXX.md]`) and Task Directory (`@[c:\src\quorum\docs\epic\tasks_EPIC_XXX/]`). Immediately below this, you MUST inject a `<required_context_rules>` XML block listing the global core rule (`@[c:\src\quorum\.agents\rules\00-antigravity-core.md]`) and ANY Epic-specific Knowledge Items (KIs) relevant to the overall Epic architecture.
+        - **Header Metadata**: Include `@-reference` links to original Epic (`@[docs\epic\EPIC_XXX.md]`) and Task Directory (`@[docs\epic\tasks_EPIC_XXX/]`). Immediately below this, you MUST inject a `<required_context_rules>` XML block listing the global core rule (`@[.agents\rules\00-antigravity-core.md]`) and ANY Epic-specific Knowledge Items (KIs) relevant to the overall Epic architecture.
         - **`## Phase Execution Status`**: For EACH Phase, you MUST follow this EXACT format:
           1. Immediately below the Phase header, write `**Plan:** @[path_to_plan.md]`.
-          2. Add `- [ ] **[NOK] Red-Teaming:** \`/tier0-research-plan @[path_to_plan.md] @[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md]\``.
-          3. Add `- [ ] **[NOK] Execution:** \`/tier2-execute @[path_to_plan.md] @[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md]\``.
+          2. Add `- [ ] **[NOK] Red-Teaming:** \`/tier0-research-plan @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
+          3. Add `- [ ] **[NOK] Execution:** \`/tier2-execute @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
           4. **CRITICAL:** You MUST indent and list every single `<step id>` from your XML plan as individual `- [ ] Step X:` checkboxes UNDER the Execution command to allow micro-tracking of partial execution failures. Include the step name and a short description.
           5. Add `- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.`
-          6. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan @[path_to_plan.md] @[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md]\``.
+          6. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
         - **`### Integration Checkpoint: Full-Stack Validation`**: Backend and Frontend full-stack integration test gates.
         - **`### Post-Implementation Gates`**:
           - `[ ] **[NOK] Golden Master & Test Restoration Audit**`: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
@@ -58,7 +58,7 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
           - `- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in <appDataDir>/knowledge/.`
           - `- [ ] **[NOK]** As-Built Architectural Sync: Run \`/tier7-describe-architecture\` to automatically scan the codebase, anchor the physical implementation map in \`docs/architecture/\`, and update \`.agents/rules/04_directory_reference.md\`.`
         - **`### Final Epic Audit`**:
-          - `- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run \`/tier8-audit-epic @[c:\src\quorum\docs\epic\EPIC_XXX.md]\` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.`
+          - `- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run \`/tier8-audit-epic @[docs\epic\EPIC_XXX.md]\` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.`
         - **`## Instructions for the Execution Agent`**: You MUST include this section and specify: Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule. You MUST add an instruction here: "You MUST update the `/tier5-resume` or `/tier0-research-plan` command at the bottom of this tracker before handing over the session. Additionally, whenever you finish a milestone, pause for user feedback, or complete a session, you MUST automatically output the next command in your chat response so the user can easily copy-paste it to continue. The mandatory workflow loop is: `/tier0-research-plan` (Phase N) -> `/tier2-execute` (Phase N) -> `/tier8-audit-plan` (Phase N) -> `/tier0-research-plan` (Phase N+1). You MUST ALWAYS pass BOTH the plan and the tracker file in ALL commands (specifically: `/tier0-research-plan`, `/tier2-execute`, `/tier8-audit-plan`). Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`. Note: You do not need to specify `--rules` in the resume command; context rules are self-hydrating."
         - **`## Requirements Traceability Matrix`**: You MUST break down the Epic into highly granular, micro-level logical requirements (specifically: R1 through R15+). Do not summarize them into 5 or 6 broad phases. You MUST extract every single technical detail from the Epic into a separate row. Map each granular requirement to the specific `<step id>` in the XML plan. This serves as the human-readable Double-Entry Bookkeeping audit log.
         - **`# Session Handover Context`**: You MUST include this EXACT detailed section at the absolute bottom of the tracker. It must use the precise sub-headings `## Achieved`, `## Learned`, `## Remaining`, and `## Resume Command`. Do NOT use generic terms like "Current State" or "Next Steps". This section MUST ONLY exist in the tracker file. Format it EXACTLY like this:
@@ -74,7 +74,7 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
           - Specific tasks left for the next session.
           
           ## Resume Command
-          `/tier0-research-plan @[c:\src\quorum\docs\epic\tasks_EPIC_XXX\01_plan.md] @[c:\src\quorum\docs\epic\EPIC_XXX_tracker.md]`
+          `/tier0-research-plan @[docs\epic\tasks_EPIC_XXX\01_plan.md] @[docs\epic\EPIC_XXX_tracker.md]`
           ```
           The `## Resume Command` MUST be an exact copy-pasteable slash command for the user to execute next, properly injecting the `@-referenced` target files. Do NOT use `--workflow=` flags for standard workflows, just output the direct slash command. Do NOT include a `--rules` parameter; rules are now self-hydrated directly from the `<required_context_rules>` blocks in the plans and tracker.
       </constraint>

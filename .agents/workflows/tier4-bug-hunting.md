@@ -60,7 +60,7 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
 
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Outputting file paths in handover commands, trackers, or plans without bounding them in `@-reference` syntax.</banned_pattern>
-      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[backend_v2\target.py]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, wasting tokens and causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
     <rule_block id="codebase_state_verification_mandate">

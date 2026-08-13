@@ -30,7 +30,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
     
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Outputting file paths in handover commands, trackers, or reports without bounding them in @-reference syntax or specifying line bounds for massive files.</banned_pattern>
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, or audit report, you MUST explicitly wrap all target file paths in `@-reference` syntax (specifically: `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (specifically: `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax.</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, or audit report, you MUST explicitly wrap all target file paths in `@-reference` syntax (specifically: `@[backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (specifically: `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
     

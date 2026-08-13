@@ -43,7 +43,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <catastrophic_reason>Writing outdated architectural patterns violates Quorum invariants and forces immediate refactoring loops.</catastrophic_reason>
     </rule_block>
       <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[c:\src\quorum\backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
     <rule_block id="codebase_state_verification_mandate">
@@ -120,7 +120,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
 
     <step id="8" name="PLAN WRAP-UP & AUDIT ROUTING">
       <constraint>When all steps of the current `implementation_plan.md` are completed, you MUST NOT declare the task fully finished. You are strictly FORBIDDEN from proceeding to the next plan or closing the task without routing through the audit gate.</constraint>
-      <gate>You MUST enforce a mandatory System 2 Red-Team audit of your own work by instructing the user to run the `/tier8-audit-plan` workflow in a fresh context window. Provide the exact command (e.g., `/tier5-resume --target="@[c:\src\quorum\docs\epic\tasks_EPIC_XXX\01_feature_plan.md]" --workflow=/tier8-audit-plan`).</gate>
+      <gate>You MUST enforce a mandatory System 2 Red-Team audit of your own work by instructing the user to run the `/tier8-audit-plan` workflow in a fresh context window. Provide the exact command (e.g., `/tier5-resume --target="@[docs\epic\tasks_EPIC_XXX\01_feature_plan.md]" --workflow=/tier8-audit-plan`).</gate>
     </step>
 
     <step id="9" name="MID-EXECUTION HANDOVER">

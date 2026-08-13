@@ -48,7 +48,7 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
     
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Outputting file paths without wrapping them in @-reference syntax.</banned_pattern>
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[c:\src\quorum\backend_v2\target.py]`).</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[backend_v2\target.py]`).</mandatory_pattern>
       <catastrophic_reason>Failing to use `@-references` forces the next AI session to blindly search for context, causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
     <rule_block id="knowledge_base_mandate">

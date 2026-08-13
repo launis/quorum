@@ -36,7 +36,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
     
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Outputting file paths in handover commands, trackers, or audit reports without bounding them in `@-reference` syntax, or referencing massive files without specific `#Lnn-mm` line bounds.</banned_pattern>
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, or audit report, you MUST explicitly wrap all target file paths in `@-reference` syntax (specifically: `@[c:\src\quorum\backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (specifically: `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax.</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, or audit report, you MUST explicitly wrap all target file paths in `@-reference` syntax (specifically: `@[backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (specifically: `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia.</catastrophic_reason>
     </rule_block>
     
@@ -88,7 +88,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
 
     <step id="6">RETROSPECTIVE REPORT GENERATION & HANDOVER: 
       - Produce or incrementally update a final `EPIC_XXX_audit_report.md` artifact in the `docs/epic/` directory containing a strict Pass/Fail traceability matrix.
-      - If there are remaining Phases to audit, you MUST mandate a `/tier5-session-handover` to continue the audit in a fresh context window. Provide the exact resume command (specifically: `/tier5-resume --target="@[c:\src\quorum\docs\epic\EPIC_XXX_audit_report.md]" --workflow=/tier8-audit-epic --rules=backend|frontend ...`).
+      - If there are remaining Phases to audit, you MUST mandate a `/tier5-session-handover` to continue the audit in a fresh context window. Provide the exact resume command (specifically: `/tier5-resume --target="@[docs\epic\EPIC_XXX_audit_report.md]" --workflow=/tier8-audit-epic --rules=backend|frontend ...`).
     </step>
   </execution_protocol>
 </system_prompt>
