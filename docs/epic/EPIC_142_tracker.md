@@ -73,11 +73,11 @@
 **Plan:** @[docs/epic/EPIC_142/phase_5_plan.md]
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_142_Matrix_Atom_Boolean_Evaluation_Fix.md] @[docs/epic/EPIC_142/phase_5_plan.md] --phase=5`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
-  - [ ] Step 1: REORDER STEPDTOSTRICT CoT FIELDS
-  - [ ] Step 2: REORDER STEPDTOSEMANTIC CoT FIELDS
-  - [ ] Step 3: QUALITY GATE & VERIFICATION
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
+  - [x] Step 1: REORDER STEPDTOSTRICT CoT FIELDS
+  - [x] Step 2: REORDER STEPDTOSEMANTIC CoT FIELDS
+  - [x] Step 3: QUALITY GATE & VERIFICATION
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
@@ -137,6 +137,9 @@
 - **[E2E Verification Passed]**: The live full-LLM extraction test (`backend_v2/tests/integration/test_integration_real_llm.py`) passed successfully (100% pass), confirming that the DAG engine, extraction hooks, and matrix evaluators handle the new strict enums natively.
 - **[Phase 5 Plan Creation]**: Created the implementation plan for Phase 5 (Pydantic Schema CoT Ordering Audit & Fix) in @[docs/epic/EPIC_142/phase_5_plan.md].
 - **[Phase 5 Red-Teaming Completed]**: Conducted System 2 Research on the Phase 5 Plan. Mathematically verified that reordering fields without defaults below fields with defaults (e.g. `falsification_argument = None`) does NOT break MyPy compilation due to the existing `pydantic.mypy` plugin in `pyproject.toml`.
+- **[Phase 5 Step 1 Completed]**: Reordered the `decision` field to appear explicitly after `semantic_reasoning` in `StepDTOStrict` to enforce Chain-of-Thought ordering.
+- **[Phase 5 Step 2 Completed]**: Reordered the `contextual_override` field to appear explicitly after `override_reason` in `StepDTOSemantic` to enforce Chain-of-Thought ordering before overrides.
+- **[Phase 5 Step 3 Completed]**: Successfully ran `backend_audit_loop.py` which verified type integrity and test coverage. Phase 5 execution is now fully complete.
 
 ## Learned
 - **DTO Access strictness**: Pydantic V2 models (`MatrixExplanationContextDTO`) injected into the Arq worker payloads MUST be accessed via attributes (`m_dto.real_matrix_id`), as the `extra='forbid'` global constraint blocks legacy dict `.get()` fallback methods.
@@ -144,8 +147,8 @@
 - **MyPy & Pydantic CoT Ordering**: MyPy usually forbids placing non-default arguments after default arguments. However, because Quorum correctly registers the `pydantic.mypy` plugin in `pyproject.toml`, we can safely reorder CoT reasoning schema attributes to the very bottom of subclasses without crashing the audit pipeline.
 
 ## Remaining
-- **[Phase 5 Execution]**: Execute Phase 5 implementation (swapping attribute ordering in `StepDTOStrict` and `StepDTOSemantic`).
-- **[Post-Implementation Gates]**: After Phase 5, the global Tier 2 hardening and As-Built architecture syncs must be executed.
+- **[Phase 5 Audit]**: The System 2 Red-Team audit must evaluate the completion of Phase 5.
+- **[Post-Implementation Gates]**: After Phase 5 audit, the global Tier 2 hardening and As-Built architecture syncs must be executed.
 
 ## Resume Command
-`/tier2-execute @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
+`/tier8-audit-plan @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
