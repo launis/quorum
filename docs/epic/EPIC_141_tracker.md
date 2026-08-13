@@ -38,7 +38,7 @@
   - [x] (VERIFIED_EXISTING) Step 3: Fix CDATA encapsulation bugs in `matrix_sensor_prompt_builder.py`.
   - [x] (REMEDIATION) Step 4: Plumb Causal Alignment and `<dependency>` injection.
 - [x] **[OK] Test Coverage Assertions**
-- [ ] **[PENDING] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
 
 ### Phase 4: Automated Testing Strategy
 **Plan:** @[docs\epic\tasks_EPIC_141\Phase_4_Automated_Testing.md]
@@ -90,18 +90,18 @@
 
 # Session Handover Context
 ## Achieved
-- **Global Quality Gates Passed**: Both Backend and Frontend Universal Quality Gates successfully passed during the Final Epic Audit, and after the recent Phase 3 Remediation.
-- **Phase 3 Tier 0 Remediation**: Completed Red-Teaming for the missing Matrix Sensor Causal Alignment. Rewrote `Phase_3_Sensor_Routing.md` to properly plumb `current_states` down to `MatrixSensorPromptBuilder` for XML `<dependency>` tag injection without raw f-strings.
-- **Phase 3 Execution (Remediation)**: Successfully executed the remediation plan. `TopologicalEvaluator` and `EnrichedDagExecutor` now accurately plumb runtime statuses down into `ExtractiveSensorService`. `MatrixSensorPromptBuilder` correctly injects XML `<dependency>` elements based on resolved `AtomExecutionState` mappings.
-- **Test Restoration**: Successfully fixed callback signature anomalies in unit tests (`test_enriched_dag_executor.py` and `test_topological_evaluator.py`). Universal Quality Gates and strict MyPy typing achieved 100% pass rate.
+- **Global Epic Audit (Tier 8)**: Ran `/tier8-audit-epic` for Epic 141. Verified that backend (`backend_audit_loop.py`) and frontend (`flutter_audit_loop.py`) quality gates passed successfully. Validated Epic Markdown boundaries and Supply Chain integrity (no banned dependencies).
+- **Audit Findings**: Forensically verified Phase 3 Causal Alignment implementation. Discovered a missing component from Phase 4: `test_matrix_sensor_prompt_builder.py` lacks a unit test for `<dependency>` XML tag injection.
+- **Audit Report**: Generated the final `EPIC_141_audit_report.md` artifact (Status: FAIL) documenting the missing test gap.
+- **Phase 4 Remediation**: Added `test_build_compiled_prompt_dependency_injection` to `test_matrix_sensor_prompt_builder.py` validating the injection of `<dependency>` XML tags. Verified with 100% test coverage and passed the Universal Quality Gate.
 
 ## Learned
-- **Plan Dropped Boundaries**: The previous planner abstracted away the critical Phase 3 Causal Alignment steps entirely, which is why the execution agent omitted them.
-- **Fail-Fast Enforcement**: Because the physical implementation did not mathematically match the Epic's stated architectural requirement, the Tier 8 Audit explicitly FAILED and issued an `EPIC_141_audit_report.md`.
-- **Typing Integrity**: When modifying callbacks dynamically, `AsyncMock` assertions must be highly precise to avoid silent test-suite decay. Always use the proper `ExecutionStatus` SSOT values (e.g. `PENDING`) rather than hallucinated enumerations.
+- **Plan Dropped Boundaries**: The previous planner abstracted away the critical Phase 3 Causal Alignment steps, causing the execution agent to omit them.
+- **Fail-Fast Enforcement**: Because the physical implementation did not mathematically match the Epic's stated requirement, the previous Tier 8 Audit explicitly FAILED. This was caught and fully remediated in Phase 3.
+- **Test Alignment Drift**: While the logic was remediated in Phase 3, the corresponding test in Phase 4 was not updated, triggering a failure in the Final Epic Audit.
 
 ## Remaining
-- **Restart Final Epic Audit**: With the Phase 3 remediation execution completed, strictly typed, and thoroughly validated by tests, the final epic audit MUST be re-run to verify completeness and formally close Epic 141.
+- **Re-run Global Epic Audit (Tier 8)**: Verify the remediation resolves the final failure in the Audit Report.
 
 ## Resume Command
-`/tier8-audit-plan @[docs\epic\tasks_EPIC_141\Phase_3_Sensor_Routing.md] @[docs\epic\EPIC_141_tracker.md]`
+`/tier8-audit-epic @[docs\epic\EPIC_141_tracker.md]`
