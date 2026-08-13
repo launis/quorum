@@ -1,5 +1,7 @@
+import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.prompt import CompiledPrompt
@@ -76,29 +78,28 @@ def test_build_compiled_prompt_cdata_encapsulation() -> None:
 
 
 def test_build_compiled_prompt_negative_empty_nodes() -> None:
-    """PROMISE: Prove empty node lists are handled safely (anti-happy-path)."""
-    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
-        context_text="Source text", nodes=[], tda_id_to_alias={}, matrix_context=None
-    )
-
-    assert len(prompt.dynamic_messages) == 1
-    assert "<execution_parameters>" in prompt.dynamic_messages[0]["content"]
+    """PROMISE: Prove empty node lists crash the prompt builder (anti-happy-path)."""
+    with pytest.raises(AppException) as exc_info:
+        MatrixSensorPromptBuilder.build_compiled_prompt(
+            context_text="Source text", nodes=[], tda_id_to_alias={}, matrix_context=None
+        )
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 def test_build_compiled_prompt_negative_missing_aliases() -> None:
-    """PROMISE: Prove fallback to tda_id when alias is missing (anti-happy-path)."""
+    """PROMISE: Prove missing aliases crash the builder (anti-happy-path)."""
     atom_id = "tda_0987654321fedcba"
     atom = ExtractedAtomFactory.build(
         tda_id=atom_id, resolved_claim="Claim", is_logical_deduction=True, source_quote=None
     )
     node = LinkedAtomGraphFactory.build(atom=atom)
 
-    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
-        context_text="Context",
-        nodes=[node],
-        tda_id_to_alias={},  # Empty alias mapping
-        matrix_context=None,
-    )
+    with pytest.raises(AppException) as exc_info:
+        MatrixSensorPromptBuilder.build_compiled_prompt(
+            context_text="Context",
+            nodes=[node],
+            tda_id_to_alias={},  # Empty alias mapping
+            matrix_context=None,
+        )
 
-    dyn_content = prompt.dynamic_messages[0]["content"]
-    assert f'alias="{atom_id}"' in dyn_content  # Falls back to the raw ID
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"

@@ -6,6 +6,7 @@ import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
@@ -91,8 +92,8 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
 
 @pytest.mark.asyncio
 @patch("backend_v2.services.orchestrator.synthesis_distiller.Workflow.model_validate")
-async def test_synthesis_distiller_hook_negative_limit_exceeded(mock_validate: MagicMock) -> None:
-    """PROMISE: Prove safe truncation/handling when limit is exceeded (anti-happy-path)."""
+async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: MagicMock) -> None:
+    """PROMISE: Prove that missing target_locale crashes the hook (anti-happy-path)."""
     mock_validate.return_value = MagicMock(historical_context_mode="DISABLED", steps=[])
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -127,24 +128,18 @@ async def test_synthesis_distiller_hook_negative_limit_exceeded(mock_validate: M
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
     cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []
 
-    # Exceed limit
-    quotes = [
-        {"quote": f"Test quote {i}", "verified_source_ids": [f"src_{i}"], "unverified_aliases": [], "is_verified": True}
-        for i in range(50)
-    ]
-    payload = {"evidence_quotes": quotes}
+    step_output = StepOutputDTOFactory.build(payload={"evidence_quotes": []})
 
-    step_output = StepOutputDTOFactory.build(payload=payload)
-
+    # State intentionally missing target_locale in metadata
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wf_0123456789abcdef01",
-        metadata={"target_locale": "en", "organization_id": "org1"},
+        metadata={"organization_id": "org1"},  # target_locale missing
         inputs={"steps": [step_output.model_dump()]},
         global_context_vars={"organization_id": "org1"},
     )
 
-    from backend_v2.core.hook_registry import HookResult
+    with pytest.raises(AppException) as exc_info:
+        await synthesis_distiller_hook(state, deps)
 
-    result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
-    assert result.success is True
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"

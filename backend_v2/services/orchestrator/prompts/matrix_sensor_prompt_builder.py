@@ -5,6 +5,7 @@ cacheable static system instructions from dynamic per-batch user claims.
 """
 
 from backend_v2.core.template_processor import TemplateProcessor
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
@@ -114,9 +115,22 @@ class MatrixSensorPromptBuilder:
         if matrix_context and matrix_context.matrix_assertions:
             matrix_assertions_map = {assertion.atom_id: assertion for assertion in matrix_context.matrix_assertions}
 
+        if not nodes:
+            raise AppException(
+                message="Cannot build prompt with empty nodes.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         for node in nodes:
             tda_id = node.atom.tda_id
-            alias = tda_id_to_alias.get(tda_id, tda_id)
+            if tda_id not in tda_id_to_alias:
+                raise AppException(
+                    message=f"Missing alias for tda_id {tda_id}",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+            alias = tda_id_to_alias[tda_id]
             assertion = matrix_assertions_map.get(tda_id)
 
             if assertion:

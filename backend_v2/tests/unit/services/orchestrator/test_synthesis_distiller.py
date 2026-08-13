@@ -39,7 +39,7 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
 
 
 def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
-    """Test that SynthesisPayloadCompressor caps evaluations at 40 items."""
+    """PROMISE: Prevent LLM token explosion by failing fast on excessive evaluations."""
     evals = [
         {
             "atom_id": f"a{i}",
@@ -50,22 +50,29 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
     ]
     payload: dict[str, Any] = {"evaluations": evals}
 
-    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    import pytest
 
-    import json
+    from backend_v2.exceptions import AppException
 
-    parsed = json.loads(compressed_str)
-    assert len(parsed["evaluations"]) == 40
+    with pytest.raises(AppException) as exc_info:
+        SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 def test_compress_synthesis_payload_handles_string_input() -> None:
-    """Test that _compress_synthesis_payload handles plain string values."""
-    result = SynthesisPayloadCompressor.compress_synthesis_payload("plain text value")
-    assert result == "plain text value"
+    """PROMISE: Test that _compress_synthesis_payload fails fast on plain string values."""
+    import pytest
+
+    from backend_v2.exceptions import AppException
+
+    with pytest.raises(AppException) as exc_info:
+        SynthesisPayloadCompressor.compress_synthesis_payload("plain text value")
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 def test_compress_synthesis_payload_strips_null_quotes() -> None:
-    """Verify that _compress_synthesis_payload strips invalid null-like quote values."""
+    """PROMISE: Verify that _compress_synthesis_payload fails fast if all quotes are stripped."""
     payload: dict[str, Any] = {
         "evaluations": [
             {
@@ -80,9 +87,13 @@ def test_compress_synthesis_payload_strips_null_quotes() -> None:
             },
         ],
     }
-    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
-    # All quotes are filtered as invalid, so evaluation entry is dropped
-    assert "evaluations" not in compressed_str
+    import pytest
+
+    from backend_v2.exceptions import AppException
+
+    with pytest.raises(AppException) as exc_info:
+        SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 def test_compress_synthesis_payload_compresses_anchors() -> None:
