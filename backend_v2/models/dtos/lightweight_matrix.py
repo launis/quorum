@@ -3,7 +3,7 @@ from typing import Annotated, Any
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import LaxXaiExtensionType, LaxExecutionStatus
+from backend_v2.models.enums import LaxExecutionStatus, LaxXaiExtensionType
 
 
 class OutputProfileConfig(V2CoreBase):
