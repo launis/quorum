@@ -1902,6 +1902,8 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         system_repo=mock_repo_transformer,
     )
 
+    from backend_v2.models.enums import ExecutionStatus
+
     # 1. Provide custom scale and normalized_100 profiles to hit 337-339, 354-355
     profile_custom = OutputProfile(
         id="prf_1111111111111111",
@@ -1926,7 +1928,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
                 "raw_score": None,  # Hit 251-255
                 "normalized_score": None,
                 "level_breakdown": {},
-                "evaluated_atoms": {"tda_11111111111111111111111111111111": True},
+                "evaluated_atoms": {"tda_11111111111111111111111111111111": ExecutionStatus.PASSED},
                 "extensions": {},
             },
         ),

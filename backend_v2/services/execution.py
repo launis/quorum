@@ -987,11 +987,11 @@ class ExecutionService:
         for _k, v in record.context_variables.items():
             if isinstance(v, dict) and "evaluated_atoms" in v:
                 if atom_id in v["evaluated_atoms"]:
-                    v["evaluated_atoms"][atom_id] = payload.new_status.value
+                    v["evaluated_atoms"][atom_id] = payload.new_status
                     if "raw_atoms" in v and isinstance(v["raw_atoms"], list):
                         for ra in v["raw_atoms"]:
                             if ra.get("tda_id") == atom_id or ra.get("atom_id") == atom_id:
-                                ra["human_override"] = payload.new_status.value
+                                ra["human_override"] = payload.new_status
 
         deps = HookDependencies(
             exec_repo=self.exec_repo,

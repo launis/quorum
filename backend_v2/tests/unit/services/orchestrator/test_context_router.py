@@ -149,11 +149,13 @@ def test_route_and_prune_with_allowed_extensions() -> None:
 
 def test_route_and_prune_success() -> None:
     """Test successful pruning of a trace event."""
+    from backend_v2.models.enums import ExecutionStatus
+
     trace_event = {
         "normalized_score": 85.0,
         "level_breakdown": {"4.0": {"hits": 1, "total": 1}},
         "justification": "Good logic.",
-        "evaluated_atoms": {"atom_1": True, "atom_2": False},
+        "evaluated_atoms": {"atom_1": ExecutionStatus.PASSED, "atom_2": ExecutionStatus.FAILED},
         "extensions": {
             XaiExtensionType.CITATION: "Source A",
             XaiExtensionType.COACHING: "Improve here.",
@@ -171,7 +173,7 @@ def test_route_and_prune_success() -> None:
     assert result.normalized_score == 85.0
     assert result.level_breakdown == {"4.0": {"hits": 1, "total": 1}}
     assert result.justification == "Good logic."
-    assert result.evaluated_atoms == {"atom_1": True, "atom_2": False}
+    assert result.evaluated_atoms == {"atom_1": ExecutionStatus.PASSED, "atom_2": ExecutionStatus.FAILED}
 
     # Extensions should ONLY contain the requested ones, and handle Enum vs string keys
     assert len(result.extensions) == 2

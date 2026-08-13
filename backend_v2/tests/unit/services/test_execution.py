@@ -786,3 +786,20 @@ async def test_get_execution_export_bytes_empty_states_fails() -> None:
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert "no scoreable atoms" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_phase_1_5_negative_invalid_human_override_crashes() -> None:
+    """Verify that applying a human override via override_atom with an invalid ExecutionStatus
+    strictly crashes Pydantic validation before modifying the state dictionary.
+    """
+    from pydantic import ValidationError
+
+    from backend_v2.models.v2_core import HumanOverrideRequest
+
+    with pytest.raises(ValidationError):
+        HumanOverrideRequest(
+            new_status="NOT_AN_ENUM",  # type: ignore
+            reason="Invalid",
+            evidence_quotes=[],
+        )

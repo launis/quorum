@@ -40,13 +40,7 @@ def test_trace_matrix_payload_accepts_allowed_extensions() -> None:
 
 def test_trace_matrix_payload_coerces_failed_string() -> None:
     """Test that TraceMatrixPayloadDTO correctly coerces 'FAILED' string to ExecutionStatus.FAILED."""
-    payload = {
-        "raw_score": 4.5,
-        "evaluated_atoms": {
-            "a0": "FAILED",
-            "a1": "PASSED"
-        }
-    }
+    payload = {"raw_score": 4.5, "evaluated_atoms": {"a0": "FAILED", "a1": "PASSED"}}
     dto = TraceMatrixPayloadDTO.model_validate(payload)
     assert dto.evaluated_atoms is not None
     assert dto.evaluated_atoms["a0"] == ExecutionStatus.FAILED
@@ -55,23 +49,12 @@ def test_trace_matrix_payload_coerces_failed_string() -> None:
 
 def test_trace_matrix_payload_rejects_raw_bool() -> None:
     """Test that TraceMatrixPayloadDTO explicitly rejects raw bool values (True/False)."""
-    payload = {
-        "raw_score": 4.5,
-        "evaluated_atoms": {
-            "a0": False
-        }
-    }
+    payload = {"raw_score": 4.5, "evaluated_atoms": {"a0": False}}
     with pytest.raises(ValidationError) as exc:
         TraceMatrixPayloadDTO.model_validate(payload)
     assert "Input should be" in str(exc.value)
 
-    payload_true = {
-        "raw_score": 4.5,
-        "evaluated_atoms": {
-            "a0": True
-        }
-    }
+    payload_true = {"raw_score": 4.5, "evaluated_atoms": {"a0": True}}
     with pytest.raises(ValidationError) as exc_true:
         TraceMatrixPayloadDTO.model_validate(payload_true)
     assert "Input should be" in str(exc_true.value)
-

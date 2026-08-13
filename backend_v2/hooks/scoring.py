@@ -17,6 +17,7 @@ from backend_v2.models.dtos.lightweight_matrix import (
 )
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import (
+    ExecutionStatus,
     LaxXaiExtensionType,
     ScoringCalibrationThresholds,
     XaiExtensionType,
@@ -707,7 +708,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         block_scale_stats: dict[str, dict[float, dict[str, int]]] = {}
         missing_atoms_by_block: dict[str, list[str]] = {}
-        evaluated_atoms_by_block: dict[str, dict[str, bool | str]] = {}
+        evaluated_atoms_by_block: dict[str, dict[str, ExecutionStatus]] = {}
         atom_quotes_by_block: dict[str, list[Any]] = {}
         contested_atoms_by_block: dict[str, int] = {}
         matrix_extensions_by_block: dict[str, dict[str, list[str]]] = {}
@@ -912,21 +913,21 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
                             # Record the logic outcomes
                             if final_state == "DLQ":
-                                evaluated_atoms_by_block[pb_id][aid] = "DLQ"
+                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.SYSTEM_ERROR
                                 block_scale_stats[pb_id][s_val]["total"] += 1
                                 block_scale_stats[pb_id][s_val]["dlqs"] += 1
                                 missing_atoms_by_block[pb_id].append(f"- {text} (DLQ - Unscorable)")
                             elif final_state == "CONTESTED":
-                                evaluated_atoms_by_block[pb_id][aid] = "CONTESTED"
+                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.PASSED
                                 block_scale_stats[pb_id][s_val]["total"] += 1
                                 block_scale_stats[pb_id][s_val]["hits"] += 1
                                 contested_atoms_by_block[pb_id] += 1
                             elif final_state == "TRUE":
-                                evaluated_atoms_by_block[pb_id][aid] = True
+                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.PASSED
                                 block_scale_stats[pb_id][s_val]["total"] += 1
                                 block_scale_stats[pb_id][s_val]["hits"] += 1
                             else:
-                                evaluated_atoms_by_block[pb_id][aid] = False
+                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.FAILED
                                 block_scale_stats[pb_id][s_val]["total"] += 1
                                 missing_atoms_by_block[pb_id].append(f"- {text}")
 
@@ -1308,15 +1309,12 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
             effective_status = status
 
             # Epic 91.5: N/A items are mathematically excluded from the evaluation completely.
-            if effective_status == "N_A":
+            if effective_status == ExecutionStatus.N_A:
                 continue
 
-            if effective_status == "DLQ":
+            if effective_status == ExecutionStatus.SYSTEM_ERROR:
                 raw_stats[s_val]["dlqs"] += 1
-            elif effective_status == "CONTESTED":
-                raw_stats[s_val]["hits"] += 1
-                n_contested += 1
-            elif effective_status is True:
+            elif effective_status == ExecutionStatus.PASSED:
                 raw_stats[s_val]["hits"] += 1
 
         global_total = sum(level_data["total"] for level_data in raw_stats.values())

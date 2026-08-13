@@ -2,6 +2,7 @@
 
 <required_context_rules>
 - @[.agents/rules/00-antigravity-core.md]
+- @[.agents/rules/01-python-backend.md]
 - @[ki_god_code_prevention.md]
 - @[ki_tripartite_pipeline_architecture.md]
 - @[ki_sdui_matrix_synthesis.md]
