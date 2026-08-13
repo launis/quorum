@@ -35,22 +35,18 @@ async def get_redis_client_for_pacing() -> Any:
         AppException: STORAGE_ACCESS_FAILED if Redis connection pool creation fails.
     """
     global _redis_pool, _redis_loop
-    try:
-        current_loop = asyncio.get_running_loop()
-    except RuntimeError:
-        current_loop = None
 
     try:
         if "PYTEST_CURRENT_TEST" in os.environ:
             from unittest.mock import AsyncMock
-            
+
             mock_redis = AsyncMock()
             mock_redis.set.return_value = True
             return mock_redis
         else:
             if _redis_pool is not None:
                 return _redis_pool
-                
+
             settings = get_settings()
             _redis_pool = await create_pool(
                 RedisSettings(

@@ -144,7 +144,7 @@ def get_patched_fakeredis_pool() -> ArqRedis:
         An Arq-compatible wrapper around a patched FakeRedis instance.
     """
     from fakeredis import FakeServer
-    
+
     fake_redis = FakeRedis(server=FakeServer())
     fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}  # type: ignore[attr-defined]
 
