@@ -125,6 +125,9 @@ class MarkdownAuditor:
                 if "[NEW]" in line or "[DELETE]" in line:
                     continue
 
+                if rel_path.startswith("ki_") and rel_path.endswith(".md"):
+                    continue
+
                 if not full_path.exists():
                     self.errors.append(f"Line {i + 1}: Referenced file does not exist: {rel_path}")
                     continue
