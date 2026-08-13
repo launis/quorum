@@ -21,7 +21,7 @@ def print_error(msg: str) -> None:
     """Print an error message in red.
 
     Args:
-        msg (str): The error message.
+        msg: The error message.
     """
     print(f"{RED}ERROR: {msg}{RESET}")
 
@@ -30,20 +30,28 @@ def print_success(msg: str) -> None:
     """Print a success message in green.
 
     Args:
-        msg (str): The success message.
+        msg: The success message.
     """
     print(f"{GREEN}SUCCESS: {msg}{RESET}")
 
 
 class MarkdownAuditor:
-    """Auditor for analyzing architectural boundaries in Markdown."""
+    """Auditor for analyzing architectural boundaries in Markdown.
+
+    Attributes:
+        file_path: The file to audit.
+        repo_root: The root of the repository.
+        content: The text content of the file.
+        lines: The split lines of the file.
+        errors: A list of accumulated audit errors.
+    """
 
     def __init__(self, file_path: str, repo_root: str):
         """Initialize the auditor.
 
         Args:
-            file_path (str): The file to audit.
-            repo_root (str): The root of the repository.
+            file_path: The file to audit.
+            repo_root: The root of the repository.
         """
         self.file_path = file_path
         self.repo_root = Path(repo_root)
@@ -141,11 +149,11 @@ class MarkdownAuditor:
         """Verify that line ranges match a class or function exactly.
 
         Args:
-            file_path (Path): Path to the python file.
-            start_line (int): Start line.
-            end_line (int): End line.
-            md_line_num (int): The markdown line number referencing it.
-            rel_path (str): Relative path string used for error reporting.
+            file_path: Path to the python file.
+            start_line: Start line.
+            end_line: End line.
+            md_line_num: The markdown line number referencing it.
+            rel_path: Relative path string used for error reporting.
         """
         try:
             with open(file_path, encoding="utf-8") as f:

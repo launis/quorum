@@ -22,10 +22,10 @@ def extract_rule_blocks(file_path: Path) -> list[dict[str, str]]:
     """Parse a Markdown file and extract rule blocks dynamically.
 
     Args:
-        file_path (Path): Path to the Markdown rules file.
+        file_path: Path to the Markdown rules file.
 
     Returns:
-        list[dict[str, str]]: List of dictionaries containing rule logic.
+        List of dictionaries containing rule logic.
     """
     if not file_path.exists():
         print(f"Error: Rules file {file_path} not found.")
@@ -55,7 +55,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
     """Generate a blank JSON matrix with injected context.
 
     Args:
-        args (argparse.Namespace): CLI arguments.
+        args: CLI arguments.
     """
     repo_root = get_repo_root()
     core_rules = repo_root / ".agents" / "rules" / "00-antigravity-core.md"
@@ -106,10 +106,10 @@ def check_anti_laziness(justification: str) -> str | None:
     """Verify justification length and complexity to prevent AI laziness.
 
     Args:
-        justification (str): The provided justification text.
+        justification: The provided justification text.
 
     Returns:
-        str | None: Error message if failed, else None.
+        Error message if failed, else None.
     """
     if len(justification) < 25:
         return f"Justification too short ({len(justification)} chars). Must be >= 25 chars."
@@ -125,7 +125,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
     """Verify a filled JSON matrix for strict compliance and anti-laziness.
 
     Args:
-        args (argparse.Namespace): CLI arguments.
+        args: CLI arguments.
     """
     matrix_path = Path(args.file)
     if not matrix_path.exists():
