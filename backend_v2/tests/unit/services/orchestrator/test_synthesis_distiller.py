@@ -6,7 +6,7 @@ Epic 93 Phase 2, Milestone 1.7: Tests for metadata stripping and matrices_to_exp
 from typing import Any
 
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.services.orchestrator.synthesis_distiller import _assemble_matrices_to_explain
+from backend_v2.services.orchestrator.matrix_explanation_service import MatrixExplanationService
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 
 
@@ -111,10 +111,14 @@ def test_assemble_matrices_to_explain_basic() -> None:
             payload={
                 "normalized_score": 78.5,
                 "level_breakdown": {"3": 2},
-                "evaluated_atoms": [
-                    {"atom_id": "a1", "exact_quotes": [{"quote": "Quote A from source."}]},
-                    {"atom_id": "a2", "exact_quotes": [{"quote": "Quote B from source."}]},
+                "results": [
+                    {"tda_id": "a1", "exact_quotes": [{"quote": "Quote A from source."}]},
+                    {"tda_id": "a2", "exact_quotes": [{"quote": "Quote B from source."}]},
                 ],
+                "evaluated_atoms": {
+                    "a1": True,
+                    "a2": True,
+                },
             },
         ),
     ]
@@ -127,7 +131,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
     mock_pb.scales = None
     blocks_by_id = {"blk_matrix1": mock_pb}
 
-    result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
+    result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
 
     assert len(result) == 1
     assert result[0]["matrix_id"] == "MX-0"
@@ -156,7 +160,7 @@ def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
     mock_pb.scales = None
     blocks_by_id = {"blk_matrix1": mock_pb}
 
-    result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
+    result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
     assert len(result) == 1
     assert result[0]["justification"] == "No direct evidence quotes extracted for this matrix."
 
@@ -168,7 +172,11 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
             step_id="step1",
             block_id="blk_matrix1",
             data_type="matrix",
-            payload={"normalized_score": 78.5, "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": []}]},
+            payload={
+                "normalized_score": 78.5,
+                "results": [{"tda_id": "a1", "exact_quotes": []}],
+                "evaluated_atoms": {"a1": True},
+            },
         ),
     ]
     from unittest.mock import MagicMock
@@ -180,7 +188,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
     mock_pb.scales = None
     blocks_by_id = {"blk_matrix1": mock_pb}
 
-    result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
+    result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
     assert len(result) == 1
     assert result[0]["real_matrix_id"] == "blk_matrix1"
     assert result[0]["justification"] == "No direct evidence quotes extracted for this matrix."
@@ -195,7 +203,8 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
             data_type="matrix",
             payload={
                 "normalized_score": 50.0,
-                "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": [{"quote": "Quote 1"}]}],
+                "results": [{"tda_id": "a1", "exact_quotes": [{"quote": "Quote 1"}]}],
+                "evaluated_atoms": {"a1": True},
             },
         ),
         StepOutputDTO(
@@ -204,7 +213,8 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
             data_type="matrix",
             payload={
                 "normalized_score": 90.0,
-                "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": [{"quote": "Quote 2"}]}],
+                "results": [{"tda_id": "a1", "exact_quotes": [{"quote": "Quote 2"}]}],
+                "evaluated_atoms": {"a1": True},
             },
         ),
     ]
@@ -217,6 +227,6 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
     mock_pb.scales = None
     blocks_by_id = {"blk_m1": mock_pb}
 
-    result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)  # type: ignore
+    result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)  # type: ignore
     assert len(result) == 1
     assert result[0]["score"] == 50.0  # First entry wins

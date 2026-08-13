@@ -258,8 +258,8 @@ class TestPhase2PipelineUnification:
         Falsification: Build scenario with matching and non-matching data.
         """
         from backend_v2.models.state import StepOutputDTO
-        from backend_v2.services.orchestrator.synthesis_distiller import (
-            _assemble_matrices_to_explain,
+        from backend_v2.services.orchestrator.matrix_explanation_service import (
+            MatrixExplanationService,
         )
 
         dtos = [
@@ -269,14 +269,19 @@ class TestPhase2PipelineUnification:
                 data_type="matrix",
                 payload={
                     "normalized_score": 80.0,
-                    "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": [{"quote": "Q1"}]}],
+                    "results": [{"tda_id": "a1", "exact_quotes": [{"quote": "Q1"}]}],
+                    "evaluated_atoms": {"a1": True},
                 },
             ),
             StepOutputDTO(
                 step_id="s2",
                 block_id="blk_m2",
                 data_type="matrix",
-                payload={"normalized_score": 60.0, "evaluated_atoms": [{"atom_id": "a1", "exact_quotes": []}]},
+                payload={
+                    "normalized_score": 60.0,
+                    "results": [{"tda_id": "a2", "exact_quotes": []}],
+                    "evaluated_atoms": {"a2": True},
+                },
             ),
         ]
         from unittest.mock import MagicMock
@@ -294,7 +299,7 @@ class TestPhase2PipelineUnification:
             "blk_m1": mock_m1,
             "blk_m2": mock_m2,
         }
-        result = _assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks)
+        result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks)
         # blk_m1 has quotes, blk_m2 has empty quotes
         assert len(result) == 2
         assert result[0]["matrix_id"] == "MX-0"
