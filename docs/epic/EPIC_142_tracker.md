@@ -78,7 +78,7 @@
   - [x] Step 2: REORDER STEPDTOSEMANTIC CoT FIELDS
   - [x] Step 3: QUALITY GATE & VERIFICATION
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
 - [ ] Backend and Frontend full-stack integration test gates.
@@ -140,15 +140,22 @@
 - **[Phase 5 Step 1 Completed]**: Reordered the `decision` field to appear explicitly after `semantic_reasoning` in `StepDTOStrict` to enforce Chain-of-Thought ordering.
 - **[Phase 5 Step 2 Completed]**: Reordered the `contextual_override` field to appear explicitly after `override_reason` in `StepDTOSemantic` to enforce Chain-of-Thought ordering before overrides.
 - **[Phase 5 Step 3 Completed]**: Successfully ran `backend_audit_loop.py` which verified type integrity and test coverage. Phase 5 execution is now fully complete.
+- **[Phase 5 Audit Completed]**: Completed the System 2 Red-Team audit on Phase 5 execution. Schemas were verified and the universal quality gates ran successfully. Documented findings in `red_team_audit_phase_5.md`.
+- **[Tier 2 Backend Hardening Started (Post-Implementation)]**: Began auditing files touched during Epic 142.
+- **[matrix_domain_parser.py Hardened]**: Refactored logic to eliminate dict-based level naming for strict 2D array indexing, respecting SDUI polymorphism. The file is fully compliant with Python 3.14 V2 strictness and passed the audit loop with 100% test passing.
+- **[synthesis.py Hardened]**: Verified Pydantic V2 schemas and tightened type constraints, ensuring no legacy overrides remain. Audit loop passed.
+- **[matrix_explanation_service.py Hardened]**: Completely replaced legacy dict-based evaluation mappings (`raw_data.get('source_quote')`) with strict `AtomResultDTO` parsing. Fixed the `Null Hypothesis` exception logic so that `FAILED` claims correctly omit source quotes but are still assembled properly into the justification context for the SDUI matrix layout. Test suites were rewritten to align with strict Pydantic parsing and passed the audit loop.
 
 ## Learned
 - **DTO Access strictness**: Pydantic V2 models (`MatrixExplanationContextDTO`) injected into the Arq worker payloads MUST be accessed via attributes (`m_dto.real_matrix_id`), as the `extra='forbid'` global constraint blocks legacy dict `.get()` fallback methods.
 - **Frontend SDUI Validation**: The flutter client uses `score` and `normalized_score` rather than a `raw_score` in the matrix UI JSON blocks, which minimized the refactoring surface area for Phase 4.
 - **MyPy & Pydantic CoT Ordering**: MyPy usually forbids placing non-default arguments after default arguments. However, because Quorum correctly registers the `pydantic.mypy` plugin in `pyproject.toml`, we can safely reorder CoT reasoning schema attributes to the very bottom of subclasses without crashing the audit pipeline.
+- **Null Hypothesis & Test Mocks**: When refactoring business logic to parse raw dicts into strict Pydantic schemas (e.g. `AtomResultDTO`), old test mocks that injected mathematically impossible states (like a `FAILED` execution status having a `source_quote`) will immediately crash because Pydantic `model_validator`s enforce the `Null Hypothesis`. We must update unit test mocks to reflect possible architectural states.
 
 ## Remaining
-- **[Phase 5 Audit]**: The System 2 Red-Team audit must evaluate the completion of Phase 5.
-- **[Post-Implementation Gates]**: After Phase 5 audit, the global Tier 2 hardening and As-Built architecture syncs must be executed.
+- **[backend_v2/worker.py]**: Next up for Tier 2 Hardening.
+- **[backend_v2/models/dtos/evaluation_steps.py]**: Final file for Tier 2 Backend Hardening.
+- **[Post-Implementation Gates]**: Execute the remaining global architecture syncs, frontend hardening, and final E2E test verification.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/EPIC_142/phase_5_plan.md] @[docs/epic/EPIC_142_tracker.md]`
+`/tier2-hardening-backend @[backend_v2/worker.py] @[backend_v2/models/dtos/evaluation_steps.py] @[docs/epic/EPIC_142_tracker.md]`

@@ -8,7 +8,7 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.v2_core import AtomResultDTO, PromptBlock
 from backend_v2.utils.alias_engine import AliasEngine
 
 
@@ -39,35 +39,21 @@ class MatrixExplanationService:
         global_quotes_map: dict[str, list[str]] = {}
         for dto in available_dtos:
             if isinstance(dto.payload, dict) and "results" in dto.payload:
-                for atom_res in dto.payload["results"]:
-                    if isinstance(atom_res, dict) and "tda_id" in atom_res:
-                        t_id = atom_res["tda_id"]
-                        quotes = []
+                results_list = dto.payload["results"]
+                if isinstance(results_list, list):
+                    for atom_dict in results_list:
+                        if isinstance(atom_dict, dict):
+                            try:
+                                atom_res = AtomResultDTO.model_validate(atom_dict, strict=False)
+                            except Exception:
+                                continue
 
-                        if "exact_quotes" in atom_res and isinstance(atom_res["exact_quotes"], list):
-                            for eq in atom_res["exact_quotes"]:
-                                if isinstance(eq, dict):
-                                    txt = eq.get("text") or eq.get("quote")
-                                    if txt:
-                                        quotes.append(str(txt))
-                                elif isinstance(eq, str):
-                                    quotes.append(eq)
-                        elif "extensions" in atom_res and isinstance(atom_res["extensions"], dict):
-                            ext_quotes = atom_res["extensions"].get("exact_quotes", [])
-                            if isinstance(ext_quotes, list):
-                                for eq in ext_quotes:
-                                    if isinstance(eq, dict):
-                                        txt = eq.get("text") or eq.get("quote")
-                                        if txt:
-                                            quotes.append(str(txt))
-                                    elif isinstance(eq, str):
-                                        quotes.append(eq)
+                            quotes = []
+                            if atom_res.source_quote:
+                                quotes.append(str(atom_res.source_quote))
 
-                        if not quotes and "source_quote" in atom_res and atom_res["source_quote"]:
-                            quotes.append(str(atom_res["source_quote"]))
-
-                        if quotes:
-                            global_quotes_map[t_id] = quotes
+                            if quotes:
+                                global_quotes_map[atom_res.tda_id] = quotes
 
         for step_dto_obj in available_dtos:
             payload = step_dto_obj.payload
@@ -121,14 +107,16 @@ class MatrixExplanationService:
                     unique_quotes = list(dict.fromkeys(quotes_list))
 
                     level_breakdown_str = ""
-                    level_breakdown = payload.get("level_breakdown")
-                    if isinstance(level_breakdown, dict) and level_breakdown:
+                    if lw_matrix.level_breakdown:
                         breakdowns = []
-                        for lvl, stats in level_breakdown.items():
+                        for lvl, stats in lw_matrix.level_breakdown.items():
                             if isinstance(stats, dict):
                                 hits = stats.get("hits", 0)
                                 total = stats.get("total", 0)
-                                breakdowns.append(f"Level {lvl}: {hits}/{total} hits")
+                            else:
+                                hits = getattr(stats, "hits", 0)
+                                total = getattr(stats, "total", 0)
+                            breakdowns.append(f"Level {lvl}: {hits}/{total} hits")
                         if breakdowns:
                             level_breakdown_str = "[DISTRIBUTION CONTEXT: " + ", ".join(breakdowns) + "]\n\n"
 
@@ -150,7 +138,7 @@ class MatrixExplanationService:
                         real_matrix_id=block_id,
                         matrix_id=matrix_alias,
                         matrix_label=title_map.get(block_id.lower(), block_id),
-                        score=payload.get("normalized_score"),
+                        score=lw_matrix.normalized_score,
                         justification=justification_text,
                     )
 

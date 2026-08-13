@@ -19,8 +19,22 @@ def test_assemble_matrices_to_explain_basic() -> None:
             payload={
                 "normalized_score": 78.5,
                 "results": [
-                    {"tda_id": "a1", "exact_quotes": ["Quote A from source."]},
-                    {"tda_id": "a2", "exact_quotes": ["Quote B from source."]},
+                    {
+                        "tda_id": "a1",
+                        "status": "PASSED",
+                        "evaluation_reasoning": "Reason",
+                        "source_quote": "Quote A from source.",
+                        "depends_on_tda_ids": [],
+                        "short_circuit_reason_tda_ids": [],
+                    },
+                    {
+                        "tda_id": "a2",
+                        "status": "PASSED",
+                        "evaluation_reasoning": "Reason",
+                        "source_quote": "Quote B from source.",
+                        "depends_on_tda_ids": [],
+                        "short_circuit_reason_tda_ids": [],
+                    },
                 ],
                 "evaluated_atoms": {
                     "a1": ExecutionStatus.PASSED.value,
@@ -83,7 +97,16 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
             data_type="matrix",
             payload={
                 "normalized_score": 78.5,
-                "results": [{"tda_id": "a1", "exact_quotes": []}],
+                "results": [
+                    {
+                        "tda_id": "a1",
+                        "status": "PASSED",
+                        "evaluation_reasoning": "Reason",
+                        "source_quote": None,
+                        "depends_on_tda_ids": [],
+                        "short_circuit_reason_tda_ids": [],
+                    }
+                ],
                 "evaluated_atoms": {"a1": ExecutionStatus.PASSED.value},
             },
         ),
@@ -113,7 +136,16 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
             data_type="matrix",
             payload={
                 "normalized_score": 50.0,
-                "results": [{"tda_id": "a1", "exact_quotes": ["Quote 1"]}],
+                "results": [
+                    {
+                        "tda_id": "a1",
+                        "status": "PASSED",
+                        "evaluation_reasoning": "Reason",
+                        "source_quote": "Quote 1",
+                        "depends_on_tda_ids": [],
+                        "short_circuit_reason_tda_ids": [],
+                    }
+                ],
                 "evaluated_atoms": {"a1": ExecutionStatus.PASSED.value},
             },
         ),
@@ -123,7 +155,16 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
             data_type="matrix",
             payload={
                 "normalized_score": 90.0,
-                "results": [{"tda_id": "a1", "exact_quotes": ["Quote 2"]}],
+                "results": [
+                    {
+                        "tda_id": "a1",
+                        "status": "PASSED",
+                        "evaluation_reasoning": "Reason",
+                        "source_quote": "Quote 2",
+                        "depends_on_tda_ids": [],
+                        "short_circuit_reason_tda_ids": [],
+                    }
+                ],
                 "evaluated_atoms": {"a1": ExecutionStatus.PASSED.value},
             },
         ),
@@ -144,7 +185,9 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
 
 
 def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
-    """PROMISE: Matrix explanation must include FAILED claims and skip N_A claims."""
+    """PROMISE: Matrix explanation must include FAILED claims and skip N_A claims.
+    Since FAILED claims mathematically cannot have a source_quote (Null Hypothesis), this triggers the fallback.
+    """
     dtos = [
         StepOutputDTO(
             step_id="step1",
@@ -153,13 +196,25 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
             payload={
                 "normalized_score": 78.5,
                 "results": [
-                    {"tda_id": "a1", "exact_quotes": ["Quote A for pass."]},
-                    {"tda_id": "a2", "exact_quotes": ["Quote B for fail."]},
-                    {"tda_id": "a3", "exact_quotes": ["Quote C for NA."]},
+                    {
+                        "tda_id": "a1",
+                        "status": "FAILED",
+                        "evaluation_reasoning": "Reason",
+                        "source_quote": None,
+                        "depends_on_tda_ids": [],
+                        "short_circuit_reason_tda_ids": [],
+                    },
+                    {
+                        "tda_id": "a3",
+                        "status": "N_A",
+                        "evaluation_reasoning": "Reason",
+                        "source_quote": None,
+                        "depends_on_tda_ids": [],
+                        "short_circuit_reason_tda_ids": [],
+                    },
                 ],
                 "evaluated_atoms": {
-                    "a1": ExecutionStatus.PASSED.value,
-                    "a2": ExecutionStatus.FAILED.value,
+                    "a1": ExecutionStatus.FAILED.value,
                     "a3": ExecutionStatus.N_A.value,
                 },
             },
@@ -168,16 +223,29 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
 
     from typing import cast
     from unittest.mock import MagicMock
+    from backend_v2.models.v2_core import I18nText
 
     mock_pb_magic = MagicMock(spec=PromptBlock)
     mock_pb_magic.category_id = "matrix"
-    mock_pb_magic.scales = None
+    
+    # Mock scales with claims
+    mock_claim1 = MagicMock()
+    mock_claim1.label = I18nText(default_locale="en", translations={"en": "Claim 1"})
+    mock_claim1.tda_assertions = [MagicMock(tda_id="a1")]
+    
+    mock_claim3 = MagicMock()
+    mock_claim3.label = I18nText(default_locale="en", translations={"en": "Claim 3"})
+    mock_claim3.tda_assertions = [MagicMock(tda_id="a3")]
+    
+    mock_scale = MagicMock()
+    mock_scale.claims = [mock_claim1, mock_claim3]
+    mock_pb_magic.scales = [mock_scale]
+    
     mock_pb = cast(PromptBlock, mock_pb_magic)
     blocks_by_id = {"blk_matrix1": mock_pb}
 
     result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
 
     assert len(result) == 1
-    assert "Quote A for pass." in result[0].justification
-    assert "Quote B for fail." in result[0].justification
-    assert "Quote C for NA." not in result[0].justification
+    assert "Claim 1" in result[0].justification
+    assert "Claim 3" not in result[0].justification
